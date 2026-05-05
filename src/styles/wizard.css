@@ -1,0 +1,130 @@
+/**
+ * Wizard UI - Unified Design System
+ * Mobile First, High Contrast, Accessible
+ */
+
+/* ========================================
+   HEADINGS - Einheitliche Überschriften
+   ======================================== */
+
+.wizard-h1 {
+  @apply text-3xl sm:text-4xl md:text-5xl font-bold text-white leading-tight;
+}
+
+.wizard-h1-gradient {
+  @apply text-3xl sm:text-4xl md:text-5xl font-bold bg-gradient-to-r from-white via-[#66c0b6] to-white bg-clip-text text-transparent leading-tight;
+}
+
+.wizard-h2 {
+  @apply text-2xl sm:text-3xl md:text-4xl font-bold text-white leading-tight;
+}
+
+.wizard-h3 {
+  @apply text-xl sm:text-2xl font-bold text-white leading-tight;
+}
+
+.wizard-subtitle {
+  @apply text-base sm:text-lg text-white/70;
+}
+
+/* ========================================
+   BUTTONS - Einheitliche Buttons
+   ======================================== */
+
+.wizard-btn-primary {
+  @apply w-full sm:w-auto px-8 py-4 rounded-xl bg-[#66c0b6] text-black font-semibold text-base sm:text-lg;
+  @apply hover:bg-[#57b0a6] active:scale-95 transition-all;
+  @apply disabled:opacity-50 disabled:cursor-not-allowed;
+  @apply flex items-center justify-center gap-2 shadow-lg;
+}
+
+.wizard-btn-secondary {
+  @apply w-full sm:w-auto px-8 py-4 rounded-xl border-2 border-white/30 text-white font-semibold text-base sm:text-lg;
+  @apply hover:bg-white/10 active:scale-95 transition-all;
+  @apply disabled:opacity-50 disabled:cursor-not-allowed;
+  @apply flex items-center justify-center gap-2;
+}
+
+.wizard-btn-ghost {
+  @apply w-full sm:w-auto px-6 py-3 rounded-xl text-white/70 font-medium text-sm sm:text-base;
+  @apply hover:text-white hover:bg-white/5 transition-all;
+  @apply flex items-center justify-center gap-2;
+}
+
+/* ========================================
+   INPUTS - Hoher Kontrast
+   ======================================== */
+
+.wizard-input {
+  @apply w-full px-4 py-3.5 rounded-xl;
+  @apply bg-white/10 border-2 border-white/20;
+  @apply text-white placeholder:text-white/50;
+  @apply focus:border-[#66c0b6] focus:bg-white/15;
+  @apply transition-all text-base outline-none;
+}
+
+.wizard-textarea {
+  @apply w-full px-4 py-3.5 rounded-xl;
+  @apply bg-white/10 border-2 border-white/20;
+  @apply text-white placeholder:text-white/50;
+  @apply focus:border-[#66c0b6] focus:bg-white/15;
+  @apply transition-all text-base outline-none resize-none;
+}
+
+.wizard-select {
+  @apply w-full px-4 py-3.5 rounded-xl;
+  @apply bg-white/10 border-2 border-white/20;
+  @apply text-white;
+  @apply focus:border-[#66c0b6] focus:bg-white/15;
+  @apply transition-all text-base outline-none appearance-none cursor-pointer;
+}
+
+/* ========================================
+   LABELS - Gut lesbar
+   ======================================== */
+
+.wizard-label {
+  @apply block text-sm sm:text-base font-semibold text-white mb-2;
+}
+
+.wizard-label-optional {
+  @apply block text-sm sm:text-base font-semibold text-white/80 mb-2;
+}
+
+.wizard-label-required::after {
+  content: "*";
+  @apply ml-1 text-[#66c0b6];
+}
+
+/* ========================================
+   CARDS
+   ======================================== */
+
+.wizard-card {
+  @apply bg-white/5 backdrop-blur-md border border-white/10 rounded-2xl p-6 sm:p-8;
+}
+
+.wizard-card-interactive {
+  @apply bg-white/5 backdrop-blur-md border-2 border-white/10 rounded-2xl p-6 sm:p-8;
+  @apply hover:border-[#66c0b6]/50 transition-all cursor-pointer;
+}
+
+.wizard-card-selected {
+  @apply bg-white/10 backdrop-blur-md border-2 border-[#66c0b6] rounded-2xl p-6 sm:p-8;
+}
+
+/* ========================================
+   LAYOUT
+   ======================================== */
+
+.wizard-section {
+  @apply space-y-6 sm:space-y-8;
+}
+
+.wizard-grid-2 {
+  @apply grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-6;
+}
+
+.wizard-flex-buttons {
+  @apply flex flex-col sm:flex-row gap-4 items-stretch sm:items-center;
+}
