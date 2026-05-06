@@ -281,10 +281,14 @@ function prepareCloneForPrint(cloneDoc: Document): void {
         const gapTotal = gapPx * (frValues.length - 1);
         const usable = containerW - gapTotal;
         const pixelCols = frValues.map((v) => `${Math.round((v! / totalFr) * usable)}px`).join(' ');
+        )
+        )
+        )
         el.style.setProperty('grid-template-columns', pixelCols, 'important');
         if (gapPx > 0) {
           el.style.setProperty('column-gap', `${gapPx}px`, 'important');
         }
+      }
       }
     }
   });
@@ -527,6 +531,61 @@ function prepareCloneForPrint(cloneDoc: Document): void {
           c.style.setProperty('margin-bottom', `${gapPx}px`, 'important');
         });
       }
+    }
+  });
+
+  // ── 11b. Force overflow:visible on chip-row containers via DOM ───────────
+  // The templates set overflow:'hidden' as an inline style on [data-chip-row]
+  // elements. Inline styles have higher priority than injected <style> rules,
+  // so we must patch them directly on the DOM node before html2canvas renders.
+  cloneDoc.querySelectorAll<HTMLElement>('[data-chip-row]').forEach((el) => {
+    el.style.setProperty('overflow', 'visible', 'important');
+    el.style.setProperty('overflow-x', 'visible', 'important');
+    el.style.setProperty('overflow-y', 'visible', 'important');
+  });
+  // Also catch any <ul> skill containers without the data attribute
+  // (Classic template uses <ul style="display:block; overflow:hidden">)
+  cloneDoc.querySelectorAll<HTMLElement>('ul[style*="overflow"]').forEach((el) => {
+    el.style.setProperty('overflow', 'visible', 'important');
+  });
+
+  // ── 11c. Fix role/company stacking in job entry headers ───────────────────
+  // ModernCVTemplate renders each experience entry header as:
+  //   <div style="display:flex; justify-content:space-between; align-items:center; gap:10px">
+  //     <div style="flex:1; minWidth:0">
+  //       <div>Job Title</div>      ← should be on its own line
+  //       <div>Company Name</div>   ← should be on next line below title
+  //     </div>
+  //     <DateBadge />
+  //   </div>
+  // In the clone the Editable divs become normal divs — but if align-items:center
+  // causes the left column to not stack correctly we normalise it to flex-start.
+  // We target specifically: flex containers whose first child has flex:1 and
+  // contains two or more block children (title + company stack).
+  cloneDoc.querySelectorAll<HTMLElement>('*').forEach((el) => {
+    if (el.style.display !== 'flex') return;
+    if (el.style.justifyContent !== 'space-between') return;
+    const firstChild = el.firstElementChild as HTMLElement | null;
+    if (!firstChild) return;
+    // The left column must be flex:1 with at least two block children
+    const fc = firstChild.style.flex || firstChild.style.flexGrow || '';
+    if (!fc.startsWith('1')) return;
+    const blockChildren = Array.from(firstChild.children).filter((c) => {
+      const cs = window.getComputedStyle(c as HTMLElement);
+      return cs.display === 'block' || (c as HTMLElement).style.display === 'block'
+        || (c as HTMLElement).tagName === 'DIV';
+    });
+    if (blockChildren.length >= 2) {
+      // Ensure align-items is flex-start so block children stack vertically
+      el.style.setProperty('align-items', 'flex-start', 'important');
+      // Ensure the left column itself is display:block so its children stack
+      firstChild.style.setProperty('display', 'block', 'important');
+      firstChild.style.setProperty('flex', '1 1 0%', 'important');
+      firstChild.style.setProperty('min-width', '0', 'important');
+      // Each child in the left column should be display:block
+      blockChildren.forEach((c) => {
+        (c as HTMLElement).style.setProperty('display', 'block', 'important');
+      });
     }
   });
 
@@ -1049,4 +1108,5 @@ export function debugLogPDFHtml(
   if (navigator.clipboard?.writeText) {
     navigator.clipboard.writeText(html).then(() => console.log('[PDF Debug] Copied to clipboard.')).catch(() => {});
   }
+}
 }
