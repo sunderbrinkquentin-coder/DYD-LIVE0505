@@ -281,14 +281,10 @@ function prepareCloneForPrint(cloneDoc: Document): void {
         const gapTotal = gapPx * (frValues.length - 1);
         const usable = containerW - gapTotal;
         const pixelCols = frValues.map((v) => `${Math.round((v! / totalFr) * usable)}px`).join(' ');
-        )
-        )
-        )
         el.style.setProperty('grid-template-columns', pixelCols, 'important');
         if (gapPx > 0) {
           el.style.setProperty('column-gap', `${gapPx}px`, 'important');
         }
-      }
       }
     }
   });
@@ -1053,5 +1049,4 @@ export function debugLogPDFHtml(
   if (navigator.clipboard?.writeText) {
     navigator.clipboard.writeText(html).then(() => console.log('[PDF Debug] Copied to clipboard.')).catch(() => {});
   }
-}
 }
