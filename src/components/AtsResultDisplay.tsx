@@ -199,33 +199,41 @@ export const AtsResultDisplay: React.FC<Props> = ({
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.1 }}
-              className="rounded-2xl bg-[#0b1220] border border-white/5 shadow-xl p-4 sm:p-6"
+              className="rounded-2xl bg-[#0b1220] border border-white/5 shadow-xl p-5 sm:p-7"
             >
-              <div className="flex flex-col sm:flex-row items-center gap-5 sm:gap-6">
-                <CircularScore score={score} />
-                <div className="text-center sm:text-left">
-                  <p className="text-lg md:text-xl font-bold text-white mb-1">{scoreLabel}</p>
-                  <p className="text-sm text-white/60 mb-4">
-                    Dein CV hat einen ATS-Score von {score}/100
-                  </p>
+              {/* Score ring + label row */}
+              <div className="flex items-center gap-6 sm:gap-8">
+                {/* Ring — fixed size, never squished */}
+                <div className="flex-shrink-0">
+                  <CircularScore score={score} />
+                </div>
 
-                  {/* Profile context chips */}
-                  {profileChips.length > 0 && (
-                    <div className="flex flex-wrap gap-2 justify-center sm:justify-start">
-                      {profileChips.map(({ icon: Icon, label, value }) => (
-                        <div
-                          key={label}
-                          className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-white/[0.06] border border-white/10 text-xs"
-                        >
-                          <Icon size={12} className="text-[#66c0b6] flex-shrink-0" />
-                          <span className="text-white/50">{label}:</span>
-                          <span className="text-white/80 font-medium">{value}</span>
-                        </div>
-                      ))}
-                    </div>
-                  )}
+                {/* Label + sub-text */}
+                <div className="min-w-0">
+                  <p className="text-xl md:text-2xl font-bold text-white leading-tight">{scoreLabel}</p>
+                  <p className="text-sm text-white/50 mt-1">ATS-Score {score}/100</p>
                 </div>
               </div>
+
+              {/* Profile meta grid — 2 columns, separated by a subtle top border */}
+              {profileChips.length > 0 && (
+                <div className="mt-5 pt-5 border-t border-white/[0.07] grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  {profileChips.map(({ icon: Icon, label, value }) => (
+                    <div
+                      key={label}
+                      className="flex items-start gap-3 px-3 py-2.5 rounded-xl bg-white/[0.04] border border-white/[0.07]"
+                    >
+                      <div className="w-7 h-7 rounded-lg bg-[#66c0b6]/10 flex items-center justify-center flex-shrink-0 mt-0.5">
+                        <Icon size={14} className="text-[#66c0b6]" />
+                      </div>
+                      <div className="min-w-0">
+                        <p className="text-[10px] font-semibold uppercase tracking-widest text-white/35 mb-0.5">{label}</p>
+                        <p className="text-sm text-white/80 font-medium leading-snug break-words">{value}</p>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
             </motion.div>
 
             {/* TABS */}
