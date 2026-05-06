@@ -54,6 +54,8 @@ export function DashboardPage() {
   const [showAccountSettings, setShowAccountSettings] = useState(false);
   const [highlightedCvId, setHighlightedCvId] = useState<string | null>(null);
   const [expandedCheckId, setExpandedCheckId] = useState<string | null>(null);
+  const [showNewCvCheckBanner, setShowNewCvCheckBanner] = useState(false);
+  const [newCvUnlockId, setNewCvUnlockId] = useState<string | null>(null);
 
 
   // ---------- Ladefunktionen ----------
@@ -453,6 +455,19 @@ export function DashboardPage() {
       setSearchParams(newParams);
     }
 
+    // Neuer CV-Check wurde gespeichert (Weiterleitung von AtsResultDisplay)
+    const cvCheckParam = searchParams.get('cv_check');
+    const cvUnlockParam = searchParams.get('cv_unlock');
+    if (cvCheckParam === 'new') {
+      setShowNewCvCheckBanner(true);
+      if (cvUnlockParam) setNewCvUnlockId(cvUnlockParam);
+      setTimeout(() => setShowNewCvCheckBanner(false), 8000);
+      const newParams = new URLSearchParams(searchParams);
+      newParams.delete('cv_check');
+      newParams.delete('cv_unlock');
+      setSearchParams(newParams);
+    }
+
     // Nach erfolgreichem Festival-Ticket-Kauf
     const ticketSuccessParam = searchParams.get('ticket_success');
     if (ticketSuccessParam === '1') {
@@ -757,6 +772,47 @@ export function DashboardPage() {
                 Deine Credits werden gutgeschrieben – die Anzeige aktualisiert sich automatisch.
               </div>
             </div>
+          </div>
+        </div>
+      )}
+
+      {showNewCvCheckBanner && (
+        <div className="fixed top-4 right-4 z-50 animate-in slide-in-from-top-2 duration-300 max-w-sm w-full">
+          <div
+            className="rounded-2xl px-5 py-4 shadow-2xl border flex items-start gap-3"
+            style={{
+              background: 'linear-gradient(135deg, #0d2420 0%, #0a1e1b 100%)',
+              borderColor: 'rgba(102,192,182,0.4)',
+              boxShadow: '0 8px 32px rgba(0,0,0,0.5), 0 0 0 1px rgba(102,192,182,0.1)',
+            }}
+          >
+            <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-[#66c0b6] to-[#30E3CA] flex items-center justify-center flex-shrink-0 mt-0.5">
+              <ClipboardCheck size={18} className="text-black" />
+            </div>
+            <div className="flex-1 min-w-0">
+              <p className="text-sm font-bold text-white leading-snug">CV-Check gespeichert!</p>
+              <p className="text-xs text-white/55 mt-0.5 leading-snug">
+                Deine Analyse ist jetzt unter "Meine CV-Analysen" abrufbar.
+              </p>
+              {newCvUnlockId && (
+                <button
+                  onClick={() => {
+                    setShowNewCvCheckBanner(false);
+                    navigate(`/cv-paywall?cvId=${newCvUnlockId}&source=cv_unlock`);
+                  }}
+                  className="mt-2.5 flex items-center gap-1.5 text-xs font-semibold text-[#66c0b6] hover:text-[#30E3CA] transition-colors"
+                >
+                  <Lock size={12} />
+                  Detailanalyse freischalten
+                </button>
+              )}
+            </div>
+            <button
+              onClick={() => setShowNewCvCheckBanner(false)}
+              className="text-white/30 hover:text-white/70 transition-colors flex-shrink-0 mt-0.5"
+            >
+              <X size={16} />
+            </button>
           </div>
         </div>
       )}

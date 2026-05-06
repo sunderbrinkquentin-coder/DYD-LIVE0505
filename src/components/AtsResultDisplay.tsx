@@ -143,11 +143,9 @@ export const AtsResultDisplay: React.FC<Props> = ({
     onSaveComplete?.();
     setIsSaving(false);
 
-    if (!isPaid) {
-      setShowUnlockModal(true);
-    } else {
-      navigate('/dashboard');
-    }
+    // Always go to dashboard and surface the new check notification there.
+    // For unpaid users, the dashboard will also offer the unlock upsell.
+    navigate(`/dashboard?cv_check=new${!isPaid ? `&cv_unlock=${uploadId}` : ''}`);
   };
 
   const handleUnlockYes = () => {
