@@ -1,9 +1,10 @@
 export function getScoreLabel(score: number): string {
-  if (score >= 80) return 'Sehr stark! Nur Feinschliff nötig';
-  if (score >= 70) return 'Gut aufgestellt, weitere Optimierungen möglich';
-  if (score >= 50) return 'Solide Basis mit Verbesserungspotenzial';
-  if (score >= 30) return 'Großes Verbesserungspotenzial vorhanden';
-  return 'Dringend Optimierung empfohlen';
+  if (score >= 85) return 'Hervorragendes Profil';
+  if (score >= 75) return 'Starkes Profil';
+  if (score >= 65) return 'Solide Basis';
+  if (score >= 50) return 'Ausbaufähiges Profil';
+  if (score >= 35) return 'Großes Verbesserungspotenzial';
+  return 'Dringend optimieren';
 }
 
 export function getProgressColor(score: number): string {
