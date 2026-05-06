@@ -331,16 +331,16 @@ export const MinimalCVTemplate: React.FC<MinimalCVTemplateProps> = ({
         return (
           <div key={sectionIndex}>
             <SectionTitle>{section.title || 'Fähigkeiten'}</SectionTitle>
-            <div data-chip-row style={{ display: 'block', overflow: 'hidden' }}>
+            <div data-chip-row style={{ display: 'block', overflow: 'visible' }}>
               {items.map((skill: any, idx: number) => {
                 const val = typeof skill === 'string' ? skill : skill.skill || skill.name || '';
+                const level = typeof skill === 'object' && skill !== null ? skill.level || skill.niveau || '' : '';
+                const display = level ? `${val} (${level})` : val;
                 return (
-                  <span key={idx} style={{ display: 'inline-flex', alignItems: 'center', marginRight: '6px', marginBottom: '6px', verticalAlign: 'middle' }}
-                    className="px-2.5 py-1 rounded-full border border-slate-300 bg-slate-100 whitespace-nowrap">
+                  <span key={idx} style={{ display: 'inline-flex', alignItems: 'center', marginRight: '6px', marginBottom: '6px', verticalAlign: 'middle', padding: '3px 10px', borderRadius: '9999px', border: '1px solid #cbd5e1', background: '#f1f5f9', whiteSpace: 'nowrap' }}>
                     <input
-                      className="bg-transparent outline-none text-[9.5px] font-semibold text-slate-800 min-w-[20px]"
-                      style={{ width: `${Math.max(20, val.length * 6.5)}px` }}
-                      value={val}
+                      style={{ background: 'transparent', outline: 'none', fontSize: '9.5px', fontWeight: 600, color: '#1e293b', minWidth: '20px', border: 'none', width: `${Math.max(20, display.length * 6.5)}px` }}
+                      value={display}
                       onChange={(e) => onUpdateSectionItem(sectionIndex, idx, 'skill', e.target.value)}
                       placeholder="Skill"
                     />
@@ -356,16 +356,16 @@ export const MinimalCVTemplate: React.FC<MinimalCVTemplateProps> = ({
         return (
           <div key={sectionIndex}>
             <SectionTitle>{section.title || 'Soft Skills'}</SectionTitle>
-            <div data-chip-row style={{ display: 'block', overflow: 'hidden' }}>
+            <div data-chip-row style={{ display: 'block', overflow: 'visible' }}>
               {items.map((skill: any, idx: number) => {
                 const val = typeof skill === 'string' ? skill : skill.skill || skill.name || '';
+                const level = typeof skill === 'object' && skill !== null ? skill.level || skill.niveau || '' : '';
+                const display = level ? `${val} (${level})` : val;
                 return (
-                  <span key={idx} style={{ display: 'inline-flex', alignItems: 'center', marginRight: '6px', marginBottom: '6px', verticalAlign: 'middle' }}
-                    className="px-2.5 py-1 rounded-full border border-slate-200 bg-white whitespace-nowrap">
+                  <span key={idx} style={{ display: 'inline-flex', alignItems: 'center', marginRight: '6px', marginBottom: '6px', verticalAlign: 'middle', padding: '3px 10px', borderRadius: '9999px', border: '1px solid #e2e8f0', background: '#ffffff', whiteSpace: 'nowrap' }}>
                     <input
-                      className="bg-transparent outline-none text-[9.5px] font-medium text-slate-700 min-w-[20px]"
-                      style={{ width: `${Math.max(20, val.length * 6.5)}px` }}
-                      value={val}
+                      style={{ background: 'transparent', outline: 'none', fontSize: '9.5px', fontWeight: 500, color: '#334155', minWidth: '20px', border: 'none', width: `${Math.max(20, display.length * 6.5)}px` }}
+                      value={display}
                       onChange={(e) => onUpdateSectionItem(sectionIndex, idx, 'skill', e.target.value)}
                       placeholder="Stärke"
                     />
@@ -382,19 +382,20 @@ export const MinimalCVTemplate: React.FC<MinimalCVTemplateProps> = ({
         return (
           <div key={sectionIndex}>
             <SectionTitle>Arbeitsweise & Werte</SectionTitle>
-            <div data-chip-row style={{ display: 'block', overflow: 'hidden' }}>
-              {items.map((val: any, idx: number) => (
-                <span key={idx} style={{ display: 'inline-flex', marginRight: '4px', marginBottom: '4px', verticalAlign: 'middle' }}>
-                  <input
-                    className="px-2 py-0.5 rounded-md border border-slate-300 bg-slate-50 text-[9px] text-slate-900 outline-none"
-                    value={typeof val === 'string' ? val : val.label || ''}
-                    onChange={(e) =>
-                      onUpdateSectionItem(sectionIndex, idx, 'label', e.target.value)
-                    }
-                    placeholder="Wert"
-                  />
-                </span>
-              ))}
+            <div data-chip-row style={{ display: 'block', overflow: 'visible' }}>
+              {items.map((val: any, idx: number) => {
+                const v = typeof val === 'string' ? val : val.label || '';
+                return (
+                  <span key={idx} style={{ display: 'inline-flex', alignItems: 'center', marginRight: '4px', marginBottom: '4px', verticalAlign: 'middle', padding: '2px 8px', borderRadius: '6px', border: '1px solid #cbd5e1', background: '#f8fafc', whiteSpace: 'nowrap' }}>
+                    <input
+                      style={{ background: 'transparent', outline: 'none', fontSize: '9px', color: '#0f172a', border: 'none', minWidth: '20px', width: `${Math.max(20, v.length * 6)}px` }}
+                      value={v}
+                      onChange={(e) => onUpdateSectionItem(sectionIndex, idx, 'label', e.target.value)}
+                      placeholder="Wert"
+                    />
+                  </span>
+                );
+              })}
             </div>
           </div>
         );
@@ -405,28 +406,34 @@ export const MinimalCVTemplate: React.FC<MinimalCVTemplateProps> = ({
         return (
           <div key={sectionIndex}>
             <SectionTitle>Hobbys & Interessen</SectionTitle>
-            <div data-chip-row style={{ display: 'block', overflow: 'hidden' }}>
-              {items.map((hob: any, idx: number) => (
-                <span key={idx} style={{ display: 'inline-flex', marginRight: '4px', marginBottom: '4px', verticalAlign: 'middle' }}>
-                  <input
-                    className="px-2 py-0.5 rounded-md border border-slate-300 bg-slate-50 text-[9px] text-slate-900 outline-none"
-                    value={typeof hob === 'string' ? hob : hob.label || ''}
-                    onChange={(e) =>
-                      onUpdateSectionItem(sectionIndex, idx, 'label', e.target.value)
-                    }
-                    placeholder="Hobby"
-                  />
-                </span>
-              ))}
+            <div data-chip-row style={{ display: 'block', overflow: 'visible' }}>
+              {items.map((hob: any, idx: number) => {
+                const v = typeof hob === 'string' ? hob : hob.label || '';
+                return (
+                  <span key={idx} style={{ display: 'inline-flex', alignItems: 'center', marginRight: '4px', marginBottom: '4px', verticalAlign: 'middle', padding: '2px 8px', borderRadius: '6px', border: '1px solid #cbd5e1', background: '#f8fafc', whiteSpace: 'nowrap' }}>
+                    <input
+                      style={{ background: 'transparent', outline: 'none', fontSize: '9px', color: '#0f172a', border: 'none', minWidth: '20px', width: `${Math.max(20, v.length * 6)}px` }}
+                      value={v}
+                      onChange={(e) => onUpdateSectionItem(sectionIndex, idx, 'label', e.target.value)}
+                      placeholder="Hobby"
+                    />
+                  </span>
+                );
+              })}
             </div>
           </div>
         );
 
-      default:
+      default: {
+        const TYPE_LABELS_MIN: Record<string, string> = {
+          skills: 'Fähigkeiten', soft_skills: 'Soft Skills', hard_skills: 'Fachliche Skills',
+          tools: 'Tools & Software', certifications: 'Zertifikate', courses: 'Weiterbildung',
+          awards: 'Auszeichnungen', volunteering: 'Ehrenamt',
+        };
         if (items.length === 0) return null;
         return (
           <div key={sectionIndex}>
-            <SectionTitle>{section.title || section.type}</SectionTitle>
+            <SectionTitle>{section.title || TYPE_LABELS_MIN[section.type] || section.type}</SectionTitle>
             <ul className="space-y-1 text-[10px] text-slate-800">
               {items.map((it: any, idx: number) => {
                 const value =
@@ -452,6 +459,7 @@ export const MinimalCVTemplate: React.FC<MinimalCVTemplateProps> = ({
             </ul>
           </div>
         );
+      }
     }
   };
 
@@ -565,8 +573,8 @@ export const MinimalCVTemplate: React.FC<MinimalCVTemplateProps> = ({
         </header>
 
         {/* Content */}
-        <main className="flex-1 px-8 py-4 grid grid-cols-12 gap-6">
-          <section className="col-span-12 md:col-span-7 space-y-3">
+        <main className="flex-1 px-8 py-4 grid grid-cols-1 md:grid-cols-12 gap-6">
+          <section className="col-span-1 md:col-span-7 space-y-3">
             <div>
               <SectionTitle>Profil</SectionTitle>
               <textarea
@@ -592,7 +600,7 @@ export const MinimalCVTemplate: React.FC<MinimalCVTemplateProps> = ({
             })}
           </section>
 
-          <aside className="col-span-12 md:col-span-5 space-y-3">
+          <aside className="col-span-1 md:col-span-5 space-y-3">
             {rightSections.map((section) => {
               const index = sections.findIndex((s) => s === section);
               return renderSection(section, index);

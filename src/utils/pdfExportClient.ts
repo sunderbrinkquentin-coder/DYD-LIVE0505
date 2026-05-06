@@ -727,6 +727,25 @@ async function renderElementToPDFBlob(
 
   window.scrollTo(0, 0);
 
+  // ── Collect all CSS text from the live document BEFORE html2canvas clones it ──
+  // html2canvas copies <link> tags but they break in the iframe (relative URL).
+  // We read every stylesheet's cssText here (synchronous, in-page) and inject it
+  // as an inline <style> in the onclone callback so the clone has full Tailwind CSS.
+  const liveCSS: string[] = [];
+  try {
+    Array.from(document.styleSheets).forEach((sheet) => {
+      try {
+        const rules = Array.from(sheet.cssRules || []);
+        liveCSS.push(rules.map((r) => r.cssText).join('\n'));
+      } catch {
+        // Cross-origin sheet — skip (rare in same-origin Vite app)
+      }
+    });
+  } catch {
+    // Ignore any permission errors
+  }
+  const liveCSSText = liveCSS.join('\n');
+
   console.log('[PDF Export] Rendering canvas (scale:', scale, ')...');
   console.log('[PDF Export] Element size:', element.offsetWidth, 'x', element.offsetHeight, 'scrollH:', element.scrollHeight);
 
@@ -748,6 +767,15 @@ async function renderElementToPDFBlob(
       scrollX: 0,
       scrollY: 0,
       onclone: (cloneDoc) => {
+        // Inject the live CSS so Tailwind classes resolve correctly in the clone
+        if (liveCSSText) {
+          const liveStyleEl = cloneDoc.createElement('style');
+          liveStyleEl.textContent = liveCSSText;
+          (cloneDoc.head || cloneDoc.documentElement).insertBefore(
+            liveStyleEl,
+            (cloneDoc.head || cloneDoc.documentElement).firstChild
+          );
+        }
         prepareCloneForPrint(cloneDoc);
       },
     });

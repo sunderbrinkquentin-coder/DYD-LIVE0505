@@ -144,21 +144,25 @@ export const CreativeCVTemplate: React.FC<CreativeCVTemplateProps> = ({
 
   const renderSection = (section: EditorSection, sectionIndex: number) => {
     const items = Array.isArray(section.items) ? section.items : [];
-    const sectionTitle =
-      section.title ||
-      (section.type === 'experience'
-        ? 'Berufserfahrung'
-        : section.type === 'projects'
-        ? 'Projekte'
-        : section.type === 'education'
-        ? 'Ausbildung & Studium'
-        : section.type === 'languages'
-        ? 'Sprachen'
-        : section.type === 'work_values' || section.type === 'values'
-        ? 'Arbeitsweise & Werte'
-        : section.type === 'hobbies' || section.type === 'interests'
-        ? 'Hobbys & Interessen'
-        : section.type);
+    const TYPE_LABELS: Record<string, string> = {
+      experience: 'Berufserfahrung',
+      projects: 'Projekte',
+      education: 'Ausbildung & Studium',
+      languages: 'Sprachen',
+      work_values: 'Arbeitsweise & Werte',
+      values: 'Arbeitsweise & Werte',
+      hobbies: 'Hobbys & Interessen',
+      interests: 'Interessen',
+      skills: 'Fähigkeiten',
+      soft_skills: 'Soft Skills',
+      hard_skills: 'Fachliche Skills',
+      tools: 'Tools & Software',
+      certifications: 'Zertifikate',
+      courses: 'Weiterbildung',
+      awards: 'Auszeichnungen',
+      volunteering: 'Ehrenamt',
+    };
+    const sectionTitle = section.title || TYPE_LABELS[section.type] || section.type;
 
     // Berufserfahrung & Projekte IMMER anzeigen
     const mustShow = section.type === 'experience' || section.type === 'projects';
@@ -484,18 +488,19 @@ export const CreativeCVTemplate: React.FC<CreativeCVTemplateProps> = ({
       case 'skills':
         return (
           <div key={sectionIndex}>
-            <div className="mb-0.5 text-[9px] font-semibold tracking-wide text-[#cbd5f5] uppercase">
+            <div style={{ marginBottom: '2px', fontSize: '9px', fontWeight: 600, letterSpacing: '0.05em', color: '#cbd5f5', textTransform: 'uppercase' }}>
               Fachlich
             </div>
-            <div data-chip-row style={{ display: 'block', overflow: 'hidden' }}>
+            <div data-chip-row style={{ display: 'block', overflow: 'visible' }}>
               {items.map((skill: any, idx: number) => {
-                const val = typeof skill === 'string' ? skill : skill.skill || '';
+                const val = typeof skill === 'string' ? skill : skill.skill || skill.name || '';
+                const level = typeof skill === 'object' && skill !== null ? skill.level || skill.niveau || '' : '';
+                const display = level ? `${val} (${level})` : val;
                 return (
-                  <span key={idx} style={{ display: 'inline-flex', alignItems: 'center', marginRight: '4px', marginBottom: '4px', verticalAlign: 'middle' }} className="px-1.5 py-0.5 bg-[#020617] rounded-full border border-[#38bdf8] whitespace-nowrap">
+                  <span key={idx} style={{ display: 'inline-flex', alignItems: 'center', marginRight: '4px', marginBottom: '4px', verticalAlign: 'middle', padding: '2px 6px', borderRadius: '9999px', background: '#020617', border: '1px solid #38bdf8', whiteSpace: 'nowrap' }}>
                     <input
-                      className="bg-transparent outline-none text-[9px] text-[#f9fafb] min-w-[20px]"
-                      style={{ width: `${Math.max(20, val.length * 5.5)}px` }}
-                      value={val}
+                      style={{ background: 'transparent', outline: 'none', fontSize: '9px', color: '#f9fafb', minWidth: '20px', border: 'none', width: `${Math.max(20, display.length * 5.5)}px` }}
+                      value={display}
                       onChange={(e) => onUpdateSectionItem(sectionIndex, idx, 'skill', e.target.value)}
                       placeholder="Skill"
                     />
@@ -510,18 +515,19 @@ export const CreativeCVTemplate: React.FC<CreativeCVTemplateProps> = ({
       case 'soft_skills':
         return (
           <div key={sectionIndex}>
-            <div className="mb-0.5 text-[9px] font-semibold tracking-wide text-[#cbd5f5] uppercase">
+            <div style={{ marginBottom: '2px', fontSize: '9px', fontWeight: 600, letterSpacing: '0.05em', color: '#cbd5f5', textTransform: 'uppercase' }}>
               Persönlich
             </div>
-            <div data-chip-row style={{ display: 'block', overflow: 'hidden' }}>
+            <div data-chip-row style={{ display: 'block', overflow: 'visible' }}>
               {items.map((skill: any, idx: number) => {
-                const val = typeof skill === 'string' ? skill : skill.skill || '';
+                const val = typeof skill === 'string' ? skill : skill.skill || skill.name || '';
+                const level = typeof skill === 'object' && skill !== null ? skill.level || skill.niveau || '' : '';
+                const display = level ? `${val} (${level})` : val;
                 return (
-                  <span key={idx} style={{ display: 'inline-flex', alignItems: 'center', marginRight: '4px', marginBottom: '4px', verticalAlign: 'middle' }} className="px-1.5 py-0.5 bg-[#020617] rounded-full border border-[#a855f7] whitespace-nowrap">
+                  <span key={idx} style={{ display: 'inline-flex', alignItems: 'center', marginRight: '4px', marginBottom: '4px', verticalAlign: 'middle', padding: '2px 6px', borderRadius: '9999px', background: '#020617', border: '1px solid #a855f7', whiteSpace: 'nowrap' }}>
                     <input
-                      className="bg-transparent outline-none text-[9px] text-[#f9fafb] min-w-[20px]"
-                      style={{ width: `${Math.max(20, val.length * 5.5)}px` }}
-                      value={val}
+                      style={{ background: 'transparent', outline: 'none', fontSize: '9px', color: '#f9fafb', minWidth: '20px', border: 'none', width: `${Math.max(20, display.length * 5.5)}px` }}
+                      value={display}
                       onChange={(e) => onUpdateSectionItem(sectionIndex, idx, 'skill', e.target.value)}
                       placeholder="Stärke"
                     />
@@ -538,19 +544,20 @@ export const CreativeCVTemplate: React.FC<CreativeCVTemplateProps> = ({
         return (
           <div key={sectionIndex}>
             <SectionTitle>Arbeitsweise & Werte</SectionTitle>
-            <div data-chip-row style={{ display: 'block', overflow: 'hidden' }}>
-              {items.map((val: any, idx: number) => (
-                <span key={idx} style={{ display: 'inline-flex', marginRight: '4px', marginBottom: '4px', verticalAlign: 'middle' }}>
-                  <input
-                    className="px-1.5 py-0.5 bg-[#020617] text-[9px] rounded-full border border-[#22c1c3] outline-none text-[#f9fafb]"
-                    value={typeof val === 'string' ? val : val.label || ''}
-                    onChange={(e) =>
-                      onUpdateSectionItem(sectionIndex, idx, 'label', e.target.value)
-                    }
-                    placeholder="Wert"
-                  />
-                </span>
-              ))}
+            <div data-chip-row style={{ display: 'block', overflow: 'visible' }}>
+              {items.map((val: any, idx: number) => {
+                const v = typeof val === 'string' ? val : val.label || '';
+                return (
+                  <span key={idx} style={{ display: 'inline-flex', alignItems: 'center', marginRight: '4px', marginBottom: '4px', verticalAlign: 'middle', padding: '2px 6px', borderRadius: '9999px', background: '#020617', border: '1px solid #22c1c3', whiteSpace: 'nowrap' }}>
+                    <input
+                      style={{ background: 'transparent', outline: 'none', fontSize: '9px', color: '#f9fafb', border: 'none', minWidth: '20px', width: `${Math.max(20, v.length * 5.5)}px` }}
+                      value={v}
+                      onChange={(e) => onUpdateSectionItem(sectionIndex, idx, 'label', e.target.value)}
+                      placeholder="Wert"
+                    />
+                  </span>
+                );
+              })}
             </div>
           </div>
         );
@@ -561,19 +568,20 @@ export const CreativeCVTemplate: React.FC<CreativeCVTemplateProps> = ({
         return (
           <div key={sectionIndex}>
             <SectionTitle>Hobbys & Interessen</SectionTitle>
-            <div data-chip-row style={{ display: 'block', overflow: 'hidden' }}>
-              {items.map((hob: any, idx: number) => (
-                <span key={idx} style={{ display: 'inline-flex', marginRight: '4px', marginBottom: '4px', verticalAlign: 'middle' }}>
-                  <input
-                    className="px-1.5 py-0.5 bg-[#020617] text-[9px] rounded-full border border-[#f97316] outline-none text-[#f9fafb]"
-                    value={typeof hob === 'string' ? hob : hob.label || ''}
-                    onChange={(e) =>
-                      onUpdateSectionItem(sectionIndex, idx, 'label', e.target.value)
-                    }
-                    placeholder="Hobby"
-                  />
-                </span>
-              ))}
+            <div data-chip-row style={{ display: 'block', overflow: 'visible' }}>
+              {items.map((hob: any, idx: number) => {
+                const v = typeof hob === 'string' ? hob : hob.label || '';
+                return (
+                  <span key={idx} style={{ display: 'inline-flex', alignItems: 'center', marginRight: '4px', marginBottom: '4px', verticalAlign: 'middle', padding: '2px 6px', borderRadius: '9999px', background: '#020617', border: '1px solid #f97316', whiteSpace: 'nowrap' }}>
+                    <input
+                      style={{ background: 'transparent', outline: 'none', fontSize: '9px', color: '#f9fafb', border: 'none', minWidth: '20px', width: `${Math.max(20, v.length * 5.5)}px` }}
+                      value={v}
+                      onChange={(e) => onUpdateSectionItem(sectionIndex, idx, 'label', e.target.value)}
+                      placeholder="Hobby"
+                    />
+                  </span>
+                );
+              })}
             </div>
           </div>
         );

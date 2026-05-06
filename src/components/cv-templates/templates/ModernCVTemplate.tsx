@@ -732,7 +732,7 @@ export const ModernCVTemplate: React.FC<ModernCVTemplateProps> = ({
         if (items.length === 0) return null;
         return (
           <div key={`${section.type}-${sectionIndex}`}>
-            <SectionTitle>{section.title || section.type}</SectionTitle>
+            <SectionTitle>{section.title || { awards: 'Auszeichnungen', volunteering: 'Ehrenamt' }[section.type] || section.type}</SectionTitle>
             <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
               {items.map((it: any, idx: number) => (
                 <div
@@ -760,11 +760,16 @@ export const ModernCVTemplate: React.FC<ModernCVTemplateProps> = ({
           </div>
         );
 
-      default:
+      default: {
+        const TYPE_LABELS_DEFAULT: Record<string, string> = {
+          skills: 'Fähigkeiten', soft_skills: 'Soft Skills', hard_skills: 'Fachliche Skills',
+          tools: 'Tools & Software', certifications: 'Zertifikate', courses: 'Weiterbildung',
+          awards: 'Auszeichnungen', volunteering: 'Ehrenamt',
+        };
         if (items.length === 0) return null;
         return (
           <div key={`${section.type}-${sectionIndex}`}>
-            <SectionTitle>{section.title || section.type}</SectionTitle>
+            <SectionTitle>{section.title || TYPE_LABELS_DEFAULT[section.type] || section.type}</SectionTitle>
             <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
               {items.map((it: any, idx: number) => (
                 <div
@@ -791,6 +796,7 @@ export const ModernCVTemplate: React.FC<ModernCVTemplateProps> = ({
             </div>
           </div>
         );
+      }
     }
   };
 
