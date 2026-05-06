@@ -49,15 +49,19 @@ async function toBase64DataUri(src: string): Promise<string> {
 // Any input/textarea/contenteditable whose trimmed value equals one of these
 // (or is empty) is treated as blank and either removed or left invisible.
 const PLACEHOLDER_STRINGS = new Set([
-  'position / rolle', 'unternehmen', 'mm/jjjj', 'heute', 'projekttitel',
-  'deine rolle', 'abschluss', 'institution', 'von', 'bis', 'zeitraum',
+  // Multi-word placeholder phrases — safe to remove, never appear as real content
+  'position / rolle', 'unternehmen', 'mm/jjjj', 'projekttitel',
+  'deine rolle', 'abschluss', 'institution', 'zeitraum',
   'aufgaben und wichtigste erfolge', 'aufgabe / ergebnis', 'beschreibung / aufgaben',
   'kurz aufgaben und erfolge beschreiben', 'schwerpunkte / noten / themen',
   'zielposition / profil', 'vollständiger name', 'dein name', 'berufsbezeichnung',
-  'ort', 'telefon', 'e-mail', 'linkedin', 'niveau', 'sprache',
+  'telefon', 'e-mail', 'linkedin', 'niveau', 'sprache',
   'kurzprofil: wichtige erfahrungen, stärken und dein mehrwert für die rolle.',
-  'eintrag', 'skill', 'stärke', 'wert', 'hobby', 'projekte', 'position',
-  'rolle', 'projekt', 'mon/jjjj',
+  'skill', 'stärke', 'mon/jjjj',
+  // NOTE: 'von', 'bis', 'rolle', 'position', 'projekt', 'projekte', 'wert', 'hobby',
+  // 'eintrag', 'ort', 'heute' are intentionally excluded — they can appear as real user
+  // content (e.g. city name "Ort", date value "Heute", role name "Rolle").
+  // Empty string '' is handled by the v === '' check in isPlaceholderValue().
 ]);
 
 function isPlaceholderValue(value: string): boolean {
@@ -366,6 +370,13 @@ function prepareCloneForPrint(cloneDoc: Document): void {
       const cols = match.replace('md:grid-cols-', '');
       el.style.setProperty('grid-template-columns', `repeat(${cols}, minmax(0, 1fr))`, 'important');
       el.style.setProperty('display', 'grid', 'important');
+      // Preserve gap: html2canvas doesn't honour Tailwind gap-N classes reliably,
+      // so read the computed column-gap from the live element and re-apply inline.
+      // Tailwind gap-6 = 24px, gap-4 = 16px. Fall back to 24px if unresolvable.
+      const computedGap = window.getComputedStyle(el).columnGap;
+      const gapPx = computedGap && computedGap !== 'normal' ? computedGap : '24px';
+      el.style.setProperty('column-gap', gapPx, 'important');
+      el.style.setProperty('row-gap', gapPx, 'important');
     }
   });
 
@@ -375,6 +386,35 @@ function prepareCloneForPrint(cloneDoc: Document): void {
     if (match) {
       const span = match.replace('md:col-span-', '');
       el.style.setProperty('grid-column', `span ${span} / span ${span}`, 'important');
+      el.style.setProperty('min-width', '0', 'important');
+    }
+  });
+
+  // ── 5c. Fix Classic template flex sidebar widths ─────────────────────────
+  // Classic uses w-2/5 max-w-[32%] (sidebar) and flex-1 (main). Neither has
+  // md: prefix so step 5b doesn't touch them. Force widths explicitly.
+  cloneDoc.querySelectorAll<HTMLElement>('[class*="w-2/5"]').forEach((el) => {
+    el.style.setProperty('width', '40%', 'important');
+    el.style.setProperty('flex-shrink', '0', 'important');
+    el.style.setProperty('max-width', '40%', 'important');
+  });
+  cloneDoc.querySelectorAll<HTMLElement>('[class*="max-w-\\[32%\\]"]').forEach((el) => {
+    el.style.setProperty('max-width', 'none', 'important');
+  });
+
+  // ── 5d. Fix overflow:hidden on flex/block skill containers ───────────────
+  // Classic <ul style="overflow:hidden"> clips the inline-flex chip row to 0px
+  // because inline-flex children fall outside normal block flow.
+  // Strip inline overflow:hidden from elements that are NOT photo containers.
+  cloneDoc.querySelectorAll<HTMLElement>('ul, ol').forEach((el) => {
+    const s = el.style;
+    if (s.overflow === 'hidden' || s.overflowY === 'hidden' || s.overflowX === 'hidden') {
+      const hasImg = el.querySelector('img') !== null;
+      const cs = window.getComputedStyle(el);
+      const hasBorderRadius = cs.borderRadius && cs.borderRadius !== '0px' && cs.borderRadius !== '0';
+      if (!hasImg && !hasBorderRadius) {
+        s.setProperty('overflow', 'visible', 'important');
+      }
     }
   });
 

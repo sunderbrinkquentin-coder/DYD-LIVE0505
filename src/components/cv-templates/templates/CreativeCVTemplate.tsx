@@ -487,11 +487,11 @@ export const CreativeCVTemplate: React.FC<CreativeCVTemplateProps> = ({
             <div className="mb-0.5 text-[9px] font-semibold tracking-wide text-[#cbd5f5] uppercase">
               Fachlich
             </div>
-            <div className="flex flex-wrap gap-0.5">
+            <div data-chip-row style={{ display: 'block', overflow: 'hidden' }}>
               {items.map((skill: any, idx: number) => {
                 const val = typeof skill === 'string' ? skill : skill.skill || '';
                 return (
-                  <span key={idx} className="inline-flex items-center px-1.5 py-0.5 bg-[#020617] rounded-full border border-[#38bdf8] whitespace-nowrap">
+                  <span key={idx} style={{ display: 'inline-flex', alignItems: 'center', marginRight: '4px', marginBottom: '4px', verticalAlign: 'middle' }} className="px-1.5 py-0.5 bg-[#020617] rounded-full border border-[#38bdf8] whitespace-nowrap">
                     <input
                       className="bg-transparent outline-none text-[9px] text-[#f9fafb] min-w-[20px]"
                       style={{ width: `${Math.max(20, val.length * 5.5)}px` }}
@@ -513,11 +513,11 @@ export const CreativeCVTemplate: React.FC<CreativeCVTemplateProps> = ({
             <div className="mb-0.5 text-[9px] font-semibold tracking-wide text-[#cbd5f5] uppercase">
               Persönlich
             </div>
-            <div className="flex flex-wrap gap-0.5">
+            <div data-chip-row style={{ display: 'block', overflow: 'hidden' }}>
               {items.map((skill: any, idx: number) => {
                 const val = typeof skill === 'string' ? skill : skill.skill || '';
                 return (
-                  <span key={idx} className="inline-flex items-center px-1.5 py-0.5 bg-[#020617] rounded-full border border-[#a855f7] whitespace-nowrap">
+                  <span key={idx} style={{ display: 'inline-flex', alignItems: 'center', marginRight: '4px', marginBottom: '4px', verticalAlign: 'middle' }} className="px-1.5 py-0.5 bg-[#020617] rounded-full border border-[#a855f7] whitespace-nowrap">
                     <input
                       className="bg-transparent outline-none text-[9px] text-[#f9fafb] min-w-[20px]"
                       style={{ width: `${Math.max(20, val.length * 5.5)}px` }}
@@ -538,17 +538,18 @@ export const CreativeCVTemplate: React.FC<CreativeCVTemplateProps> = ({
         return (
           <div key={sectionIndex}>
             <SectionTitle>Arbeitsweise & Werte</SectionTitle>
-            <div className="flex flex-wrap gap-0.5">
+            <div data-chip-row style={{ display: 'block', overflow: 'hidden' }}>
               {items.map((val: any, idx: number) => (
-                <input
-                  key={idx}
-                  className="px-1.5 py-0.5 bg-[#020617] text-[9px] rounded-full border border-[#22c1c3] outline-none text-[#f9fafb]"
-                  value={typeof val === 'string' ? val : val.label || ''}
-                  onChange={(e) =>
-                    onUpdateSectionItem(sectionIndex, idx, 'label', e.target.value)
-                  }
-                  placeholder="Wert"
-                />
+                <span key={idx} style={{ display: 'inline-flex', marginRight: '4px', marginBottom: '4px', verticalAlign: 'middle' }}>
+                  <input
+                    className="px-1.5 py-0.5 bg-[#020617] text-[9px] rounded-full border border-[#22c1c3] outline-none text-[#f9fafb]"
+                    value={typeof val === 'string' ? val : val.label || ''}
+                    onChange={(e) =>
+                      onUpdateSectionItem(sectionIndex, idx, 'label', e.target.value)
+                    }
+                    placeholder="Wert"
+                  />
+                </span>
               ))}
             </div>
           </div>
@@ -560,17 +561,18 @@ export const CreativeCVTemplate: React.FC<CreativeCVTemplateProps> = ({
         return (
           <div key={sectionIndex}>
             <SectionTitle>Hobbys & Interessen</SectionTitle>
-            <div className="flex flex-wrap gap-0.5">
+            <div data-chip-row style={{ display: 'block', overflow: 'hidden' }}>
               {items.map((hob: any, idx: number) => (
-                <input
-                  key={idx}
-                  className="px-1.5 py-0.5 bg-[#020617] text-[9px] rounded-full border border-[#f97316] outline-none text-[#f9fafb]"
-                  value={typeof hob === 'string' ? hob : hob.label || ''}
-                  onChange={(e) =>
-                    onUpdateSectionItem(sectionIndex, idx, 'label', e.target.value)
-                  }
-                  placeholder="Hobby"
-                />
+                <span key={idx} style={{ display: 'inline-flex', marginRight: '4px', marginBottom: '4px', verticalAlign: 'middle' }}>
+                  <input
+                    className="px-1.5 py-0.5 bg-[#020617] text-[9px] rounded-full border border-[#f97316] outline-none text-[#f9fafb]"
+                    value={typeof hob === 'string' ? hob : hob.label || ''}
+                    onChange={(e) =>
+                      onUpdateSectionItem(sectionIndex, idx, 'label', e.target.value)
+                    }
+                    placeholder="Hobby"
+                  />
+                </span>
               ))}
             </div>
           </div>

@@ -647,7 +647,7 @@ export const ModernCVTemplate: React.FC<ModernCVTemplateProps> = ({
               </div>
             ) : (
               // Use block + inline-flex per chip instead of flex+gap (html2canvas gap fix)
-              <div style={{ display: 'block', overflow: 'hidden' }}>
+              <div data-chip-row style={{ display: 'block', overflow: 'hidden' }}>
                 {items.map((skill: any, idx: number) => (
                   <span key={idx} style={{ display: 'inline-flex', marginRight: '5px', marginBottom: '5px', verticalAlign: 'middle' }}>
                     <Chip
@@ -671,7 +671,7 @@ export const ModernCVTemplate: React.FC<ModernCVTemplateProps> = ({
         return (
           <div key={`soft-${sectionIndex}`}>
             <SectionTitle>{section.title || 'Soft Skills'}</SectionTitle>
-            <div style={{ display: 'block', overflow: 'hidden' }}>
+            <div data-chip-row style={{ display: 'block', overflow: 'hidden' }}>
               {items.map((skill: any, idx: number) => (
                 <span key={idx} style={{ display: 'inline-flex', marginRight: '5px', marginBottom: '5px', verticalAlign: 'middle' }}>
                   <Chip
@@ -693,7 +693,7 @@ export const ModernCVTemplate: React.FC<ModernCVTemplateProps> = ({
         return (
           <div key={`values-${sectionIndex}`}>
             <SectionTitle>Arbeitsweise & Werte</SectionTitle>
-            <div style={{ display: 'block', overflow: 'hidden' }}>
+            <div data-chip-row style={{ display: 'block', overflow: 'hidden' }}>
               {items.map((val: any, idx: number) => (
                 <span key={idx} style={{ display: 'inline-flex', marginRight: '6px', marginBottom: '6px', verticalAlign: 'middle' }}>
                   <Chip
@@ -712,7 +712,7 @@ export const ModernCVTemplate: React.FC<ModernCVTemplateProps> = ({
         return (
           <div key={`hobbies-${sectionIndex}`}>
             <SectionTitle>Hobbys & Interessen</SectionTitle>
-            <div style={{ display: 'block', overflow: 'hidden' }}>
+            <div data-chip-row style={{ display: 'block', overflow: 'hidden' }}>
               {items.map((hob: any, idx: number) => (
                 <span key={idx} style={{ display: 'inline-flex', marginRight: '6px', marginBottom: '6px', verticalAlign: 'middle' }}>
                   <Chip

@@ -494,11 +494,11 @@ export const ProfessionalCVTemplate: React.FC<ProfessionalCVTemplateProps> = ({
         return (
           <div key={sectionIndex}>
             <SectionTitle>Fachliche Skills</SectionTitle>
-            <div className="flex flex-wrap gap-1">
+            <div data-chip-row style={{ display: 'block', overflow: 'hidden' }}>
               {items.map((skill: any, idx: number) => {
                 const val = typeof skill === 'string' ? skill : skill.skill || '';
                 return (
-                  <span key={idx} className="inline-flex items-center px-2 py-0.5 bg-slate-100 rounded-full border border-slate-300 whitespace-nowrap">
+                  <span key={idx} style={{ display: 'inline-flex', alignItems: 'center', marginRight: '5px', marginBottom: '5px', verticalAlign: 'middle' }} className="px-2 py-0.5 bg-slate-100 rounded-full border border-slate-300 whitespace-nowrap">
                     <input
                       className="bg-transparent outline-none text-[9px] text-slate-800 min-w-[20px]"
                       style={{ width: `${Math.max(20, val.length * 6)}px` }}
@@ -519,11 +519,11 @@ export const ProfessionalCVTemplate: React.FC<ProfessionalCVTemplateProps> = ({
         return (
           <div key={sectionIndex}>
             <SectionTitle>Persönliche Stärken</SectionTitle>
-            <div className="flex flex-wrap gap-1">
+            <div data-chip-row style={{ display: 'block', overflow: 'hidden' }}>
               {items.map((skill: any, idx: number) => {
                 const val = typeof skill === 'string' ? skill : skill.skill || '';
                 return (
-                  <span key={idx} className="inline-flex items-center px-2 py-0.5 bg-slate-100 rounded-full border border-slate-300 whitespace-nowrap">
+                  <span key={idx} style={{ display: 'inline-flex', alignItems: 'center', marginRight: '5px', marginBottom: '5px', verticalAlign: 'middle' }} className="px-2 py-0.5 bg-slate-100 rounded-full border border-slate-300 whitespace-nowrap">
                     <input
                       className="bg-transparent outline-none text-[9px] text-slate-800 min-w-[20px]"
                       style={{ width: `${Math.max(20, val.length * 6)}px` }}
@@ -545,17 +545,18 @@ export const ProfessionalCVTemplate: React.FC<ProfessionalCVTemplateProps> = ({
         return (
           <div key={sectionIndex}>
             <SectionTitle>Arbeitsweise & Werte</SectionTitle>
-            <div className="flex flex-wrap gap-1">
+            <div data-chip-row style={{ display: 'block', overflow: 'hidden' }}>
               {items.map((val: any, idx: number) => (
-                <input
-                  key={idx}
-                  className="px-2 py-0.5 bg-slate-100 text-[9px] rounded-full border border-slate-300 outline-none text-slate-800"
-                  value={typeof val === 'string' ? val : val.label || ''}
-                  onChange={(e) =>
-                    onUpdateSectionItem(sectionIndex, idx, 'label', e.target.value)
-                  }
-                  placeholder="Wert"
-                />
+                <span key={idx} style={{ display: 'inline-flex', marginRight: '5px', marginBottom: '5px', verticalAlign: 'middle' }}>
+                  <input
+                    className="px-2 py-0.5 bg-slate-100 text-[9px] rounded-full border border-slate-300 outline-none text-slate-800"
+                    value={typeof val === 'string' ? val : val.label || ''}
+                    onChange={(e) =>
+                      onUpdateSectionItem(sectionIndex, idx, 'label', e.target.value)
+                    }
+                    placeholder="Wert"
+                  />
+                </span>
               ))}
             </div>
           </div>
@@ -568,17 +569,18 @@ export const ProfessionalCVTemplate: React.FC<ProfessionalCVTemplateProps> = ({
         return (
           <div key={sectionIndex}>
             <SectionTitle>Hobbys & Interessen</SectionTitle>
-            <div className="flex flex-wrap gap-1">
+            <div data-chip-row style={{ display: 'block', overflow: 'hidden' }}>
               {items.map((hob: any, idx: number) => (
-                <input
-                  key={idx}
-                  className="px-2 py-0.5 bg-slate-100 text-[9px] rounded-full border border-slate-300 outline-none text-slate-800"
-                  value={typeof hob === 'string' ? hob : hob.label || ''}
-                  onChange={(e) =>
-                    onUpdateSectionItem(sectionIndex, idx, 'label', e.target.value)
-                  }
-                  placeholder="Hobby"
-                />
+                <span key={idx} style={{ display: 'inline-flex', marginRight: '5px', marginBottom: '5px', verticalAlign: 'middle' }}>
+                  <input
+                    className="px-2 py-0.5 bg-slate-100 text-[9px] rounded-full border border-slate-300 outline-none text-slate-800"
+                    value={typeof hob === 'string' ? hob : hob.label || ''}
+                    onChange={(e) =>
+                      onUpdateSectionItem(sectionIndex, idx, 'label', e.target.value)
+                    }
+                    placeholder="Hobby"
+                  />
+                </span>
               ))}
             </div>
           </div>

@@ -331,7 +331,7 @@ export const MinimalCVTemplate: React.FC<MinimalCVTemplateProps> = ({
         return (
           <div key={sectionIndex}>
             <SectionTitle>{section.title || 'Fähigkeiten'}</SectionTitle>
-            <div style={{ display: 'block', overflow: 'hidden' }}>
+            <div data-chip-row style={{ display: 'block', overflow: 'hidden' }}>
               {items.map((skill: any, idx: number) => {
                 const val = typeof skill === 'string' ? skill : skill.skill || skill.name || '';
                 return (
@@ -356,7 +356,7 @@ export const MinimalCVTemplate: React.FC<MinimalCVTemplateProps> = ({
         return (
           <div key={sectionIndex}>
             <SectionTitle>{section.title || 'Soft Skills'}</SectionTitle>
-            <div style={{ display: 'block', overflow: 'hidden' }}>
+            <div data-chip-row style={{ display: 'block', overflow: 'hidden' }}>
               {items.map((skill: any, idx: number) => {
                 const val = typeof skill === 'string' ? skill : skill.skill || skill.name || '';
                 return (
@@ -382,7 +382,7 @@ export const MinimalCVTemplate: React.FC<MinimalCVTemplateProps> = ({
         return (
           <div key={sectionIndex}>
             <SectionTitle>Arbeitsweise & Werte</SectionTitle>
-            <div style={{ display: 'block', overflow: 'hidden' }}>
+            <div data-chip-row style={{ display: 'block', overflow: 'hidden' }}>
               {items.map((val: any, idx: number) => (
                 <span key={idx} style={{ display: 'inline-flex', marginRight: '4px', marginBottom: '4px', verticalAlign: 'middle' }}>
                   <input
@@ -405,7 +405,7 @@ export const MinimalCVTemplate: React.FC<MinimalCVTemplateProps> = ({
         return (
           <div key={sectionIndex}>
             <SectionTitle>Hobbys & Interessen</SectionTitle>
-            <div style={{ display: 'block', overflow: 'hidden' }}>
+            <div data-chip-row style={{ display: 'block', overflow: 'hidden' }}>
               {items.map((hob: any, idx: number) => (
                 <span key={idx} style={{ display: 'inline-flex', marginRight: '4px', marginBottom: '4px', verticalAlign: 'middle' }}>
                   <input

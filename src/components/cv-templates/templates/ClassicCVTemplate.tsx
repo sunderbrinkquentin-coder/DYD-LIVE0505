@@ -357,6 +357,7 @@ export const ClassicCVTemplate: React.FC<ClassicCVTemplateProps> = ({
         </h3>
         <ul
           className={options?.showLevelsForLanguages ? "space-y-1" : ""}
+          {...(!options?.showLevelsForLanguages ? { 'data-chip-row': '' } : {})}
           style={options?.showLevelsForLanguages ? {} : { display: 'block', overflow: 'hidden' }}
         >
           {items.map((item: any, idx: number) => {
