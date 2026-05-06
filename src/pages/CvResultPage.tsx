@@ -525,18 +525,25 @@ export default function CvResultPage() {
         delay: 0.4
       },
       {
-        title: 'Formales',
-        description: 'Professionelle Struktur?',
-        icon: '📋',
-        details: 'Format, Layout und Vollstaendigkeit sind entscheidend',
-        delay: 0.6
-      },
-      {
         title: 'USP & Skills',
         description: 'Einzigartige Staerken sichtbar?',
         icon: '⭐',
         details: 'Deine Alleinstellungsmerkmale heben dich von anderen ab',
+        delay: 0.6
+      },
+      {
+        title: 'Formales & Design',
+        description: 'Professionelle Struktur?',
+        icon: '📋',
+        details: 'Format, Layout und Vollstaendigkeit sind entscheidend',
         delay: 0.8
+      },
+      {
+        title: 'Erfahrungstiefe',
+        description: 'Relevante Berufserfahrung erkennbar?',
+        icon: '🏆',
+        details: 'Tiefe und Qualitaet deiner Erfahrungen sind entscheidend fuer Arbeitgeber',
+        delay: 1.0
       }
     ];
 

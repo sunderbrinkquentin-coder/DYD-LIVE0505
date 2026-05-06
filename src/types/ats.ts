@@ -9,6 +9,21 @@ export type AtsCategory = {
 export type AtsResult = {
   ats_score: number;
   top_todos?: Record<string, string>;
+  // Flat score fields (new format)
+  relevanz_score?: number;
+  erfolge_score?: number;
+  sprache_score?: number;
+  usp_score?: number;
+  formales_score?: number;
+  tiefe_score?: number;
+  // Optional flat feedback fields
+  relevanz_feedback?: string;
+  erfolge_feedback?: string;
+  sprache_feedback?: string;
+  usp_feedback?: string;
+  formales_feedback?: string;
+  tiefe_feedback?: string;
+  // Legacy nested format (kept for backwards compatibility)
   relevanz_fokus?: AtsCategory;
   erfolge_kpis?: AtsCategory;
   klarheit_sprache?: AtsCategory;
@@ -16,11 +31,6 @@ export type AtsResult = {
   usp_skills?: AtsCategory;
 };
 
-/**
- * Fallback-Parser für den aktuellen Make-Output:
- * {"ats_score": 78, "erfahrungslevel": "...", "top_todos": { ... }, ...}
- * auch wenn der Rest der JSON kaputt ist.
- */
 function extractStringValue(text: string, key: string): string | undefined {
   const regex = new RegExp(`"${key}"\\s*:\\s*"((?:[^"\\\\]|\\\\.)*)"`, 's');
   const match = text.match(regex);
@@ -59,6 +69,66 @@ function extractCategoryBlock(text: string, categoryKey: string): AtsCategory | 
   return cat;
 }
 
+function extractTodosFromText(text: string): Record<string, string> {
+  const todos: Record<string, string> = {};
+
+  // New flat format: todo_1, todo_2, todo_3
+  for (let i = 1; i <= 3; i++) {
+    const val = extractStringValue(text, `todo_${i}`);
+    if (val) todos[`To-do ${i}`] = val;
+  }
+  if (Object.keys(todos).length > 0) return todos;
+
+  // Legacy top_todos object format
+  const todosMatch = text.match(/"top_todos"\s*:\s*\{([^}]*(?:\{[^}]*\}[^}]*)*)\}/);
+  if (todosMatch) {
+    const block = todosMatch[1];
+    const pairRegex = /"([^"]+)"\s*:\s*"([^"\\]*(?:\\.[^"\\]*)*)"/g;
+    let m: RegExpExecArray | null;
+    while ((m = pairRegex.exec(block)) !== null) {
+      const value = m[2]
+        .replace(/\\n/g, ' ')
+        .replace(/\\t/g, ' ')
+        .replace(/\\r/g, ' ')
+        .replace(/\\\\/g, '\\')
+        .replace(/\\"/g, '"');
+      todos[m[1]] = value;
+    }
+  }
+
+  return todos;
+}
+
+function mapTodosFromObject(obj: any): Record<string, string> {
+  const todos: Record<string, string> = {};
+
+  // New flat format: todo_1, todo_2, todo_3
+  for (let i = 1; i <= 3; i++) {
+    const val = obj[`todo_${i}`];
+    if (typeof val === 'string') todos[`To-do ${i}`] = val;
+  }
+  if (Object.keys(todos).length > 0) return todos;
+
+  // Legacy top_todos object
+  if (obj.top_todos && typeof obj.top_todos === 'object') {
+    return obj.top_todos as Record<string, string>;
+  }
+
+  return todos;
+}
+
+const FLAT_SCORE_KEYS = ['relevanz_score', 'erfolge_score', 'sprache_score', 'usp_score', 'formales_score', 'tiefe_score'] as const;
+const FLAT_FEEDBACK_KEYS = ['relevanz_feedback', 'erfolge_feedback', 'sprache_feedback', 'usp_feedback', 'formales_feedback', 'tiefe_feedback'] as const;
+
+function mapFlatScores(obj: any, result: AtsResult): void {
+  for (const key of FLAT_SCORE_KEYS) {
+    if (typeof obj[key] === 'number') (result as any)[key] = obj[key];
+  }
+  for (const key of FLAT_FEEDBACK_KEYS) {
+    if (typeof obj[key] === 'string') (result as any)[key] = obj[key];
+  }
+}
+
 function fallbackExtractAtsResultFromText(text: string): AtsResult | null {
   console.log('[parseAtsJson] 🔄 Fallback-Extractor aktiv');
 
@@ -68,49 +138,26 @@ function fallbackExtractAtsResultFromText(text: string): AtsResult | null {
     return null;
   }
 
-  const score = Number(scoreMatch[1]);
+  const result: AtsResult = { ats_score: Number(scoreMatch[1]) };
 
-  const todosMatch = text.match(/"top_todos"\s*:\s*\{([^}]*(?:\{[^}]*\}[^}]*)*)\}/);
-  const topTodos: Record<string, string> = {};
+  const todos = extractTodosFromText(text);
+  if (Object.keys(todos).length > 0) result.top_todos = todos;
 
-  if (todosMatch) {
-    const block = todosMatch[1];
-    const pairRegex = /"([^"]+)"\s*:\s*"([^"\\]*(?:\\.[^"\\]*)*)"/g;
-    let m: RegExpExecArray | null;
-
-    while ((m = pairRegex.exec(block)) !== null) {
-      const key = m[1];
-      let value = m[2];
-      value = value
-        .replace(/\\n/g, ' ')
-        .replace(/\\t/g, ' ')
-        .replace(/\\r/g, ' ')
-        .replace(/\\\\/g, '\\')
-        .replace(/\\"/g, '"');
-      topTodos[key] = value;
-    }
+  // Flat scores
+  for (const key of FLAT_SCORE_KEYS) {
+    const val = extractNumberValue(text, key);
+    if (val !== undefined) (result as any)[key] = val;
   }
 
-  const result: AtsResult = {
-    ats_score: score,
-  };
-
-  if (Object.keys(topTodos).length > 0) {
-    result.top_todos = topTodos;
-  }
-
+  // Legacy nested format fallback
   const relevanz_fokus = extractCategoryBlock(text, 'relevanz_fokus');
   if (relevanz_fokus) result.relevanz_fokus = relevanz_fokus;
-
   const erfolge_kpis = extractCategoryBlock(text, 'erfolge_kpis');
   if (erfolge_kpis) result.erfolge_kpis = erfolge_kpis;
-
   const klarheit_sprache = extractCategoryBlock(text, 'klarheit_sprache');
   if (klarheit_sprache) result.klarheit_sprache = klarheit_sprache;
-
   const formales = extractCategoryBlock(text, 'formales');
   if (formales) result.formales = formales;
-
   const usp_skills = extractCategoryBlock(text, 'usp_skills');
   if (usp_skills) result.usp_skills = usp_skills;
 
@@ -147,28 +194,21 @@ export function parseAtsJson(raw: any): AtsResult | null {
         return null;
       }
 
-      // Falls vor/nach dem JSON noch Text steht → nur den JSON-Teil nehmen
       const firstBrace = cleaned.indexOf('{');
       const lastBrace = cleaned.lastIndexOf('}');
       if (firstBrace !== -1 && lastBrace > firstBrace) {
         cleaned = cleaned.slice(firstBrace, lastBrace + 1);
       }
 
-      // Strategy 1: Direkt parsen
       try {
         first = JSON.parse(cleaned);
         console.log('[parseAtsJson] ✅ Parsed string (Strategy 1: direct)');
-
-        // WICHTIG: Wenn das Ergebnis ein STRING ist, nochmal parsen (doppelt escaped)
         if (typeof first === 'string') {
-          console.log('[parseAtsJson] 🔄 Result is string, parsing again (double-escaped)');
           first = JSON.parse(first);
           console.log('[parseAtsJson] ✅ Double-escaped string parsed');
         }
       } catch (parseError1) {
         console.log('[parseAtsJson] Strategy 1 failed, trying Strategy 2...');
-
-        // Strategy 2: \n / \t entfernen + Control Characters
         try {
           const sanitized = cleaned
             .replace(/\\n/g, ' ')
@@ -176,20 +216,12 @@ export function parseAtsJson(raw: any): AtsResult | null {
             .replace(/\n/g, ' ')
             .replace(/\t/g, ' ')
             .replace(/\r/g, ' ')
-            .replace(/[\x00-\x1F\x7F]/g, ''); // Remove control characters
+            .replace(/[\x00-\x1F\x7F]/g, '');
           first = JSON.parse(sanitized);
           console.log('[parseAtsJson] ✅ Parsed string (Strategy 2: sanitized)');
-
-          // Prüfe ob doppelt escaped
-          if (typeof first === 'string') {
-            console.log('[parseAtsJson] 🔄 Result is string, parsing again (double-escaped)');
-            first = JSON.parse(first);
-            console.log('[parseAtsJson] ✅ Double-escaped string parsed');
-          }
+          if (typeof first === 'string') first = JSON.parse(first);
         } catch (parseError2) {
           console.log('[parseAtsJson] Strategy 2 failed, trying Strategy 3...');
-
-          // Strategy 3: Aggressivere Bereinigung
           try {
             const aggressive = cleaned
               .replace(/\\n/g, ' ')
@@ -198,37 +230,21 @@ export function parseAtsJson(raw: any): AtsResult | null {
               .replace(/\t/g, ' ')
               .replace(/\r/g, ' ')
               .replace(/[\x00-\x1F\x7F]/g, '')
-              .replace(/\s+/g, ' ') // Multiple spaces to single space
-              .replace(/,\s*}/g, '}') // Trailing commas
-              .replace(/,\s*]/g, ']'); // Trailing commas in arrays
+              .replace(/\s+/g, ' ')
+              .replace(/,\s*}/g, '}')
+              .replace(/,\s*]/g, ']');
             first = JSON.parse(aggressive);
             console.log('[parseAtsJson] ✅ Parsed string (Strategy 3: aggressive)');
-
-            // Prüfe ob doppelt escaped
-            if (typeof first === 'string') {
-              console.log('[parseAtsJson] 🔄 Result is string, parsing again (double-escaped)');
-              first = JSON.parse(first);
-              console.log('[parseAtsJson] ✅ Double-escaped string parsed');
-            }
+            if (typeof first === 'string') first = JSON.parse(first);
           } catch (parseError3) {
-            console.log(
-              '[parseAtsJson] Strategy 3 failed, trying Fallback-Extractor...'
-            );
             console.error('Strategy 1 error:', parseError1);
             console.error('Strategy 2 error:', parseError2);
             console.error('Strategy 3 error:', parseError3);
-            console.error(
-              'Raw value (first 200 chars):',
-              cleaned.substring(0, 200)
-            );
-
-            // Letzte Chance: mit Regex aus Text ziehen
             const fallback = fallbackExtractAtsResultFromText(cleaned);
             if (fallback) {
               console.log('[parseAtsJson] ✅ Fallback parsing succeeded');
               return fallback;
             }
-
             console.error('[parseAtsJson] ❌ All parse strategies failed');
             return null;
           }
@@ -237,46 +253,25 @@ export function parseAtsJson(raw: any): AtsResult | null {
     } else {
       first = raw;
       console.log('[parseAtsJson] ℹ️ Input already object');
-
-      // Manchmal gibt Supabase JSONB als String-Objekt zurück
-      if (first && typeof first === 'object' && Object.keys(first).length === 0) {
-        console.log('[parseAtsJson] ⚠️ Empty object received');
-      }
     }
 
-    // ---------- 2) Altes ChatGPT-Format { role, content: "{...}" } ----------
+    // ---------- 2) ChatGPT-Format { role, content: "{...}" } ----------
     if (first && typeof first === 'object' && 'content' in first) {
       console.log('[parseAtsJson] 🔄 Detected ChatGPT content wrapper');
       const content = (first as any).content;
-
       if (typeof content === 'string') {
         const contentCleaned = content.trim();
-        if (!contentCleaned) {
-          console.warn('[parseAtsJson] ⚠️ Content string is empty');
-          return null;
-        }
-
+        if (!contentCleaned) return null;
         try {
           first = JSON.parse(contentCleaned);
-          console.log('[parseAtsJson] ✅ Parsed content string');
         } catch (contentError) {
           console.error('[parseAtsJson] ❌ Failed to parse content:', contentError);
-          console.error(
-            'Content value (first 200 chars):',
-            contentCleaned.substring(0, 200)
-          );
-
           const fallback = fallbackExtractAtsResultFromText(contentCleaned);
-          if (fallback) {
-            console.log('[parseAtsJson] ✅ Fallback parsing from content succeeded');
-            return fallback;
-          }
-
+          if (fallback) return fallback;
           return null;
         }
       } else {
         first = content;
-        console.log('[parseAtsJson] ℹ️ Content already object');
       }
     }
 
@@ -285,23 +280,17 @@ export function parseAtsJson(raw: any): AtsResult | null {
       return null;
     }
 
-    console.log(
-      '[parseAtsJson] ✅ Final raw keys:',
-      Object.keys(first as Record<string, unknown>)
-    );
+    console.log('[parseAtsJson] ✅ Final raw keys:', Object.keys(first as Record<string, unknown>));
 
-    // ---------- 3) Make-Format (overallScore + categories) → AtsResult ----------
+    // ---------- 3) Make.com legacy format (overallScore + categories) ----------
     if (!('ats_score' in first) && 'overallScore' in first) {
       console.log('[parseAtsJson] 🔍 Detected Make.com overallScore format');
-
       const categories = (first as any).categories || {};
       const improvements = (first as any).improvements || [];
-
       const topTodos: Record<string, string> = {};
-      (improvements as string[]).slice(0, 5).forEach((item, index) => {
+      (improvements as string[]).slice(0, 3).forEach((item, index) => {
         topTodos[`To-do ${index + 1}`] = item;
       });
-
       const converted: AtsResult = {
         ats_score: (first as any).overallScore,
         top_todos: topTodos,
@@ -311,33 +300,33 @@ export function parseAtsJson(raw: any): AtsResult | null {
         formales: categories.design,
         usp_skills: categories.atsCompatibility,
       };
-
       console.log('[parseAtsJson] ✅ Converted Make.com format:', converted);
       return converted;
     }
 
-    // ---------- 4) Standard-Format validieren ----------
+    // ---------- 4) Standard-Format validieren + flache Scores mappen ----------
     if (!('ats_score' in first) || typeof (first as any).ats_score !== 'number') {
       console.error('[parseAtsJson] ❌ Missing or invalid ats_score field');
-      console.error(
-        '[parseAtsJson] 📊 Available fields:',
-        Object.keys(first as Record<string, unknown>)
-      );
-
-      // Letzte Chance: Fallback aus Text, falls wir hier noch einen String hatten
-      const rawString =
-        typeof raw === 'string' ? raw : JSON.stringify(first, null, 2);
+      const rawString = typeof raw === 'string' ? raw : JSON.stringify(first, null, 2);
       const fallback = fallbackExtractAtsResultFromText(rawString);
-      if (fallback) {
-        console.log('[parseAtsJson] ✅ Fallback parsing from final object succeeded');
-        return fallback;
-      }
-
+      if (fallback) return fallback;
       return null;
     }
 
-    // Hier ist already unser Ziel-Format (ats_score + optional Kategorien)
-    return first as AtsResult;
+    const result: AtsResult = { ats_score: (first as any).ats_score };
+
+    const todos = mapTodosFromObject(first);
+    if (Object.keys(todos).length > 0) result.top_todos = todos;
+
+    mapFlatScores(first, result);
+
+    // Map legacy nested categories (backwards compat)
+    for (const key of ['relevanz_fokus', 'erfolge_kpis', 'klarheit_sprache', 'formales', 'usp_skills'] as const) {
+      if (first[key] && typeof first[key] === 'object') (result as any)[key] = first[key];
+    }
+
+    console.log('[parseAtsJson] ✅ Parsed AtsResult:', result);
+    return result;
   } catch (error) {
     console.error('[parseAtsJson] ❌ Unexpected error:', error);
     if (typeof raw === 'string') {
@@ -371,6 +360,13 @@ export function getScoreLabel(score: number): string {
 
 export function formatCategoryName(key: string): string {
   const names: Record<string, string> = {
+    relevanz_score: 'Relevanz & Fokus',
+    erfolge_score: 'Erfolge & KPIs',
+    sprache_score: 'Klarheit der Sprache',
+    usp_score: 'USP & Skills',
+    formales_score: 'Formales & Design',
+    tiefe_score: 'Erfahrungstiefe',
+    // Legacy keys
     relevanz_fokus: 'Relevanz & Fokus',
     erfolge_kpis: 'Erfolge & KPIs',
     klarheit_sprache: 'Klarheit der Sprache',

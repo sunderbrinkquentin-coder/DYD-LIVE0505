@@ -58,12 +58,50 @@ export const AtsResultDisplay: React.FC<Props> = ({
   const todos = result.top_todos ?? {};
   const scoreLabel = getScoreLabel(score);
 
+  // Flat score format (new) with legacy nested fallback
   const categories = [
-    { key: 'relevanz_fokus', title: 'Relevanz & Fokus', data: result.relevanz_fokus },
-    { key: 'erfolge_kpis', title: 'Erfolge & KPIs', data: result.erfolge_kpis },
-    { key: 'klarheit_sprache', title: 'Klarheit der Sprache', data: result.klarheit_sprache },
-    { key: 'formales', title: 'Formales', data: result.formales },
-    { key: 'usp_skills', title: 'USP & Skills', data: result.usp_skills },
+    {
+      key: 'relevanz_score',
+      title: 'Relevanz & Fokus',
+      score: result.relevanz_score ?? result.relevanz_fokus?.score ?? 0,
+      feedback: result.relevanz_feedback ?? result.relevanz_fokus?.feedback,
+      verbesserung: result.relevanz_fokus?.verbesserung,
+    },
+    {
+      key: 'erfolge_score',
+      title: 'Erfolge & KPIs',
+      score: result.erfolge_score ?? result.erfolge_kpis?.score ?? 0,
+      feedback: result.erfolge_feedback ?? result.erfolge_kpis?.feedback,
+      verbesserung: result.erfolge_kpis?.verbesserung,
+    },
+    {
+      key: 'sprache_score',
+      title: 'Klarheit der Sprache',
+      score: result.sprache_score ?? result.klarheit_sprache?.score ?? 0,
+      feedback: result.sprache_feedback ?? result.klarheit_sprache?.feedback,
+      verbesserung: result.klarheit_sprache?.verbesserung,
+    },
+    {
+      key: 'usp_score',
+      title: 'USP & Skills',
+      score: result.usp_score ?? result.usp_skills?.score ?? 0,
+      feedback: result.usp_feedback ?? result.usp_skills?.feedback,
+      verbesserung: result.usp_skills?.verbesserung,
+    },
+    {
+      key: 'formales_score',
+      title: 'Formales & Design',
+      score: result.formales_score ?? result.formales?.score ?? 0,
+      feedback: result.formales_feedback ?? result.formales?.feedback,
+      verbesserung: result.formales?.verbesserung,
+    },
+    {
+      key: 'tiefe_score',
+      title: 'Erfahrungstiefe',
+      score: result.tiefe_score ?? 0,
+      feedback: result.tiefe_feedback,
+      verbesserung: undefined,
+    },
   ];
 
   // --------------------------------------------------
@@ -204,16 +242,14 @@ export const AtsResultDisplay: React.FC<Props> = ({
                 className="rounded-2xl bg-[#0b1220] border border-white/5 shadow-lg p-4 space-y-4"
               >
                 <h2 className="text-lg font-semibold text-white">ATS-Bewertung (Übersicht)</h2>
-                {categories.map((cat, idx) =>
-                  cat.data ? (
-                    <CategoryRow
-                      key={cat.key}
-                      title={cat.title}
-                      score={Math.max(0, Math.min(100, cat.data.score ?? 0))}
-                      delay={0.3 + idx * 0.1}
-                    />
-                  ) : null
-                )}
+                {categories.map((cat, idx) => (
+                  <CategoryRow
+                    key={cat.key}
+                    title={cat.title}
+                    score={Math.max(0, Math.min(100, cat.score))}
+                    delay={0.3 + idx * 0.1}
+                  />
+                ))}
               </motion.div>
             )}
 
@@ -244,7 +280,7 @@ export const AtsResultDisplay: React.FC<Props> = ({
                       <ul className="text-left text-white/80 space-y-2">
                         <li className="flex items-start gap-2">
                           <CheckCircle size={20} className="text-[#66c0b6] flex-shrink-0 mt-0.5" />
-                          <span>Detaillierte Bewertung in 5 Kategorien</span>
+                          <span>Detaillierte Bewertung in 6 Kategorien</span>
                         </li>
                         <li className="flex items-start gap-2">
                           <CheckCircle size={20} className="text-[#66c0b6] flex-shrink-0 mt-0.5" />
@@ -295,7 +331,7 @@ export const AtsResultDisplay: React.FC<Props> = ({
                         <DetailCard
                           key={cat.key}
                           title={cat.title}
-                          category={cat.data}
+                          category={cat.feedback !== undefined ? { score: cat.score, feedback: cat.feedback, verbesserung: cat.verbesserung } : undefined}
                           delay={0.2 + idx * 0.08}
                         />
                       ))}
@@ -446,7 +482,7 @@ export const AtsResultDisplay: React.FC<Props> = ({
 
             <ul className="space-y-2 mb-6">
               {[
-                'Detaillierte Bewertung in 5 Kategorien',
+                'Detaillierte Bewertung in 6 Kategorien',
                 'Individuelles Feedback zu jeder Kategorie',
                 'Konkrete Verbesserungsvorschläge',
               ].map((item) => (
