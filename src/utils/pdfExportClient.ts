@@ -11,10 +11,6 @@ const A4_WIDTH_MM = 210;
 const A4_HEIGHT_MM = 297;
 const A4_WIDTH_PX = 794;
 
-/**
- * Fetches an image URL and returns a base64 data-URI.
- * Falls back to the original src on any error so we never block the export.
- */
 async function toBase64DataUri(src: string): Promise<string> {
   if (!src || src.startsWith('data:')) return src;
   try {
@@ -28,28 +24,13 @@ async function toBase64DataUri(src: string): Promise<string> {
       reader.readAsDataURL(blob);
     });
   } catch (err) {
-    console.warn('[PDF Export] Could not convert image to base64, using original src:', src?.substring(0, 80), err);
+    console.warn('[PDF Export] Could not convert image to base64:', src?.substring(0, 80), err);
     return src;
   }
 }
 
-/**
- * Converts the cloned document into a print-ready flat document:
- * - Replaces <input> with <span> showing their value
- * - Replaces <textarea> with <div> showing their value
- * - Converts ALL <img> src to base64 data-URIs (avoids CORS taint)
- * - Hides all interactive controls (buttons, [data-pdf-hidden])
- * - Converts sticky/fixed/absolute positioning to static/relative so nothing jumps
- * - Removes every height/overflow constraint recursively
- * - Sets whitespace: normal on text nodes so wrapping works correctly
- * - Fixes z-index so text is always above backgrounds
- * - Enforces 794px width (A4 at 96 DPI)
- */
 // Placeholder texts that appear when the user has not filled in a field.
-// Any input/textarea/contenteditable whose trimmed value equals one of these
-// (or is empty) is treated as blank and either removed or left invisible.
 const PLACEHOLDER_STRINGS = new Set([
-  // Multi-word placeholder phrases — safe to remove, never appear as real content
   'position / rolle', 'unternehmen', 'mm/jjjj', 'projekttitel',
   'deine rolle', 'abschluss', 'institution', 'zeitraum',
   'aufgaben und wichtigste erfolge', 'aufgabe / ergebnis', 'beschreibung / aufgaben',
@@ -58,10 +39,6 @@ const PLACEHOLDER_STRINGS = new Set([
   'telefon', 'e-mail', 'linkedin', 'niveau', 'sprache',
   'kurzprofil: wichtige erfahrungen, stärken und dein mehrwert für die rolle.',
   'skill', 'stärke', 'mon/jjjj',
-  // NOTE: 'von', 'bis', 'rolle', 'position', 'projekt', 'projekte', 'wert', 'hobby',
-  // 'eintrag', 'ort', 'heute' are intentionally excluded — they can appear as real user
-  // content (e.g. city name "Ort", date value "Heute", role name "Rolle").
-  // Empty string '' is handled by the v === '' check in isPlaceholderValue().
 ]);
 
 function isPlaceholderValue(value: string): boolean {
@@ -69,63 +46,63 @@ function isPlaceholderValue(value: string): boolean {
   return v === '' || PLACEHOLDER_STRINGS.has(v);
 }
 
+// Maps Tailwind gap-N class → px value (1 unit = 4px)
+function tailwindGapToPx(cls: string): number | null {
+  const m = cls.match(/^gap-(.+)$/);
+  if (!m) return null;
+  const val = m[1];
+  if (val === 'px') return 1;
+  const num = parseFloat(val);
+  return isNaN(num) ? null : Math.round(num * 4);
+}
+
+// Maps Tailwind p/px/py/pt/pb/pl/pr-N → px value
+function tailwindSpacingToPx(val: string): string | null {
+  if (!val) return null;
+  const num = parseFloat(val);
+  return isNaN(num) ? null : `${Math.round(num * 4)}px`;
+}
+
 function prepareCloneForPrint(cloneDoc: Document): void {
   const body = cloneDoc.body;
 
-  // ── 0. Remove elements that are hidden editor-only (data-pdf-hidden / .pdf-hidden) ──
-  // Do this first so their inputs are not processed below.
-  const HIDE_SELECTORS_EARLY = [
-    'button',
-    '[data-pdf-hidden]',
-    '.pdf-hidden',
-    '.print\\:hidden',
-  ];
-  cloneDoc.querySelectorAll<HTMLElement>(HIDE_SELECTORS_EARLY.join(', ')).forEach((el) => {
-    el.remove();
-  });
+  // ── 0. Remove editor-only elements before processing ─────────────────────
+  cloneDoc.querySelectorAll<HTMLElement>(
+    'button, [data-pdf-hidden], .pdf-hidden, .print\\:hidden, nav, header'
+  ).forEach((el) => el.remove());
 
-  // ── 1. Replace <input> → <span>, remove if placeholder/empty ────────────
+  // ── 1. Replace <input> → <span> ──────────────────────────────────────────
   cloneDoc.querySelectorAll<HTMLInputElement>('input').forEach((input) => {
     const val = input.value || '';
-    const isEmpty = isPlaceholderValue(val);
-
-    if (isEmpty) {
-      // Remove the entire nearest meaningful wrapper (li, or the input itself)
-      const wrapper = input.closest('li, [data-pdf-field-wrap]') || input;
-      wrapper.remove();
+    if (isPlaceholderValue(val)) {
+      (input.closest('li, [data-pdf-field-wrap]') || input).remove();
       return;
     }
-
     const span = cloneDoc.createElement('span');
-    const inputCs = window.getComputedStyle(input);
+    const cs = window.getComputedStyle(input);
     span.textContent = val;
     span.style.cssText = input.style.cssText;
     span.style.display = 'inline';
     span.style.background = 'transparent';
     span.style.border = 'none';
     span.style.outline = 'none';
-    span.style.fontSize = inputCs.fontSize || '10px';
-    span.style.fontWeight = inputCs.fontWeight || '400';
-    span.style.color = inputCs.color || '#1e293b';
-    span.style.fontFamily = inputCs.fontFamily;
+    span.style.fontSize = cs.fontSize || '10px';
+    span.style.fontWeight = cs.fontWeight || '400';
+    span.style.color = cs.color || '#1e293b';
+    span.style.fontFamily = cs.fontFamily;
     span.style.lineHeight = '1.4';
-    span.style.whiteSpace = 'nowrap';
     input.parentNode?.replaceChild(span, input);
   });
 
-  // ── 2. Replace <textarea> → <div>, remove if placeholder/empty ──────────
+  // ── 2. Replace <textarea> → <div> ────────────────────────────────────────
   cloneDoc.querySelectorAll<HTMLTextAreaElement>('textarea').forEach((ta) => {
     const val = ta.value || '';
-    const isEmpty = isPlaceholderValue(val);
-
-    if (isEmpty) {
-      const wrapper = ta.closest('li, [data-pdf-field-wrap]') || ta;
-      wrapper.remove();
+    if (isPlaceholderValue(val)) {
+      (ta.closest('li, [data-pdf-field-wrap]') || ta).remove();
       return;
     }
-
     const div = cloneDoc.createElement('div');
-    const taCs = window.getComputedStyle(ta);
+    const cs = window.getComputedStyle(ta);
     div.textContent = val;
     div.style.cssText = ta.style.cssText;
     div.style.display = 'block';
@@ -136,80 +113,56 @@ function prepareCloneForPrint(cloneDoc: Document): void {
     div.style.overflow = 'visible';
     div.style.height = 'auto';
     div.style.whiteSpace = 'pre-wrap';
-    div.style.fontSize = taCs.fontSize || '10px';
-    div.style.fontWeight = taCs.fontWeight || '400';
-    div.style.color = taCs.color || '#1e293b';
-    div.style.fontFamily = taCs.fontFamily;
+    div.style.fontSize = cs.fontSize || '10px';
+    div.style.fontWeight = cs.fontWeight || '400';
+    div.style.color = cs.color || '#1e293b';
+    div.style.fontFamily = cs.fontFamily;
     div.style.lineHeight = '1.4';
     ta.parentNode?.replaceChild(div, ta);
   });
 
-  // ── 2b. Strip contentEditable ─────────────────────────────────────────────
+  // ── 3. Strip contentEditable ─────────────────────────────────────────────
   cloneDoc.querySelectorAll<HTMLElement>('[contenteditable]').forEach((el) => {
     const text = el.textContent?.trim() ?? '';
-    const isEmpty = isPlaceholderValue(text);
-
-    // Capture styles before mutating
     const cs = window.getComputedStyle(el);
-    const textAlign = cs.textAlign;
-    const fontSize = cs.fontSize;
-    const fontWeight = cs.fontWeight;
-    const color = cs.color;
-    const verticalAlign = cs.verticalAlign;
-
     el.removeAttribute('contenteditable');
     el.removeAttribute('data-placeholder');
     el.style.outline = 'none';
     el.style.cursor = 'default';
-    el.classList.remove('cursor-text', 'outline-none', 'focus:ring-0');
     Array.from(el.classList)
-      .filter((c) => c.startsWith('empty:'))
+      .filter((c) => c.startsWith('empty:') || c === 'cursor-text' || c === 'outline-none')
       .forEach((c) => el.classList.remove(c));
 
-    if (isEmpty) {
-      // Hide placeholder-only contenteditable elements completely
+    if (isPlaceholderValue(text)) {
       el.style.setProperty('display', 'none', 'important');
       el.textContent = '';
       return;
     }
-
-    // Keep real content — enforce stable rendering styles
     el.style.whiteSpace = 'normal';
     el.style.lineHeight = '1.4';
-    if (textAlign) el.style.textAlign = textAlign;
-    if (fontSize) el.style.fontSize = fontSize;
-    if (fontWeight) el.style.fontWeight = fontWeight;
-    if (color) el.style.color = color;
-    if (verticalAlign && verticalAlign !== 'baseline') el.style.verticalAlign = verticalAlign;
+    if (cs.textAlign) el.style.textAlign = cs.textAlign;
+    if (cs.fontSize) el.style.fontSize = cs.fontSize;
+    if (cs.fontWeight) el.style.fontWeight = cs.fontWeight;
+    if (cs.color) el.style.color = cs.color;
   });
 
-  // ── 2c. Clean up date badges — fix gap and hide if both dates are empty ──────
-  // DateBadge uses display:inline-flex + gap which breaks in html2canvas.
-  // Convert gap to margin on children, and remove the badge entirely if both
-  // date fields are empty (placeholder state).
+  // ── 4. Date badges: remove gap, hide if empty ────────────────────────────
   cloneDoc.querySelectorAll<HTMLElement>('[data-pdf-date-badge]').forEach((badge) => {
-    // Fix the gap
     badge.style.removeProperty('gap');
     Array.from(badge.children).forEach((child) => {
       (child as HTMLElement).style.setProperty('margin-right', '3px', 'important');
     });
-
-    // If ALL visible text inside is empty, hide the badge
-    const visibleText = Array.from(badge.querySelectorAll<HTMLElement>('[contenteditable]'))
+    const allText = Array.from(badge.querySelectorAll('span, [contenteditable]'))
       .map((e) => e.textContent?.trim() ?? '')
-      .filter((t) => t.length > 0 && !isPlaceholderValue(t));
-    // Also check already-processed spans (contenteditable already replaced)
-    const allSpans = Array.from(badge.querySelectorAll('span'))
-      .map((e) => e.textContent?.trim() ?? '')
-      .filter((t) => t.length > 0 && t !== '–');
-    if (visibleText.length === 0 && allSpans.length === 0) {
+      .filter((t) => t.length > 0 && t !== '–' && !isPlaceholderValue(t));
+    if (allText.length === 0) {
       badge.style.setProperty('display', 'none', 'important');
     }
   });
 
-  // ── 2d. Enforce collected styles on images so they render at the right size ─
-  // We keep images as <img> tags (html2canvas handles base64 src natively).
-  // We only fix up explicit width/height/objectFit so they print correctly.
+  // ── 5. Convert profile <img> → background-image <div> ────────────────────
+  // Stabilises positioning: object-fit on <img> is unreliable in html2canvas,
+  // but background-size/position on a <div> renders correctly.
   cloneDoc.querySelectorAll<HTMLImageElement>('img').forEach((img) => {
     const src = img.getAttribute('src') || '';
     if (!src) return;
@@ -217,110 +170,156 @@ function prepareCloneForPrint(cloneDoc: Document): void {
     const preW = img.getAttribute('data-pdf-w') || '';
     const preH = img.getAttribute('data-pdf-h') || '';
     const preFit = img.getAttribute('data-pdf-fit') || 'cover';
+    const isProfilePhoto = preFit === 'cover' && preW && preH;
 
-    if (preW) img.style.width = preW;
-    if (preH) img.style.height = preH;
-    img.style.objectFit = preFit as any;
-    img.style.display = 'block';
-    img.style.flexShrink = '0';
-    // Ensure overflow is not hidden at parent level for circular photos
-    if (img.parentElement) {
-      const parentCs = window.getComputedStyle(img.parentElement);
-      if (parentCs.borderRadius && parentCs.borderRadius !== '0px') {
-        img.parentElement.style.overflow = 'hidden';
+    if (isProfilePhoto) {
+      // Replace <img> with a <div> using background-image for stable rendering
+      const div = cloneDoc.createElement('div');
+      div.style.backgroundImage = `url('${src}')`;
+      div.style.backgroundSize = 'cover';
+      div.style.backgroundPosition = 'center center';
+      div.style.backgroundRepeat = 'no-repeat';
+      div.style.width = preW;
+      div.style.height = preH;
+      div.style.flexShrink = '0';
+      div.style.display = 'block';
+      // Preserve border-radius from parent (circular photo frames)
+      if (img.parentElement) {
+        const parentCs = window.getComputedStyle(img.parentElement);
+        if (parentCs.borderRadius && parentCs.borderRadius !== '0px') {
+          div.style.borderRadius = parentCs.borderRadius;
+          img.parentElement.style.overflow = 'hidden';
+        }
       }
-    }
-  });
-
-  // ── 3. Hide all interactive / editor-only elements ────────────────────────
-  const HIDE_SELECTORS = [
-    'button',
-    '[data-pdf-hidden]',
-    '.pdf-hidden',
-    '.print\\:hidden',
-  ];
-  cloneDoc.querySelectorAll<HTMLElement>(HIDE_SELECTORS.join(', ')).forEach((el) => {
-    el.style.setProperty('display', 'none', 'important');
-  });
-
-  // ── 4. Remove height / overflow locks + fix positioning on ALL elements ───
-  const HEIGHT_LOCK_CLASSES = [
-    'h-screen', 'h-dvh', 'h-lvh', 'h-svh', 'h-full',
-    'max-h-screen', 'max-h-full',
-    'overflow-auto', 'overflow-scroll',
-    'sticky', 'fixed',
-  ];
-
-  // Find the template root so we can distinguish inside-template vs outside
-  const templateRoot =
-    cloneDoc.querySelector<HTMLElement>('[data-pdf-root]') ||
-    (cloneDoc.body.firstElementChild as HTMLElement | null);
-
-  cloneDoc.querySelectorAll<HTMLElement>('*').forEach((el) => {
-    HEIGHT_LOCK_CLASSES.forEach((cls) => el.classList.remove(cls));
-
-    Array.from(el.classList)
-      .filter((c) => c.startsWith('aspect-'))
-      .forEach((c) => el.classList.remove(c));
-
-    const s = el.style;
-    const isInsideTemplate = templateRoot ? templateRoot.contains(el) : false;
-
-    // ── Height / overflow ───────────────────────────────────────────────────
-    if (s.height && s.height !== 'auto') s.height = 'auto';
-    if (s.maxHeight) s.maxHeight = 'none';
-    if (s.minHeight && (s.minHeight.includes('vh') || s.minHeight.includes('%') || s.minHeight === '100dvh' || s.minHeight === '100svh')) s.minHeight = 'auto';
-    if (s.aspectRatio) s.aspectRatio = 'unset';
-
-    const computed2 = window.getComputedStyle(el);
-    const hasBorderRadius = computed2.borderRadius && computed2.borderRadius !== '0px' && computed2.borderRadius !== '0';
-    const hasImg = el.querySelector('img') !== null || el.tagName === 'IMG';
-
-    // Inside the template: only strip scrollable overflow (overflow-auto/scroll),
-    // never strip overflow:hidden because templates use it intentionally for
-    // photos, decorative elements, and clipping backgrounds.
-    // Outside the template: strip all overflow constraints.
-    if (isInsideTemplate) {
-      const ov = computed2.overflow;
-      const ovY = computed2.overflowY;
-      const ovX = computed2.overflowX;
-      if (ov === 'auto' || ov === 'scroll') s.overflow = 'visible';
-      if (ovY === 'auto' || ovY === 'scroll') s.overflowY = 'visible';
-      if (ovX === 'auto' || ovX === 'scroll') s.overflowX = 'visible';
+      // Copy any border-radius on the img itself
+      const imgCs = window.getComputedStyle(img);
+      if (imgCs.borderRadius && imgCs.borderRadius !== '0px') {
+        div.style.borderRadius = imgCs.borderRadius;
+        div.style.overflow = 'hidden';
+      }
+      img.parentNode?.replaceChild(div, img);
     } else {
-      if (!hasBorderRadius && !hasImg) {
-        if (s.overflow && s.overflow !== 'visible') s.overflow = 'visible';
-        if (s.overflowY && s.overflowY !== 'visible') s.overflowY = 'visible';
-        if (s.overflowX && s.overflowX !== 'visible') s.overflowX = 'visible';
+      // Non-profile image: keep as <img>, fix dimensions
+      if (preW) img.style.width = preW;
+      if (preH) img.style.height = preH;
+      img.style.objectFit = preFit as any;
+      img.style.display = 'block';
+      img.style.flexShrink = '0';
+    }
+  });
+
+  // ── 6. Disable animations and transitions globally ────────────────────────
+  // Prevents in-flight CSS animations/transitions from affecting the snapshot.
+  const animStyleEl = cloneDoc.createElement('style');
+  animStyleEl.textContent = `
+    *, *::before, *::after {
+      animation: none !important;
+      animation-duration: 0s !important;
+      transition: none !important;
+      transition-duration: 0s !important;
+    }
+  `;
+  (cloneDoc.head || cloneDoc.documentElement).appendChild(animStyleEl);
+
+  // ── 7. Force Tailwind md: breakpoint classes ──────────────────────────────
+  // html2canvas renders the clone at windowWidth:794px which activates md: (≥768px).
+  // But the clone iframe may not correctly apply responsive Tailwind rules
+  // from the injected stylesheet. We force all md: classes inline explicitly.
+
+  // md:grid-cols-N
+  cloneDoc.querySelectorAll<HTMLElement>('[class*="md:grid-cols-"]').forEach((el) => {
+    const match = Array.from(el.classList).find((c) => c.startsWith('md:grid-cols-'));
+    if (!match) return;
+    const cols = match.replace('md:grid-cols-', '');
+    el.style.setProperty('display', 'grid', 'important');
+    el.style.setProperty('grid-template-columns', `repeat(${cols}, minmax(0, 1fr))`, 'important');
+    // Preserve computed gap
+    const computedGap = window.getComputedStyle(el).columnGap;
+    const gapPx = computedGap && computedGap !== 'normal' && computedGap !== '0px' ? computedGap : '24px';
+    el.style.setProperty('column-gap', gapPx, 'important');
+    el.style.setProperty('row-gap', gapPx, 'important');
+  });
+
+  // md:col-span-N
+  cloneDoc.querySelectorAll<HTMLElement>('[class*="md:col-span-"]').forEach((el) => {
+    const match = Array.from(el.classList).find((c) => c.startsWith('md:col-span-'));
+    if (!match) return;
+    const span = match.replace('md:col-span-', '');
+    el.style.setProperty('grid-column', `span ${span} / span ${span}`, 'important');
+    el.style.setProperty('min-width', '0', 'important');
+  });
+
+  // md:flex-row / md:flex-col
+  cloneDoc.querySelectorAll<HTMLElement>('[class*="md:flex-row"]').forEach((el) => {
+    el.style.setProperty('flex-direction', 'row', 'important');
+  });
+  cloneDoc.querySelectorAll<HTMLElement>('[class*="md:flex-col"]').forEach((el) => {
+    el.style.setProperty('flex-direction', 'column', 'important');
+  });
+
+  // sm:flex-row (used in footers)
+  cloneDoc.querySelectorAll<HTMLElement>('[class*="sm:flex-row"]').forEach((el) => {
+    el.style.setProperty('flex-direction', 'row', 'important');
+  });
+
+  // sm:px-0
+  cloneDoc.querySelectorAll<HTMLElement>('[class*="sm:px-0"]').forEach((el) => {
+    el.style.setProperty('padding-left', '0', 'important');
+    el.style.setProperty('padding-right', '0', 'important');
+  });
+
+  // md:w-N / md:max-w-N — force common fractional widths
+  cloneDoc.querySelectorAll<HTMLElement>('*').forEach((el) => {
+    const classes = Array.from(el.classList);
+
+    // md:w-[fraction]
+    const mdW = classes.find((c) => c.startsWith('md:w-'));
+    if (mdW) {
+      const val = mdW.replace('md:w-', '');
+      const fractionMap: Record<string, string> = {
+        '1/2': '50%', '1/3': '33.333%', '2/3': '66.667%',
+        '1/4': '25%', '3/4': '75%', '2/5': '40%', '3/5': '60%',
+        'full': '100%',
+      };
+      if (fractionMap[val]) el.style.setProperty('width', fractionMap[val], 'important');
+      else {
+        const px = tailwindSpacingToPx(val);
+        if (px) el.style.setProperty('width', px, 'important');
       }
     }
 
-    // ── Positioning: only convert fixed/sticky → relative (globally)
-    // Leave absolute positioning alone inside templates — templates use it
-    // for decorative elements (glows, page guides) that must stay in place.
-    const pos = computed2.position;
-    if (pos === 'fixed' || pos === 'sticky') {
-      s.setProperty('position', 'relative', 'important');
-      s.setProperty('top', 'unset', 'important');
-      s.setProperty('left', 'unset', 'important');
-      s.setProperty('right', 'unset', 'important');
-      s.setProperty('bottom', 'unset', 'important');
-      s.setProperty('transform', 'none', 'important');
-    }
-    // Outside the template, also flatten absolute → relative to prevent
-    // navigation bars / modals jumping into the canvas snapshot.
-    else if (pos === 'absolute' && !isInsideTemplate) {
-      s.position = 'relative';
-      s.top = 'unset';
-      s.left = 'unset';
-      s.right = 'unset';
-      s.bottom = 'unset';
-      s.transform = 'none';
+    // md:hidden
+    if (classes.includes('md:hidden')) {
+      el.style.setProperty('display', 'none', 'important');
     }
 
+    // md:block / md:flex / md:inline-flex / md:grid
+    if (classes.includes('md:block')) el.style.setProperty('display', 'block', 'important');
+    if (classes.includes('md:flex')) el.style.setProperty('display', 'flex', 'important');
+    if (classes.includes('md:inline-flex')) el.style.setProperty('display', 'inline-flex', 'important');
+    if (classes.includes('md:grid')) el.style.setProperty('display', 'grid', 'important');
   });
 
-  // ── 5. Enforce 794px on the root element and all wrappers ────────────────
+  // ── 8. Classic template sidebar: force pixel widths ──────────────────────
+  cloneDoc.querySelectorAll<HTMLElement>('[class*="w-2/5"]').forEach((el) => {
+    el.style.setProperty('width', '317px', 'important'); // 794 * 0.4 = 317.6
+    el.style.setProperty('min-width', '317px', 'important');
+    el.style.setProperty('flex-shrink', '0', 'important');
+    el.style.setProperty('max-width', '317px', 'important');
+  });
+  cloneDoc.querySelectorAll<HTMLElement>('[class*="max-w-\\[32%\\]"]').forEach((el) => {
+    el.style.setProperty('max-width', 'none', 'important');
+  });
+  // flex-1 companion: ensure it fills remaining space
+  cloneDoc.querySelectorAll<HTMLElement>('.flex-1').forEach((el) => {
+    const parent = el.parentElement;
+    if (parent && (window.getComputedStyle(parent).display === 'flex')) {
+      el.style.setProperty('flex', '1 1 0%', 'important');
+      el.style.setProperty('min-width', '0', 'important');
+    }
+  });
+
+  // ── 9. Root width enforcement ─────────────────────────────────────────────
   const root =
     body.querySelector<HTMLElement>('[data-pdf-root]') ||
     (body.firstElementChild as HTMLElement | null);
@@ -337,9 +336,8 @@ function prepareCloneForPrint(cloneDoc: Document): void {
     root.style.setProperty('box-shadow', 'none', 'important');
     root.style.setProperty('border-radius', '0', 'important');
     root.style.setProperty('padding', '0', 'important');
-    root.style.setProperty('background', 'transparent', 'important');
+    root.style.setProperty('background', 'white', 'important');
 
-    // root > first child = <div class="w-full"> (LiveEditor inner wrapper)
     const wrapperEl = root.firstElementChild as HTMLElement | null;
     if (wrapperEl) {
       wrapperEl.style.setProperty('width', '100%', 'important');
@@ -348,105 +346,150 @@ function prepareCloneForPrint(cloneDoc: Document): void {
       wrapperEl.style.setProperty('margin', '0', 'important');
       wrapperEl.style.setProperty('display', 'block', 'important');
 
-      // wrapperEl > first child = template root element (all templates now w-full)
-      const templateRoot2 = wrapperEl.firstElementChild as HTMLElement | null;
-      if (templateRoot2) {
-        templateRoot2.style.setProperty('width', '100%', 'important');
-        templateRoot2.style.setProperty('max-width', '100%', 'important');
-        templateRoot2.style.setProperty('min-width', '0', 'important');
-        templateRoot2.style.setProperty('margin-left', '0', 'important');
-        templateRoot2.style.setProperty('margin-right', '0', 'important');
-        templateRoot2.style.setProperty('box-shadow', 'none', 'important');
+      const templateRootEl = wrapperEl.firstElementChild as HTMLElement | null;
+      if (templateRootEl) {
+        templateRootEl.style.setProperty('width', '100%', 'important');
+        templateRootEl.style.setProperty('max-width', '100%', 'important');
+        templateRootEl.style.setProperty('min-width', '0', 'important');
+        templateRootEl.style.setProperty('margin-left', '0', 'important');
+        templateRootEl.style.setProperty('margin-right', '0', 'important');
+        templateRootEl.style.setProperty('box-shadow', 'none', 'important');
       }
     }
   }
 
-  // ── 5b. Resolve responsive Tailwind classes at A4 width ──────────────────
-  // Templates use md:grid-cols-12 and grid-cols-2 for responsive layouts.
-  // At 794px the "md" breakpoint (768px) is active, so we force those classes.
-  cloneDoc.querySelectorAll<HTMLElement>('[class*="md:grid-cols-"]').forEach((el) => {
-    const match = Array.from(el.classList).find((c) => c.startsWith('md:grid-cols-'));
-    if (match) {
-      const cols = match.replace('md:grid-cols-', '');
-      el.style.setProperty('grid-template-columns', `repeat(${cols}, minmax(0, 1fr))`, 'important');
-      el.style.setProperty('display', 'grid', 'important');
-      // Preserve gap: html2canvas doesn't honour Tailwind gap-N classes reliably,
-      // so read the computed column-gap from the live element and re-apply inline.
-      // Tailwind gap-6 = 24px, gap-4 = 16px. Fall back to 24px if unresolvable.
-      const computedGap = window.getComputedStyle(el).columnGap;
-      const gapPx = computedGap && computedGap !== 'normal' ? computedGap : '24px';
-      el.style.setProperty('column-gap', gapPx, 'important');
-      el.style.setProperty('row-gap', gapPx, 'important');
-    }
-  });
+  // ── 10. Global pass: fix positioning, height locks, overflow ─────────────
+  const HEIGHT_LOCK_CLASSES = [
+    'h-screen', 'h-dvh', 'h-lvh', 'h-svh', 'h-full',
+    'max-h-screen', 'max-h-full', 'overflow-auto', 'overflow-scroll',
+    'sticky', 'fixed',
+  ];
 
-  // Force md:col-span-N classes
-  cloneDoc.querySelectorAll<HTMLElement>('[class*="md:col-span-"]').forEach((el) => {
-    const match = Array.from(el.classList).find((c) => c.startsWith('md:col-span-'));
-    if (match) {
-      const span = match.replace('md:col-span-', '');
-      el.style.setProperty('grid-column', `span ${span} / span ${span}`, 'important');
-      el.style.setProperty('min-width', '0', 'important');
-    }
-  });
+  const templateRoot =
+    cloneDoc.querySelector<HTMLElement>('[data-pdf-root]') ||
+    (cloneDoc.body.firstElementChild as HTMLElement | null);
 
-  // ── 5c. Fix Classic template flex sidebar widths ─────────────────────────
-  // Classic uses w-2/5 max-w-[32%] (sidebar) and flex-1 (main). Neither has
-  // md: prefix so step 5b doesn't touch them. Force widths explicitly.
-  cloneDoc.querySelectorAll<HTMLElement>('[class*="w-2/5"]').forEach((el) => {
-    el.style.setProperty('width', '40%', 'important');
-    el.style.setProperty('flex-shrink', '0', 'important');
-    el.style.setProperty('max-width', '40%', 'important');
-  });
-  cloneDoc.querySelectorAll<HTMLElement>('[class*="max-w-\\[32%\\]"]').forEach((el) => {
-    el.style.setProperty('max-width', 'none', 'important');
-  });
+  cloneDoc.querySelectorAll<HTMLElement>('*').forEach((el) => {
+    HEIGHT_LOCK_CLASSES.forEach((cls) => el.classList.remove(cls));
+    Array.from(el.classList)
+      .filter((c) => c.startsWith('aspect-'))
+      .forEach((c) => el.classList.remove(c));
 
-  // ── 5d. Fix overflow:hidden on flex/block skill containers ───────────────
-  // Classic <ul style="overflow:hidden"> clips the inline-flex chip row to 0px
-  // because inline-flex children fall outside normal block flow.
-  // Strip inline overflow:hidden from elements that are NOT photo containers.
-  cloneDoc.querySelectorAll<HTMLElement>('ul, ol').forEach((el) => {
     const s = el.style;
-    if (s.overflow === 'hidden' || s.overflowY === 'hidden' || s.overflowX === 'hidden') {
-      const hasImg = el.querySelector('img') !== null;
-      const cs = window.getComputedStyle(el);
-      const hasBorderRadius = cs.borderRadius && cs.borderRadius !== '0px' && cs.borderRadius !== '0';
-      if (!hasImg && !hasBorderRadius) {
-        s.setProperty('overflow', 'visible', 'important');
+    const isInsideTemplate = templateRoot ? templateRoot.contains(el) : false;
+    const cs = window.getComputedStyle(el);
+
+    // Height resets
+    if (s.height && s.height !== 'auto') s.height = 'auto';
+    if (s.maxHeight) s.maxHeight = 'none';
+    if (s.minHeight && (s.minHeight.includes('vh') || s.minHeight.includes('%') || s.minHeight === '100dvh' || s.minHeight === '100svh')) s.minHeight = 'auto';
+    if (s.aspectRatio) s.aspectRatio = 'unset';
+
+    const hasBorderRadius = cs.borderRadius && cs.borderRadius !== '0px' && cs.borderRadius !== '0';
+    const isImageContainer = el.tagName === 'IMG' || el.querySelector('img') !== null || el.style.backgroundImage !== '';
+
+    // Overflow: strip hidden except on image containers inside template
+    if (isInsideTemplate) {
+      if (!isImageContainer && !hasBorderRadius) {
+        if (cs.overflow === 'hidden') s.setProperty('overflow', 'visible', 'important');
+        if (cs.overflowY === 'hidden') s.setProperty('overflow-y', 'visible', 'important');
+        if (cs.overflowX === 'hidden') s.setProperty('overflow-x', 'visible', 'important');
+      }
+      if (cs.overflow === 'auto' || cs.overflow === 'scroll') s.overflow = 'visible';
+      if (cs.overflowY === 'auto' || cs.overflowY === 'scroll') s.overflowY = 'visible';
+      if (cs.overflowX === 'auto' || cs.overflowX === 'scroll') s.overflowX = 'visible';
+    } else {
+      if (!hasBorderRadius && !isImageContainer) {
+        if (s.overflow && s.overflow !== 'visible') s.overflow = 'visible';
+        if (s.overflowY && s.overflowY !== 'visible') s.overflowY = 'visible';
+        if (s.overflowX && s.overflowX !== 'visible') s.overflowX = 'visible';
+      }
+    }
+
+    // Positioning
+    const pos = cs.position;
+    if (pos === 'fixed' || pos === 'sticky') {
+      s.setProperty('position', 'relative', 'important');
+      s.setProperty('top', 'unset', 'important');
+      s.setProperty('left', 'unset', 'important');
+      s.setProperty('right', 'unset', 'important');
+      s.setProperty('bottom', 'unset', 'important');
+      s.setProperty('transform', 'none', 'important');
+    } else if (pos === 'absolute' && !isInsideTemplate) {
+      s.position = 'relative';
+      s.top = 'unset';
+      s.left = 'unset';
+      s.right = 'unset';
+      s.bottom = 'unset';
+      s.transform = 'none';
+    }
+
+    // Convert % widths on major containers to pixel values (Requirement 1)
+    // Only for direct children of the template root — avoids mangling inner layout
+    if (isInsideTemplate && el.parentElement === templateRoot) {
+      const w = cs.width;
+      if (w && w.endsWith('%')) {
+        const pct = parseFloat(w);
+        if (!isNaN(pct)) {
+          s.setProperty('width', `${Math.round((pct / 100) * A4_WIDTH_PX)}px`, 'important');
+        }
       }
     }
   });
 
-  // Force sm:flex-row (footers use flex-col sm:flex-row)
-  cloneDoc.querySelectorAll<HTMLElement>('[class*="sm:flex-row"]').forEach((el) => {
-    el.style.setProperty('flex-direction', 'row', 'important');
+  // ── 11. Flex-gap fix: add margin to flex children WITHOUT destroying flex ──
+  // Requirement 2: do NOT force display:block — keep flex context intact.
+  // Instead add margin-right/bottom to each child to simulate the gap.
+  cloneDoc.querySelectorAll<HTMLElement>('*').forEach((el) => {
+    const classes = Array.from(el.classList);
+
+    // Path A: Tailwind class-based (flex flex-wrap gap-N)
+    const hasFlex = classes.includes('flex');
+    const hasFlexWrap = classes.includes('flex-wrap');
+    if (hasFlex && hasFlexWrap) {
+      const gapClass = classes.find((c) => /^gap-/.test(c));
+      const gapPx = gapClass ? (tailwindGapToPx(gapClass) ?? 0) : 0;
+      if (gapPx > 0) {
+        el.setAttribute('data-chip-row', '1');
+        // Keep display:flex + flex-wrap — just add margins to children
+        el.style.setProperty('gap', '0', 'important');
+        Array.from(el.children).forEach((child) => {
+          const c = child as HTMLElement;
+          if (c.style.display === 'none') return;
+          c.style.setProperty('margin-right', `${gapPx}px`, 'important');
+          c.style.setProperty('margin-bottom', `${gapPx}px`, 'important');
+        });
+        return;
+      }
+    }
+
+    // Path B: Inline-style flex with gap (ModernCVTemplate uses inline styles)
+    const inlineDisplay = el.style.display;
+    const inlineWrap = el.style.flexWrap;
+    const inlineGap = el.style.gap || el.style.columnGap || '';
+    if (
+      (inlineDisplay === 'flex' || inlineDisplay === 'inline-flex') &&
+      (inlineWrap === 'wrap' || inlineWrap === 'wrap-reverse')
+    ) {
+      const gapPx = parseFloat(inlineGap) || 0;
+      if (gapPx > 0) {
+        el.setAttribute('data-chip-row', '1');
+        el.style.setProperty('gap', '0', 'important');
+        Array.from(el.children).forEach((child) => {
+          const c = child as HTMLElement;
+          if (c.style.display === 'none') return;
+          c.style.setProperty('margin-right', `${gapPx}px`, 'important');
+          c.style.setProperty('margin-bottom', `${gapPx}px`, 'important');
+        });
+      }
+    }
   });
 
-  // Force sm:px-0 / sm:px-4 (templates use sm: padding variants)
-  cloneDoc.querySelectorAll<HTMLElement>('[class*="sm:px-0"]').forEach((el) => {
-    el.style.setProperty('padding-left', '0', 'important');
-    el.style.setProperty('padding-right', '0', 'important');
-  });
-
-  // ── 6. Prevent page breaks inside CV content cards ───────────────────────
-  // Targets common card/entry wrappers across all CV templates so that
-  // experience, education, project, and skill items are never split between
-  // two PDF pages.
+  // ── 12. Page break avoidance ──────────────────────────────────────────────
   const BREAK_AVOID_SELECTORS = [
-    // Inline-styled cards (Modern template already uses breakInside, but we set it here too)
-    '[style*="border-radius"]',
-    // Tailwind rounded card classes used by Classic / Minimal / Professional
-    '.rounded-lg',
-    '.rounded-xl',
-    '.rounded-2xl',
-    // Explicit avoid classes used by some templates
-    '[class*="mb-2"]',
-    '[class*="mb-2.5"]',
-    '[class*="mb-3"]',
+    '[style*="border-radius"]', '.rounded-lg', '.rounded-xl', '.rounded-2xl',
+    '[class*="mb-2"]', '[class*="mb-2.5"]', '[class*="mb-3"]',
   ];
-
-  // Use a Set to avoid processing the same element twice
   const seen = new WeakSet<HTMLElement>();
   BREAK_AVOID_SELECTORS.forEach((sel) => {
     cloneDoc.querySelectorAll<HTMLElement>(sel).forEach((el) => {
@@ -457,7 +500,7 @@ function prepareCloneForPrint(cloneDoc: Document): void {
     });
   });
 
-  // ── 7. Page-level resets ──────────────────────────────────────────────────
+  // ── 13. Page-level resets ─────────────────────────────────────────────────
   body.style.setProperty('margin', '0', 'important');
   body.style.setProperty('padding', '0', 'important');
   body.style.setProperty('overflow', 'visible', 'important');
@@ -465,52 +508,35 @@ function prepareCloneForPrint(cloneDoc: Document): void {
   body.style.setProperty('min-height', '0', 'important');
   body.style.setProperty('width', `${A4_WIDTH_PX}px`, 'important');
 
-  // ── 8. Inject inline print-stabilization CSS ─────────────────────────────
-  // Injected directly into the cloned <head> — no external network requests,
-  // no CORS failures. This is the only reliable CSS injection path for html2canvas.
+  // ── 14. Inject stabilization CSS ─────────────────────────────────────────
   const styleEl = cloneDoc.createElement('style');
   styleEl.textContent = `
     *, *::before, *::after {
       box-sizing: border-box !important;
       -webkit-print-color-adjust: exact !important;
       print-color-adjust: exact !important;
-    }
-
-    /* Ensure backgrounds are never stripped — critical for tinted header/section colors */
-    * {
-      -webkit-print-color-adjust: exact !important;
       color-adjust: exact !important;
     }
 
-    /* Body font fallback — never Times New Roman.
-       Templates that use Georgia set it via inline style, which wins. */
     body {
       font-family: 'Inter', 'Roboto', 'Open Sans', Arial, Helvetica, sans-serif !important;
     }
 
-    /* ── Global line-height lock: prevents browser-default variation ── */
     p, div, span, li, h1, h2, h3, h4 {
       line-height: 1.4 !important;
     }
 
-    /* ── Skill/chip containers ── */
+    /* Chip/skill containers: keep flex context, ensure visible */
     [data-chip-row] {
-      display: block !important;
       overflow: visible !important;
     }
     [data-chip-row] > * {
-      display: inline-flex !important;
-      align-items: center !important;
-      margin-right: 5px !important;
-      margin-bottom: 5px !important;
       vertical-align: middle !important;
       min-height: 22px !important;
       line-height: 1.4 !important;
     }
 
-    /* ── Bullet point alignment ──
-       Force flex layout with start alignment so the dot stays at the top
-       of multi-line text, not vertically centered mid-block. */
+    /* Bullet point alignment */
     [data-pdf-bullet-row] {
       display: flex !important;
       align-items: flex-start !important;
@@ -528,7 +554,6 @@ function prepareCloneForPrint(cloneDoc: Document): void {
       margin-right: 7px !important;
       flex-shrink: 0 !important;
     }
-    /* Last child of a bullet row = the text content */
     [data-pdf-bullet-row] > :last-child {
       display: block !important;
       flex: 1 !important;
@@ -537,7 +562,7 @@ function prepareCloneForPrint(cloneDoc: Document): void {
       white-space: pre-wrap !important;
     }
 
-    /* ── A4 root: fixed dimensions ── */
+    /* A4 root */
     [data-pdf-root] {
       width: 794px !important;
       min-width: 794px !important;
@@ -547,14 +572,14 @@ function prepareCloneForPrint(cloneDoc: Document): void {
       background: white !important;
     }
 
-    /* ── Summary/profile box: contained overflow ── */
+    /* Summary/profile box */
     [data-pdf-summary] {
-      overflow: hidden !important;
+      overflow: visible !important;
       word-break: break-word !important;
       overflow-wrap: anywhere !important;
     }
 
-    /* ── Date badge: ensure inline-flex stays stable ── */
+    /* Date badge */
     [data-pdf-date-badge] {
       display: inline-flex !important;
       align-items: center !important;
@@ -562,80 +587,15 @@ function prepareCloneForPrint(cloneDoc: Document): void {
       white-space: nowrap !important;
     }
 
-    /* ── Remove any residual input/textarea styling artifacts ── */
-    input, textarea {
-      display: none !important;
+    input, textarea { display: none !important; }
+
+    /* cv-scale-wrapper: always neutral in clone */
+    .cv-scale-wrapper {
+      transform: none !important;
+      width: 794px !important;
     }
   `;
   (cloneDoc.head || cloneDoc.documentElement).appendChild(styleEl);
-
-  // ── 9. Convert gap-based flex/wrap containers → margin-based ───────────────
-  // html2canvas clones the DOM into a hidden iframe that does NOT inherit the
-  // page's Tailwind stylesheet. Tailwind classes like `flex flex-wrap gap-1.5`
-  // produce zero computed gap in the clone. We must detect BOTH:
-  //   (a) Inline style: display:flex + flex-wrap:wrap + gap
-  //   (b) Tailwind class names: presence of "flex-wrap" AND any "gap-" class
-  // and convert them to block + inline-flex + margin so layout is stable.
-
-  // Maps Tailwind gap-N → px value (Tailwind default spacing: 1 unit = 4px)
-  const tailwindGapToPx = (cls: string): number | null => {
-    // gap-px → 1px, gap-0.5 → 2px, gap-1 → 4px, gap-1.5 → 6px, gap-2 → 8px, etc.
-    const m = cls.match(/^gap-(.+)$/);
-    if (!m) return null;
-    const val = m[1];
-    if (val === 'px') return 1;
-    const num = parseFloat(val);
-    if (!isNaN(num)) return Math.round(num * 4);
-    return null;
-  };
-
-  const applyGapFix = (el: HTMLElement, gapPx: number) => {
-    el.style.setProperty('display', 'block', 'important');
-    el.style.setProperty('overflow', 'visible', 'important');
-    el.setAttribute('data-chip-row', '1');
-    Array.from(el.children).forEach((child) => {
-      const c = child as HTMLElement;
-      // Don't override elements that are hidden or already have display:none
-      if (c.style.display === 'none') return;
-      c.style.setProperty('display', 'inline-flex', 'important');
-      c.style.setProperty('align-items', 'center', 'important');
-      c.style.setProperty('vertical-align', 'middle', 'important');
-      c.style.setProperty('margin-right', `${gapPx}px`, 'important');
-      c.style.setProperty('margin-bottom', `${gapPx}px`, 'important');
-      c.style.setProperty('min-height', '22px', 'important');
-    });
-  };
-
-  cloneDoc.querySelectorAll<HTMLElement>('*').forEach((el) => {
-    const classes = Array.from(el.classList);
-
-    // ── Path A: Tailwind class-based detection ─────────────────────────────
-    const hasFlex = classes.includes('flex');
-    const hasFlexWrap = classes.includes('flex-wrap');
-    if (hasFlex && hasFlexWrap) {
-      // Find the gap class (gap-1, gap-1.5, gap-2, gap-3, etc.)
-      const gapClass = classes.find((c) => /^gap-/.test(c));
-      const gapPx = gapClass ? (tailwindGapToPx(gapClass) ?? 4) : 0;
-      if (gapPx > 0) {
-        applyGapFix(el, gapPx);
-        return;
-      }
-    }
-
-    // ── Path B: Inline-style detection (ModernCVTemplate uses inline styles) ─
-    const inlineDisplay = el.style.display;
-    const inlineWrap = el.style.flexWrap;
-    const inlineGap = el.style.gap || el.style.columnGap || '';
-    if (
-      (inlineDisplay === 'flex' || inlineDisplay === 'inline-flex') &&
-      (inlineWrap === 'wrap' || inlineWrap === 'wrap-reverse')
-    ) {
-      const gapPx = parseFloat(inlineGap) || 0;
-      if (gapPx > 0) {
-        applyGapFix(el, gapPx);
-      }
-    }
-  });
 }
 
 async function renderElementToPDFBlob(
@@ -644,11 +604,7 @@ async function renderElementToPDFBlob(
 ): Promise<Blob> {
   const { quality = 0.95, scale = 2 } = options;
 
-  // ── Step 1: Convert all images in the LIVE element to base64 ─────────────
-  // This happens BEFORE html2canvas clones the DOM, so the clone already has
-  // base64 src values — no CORS issues, no taint errors.
-  // Also collect computed styles (width/height/objectFit) before cloning,
-  // since window.getComputedStyle doesn't work inside onclone callbacks.
+  // ── Step 1: Pre-fetch images as base64 and stamp dimensions ──────────────
   console.log('[PDF Export] Pre-fetching images as base64...');
   const liveImages = Array.from(element.querySelectorAll<HTMLImageElement>('img'));
   await Promise.all(
@@ -660,8 +616,6 @@ async function renderElementToPDFBlob(
       img.setAttribute('data-original-src', originalSrc);
     })
   );
-
-  // Stamp computed size + objectFit onto each img as data attributes so onclone can read them
   liveImages.forEach((img) => {
     const cs = window.getComputedStyle(img);
     img.setAttribute('data-pdf-w', cs.width || img.style.width || '80px');
@@ -669,81 +623,53 @@ async function renderElementToPDFBlob(
     img.setAttribute('data-pdf-fit', cs.objectFit || img.style.objectFit || 'cover');
   });
 
-  // ── Step 2: Wait for DOM flush + fonts ───────────────────────────────────
-  await new Promise((r) => requestAnimationFrame(() => requestAnimationFrame(r)));
-
-  // Wait for FontFaceSet to be fully ready before loading individual faces.
-  // This is the primary gate — individual font.load() calls below are
-  // supplementary to force-load specific weights that may be lazy-loaded.
-  await Promise.all([
-    (document as any).fonts?.ready ?? Promise.resolve(),
-  ]);
-
-  // Explicitly load all font variants used by the CV templates before rendering.
-  // This prevents fonts from falling back to system fonts in the PDF screenshot.
+  // ── Step 2: Robust font loading ───────────────────────────────────────────
+  // Primary gate: wait for FontFaceSet to be ready
+  if ((document as any).fonts?.ready) {
+    await (document as any).fonts.ready;
+  }
+  // Force-load all weights used by CV templates
   if ((document as any).fonts?.load) {
     const fontFaces = [
-      '400 12px Inter',
-      '600 12px Inter',
-      '700 12px Inter',
-      '400 12px Roboto',
-      '600 12px Roboto',
-      '700 12px Roboto',
-      '400 12px "Open Sans"',
-      '600 12px "Open Sans"',
-      '700 12px "Open Sans"',
-      '400 12px Georgia',
-      '700 12px Georgia',
+      '400 12px Inter', '600 12px Inter', '700 12px Inter',
+      '400 12px Roboto', '600 12px Roboto', '700 12px Roboto',
+      '400 12px "Open Sans"', '600 12px "Open Sans"', '700 12px "Open Sans"',
+      '400 12px Georgia', '700 12px Georgia',
     ];
-    await Promise.all(
-      fontFaces.map((f) =>
-        (document as any).fonts.load(f).catch(() => {})
-      )
-    );
+    await Promise.all(fontFaces.map((f) => (document as any).fonts.load(f).catch(() => {})));
+  }
+  // Second gate: ensure all triggered fonts have settled
+  if ((document as any).fonts?.ready) {
+    await (document as any).fonts.ready;
   }
 
-  // Second fonts.ready await — ensures any fonts triggered by the load() calls
-  // above have also settled before we snapshot the DOM.
-  await Promise.all([
-    (document as any).fonts?.ready ?? Promise.resolve(),
-  ]);
+  // Two rAF cycles for layout repaint after fonts
+  await new Promise((r) => requestAnimationFrame(() => requestAnimationFrame(r)));
+  // Extra settle for slow font CDNs
+  await new Promise((r) => setTimeout(r, 400));
 
-  // Short additional settle time for layout repaint after fonts load
-  await new Promise((r) => setTimeout(r, 300));
-
-  // ── Step 3: Confirm all images loaded ─────────────────────────────────────
+  // ── Step 3: Wait for all images to load ───────────────────────────────────
   await Promise.all(
     Array.from(element.querySelectorAll<HTMLImageElement>('img')).map((img) => {
       if (img.complete && img.naturalWidth > 0) return Promise.resolve();
       return new Promise<void>((res) => {
         img.onload = () => res();
-        img.onerror = () => {
-          console.warn('[PDF Export] Image failed to load:', img.src?.substring(0, 80));
-          res();
-        };
+        img.onerror = () => res();
       });
     })
   );
 
   window.scrollTo(0, 0);
 
-  // ── Collect all CSS text from the live document BEFORE html2canvas clones it ──
-  // html2canvas copies <link> tags but they break in the iframe (relative URL).
-  // We read every stylesheet's cssText here (synchronous, in-page) and inject it
-  // as an inline <style> in the onclone callback so the clone has full Tailwind CSS.
+  // ── Step 4: Collect live CSS for injection into clone ─────────────────────
   const liveCSS: string[] = [];
   try {
     Array.from(document.styleSheets).forEach((sheet) => {
       try {
-        const rules = Array.from(sheet.cssRules || []);
-        liveCSS.push(rules.map((r) => r.cssText).join('\n'));
-      } catch {
-        // Cross-origin sheet — skip (rare in same-origin Vite app)
-      }
+        liveCSS.push(Array.from(sheet.cssRules || []).map((r) => r.cssText).join('\n'));
+      } catch { /* cross-origin */ }
     });
-  } catch {
-    // Ignore any permission errors
-  }
+  } catch { /* ignore */ }
   const liveCSSText = liveCSS.join('\n');
 
   console.log('[PDF Export] Rendering canvas (scale:', scale, ')...');
@@ -756,7 +682,7 @@ async function renderElementToPDFBlob(
       useCORS: true,
       allowTaint: true,
       backgroundColor: '#ffffff',
-      logging: true,
+      logging: false,
       imageTimeout: 0,
       removeContainer: true,
       windowWidth: A4_WIDTH_PX,
@@ -767,7 +693,7 @@ async function renderElementToPDFBlob(
       scrollX: 0,
       scrollY: 0,
       onclone: (cloneDoc) => {
-        // Inject the live CSS so Tailwind classes resolve correctly in the clone
+        // Inject live CSS first (lowest priority) so our !important overrides win
         if (liveCSSText) {
           const liveStyleEl = cloneDoc.createElement('style');
           liveStyleEl.textContent = liveCSSText;
@@ -783,7 +709,7 @@ async function renderElementToPDFBlob(
     console.error('[PDF Export] html2canvas error:', err);
     throw new Error('PDF-Generierung fehlgeschlagen: ' + (err.message || 'Unbekannter Fehler'));
   } finally {
-    // ── Restore original src values so the live editor isn't affected ───────
+    // Restore original image src values
     liveImages.forEach((img) => {
       const originalSrc = img.getAttribute('data-original-src');
       if (originalSrc) {
@@ -799,9 +725,6 @@ async function renderElementToPDFBlob(
   console.log('[PDF Export] Canvas:', canvas.width, 'x', canvas.height, 'px');
 
   // ── Step 5: Render footer separately (if present) ────────────────────────
-  // The footer element is identified by [data-pdf-footer] attribute.
-  // We render it as a separate canvas so it can be stamped at the bottom of
-  // every PDF page without being cut by the page-slice algorithm.
   const footerElement = element.querySelector<HTMLElement>('[data-pdf-footer]');
   let footerCanvas: HTMLCanvasElement | null = null;
   let footerHeightPx = 0;
@@ -820,7 +743,6 @@ async function renderElementToPDFBlob(
         width: A4_WIDTH_PX,
         onclone: (cloneDoc) => {
           prepareCloneForPrint(cloneDoc);
-          // Make footer fully visible in its own canvas pass
           const footerClone = cloneDoc.querySelector<HTMLElement>('[data-pdf-footer]');
           if (footerClone) {
             footerClone.style.setProperty('display', 'flex', 'important');
@@ -829,16 +751,14 @@ async function renderElementToPDFBlob(
         },
       });
       footerHeightPx = footerCanvas.height;
-      console.log('[PDF Export] Footer canvas:', footerCanvas.width, 'x', footerCanvas.height);
     } catch (err) {
-      console.warn('[PDF Export] Footer render failed, will be included in main canvas:', err);
+      console.warn('[PDF Export] Footer render failed:', err);
       footerCanvas = null;
       footerHeightPx = 0;
     }
   }
 
-  // When we have a separately rendered footer, re-render the main element
-  // with the footer hidden so content doesn't appear twice.
+  // Re-render main without footer if we have a separate footer canvas
   let mainCanvas = canvas;
   if (footerCanvas && footerElement) {
     try {
@@ -859,16 +779,12 @@ async function renderElementToPDFBlob(
         scrollY: 0,
         onclone: (cloneDoc) => {
           prepareCloneForPrint(cloneDoc);
-          // Hide the footer in the main pass so it is not double-rendered
           const footerClone = cloneDoc.querySelector<HTMLElement>('[data-pdf-footer]');
-          if (footerClone) {
-            footerClone.style.setProperty('display', 'none', 'important');
-          }
+          if (footerClone) footerClone.style.setProperty('display', 'none', 'important');
         },
       });
-      console.log('[PDF Export] Main canvas (footer excluded):', mainCanvas.width, 'x', mainCanvas.height);
     } catch (err) {
-      console.warn('[PDF Export] Re-render without footer failed, using original canvas:', err);
+      console.warn('[PDF Export] Re-render without footer failed:', err);
       mainCanvas = canvas;
     }
   }
@@ -876,32 +792,14 @@ async function renderElementToPDFBlob(
   const imgWidthMM = A4_WIDTH_MM;
   const imgHeightMM = (mainCanvas.height * imgWidthMM) / mainCanvas.width;
   const pageHeightPx = (A4_HEIGHT_MM * mainCanvas.height) / imgHeightMM;
-
-  // Footer dimensions in mm (proportional to the A4 width)
-  const footerHeightMM = footerCanvas
-    ? (footerCanvas.height * imgWidthMM) / footerCanvas.width
-    : 0;
-
-  // Usable content area per page (leave room for the footer at the bottom)
-  const contentPageHeightPx = footerCanvas
-    ? pageHeightPx - footerHeightPx
-    : pageHeightPx;
+  const footerHeightMM = footerCanvas ? (footerCanvas.height * imgWidthMM) / footerCanvas.width : 0;
+  const contentPageHeightPx = footerCanvas ? pageHeightPx - footerHeightPx : pageHeightPx;
   const contentPageHeightMM = A4_HEIGHT_MM - footerHeightMM;
 
-  // ── Collect DOM element boundaries for smart break detection ─────────────
-  // Measure bounding boxes of all "avoid-break" elements relative to the
-  // rendered element's top. These are CV entry cards, section items, etc.
-  // The canvas is rendered at `scale` × the DOM pixel size, so we multiply
-  // DOM offsets by `scale` to get canvas-space coordinates.
+  // ── Smart page break detection ────────────────────────────────────────────
   const AVOID_BREAK_SELECTORS = [
-    '[style*="border-radius"]',
-    '.rounded-lg',
-    '.rounded-xl',
-    '.rounded-2xl',
-    '[class*="mb-2"]',
-    '[class*="mb-3"]',
-    '[class*="entry"]',
-    '[class*="item"]',
+    '[style*="border-radius"]', '.rounded-lg', '.rounded-xl', '.rounded-2xl',
+    '[class*="mb-2"]', '[class*="mb-3"]', '[class*="entry"]', '[class*="item"]',
     '[data-avoid-break]',
   ];
   const elementRect = element.getBoundingClientRect();
@@ -914,7 +812,6 @@ async function renderElementToPDFBlob(
       const rect = el.getBoundingClientRect();
       const topDom = rect.top - elementRect.top;
       const bottomDom = rect.bottom - elementRect.top;
-      // Only track elements taller than 20px (skip decorative micro-elements)
       if (bottomDom - topDom < 20) return;
       avoidBreakRanges.push({
         top: Math.round(topDom * scale),
@@ -922,186 +819,108 @@ async function renderElementToPDFBlob(
       });
     });
   });
-  // Sort by top so we can binary-search efficiently
   avoidBreakRanges.sort((a, b) => a.top - b.top);
 
-  /**
-   * Returns true if cutting at `cutRow` (canvas px) would land inside a
-   * tracked "avoid-break" element.
-   */
   const cutsInsideElement = (cutRow: number): boolean => {
     for (const range of avoidBreakRanges) {
-      if (range.top > cutRow) break; // sorted, no need to look further
+      if (range.top > cutRow) break;
       if (cutRow > range.top && cutRow < range.bottom) return true;
     }
     return false;
   };
 
-  /**
-   * Finds the best pixel row to cut the canvas for a page break.
-   *
-   * Strategy (in priority order):
-   * 1. Try the ideal cut row. If it does not land inside an avoid-break
-   *    element, use it directly.
-   * 2. Search downward (within 8% of page height) for the first gap between
-   *    elements — i.e. the first row that is NOT inside any avoid-break block.
-   * 3. Search upward (within 8%) for the last gap before the ideal cut.
-   * 4. If no gap is found in either direction, fall back to the luminance-
-   *    based light-row heuristic so we at least try to avoid dense content.
-   * 5. Hard fallback: use the ideal cut regardless.
-   */
-  const findBestBreakRow = (
-    canvas: HTMLCanvasElement,
-    idealCutPx: number,
-    windowFraction = 0.08
-  ): number => {
-    const windowPx = Math.floor(canvas.height * windowFraction);
-
-    // 1. Ideal cut is already in a gap → use it
+  const findBestBreakRow = (cvCanvas: HTMLCanvasElement, idealCutPx: number): number => {
+    const windowPx = Math.floor(cvCanvas.height * 0.08);
     if (!cutsInsideElement(idealCutPx)) return idealCutPx;
 
-    // 2. Search downward for a gap (prefer putting element on the next page)
-    const searchDown = Math.min(canvas.height - 1, idealCutPx + windowPx);
+    const searchDown = Math.min(cvCanvas.height - 1, idealCutPx + windowPx);
     for (let row = idealCutPx + 1; row <= searchDown; row++) {
       if (!cutsInsideElement(row)) return row;
     }
 
-    // 3. Search upward for a gap (element fits on current page)
     const searchUp = Math.max(Math.floor(contentPageHeightPx * 0.75), idealCutPx - windowPx);
     for (let row = idealCutPx - 1; row >= searchUp; row--) {
       if (!cutsInsideElement(row)) return row;
     }
 
-    // 4. Luminance-based fallback (light pixel rows = whitespace between sections)
-    const ctx = canvas.getContext('2d');
+    // Luminance fallback
+    const ctx = cvCanvas.getContext('2d');
     if (ctx) {
       const lStart = Math.max(0, idealCutPx - windowPx);
-      const lEnd = Math.min(canvas.height - 1, idealCutPx + windowPx);
-      const imageData = ctx.getImageData(0, lStart, canvas.width, lEnd - lStart + 1);
-      const rowWidth = canvas.width;
-      const stride = Math.max(1, Math.floor(rowWidth / 80));
-
+      const lEnd = Math.min(cvCanvas.height - 1, idealCutPx + windowPx);
+      const imageData = ctx.getImageData(0, lStart, cvCanvas.width, lEnd - lStart + 1);
+      const stride = Math.max(1, Math.floor(cvCanvas.width / 80));
       let bestRow = idealCutPx;
       let bestScore = -1;
-
       for (let row = lStart; row <= lEnd; row++) {
-        const rowOffset = (row - lStart) * rowWidth * 4;
-        let lightCount = 0;
-        let totalSampled = 0;
-
-        for (let x = 0; x < rowWidth; x += stride) {
+        const rowOffset = (row - lStart) * cvCanvas.width * 4;
+        let light = 0, total = 0;
+        for (let x = 0; x < cvCanvas.width; x += stride) {
           const idx = rowOffset + x * 4;
-          const r = imageData.data[idx];
-          const g = imageData.data[idx + 1];
-          const b = imageData.data[idx + 2];
-          const lum = 0.299 * r + 0.587 * g + 0.114 * b;
-          if (lum > 220) lightCount++;
-          totalSampled++;
+          const lum = 0.299 * imageData.data[idx] + 0.587 * imageData.data[idx + 1] + 0.114 * imageData.data[idx + 2];
+          if (lum > 220) light++;
+          total++;
         }
-
-        const score = totalSampled > 0 ? lightCount / totalSampled : 0;
-        const distancePenalty = Math.abs(row - idealCutPx) > 50 ? 0.05 : 0;
-        const adjustedScore = score - distancePenalty;
-
-        if (adjustedScore > bestScore) {
-          bestScore = adjustedScore;
-          bestRow = row;
-        }
+        const score = total > 0 ? light / total : 0;
+        const adjusted = score - (Math.abs(row - idealCutPx) > 50 ? 0.05 : 0);
+        if (adjusted > bestScore) { bestScore = adjusted; bestRow = row; }
       }
       return bestRow;
     }
-
-    // 5. Hard fallback
     return idealCutPx;
   };
 
-  const pdfDoc = new jsPDF({
-    orientation: 'portrait',
-    unit: 'mm',
-    format: 'a4',
-    compress: true,
-  });
+  const pdfDoc = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4', compress: true });
 
-  /**
-   * Stamps the footer canvas at the bottom of the current PDF page.
-   */
   const stampFooter = (doc: typeof pdfDoc) => {
     if (!footerCanvas) return;
-    const footerData = footerCanvas.toDataURL('image/jpeg', quality);
     doc.addImage(
-      footerData,
-      'JPEG',
-      0,
-      A4_HEIGHT_MM - footerHeightMM,
-      imgWidthMM,
-      footerHeightMM,
-      undefined,
-      'FAST'
+      footerCanvas.toDataURL('image/jpeg', quality), 'JPEG',
+      0, A4_HEIGHT_MM - footerHeightMM, imgWidthMM, footerHeightMM,
+      undefined, 'FAST'
     );
   };
 
   if (imgHeightMM <= contentPageHeightMM) {
-    // ── Single page ────────────────────────────────────────────────────────
-    const imgData = mainCanvas.toDataURL('image/jpeg', quality);
-    pdfDoc.addImage(imgData, 'JPEG', 0, 0, imgWidthMM, imgHeightMM, undefined, 'FAST');
+    pdfDoc.addImage(mainCanvas.toDataURL('image/jpeg', quality), 'JPEG', 0, 0, imgWidthMM, imgHeightMM, undefined, 'FAST');
     stampFooter(pdfDoc);
     console.log('[PDF Export] Single page');
   } else {
-    // ── Multi-page with DOM-aware break detection ──────────────────────────
-    console.log('[PDF Export] Multi-page content height:', mainCanvas.height, 'px, page height:', contentPageHeightPx, 'px, avoid-break elements:', avoidBreakRanges.length);
-
+    console.log('[PDF Export] Multi-page, height:', mainCanvas.height, 'px');
     let offsetPx = 0;
     let pageNum = 0;
-
     while (offsetPx < mainCanvas.height) {
       const remainingPx = mainCanvas.height - offsetPx;
-
       let slicePx: number;
       if (remainingPx <= contentPageHeightPx * 1.1) {
-        // Last page — take everything remaining
         slicePx = remainingPx;
       } else {
-        const idealCut = Math.floor(contentPageHeightPx);
-        const bestCut = findBestBreakRow(mainCanvas, offsetPx + idealCut) - offsetPx;
-        // Clamp: never go below 75% of a page (avoid infinite loops) or above 100%
-        slicePx = Math.max(Math.floor(contentPageHeightPx * 0.75), Math.min(bestCut, Math.floor(contentPageHeightPx)));
+        const ideal = Math.floor(contentPageHeightPx);
+        const best = findBestBreakRow(mainCanvas, offsetPx + ideal) - offsetPx;
+        slicePx = Math.max(Math.floor(contentPageHeightPx * 0.75), Math.min(best, Math.floor(contentPageHeightPx)));
       }
-
       slicePx = Math.ceil(slicePx);
 
       const pageCanvas = document.createElement('canvas');
       pageCanvas.width = mainCanvas.width;
       pageCanvas.height = slicePx;
-
       const ctx = pageCanvas.getContext('2d');
       if (ctx) {
         ctx.fillStyle = '#ffffff';
         ctx.fillRect(0, 0, pageCanvas.width, pageCanvas.height);
-        ctx.drawImage(
-          mainCanvas,
-          0, offsetPx,
-          mainCanvas.width, slicePx,
-          0, 0,
-          mainCanvas.width, slicePx
-        );
+        ctx.drawImage(mainCanvas, 0, offsetPx, mainCanvas.width, slicePx, 0, 0, mainCanvas.width, slicePx);
       }
 
       const sliceHeightMM = (slicePx * imgWidthMM) / mainCanvas.width;
-      const imgData = pageCanvas.toDataURL('image/jpeg', quality);
-
       if (pageNum > 0) pdfDoc.addPage();
-      pdfDoc.addImage(imgData, 'JPEG', 0, 0, imgWidthMM, sliceHeightMM, undefined, 'FAST');
+      pdfDoc.addImage(pageCanvas.toDataURL('image/jpeg', quality), 'JPEG', 0, 0, imgWidthMM, sliceHeightMM, undefined, 'FAST');
       stampFooter(pdfDoc);
 
       console.log(`[PDF Export] Page ${pageNum + 1}: offset=${offsetPx}px slice=${slicePx}px`);
-
       offsetPx += slicePx;
       pageNum++;
-
-      // Safety guard
       if (pageNum > 20) break;
     }
-
     console.log('[PDF Export] Total pages:', pageNum);
   }
 
@@ -1115,7 +934,6 @@ export async function exportElementToPDF(
 ): Promise<void> {
   const { filename = `CV_${new Date().toISOString().split('T')[0]}.pdf` } = options;
   const blob = await renderElementToPDFBlob(element, options);
-
   const url = URL.createObjectURL(blob);
   const a = document.createElement('a');
   a.href = url;
@@ -1132,15 +950,9 @@ export async function exportCVToPDF(
   options?: PDFExportOptions
 ): Promise<void> {
   if (!cvRef.current) throw new Error('CV-Element nicht gefunden');
-
   const name = personalInfo?.name || 'CV';
-  const safe = name
-    .replace(/[^a-zA-Z0-9äöüÄÖÜß]/g, '_')
-    .replace(/_+/g, '_')
-    .replace(/^_|_$/g, '');
-  const filename = `Lebenslauf_${safe}_${new Date().toISOString().split('T')[0]}.pdf`;
-
-  await exportElementToPDF(cvRef.current, { ...options, filename });
+  const safe = name.replace(/[^a-zA-Z0-9äöüÄÖÜß]/g, '_').replace(/_+/g, '_').replace(/^_|_$/g, '');
+  await exportElementToPDF(cvRef.current, { ...options, filename: `Lebenslauf_${safe}_${new Date().toISOString().split('T')[0]}.pdf` });
 }
 
 export async function exportCVToPDFBlob(
@@ -1153,28 +965,13 @@ export async function exportCVToPDFBlob(
   return renderElementToPDFBlob(cvRef.current, options);
 }
 
-/**
- * Debug helper: logs the serialized HTML that would be passed to html2canvas.
- * Call this from the browser console or a debug button:
- *   import { debugLogPDFHtml } from '../utils/pdfExportClient';
- *   debugLogPDFHtml(pdfRenderRef);
- *
- * The output in the console shows you exactly what CSS classes are present
- * (or missing) before the clone transformation runs. Copy the logged string
- * into a local HTML file to inspect the layout in a browser.
- */
 export function debugLogPDFHtml(
   cvRef: React.RefObject<HTMLElement> | HTMLElement | null
 ): void {
   const el = cvRef instanceof HTMLElement ? cvRef : cvRef?.current;
-  if (!el) {
-    console.warn('[PDF Debug] No element found.');
-    return;
-  }
+  if (!el) { console.warn('[PDF Debug] No element found.'); return; }
 
   const clone = el.cloneNode(true) as HTMLElement;
-
-  // Snapshot computed styles for every element so the debug HTML is self-contained
   const allEls = [clone, ...Array.from(clone.querySelectorAll<HTMLElement>('*'))];
   const liveEls = [el, ...Array.from(el.querySelectorAll<HTMLElement>('*'))];
   allEls.forEach((cloneEl, i) => {
@@ -1182,37 +979,27 @@ export function debugLogPDFHtml(
     if (!liveEl) return;
     const cs = window.getComputedStyle(liveEl);
     const props = [
-      'display','flexDirection','flexWrap','gap','columnGap','rowGap',
-      'gridTemplateColumns','width','maxWidth','minWidth','height','overflow',
-      'fontFamily','fontSize','fontWeight','color','backgroundColor',
-      'padding','margin','border','borderRadius','boxSizing',
-      'position','top','left','right','bottom',
+      'display', 'flexDirection', 'flexWrap', 'gap', 'columnGap', 'rowGap',
+      'gridTemplateColumns', 'width', 'maxWidth', 'minWidth', 'height', 'overflow',
+      'fontFamily', 'fontSize', 'fontWeight', 'color', 'backgroundColor',
+      'padding', 'margin', 'border', 'borderRadius', 'position',
     ];
-    let inlineStyle = '';
+    let s = '';
     props.forEach((p) => {
       const val = cs.getPropertyValue(p.replace(/([A-Z])/g, '-$1').toLowerCase());
-      if (val) inlineStyle += `${p.replace(/([A-Z])/g, '-$1').toLowerCase()}:${val};`;
+      if (val) s += `${p.replace(/([A-Z])/g, '-$1').toLowerCase()}:${val};`;
     });
-    (cloneEl as HTMLElement).setAttribute('data-computed', inlineStyle);
+    (cloneEl as HTMLElement).setAttribute('data-computed', s);
   });
 
   const wrapper = document.createElement('div');
   wrapper.appendChild(clone);
-  const html = `<!DOCTYPE html><html><head><meta charset="utf-8">
-    <style>body{background:#ccc;padding:20px;} [data-pdf-root]{background:white;}</style>
-    </head><body>${wrapper.innerHTML}</body></html>`;
-
-  console.group('[PDF Debug] HTML snapshot — copy into a .html file to inspect');
-  console.log('Element dimensions:', el.offsetWidth, 'x', el.offsetHeight, '(scroll:', el.scrollWidth, 'x', el.scrollHeight, ')');
-  console.log('Classes on root:', el.className);
-  console.log('HTML length:', html.length, 'chars');
+  const html = `<!DOCTYPE html><html><head><meta charset="utf-8"><style>body{background:#ccc;padding:20px;}[data-pdf-root]{background:white;}</style></head><body>${wrapper.innerHTML}</body></html>`;
+  console.group('[PDF Debug] HTML snapshot');
+  console.log('Dimensions:', el.offsetWidth, 'x', el.offsetHeight);
   console.log(html);
   console.groupEnd();
-
-  // Also copy to clipboard if available
   if (navigator.clipboard?.writeText) {
-    navigator.clipboard.writeText(html).then(() => {
-      console.log('[PDF Debug] HTML copied to clipboard.');
-    }).catch(() => {});
+    navigator.clipboard.writeText(html).then(() => console.log('[PDF Debug] Copied to clipboard.')).catch(() => {});
   }
 }
