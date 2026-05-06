@@ -281,10 +281,14 @@ function prepareCloneForPrint(cloneDoc: Document): void {
         const gapTotal = gapPx * (frValues.length - 1);
         const usable = containerW - gapTotal;
         const pixelCols = frValues.map((v) => `${Math.round((v! / totalFr) * usable)}px`).join(' ');
+        )
+        )
+        )
         el.style.setProperty('grid-template-columns', pixelCols, 'important');
         if (gapPx > 0) {
           el.style.setProperty('column-gap', `${gapPx}px`, 'important');
         }
+      }
       }
     }
   });
@@ -608,14 +612,13 @@ function prepareCloneForPrint(cloneDoc: Document): void {
       white-space: pre-wrap !important;
     }
 
-    /* A4 root */
+    /* A4 root wrapper — width only, no background override so templates keep their own colors */
     [data-pdf-root] {
       width: 794px !important;
       min-width: 794px !important;
       max-width: 794px !important;
       margin: 0 !important;
       padding: 0 !important;
-      background: white !important;
     }
 
     /* Summary/profile box */
@@ -1050,4 +1053,5 @@ export function debugLogPDFHtml(
   if (navigator.clipboard?.writeText) {
     navigator.clipboard.writeText(html).then(() => console.log('[PDF Debug] Copied to clipboard.')).catch(() => {});
   }
+}
 }
