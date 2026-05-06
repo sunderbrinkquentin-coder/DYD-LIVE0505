@@ -244,14 +244,13 @@ export function CVLiveEditorPage() {
   const [templateConfirmed, setTemplateConfirmed] = useState(false);
 
   const cvPreviewRef = useRef<HTMLDivElement | null>(null);
-  const pdfRenderRef = useRef<HTMLDivElement | null>(null);
   const [isExportingPDF, setIsExportingPDF] = useState(false);
   const autoDownloadTriggeredRef = useRef(false);
 
   // Expose debug helper on window so it can be triggered from DevTools console:
   //   window.__debugPdfHtml()
   useEffect(() => {
-    (window as any).__debugPdfHtml = () => debugLogPDFHtml(pdfRenderRef);
+    (window as any).__debugPdfHtml = () => debugLogPDFHtml(cvPreviewRef);
     return () => { delete (window as any).__debugPdfHtml; };
   }, []);
 
@@ -929,8 +928,7 @@ export function CVLiveEditorPage() {
     const toSlug = (s: string) => s.replace(/[^a-zA-Z0-9äöüÄÖÜß]/g, '_').replace(/_+/g, '_').replace(/^_|_$/g, '');
 
     const doExportAndNavigate = async () => {
-      // Wait for React to fully render the PDF template (pdfRenderRef is in the post-payment step-2 UI)
-      // Poll until the element has real content or timeout after 5s
+      // Poll until cvPreviewRef has real content or timeout after 5s
       const waitForElement = async (ref: { current: HTMLDivElement | null }, maxMs = 5000): Promise<HTMLDivElement | null> => {
         const start = Date.now();
         while (Date.now() - start < maxMs) {
@@ -941,7 +939,7 @@ export function CVLiveEditorPage() {
         return ref.current;
       };
 
-      const el = await waitForElement(pdfRenderRef, 5000);
+      const el = await waitForElement(cvPreviewRef, 5000);
 
       // Regardless of whether PDF succeeds, always navigate to dashboard
       const navigateToDashboard = () => navigate(`/dashboard?payment=success&highlightCv=${cvId}`);
@@ -991,7 +989,18 @@ export function CVLiveEditorPage() {
           ? `Lebenslauf_${toSlug(lastName)}_${toSlug(co)}`
           : lastName ? `Lebenslauf_${toSlug(lastName)}` : 'Lebenslauf_Optimiert';
 
-        const pdfBlob = await exportCVToPDFBlob(pdfRenderRef, editorData.personalInfo, { quality: 0.95, scale: 2 });
+        // Disable cv-scale-wrapper CSS transform before capture so html2canvas
+        // sees the element at its natural 794px width (transform is visual-only).
+        const scaleWrapper = cvPreviewRef.current?.closest<HTMLElement>('.cv-scale-wrapper');
+        const savedTransform = scaleWrapper?.style.transform ?? '';
+        if (scaleWrapper) scaleWrapper.style.transform = 'none';
+
+        let pdfBlob: Blob;
+        try {
+          pdfBlob = await exportCVToPDFBlob(cvPreviewRef, editorData.personalInfo, { quality: 0.95, scale: 2 });
+        } finally {
+          if (scaleWrapper) scaleWrapper.style.transform = savedTransform;
+        }
 
         // Trigger browser download
         const blobUrl = URL.createObjectURL(pdfBlob);
@@ -1363,126 +1372,79 @@ export function CVLiveEditorPage() {
 
   const isPostPaymentFlow = searchParams.get('payment') === 'success';
 
-  if (isPostPaymentFlow && editorData) {
-    const safePersonalInfo = editorData.personalInfo || {};
-    const safeSections = Array.isArray(editorData.sections) && editorData.sections.length > 0
-      ? editorData.sections
-      : [{ type: 'experience', title: 'Berufserfahrung', items: [] }];
-
-    // Step 1: Template selection
-    if (!templateConfirmed) {
-      return (
-        <div className="min-h-screen bg-[#06060e] text-white flex flex-col items-center justify-center px-4 py-12">
-          <div className="fixed inset-0 overflow-hidden pointer-events-none">
-            <div className="absolute -top-32 left-1/4 w-[600px] h-[600px] bg-[#66c0b6]/6 rounded-full blur-[120px]" />
-            <div className="absolute -bottom-32 right-1/4 w-[500px] h-[500px] bg-[#30E3CA]/4 rounded-full blur-[100px]" />
-          </div>
-          <div className="relative z-10 w-full max-w-2xl">
-            <div className="text-center mb-10">
-              <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-[#66c0b6]/10 border border-[#66c0b6]/30 mb-6">
-                <Check size={14} className="text-[#66c0b6]" />
-                <span className="text-sm text-[#66c0b6] font-medium">Zahlung erfolgreich</span>
-              </div>
-              <h1 className="text-3xl sm:text-4xl font-bold mb-3">Wähle dein CV-Design</h1>
-              <p className="text-white/50 text-sm">Dein CV wird im gewählten Design als PDF erstellt und heruntergeladen.</p>
-            </div>
-
-            <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 mb-8">
-              {templates.map((t) => (
-                <button
-                  key={t.id}
-                  onClick={() => {
-                    handleTemplateChange(t.id);
-                  }}
-                  className={`relative flex flex-col items-center gap-3 p-4 rounded-2xl border-2 transition-all duration-200 ${
-                    selectedTemplate === t.id
-                      ? 'border-[#66c0b6] bg-[#66c0b6]/10 shadow-[0_0_20px_rgba(102,192,182,0.2)]'
-                      : 'border-white/10 bg-white/5 hover:border-white/25 hover:bg-white/8'
-                  }`}
-                >
-                  {selectedTemplate === t.id && (
-                    <div className="absolute top-2.5 right-2.5 w-5 h-5 rounded-full bg-[#66c0b6] flex items-center justify-center">
-                      <Check size={11} className="text-black" />
-                    </div>
-                  )}
-                  <span className="text-3xl">{t.icon}</span>
-                  <span className={`text-sm font-semibold ${selectedTemplate === t.id ? 'text-[#66c0b6]' : 'text-white/80'}`}>{t.name}</span>
-                </button>
-              ))}
-            </div>
-
-            <button
-              onClick={() => {
-                autoDownloadTriggeredRef.current = false;
-                setTemplateConfirmed(true);
-              }}
-              className="w-full py-4 rounded-2xl bg-gradient-to-r from-[#66c0b6] to-[#30E3CA] text-black font-bold text-lg hover:opacity-90 transition-all flex items-center justify-center gap-3"
-            >
-              <Sparkles size={20} />
-              PDF mit "{templates.find(t => t.id === selectedTemplate)?.name}"-Design erstellen
-            </button>
-          </div>
-        </div>
-      );
-    }
-
-    // Step 2: PDF generation — render CV normally behind spinner overlay
+  // Step 1 of post-payment flow: template selection screen (returned early)
+  if (isPostPaymentFlow && editorData && !templateConfirmed) {
     return (
-      <div style={{ position: 'relative', background: '#f8fafc' }}>
-        {/* Full-screen spinner overlay */}
+      <div className="min-h-screen bg-[#06060e] text-white flex flex-col items-center justify-center px-4 py-12">
+        <div className="fixed inset-0 overflow-hidden pointer-events-none">
+          <div className="absolute -top-32 left-1/4 w-[600px] h-[600px] bg-[#66c0b6]/6 rounded-full blur-[120px]" />
+          <div className="absolute -bottom-32 right-1/4 w-[500px] h-[500px] bg-[#30E3CA]/4 rounded-full blur-[100px]" />
+        </div>
+        <div className="relative z-10 w-full max-w-2xl">
+          <div className="text-center mb-10">
+            <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-[#66c0b6]/10 border border-[#66c0b6]/30 mb-6">
+              <Check size={14} className="text-[#66c0b6]" />
+              <span className="text-sm text-[#66c0b6] font-medium">Zahlung erfolgreich</span>
+            </div>
+            <h1 className="text-3xl sm:text-4xl font-bold mb-3">Wähle dein CV-Design</h1>
+            <p className="text-white/50 text-sm">Dein CV wird im gewählten Design als PDF erstellt und heruntergeladen.</p>
+          </div>
+
+          <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 mb-8">
+            {templates.map((t) => (
+              <button
+                key={t.id}
+                onClick={() => { handleTemplateChange(t.id); }}
+                className={`relative flex flex-col items-center gap-3 p-4 rounded-2xl border-2 transition-all duration-200 ${
+                  selectedTemplate === t.id
+                    ? 'border-[#66c0b6] bg-[#66c0b6]/10 shadow-[0_0_20px_rgba(102,192,182,0.2)]'
+                    : 'border-white/10 bg-white/5 hover:border-white/25 hover:bg-white/8'
+                }`}
+              >
+                {selectedTemplate === t.id && (
+                  <div className="absolute top-2.5 right-2.5 w-5 h-5 rounded-full bg-[#66c0b6] flex items-center justify-center">
+                    <Check size={11} className="text-black" />
+                  </div>
+                )}
+                <span className="text-3xl">{t.icon}</span>
+                <span className={`text-sm font-semibold ${selectedTemplate === t.id ? 'text-[#66c0b6]' : 'text-white/80'}`}>{t.name}</span>
+              </button>
+            ))}
+          </div>
+
+          <button
+            onClick={() => {
+              autoDownloadTriggeredRef.current = false;
+              setTemplateConfirmed(true);
+            }}
+            className="w-full py-4 rounded-2xl bg-gradient-to-r from-[#66c0b6] to-[#30E3CA] text-black font-bold text-lg hover:opacity-90 transition-all flex items-center justify-center gap-3"
+          >
+            <Sparkles size={20} />
+            PDF mit "{templates.find(t => t.id === selectedTemplate)?.name}"-Design erstellen
+          </button>
+        </div>
+      </div>
+    );
+  }
+  // Step 2: templateConfirmed — fall through to main editor return below.
+  // The spinner overlay is rendered inside the main return via isPostPaymentFlow && templateConfirmed.
+  // cvPreviewRef (in the main editor) is what html2canvas will capture.
+
+  return (
+    <div className="min-h-screen bg-gradient-to-br from-[#050507] via-[#0a0a0f] to-[#050507] flex flex-col">
+      {/* PDF export spinner — shown in post-payment step 2 while html2canvas captures cvPreviewRef */}
+      {isPostPaymentFlow && templateConfirmed && (
         <div style={{
-          position: 'fixed',
-          inset: 0,
-          zIndex: 100,
-          background: 'rgba(2,6,23,0.92)',
-          display: 'flex',
-          flexDirection: 'column',
-          alignItems: 'center',
-          justifyContent: 'center',
-          gap: '24px',
+          position: 'fixed', inset: 0, zIndex: 9999,
+          background: 'rgba(2,6,23,0.94)',
+          display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: '24px',
+          pointerEvents: 'all',
         }}>
           <Loader2 className="w-14 h-14 text-[#66c0b6] animate-spin" />
           <h2 className="text-2xl font-bold text-white">PDF wird generiert...</h2>
           <p className="text-white/60 max-w-sm text-center">Bitte schließe dieses Fenster nicht.</p>
         </div>
-        {/* CV rendered visibly so html2canvas can capture it properly */}
-        <div style={{ display: 'flex', justifyContent: 'center', padding: '32px 0', background: '#e5e7eb' }}>
-          <div
-            ref={pdfRenderRef}
-            data-pdf-root
-            className="bg-white shadow-2xl"
-            style={{
-              width: '794px',
-              minWidth: '794px',
-              maxWidth: '794px',
-              height: 'auto',
-            }}
-          >
-            <div className="w-full">
-              {selectedTemplate === 'modern' && (
-                <ModernCVTemplate personalInfo={safePersonalInfo} summary={editorData.summary} sections={safeSections} photoUrl={photoUrl} onUpdatePersonalInfo={updatePersonalInfo} onUpdateSummary={(v) => setEditorData((p) => p ? { ...p, summary: v } : p)} onUpdateSection={updateSection} onUpdateSectionItem={updateSectionItem} onDeleteSectionItem={deleteSectionItem} />
-              )}
-              {selectedTemplate === 'classic' && (
-                <ClassicCVTemplate personalInfo={safePersonalInfo} summary={editorData.summary} sections={safeSections} photoUrl={photoUrl} onUpdatePersonalInfo={updatePersonalInfo} onUpdateSummary={(v) => setEditorData((p) => p ? { ...p, summary: v } : p)} onUpdateSection={updateSection} onUpdateSectionItem={updateSectionItem} />
-              )}
-              {selectedTemplate === 'minimal' && (
-                <MinimalCVTemplate personalInfo={safePersonalInfo} summary={editorData.summary} sections={safeSections} photoUrl={photoUrl} onUpdatePersonalInfo={updatePersonalInfo} onUpdateSummary={(v) => setEditorData((p) => p ? { ...p, summary: v } : p)} onUpdateSection={updateSection} onUpdateSectionItem={updateSectionItem} />
-              )}
-              {selectedTemplate === 'creative' && (
-                <CreativeCVTemplate personalInfo={safePersonalInfo} summary={editorData.summary} sections={safeSections} photoUrl={photoUrl} onUpdatePersonalInfo={updatePersonalInfo} onUpdateSummary={(v) => setEditorData((p) => p ? { ...p, summary: v } : p)} onUpdateSection={updateSection} onUpdateSectionItem={updateSectionItem} />
-              )}
-              {selectedTemplate === 'professional' && (
-                <ProfessionalCVTemplate personalInfo={safePersonalInfo} summary={editorData.summary} sections={safeSections} photoUrl={photoUrl} onUpdatePersonalInfo={updatePersonalInfo} onUpdateSummary={(v) => setEditorData((p) => p ? { ...p, summary: v } : p)} onUpdateSection={updateSection} onUpdateSectionItem={updateSectionItem} />
-              )}
-            </div>
-          </div>
-        </div>
-      </div>
-    );
-  }
-
-  return (
-    <div className="min-h-screen bg-gradient-to-br from-[#050507] via-[#0a0a0f] to-[#050507] flex flex-col">
+      )}
       {showPaymentSuccessBanner && (
         <div className="bg-[#66c0b6] text-black px-4 py-3 flex items-center justify-between flex-shrink-0 z-[60]">
           <div className="flex items-center gap-3">

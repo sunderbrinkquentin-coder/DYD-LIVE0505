@@ -496,7 +496,7 @@ function prepareCloneForPrint(cloneDoc: Document): void {
     /* ── Skill/chip containers ── */
     [data-chip-row] {
       display: block !important;
-      overflow: hidden !important;
+      overflow: visible !important;
     }
     [data-chip-row] > * {
       display: inline-flex !important;
@@ -591,7 +591,7 @@ function prepareCloneForPrint(cloneDoc: Document): void {
 
   const applyGapFix = (el: HTMLElement, gapPx: number) => {
     el.style.setProperty('display', 'block', 'important');
-    el.style.setProperty('overflow', 'hidden', 'important');
+    el.style.setProperty('overflow', 'visible', 'important');
     el.setAttribute('data-chip-row', '1');
     Array.from(el.children).forEach((child) => {
       const c = child as HTMLElement;
