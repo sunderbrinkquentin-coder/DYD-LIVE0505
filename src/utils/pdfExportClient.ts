@@ -67,8 +67,10 @@ function prepareCloneForPrint(cloneDoc: Document): void {
   const body = cloneDoc.body;
 
   // ── 0. Remove editor-only elements before processing ─────────────────────
+  // NOTE: do NOT include 'header' or 'nav' here — CV templates use <header> and
+  // potentially <nav> as semantic sectioning elements for CV content.
   cloneDoc.querySelectorAll<HTMLElement>(
-    'button, [data-pdf-hidden], .pdf-hidden, .print\\:hidden, nav, header'
+    'button, [data-pdf-hidden], .pdf-hidden, .print\\:hidden'
   ).forEach((el) => el.remove());
 
   // ── 1. Replace <input> → <span> ──────────────────────────────────────────
@@ -249,6 +251,48 @@ function prepareCloneForPrint(cloneDoc: Document): void {
     el.style.setProperty('min-width', '0', 'important');
   });
 
+  // ── Resolve fr-unit grid columns → pixel values ──────────────────────────
+  // html2canvas computes fr columns incorrectly inside its cloned iframe.
+  // Detect inline gridTemplateColumns values that use fr units and replace them
+  // with exact pixel values based on the element's computed width.
+  cloneDoc.querySelectorAll<HTMLElement>('[style*="fr"]').forEach((el) => {
+    const inlineCols = el.style.gridTemplateColumns;
+    if (!inlineCols || !inlineCols.includes('fr')) return;
+    const cs = window.getComputedStyle(el);
+    const computedCols = cs.gridTemplateColumns;
+    // Only override if the computed value already has pixel columns (browser resolved them)
+    if (computedCols && computedCols !== 'none' && !computedCols.includes('fr')) {
+      el.style.setProperty('grid-template-columns', computedCols, 'important');
+    } else {
+      // Fallback: parse the fr spec and compute manually from container width
+      const containerW = el.getBoundingClientRect().width || A4_WIDTH_PX;
+      const inlineGap = el.style.columnGap || el.style.gap?.split(' ')[1] || '0';
+      const gapPx = parseFloat(inlineGap) || 0;
+
+      // Parse "Xfr Yfr" pattern
+      const frParts = inlineCols.trim().split(/\s+/);
+      const frValues = frParts.map((p) => {
+        const m = p.match(/^([\d.]+)fr$/);
+        return m ? parseFloat(m[1]) : null;
+      });
+      const allFr = frValues.every((v) => v !== null);
+      if (allFr && frValues.length >= 2) {
+        const totalFr = frValues.reduce((s, v) => s! + v!, 0)!;
+        const gapTotal = gapPx * (frValues.length - 1);
+        const usable = containerW - gapTotal;
+        const pixelCols = frValues.map((v) => `${Math.round((v! / totalFr) * usable)}px`).join(' ');
+        )
+        )
+        )
+        el.style.setProperty('grid-template-columns', pixelCols, 'important');
+        if (gapPx > 0) {
+          el.style.setProperty('column-gap', `${gapPx}px`, 'important');
+        }
+      }
+      }
+    }
+  });
+
   // md:flex-row / md:flex-col
   cloneDoc.querySelectorAll<HTMLElement>('[class*="md:flex-row"]').forEach((el) => {
     el.style.setProperty('flex-direction', 'row', 'important');
@@ -334,9 +378,11 @@ function prepareCloneForPrint(cloneDoc: Document): void {
     root.style.setProperty('aspect-ratio', 'unset', 'important');
     root.style.setProperty('position', 'relative', 'important');
     root.style.setProperty('box-shadow', 'none', 'important');
+    // Keep border-radius=0 only on the outer wrapper, NOT on the template's own root div
     root.style.setProperty('border-radius', '0', 'important');
     root.style.setProperty('padding', '0', 'important');
-    root.style.setProperty('background', 'white', 'important');
+    // Do NOT override background — the template may rely on its own background gradient
+    // root.style.setProperty('background', 'white', 'important');
 
     const wrapperEl = root.firstElementChild as HTMLElement | null;
     if (wrapperEl) {
@@ -354,6 +400,9 @@ function prepareCloneForPrint(cloneDoc: Document): void {
         templateRootEl.style.setProperty('margin-left', '0', 'important');
         templateRootEl.style.setProperty('margin-right', '0', 'important');
         templateRootEl.style.setProperty('box-shadow', 'none', 'important');
+        // Do NOT strip border-radius here — templates like Modern use borderRadius: 16px
+        // as part of their visual design. The outer [data-pdf-root] wrapper is the one
+        // that gets radius=0 (it's just the live editor shell, not the CV itself).
       }
     }
   }
@@ -511,6 +560,7 @@ function prepareCloneForPrint(cloneDoc: Document): void {
   // ── 14. Inject stabilization CSS ─────────────────────────────────────────
   const styleEl = cloneDoc.createElement('style');
   styleEl.textContent = `
+    }
     *, *::before, *::after {
       box-sizing: border-box !important;
       -webkit-print-color-adjust: exact !important;
@@ -594,6 +644,8 @@ function prepareCloneForPrint(cloneDoc: Document): void {
       transform: none !important;
       width: 794px !important;
     }
+  }
+  )
   `;
   (cloneDoc.head || cloneDoc.documentElement).appendChild(styleEl);
 }
@@ -1002,4 +1054,6 @@ export function debugLogPDFHtml(
   if (navigator.clipboard?.writeText) {
     navigator.clipboard.writeText(html).then(() => console.log('[PDF Debug] Copied to clipboard.')).catch(() => {});
   }
+}
+
 }
