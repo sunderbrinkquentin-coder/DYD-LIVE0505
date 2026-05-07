@@ -1004,5 +1004,3 @@ export function debugLogPDFHtml(
     navigator.clipboard.writeText(html).then(() => console.log('[PDF Debug] Copied to clipboard.')).catch(() => {});
   }
 }
-
-}
