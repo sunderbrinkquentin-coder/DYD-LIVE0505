@@ -29,7 +29,6 @@ async function toBase64DataUri(src: string): Promise<string> {
   }
 }
 
-// Placeholder texts that appear when the user has not filled in a field.
 const PLACEHOLDER_STRINGS = new Set([
   'position / rolle', 'unternehmen', 'mm/jjjj', 'projekttitel',
   'deine rolle', 'abschluss', 'institution', 'zeitraum',
@@ -46,34 +45,102 @@ function isPlaceholderValue(value: string): boolean {
   return v === '' || PLACEHOLDER_STRINGS.has(v);
 }
 
-// Maps Tailwind gap-N class → px value (1 unit = 4px)
-function tailwindGapToPx(cls: string): number | null {
-  const m = cls.match(/^gap-(.+)$/);
-  if (!m) return null;
-  const val = m[1];
-  if (val === 'px') return 1;
-  const num = parseFloat(val);
-  return isNaN(num) ? null : Math.round(num * 4);
+// ── Pixel-freeze: copy critical computed styles from live element to clone element ──
+// Reads width, height, font-size, line-height, letter-spacing from the live DOM
+// and writes them as explicit px inline values on the clone so the html2canvas
+// iframe sees the exact same metrics as the editor.
+function freezeComputedStyles(liveEl: HTMLElement, cloneEl: HTMLElement): void {
+  const cs = window.getComputedStyle(liveEl);
+
+  // Width: only freeze if it's already a pixel value (skip 'auto' / percentage on
+  // elements that should naturally shrink-wrap).
+  const w = cs.width;
+  if (w && w.endsWith('px') && parseFloat(w) > 0) {
+    cloneEl.style.setProperty('width', w, 'important');
+  }
+
+  // Font metrics — always freeze these so text renders identically.
+  const fontSize = cs.fontSize;
+  if (fontSize) cloneEl.style.setProperty('font-size', fontSize, 'important');
+
+  const lineHeight = cs.lineHeight;
+  if (lineHeight && lineHeight !== 'normal') {
+    cloneEl.style.setProperty('line-height', lineHeight, 'important');
+  }
+
+  const letterSpacing = cs.letterSpacing;
+  if (letterSpacing && letterSpacing !== 'normal') {
+    cloneEl.style.setProperty('letter-spacing', letterSpacing, 'important');
+  }
+
+  // Color / background — freeze so theme colours don't drift.
+  const color = cs.color;
+  if (color) cloneEl.style.setProperty('color', color, 'important');
+
+  const bg = cs.backgroundColor;
+  if (bg && bg !== 'rgba(0, 0, 0, 0)' && bg !== 'transparent') {
+    cloneEl.style.setProperty('background-color', bg, 'important');
+  }
 }
 
-// Maps Tailwind p/px/py/pt/pb/pl/pr-N → px value
-function tailwindSpacingToPx(val: string): string | null {
-  if (!val) return null;
-  const num = parseFloat(val);
-  return isNaN(num) ? null : `${Math.round(num * 4)}px`;
-}
-
-function prepareCloneForPrint(cloneDoc: Document): void {
+function prepareCloneForPrint(cloneDoc: Document, liveRoot: HTMLElement | null): void {
   const body = cloneDoc.body;
 
-  // ── 0. Remove editor-only elements before processing ─────────────────────
-  // NOTE: do NOT include 'header' or 'nav' here — CV templates use <header> and
-  // potentially <nav> as semantic sectioning elements for CV content.
+  // ── 0. Disable ALL animations & transitions immediately ───────────────────
+  const animStyleEl = cloneDoc.createElement('style');
+  animStyleEl.textContent = `
+    *, *::before, *::after {
+      animation: none !important;
+      animation-duration: 0s !important;
+      transition: none !important;
+      transition-duration: 0s !important;
+      box-sizing: border-box !important;
+      -webkit-print-color-adjust: exact !important;
+      print-color-adjust: exact !important;
+      color-adjust: exact !important;
+    }
+    .cv-scale-wrapper {
+      transform: none !important;
+      width: ${A4_WIDTH_PX}px !important;
+      margin: 0 !important;
+    }
+    [data-pdf-root] {
+      width: ${A4_WIDTH_PX}px !important;
+      min-width: ${A4_WIDTH_PX}px !important;
+      max-width: ${A4_WIDTH_PX}px !important;
+      margin: 0 !important;
+      padding: 0 !important;
+    }
+    input, textarea { display: none !important; }
+  `;
+  (cloneDoc.head || cloneDoc.documentElement).insertBefore(
+    animStyleEl,
+    (cloneDoc.head || cloneDoc.documentElement).firstChild
+  );
+
+  // ── 1. Pixel-freeze: walk every element inside [data-pdf-root] ───────────
+  // Build a parallel index from the live DOM so we can read computed styles.
+  const cloneRootEl =
+    cloneDoc.querySelector<HTMLElement>('[data-pdf-root]') ||
+    (cloneDoc.body.firstElementChild as HTMLElement | null);
+
+  if (liveRoot && cloneRootEl) {
+    const liveEls = Array.from(liveRoot.querySelectorAll<HTMLElement>('*'));
+    const cloneEls = Array.from(cloneRootEl.querySelectorAll<HTMLElement>('*'));
+    const len = Math.min(liveEls.length, cloneEls.length);
+    for (let i = 0; i < len; i++) {
+      freezeComputedStyles(liveEls[i], cloneEls[i]);
+    }
+    // Also freeze the root itself
+    freezeComputedStyles(liveRoot, cloneRootEl);
+  }
+
+  // ── 2. Remove editor-only UI elements ────────────────────────────────────
   cloneDoc.querySelectorAll<HTMLElement>(
     'button, [data-pdf-hidden], .pdf-hidden, .print\\:hidden'
   ).forEach((el) => el.remove());
 
-  // ── 1. Replace <input> → <span> ──────────────────────────────────────────
+  // ── 3. Replace <input> → <span> ──────────────────────────────────────────
   cloneDoc.querySelectorAll<HTMLInputElement>('input').forEach((input) => {
     const val = input.value || '';
     if (isPlaceholderValue(val)) {
@@ -83,7 +150,6 @@ function prepareCloneForPrint(cloneDoc: Document): void {
     const span = cloneDoc.createElement('span');
     const cs = window.getComputedStyle(input);
     span.textContent = val;
-    span.style.cssText = input.style.cssText;
     span.style.display = 'inline';
     span.style.background = 'transparent';
     span.style.border = 'none';
@@ -92,11 +158,12 @@ function prepareCloneForPrint(cloneDoc: Document): void {
     span.style.fontWeight = cs.fontWeight || '400';
     span.style.color = cs.color || '#1e293b';
     span.style.fontFamily = cs.fontFamily;
-    span.style.lineHeight = '1.4';
+    span.style.lineHeight = cs.lineHeight || '1.4';
+    span.style.letterSpacing = cs.letterSpacing || 'normal';
     input.parentNode?.replaceChild(span, input);
   });
 
-  // ── 2. Replace <textarea> → <div> ────────────────────────────────────────
+  // ── 4. Replace <textarea> → <div> ────────────────────────────────────────
   cloneDoc.querySelectorAll<HTMLTextAreaElement>('textarea').forEach((ta) => {
     const val = ta.value || '';
     if (isPlaceholderValue(val)) {
@@ -106,7 +173,6 @@ function prepareCloneForPrint(cloneDoc: Document): void {
     const div = cloneDoc.createElement('div');
     const cs = window.getComputedStyle(ta);
     div.textContent = val;
-    div.style.cssText = ta.style.cssText;
     div.style.display = 'block';
     div.style.background = 'transparent';
     div.style.border = 'none';
@@ -119,11 +185,11 @@ function prepareCloneForPrint(cloneDoc: Document): void {
     div.style.fontWeight = cs.fontWeight || '400';
     div.style.color = cs.color || '#1e293b';
     div.style.fontFamily = cs.fontFamily;
-    div.style.lineHeight = '1.4';
+    div.style.lineHeight = cs.lineHeight || '1.4';
     ta.parentNode?.replaceChild(div, ta);
   });
 
-  // ── 3. Strip contentEditable ─────────────────────────────────────────────
+  // ── 5. Strip contentEditable ──────────────────────────────────────────────
   cloneDoc.querySelectorAll<HTMLElement>('[contenteditable]').forEach((el) => {
     const text = el.textContent?.trim() ?? '';
     const cs = window.getComputedStyle(el);
@@ -141,14 +207,58 @@ function prepareCloneForPrint(cloneDoc: Document): void {
       return;
     }
     el.style.whiteSpace = 'normal';
-    el.style.lineHeight = '1.4';
     if (cs.textAlign) el.style.textAlign = cs.textAlign;
-    if (cs.fontSize) el.style.fontSize = cs.fontSize;
-    if (cs.fontWeight) el.style.fontWeight = cs.fontWeight;
-    if (cs.color) el.style.color = cs.color;
+    if (cs.fontSize) el.style.setProperty('font-size', cs.fontSize, 'important');
+    if (cs.fontWeight) el.style.setProperty('font-weight', cs.fontWeight, 'important');
+    if (cs.lineHeight && cs.lineHeight !== 'normal') {
+      el.style.setProperty('line-height', cs.lineHeight, 'important');
+    }
+    if (cs.color) el.style.setProperty('color', cs.color, 'important');
   });
 
-  // ── 4. Date badges: remove gap, hide if empty ────────────────────────────
+  // ── 6. Convert all <img> → background-image <div> ────────────────────────
+  // html2canvas mishandles object-fit; background-size:cover is reliable.
+  cloneDoc.querySelectorAll<HTMLImageElement>('img').forEach((img) => {
+    const src = img.getAttribute('src') || '';
+    if (!src) return;
+
+    const preW = img.getAttribute('data-pdf-w') || '';
+    const preH = img.getAttribute('data-pdf-h') || '';
+    const preFit = img.getAttribute('data-pdf-fit') || 'cover';
+
+    if (preFit === 'cover' && preW && preH) {
+      const div = cloneDoc.createElement('div');
+      div.style.backgroundImage = `url('${src}')`;
+      div.style.backgroundSize = 'cover';
+      div.style.backgroundPosition = 'center center';
+      div.style.backgroundRepeat = 'no-repeat';
+      div.style.width = preW;
+      div.style.height = preH;
+      div.style.flexShrink = '0';
+      div.style.display = 'block';
+      // Copy border-radius from parent (circular frames)
+      if (img.parentElement) {
+        const parentCs = window.getComputedStyle(img.parentElement);
+        if (parentCs.borderRadius && parentCs.borderRadius !== '0px') {
+          div.style.borderRadius = parentCs.borderRadius;
+          img.parentElement.style.overflow = 'hidden';
+        }
+      }
+      const imgCs = window.getComputedStyle(img);
+      if (imgCs.borderRadius && imgCs.borderRadius !== '0px') {
+        div.style.borderRadius = imgCs.borderRadius;
+        div.style.overflow = 'hidden';
+      }
+      img.parentNode?.replaceChild(div, img);
+    } else {
+      if (preW) img.style.setProperty('width', preW, 'important');
+      if (preH) img.style.setProperty('height', preH, 'important');
+      img.style.display = 'block';
+      img.style.flexShrink = '0';
+    }
+  });
+
+  // ── 7. Date badges ────────────────────────────────────────────────────────
   cloneDoc.querySelectorAll<HTMLElement>('[data-pdf-date-badge]').forEach((badge) => {
     badge.style.removeProperty('gap');
     Array.from(badge.children).forEach((child) => {
@@ -162,72 +272,7 @@ function prepareCloneForPrint(cloneDoc: Document): void {
     }
   });
 
-  // ── 5. Convert profile <img> → background-image <div> ────────────────────
-  // Stabilises positioning: object-fit on <img> is unreliable in html2canvas,
-  // but background-size/position on a <div> renders correctly.
-  cloneDoc.querySelectorAll<HTMLImageElement>('img').forEach((img) => {
-    const src = img.getAttribute('src') || '';
-    if (!src) return;
-
-    const preW = img.getAttribute('data-pdf-w') || '';
-    const preH = img.getAttribute('data-pdf-h') || '';
-    const preFit = img.getAttribute('data-pdf-fit') || 'cover';
-    const isProfilePhoto = preFit === 'cover' && preW && preH;
-
-    if (isProfilePhoto) {
-      // Replace <img> with a <div> using background-image for stable rendering
-      const div = cloneDoc.createElement('div');
-      div.style.backgroundImage = `url('${src}')`;
-      div.style.backgroundSize = 'cover';
-      div.style.backgroundPosition = 'center center';
-      div.style.backgroundRepeat = 'no-repeat';
-      div.style.width = preW;
-      div.style.height = preH;
-      div.style.flexShrink = '0';
-      div.style.display = 'block';
-      // Preserve border-radius from parent (circular photo frames)
-      if (img.parentElement) {
-        const parentCs = window.getComputedStyle(img.parentElement);
-        if (parentCs.borderRadius && parentCs.borderRadius !== '0px') {
-          div.style.borderRadius = parentCs.borderRadius;
-          img.parentElement.style.overflow = 'hidden';
-        }
-      }
-      // Copy any border-radius on the img itself
-      const imgCs = window.getComputedStyle(img);
-      if (imgCs.borderRadius && imgCs.borderRadius !== '0px') {
-        div.style.borderRadius = imgCs.borderRadius;
-        div.style.overflow = 'hidden';
-      }
-      img.parentNode?.replaceChild(div, img);
-    } else {
-      // Non-profile image: keep as <img>, fix dimensions
-      if (preW) img.style.width = preW;
-      if (preH) img.style.height = preH;
-      img.style.objectFit = preFit as any;
-      img.style.display = 'block';
-      img.style.flexShrink = '0';
-    }
-  });
-
-  // ── 6. Disable animations and transitions globally ────────────────────────
-  // Prevents in-flight CSS animations/transitions from affecting the snapshot.
-  const animStyleEl = cloneDoc.createElement('style');
-  animStyleEl.textContent = `
-    *, *::before, *::after {
-      animation: none !important;
-      animation-duration: 0s !important;
-      transition: none !important;
-      transition-duration: 0s !important;
-    }
-  `;
-  (cloneDoc.head || cloneDoc.documentElement).appendChild(animStyleEl);
-
-  // ── 7. Force Tailwind md: breakpoint classes ──────────────────────────────
-  // html2canvas renders the clone at windowWidth:794px which activates md: (≥768px).
-  // But the clone iframe may not correctly apply responsive Tailwind rules
-  // from the injected stylesheet. We force all md: classes inline explicitly.
-
+  // ── 8. Force Tailwind responsive classes inline ───────────────────────────
   // md:grid-cols-N
   cloneDoc.querySelectorAll<HTMLElement>('[class*="md:grid-cols-"]').forEach((el) => {
     const match = Array.from(el.classList).find((c) => c.startsWith('md:grid-cols-'));
@@ -235,7 +280,6 @@ function prepareCloneForPrint(cloneDoc: Document): void {
     const cols = match.replace('md:grid-cols-', '');
     el.style.setProperty('display', 'grid', 'important');
     el.style.setProperty('grid-template-columns', `repeat(${cols}, minmax(0, 1fr))`, 'important');
-    // Preserve computed gap
     const computedGap = window.getComputedStyle(el).columnGap;
     const gapPx = computedGap && computedGap !== 'normal' && computedGap !== '0px' ? computedGap : '24px';
     el.style.setProperty('column-gap', gapPx, 'important');
@@ -251,25 +295,18 @@ function prepareCloneForPrint(cloneDoc: Document): void {
     el.style.setProperty('min-width', '0', 'important');
   });
 
-  // ── Resolve fr-unit grid columns → pixel values ──────────────────────────
-  // html2canvas computes fr columns incorrectly inside its cloned iframe.
-  // Detect inline gridTemplateColumns values that use fr units and replace them
-  // with exact pixel values based on the element's computed width.
+  // fr-unit grid columns → pixel values
   cloneDoc.querySelectorAll<HTMLElement>('[style*="fr"]').forEach((el) => {
     const inlineCols = el.style.gridTemplateColumns;
     if (!inlineCols || !inlineCols.includes('fr')) return;
     const cs = window.getComputedStyle(el);
     const computedCols = cs.gridTemplateColumns;
-    // Only override if the computed value already has pixel columns (browser resolved them)
     if (computedCols && computedCols !== 'none' && !computedCols.includes('fr')) {
       el.style.setProperty('grid-template-columns', computedCols, 'important');
     } else {
-      // Fallback: parse the fr spec and compute manually from container width
       const containerW = el.getBoundingClientRect().width || A4_WIDTH_PX;
       const inlineGap = el.style.columnGap || el.style.gap?.split(' ')[1] || '0';
       const gapPx = parseFloat(inlineGap) || 0;
-
-      // Parse "Xfr Yfr" pattern
       const frParts = inlineCols.trim().split(/\s+/);
       const frValues = frParts.map((p) => {
         const m = p.match(/^([\d.]+)fr$/);
@@ -300,23 +337,17 @@ function prepareCloneForPrint(cloneDoc: Document): void {
   cloneDoc.querySelectorAll<HTMLElement>('[class*="md:flex-col"]').forEach((el) => {
     el.style.setProperty('flex-direction', 'column', 'important');
   });
-
-  // sm:flex-row (used in footers)
   cloneDoc.querySelectorAll<HTMLElement>('[class*="sm:flex-row"]').forEach((el) => {
     el.style.setProperty('flex-direction', 'row', 'important');
   });
-
-  // sm:px-0
   cloneDoc.querySelectorAll<HTMLElement>('[class*="sm:px-0"]').forEach((el) => {
     el.style.setProperty('padding-left', '0', 'important');
     el.style.setProperty('padding-right', '0', 'important');
   });
 
-  // md:w-N / md:max-w-N — force common fractional widths
+  // md:w-N / md:hidden / md:block / md:flex / md:grid
   cloneDoc.querySelectorAll<HTMLElement>('*').forEach((el) => {
     const classes = Array.from(el.classList);
-
-    // md:w-[fraction]
     const mdW = classes.find((c) => c.startsWith('md:w-'));
     if (mdW) {
       const val = mdW.replace('md:w-', '');
@@ -326,44 +357,30 @@ function prepareCloneForPrint(cloneDoc: Document): void {
         'full': '100%',
       };
       if (fractionMap[val]) el.style.setProperty('width', fractionMap[val], 'important');
-      else {
-        const px = tailwindSpacingToPx(val);
-        if (px) el.style.setProperty('width', px, 'important');
-      }
     }
-
-    // md:hidden
-    if (classes.includes('md:hidden')) {
-      el.style.setProperty('display', 'none', 'important');
-    }
-
-    // md:block / md:flex / md:inline-flex / md:grid
+    if (classes.includes('md:hidden')) el.style.setProperty('display', 'none', 'important');
     if (classes.includes('md:block')) el.style.setProperty('display', 'block', 'important');
     if (classes.includes('md:flex')) el.style.setProperty('display', 'flex', 'important');
     if (classes.includes('md:inline-flex')) el.style.setProperty('display', 'inline-flex', 'important');
     if (classes.includes('md:grid')) el.style.setProperty('display', 'grid', 'important');
   });
 
-  // ── 8. Classic template sidebar: force pixel widths ──────────────────────
+  // ── 9. Classic template sidebar pixel widths ──────────────────────────────
   cloneDoc.querySelectorAll<HTMLElement>('[class*="w-2/5"]').forEach((el) => {
-    el.style.setProperty('width', '317px', 'important'); // 794 * 0.4 = 317.6
+    el.style.setProperty('width', '317px', 'important');
     el.style.setProperty('min-width', '317px', 'important');
     el.style.setProperty('flex-shrink', '0', 'important');
     el.style.setProperty('max-width', '317px', 'important');
   });
-  cloneDoc.querySelectorAll<HTMLElement>('[class*="max-w-\\[32%\\]"]').forEach((el) => {
-    el.style.setProperty('max-width', 'none', 'important');
-  });
-  // flex-1 companion: ensure it fills remaining space
   cloneDoc.querySelectorAll<HTMLElement>('.flex-1').forEach((el) => {
     const parent = el.parentElement;
-    if (parent && (window.getComputedStyle(parent).display === 'flex')) {
+    if (parent && window.getComputedStyle(parent).display === 'flex') {
       el.style.setProperty('flex', '1 1 0%', 'important');
       el.style.setProperty('min-width', '0', 'important');
     }
   });
 
-  // ── 9. Root width enforcement ─────────────────────────────────────────────
+  // ── 10. Root width enforcement & scale removal ────────────────────────────
   const root =
     body.querySelector<HTMLElement>('[data-pdf-root]') ||
     (body.firstElementChild as HTMLElement | null);
@@ -378,11 +395,17 @@ function prepareCloneForPrint(cloneDoc: Document): void {
     root.style.setProperty('aspect-ratio', 'unset', 'important');
     root.style.setProperty('position', 'relative', 'important');
     root.style.setProperty('box-shadow', 'none', 'important');
-    // Keep border-radius=0 only on the outer wrapper, NOT on the template's own root div
     root.style.setProperty('border-radius', '0', 'important');
     root.style.setProperty('padding', '0', 'important');
-    // Do NOT override background — the template may rely on its own background gradient
-    // root.style.setProperty('background', 'white', 'important');
+    root.style.setProperty('transform', 'none', 'important');
+    root.style.setProperty('margin', '0', 'important');
+
+    // Strip scale wrappers that distort the coordinate system
+    root.querySelectorAll<HTMLElement>('.cv-scale-wrapper, [class*="scale-"]').forEach((el) => {
+      el.style.setProperty('transform', 'none', 'important');
+      el.style.setProperty('width', `${A4_WIDTH_PX}px`, 'important');
+      el.style.setProperty('margin', '0', 'important');
+    });
 
     const wrapperEl = root.firstElementChild as HTMLElement | null;
     if (wrapperEl) {
@@ -390,7 +413,7 @@ function prepareCloneForPrint(cloneDoc: Document): void {
       wrapperEl.style.setProperty('max-width', '100%', 'important');
       wrapperEl.style.setProperty('padding', '0', 'important');
       wrapperEl.style.setProperty('margin', '0', 'important');
-      wrapperEl.style.setProperty('display', 'block', 'important');
+      wrapperEl.style.setProperty('transform', 'none', 'important');
 
       const templateRootEl = wrapperEl.firstElementChild as HTMLElement | null;
       if (templateRootEl) {
@@ -400,14 +423,12 @@ function prepareCloneForPrint(cloneDoc: Document): void {
         templateRootEl.style.setProperty('margin-left', '0', 'important');
         templateRootEl.style.setProperty('margin-right', '0', 'important');
         templateRootEl.style.setProperty('box-shadow', 'none', 'important');
-        // Do NOT strip border-radius here — templates like Modern use borderRadius: 16px
-        // as part of their visual design. The outer [data-pdf-root] wrapper is the one
-        // that gets radius=0 (it's just the live editor shell, not the CV itself).
+        templateRootEl.style.setProperty('transform', 'none', 'important');
       }
     }
   }
 
-  // ── 10. Global pass: fix positioning, height locks, overflow ─────────────
+  // ── 11. Global pass: overflow visible, height unlocks, positioning ─────────
   const HEIGHT_LOCK_CLASSES = [
     'h-screen', 'h-dvh', 'h-lvh', 'h-svh', 'h-full',
     'max-h-screen', 'max-h-full', 'overflow-auto', 'overflow-scroll',
@@ -428,34 +449,28 @@ function prepareCloneForPrint(cloneDoc: Document): void {
     const isInsideTemplate = templateRoot ? templateRoot.contains(el) : false;
     const cs = window.getComputedStyle(el);
 
-    // Height resets
+    // Height resets — auto so content flows freely
     if (s.height && s.height !== 'auto') s.height = 'auto';
     if (s.maxHeight) s.maxHeight = 'none';
-    if (s.minHeight && (s.minHeight.includes('vh') || s.minHeight.includes('%') || s.minHeight === '100dvh' || s.minHeight === '100svh')) s.minHeight = 'auto';
+    if (s.minHeight && (s.minHeight.includes('vh') || s.minHeight.includes('%') || s.minHeight === '100dvh' || s.minHeight === '100svh')) {
+      s.minHeight = 'auto';
+    }
     if (s.aspectRatio) s.aspectRatio = 'unset';
 
     const hasBorderRadius = cs.borderRadius && cs.borderRadius !== '0px' && cs.borderRadius !== '0';
-    const isImageContainer = el.tagName === 'IMG' || el.querySelector('img') !== null || el.style.backgroundImage !== '';
+    const isImageContainer = el.tagName === 'IMG' || el.style.backgroundImage !== '' ||
+      (el.querySelector('img') !== null && !el.querySelector('[data-chip-row]'));
 
-    // Overflow: strip hidden except on image containers inside template
-    if (isInsideTemplate) {
-      if (!isImageContainer && !hasBorderRadius) {
-        if (cs.overflow === 'hidden') s.setProperty('overflow', 'visible', 'important');
-        if (cs.overflowY === 'hidden') s.setProperty('overflow-y', 'visible', 'important');
-        if (cs.overflowX === 'hidden') s.setProperty('overflow-x', 'visible', 'important');
-      }
+    // Overflow: always visible except on image/rounded containers
+    if (!isImageContainer && !hasBorderRadius) {
+      s.setProperty('overflow', 'visible', 'important');
+      s.setProperty('overflow-x', 'visible', 'important');
+      s.setProperty('overflow-y', 'visible', 'important');
+    } else if (!isImageContainer) {
       if (cs.overflow === 'auto' || cs.overflow === 'scroll') s.overflow = 'visible';
-      if (cs.overflowY === 'auto' || cs.overflowY === 'scroll') s.overflowY = 'visible';
-      if (cs.overflowX === 'auto' || cs.overflowX === 'scroll') s.overflowX = 'visible';
-    } else {
-      if (!hasBorderRadius && !isImageContainer) {
-        if (s.overflow && s.overflow !== 'visible') s.overflow = 'visible';
-        if (s.overflowY && s.overflowY !== 'visible') s.overflowY = 'visible';
-        if (s.overflowX && s.overflowX !== 'visible') s.overflowX = 'visible';
-      }
     }
 
-    // Positioning
+    // Fix fixed/sticky positioning
     const pos = cs.position;
     if (pos === 'fixed' || pos === 'sticky') {
       s.setProperty('position', 'relative', 'important');
@@ -472,139 +487,60 @@ function prepareCloneForPrint(cloneDoc: Document): void {
       s.bottom = 'unset';
       s.transform = 'none';
     }
-
-    // Convert % widths on major containers to pixel values (Requirement 1)
-    // Only for direct children of the template root — avoids mangling inner layout
-    if (isInsideTemplate && el.parentElement === templateRoot) {
-      const w = cs.width;
-      if (w && w.endsWith('%')) {
-        const pct = parseFloat(w);
-        if (!isNaN(pct)) {
-          s.setProperty('width', `${Math.round((pct / 100) * A4_WIDTH_PX)}px`, 'important');
-        }
-      }
-    }
   });
 
-  // ── 11. Flex-gap fix: add margin to flex children WITHOUT destroying flex ──
-  // Requirement 2: do NOT force display:block — keep flex context intact.
-  // Instead add margin-right/bottom to each child to simulate the gap.
+  // ── 12. Flex gap → explicit margins (preserve flex context) ───────────────
   cloneDoc.querySelectorAll<HTMLElement>('*').forEach((el) => {
     const classes = Array.from(el.classList);
+    const cs = window.getComputedStyle(el);
+    const display = cs.display;
 
-    // Path A: Tailwind class-based (flex flex-wrap gap-N)
-    const hasFlex = classes.includes('flex');
-    const hasFlexWrap = classes.includes('flex-wrap');
-    if (hasFlex && hasFlexWrap) {
-      const gapClass = classes.find((c) => /^gap-/.test(c));
-      const gapPx = gapClass ? (tailwindGapToPx(gapClass) ?? 0) : 0;
-      if (gapPx > 0) {
-        el.setAttribute('data-chip-row', '1');
-        // Keep display:flex + flex-wrap — just add margins to children
-        el.style.setProperty('gap', '0', 'important');
-        Array.from(el.children).forEach((child) => {
-          const c = child as HTMLElement;
-          if (c.style.display === 'none') return;
-          c.style.setProperty('margin-right', `${gapPx}px`, 'important');
-          c.style.setProperty('margin-bottom', `${gapPx}px`, 'important');
-        });
-        return;
-      }
-    }
+    if (display !== 'flex' && display !== 'inline-flex') return;
+    if (cs.flexWrap !== 'wrap' && cs.flexWrap !== 'wrap-reverse') return;
 
-    // Path B: Inline-style flex with gap (ModernCVTemplate uses inline styles)
-    const inlineDisplay = el.style.display;
-    const inlineWrap = el.style.flexWrap;
-    const inlineGap = el.style.gap || el.style.columnGap || '';
-    if (
-      (inlineDisplay === 'flex' || inlineDisplay === 'inline-flex') &&
-      (inlineWrap === 'wrap' || inlineWrap === 'wrap-reverse')
-    ) {
-      const gapPx = parseFloat(inlineGap) || 0;
-      if (gapPx > 0) {
-        el.setAttribute('data-chip-row', '1');
-        el.style.setProperty('gap', '0', 'important');
-        Array.from(el.children).forEach((child) => {
-          const c = child as HTMLElement;
-          if (c.style.display === 'none') return;
-          c.style.setProperty('margin-right', `${gapPx}px`, 'important');
-          c.style.setProperty('margin-bottom', `${gapPx}px`, 'important');
-        });
-      }
+    // Read gap from computed style — most reliable source
+    const computedGap = parseFloat(cs.gap || cs.columnGap || '0') || 0;
+    // Fallback: Tailwind gap class
+    const gapClass = classes.find((c) => /^gap-/.test(c));
+    const tailwindGap = gapClass ? (parseFloat(gapClass.replace('gap-', '')) || 0) * 4 : 0;
+    const gapPx = computedGap || tailwindGap;
+
+    if (gapPx > 0) {
+      el.setAttribute('data-chip-row', '1');
+      el.style.setProperty('gap', '0', 'important');
+      el.style.setProperty('overflow', 'visible', 'important');
+      Array.from(el.children).forEach((child) => {
+        const c = child as HTMLElement;
+        if (window.getComputedStyle(c).display === 'none') return;
+        c.style.setProperty('margin-right', `${gapPx}px`, 'important');
+        c.style.setProperty('margin-bottom', `${gapPx}px`, 'important');
+      });
     }
   });
 
-  // ── 11b. Force overflow:visible on chip-row containers via DOM ───────────
-  // The templates set overflow:'hidden' as an inline style on [data-chip-row]
-  // elements. Inline styles have higher priority than injected <style> rules,
-  // so we must patch them directly on the DOM node before html2canvas renders.
-  cloneDoc.querySelectorAll<HTMLElement>('[data-chip-row]').forEach((el) => {
-    el.style.setProperty('overflow', 'visible', 'important');
-    el.style.setProperty('overflow-x', 'visible', 'important');
-    el.style.setProperty('overflow-y', 'visible', 'important');
-  });
-  // Also catch any <ul> skill containers without the data attribute
-  // (Classic template uses <ul style="display:block; overflow:hidden">)
-  cloneDoc.querySelectorAll<HTMLElement>('ul[style*="overflow"]').forEach((el) => {
-    el.style.setProperty('overflow', 'visible', 'important');
-  });
-
-  // ── 11c. Fix role/company stacking in job entry headers ───────────────────
-  // ModernCVTemplate renders each experience entry header as:
-  //   <div style="display:flex; justify-content:space-between; align-items:center; gap:10px">
-  //     <div style="flex:1; minWidth:0">
-  //       <div>Job Title</div>      ← should be on its own line
-  //       <div>Company Name</div>   ← should be on next line below title
-  //     </div>
-  //     <DateBadge />
-  //   </div>
-  // In the clone the Editable divs become normal divs — but if align-items:center
-  // causes the left column to not stack correctly we normalise it to flex-start.
-  // We target specifically: flex containers whose first child has flex:1 and
-  // contains two or more block children (title + company stack).
+  // ── 13. Fix role/company stacking in job entries ──────────────────────────
   cloneDoc.querySelectorAll<HTMLElement>('*').forEach((el) => {
     if (el.style.display !== 'flex') return;
     if (el.style.justifyContent !== 'space-between') return;
     const firstChild = el.firstElementChild as HTMLElement | null;
     if (!firstChild) return;
-    // The left column must be flex:1 with at least two block children
     const fc = firstChild.style.flex || firstChild.style.flexGrow || '';
     if (!fc.startsWith('1')) return;
-    const blockChildren = Array.from(firstChild.children).filter((c) => {
-      const cs = window.getComputedStyle(c as HTMLElement);
-      return cs.display === 'block' || (c as HTMLElement).style.display === 'block'
-        || (c as HTMLElement).tagName === 'DIV';
-    });
+    const blockChildren = Array.from(firstChild.children).filter(
+      (c) => (c as HTMLElement).tagName === 'DIV'
+    );
     if (blockChildren.length >= 2) {
-      // Ensure align-items is flex-start so block children stack vertically
       el.style.setProperty('align-items', 'flex-start', 'important');
-      // Ensure the left column itself is display:block so its children stack
       firstChild.style.setProperty('display', 'block', 'important');
       firstChild.style.setProperty('flex', '1 1 0%', 'important');
       firstChild.style.setProperty('min-width', '0', 'important');
-      // Each child in the left column should be display:block
       blockChildren.forEach((c) => {
         (c as HTMLElement).style.setProperty('display', 'block', 'important');
       });
     }
   });
 
-  // ── 12. Page break avoidance ──────────────────────────────────────────────
-  const BREAK_AVOID_SELECTORS = [
-    '[style*="border-radius"]', '.rounded-lg', '.rounded-xl', '.rounded-2xl',
-    '[class*="mb-2"]', '[class*="mb-2.5"]', '[class*="mb-3"]',
-  ];
-  const seen = new WeakSet<HTMLElement>();
-  BREAK_AVOID_SELECTORS.forEach((sel) => {
-    cloneDoc.querySelectorAll<HTMLElement>(sel).forEach((el) => {
-      if (seen.has(el)) return;
-      seen.add(el);
-      el.style.setProperty('break-inside', 'avoid', 'important');
-      el.style.setProperty('page-break-inside', 'avoid', 'important');
-    });
-  });
-
-  // ── 13. Page-level resets ─────────────────────────────────────────────────
+  // ── 14. Page-level resets ─────────────────────────────────────────────────
   body.style.setProperty('margin', '0', 'important');
   body.style.setProperty('padding', '0', 'important');
   body.style.setProperty('overflow', 'visible', 'important');
@@ -612,36 +548,19 @@ function prepareCloneForPrint(cloneDoc: Document): void {
   body.style.setProperty('min-height', '0', 'important');
   body.style.setProperty('width', `${A4_WIDTH_PX}px`, 'important');
 
-  // ── 14. Inject stabilization CSS ─────────────────────────────────────────
+  // ── 15. Final stabilization CSS (lowest specificity, !important overrides) ─
   const styleEl = cloneDoc.createElement('style');
   styleEl.textContent = `
     }
-    *, *::before, *::after {
-      box-sizing: border-box !important;
-      -webkit-print-color-adjust: exact !important;
-      print-color-adjust: exact !important;
-      color-adjust: exact !important;
-    }
-
     body {
       font-family: 'Inter', 'Roboto', 'Open Sans', Arial, Helvetica, sans-serif !important;
     }
-
-    p, div, span, li, h1, h2, h3, h4 {
-      line-height: 1.4 !important;
-    }
-
-    /* Chip/skill containers: keep flex context, ensure visible */
     [data-chip-row] {
       overflow: visible !important;
     }
     [data-chip-row] > * {
       vertical-align: middle !important;
-      min-height: 22px !important;
-      line-height: 1.4 !important;
     }
-
-    /* Bullet point alignment */
     [data-pdf-bullet-row] {
       display: flex !important;
       align-items: flex-start !important;
@@ -662,46 +581,50 @@ function prepareCloneForPrint(cloneDoc: Document): void {
     [data-pdf-bullet-row] > :last-child {
       display: block !important;
       flex: 1 !important;
-      line-height: 1.55 !important;
       word-break: break-word !important;
       white-space: pre-wrap !important;
     }
-
-    /* A4 root wrapper — width only, no background override so templates keep their own colors */
-    [data-pdf-root] {
-      width: 794px !important;
-      min-width: 794px !important;
-      max-width: 794px !important;
-      margin: 0 !important;
-      padding: 0 !important;
-    }
-
-    /* Summary/profile box */
     [data-pdf-summary] {
       overflow: visible !important;
       word-break: break-word !important;
       overflow-wrap: anywhere !important;
     }
-
-    /* Date badge */
     [data-pdf-date-badge] {
       display: inline-flex !important;
       align-items: center !important;
       flex-shrink: 0 !important;
       white-space: nowrap !important;
     }
-
-    input, textarea { display: none !important; }
-
-    /* cv-scale-wrapper: always neutral in clone */
-    .cv-scale-wrapper {
-      transform: none !important;
-      width: 794px !important;
-    }
   }
   )
   `;
   (cloneDoc.head || cloneDoc.documentElement).appendChild(styleEl);
+}
+
+async function waitForFonts(): Promise<void> {
+  // Gate 1: wait until FontFaceSet reports 'loaded'
+  if ((document as any).fonts) {
+    const fonts = (document as any).fonts;
+    if (fonts.status !== 'loaded') {
+      await fonts.ready;
+    }
+    // Explicitly load weights used by CV templates
+    const faces = [
+      '400 12px Inter', '500 12px Inter', '600 12px Inter', '700 12px Inter',
+      '400 12px Roboto', '600 12px Roboto', '700 12px Roboto',
+      '400 12px "Open Sans"', '600 12px "Open Sans"', '700 12px "Open Sans"',
+      '400 12px Georgia', '700 12px Georgia',
+    ];
+    await Promise.all(faces.map((f) => fonts.load(f).catch(() => {})));
+    // Gate 2: confirm loaded again after explicit loads
+    await fonts.ready;
+  }
+  // 500ms rAF settle — layout must be fully painted before we snapshot
+  await new Promise<void>((resolve) => {
+    requestAnimationFrame(() => requestAnimationFrame(() => {
+      setTimeout(resolve, 500);
+    }));
+  });
 }
 
 async function renderElementToPDFBlob(
@@ -710,8 +633,11 @@ async function renderElementToPDFBlob(
 ): Promise<Blob> {
   const { quality = 0.95, scale = 2 } = options;
 
-  // ── Step 1: Pre-fetch images as base64 and stamp dimensions ──────────────
-  console.log('[PDF Export] Pre-fetching images as base64...');
+  // ── Step 1: Font readiness ────────────────────────────────────────────────
+  await waitForFonts();
+
+  // ── Step 2: Pre-fetch images as base64 & stamp dimensions ─────────────────
+  console.log('[PDF Export] Pre-fetching images...');
   const liveImages = Array.from(element.querySelectorAll<HTMLImageElement>('img'));
   await Promise.all(
     liveImages.map(async (img) => {
@@ -728,31 +654,6 @@ async function renderElementToPDFBlob(
     img.setAttribute('data-pdf-h', cs.height || img.style.height || '80px');
     img.setAttribute('data-pdf-fit', cs.objectFit || img.style.objectFit || 'cover');
   });
-
-  // ── Step 2: Robust font loading ───────────────────────────────────────────
-  // Primary gate: wait for FontFaceSet to be ready
-  if ((document as any).fonts?.ready) {
-    await (document as any).fonts.ready;
-  }
-  // Force-load all weights used by CV templates
-  if ((document as any).fonts?.load) {
-    const fontFaces = [
-      '400 12px Inter', '600 12px Inter', '700 12px Inter',
-      '400 12px Roboto', '600 12px Roboto', '700 12px Roboto',
-      '400 12px "Open Sans"', '600 12px "Open Sans"', '700 12px "Open Sans"',
-      '400 12px Georgia', '700 12px Georgia',
-    ];
-    await Promise.all(fontFaces.map((f) => (document as any).fonts.load(f).catch(() => {})));
-  }
-  // Second gate: ensure all triggered fonts have settled
-  if ((document as any).fonts?.ready) {
-    await (document as any).fonts.ready;
-  }
-
-  // Two rAF cycles for layout repaint after fonts
-  await new Promise((r) => requestAnimationFrame(() => requestAnimationFrame(r)));
-  // Extra settle for slow font CDNs
-  await new Promise((r) => setTimeout(r, 400));
 
   // ── Step 3: Wait for all images to load ───────────────────────────────────
   await Promise.all(
@@ -779,11 +680,10 @@ async function renderElementToPDFBlob(
   const liveCSSText = liveCSS.join('\n');
 
   console.log('[PDF Export] Rendering canvas (scale:', scale, ')...');
-  console.log('[PDF Export] Element size:', element.offsetWidth, 'x', element.offsetHeight, 'scrollH:', element.scrollHeight);
 
   let canvas: HTMLCanvasElement;
   try {
-    canvas = await html2canvas(element, {
+    canvas = await (html2canvas as any)(element, {
       scale,
       useCORS: true,
       allowTaint: true,
@@ -798,8 +698,8 @@ async function renderElementToPDFBlob(
       y: 0,
       scrollX: 0,
       scrollY: 0,
-      onclone: (cloneDoc) => {
-        // Inject live CSS first (lowest priority) so our !important overrides win
+      onclone: (cloneDoc: Document) => {
+        // Inject live CSS first so our !important overrides win
         if (liveCSSText) {
           const liveStyleEl = cloneDoc.createElement('style');
           liveStyleEl.textContent = liveCSSText;
@@ -808,14 +708,13 @@ async function renderElementToPDFBlob(
             (cloneDoc.head || cloneDoc.documentElement).firstChild
           );
         }
-        prepareCloneForPrint(cloneDoc);
+        prepareCloneForPrint(cloneDoc, element);
       },
     });
   } catch (err: any) {
     console.error('[PDF Export] html2canvas error:', err);
     throw new Error('PDF-Generierung fehlgeschlagen: ' + (err.message || 'Unbekannter Fehler'));
   } finally {
-    // Restore original image src values
     liveImages.forEach((img) => {
       const originalSrc = img.getAttribute('data-original-src');
       if (originalSrc) {
@@ -837,7 +736,7 @@ async function renderElementToPDFBlob(
 
   if (footerElement) {
     try {
-      footerCanvas = await html2canvas(footerElement, {
+      footerCanvas = await (html2canvas as any)(footerElement, {
         scale,
         useCORS: true,
         allowTaint: true,
@@ -847,8 +746,8 @@ async function renderElementToPDFBlob(
         removeContainer: true,
         windowWidth: A4_WIDTH_PX,
         width: A4_WIDTH_PX,
-        onclone: (cloneDoc) => {
-          prepareCloneForPrint(cloneDoc);
+        onclone: (cloneDoc: Document) => {
+          prepareCloneForPrint(cloneDoc, footerElement);
           const footerClone = cloneDoc.querySelector<HTMLElement>('[data-pdf-footer]');
           if (footerClone) {
             footerClone.style.setProperty('display', 'flex', 'important');
@@ -864,11 +763,11 @@ async function renderElementToPDFBlob(
     }
   }
 
-  // Re-render main without footer if we have a separate footer canvas
+  // Re-render main without footer
   let mainCanvas = canvas;
   if (footerCanvas && footerElement) {
     try {
-      mainCanvas = await html2canvas(element, {
+      mainCanvas = await (html2canvas as any)(element, {
         scale,
         useCORS: true,
         allowTaint: true,
@@ -883,8 +782,8 @@ async function renderElementToPDFBlob(
         y: 0,
         scrollX: 0,
         scrollY: 0,
-        onclone: (cloneDoc) => {
-          prepareCloneForPrint(cloneDoc);
+        onclone: (cloneDoc: Document) => {
+          prepareCloneForPrint(cloneDoc, element);
           const footerClone = cloneDoc.querySelector<HTMLElement>('[data-pdf-footer]');
           if (footerClone) footerClone.style.setProperty('display', 'none', 'important');
         },
@@ -1109,4 +1008,5 @@ export function debugLogPDFHtml(
     navigator.clipboard.writeText(html).then(() => console.log('[PDF Debug] Copied to clipboard.')).catch(() => {});
   }
 }
+
 }
