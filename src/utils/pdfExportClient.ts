@@ -226,17 +226,18 @@ function restoreLiveDom(saved: SavedStyle[]): void {
 //  - Convert <img> with object-fit to background-image (html2canvas bug fix)
 
 function cleanCloneForCapture(cloneDoc: Document, liveRoot: HTMLElement): void {
-  // Pair every clone element with its live counterpart (index-based walk).
-  // The clone has the exact same tree shape because html2canvas clones it verbatim.
+  // Build input/textarea mappings BEFORE removing any clone elements.
+  // html2canvas clones verbatim, so input/textarea indices are 1:1 between
+  // live and clone at this point (before any DOM mutations).
+  const liveInputs = Array.from(liveRoot.querySelectorAll<HTMLInputElement>('input'));
+  const liveTextareas = Array.from(liveRoot.querySelectorAll<HTMLTextAreaElement>('textarea'));
   const cloneRoot = cloneDoc.querySelector<HTMLElement>('[data-pdf-root]');
-  const liveAll = [liveRoot, ...Array.from(liveRoot.querySelectorAll<HTMLElement>('*'))];
-  const cloneAll = cloneRoot
-    ? [cloneRoot, ...Array.from(cloneRoot.querySelectorAll<HTMLElement>('*'))]
+  const cloneInputs = cloneRoot
+    ? Array.from(cloneRoot.querySelectorAll<HTMLInputElement>('input'))
     : [];
-  const liveByClone = new Map<HTMLElement, HTMLElement>();
-  for (let i = 0; i < cloneAll.length; i++) {
-    if (liveAll[i]) liveByClone.set(cloneAll[i], liveAll[i]);
-  }
+  const cloneTextareas = cloneRoot
+    ? Array.from(cloneRoot.querySelectorAll<HTMLTextAreaElement>('textarea'))
+    : [];
   // Kill animations only. Do NOT touch list-style, display, padding, or any
   // visual attribute — the live editor already renders bullets correctly and
   // html2canvas copies the resolved styles when cloning.
@@ -252,75 +253,93 @@ function cleanCloneForCapture(cloneDoc: Document, liveRoot: HTMLElement): void {
   `;
   (cloneDoc.head || cloneDoc.documentElement).appendChild(styleEl);
 
-  // html2canvas cannot draw ::marker pseudo-elements. For <ul class="list-disc">
-  // templates we inject a real <span>• </span> once per <li> IN THE CLONE ONLY,
-  // and strip the CSS marker to avoid doubling.
-  cloneDoc.querySelectorAll<HTMLLIElement>('li').forEach((li) => {
-    const live = liveByClone.get(li);
-    if (!live) return;
-    const liveCs = window.getComputedStyle(live);
-    const listStyleType = liveCs.listStyleType;
-    const display = liveCs.display;
+  // All templates render bullets as real <span> elements within flex rows.
+  // No bullet injection needed — html2canvas draws the existing DOM correctly.
 
-    // Only inject a bullet where the live element actually RENDERS one
-    // (ul with list-disc / list-item w/ disc,circle,square).
-    const hasBullet =
-      display === 'list-item' &&
-      (listStyleType === 'disc' || listStyleType === 'circle' ||
-       listStyleType === 'square');
-
-    if (!hasBullet) return;
-
-    const bullet = cloneDoc.createElement('span');
-    bullet.textContent = '•';
-    bullet.setAttribute('aria-hidden', 'true');
-    bullet.style.cssText =
-      'display:inline-block;min-width:1em;margin-right:4px;flex-shrink:0;line-height:inherit;';
-    li.insertBefore(bullet, li.firstChild);
-    // Swap list-item for flex so the bullet aligns with the first text line.
-    // This is the ONLY layout change — padding/margin stay untouched.
-    li.style.setProperty('list-style', 'none', 'important');
-    li.style.setProperty('display', 'flex', 'important');
-    li.style.setProperty('align-items', 'baseline', 'important');
-  });
-
-  // Remove editor UI
+  // Remove editor UI elements
   cloneDoc.querySelectorAll<HTMLElement>(
     'button, [data-pdf-hidden], .pdf-hidden, .print\\:hidden'
   ).forEach((el) => el.remove());
 
-  // Convert <input> → <span>
-  cloneDoc.querySelectorAll<HTMLInputElement>('input').forEach((input) => {
-    const val = input.value || '';
+  // Convert <input> → <span> preserving EXACT box model from live element.
+  for (let i = 0; i < cloneInputs.length; i++) {
+    const input = cloneInputs[i];
+    const liveInput = liveInputs[i];
+    // Get value from live DOM (clone may not copy .value for some browsers)
+    const val = liveInput?.value || input.value || '';
     if (isPlaceholder(val)) {
-      (input.closest('li, [data-pdf-field-wrap]') || input).remove();
-      return;
+      const wrapper = input.closest('li, [data-pdf-field-wrap]');
+      (wrapper || input).remove();
+      continue;
     }
+
+    const cs = liveInput ? window.getComputedStyle(liveInput) : null;
+
     const span = cloneDoc.createElement('span');
     span.textContent = val;
-    // Copy frozen inline style from the live element (already set in freezeLiveDom)
-    span.style.cssText = input.style.cssText;
-    span.style.display = 'inline';
+    span.style.display = 'inline-block';
+    span.style.verticalAlign = 'middle';
     span.style.background = 'transparent';
     span.style.border = 'none';
-    input.parentNode?.replaceChild(span, input);
-  });
+    span.style.outline = 'none';
+    span.style.padding = '0';
+    span.style.margin = '0';
 
-  // Convert <textarea> → <div>
-  cloneDoc.querySelectorAll<HTMLTextAreaElement>('textarea').forEach((ta) => {
-    const val = ta.value || '';
-    if (isPlaceholder(val)) {
-      (ta.closest('li, [data-pdf-field-wrap]') || ta).remove();
-      return;
+    if (cs) {
+      span.style.fontFamily = cs.fontFamily;
+      span.style.fontSize = cs.fontSize;
+      span.style.fontWeight = cs.fontWeight;
+      span.style.lineHeight = cs.lineHeight;
+      span.style.letterSpacing = cs.letterSpacing;
+      span.style.color = cs.color;
+      span.style.width = cs.width;
+      span.style.height = cs.height;
+      span.style.minHeight = cs.height;
+      span.style.textAlign = cs.textAlign;
+      span.style.whiteSpace = 'nowrap';
+      span.style.overflow = 'hidden';
     }
+    input.parentNode?.replaceChild(span, input);
+  }
+
+  // Convert <textarea> → <div> with exact box dimensions from live element.
+  for (let i = 0; i < cloneTextareas.length; i++) {
+    const ta = cloneTextareas[i];
+    const liveTa = liveTextareas[i];
+    const val = liveTa?.value || ta.value || '';
+    if (isPlaceholder(val)) {
+      const wrapper = ta.closest('li, [data-pdf-field-wrap]');
+      (wrapper || ta).remove();
+      continue;
+    }
+
+    const cs = liveTa ? window.getComputedStyle(liveTa) : null;
+
     const div = cloneDoc.createElement('div');
     div.textContent = val;
-    div.style.cssText = ta.style.cssText;
-    div.style.overflow = 'visible';
-    div.style.height = 'auto';
+    div.style.background = 'transparent';
+    div.style.border = 'none';
+    div.style.outline = 'none';
+    div.style.padding = '0';
+    div.style.margin = '0';
+    div.style.resize = 'none';
     div.style.whiteSpace = 'pre-wrap';
+    div.style.wordBreak = 'break-word';
+    div.style.overflow = 'visible';
+
+    if (cs) {
+      div.style.fontFamily = cs.fontFamily;
+      div.style.fontSize = cs.fontSize;
+      div.style.fontWeight = cs.fontWeight;
+      div.style.lineHeight = cs.lineHeight;
+      div.style.letterSpacing = cs.letterSpacing;
+      div.style.color = cs.color;
+      div.style.width = cs.width;
+      div.style.minHeight = cs.height;
+      div.style.textAlign = cs.textAlign;
+    }
     ta.parentNode?.replaceChild(div, ta);
-  });
+  }
 
   // Strip contentEditable placeholders
   cloneDoc.querySelectorAll<HTMLElement>('[contenteditable]').forEach((el) => {
@@ -335,21 +354,25 @@ function cleanCloneForCapture(cloneDoc: Document, liveRoot: HTMLElement): void {
     }
   });
 
-  // Convert <img> with object-fit:cover to background-image div
-  // html2canvas mishandles object-fit, background-size:cover is reliable
+  // html2canvas mishandles object-fit — convert img to background-image div
   cloneDoc.querySelectorAll<HTMLImageElement>('img').forEach((img) => {
     const src = img.getAttribute('src') || '';
     if (!src) return;
-    const cs = img.style; // already frozen in freezeLiveDom
     if (!img.getAttribute('data-pdf-w')) return;
+    const w = img.getAttribute('data-pdf-w') || '48px';
+    const h = img.getAttribute('data-pdf-h') || '48px';
 
     const div = cloneDoc.createElement('div');
-    div.style.cssText = img.style.cssText;
+    div.style.width = w;
+    div.style.height = h;
+    div.style.minWidth = w;
+    div.style.minHeight = h;
     div.style.backgroundImage = `url('${src}')`;
     div.style.backgroundSize = 'cover';
     div.style.backgroundPosition = 'center center';
     div.style.backgroundRepeat = 'no-repeat';
     div.style.flexShrink = '0';
+    div.style.borderRadius = img.style.borderRadius || '0';
     img.parentNode?.replaceChild(div, img);
   });
 }
@@ -409,6 +432,15 @@ async function renderElementToPDFBlob(
   const breakCandidates = collectBreakCandidates(element);
   const liveHeightCssPx = element.getBoundingClientRect().height;
 
+  // Measure footer position in live DOM (needed for bottom-of-page placement)
+  const footerEl = element.querySelector<HTMLElement>('[data-pdf-footer]');
+  let footerTopCssRatio = 1; // ratio of footer top vs total height
+  if (footerEl) {
+    const fRect = footerEl.getBoundingClientRect();
+    const rRect = element.getBoundingClientRect();
+    footerTopCssRatio = (fRect.top - rRect.top) / Math.max(1, liveHeightCssPx);
+  }
+
   // 3b. FREEZE: stamp all computed styles onto the live DOM as inline values.
   //     html2canvas now sees the already-resolved, already-painted values.
   const savedStyles = freezeLiveDom(element);
@@ -466,24 +498,53 @@ async function renderElementToPDFBlob(
     compress: true,
   });
 
+  // Compute footer position in canvas pixels using pre-measured ratio
+  let footerStartCanvasPx = canvas.height;
+  if (footerEl) {
+    footerStartCanvasPx = Math.round(footerTopCssRatio * canvas.height);
+    console.log('[PDF] Footer detected at canvas row:', footerStartCanvasPx, '/', canvas.height);
+  }
+
   if (imgHeightMM <= A4_HEIGHT_MM) {
+    // Single page — if content < A4, place footer at the bottom
+    const pc = document.createElement('canvas');
+    pc.width = canvas.width;
+    pc.height = Math.round(pageHeightPx);
+    const ctx = pc.getContext('2d')!;
+    ctx.fillStyle = '#ffffff';
+    ctx.fillRect(0, 0, pc.width, pc.height);
+
+    if (footerEl && footerStartCanvasPx < canvas.height) {
+      // Draw content above footer
+      ctx.drawImage(canvas, 0, 0, canvas.width, footerStartCanvasPx, 0, 0, canvas.width, footerStartCanvasPx);
+      // Draw footer at the very bottom of the page
+      const footerHeightPx = canvas.height - footerStartCanvasPx;
+      const footerY = pc.height - footerHeightPx;
+      ctx.drawImage(canvas, 0, footerStartCanvasPx, canvas.width, footerHeightPx, 0, footerY, canvas.width, footerHeightPx);
+    } else {
+      ctx.drawImage(canvas, 0, 0);
+    }
+
     pdfDoc.addImage(
-      canvas.toDataURL('image/jpeg', quality), 'JPEG',
-      0, 0, imgWidthMM, imgHeightMM, undefined, 'FAST'
+      pc.toDataURL('image/jpeg', quality), 'JPEG',
+      0, 0, imgWidthMM, A4_HEIGHT_MM, undefined, 'FAST'
     );
-    console.log('[PDF] Single page');
+    console.log('[PDF] Single page (footer at bottom)');
   } else {
     // Multi-page with DOM-aware break detection.
-    // We map CSS pixel rects (from the live DOM) into canvas pixel rows using
-    // the scale ratio: canvas.height / liveHeightCssPx.
     const cssToCanvas = canvas.height / Math.max(1, liveHeightCssPx);
-    console.log('[PDF] Multi-page, canvas height:', canvas.height, 'cssToCanvas:', cssToCanvas);
+    console.log('[PDF] Multi-page, canvas height:', canvas.height, 'cssToCanvas:', cssToCanvas.toFixed(2));
+
+    // Content to paginate = everything above footer
+    const contentEndPx = footerEl ? footerStartCanvasPx : canvas.height;
+    const footerHeightPx = canvas.height - footerStartCanvasPx;
 
     let offsetPx = 0;
     let pageNum = 0;
+    const pageSlices: number[] = [];
 
-    while (offsetPx < canvas.height && pageNum < 30) {
-      const remaining = canvas.height - offsetPx;
+    while (offsetPx < contentEndPx && pageNum < 30) {
+      const remaining = contentEndPx - offsetPx;
       const slicePx =
         remaining <= pageHeightPx * 1.02
           ? remaining
@@ -492,36 +553,61 @@ async function renderElementToPDFBlob(
               offsetPx,
               pageHeightPx,
               cssToCanvas,
-              canvas.height
+              contentEndPx
             );
 
-      const pc = document.createElement('canvas');
-      pc.width = canvas.width;
-      pc.height = Math.ceil(slicePx);
-      const ctx = pc.getContext('2d')!;
-      ctx.fillStyle = '#ffffff';
-      ctx.fillRect(0, 0, pc.width, pc.height);
-      ctx.drawImage(canvas, 0, offsetPx, canvas.width, slicePx, 0, 0, canvas.width, slicePx);
-
-      if (pageNum > 0) pdfDoc.addPage();
-      pdfDoc.addImage(
-        pc.toDataURL('image/jpeg', quality), 'JPEG',
-        0, 0, imgWidthMM, (slicePx * imgWidthMM) / canvas.width, undefined, 'FAST'
-      );
-
-      console.log(`[PDF] Page ${pageNum + 1}: offset=${offsetPx}px slice=${Math.ceil(slicePx)}px`);
+      pageSlices.push(slicePx);
       offsetPx += slicePx;
       pageNum++;
     }
 
-    console.log('[PDF] Total pages:', pageNum);
+    // Render each page
+    for (let p = 0; p < pageSlices.length; p++) {
+      const sliceOffset = pageSlices.slice(0, p).reduce((a, b) => a + b, 0);
+      const slicePx = pageSlices[p];
+      const isLastPage = p === pageSlices.length - 1;
+
+      const pc = document.createElement('canvas');
+      pc.width = canvas.width;
+      // Last page is full A4 height so footer sits at bottom
+      pc.height = isLastPage && footerEl ? Math.round(pageHeightPx) : Math.ceil(slicePx);
+      const ctx = pc.getContext('2d')!;
+      ctx.fillStyle = '#ffffff';
+      ctx.fillRect(0, 0, pc.width, pc.height);
+
+      // Draw content slice
+      ctx.drawImage(canvas, 0, sliceOffset, canvas.width, slicePx, 0, 0, canvas.width, slicePx);
+
+      // On last page, draw footer at the very bottom
+      if (isLastPage && footerEl && footerHeightPx > 0) {
+        const footerY = pc.height - footerHeightPx;
+        ctx.drawImage(
+          canvas, 0, footerStartCanvasPx, canvas.width, footerHeightPx,
+          0, footerY, canvas.width, footerHeightPx
+        );
+      }
+
+      if (p > 0) pdfDoc.addPage();
+      const pageMmHeight = isLastPage && footerEl
+        ? A4_HEIGHT_MM
+        : (slicePx * imgWidthMM) / canvas.width;
+      pdfDoc.addImage(
+        pc.toDataURL('image/jpeg', quality), 'JPEG',
+        0, 0, imgWidthMM, pageMmHeight, undefined, 'FAST'
+      );
+
+      console.log(`[PDF] Page ${p + 1}: offset=${sliceOffset}px h=${Math.ceil(slicePx)}px${isLastPage && footerEl ? ' (+ footer)' : ''}`);
+    }
+
+    console.log('[PDF] Total pages:', pageSlices.length);
   }
 
   return pdfDoc.output('blob') as Blob;
 }
 
-// DOM-aware page-break: finds the best element boundary in the DOM whose
-// bottom falls just before the ideal page height, avoiding cutting cards/rows.
+// DOM-aware page-break: find the best element boundary to break at.
+// Strategy: break BETWEEN elements (at an element's TOP edge), never in the
+// middle of one. This guarantees no card/box is cut in half.
 function findDomBreakPoint(
   candidates: BreakCandidate[],
   offsetPx: number,
@@ -529,42 +615,51 @@ function findDomBreakPoint(
   cssToCanvas: number,
   canvasHeight: number
 ): number {
-  const ideal = Math.floor(pageHeightPx);
-  const idealAbs = offsetPx + ideal; // absolute canvas row we aim to break at
-  const minSlice = Math.floor(pageHeightPx * 0.6); // never make a page < 60%
-  const maxSlice = Math.floor(pageHeightPx * 1.0); // never overflow the page
-  const minAbs = offsetPx + minSlice;
-  const maxAbs = offsetPx + maxSlice;
+  const idealAbs = offsetPx + pageHeightPx;
+  const minAbs = offsetPx + pageHeightPx * 0.55;
+  const maxAbs = offsetPx + pageHeightPx;
 
-  // Score every candidate: prefer the one whose BOTTOM is closest to, but
-  // does not exceed, the ideal canvas row.
+  // We want to break at the TOP of an element that starts inside our window
+  // [minAbs, maxAbs]. The break row = the element's topPx, meaning we show
+  // everything ABOVE it on this page. The element itself starts on the next page.
   let best = -1;
   let bestScore = -Infinity;
 
   for (const c of candidates) {
+    const topAbs = c.topPx * cssToCanvas;
     const bottomAbs = c.bottomPx * cssToCanvas;
-    if (bottomAbs <= minAbs) continue; // too early — would make a tiny page
-    if (bottomAbs > maxAbs) break;     // past the page — we're done scanning
 
-    // Distance from ideal (negative = below ideal, positive = above ideal).
-    // Prefer breaks that are just before the ideal row.
-    const delta = idealAbs - bottomAbs;
-    // Score: priority minus distance penalty. Small distances score highest.
-    const score = c.priority - Math.abs(delta) * 0.05;
-
-    if (score > bestScore) {
-      bestScore = score;
-      best = bottomAbs;
+    // Two possible break strategies:
+    // A) Break at TOP of this element (element goes to next page)
+    if (topAbs > minAbs && topAbs <= maxAbs) {
+      const distance = idealAbs - topAbs;
+      const score = c.priority + 50 - Math.abs(distance) * 0.08;
+      if (score > bestScore) {
+        bestScore = score;
+        best = topAbs;
+      }
     }
+
+    // B) Break at BOTTOM of this element (element fits entirely on this page)
+    if (bottomAbs > minAbs && bottomAbs <= maxAbs) {
+      const distance = idealAbs - bottomAbs;
+      const score = c.priority - Math.abs(distance) * 0.08;
+      if (score > bestScore) {
+        bestScore = score;
+        best = bottomAbs;
+      }
+    }
+
+    // No point scanning elements beyond our window
+    if (topAbs > maxAbs + 200) break;
   }
 
-  // Fallback: if no element fits, take a soft break at the ideal row.
   if (best < 0) {
-    best = Math.min(canvasHeight, idealAbs);
+    return Math.min(canvasHeight - offsetPx, pageHeightPx);
   }
 
-  const slice = Math.max(minSlice, Math.min(maxSlice, best - offsetPx));
-  return slice;
+  const slice = best - offsetPx;
+  return Math.max(pageHeightPx * 0.5, Math.min(pageHeightPx, slice));
 }
 
 // ─── Public API ───────────────────────────────────────────────────────────────
