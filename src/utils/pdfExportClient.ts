@@ -323,7 +323,6 @@ function prepareCloneForPrint(cloneDoc: Document, liveRoot: HTMLElement | null):
           el.style.setProperty('column-gap', `${gapPx}px`, 'important');
         }
       }
-      }
     }
   });
 
