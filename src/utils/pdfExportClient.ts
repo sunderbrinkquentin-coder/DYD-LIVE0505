@@ -82,135 +82,182 @@ interface SavedStyle {
   originalStyle: string;
 }
 
+// Tags that must keep their NATURAL inline / text-flow behaviour.
+// We do NOT override width / display / white-space on these — doing so
+// collapses spacing between icons & text or changes line-wrap offsets.
+const INLINE_TAGS = new Set([
+  'span', 'a', 'strong', 'em', 'b', 'i', 'u', 'small', 'sub', 'sup',
+  'mark', 'abbr', 'code', 'kbd',
+]);
+
+const SVG_TAGS = new Set([
+  'svg', 'path', 'g', 'circle', 'rect', 'line', 'polygon', 'polyline',
+  'ellipse', 'text', 'tspan', 'defs', 'use', 'symbol', 'clippath', 'mask',
+  'lineargradient', 'radialgradient', 'stop',
+]);
+
 function freezeLiveDom(root: HTMLElement): SavedStyle[] {
   const saved: SavedStyle[] = [];
-  const rootRect = root.getBoundingClientRect();
   const allEls = [root, ...Array.from(root.querySelectorAll<HTMLElement>('*'))];
 
   for (const el of allEls) {
-    // Save the original inline style so we can restore it later
+    const tagName = el.tagName.toLowerCase();
+
+    // SVG children: never touch (breaks viewBox coordinate system)
+    if (SVG_TAGS.has(tagName) && tagName !== 'svg') continue;
+
     saved.push({ el, originalStyle: el.getAttribute('style') ?? '' });
 
-    const rect = el.getBoundingClientRect();
     const cs = window.getComputedStyle(el);
+    const isInline = INLINE_TAGS.has(tagName);
+    const isSvgRoot = tagName === 'svg';
+    const display = cs.display;
+    const isBlockish =
+      display === 'block' || display === 'flex' || display === 'inline-flex' ||
+      display === 'grid' || display === 'inline-grid' || display === 'list-item';
 
-    // ── Width & Height: absolute pixel values from getBoundingClientRect ────
-    // These are the exact rendered dimensions - no Tailwind re-calc needed
-    const w = rect.width;
-    const h = rect.height;
-
-    el.style.setProperty('width', `${w}px`, 'important');
-    el.style.setProperty('min-width', `${w}px`, 'important');
-    el.style.setProperty('max-width', `${w}px`, 'important');
-
-    // Only freeze height for non-auto elements (text containers must stay auto
-    // so text wraps correctly at the frozen width)
-    const tagName = el.tagName.toLowerCase();
-    const isTextContainer =
-      tagName === 'p' || tagName === 'span' || tagName === 'li' ||
-      tagName === 'a' || tagName === 'strong' || tagName === 'em' ||
-      tagName === 'b' || tagName === 'i';
-
-    if (!isTextContainer && h > 0) {
-      el.style.setProperty('height', `${h}px`, 'important');
-      el.style.setProperty('min-height', `${h}px`, 'important');
+    // ── SVG root: freeze its on-screen box but leave innards alone ────────────
+    if (isSvgRoot) {
+      const r = el.getBoundingClientRect();
+      if (r.width > 0) el.style.setProperty('width', `${r.width}px`, 'important');
+      if (r.height > 0) el.style.setProperty('height', `${r.height}px`, 'important');
+      el.style.setProperty('flex-shrink', '0', 'important');
+      el.style.setProperty('display', display || 'inline-block', 'important');
+      if (cs.color) el.style.setProperty('color', cs.color, 'important');
+      continue;
     }
 
-    // ── Position: keep flow layout (NOT absolute) but strip transforms ───────
-    // We preserve the normal document flow so text nodes wrap correctly.
-    // Only strip scale/translate transforms that would distort coordinates.
+    // ── Typography on ALL elements (pixel-frozen so text renders identically) ─
+    el.style.setProperty('font-size', cs.fontSize, 'important');
+    if (cs.fontFamily) el.style.setProperty('font-family', cs.fontFamily, 'important');
+    if (cs.fontWeight) el.style.setProperty('font-weight', cs.fontWeight, 'important');
+    if (cs.fontStyle && cs.fontStyle !== 'normal') {
+      el.style.setProperty('font-style', cs.fontStyle, 'important');
+    }
+    if (cs.lineHeight && cs.lineHeight !== 'normal') {
+      el.style.setProperty('line-height', cs.lineHeight, 'important');
+    }
+    if (cs.letterSpacing && cs.letterSpacing !== 'normal') {
+      el.style.setProperty('letter-spacing', cs.letterSpacing, 'important');
+    }
+    if (cs.color) el.style.setProperty('color', cs.color, 'important');
+
+    // Bg only where visible (skip transparent to avoid stacking white on white)
+    const bg = cs.backgroundColor;
+    if (bg && bg !== 'rgba(0, 0, 0, 0)' && bg !== 'transparent') {
+      el.style.setProperty('background-color', bg, 'important');
+    }
+
+    // ── Inline elements: stop here — preserve natural line-flow ──────────────
+    // Touching width/margin/display/white-space on inline nodes causes icons
+    // and text to drift. The browser already laid them out correctly.
+    if (isInline) {
+      // Preserve text-decoration for links
+      if (cs.textDecorationLine && cs.textDecorationLine !== 'none') {
+        el.style.setProperty('text-decoration', cs.textDecoration, 'important');
+      }
+      continue;
+    }
+
+    // ── Block-level: freeze box-model pixel values ───────────────────────────
+    if (isBlockish) {
+      const r = el.getBoundingClientRect();
+
+      // Width: only freeze on block-level containers so text can still wrap
+      if (r.width > 0) {
+        el.style.setProperty('width', `${r.width}px`, 'important');
+        el.style.setProperty('max-width', `${r.width}px`, 'important');
+      }
+
+      // Display: preserve flex / grid / block
+      el.style.setProperty('display', display, 'important');
+
+      // Layout context
+      if (display === 'flex' || display === 'inline-flex') {
+        el.style.setProperty('flex-direction', cs.flexDirection, 'important');
+        el.style.setProperty('flex-wrap', cs.flexWrap, 'important');
+        el.style.setProperty('align-items', cs.alignItems, 'important');
+        el.style.setProperty('justify-content', cs.justifyContent, 'important');
+        if (cs.columnGap && cs.columnGap !== 'normal' && cs.columnGap !== '0px') {
+          el.style.setProperty('column-gap', cs.columnGap, 'important');
+        }
+        if (cs.rowGap && cs.rowGap !== 'normal' && cs.rowGap !== '0px') {
+          el.style.setProperty('row-gap', cs.rowGap, 'important');
+        }
+      }
+
+      if (display === 'grid' || display === 'inline-grid') {
+        if (cs.gridTemplateColumns && cs.gridTemplateColumns !== 'none') {
+          el.style.setProperty('grid-template-columns', cs.gridTemplateColumns, 'important');
+        }
+        if (cs.gridTemplateRows && cs.gridTemplateRows !== 'none') {
+          el.style.setProperty('grid-template-rows', cs.gridTemplateRows, 'important');
+        }
+        if (cs.columnGap && cs.columnGap !== 'normal') {
+          el.style.setProperty('column-gap', cs.columnGap, 'important');
+        }
+        if (cs.rowGap && cs.rowGap !== 'normal') {
+          el.style.setProperty('row-gap', cs.rowGap, 'important');
+        }
+      }
+
+      // Padding: freeze exact pixels
+      el.style.setProperty('padding-top', cs.paddingTop, 'important');
+      el.style.setProperty('padding-right', cs.paddingRight, 'important');
+      el.style.setProperty('padding-bottom', cs.paddingBottom, 'important');
+      el.style.setProperty('padding-left', cs.paddingLeft, 'important');
+
+      // Margin: freeze exact pixels (don't zero out — rows need their spacing)
+      el.style.setProperty('margin-top', cs.marginTop, 'important');
+      el.style.setProperty('margin-right', cs.marginRight, 'important');
+      el.style.setProperty('margin-bottom', cs.marginBottom, 'important');
+      el.style.setProperty('margin-left', cs.marginLeft, 'important');
+
+      // Border (freeze so coloured dividers don't drop out)
+      if (cs.borderTopWidth && cs.borderTopWidth !== '0px') {
+        el.style.setProperty('border-top', `${cs.borderTopWidth} ${cs.borderTopStyle} ${cs.borderTopColor}`, 'important');
+      }
+      if (cs.borderRightWidth && cs.borderRightWidth !== '0px') {
+        el.style.setProperty('border-right', `${cs.borderRightWidth} ${cs.borderRightStyle} ${cs.borderRightColor}`, 'important');
+      }
+      if (cs.borderBottomWidth && cs.borderBottomWidth !== '0px') {
+        el.style.setProperty('border-bottom', `${cs.borderBottomWidth} ${cs.borderBottomStyle} ${cs.borderBottomColor}`, 'important');
+      }
+      if (cs.borderLeftWidth && cs.borderLeftWidth !== '0px') {
+        el.style.setProperty('border-left', `${cs.borderLeftWidth} ${cs.borderLeftStyle} ${cs.borderLeftColor}`, 'important');
+      }
+      if (cs.borderRadius && cs.borderRadius !== '0px') {
+        el.style.setProperty('border-radius', cs.borderRadius, 'important');
+      }
+
+      // List bullets: convert CSS marker into a real span so html2canvas draws it
+      if (display === 'list-item') {
+        const markerContent = cs.getPropertyValue('--marker-char') || '•';
+        el.style.setProperty('list-style-position', 'outside', 'important');
+        el.style.setProperty('padding-left', `${Math.max(parseFloat(cs.paddingLeft) || 0, 16)}px`, 'important');
+      }
+    }
+
+    // ── Strip transforms globally (scale/translate distort html2canvas coords)
     const transform = cs.transform;
     if (transform && transform !== 'none' && transform !== 'matrix(1, 0, 0, 1, 0, 0)') {
       el.style.setProperty('transform', 'none', 'important');
     }
 
-    // ── Box model: freeze padding (already included in rect, but keep for text) ─
-    el.style.setProperty('padding-top', cs.paddingTop, 'important');
-    el.style.setProperty('padding-right', cs.paddingRight, 'important');
-    el.style.setProperty('padding-bottom', cs.paddingBottom, 'important');
-    el.style.setProperty('padding-left', cs.paddingLeft, 'important');
-    // Zero margin on non-root elements - rect already captures their position
-    if (el !== root) {
-      el.style.setProperty('margin', '0', 'important');
-    }
-
-    // ── Typography: freeze exact pixel values ────────────────────────────────
-    el.style.setProperty('font-size', cs.fontSize, 'important');
-    el.style.setProperty('font-family', cs.fontFamily, 'important');
-    el.style.setProperty('font-weight', cs.fontWeight, 'important');
-    if (cs.lineHeight !== 'normal') {
-      el.style.setProperty('line-height', cs.lineHeight, 'important');
-    }
-    if (cs.letterSpacing !== 'normal') {
-      el.style.setProperty('letter-spacing', cs.letterSpacing, 'important');
-    }
-    // Anti-fragmentation: keep words intact as seen in editor
-    el.style.setProperty('word-break', 'keep-all', 'important');
-    el.style.setProperty('overflow-wrap', 'normal', 'important');
-    el.style.setProperty('white-space', 'pre-wrap', 'important');
-
-    // ── Colors ───────────────────────────────────────────────────────────────
-    el.style.setProperty('color', cs.color, 'important');
-    const bg = cs.backgroundColor;
-    if (bg && bg !== 'rgba(0, 0, 0, 0)') {
-      el.style.setProperty('background-color', bg, 'important');
-    }
-
-    // ── Display / Layout context ─────────────────────────────────────────────
-    const display = cs.display;
-    el.style.setProperty('display', display, 'important');
-
-    if (display === 'flex' || display === 'inline-flex') {
-      el.style.setProperty('flex-direction', cs.flexDirection, 'important');
-      el.style.setProperty('flex-wrap', cs.flexWrap, 'important');
-      el.style.setProperty('align-items', cs.alignItems, 'important');
-      el.style.setProperty('justify-content', cs.justifyContent, 'important');
-      // Freeze gap as resolved pixel values
-      if (cs.columnGap && cs.columnGap !== 'normal') {
-        el.style.setProperty('column-gap', cs.columnGap, 'important');
-      }
-      if (cs.rowGap && cs.rowGap !== 'normal') {
-        el.style.setProperty('row-gap', cs.rowGap, 'important');
-      }
-    }
-
-    if (display === 'grid') {
-      // gridTemplateColumns is already resolved to px by the browser
-      if (cs.gridTemplateColumns && cs.gridTemplateColumns !== 'none') {
-        el.style.setProperty('grid-template-columns', cs.gridTemplateColumns, 'important');
-      }
-      if (cs.gridTemplateRows && cs.gridTemplateRows !== 'none') {
-        el.style.setProperty('grid-template-rows', cs.gridTemplateRows, 'important');
-      }
-      if (cs.columnGap && cs.columnGap !== 'normal') {
-        el.style.setProperty('column-gap', cs.columnGap, 'important');
-      }
-      if (cs.rowGap && cs.rowGap !== 'normal') {
-        el.style.setProperty('row-gap', cs.rowGap, 'important');
-      }
-    }
-
-    // ── Overflow: must be visible so nothing is clipped ──────────────────────
-    const hasRoundedBorder = cs.borderRadius && cs.borderRadius !== '0px';
-    const isImgContainer =
-      tagName === 'img' || el.style.backgroundImage !== '';
-    if (!hasRoundedBorder && !isImgContainer) {
-      el.style.setProperty('overflow', 'visible', 'important');
-    }
-
-    // ── Border radius ─────────────────────────────────────────────────────────
-    if (cs.borderRadius && cs.borderRadius !== '0px') {
-      el.style.setProperty('border-radius', cs.borderRadius, 'important');
-    }
-
-    // ── Positioning: un-freeze fixed/sticky so they don't float over content ─
+    // ── Positioning: fixed/sticky break html2canvas — pin as relative ────────
     const pos = cs.position;
     if (pos === 'fixed' || pos === 'sticky') {
       el.style.setProperty('position', 'relative', 'important');
     }
+
+    // ── Overflow: visible on every block (prevents mysterious clipping) ──────
+    const hasRoundedBorder = cs.borderRadius && cs.borderRadius !== '0px';
+    if (!hasRoundedBorder && tagName !== 'img') {
+      el.style.setProperty('overflow', 'visible', 'important');
+    }
   }
 
-  // Root itself: ensure exactly 794px and no box-shadow/border-radius distortion
+  // Root: lock to exactly 794px A4 width
   root.style.setProperty('width', `${A4_WIDTH_PX}px`, 'important');
   root.style.setProperty('min-width', `${A4_WIDTH_PX}px`, 'important');
   root.style.setProperty('max-width', `${A4_WIDTH_PX}px`, 'important');
@@ -221,6 +268,58 @@ function freezeLiveDom(root: HTMLElement): SavedStyle[] {
   root.style.setProperty('overflow', 'visible', 'important');
 
   return saved;
+}
+
+// Find all top-level "block" candidates where a page can safely break.
+// Strategy: walk depth-first inside the root, collect elements whose vertical
+// position represents a section/card boundary (sections, list items, rows).
+interface BreakCandidate {
+  topPx: number;       // absolute top within root's coordinate space
+  bottomPx: number;    // absolute bottom
+  priority: number;    // higher = better break point
+}
+
+function collectBreakCandidates(root: HTMLElement): BreakCandidate[] {
+  const rootTop = root.getBoundingClientRect().top;
+  const candidates: BreakCandidate[] = [];
+
+  // Walk every block-level direct child and descendant, capture rows
+  const all = Array.from(root.querySelectorAll<HTMLElement>('*'));
+  for (const el of all) {
+    const cs = window.getComputedStyle(el);
+    const display = cs.display;
+    if (display === 'inline' || display === 'none') continue;
+    if (cs.visibility === 'hidden') continue;
+
+    const r = el.getBoundingClientRect();
+    if (r.height <= 0 || r.width <= 0) continue;
+    if (r.height > 500) continue; // container too tall to be a sensible breakpoint
+
+    // Explicit "don't break inside" hint
+    const hint = el.getAttribute('data-pdf-keep-together');
+    if (hint === 'true') continue;
+
+    // Prefer breaks at boundaries of: sections, articles, list items, grid/flex children
+    let priority = 0;
+    const tag = el.tagName.toLowerCase();
+    if (tag === 'section' || tag === 'article' || tag === 'header' || tag === 'footer') priority = 100;
+    else if (tag === 'h1' || tag === 'h2' || tag === 'h3') priority = 90;
+    else if (tag === 'li') priority = 70;
+    else if (tag === 'p' || tag === 'div') priority = 40;
+
+    // Boost for elements with visible top spacing (usually section separators)
+    const mt = parseFloat(cs.marginTop) || 0;
+    const pt = parseFloat(cs.paddingTop) || 0;
+    if (mt + pt >= 8) priority += 15;
+
+    candidates.push({
+      topPx: r.top - rootTop,
+      bottomPx: r.bottom - rootTop,
+      priority,
+    });
+  }
+
+  return candidates.sort((a, b) => a.topPx - b.topPx);
 }
 
 function restoreLiveDom(saved: SavedStyle[]): void {
@@ -241,7 +340,7 @@ function restoreLiveDom(saved: SavedStyle[]): void {
 //  - Convert <img> with object-fit to background-image (html2canvas bug fix)
 
 function cleanCloneForCapture(cloneDoc: Document, liveRoot: HTMLElement): void {
-  // Kill animations
+  // Kill animations + ensure markers render inside the text box
   const styleEl = cloneDoc.createElement('style');
   styleEl.textContent = `
     *, *::before, *::after {
@@ -250,8 +349,31 @@ function cleanCloneForCapture(cloneDoc: Document, liveRoot: HTMLElement): void {
       -webkit-print-color-adjust: exact !important;
       print-color-adjust: exact !important;
     }
+    /* html2canvas draws ::marker poorly — we'll inject real bullets below */
+    ul, ol { list-style: none !important; padding-left: 0 !important; }
+    li { list-style: none !important; }
+    svg { overflow: visible !important; }
   `;
   (cloneDoc.head || cloneDoc.documentElement).appendChild(styleEl);
+
+  // Replace list markers with real <span> prefixes (html2canvas can draw these)
+  cloneDoc.querySelectorAll<HTMLLIElement>('li').forEach((li) => {
+    // Only add a bullet to items inside a <ul> (not <ol> or other lists)
+    const parent = li.parentElement;
+    if (!parent || parent.tagName.toLowerCase() !== 'ul') return;
+    if (li.getAttribute('data-bullet-added') === '1') return;
+
+    const bullet = cloneDoc.createElement('span');
+    bullet.textContent = '•  ';
+    bullet.style.display = 'inline-block';
+    bullet.style.marginRight = '6px';
+    bullet.style.fontWeight = 'normal';
+    bullet.setAttribute('aria-hidden', 'true');
+    li.insertBefore(bullet, li.firstChild);
+    li.setAttribute('data-bullet-added', '1');
+    li.style.setProperty('display', 'flex', 'important');
+    li.style.setProperty('align-items', 'baseline', 'important');
+  });
 
   // Remove editor UI
   cloneDoc.querySelectorAll<HTMLElement>(
@@ -373,9 +495,13 @@ async function renderElementToPDFBlob(
 
   window.scrollTo(0, 0);
 
-  // 3. FREEZE: stamp all computed styles onto the live DOM as inline values
-  //    This is the core of the "hard pixel freeze" — html2canvas now sees
-  //    the already-resolved, already-painted values with no re-layout needed.
+  // 3a. Collect DOM-level page-break candidates BEFORE freezing. Rects are
+  //     captured in the live, on-screen coordinate space (in CSS pixels).
+  const breakCandidates = collectBreakCandidates(element);
+  const liveHeightCssPx = element.getBoundingClientRect().height;
+
+  // 3b. FREEZE: stamp all computed styles onto the live DOM as inline values.
+  //     html2canvas now sees the already-resolved, already-painted values.
   const savedStyles = freezeLiveDom(element);
 
   // One more rAF after freeze so the browser paints the frozen state
@@ -432,23 +558,33 @@ async function renderElementToPDFBlob(
   });
 
   if (imgHeightMM <= A4_HEIGHT_MM) {
-    // Single page
     pdfDoc.addImage(
       canvas.toDataURL('image/jpeg', quality), 'JPEG',
       0, 0, imgWidthMM, imgHeightMM, undefined, 'FAST'
     );
     console.log('[PDF] Single page');
   } else {
-    // Multi-page with smart break detection
-    console.log('[PDF] Multi-page, total height:', canvas.height, 'px');
+    // Multi-page with DOM-aware break detection.
+    // We map CSS pixel rects (from the live DOM) into canvas pixel rows using
+    // the scale ratio: canvas.height / liveHeightCssPx.
+    const cssToCanvas = canvas.height / Math.max(1, liveHeightCssPx);
+    console.log('[PDF] Multi-page, canvas height:', canvas.height, 'cssToCanvas:', cssToCanvas);
+
     let offsetPx = 0;
     let pageNum = 0;
 
-    while (offsetPx < canvas.height && pageNum < 20) {
+    while (offsetPx < canvas.height && pageNum < 30) {
       const remaining = canvas.height - offsetPx;
-      const slicePx = remaining <= pageHeightPx * 1.1
-        ? remaining
-        : findBreakPoint(canvas, offsetPx, pageHeightPx);
+      const slicePx =
+        remaining <= pageHeightPx * 1.02
+          ? remaining
+          : findDomBreakPoint(
+              breakCandidates,
+              offsetPx,
+              pageHeightPx,
+              cssToCanvas,
+              canvas.height
+            );
 
       const pc = document.createElement('canvas');
       pc.width = canvas.width;
@@ -475,45 +611,51 @@ async function renderElementToPDFBlob(
   return pdfDoc.output('blob') as Blob;
 }
 
-// Find the best pixel row to break a page (avoids cutting through text/images)
-function findBreakPoint(canvas: HTMLCanvasElement, offsetPx: number, pageHeightPx: number): number {
+// DOM-aware page-break: finds the best element boundary in the DOM whose
+// bottom falls just before the ideal page height, avoiding cutting cards/rows.
+function findDomBreakPoint(
+  candidates: BreakCandidate[],
+  offsetPx: number,
+  pageHeightPx: number,
+  cssToCanvas: number,
+  canvasHeight: number
+): number {
   const ideal = Math.floor(pageHeightPx);
-  const winPx = Math.floor(canvas.height * 0.06);
-  const ctx = canvas.getContext('2d');
-  if (!ctx) return ideal;
+  const idealAbs = offsetPx + ideal; // absolute canvas row we aim to break at
+  const minSlice = Math.floor(pageHeightPx * 0.6); // never make a page < 60%
+  const maxSlice = Math.floor(pageHeightPx * 1.0); // never overflow the page
+  const minAbs = offsetPx + minSlice;
+  const maxAbs = offsetPx + maxSlice;
 
-  const scanStart = Math.max(0, offsetPx + ideal - winPx);
-  const scanEnd = Math.min(canvas.height - 1, offsetPx + ideal + winPx);
-  const scanH = scanEnd - scanStart + 1;
-  if (scanH <= 0) return ideal;
+  // Score every candidate: prefer the one whose BOTTOM is closest to, but
+  // does not exceed, the ideal canvas row.
+  let best = -1;
+  let bestScore = -Infinity;
 
-  const data = ctx.getImageData(0, scanStart, canvas.width, scanH);
-  const stride = Math.max(1, Math.floor(canvas.width / 80));
+  for (const c of candidates) {
+    const bottomAbs = c.bottomPx * cssToCanvas;
+    if (bottomAbs <= minAbs) continue; // too early — would make a tiny page
+    if (bottomAbs > maxAbs) break;     // past the page — we're done scanning
 
-  let best = offsetPx + ideal;
-  let bestScore = -1;
+    // Distance from ideal (negative = below ideal, positive = above ideal).
+    // Prefer breaks that are just before the ideal row.
+    const delta = idealAbs - bottomAbs;
+    // Score: priority minus distance penalty. Small distances score highest.
+    const score = c.priority - Math.abs(delta) * 0.05;
 
-  for (let row = 0; row < scanH; row++) {
-    const off = row * canvas.width * 4;
-    let lightPx = 0, total = 0;
-    for (let x = 0; x < canvas.width; x += stride) {
-      const i = off + x * 4;
-      const lum = 0.299 * data.data[i] + 0.587 * data.data[i + 1] + 0.114 * data.data[i + 2];
-      if (lum > 220) lightPx++;
-      total++;
-    }
-    const score = total > 0 ? lightPx / total : 0;
-    const distance = Math.abs(row - winPx);
-    const adjusted = score - (distance > 40 ? 0.03 : 0);
-    if (adjusted > bestScore) {
-      bestScore = adjusted;
-      best = scanStart + row;
+    if (score > bestScore) {
+      bestScore = score;
+      best = bottomAbs;
     }
   }
 
-  const absoluteRow = best;
-  const relativeRow = absoluteRow - offsetPx;
-  return Math.max(Math.floor(pageHeightPx * 0.7), relativeRow);
+  // Fallback: if no element fits, take a soft break at the ideal row.
+  if (best < 0) {
+    best = Math.min(canvasHeight, idealAbs);
+  }
+
+  const slice = Math.max(minSlice, Math.min(maxSlice, best - offsetPx));
+  return slice;
 }
 
 // ─── Public API ───────────────────────────────────────────────────────────────
