@@ -318,9 +318,6 @@ function prepareCloneForPrint(cloneDoc: Document, liveRoot: HTMLElement | null):
         const gapTotal = gapPx * (frValues.length - 1);
         const usable = containerW - gapTotal;
         const pixelCols = frValues.map((v) => `${Math.round((v! / totalFr) * usable)}px`).join(' ');
-        )
-        )
-        )
         el.style.setProperty('grid-template-columns', pixelCols, 'important');
         if (gapPx > 0) {
           el.style.setProperty('column-gap', `${gapPx}px`, 'important');
