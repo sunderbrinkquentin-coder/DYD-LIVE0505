@@ -82,190 +82,66 @@ interface SavedStyle {
   originalStyle: string;
 }
 
-// Tags that must keep their NATURAL inline / text-flow behaviour.
-// We do NOT override width / display / white-space on these — doing so
-// collapses spacing between icons & text or changes line-wrap offsets.
-const INLINE_TAGS = new Set([
-  'span', 'a', 'strong', 'em', 'b', 'i', 'u', 'small', 'sub', 'sup',
-  'mark', 'abbr', 'code', 'kbd',
-]);
-
-const SVG_TAGS = new Set([
-  'svg', 'path', 'g', 'circle', 'rect', 'line', 'polygon', 'polyline',
-  'ellipse', 'text', 'tspan', 'defs', 'use', 'symbol', 'clippath', 'mask',
-  'lineargradient', 'radialgradient', 'stop',
-]);
+// Minimal freeze: only touches what html2canvas cannot derive itself.
+//
+// Why so little? The live editor already paints the CV correctly.
+// html2canvas reads computed styles from the source DOM and applies them
+// to its clone — it does NOT re-resolve Tailwind classes or re-run layout
+// when the source root has an explicit pixel width. Touching padding/margin/
+// height on intermediate elements breaks flex centering, SVG coordinates,
+// and icon baselines — which is what caused the earlier drift.
+//
+// All we actually need:
+//   1. Lock the root at exactly 794px so html2canvas sees A4 width.
+//   2. Strip any CSS transform (scale on the mobile wrapper).
+//   3. Turn fixed/sticky into relative (html2canvas mis-positions them).
+//   4. Force word-wrap behaviour on block elements so long strings break
+//      the same way they do on screen (no overflow into neighbour column).
 
 function freezeLiveDom(root: HTMLElement): SavedStyle[] {
   const saved: SavedStyle[] = [];
-  const allEls = [root, ...Array.from(root.querySelectorAll<HTMLElement>('*'))];
 
-  for (const el of allEls) {
-    const tagName = el.tagName.toLowerCase();
-
-    // SVG children: never touch (breaks viewBox coordinate system)
-    if (SVG_TAGS.has(tagName) && tagName !== 'svg') continue;
-
-    saved.push({ el, originalStyle: el.getAttribute('style') ?? '' });
-
-    const cs = window.getComputedStyle(el);
-    const isInline = INLINE_TAGS.has(tagName);
-    const isSvgRoot = tagName === 'svg';
-    const display = cs.display;
-    const isBlockish =
-      display === 'block' || display === 'flex' || display === 'inline-flex' ||
-      display === 'grid' || display === 'inline-grid' || display === 'list-item';
-
-    // ── SVG root: freeze its on-screen box but leave innards alone ────────────
-    if (isSvgRoot) {
-      const r = el.getBoundingClientRect();
-      if (r.width > 0) el.style.setProperty('width', `${r.width}px`, 'important');
-      if (r.height > 0) el.style.setProperty('height', `${r.height}px`, 'important');
-      el.style.setProperty('flex-shrink', '0', 'important');
-      el.style.setProperty('display', display || 'inline-block', 'important');
-      if (cs.color) el.style.setProperty('color', cs.color, 'important');
-      continue;
-    }
-
-    // ── Typography on ALL elements (pixel-frozen so text renders identically) ─
-    el.style.setProperty('font-size', cs.fontSize, 'important');
-    if (cs.fontFamily) el.style.setProperty('font-family', cs.fontFamily, 'important');
-    if (cs.fontWeight) el.style.setProperty('font-weight', cs.fontWeight, 'important');
-    if (cs.fontStyle && cs.fontStyle !== 'normal') {
-      el.style.setProperty('font-style', cs.fontStyle, 'important');
-    }
-    if (cs.lineHeight && cs.lineHeight !== 'normal') {
-      el.style.setProperty('line-height', cs.lineHeight, 'important');
-    }
-    if (cs.letterSpacing && cs.letterSpacing !== 'normal') {
-      el.style.setProperty('letter-spacing', cs.letterSpacing, 'important');
-    }
-    if (cs.color) el.style.setProperty('color', cs.color, 'important');
-
-    // Bg only where visible (skip transparent to avoid stacking white on white)
-    const bg = cs.backgroundColor;
-    if (bg && bg !== 'rgba(0, 0, 0, 0)' && bg !== 'transparent') {
-      el.style.setProperty('background-color', bg, 'important');
-    }
-
-    // ── Inline elements: stop here — preserve natural line-flow ──────────────
-    // Touching width/margin/display/white-space on inline nodes causes icons
-    // and text to drift. The browser already laid them out correctly.
-    if (isInline) {
-      // Preserve text-decoration for links
-      if (cs.textDecorationLine && cs.textDecorationLine !== 'none') {
-        el.style.setProperty('text-decoration', cs.textDecoration, 'important');
-      }
-      continue;
-    }
-
-    // ── Block-level: freeze box-model pixel values ───────────────────────────
-    if (isBlockish) {
-      const r = el.getBoundingClientRect();
-
-      // Width: only freeze on block-level containers so text can still wrap
-      if (r.width > 0) {
-        el.style.setProperty('width', `${r.width}px`, 'important');
-        el.style.setProperty('max-width', `${r.width}px`, 'important');
-      }
-
-      // Display: preserve flex / grid / block
-      el.style.setProperty('display', display, 'important');
-
-      // Layout context
-      if (display === 'flex' || display === 'inline-flex') {
-        el.style.setProperty('flex-direction', cs.flexDirection, 'important');
-        el.style.setProperty('flex-wrap', cs.flexWrap, 'important');
-        el.style.setProperty('align-items', cs.alignItems, 'important');
-        el.style.setProperty('justify-content', cs.justifyContent, 'important');
-        if (cs.columnGap && cs.columnGap !== 'normal' && cs.columnGap !== '0px') {
-          el.style.setProperty('column-gap', cs.columnGap, 'important');
-        }
-        if (cs.rowGap && cs.rowGap !== 'normal' && cs.rowGap !== '0px') {
-          el.style.setProperty('row-gap', cs.rowGap, 'important');
-        }
-      }
-
-      if (display === 'grid' || display === 'inline-grid') {
-        if (cs.gridTemplateColumns && cs.gridTemplateColumns !== 'none') {
-          el.style.setProperty('grid-template-columns', cs.gridTemplateColumns, 'important');
-        }
-        if (cs.gridTemplateRows && cs.gridTemplateRows !== 'none') {
-          el.style.setProperty('grid-template-rows', cs.gridTemplateRows, 'important');
-        }
-        if (cs.columnGap && cs.columnGap !== 'normal') {
-          el.style.setProperty('column-gap', cs.columnGap, 'important');
-        }
-        if (cs.rowGap && cs.rowGap !== 'normal') {
-          el.style.setProperty('row-gap', cs.rowGap, 'important');
-        }
-      }
-
-      // Padding: freeze exact pixels
-      el.style.setProperty('padding-top', cs.paddingTop, 'important');
-      el.style.setProperty('padding-right', cs.paddingRight, 'important');
-      el.style.setProperty('padding-bottom', cs.paddingBottom, 'important');
-      el.style.setProperty('padding-left', cs.paddingLeft, 'important');
-
-      // Margin: freeze exact pixels (don't zero out — rows need their spacing)
-      el.style.setProperty('margin-top', cs.marginTop, 'important');
-      el.style.setProperty('margin-right', cs.marginRight, 'important');
-      el.style.setProperty('margin-bottom', cs.marginBottom, 'important');
-      el.style.setProperty('margin-left', cs.marginLeft, 'important');
-
-      // Border (freeze so coloured dividers don't drop out)
-      if (cs.borderTopWidth && cs.borderTopWidth !== '0px') {
-        el.style.setProperty('border-top', `${cs.borderTopWidth} ${cs.borderTopStyle} ${cs.borderTopColor}`, 'important');
-      }
-      if (cs.borderRightWidth && cs.borderRightWidth !== '0px') {
-        el.style.setProperty('border-right', `${cs.borderRightWidth} ${cs.borderRightStyle} ${cs.borderRightColor}`, 'important');
-      }
-      if (cs.borderBottomWidth && cs.borderBottomWidth !== '0px') {
-        el.style.setProperty('border-bottom', `${cs.borderBottomWidth} ${cs.borderBottomStyle} ${cs.borderBottomColor}`, 'important');
-      }
-      if (cs.borderLeftWidth && cs.borderLeftWidth !== '0px') {
-        el.style.setProperty('border-left', `${cs.borderLeftWidth} ${cs.borderLeftStyle} ${cs.borderLeftColor}`, 'important');
-      }
-      if (cs.borderRadius && cs.borderRadius !== '0px') {
-        el.style.setProperty('border-radius', cs.borderRadius, 'important');
-      }
-
-      // List bullets: convert CSS marker into a real span so html2canvas draws it
-      if (display === 'list-item') {
-        const markerContent = cs.getPropertyValue('--marker-char') || '•';
-        el.style.setProperty('list-style-position', 'outside', 'important');
-        el.style.setProperty('padding-left', `${Math.max(parseFloat(cs.paddingLeft) || 0, 16)}px`, 'important');
-      }
-    }
-
-    // ── Strip transforms globally (scale/translate distort html2canvas coords)
-    const transform = cs.transform;
-    if (transform && transform !== 'none' && transform !== 'matrix(1, 0, 0, 1, 0, 0)') {
-      el.style.setProperty('transform', 'none', 'important');
-    }
-
-    // ── Positioning: fixed/sticky break html2canvas — pin as relative ────────
-    const pos = cs.position;
-    if (pos === 'fixed' || pos === 'sticky') {
-      el.style.setProperty('position', 'relative', 'important');
-    }
-
-    // ── Overflow: visible on every block (prevents mysterious clipping) ──────
-    const hasRoundedBorder = cs.borderRadius && cs.borderRadius !== '0px';
-    if (!hasRoundedBorder && tagName !== 'img') {
-      el.style.setProperty('overflow', 'visible', 'important');
-    }
-  }
-
-  // Root: lock to exactly 794px A4 width
+  // Save + lock the root first
+  saved.push({ el: root, originalStyle: root.getAttribute('style') ?? '' });
+  const rootCs = window.getComputedStyle(root);
   root.style.setProperty('width', `${A4_WIDTH_PX}px`, 'important');
   root.style.setProperty('min-width', `${A4_WIDTH_PX}px`, 'important');
   root.style.setProperty('max-width', `${A4_WIDTH_PX}px`, 'important');
   root.style.setProperty('transform', 'none', 'important');
-  root.style.setProperty('margin', '0', 'important');
   root.style.setProperty('box-shadow', 'none', 'important');
   root.style.setProperty('border-radius', '0', 'important');
   root.style.setProperty('overflow', 'visible', 'important');
+  // Pin typographic defaults to the root so every child inherits them in the
+  // clone (html2canvas' iframe has no access to our global Tailwind reset).
+  root.style.setProperty('font-family', rootCs.fontFamily, 'important');
+  root.style.setProperty('font-size', rootCs.fontSize, 'important');
+  root.style.setProperty('line-height', rootCs.lineHeight, 'important');
+  root.style.setProperty('color', rootCs.color, 'important');
+
+  // Walk descendants and touch ONLY what's absolutely required
+  const allEls = Array.from(root.querySelectorAll<HTMLElement>('*'));
+  for (const el of allEls) {
+    const tagName = el.tagName.toLowerCase();
+
+    // Never touch SVG or any element inside an SVG — html2canvas rasterizes
+    // the SVG element via its own code path; any style injection into paths,
+    // groups, etc. distorts the internal viewBox.
+    if (tagName === 'svg' || el.closest('svg')) continue;
+
+    const cs = window.getComputedStyle(el);
+    const transform = cs.transform;
+    const pos = cs.position;
+    const hasTransform =
+      transform && transform !== 'none' && transform !== 'matrix(1, 0, 0, 1, 0, 0)';
+    const hasFixed = pos === 'fixed' || pos === 'sticky';
+
+    // Skip unchanged elements entirely — less DOM mutation, fewer regressions
+    if (!hasTransform && !hasFixed) continue;
+
+    saved.push({ el, originalStyle: el.getAttribute('style') ?? '' });
+    if (hasTransform) el.style.setProperty('transform', 'none', 'important');
+    if (hasFixed) el.style.setProperty('position', 'relative', 'important');
+  }
 
   return saved;
 }
@@ -283,43 +159,53 @@ function collectBreakCandidates(root: HTMLElement): BreakCandidate[] {
   const rootTop = root.getBoundingClientRect().top;
   const candidates: BreakCandidate[] = [];
 
-  // Walk every block-level direct child and descendant, capture rows
-  const all = Array.from(root.querySelectorAll<HTMLElement>('*'));
-  for (const el of all) {
-    const cs = window.getComputedStyle(el);
-    const display = cs.display;
-    if (display === 'inline' || display === 'none') continue;
-    if (cs.visibility === 'hidden') continue;
-
+  const addCandidate = (el: HTMLElement, priority: number) => {
     const r = el.getBoundingClientRect();
-    if (r.height <= 0 || r.width <= 0) continue;
-    if (r.height > 500) continue; // container too tall to be a sensible breakpoint
-
-    // Explicit "don't break inside" hint
-    const hint = el.getAttribute('data-pdf-keep-together');
-    if (hint === 'true') continue;
-
-    // Prefer breaks at boundaries of: sections, articles, list items, grid/flex children
-    let priority = 0;
-    const tag = el.tagName.toLowerCase();
-    if (tag === 'section' || tag === 'article' || tag === 'header' || tag === 'footer') priority = 100;
-    else if (tag === 'h1' || tag === 'h2' || tag === 'h3') priority = 90;
-    else if (tag === 'li') priority = 70;
-    else if (tag === 'p' || tag === 'div') priority = 40;
-
-    // Boost for elements with visible top spacing (usually section separators)
-    const mt = parseFloat(cs.marginTop) || 0;
-    const pt = parseFloat(cs.paddingTop) || 0;
-    if (mt + pt >= 8) priority += 15;
-
+    if (r.height <= 4 || r.width <= 4) return;
+    const cs = window.getComputedStyle(el);
+    if (cs.display === 'none' || cs.visibility === 'hidden') return;
     candidates.push({
       topPx: r.top - rootTop,
       bottomPx: r.bottom - rootTop,
       priority,
     });
+  };
+
+  // 1. Highest priority: explicit section markers
+  root.querySelectorAll<HTMLElement>('[data-pdf-section]').forEach((el) =>
+    addCandidate(el, 200)
+  );
+  // 2. Semantic sections
+  root.querySelectorAll<HTMLElement>('section, article').forEach((el) =>
+    addCandidate(el, 150)
+  );
+  // 3. Headings (break just BEFORE them ideally, we track bottoms so score is ok)
+  root.querySelectorAll<HTMLElement>('h1, h2, h3, h4').forEach((el) =>
+    addCandidate(el, 110)
+  );
+  // 4. Cards / experience / education entries — any direct list item
+  root.querySelectorAll<HTMLElement>('li').forEach((el) => addCandidate(el, 90));
+  // 5. Generic block paragraphs
+  root.querySelectorAll<HTMLElement>('p').forEach((el) => addCandidate(el, 60));
+  // 6. Divs that look like "rows": direct children of grids or flex columns
+  const blocks = root.querySelectorAll<HTMLElement>('div');
+  blocks.forEach((el) => {
+    // Only shallow rows — not deeply nested wrappers
+    const cs = window.getComputedStyle(el);
+    const mb = parseFloat(cs.marginBottom) || 0;
+    const pb = parseFloat(cs.paddingBottom) || 0;
+    if (mb + pb >= 8) addCandidate(el, 50);
+  });
+
+  // De-duplicate by (bottomPx rounded to 1px) keeping highest priority
+  const byRow = new Map<number, BreakCandidate>();
+  for (const c of candidates) {
+    const key = Math.round(c.bottomPx);
+    const existing = byRow.get(key);
+    if (!existing || c.priority > existing.priority) byRow.set(key, c);
   }
 
-  return candidates.sort((a, b) => a.topPx - b.topPx);
+  return Array.from(byRow.values()).sort((a, b) => a.topPx - b.topPx);
 }
 
 function restoreLiveDom(saved: SavedStyle[]): void {
@@ -340,7 +226,20 @@ function restoreLiveDom(saved: SavedStyle[]): void {
 //  - Convert <img> with object-fit to background-image (html2canvas bug fix)
 
 function cleanCloneForCapture(cloneDoc: Document, liveRoot: HTMLElement): void {
-  // Kill animations + ensure markers render inside the text box
+  // Pair every clone element with its live counterpart (index-based walk).
+  // The clone has the exact same tree shape because html2canvas clones it verbatim.
+  const cloneRoot = cloneDoc.querySelector<HTMLElement>('[data-pdf-root]');
+  const liveAll = [liveRoot, ...Array.from(liveRoot.querySelectorAll<HTMLElement>('*'))];
+  const cloneAll = cloneRoot
+    ? [cloneRoot, ...Array.from(cloneRoot.querySelectorAll<HTMLElement>('*'))]
+    : [];
+  const liveByClone = new Map<HTMLElement, HTMLElement>();
+  for (let i = 0; i < cloneAll.length; i++) {
+    if (liveAll[i]) liveByClone.set(cloneAll[i], liveAll[i]);
+  }
+  // Kill animations only. Do NOT touch list-style, display, padding, or any
+  // visual attribute — the live editor already renders bullets correctly and
+  // html2canvas copies the resolved styles when cloning.
   const styleEl = cloneDoc.createElement('style');
   styleEl.textContent = `
     *, *::before, *::after {
@@ -348,29 +247,39 @@ function cleanCloneForCapture(cloneDoc: Document, liveRoot: HTMLElement): void {
       transition: none !important;
       -webkit-print-color-adjust: exact !important;
       print-color-adjust: exact !important;
+      caret-color: transparent !important;
     }
-    /* html2canvas draws ::marker poorly — we'll inject real bullets below */
-    ul, ol { list-style: none !important; padding-left: 0 !important; }
-    li { list-style: none !important; }
-    svg { overflow: visible !important; }
   `;
   (cloneDoc.head || cloneDoc.documentElement).appendChild(styleEl);
 
-  // Replace list markers with real <span> prefixes (html2canvas can draw these)
+  // html2canvas cannot draw ::marker pseudo-elements. For <ul class="list-disc">
+  // templates we inject a real <span>• </span> once per <li> IN THE CLONE ONLY,
+  // and strip the CSS marker to avoid doubling.
   cloneDoc.querySelectorAll<HTMLLIElement>('li').forEach((li) => {
-    // Only add a bullet to items inside a <ul> (not <ol> or other lists)
-    const parent = li.parentElement;
-    if (!parent || parent.tagName.toLowerCase() !== 'ul') return;
-    if (li.getAttribute('data-bullet-added') === '1') return;
+    const live = liveByClone.get(li);
+    if (!live) return;
+    const liveCs = window.getComputedStyle(live);
+    const listStyleType = liveCs.listStyleType;
+    const display = liveCs.display;
+
+    // Only inject a bullet where the live element actually RENDERS one
+    // (ul with list-disc / list-item w/ disc,circle,square).
+    const hasBullet =
+      display === 'list-item' &&
+      (listStyleType === 'disc' || listStyleType === 'circle' ||
+       listStyleType === 'square');
+
+    if (!hasBullet) return;
 
     const bullet = cloneDoc.createElement('span');
-    bullet.textContent = '•  ';
-    bullet.style.display = 'inline-block';
-    bullet.style.marginRight = '6px';
-    bullet.style.fontWeight = 'normal';
+    bullet.textContent = '•';
     bullet.setAttribute('aria-hidden', 'true');
+    bullet.style.cssText =
+      'display:inline-block;min-width:1em;margin-right:4px;flex-shrink:0;line-height:inherit;';
     li.insertBefore(bullet, li.firstChild);
-    li.setAttribute('data-bullet-added', '1');
+    // Swap list-item for flex so the bullet aligns with the first text line.
+    // This is the ONLY layout change — padding/margin stay untouched.
+    li.style.setProperty('list-style', 'none', 'important');
     li.style.setProperty('display', 'flex', 'important');
     li.style.setProperty('align-items', 'baseline', 'important');
   });
