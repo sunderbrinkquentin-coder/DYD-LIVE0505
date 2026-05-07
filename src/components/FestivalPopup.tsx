@@ -219,7 +219,7 @@ export default function FestivalPopup() {
                     className="mb-5 font-medium italic"
                     style={{ fontSize: '15px', color: 'rgba(255,255,255,0.55)', letterSpacing: '0.04em' }}
                   >
-                    Andere Ansichten, gleicher Wunsch: Glücklich sein.
+                    Lass uns schaun was uns verbindet und nicht was uns trennt.
                   </motion.p>
 
                   <motion.div
