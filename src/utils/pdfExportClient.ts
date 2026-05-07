@@ -86,38 +86,81 @@ function freezeComputedStyles(liveEl: HTMLElement, cloneEl: HTMLElement): void {
 function prepareCloneForPrint(cloneDoc: Document, liveRoot: HTMLElement | null): void {
   const body = cloneDoc.body;
 
-  // ── 0. Disable ALL animations & transitions immediately ───────────────────
+  // 1. STABILISIERUNGS-CSS INJIZIEREN (Verhindert Text-Umbrüche und Skalierungsfehler)
   const animStyleEl = cloneDoc.createElement('style');
   animStyleEl.textContent = `
     *, *::before, *::after {
       animation: none !important;
-      animation-duration: 0s !important;
       transition: none !important;
-      transition-duration: 0s !important;
       box-sizing: border-box !important;
-      -webkit-print-color-adjust: exact !important;
-      print-color-adjust: exact !important;
-      color-adjust: exact !important;
+      text-rendering: optimizeLegibility !important;
+      -webkit-font-smoothing: antialiased !important;
     }
-    .cv-scale-wrapper {
-      transform: none !important;
-      width: ${A4_WIDTH_PX}px !important;
-      margin: 0 !important;
+    /* Verhindert das radikale Umbrechen von Wörtern durch html2canvas */
+    span, p, div, li {
+      white-space: pre-wrap !important; 
+      word-break: keep-all !important;
+      overflow-wrap: normal !important;
     }
     [data-pdf-root] {
       width: ${A4_WIDTH_PX}px !important;
       min-width: ${A4_WIDTH_PX}px !important;
       max-width: ${A4_WIDTH_PX}px !important;
-      margin: 0 !important;
-      padding: 0 !important;
+      transform: none !important;
     }
-    input, textarea { display: none !important; }
+    .cv-scale-wrapper { transform: none !important; width: 100% !important; }
   `;
-  (cloneDoc.head || cloneDoc.documentElement).insertBefore(
-    animStyleEl,
-    (cloneDoc.head || cloneDoc.documentElement).firstChild
-  );
+  cloneDoc.head.appendChild(animStyleEl);
 
+  // 2. PIXEL-FREEZE: MAẞE VOM LIVE-DOM KOPIEREN
+  const cloneRootEl = cloneDoc.querySelector<HTMLElement>('[data-pdf-root]');
+  
+  if (liveRoot && cloneRootEl) {
+    const liveEls = [liveRoot, ...Array.from(liveRoot.querySelectorAll<HTMLElement>('*'))];
+    const cloneEls = [cloneRootEl, ...Array.from(cloneRootEl.querySelectorAll<HTMLElement>('*'))];
+    
+    const len = Math.min(liveEls.length, cloneEls.length);
+    
+    for (let i = 0; i < len; i++) {
+      const liveEl = liveEls[i];
+      const cloneEl = cloneEls[i];
+      const cs = window.getComputedStyle(liveEl);
+
+      // Fixiere Geometrie: Wenn das Wort im Browser in den Container passt, passt es jetzt auch im PDF
+      if (cs.width && cs.width !== 'auto') cloneEl.style.width = cs.width;
+      
+      // Fixiere Typografie: Verhindert, dass Zeilenabstände im PDF driften
+      cloneEl.style.fontSize = cs.fontSize;
+      cloneEl.style.lineHeight = cs.lineHeight;
+      cloneEl.style.letterSpacing = cs.letterSpacing;
+      cloneEl.style.fontFamily = cs.fontFamily;
+      
+      // Fixiere Layout-Kontext
+      if (cs.display === 'flex' || cs.display === 'grid') {
+        cloneEl.style.display = cs.display;
+        if (cs.display === 'grid') {
+          cloneEl.style.gridTemplateColumns = cs.gridTemplateColumns;
+          cloneEl.style.gap = cs.gap;
+        }
+      }
+    }
+  }
+
+  // 3. BEREINIGUNG (Placeholder und Editor-UI entfernen)
+  cloneDoc.querySelectorAll<HTMLElement>('button, [data-pdf-hidden], .pdf-hidden').forEach(el => el.remove());
+
+  // 4. INPUTS ZU TEXT KONVERTIEREN
+  cloneDoc.querySelectorAll<HTMLInputElement>('input, textarea').forEach((el) => {
+    const val = (el as HTMLInputElement).value || '';
+    if (isPlaceholderValue(val)) {
+      (el.closest('li, [data-pdf-field-wrap]') || el).remove();
+    } else {
+      const span = cloneDoc.createElement('span');
+      span.textContent = val;
+      el.parentNode?.replaceChild(span, el);
+    }
+  });
+}
   // ── 1. Pixel-freeze: walk every element inside [data-pdf-root] ───────────
   // Build a parallel index from the live DOM so we can read computed styles.
   const cloneRootEl =
