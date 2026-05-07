@@ -320,148 +320,81 @@ function prepareClone(clone: HTMLElement, liveRoot: HTMLElement): void {
 }
 
 // ─── Page break detection (measured from the CLONE after baking) ─────────────
-// Measured from clone DOM — guarantees coordinates match the canvas exactly.
+// This is critical: we measure break candidates from the CLONE DOM (while it's
+// attached to the document), not the live DOM. This guarantees that the CSS
+// pixel positions match the canvas pixel positions after html2canvas renders.
 
-interface Box {
+interface BreakCandidate {
   topPx: number;
   bottomPx: number;
-  priority: number; // higher = more important to keep intact
+  priority: number;
 }
 
-// Collect every meaningful box from the clone.
-// We record ALL elements we care about keeping intact, including small ones,
-// because the crossing-detection pass below depends on a complete list.
-function collectBoxes(cloneRoot: HTMLElement): Box[] {
+function collectBreaksFromClone(cloneRoot: HTMLElement): BreakCandidate[] {
   const rootTop = cloneRoot.getBoundingClientRect().top;
-  const all: Box[] = [];
+  const list: BreakCandidate[] = [];
 
   const add = (el: HTMLElement, prio: number) => {
     const r = el.getBoundingClientRect();
-    if (r.height < 3 || r.width < 3) return;
+    if (r.height < 5 || r.width < 5) return;
     if (el.style.display === 'none' || el.style.visibility === 'hidden') return;
-    all.push({ topPx: r.top - rootTop, bottomPx: r.bottom - rootTop, priority: prio });
+    list.push({ topPx: r.top - rootTop, bottomPx: r.bottom - rootTop, priority: prio });
   };
 
-  // Ordered by priority — most important elements first
   cloneRoot.querySelectorAll<HTMLElement>('[data-pdf-section]').forEach(el => add(el, 300));
-  cloneRoot.querySelectorAll<HTMLElement>('section, article, header').forEach(el => add(el, 250));
-  cloneRoot.querySelectorAll<HTMLElement>('h1,h2,h3,h4').forEach(el => add(el, 200));
-  cloneRoot.querySelectorAll<HTMLElement>('li').forEach(el => add(el, 150));
-  cloneRoot.querySelectorAll<HTMLElement>('p').forEach(el => add(el, 100));
-  // Any div that has meaningful spacing above it (section separator / card)
+  cloneRoot.querySelectorAll<HTMLElement>('section, article').forEach(el => add(el, 200));
+  cloneRoot.querySelectorAll<HTMLElement>('h1,h2,h3,h4').forEach(el => add(el, 150));
+  cloneRoot.querySelectorAll<HTMLElement>('li').forEach(el => add(el, 100));
+  cloneRoot.querySelectorAll<HTMLElement>('p').forEach(el => add(el, 70));
   cloneRoot.querySelectorAll<HTMLElement>('div').forEach(el => {
     const mt = parseFloat(el.style.marginTop || '0') || 0;
     const pt = parseFloat(el.style.paddingTop || '0') || 0;
-    if (mt + pt >= 8) add(el, 80);
+    if (mt + pt >= 10) add(el, 60);
   });
 
-  return all.sort((a, b) => a.topPx - b.topPx);
-}
-
-// Given a proposed break position `breakPos` (absolute in clone-CSS pixels),
-// find every box that would be split (topPx < breakPos < bottomPx).
-// For each crossing box, move the break to the box's topPx (push it to next page).
-// Repeat until no box is crossed, or until it's impossible (box larger than page).
-// Returns the final safe break position.
-function avoidCrossings(
-  boxes: Box[],
-  breakPos: number,
-  pageStart: number,
-  pageH: number,
-): number {
-  const MAX_LARGE = pageH * 0.85; // boxes larger than this are split intentionally
-  let pos = breakPos;
-  let iterations = 0;
-
-  while (iterations++ < 20) {
-    // Find the box with the highest priority that is crossed by pos
-    let worstCrossing: Box | null = null;
-    for (const b of boxes) {
-      if (b.bottomPx <= pageStart) continue;        // fully above page start
-      if (b.topPx >= pos) break;                    // fully on next page
-      if (b.topPx < pos && b.bottomPx > pos) {      // crossed
-        const boxH = b.bottomPx - b.topPx;
-        if (boxH >= MAX_LARGE) continue;             // too big → allow split
-        if (!worstCrossing || b.priority > worstCrossing.priority ||
-            (b.priority === worstCrossing.priority && b.topPx > worstCrossing.topPx)) {
-          worstCrossing = b;
-        }
-      }
-    }
-
-    if (!worstCrossing) break; // no more crossings
-
-    const newPos = worstCrossing.topPx;
-    if (newPos <= pageStart + pageH * 0.3) {
-      // Moving to this element's top would create a page with < 30% fill.
-      // Instead, try to break AFTER the previous sibling of this element.
-      // Find the highest box that ends BEFORE the crossing box's top
-      let bestBelow: Box | null = null;
-      for (const b of boxes) {
-        if (b.bottomPx <= pageStart) continue;
-        if (b.bottomPx <= worstCrossing.topPx && b.bottomPx > pageStart + pageH * 0.25) {
-          bestBelow = b;
-        }
-        if (b.topPx >= worstCrossing.topPx) break;
-      }
-      if (bestBelow) {
-        pos = bestBelow.bottomPx;
-      } else {
-        // No good position found — allow the crossing (split intentionally)
-        break;
-      }
-    } else {
-      pos = newPos;
-    }
+  // Deduplicate — keep highest priority at each bottom position
+  const map = new Map<number, BreakCandidate>();
+  for (const c of list) {
+    const k = Math.round(c.bottomPx);
+    const prev = map.get(k);
+    if (!prev || c.priority > prev.priority) map.set(k, c);
   }
-
-  return pos;
+  return Array.from(map.values()).sort((a, b) => a.topPx - b.topPx);
 }
 
-// Find the best page slice for one page, ensuring no box is cut mid-way.
+// Find the best slice height (in CSS/clone pixels) for a page.
+// Rules:
+//   1. Only break at element TOP or BOTTOM — never mid-element.
+//   2. Prefer breaks that fill the page as much as possible.
+//   3. Minimum fill: 55% of page height.
 function findBreak(
-  boxes: Box[],
+  candidates: BreakCandidate[],
   pageStart: number,
   pageH: number,
   contentEnd: number,
 ): number {
   const maxPos = Math.min(pageStart + pageH, contentEnd);
-  const minPos = pageStart + pageH * 0.4; // allow up to 40% empty if needed
+  const minPos = pageStart + pageH * 0.55;
 
-  // Step 1: Collect all "clean" break points (element tops and bottoms)
   const opts: { pos: number; score: number }[] = [];
 
-  for (const b of boxes) {
-    if (b.topPx > maxPos + 50) break;
-
-    // Break BEFORE element (element moves to next page)
-    if (b.topPx >= minPos && b.topPx <= maxPos) {
-      const fill = (b.topPx - pageStart) / pageH;
-      // Higher priority elements get extra weight — we really want to keep them intact
-      opts.push({ pos: b.topPx, score: b.priority * 3 + fill * 300 });
+  for (const c of candidates) {
+    // Break BEFORE this element (element starts next page)
+    if (c.topPx > minPos && c.topPx <= maxPos) {
+      const fill = (c.topPx - pageStart) / pageH;
+      opts.push({ pos: c.topPx, score: c.priority * 2 + fill * 400 });
     }
-    // Break AFTER element (element stays on this page)
-    if (b.bottomPx >= minPos && b.bottomPx <= maxPos) {
-      const fill = (b.bottomPx - pageStart) / pageH;
-      opts.push({ pos: b.bottomPx, score: b.priority + fill * 300 });
+    // Break AFTER this element (element stays on this page)
+    if (c.bottomPx > minPos && c.bottomPx <= maxPos) {
+      const fill = (c.bottomPx - pageStart) / pageH;
+      opts.push({ pos: c.bottomPx, score: c.priority + fill * 400 });
     }
+    if (c.topPx > maxPos + 100) break;
   }
 
-  // Step 2: Pick the best raw break position
-  let rawBreak: number;
-  if (opts.length === 0) {
-    rawBreak = maxPos;
-  } else {
-    opts.sort((a, b) => b.score - a.score);
-    rawBreak = opts[0].pos;
-  }
-
-  // Step 3: Shift break to avoid crossing any box
-  const safeBreak = avoidCrossings(boxes, rawBreak, pageStart, pageH);
-
-  // Clamp: never less than 35% of page height (prevents infinite loops)
-  const minSlice = pageH * 0.35;
-  return Math.max(minSlice, safeBreak - pageStart);
+  if (opts.length === 0) return Math.min(pageH, contentEnd - pageStart);
+  opts.sort((a, b) => b.score - a.score);
+  return Math.max(pageH * 0.5, opts[0].pos - pageStart);
 }
 
 // ─── Core render ─────────────────────────────────────────────────────────────
@@ -489,6 +422,18 @@ async function renderElementToPDFBlob(
 
   await new Promise<void>(r => requestAnimationFrame(() => requestAnimationFrame(() => r())));
   window.scrollTo(0, 0);
+
+  // Measure footer ratio in live DOM
+  const liveRect = element.getBoundingClientRect();
+  const liveH = liveRect.height;
+  const footerEl = element.querySelector<HTMLElement>('[data-pdf-footer]');
+  let footerTopRatio = 1;
+  let footerHRatio = 0;
+  if (footerEl) {
+    const fr = footerEl.getBoundingClientRect();
+    footerTopRatio = (fr.top - liveRect.top) / liveH;
+    footerHRatio = fr.height / liveH;
+  }
 
   // Stamp img dimensions for img→div conversion
   liveImgs.forEach(img => {
@@ -540,7 +485,7 @@ async function renderElementToPDFBlob(
   const cloneH = clone.scrollHeight;
 
   // ── Measure break candidates from the CLONE (not live DOM) ───────────────
-  const breakCandidates = collectBoxes(clone);
+  const breakCandidates = collectBreaksFromClone(clone);
   // Measure footer position from clone
   const cloneFooter = clone.querySelector<HTMLElement>('[data-pdf-footer]');
   let cloneFooterTopPx = cloneH;
