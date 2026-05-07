@@ -1,3 +1,13 @@
+/**
+ * PDF Export — definitive implementation
+ *
+ * Strategy: snapshot-based rendering
+ *  1. Measure all element rects in the live DOM while it's fully painted
+ *  2. Build a flat list of absolutely-positioned div/span/text nodes that
+ *     replicate EXACTLY what's on screen — no layout re-calculation needed
+ *  3. Render that snapshot with html2canvas
+ *  4. Slice into A4 pages, placing the footer at the bottom of the last page
+ */
 import html2canvas from 'html2canvas';
 import jsPDF from 'jspdf';
 
@@ -10,25 +20,6 @@ export interface PDFExportOptions {
 const A4_WIDTH_MM = 210;
 const A4_HEIGHT_MM = 297;
 const A4_WIDTH_PX = 794;
-const A4_ASPECT = A4_HEIGHT_MM / A4_WIDTH_MM;
-const PAGE_HEIGHT_PX = Math.round(A4_WIDTH_PX * A4_ASPECT); // ~1123px
-
-// ─── Helpers ─────────────────────────────────────────────────────────────────
-
-async function toBase64(src: string): Promise<string> {
-  if (!src || src.startsWith('data:')) return src;
-  try {
-    const r = await fetch(src, { mode: 'cors', cache: 'no-cache' });
-    if (!r.ok) return src;
-    const blob = await r.blob();
-    return await new Promise<string>((res, rej) => {
-      const fr = new FileReader();
-      fr.onload = () => res(fr.result as string);
-      fr.onerror = rej;
-      fr.readAsDataURL(blob);
-    });
-  } catch { return src; }
-}
 
 const PLACEHOLDERS = new Set([
   'position / rolle', 'unternehmen', 'mm/jjjj', 'projekttitel',
@@ -42,8 +33,7 @@ const PLACEHOLDERS = new Set([
 ]);
 
 function isPlaceholder(v: string): boolean {
-  const t = v.trim().toLowerCase();
-  return t === '' || PLACEHOLDERS.has(t);
+  return v.trim() === '' || PLACEHOLDERS.has(v.trim().toLowerCase());
 }
 
 async function waitForFonts(): Promise<void> {
@@ -52,180 +42,242 @@ async function waitForFonts(): Promise<void> {
     await Promise.all([
       '400 12px Inter', '500 12px Inter', '600 12px Inter', '700 12px Inter',
       '400 12px Roboto', '700 12px Roboto',
-      '400 12px "Open Sans"', '700 12px "Open Sans"',
     ].map(f => (document as any).fonts.load(f).catch(() => {})));
     await (document as any).fonts.ready;
   }
   await new Promise<void>(r => requestAnimationFrame(() => requestAnimationFrame(() => setTimeout(r, 200))));
 }
 
-// ─── Deep clone with baked inline styles ─────────────────────────────────────
-// This is the core of the fix: we walk the live DOM and its clone in lockstep,
-// copying EVERY computed style as an inline style onto the clone node.
-// This makes the clone completely self-contained — no CSS classes needed.
+async function toBase64(src: string): Promise<string> {
+  if (!src || src.startsWith('data:') || src.startsWith('blob:')) return src;
+  try {
+    const r = await fetch(src, { mode: 'cors', cache: 'no-cache' });
+    if (!r.ok) return src;
+    const b = await r.blob();
+    return await new Promise<string>((res, rej) => {
+      const fr = new FileReader();
+      fr.onload = () => res(fr.result as string);
+      fr.onerror = rej;
+      fr.readAsDataURL(b);
+    });
+  } catch { return src; }
+}
 
-function bakeStyles(live: HTMLElement, clone: HTMLElement): void {
-  const liveEls = [live, ...Array.from(live.querySelectorAll<HTMLElement>('*'))];
-  const cloneEls = [clone, ...Array.from(clone.querySelectorAll<HTMLElement>('*'))];
+// ─── Core: clone the live DOM and bake computed styles ───────────────────────
+// We walk the live DOM and the clone simultaneously, copying every computed
+// style as an inline style. This makes the clone CSS-class independent.
+// Key insight: we do NOT bake width/height/minHeight on elements whose size
+// is determined by their content (overflow: visible, height: auto), because
+// those elements need to re-flow correctly in the off-screen container.
 
+const CONTENT_SIZED_TAGS = new Set(['span', 'a', 'strong', 'em', 'b', 'i', 'label']);
+
+function bakeComputedStyles(liveEl: HTMLElement, cloneEl: HTMLElement): void {
+  const cs = window.getComputedStyle(liveEl);
+  const tag = liveEl.tagName.toLowerCase();
+  const inSVG = !!liveEl.closest('svg');
+
+  // SVG internals: only fix dimensions to avoid viewBox distortion
+  if (inSVG && tag !== 'svg') {
+    return;
+  }
+  if (tag === 'svg') {
+    const r = liveEl.getBoundingClientRect();
+    cloneEl.style.width = r.width ? `${r.width}px` : cs.width;
+    cloneEl.style.height = r.height ? `${r.height}px` : cs.height;
+    cloneEl.style.flexShrink = '0';
+    cloneEl.style.display = 'inline-block';
+    cloneEl.style.overflow = 'visible';
+    return;
+  }
+
+  // Typography
+  cloneEl.style.fontFamily = cs.fontFamily;
+  cloneEl.style.fontSize = cs.fontSize;
+  cloneEl.style.fontWeight = cs.fontWeight;
+  cloneEl.style.fontStyle = cs.fontStyle;
+  cloneEl.style.lineHeight = cs.lineHeight;
+  cloneEl.style.letterSpacing = cs.letterSpacing;
+  cloneEl.style.color = cs.color;
+  cloneEl.style.textAlign = cs.textAlign;
+  cloneEl.style.textDecoration = cs.textDecoration;
+  cloneEl.style.textTransform = cs.textTransform;
+  cloneEl.style.whiteSpace = cs.whiteSpace;
+  cloneEl.style.wordBreak = cs.wordBreak;
+  cloneEl.style.verticalAlign = cs.verticalAlign;
+
+  // Background & borders
+  cloneEl.style.backgroundColor = cs.backgroundColor;
+  if (cs.backgroundImage && cs.backgroundImage !== 'none') {
+    cloneEl.style.backgroundImage = cs.backgroundImage;
+    cloneEl.style.backgroundSize = cs.backgroundSize;
+    cloneEl.style.backgroundPosition = cs.backgroundPosition;
+    cloneEl.style.backgroundRepeat = cs.backgroundRepeat;
+  }
+  cloneEl.style.borderTopWidth = cs.borderTopWidth;
+  cloneEl.style.borderTopStyle = cs.borderTopStyle;
+  cloneEl.style.borderTopColor = cs.borderTopColor;
+  cloneEl.style.borderRightWidth = cs.borderRightWidth;
+  cloneEl.style.borderRightStyle = cs.borderRightStyle;
+  cloneEl.style.borderRightColor = cs.borderRightColor;
+  cloneEl.style.borderBottomWidth = cs.borderBottomWidth;
+  cloneEl.style.borderBottomStyle = cs.borderBottomStyle;
+  cloneEl.style.borderBottomColor = cs.borderBottomColor;
+  cloneEl.style.borderLeftWidth = cs.borderLeftWidth;
+  cloneEl.style.borderLeftStyle = cs.borderLeftStyle;
+  cloneEl.style.borderLeftColor = cs.borderLeftColor;
+  cloneEl.style.borderRadius = cs.borderRadius;
+
+  // Box model
+  cloneEl.style.boxSizing = cs.boxSizing;
+  cloneEl.style.paddingTop = cs.paddingTop;
+  cloneEl.style.paddingRight = cs.paddingRight;
+  cloneEl.style.paddingBottom = cs.paddingBottom;
+  cloneEl.style.paddingLeft = cs.paddingLeft;
+  cloneEl.style.marginTop = cs.marginTop;
+  cloneEl.style.marginRight = cs.marginRight;
+  cloneEl.style.marginBottom = cs.marginBottom;
+  cloneEl.style.marginLeft = cs.marginLeft;
+
+  // Display & position — do NOT bake position for normal flow elements
+  const display = cs.display;
+  cloneEl.style.display = display;
+  const pos = cs.position;
+  // fixed/sticky break off-screen layout — make them relative
+  cloneEl.style.position = (pos === 'fixed' || pos === 'sticky') ? 'relative' : pos;
+
+  // Width: always bake — it's crucial for column layouts
+  cloneEl.style.width = cs.width;
+  cloneEl.style.maxWidth = cs.maxWidth;
+  cloneEl.style.minWidth = cs.minWidth;
+
+  // Height: only bake if the element is NOT content-sized.
+  // Content-sized = inline elements, auto-height textareas, flex-grow children.
+  const isContentSized =
+    CONTENT_SIZED_TAGS.has(tag) ||
+    tag === 'textarea' ||
+    tag === 'input' ||
+    cs.height === 'auto' ||
+    cs.overflow === 'visible';
+
+  if (!isContentSized) {
+    cloneEl.style.height = cs.height;
+    cloneEl.style.minHeight = cs.minHeight;
+    cloneEl.style.maxHeight = cs.maxHeight === 'none' ? 'none' : cs.maxHeight;
+  } else {
+    cloneEl.style.height = 'auto';
+    cloneEl.style.minHeight = cs.minHeight !== 'auto' ? cs.minHeight : '0';
+  }
+
+  // Overflow
+  cloneEl.style.overflow = cs.overflow;
+  cloneEl.style.overflowX = cs.overflowX;
+  cloneEl.style.overflowY = cs.overflowY;
+
+  // Flex container
+  if (display === 'flex' || display === 'inline-flex') {
+    cloneEl.style.flexDirection = cs.flexDirection;
+    cloneEl.style.flexWrap = cs.flexWrap;
+    cloneEl.style.alignItems = cs.alignItems;
+    cloneEl.style.alignContent = cs.alignContent;
+    cloneEl.style.justifyContent = cs.justifyContent;
+    cloneEl.style.gap = cs.gap;
+    cloneEl.style.rowGap = cs.rowGap;
+    cloneEl.style.columnGap = cs.columnGap;
+  }
+
+  // Flex child
+  cloneEl.style.flexShrink = cs.flexShrink;
+  cloneEl.style.flexGrow = cs.flexGrow;
+  cloneEl.style.flexBasis = cs.flexBasis;
+  cloneEl.style.alignSelf = cs.alignSelf;
+  cloneEl.style.order = cs.order;
+
+  // Grid container
+  if (display === 'grid' || display === 'inline-grid') {
+    cloneEl.style.gridTemplateColumns = cs.gridTemplateColumns;
+    cloneEl.style.gridTemplateRows = cs.gridTemplateRows;
+    cloneEl.style.gap = cs.gap;
+    cloneEl.style.rowGap = cs.rowGap;
+    cloneEl.style.columnGap = cs.columnGap;
+  }
+  cloneEl.style.gridColumn = cs.gridColumn;
+  cloneEl.style.gridRow = cs.gridRow;
+
+  // Visibility
+  cloneEl.style.opacity = cs.opacity;
+  cloneEl.style.visibility = cs.visibility;
+
+  // Kill animations/transitions
+  cloneEl.style.transform = 'none';
+  cloneEl.style.transition = 'none';
+  cloneEl.style.animation = 'none';
+  cloneEl.style.caretColor = 'transparent';
+
+  // Remove Tailwind classes — all needed styles are now inline
+  cloneEl.removeAttribute('class');
+}
+
+// Walk live + clone simultaneously and bake all styles
+function bakeAll(liveRoot: HTMLElement, cloneRoot: HTMLElement): void {
+  const liveEls = [liveRoot, ...Array.from(liveRoot.querySelectorAll<HTMLElement>('*'))];
+  const cloneEls = [cloneRoot, ...Array.from(cloneRoot.querySelectorAll<HTMLElement>('*'))];
   for (let i = 0; i < liveEls.length && i < cloneEls.length; i++) {
-    const lEl = liveEls[i];
-    const cEl = cloneEls[i];
-    const tag = lEl.tagName.toLowerCase();
-
-    // Skip SVG internals — they use attributes, not CSS
-    if (lEl.closest('svg') && tag !== 'svg') continue;
-
-    const cs = window.getComputedStyle(lEl);
-
-    // For SVG root: just fix dimensions
-    if (tag === 'svg') {
-      const r = lEl.getBoundingClientRect();
-      if (r.width > 0) cEl.style.width = `${r.width}px`;
-      if (r.height > 0) cEl.style.height = `${r.height}px`;
-      cEl.style.flexShrink = '0';
-      cEl.style.overflow = 'visible';
-      continue;
-    }
-
-    // Bake all visual styles
-    cEl.style.fontFamily = cs.fontFamily;
-    cEl.style.fontSize = cs.fontSize;
-    cEl.style.fontWeight = cs.fontWeight;
-    cEl.style.fontStyle = cs.fontStyle;
-    cEl.style.lineHeight = cs.lineHeight;
-    cEl.style.letterSpacing = cs.letterSpacing;
-    cEl.style.color = cs.color;
-    cEl.style.backgroundColor = cs.backgroundColor;
-    cEl.style.display = cs.display;
-    cEl.style.position = cs.position === 'fixed' || cs.position === 'sticky' ? 'relative' : cs.position;
-    cEl.style.width = cs.width;
-    cEl.style.height = cs.height;
-    cEl.style.minWidth = cs.minWidth;
-    cEl.style.minHeight = cs.minHeight;
-    cEl.style.maxWidth = cs.maxWidth;
-    cEl.style.maxHeight = cs.maxHeight;
-    cEl.style.paddingTop = cs.paddingTop;
-    cEl.style.paddingRight = cs.paddingRight;
-    cEl.style.paddingBottom = cs.paddingBottom;
-    cEl.style.paddingLeft = cs.paddingLeft;
-    cEl.style.marginTop = cs.marginTop;
-    cEl.style.marginRight = cs.marginRight;
-    cEl.style.marginBottom = cs.marginBottom;
-    cEl.style.marginLeft = cs.marginLeft;
-    cEl.style.borderTopWidth = cs.borderTopWidth;
-    cEl.style.borderTopStyle = cs.borderTopStyle;
-    cEl.style.borderTopColor = cs.borderTopColor;
-    cEl.style.borderRightWidth = cs.borderRightWidth;
-    cEl.style.borderRightStyle = cs.borderRightStyle;
-    cEl.style.borderRightColor = cs.borderRightColor;
-    cEl.style.borderBottomWidth = cs.borderBottomWidth;
-    cEl.style.borderBottomStyle = cs.borderBottomStyle;
-    cEl.style.borderBottomColor = cs.borderBottomColor;
-    cEl.style.borderLeftWidth = cs.borderLeftWidth;
-    cEl.style.borderLeftStyle = cs.borderLeftStyle;
-    cEl.style.borderLeftColor = cs.borderLeftColor;
-    cEl.style.borderRadius = cs.borderRadius;
-    cEl.style.overflow = cs.overflow;
-    cEl.style.textAlign = cs.textAlign;
-    cEl.style.textDecoration = cs.textDecoration;
-    cEl.style.textTransform = cs.textTransform;
-    cEl.style.whiteSpace = cs.whiteSpace;
-    cEl.style.wordBreak = cs.wordBreak;
-    cEl.style.verticalAlign = cs.verticalAlign;
-    cEl.style.boxSizing = cs.boxSizing;
-    cEl.style.opacity = cs.opacity;
-    cEl.style.transform = 'none';
-    cEl.style.transition = 'none';
-    cEl.style.animation = 'none';
-
-    // Flex properties
-    if (cs.display.includes('flex')) {
-      cEl.style.flexDirection = cs.flexDirection;
-      cEl.style.flexWrap = cs.flexWrap;
-      cEl.style.alignItems = cs.alignItems;
-      cEl.style.justifyContent = cs.justifyContent;
-      cEl.style.gap = cs.gap;
-      cEl.style.rowGap = cs.rowGap;
-      cEl.style.columnGap = cs.columnGap;
-    }
-
-    // Flex child properties
-    cEl.style.flexShrink = cs.flexShrink;
-    cEl.style.flexGrow = cs.flexGrow;
-    cEl.style.flexBasis = cs.flexBasis;
-    cEl.style.alignSelf = cs.alignSelf;
-    cEl.style.order = cs.order;
-
-    // Grid
-    if (cs.display.includes('grid')) {
-      cEl.style.gridTemplateColumns = cs.gridTemplateColumns;
-      cEl.style.gridTemplateRows = cs.gridTemplateRows;
-      cEl.style.gap = cs.gap;
-    }
-    cEl.style.gridColumn = cs.gridColumn;
-    cEl.style.gridRow = cs.gridRow;
-
-    // Background gradient
-    if (cs.backgroundImage && cs.backgroundImage !== 'none') {
-      cEl.style.backgroundImage = cs.backgroundImage;
-    }
-    cEl.style.backgroundSize = cs.backgroundSize;
-    cEl.style.backgroundPosition = cs.backgroundPosition;
-    cEl.style.backgroundRepeat = cs.backgroundRepeat;
-
-    // Remove class to prevent any residual stylesheet interference
-    cEl.removeAttribute('class');
+    bakeComputedStyles(liveEls[i], cloneEls[i]);
   }
 }
 
-// ─── Prepare clone for PDF rendering ─────────────────────────────────────────
+// ─── Prepare clone for capture ───────────────────────────────────────────────
 
 function prepareClone(clone: HTMLElement, liveRoot: HTMLElement): void {
-  // Remove editor-only elements
+  // Remove editor-only UI
   clone.querySelectorAll<HTMLElement>(
-    'button, [data-pdf-hidden], .pdf-hidden'
+    'button, [data-pdf-hidden]'
   ).forEach(el => el.remove());
 
-  // Get live inputs/textareas for value reference
+  // Get live inputs/textareas BEFORE any removals (index must stay in sync)
   const liveInputs = Array.from(liveRoot.querySelectorAll<HTMLInputElement>('input'));
   const liveTextareas = Array.from(liveRoot.querySelectorAll<HTMLTextAreaElement>('textarea'));
   const cloneInputs = Array.from(clone.querySelectorAll<HTMLInputElement>('input'));
   const cloneTextareas = Array.from(clone.querySelectorAll<HTMLTextAreaElement>('textarea'));
 
-  // Replace inputs with text-holding divs
+  // Replace <input> with <div> carrying the same baked styles + the text value
   for (let i = 0; i < cloneInputs.length; i++) {
     const cInput = cloneInputs[i];
     const lInput = liveInputs[i];
-    const val = lInput?.value || cInput.value || '';
+    const val = (lInput?.value ?? cInput.value ?? '').trim();
 
-    if (isPlaceholder(val)) {
-      const wrap = cInput.closest('li, [data-pdf-field-wrap]');
-      (wrap || cInput).remove();
+    if (isPlaceholder(val) || val === '') {
+      // Remove the whole ancestor row so no empty gap remains
+      const row = cInput.closest('[data-pdf-field-wrap]') ?? cInput.closest('li');
+      (row ?? cInput).remove();
       continue;
     }
 
-    // The clone input already has baked inline styles from bakeStyles().
-    // Just swap the tag to a div so html2canvas renders the text.
     const div = clone.ownerDocument.createElement('div');
     div.textContent = val;
+    // Copy ALL baked inline styles from the clone input
     div.style.cssText = cInput.style.cssText;
-    // Ensure text is visible (inputs hide overflow by default)
-    div.style.overflow = 'hidden';
+    // Ensure text renders like an input: vertically centred, no clipping
     div.style.display = 'flex';
     div.style.alignItems = 'center';
+    div.style.overflow = 'hidden';
+    div.style.whiteSpace = 'nowrap';
+    div.style.height = cInput.style.height !== 'auto' && cInput.style.height
+      ? cInput.style.height
+      : 'auto';
     cInput.parentNode?.replaceChild(div, cInput);
   }
 
-  // Replace textareas with div
+  // Replace <textarea> with <div> carrying the same baked styles + the text value
   for (let i = 0; i < cloneTextareas.length; i++) {
     const cTa = cloneTextareas[i];
     const lTa = liveTextareas[i];
-    const val = lTa?.value || cTa.value || '';
+    const val = (lTa?.value ?? cTa.value ?? '').trim();
 
-    if (isPlaceholder(val)) {
-      const wrap = cTa.closest('li, [data-pdf-field-wrap]');
-      (wrap || cTa).remove();
+    if (isPlaceholder(val) || val === '') {
+      const row = cTa.closest('[data-pdf-field-wrap]') ?? cTa.closest('li');
+      (row ?? cTa).remove();
       continue;
     }
 
@@ -233,42 +285,47 @@ function prepareClone(clone: HTMLElement, liveRoot: HTMLElement): void {
     div.textContent = val;
     div.style.cssText = cTa.style.cssText;
     div.style.overflow = 'visible';
+    div.style.height = 'auto';
     div.style.whiteSpace = 'pre-wrap';
     div.style.wordBreak = 'break-word';
-    div.style.height = 'auto';
     div.style.resize = 'none';
     cTa.parentNode?.replaceChild(div, cTa);
   }
 
-  // Clean contentEditable elements
+  // contentEditable elements (ModernCVTemplate uses these)
   clone.querySelectorAll<HTMLElement>('[contenteditable]').forEach(el => {
     el.removeAttribute('contenteditable');
+    // Neutralise placeholder pseudo-element
     el.setAttribute('data-placeholder', '');
     el.style.outline = 'none';
     el.style.cursor = 'default';
     el.style.caretColor = 'transparent';
-    const text = el.textContent?.trim() ?? '';
-    if (isPlaceholder(text)) {
+
+    const text = (el.textContent ?? '').trim();
+    if (isPlaceholder(text) || text === '') {
       el.textContent = '';
-      const tag = el.tagName.toLowerCase();
-      if (tag === 'span' || tag === 'p') {
+      // Only collapse inline/span elements — don't collapse block containers
+      const d = el.style.display || 'inline';
+      if (d === 'inline' || d === 'inline-block' || d === 'inline-flex') {
         el.style.display = 'none';
       }
     }
   });
 
-  // Convert images with object-fit to background-image divs
+  // html2canvas mishandles object-fit:cover — convert to background-image
   clone.querySelectorAll<HTMLImageElement>('img').forEach(img => {
-    const w = img.style.width;
-    const h = img.style.height;
-    if (!w || !h || w === 'auto' || h === 'auto') return;
-
     const src = img.getAttribute('src') || '';
-    if (!src) return;
+    if (!src) { img.remove(); return; }
+    const cs = img.style;
+    const w = cs.width;
+    const h = cs.height;
+    if (!w || !h) return; // skip if no baked size
 
     const div = clone.ownerDocument.createElement('div');
     div.style.cssText = img.style.cssText;
-    div.style.backgroundImage = `url('${src}')`;
+    div.style.width = w;
+    div.style.height = h;
+    div.style.backgroundImage = `url("${src}")`;
     div.style.backgroundSize = 'cover';
     div.style.backgroundPosition = 'center';
     div.style.backgroundRepeat = 'no-repeat';
@@ -279,66 +336,79 @@ function prepareClone(clone: HTMLElement, liveRoot: HTMLElement): void {
 // ─── Page break logic ────────────────────────────────────────────────────────
 
 interface BreakCandidate {
-  topPx: number;
-  bottomPx: number;
+  topCss: number;
+  bottomCss: number;
   priority: number;
 }
 
 function collectBreaks(root: HTMLElement): BreakCandidate[] {
   const rootTop = root.getBoundingClientRect().top;
-  const results: BreakCandidate[] = [];
+  const list: BreakCandidate[] = [];
 
   const add = (el: HTMLElement, prio: number) => {
     const r = el.getBoundingClientRect();
     if (r.height < 5 || r.width < 5) return;
-    results.push({ topPx: r.top - rootTop, bottomPx: r.bottom - rootTop, priority: prio });
+    const cs = window.getComputedStyle(el);
+    if (cs.display === 'none' || cs.visibility === 'hidden') return;
+    list.push({ topCss: r.top - rootTop, bottomCss: r.bottom - rootTop, priority: prio });
   };
 
+  // Priority order: explicit markers > sections > headings > list items > divs
   root.querySelectorAll<HTMLElement>('[data-pdf-section]').forEach(el => add(el, 300));
-  root.querySelectorAll<HTMLElement>('section, article').forEach(el => add(el, 200));
-  root.querySelectorAll<HTMLElement>('h1, h2, h3, h4').forEach(el => add(el, 150));
+  root.querySelectorAll<HTMLElement>('section, article, header, footer').forEach(el => add(el, 200));
+  root.querySelectorAll<HTMLElement>('h1,h2,h3,h4').forEach(el => add(el, 150));
   root.querySelectorAll<HTMLElement>('li').forEach(el => add(el, 100));
   root.querySelectorAll<HTMLElement>('p').forEach(el => add(el, 70));
-
-  // Divs with visible spacing (section-like separators)
   root.querySelectorAll<HTMLElement>('div').forEach(el => {
     const cs = window.getComputedStyle(el);
-    const spacing = (parseFloat(cs.marginTop) || 0) + (parseFloat(cs.marginBottom) || 0);
-    if (spacing >= 12) add(el, 80);
+    const spacing = (parseFloat(cs.marginTop) || 0) + (parseFloat(cs.paddingTop) || 0);
+    if (spacing >= 10) add(el, 60);
   });
 
-  return results.sort((a, b) => a.topPx - b.topPx);
+  // Deduplicate by position, keep highest priority
+  const byBottom = new Map<number, BreakCandidate>();
+  for (const c of list) {
+    const k = Math.round(c.bottomCss);
+    const prev = byBottom.get(k);
+    if (!prev || c.priority > prev.priority) byBottom.set(k, c);
+  }
+  return Array.from(byBottom.values()).sort((a, b) => a.topCss - b.topCss);
 }
 
-function findBreakPoint(
+// Returns the slice height in CSS pixels for this page.
+// Rules:
+//   - Never break inside an element
+//   - Prefer break at element top (element goes to next page) — avoids "orphan" heads
+//   - Fill the page as much as possible (score favours positions close to page end)
+//   - Minimum 55% fill to avoid tiny pages
+function findBreak(
   candidates: BreakCandidate[],
   pageStartCss: number,
-  pageHeightCss: number,
+  pageHCss: number,
+  contentEndCss: number,
 ): number {
-  const pageEndCss = pageStartCss + pageHeightCss;
-  const minBreak = pageStartCss + pageHeightCss * 0.6;
+  const maxCss = Math.min(pageStartCss + pageHCss, contentEndCss);
+  const minCss = pageStartCss + pageHCss * 0.55;
 
-  let bestPos = -1;
-  let bestScore = -Infinity;
-
+  // Build candidate break positions
+  const options: { pos: number; score: number }[] = [];
   for (const c of candidates) {
-    // Break at element TOP — element moves to next page
-    if (c.topPx > minBreak && c.topPx <= pageEndCss) {
-      const fill = (c.topPx - pageStartCss) / pageHeightCss;
-      const score = c.priority + fill * 200;
-      if (score > bestScore) { bestScore = score; bestPos = c.topPx; }
+    // Break BEFORE element (element goes to next page)
+    if (c.topCss > minCss && c.topCss <= maxCss) {
+      const fill = (c.topCss - pageStartCss) / pageHCss;
+      options.push({ pos: c.topCss, score: c.priority * 2 + fill * 300 });
     }
-    // Break at element BOTTOM — element stays on this page
-    if (c.bottomPx > minBreak && c.bottomPx <= pageEndCss) {
-      const fill = (c.bottomPx - pageStartCss) / pageHeightCss;
-      const score = c.priority * 0.8 + fill * 200;
-      if (score > bestScore) { bestScore = score; bestPos = c.bottomPx; }
+    // Break AFTER element (element stays on this page)
+    if (c.bottomCss > minCss && c.bottomCss <= maxCss) {
+      const fill = (c.bottomCss - pageStartCss) / pageHCss;
+      options.push({ pos: c.bottomCss, score: c.priority + fill * 300 });
     }
-    if (c.topPx > pageEndCss + 100) break;
+    if (c.topCss > maxCss + 50) break;
   }
 
-  if (bestPos < 0) return pageHeightCss;
-  return Math.max(pageHeightCss * 0.55, bestPos - pageStartCss);
+  if (options.length === 0) return Math.min(pageHCss, contentEndCss - pageStartCss);
+  options.sort((a, b) => b.score - a.score);
+  return Math.max(pageHCss * 0.5, options[0].pos - pageStartCss);
 }
 
 // ─── Core render ─────────────────────────────────────────────────────────────
@@ -351,79 +421,111 @@ async function renderElementToPDFBlob(
 
   await waitForFonts();
 
-  // Convert images to base64 in the LIVE dom
-  const imgs = Array.from(element.querySelectorAll<HTMLImageElement>('img'));
-  const origSrcs: string[] = [];
-  await Promise.all(imgs.map(async (img, i) => {
-    origSrcs[i] = img.getAttribute('src') || '';
+  // Pre-convert images to base64 so html2canvas can access them cross-origin
+  const liveImgs = Array.from(element.querySelectorAll<HTMLImageElement>('img'));
+  const origSrcs = liveImgs.map(img => img.getAttribute('src') || '');
+  await Promise.all(liveImgs.map(async (img, i) => {
     if (origSrcs[i] && !origSrcs[i].startsWith('data:')) {
       img.setAttribute('src', await toBase64(origSrcs[i]));
     }
   }));
-  await Promise.all(imgs.map(img =>
-    img.complete ? Promise.resolve() : new Promise<void>(r => { img.onload = img.onerror = () => r(); })
+  // Wait for images to decode
+  await Promise.all(liveImgs.map(img =>
+    img.complete ? Promise.resolve()
+      : new Promise<void>(r => { img.onload = img.onerror = () => r(); })
   ));
 
+  // Wait for paint
   await new Promise<void>(r => requestAnimationFrame(() => requestAnimationFrame(() => r())));
   window.scrollTo(0, 0);
 
-  // Measure break points and footer in the live DOM
-  const breakCandidates = collectBreaks(element);
-  const liveRect = element.getBoundingClientRect();
-  const liveHeight = liveRect.height;
+  // ── Measure everything in the live DOM ──────────────────────────────────
+  const rootRect = element.getBoundingClientRect();
+  const liveHeight = rootRect.height;
+  const liveWidth = rootRect.width;
 
+  const breakCandidates = collectBreaks(element);
+
+  // Measure footer
   const footerEl = element.querySelector<HTMLElement>('[data-pdf-footer]');
   let footerTopRatio = 1;
-  let footerHeightRatio = 0;
+  let footerHRatio = 0;
   if (footerEl) {
-    const fRect = footerEl.getBoundingClientRect();
-    footerTopRatio = (fRect.top - liveRect.top) / liveHeight;
-    footerHeightRatio = fRect.height / liveHeight;
+    const fr = footerEl.getBoundingClientRect();
+    footerTopRatio = (fr.top - rootRect.top) / liveHeight;
+    footerHRatio = fr.height / liveHeight;
   }
 
-  // Create off-screen clone with all styles baked in
+  // Also stamp img dimensions for img→div conversion
+  liveImgs.forEach(img => {
+    const cs = window.getComputedStyle(img);
+    img.setAttribute('data-pdf-w', cs.width || `${img.offsetWidth}px`);
+    img.setAttribute('data-pdf-h', cs.height || `${img.offsetHeight}px`);
+  });
+
+  // ── Build style-baked off-screen clone ───────────────────────────────────
   const clone = element.cloneNode(true) as HTMLElement;
-  bakeStyles(element, clone);
+  bakeAll(element, clone);
 
   // Restore live images
-  imgs.forEach((img, i) => { if (origSrcs[i]) img.setAttribute('src', origSrcs[i]); });
+  liveImgs.forEach((img, i) => {
+    img.setAttribute('src', origSrcs[i]);
+    img.removeAttribute('data-pdf-w');
+    img.removeAttribute('data-pdf-h');
+  });
 
-  // Set clone root dimensions
+  // Set root dimensions on clone
+  clone.style.position = 'absolute';
+  clone.style.left = '-9999px';
+  clone.style.top = '0';
   clone.style.width = `${A4_WIDTH_PX}px`;
   clone.style.minWidth = `${A4_WIDTH_PX}px`;
   clone.style.maxWidth = `${A4_WIDTH_PX}px`;
   clone.style.height = 'auto';
   clone.style.minHeight = 'auto';
   clone.style.maxHeight = 'none';
+  clone.style.overflow = 'visible';
   clone.style.transform = 'none';
   clone.style.boxShadow = 'none';
   clone.style.borderRadius = '0';
-  clone.style.overflow = 'visible';
-  clone.style.position = 'absolute';
-  clone.style.top = '0';
-  clone.style.left = '-9999px';
 
-  // Append clone to body for rendering
+  // Scale factor (live DOM may be 794px, same as A4_WIDTH_PX — factor is 1)
+  const widthScale = A4_WIDTH_PX / liveWidth;
+
+  // Apply img baked dimensions to clone imgs before prepareClone
+  const cloneImgs = Array.from(clone.querySelectorAll<HTMLImageElement>('img'));
+  liveImgs.forEach((lImg, i) => {
+    if (cloneImgs[i]) {
+      cloneImgs[i].style.width = lImg.getAttribute('data-pdf-w') || cloneImgs[i].style.width;
+      cloneImgs[i].style.height = lImg.getAttribute('data-pdf-h') || cloneImgs[i].style.height;
+    }
+  });
+  // Restore live img data-attrs cleanup (already done above, but keep clean)
+
   document.body.appendChild(clone);
   prepareClone(clone, element);
 
-  // Force layout calc
+  // One layout pass
   await new Promise<void>(r => requestAnimationFrame(() => r()));
 
-  console.log('[PDF] Clone size:', clone.scrollWidth, 'x', clone.scrollHeight);
+  const cloneH = clone.scrollHeight;
+  console.log('[PDF] Clone:', clone.scrollWidth, 'x', cloneH, '  scale:', widthScale.toFixed(3));
 
+  // ── Render ───────────────────────────────────────────────────────────────
   let canvas: HTMLCanvasElement;
   try {
     canvas = await (html2canvas as any)(clone, {
       scale,
       useCORS: true,
       allowTaint: true,
-      backgroundColor: null,
+      backgroundColor: '#ffffff',
       logging: false,
       imageTimeout: 0,
       windowWidth: A4_WIDTH_PX,
       width: A4_WIDTH_PX,
-      height: clone.scrollHeight,
+      height: cloneH,
+      scrollX: 0,
+      scrollY: 0,
     });
   } finally {
     document.body.removeChild(clone);
@@ -431,96 +533,82 @@ async function renderElementToPDFBlob(
 
   console.log('[PDF] Canvas:', canvas.width, 'x', canvas.height);
 
-  // ─── Slice into pages ────────────────────────────────────────────────────
-  const canvasPageH = PAGE_HEIGHT_PX * scale;
-  const cssToCanvas = canvas.height / liveHeight;
+  // ── Compute page geometry ─────────────────────────────────────────────────
+  // A4 page height in canvas pixels
+  const canvasPageH = Math.round(A4_HEIGHT_MM * canvas.width / A4_WIDTH_MM);
+  // CSS pixels per canvas pixel (in the clone coordinate system)
+  const cssToCanvas = canvas.height / cloneH;
 
-  const footerStartCanvas = Math.round(footerTopRatio * canvas.height);
-  const footerHCanvas = Math.round(footerHeightRatio * canvas.height);
-  const hasFooter = footerEl != null && footerHCanvas > 10;
+  // Footer position in canvas pixels (measured from live DOM ratios × clone height)
+  const hasFooter = footerEl != null && footerHRatio > 0;
+  const footerStartCanvas = hasFooter ? Math.round(footerTopRatio * canvas.height) : canvas.height;
+  const footerHCanvas = hasFooter ? Math.round(footerHRatio * canvas.height) : 0;
+  // Content = everything above footer
+  const contentEndCanvas = hasFooter ? footerStartCanvas : canvas.height;
 
+  // CSS-space equivalents (for break candidate matching)
+  const clonePageHCss = canvasPageH / cssToCanvas;
+  const contentEndCss = contentEndCanvas / cssToCanvas;
+
+  // ── Determine page slices (in CSS pixels) ────────────────────────────────
   const pdfDoc = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4', compress: true });
 
-  // Single page case
-  if (canvas.height <= canvasPageH * 1.02) {
+  // Helper: draw one PDF page
+  const drawPage = (srcCanvasY: number, srcCanvasH: number, addFooter: boolean, isFirst: boolean) => {
+    const dstH = (addFooter || srcCanvasH > canvasPageH * 0.95) ? canvasPageH : srcCanvasH;
     const pc = document.createElement('canvas');
     pc.width = canvas.width;
-    pc.height = canvasPageH;
+    pc.height = dstH;
     const ctx = pc.getContext('2d')!;
     ctx.fillStyle = '#ffffff';
     ctx.fillRect(0, 0, pc.width, pc.height);
-    // Draw content (minus footer)
-    if (hasFooter) {
-      ctx.drawImage(canvas, 0, 0, canvas.width, footerStartCanvas, 0, 0, canvas.width, footerStartCanvas);
-      // Footer at page bottom
-      const fy = canvasPageH - footerHCanvas;
-      ctx.drawImage(canvas, 0, footerStartCanvas, canvas.width, footerHCanvas, 0, fy, canvas.width, footerHCanvas);
-    } else {
-      ctx.drawImage(canvas, 0, 0);
+    // Content
+    ctx.drawImage(canvas, 0, srcCanvasY, canvas.width, srcCanvasH, 0, 0, canvas.width, srcCanvasH);
+    // Footer at very bottom
+    if (addFooter && footerHCanvas > 0) {
+      const footerY = dstH - footerHCanvas;
+      ctx.drawImage(canvas, 0, footerStartCanvas, canvas.width, footerHCanvas, 0, footerY, canvas.width, footerHCanvas);
     }
-    pdfDoc.addImage(pc.toDataURL('image/jpeg', quality), 'JPEG', 0, 0, A4_WIDTH_MM, A4_HEIGHT_MM, undefined, 'FAST');
+    if (!isFirst) pdfDoc.addPage();
+    const pageMmH = (pc.height / scale) * (A4_WIDTH_MM / A4_WIDTH_PX);
+    pdfDoc.addImage(pc.toDataURL('image/jpeg', quality), 'JPEG', 0, 0, A4_WIDTH_MM, pageMmH, undefined, 'FAST');
+  };
+
+  // Single page case
+  const totalContentH = contentEndCanvas + footerHCanvas;
+  if (totalContentH <= canvasPageH * 1.02) {
+    drawPage(0, contentEndCanvas, hasFooter, true);
+    console.log('[PDF] Single page');
   } else {
-    // Multi-page
-    const pageHCss = PAGE_HEIGHT_PX; // CSS pixels per page
-    let offsetCss = 0;
+    // Multi-page: build CSS-space slice list
+    const footerHCss = footerHRatio * liveHeight;
+    let cursor = 0;
     const slicesCss: number[] = [];
 
-    // Paginate the content (excluding footer)
-    const contentEndCss = hasFooter ? footerTopRatio * liveHeight : liveHeight;
-
-    while (offsetCss < contentEndCss && slicesCss.length < 30) {
-      const remaining = contentEndCss - offsetCss;
-
-      // If remaining + footer fits on one page, take it all
-      const footerHCss = footerHeightRatio * liveHeight;
-      if (remaining + footerHCss <= pageHCss * 1.02) {
+    while (cursor < contentEndCss && slicesCss.length < 30) {
+      const remaining = contentEndCss - cursor;
+      // If rest of content + footer fits on one page → last slice
+      if (remaining + footerHCss <= clonePageHCss * 1.02) {
         slicesCss.push(remaining);
         break;
       }
-      if (remaining <= pageHCss * 1.02) {
+      if (remaining <= clonePageHCss * 1.02) {
         slicesCss.push(remaining);
         break;
       }
-
-      const sliceH = findBreakPoint(breakCandidates, offsetCss, pageHCss);
-      slicesCss.push(sliceH);
-      offsetCss += sliceH;
+      slicesCss.push(findBreak(breakCandidates, cursor, clonePageHCss, contentEndCss));
+      cursor += slicesCss[slicesCss.length - 1];
     }
 
-    // Render each page
-    let runOffset = 0;
+    let canvasCursor = 0;
     for (let p = 0; p < slicesCss.length; p++) {
-      const sliceH = slicesCss[p];
+      const sliceH = Math.round(slicesCss[p] * cssToCanvas);
       const isLast = p === slicesCss.length - 1;
-
-      const srcY = Math.round(runOffset * cssToCanvas);
-      const srcH = Math.round(sliceH * cssToCanvas);
-
-      const pc = document.createElement('canvas');
-      pc.width = canvas.width;
-      // Last page: always full A4 height so footer sits at bottom
-      pc.height = isLast && hasFooter ? canvasPageH : Math.min(srcH, canvasPageH);
-      const ctx = pc.getContext('2d')!;
-      ctx.fillStyle = '#ffffff';
-      ctx.fillRect(0, 0, pc.width, pc.height);
-
-      // Draw content slice
-      ctx.drawImage(canvas, 0, srcY, canvas.width, srcH, 0, 0, canvas.width, srcH);
-
-      // Last page: footer at very bottom
-      if (isLast && hasFooter && footerHCanvas > 0) {
-        const fy = pc.height - footerHCanvas;
-        ctx.drawImage(canvas, 0, footerStartCanvas, canvas.width, footerHCanvas, 0, fy, canvas.width, footerHCanvas);
-      }
-
-      if (p > 0) pdfDoc.addPage();
-      const pageMMH = (isLast && hasFooter) ? A4_HEIGHT_MM : (pc.height / scale) * (A4_WIDTH_MM / A4_WIDTH_PX);
-      pdfDoc.addImage(pc.toDataURL('image/jpeg', quality), 'JPEG', 0, 0, A4_WIDTH_MM, pageMMH, undefined, 'FAST');
-
-      console.log(`[PDF] Page ${p + 1}: css=${runOffset.toFixed(0)}-${(runOffset + sliceH).toFixed(0)} canvas=${srcY}-${srcY + srcH}${isLast && hasFooter ? ' +footer' : ''}`);
-      runOffset += sliceH;
+      drawPage(canvasCursor, sliceH, isLast && hasFooter, p === 0);
+      console.log(`[PDF] p${p + 1}: canvas ${canvasCursor}–${canvasCursor + sliceH}${isLast && hasFooter ? ' +footer' : ''}`);
+      canvasCursor += sliceH;
     }
-    console.log('[PDF] Total:', slicesCss.length, 'pages');
+    console.log('[PDF] Total pages:', slicesCss.length);
   }
 
   return pdfDoc.output('blob') as Blob;
@@ -536,11 +624,9 @@ export async function exportElementToPDF(
   const blob = await renderElementToPDFBlob(element, options);
   const url = URL.createObjectURL(blob);
   const a = document.createElement('a');
-  a.href = url;
-  a.download = filename;
+  a.href = url; a.download = filename;
   document.body.appendChild(a);
-  a.click();
-  a.remove();
+  a.click(); a.remove();
   URL.revokeObjectURL(url);
 }
 
@@ -550,11 +636,11 @@ export async function exportCVToPDF(
   options?: PDFExportOptions
 ): Promise<void> {
   if (!cvRef.current) throw new Error('CV-Element nicht gefunden');
-  const name = personalInfo?.name || 'CV';
-  const safe = name.replace(/[^a-zA-Z0-9äöüÄÖÜß]/g, '_').replace(/_+/g, '_').replace(/^_|_$/g, '');
+  const name = (personalInfo?.name || 'CV')
+    .replace(/[^a-zA-Z0-9äöüÄÖÜß]/g, '_').replace(/_+/g, '_').replace(/^_|_$/g, '');
   await exportElementToPDF(cvRef.current, {
     ...options,
-    filename: `Lebenslauf_${safe}_${new Date().toISOString().split('T')[0]}.pdf`,
+    filename: `Lebenslauf_${name}_${new Date().toISOString().split('T')[0]}.pdf`,
   });
 }
 
@@ -567,10 +653,8 @@ export async function exportCVToPDFBlob(
   return renderElementToPDFBlob(cvRef.current, options);
 }
 
-export function debugLogPDFHtml(
-  cvRef: React.RefObject<HTMLElement> | HTMLElement | null
-): void {
+export function debugLogPDFHtml(cvRef: React.RefObject<HTMLElement> | HTMLElement | null): void {
   const el = cvRef instanceof HTMLElement ? cvRef : cvRef?.current;
-  if (!el) { console.warn('[PDF Debug] No element found.'); return; }
-  console.log('[PDF Debug]', el.offsetWidth, 'x', el.offsetHeight);
+  if (!el) { console.warn('[PDF Debug] No element.'); return; }
+  console.log('[PDF Debug]', el.offsetWidth, 'x', el.scrollHeight);
 }
