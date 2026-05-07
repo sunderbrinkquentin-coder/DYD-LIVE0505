@@ -50,13 +50,18 @@ function isPlaceholderValue(value: string): boolean {
 function freezePixels(liveEl: HTMLElement, cloneEl: HTMLElement): void {
   const cs = window.getComputedStyle(liveEl);
 
-  // Geometry — only freeze pixel widths (skip 'auto', percentages shrink naturally)
+  // ── Geometry: freeze all box-model pixel values ───────────────────────────
   const w = cs.width;
   if (w && w.endsWith('px') && parseFloat(w) > 0) {
     cloneEl.style.setProperty('width', w, 'important');
   }
+  // Height: freeze only fixed (non-auto) pixel heights so content blocks don't collapse
+  const h = cs.height;
+  if (h && h.endsWith('px') && parseFloat(h) > 0 && h !== 'auto') {
+    cloneEl.style.setProperty('height', h, 'important');
+  }
 
-  // Typography — freeze so text renders identically
+  // ── Typography: freeze all text metrics ───────────────────────────────────
   if (cs.fontSize) cloneEl.style.setProperty('font-size', cs.fontSize, 'important');
   if (cs.fontFamily) cloneEl.style.setProperty('font-family', cs.fontFamily, 'important');
   if (cs.fontWeight) cloneEl.style.setProperty('font-weight', cs.fontWeight, 'important');
@@ -66,15 +71,19 @@ function freezePixels(liveEl: HTMLElement, cloneEl: HTMLElement): void {
   if (cs.letterSpacing && cs.letterSpacing !== 'normal') {
     cloneEl.style.setProperty('letter-spacing', cs.letterSpacing, 'important');
   }
+  // Prevent text fragmentation: keep words intact as they appear in the editor
+  cloneEl.style.setProperty('white-space', 'pre-wrap', 'important');
+  cloneEl.style.setProperty('word-break', 'keep-all', 'important');
+  cloneEl.style.setProperty('overflow-wrap', 'normal', 'important');
 
-  // Colors — freeze so theme colours don't drift
+  // ── Colors: freeze so theme colours don't drift ────────────────────────────
   if (cs.color) cloneEl.style.setProperty('color', cs.color, 'important');
   const bg = cs.backgroundColor;
   if (bg && bg !== 'rgba(0, 0, 0, 0)' && bg !== 'transparent') {
     cloneEl.style.setProperty('background-color', bg, 'important');
   }
 
-  // Layout context — freeze display, flex and grid so containers don't collapse
+  // ── Layout context: freeze display / flex / grid ───────────────────────────
   const display = cs.display;
   if (display && display !== 'inline') {
     cloneEl.style.setProperty('display', display, 'important');
@@ -84,18 +93,47 @@ function freezePixels(liveEl: HTMLElement, cloneEl: HTMLElement): void {
     if (cs.flexWrap) cloneEl.style.setProperty('flex-wrap', cs.flexWrap, 'important');
     if (cs.alignItems) cloneEl.style.setProperty('align-items', cs.alignItems, 'important');
     if (cs.justifyContent) cloneEl.style.setProperty('justify-content', cs.justifyContent, 'important');
+    // Freeze gap as pixel values so column spacing matches the editor exactly
+    const colGap = cs.columnGap;
+    if (colGap && colGap !== 'normal' && colGap !== '0px') {
+      cloneEl.style.setProperty('column-gap', colGap, 'important');
+    }
+    const rowGap = cs.rowGap;
+    if (rowGap && rowGap !== 'normal' && rowGap !== '0px') {
+      cloneEl.style.setProperty('row-gap', rowGap, 'important');
+    }
   }
   if (display === 'grid') {
     if (cs.gridTemplateColumns && cs.gridTemplateColumns !== 'none') {
       cloneEl.style.setProperty('grid-template-columns', cs.gridTemplateColumns, 'important');
     }
+    if (cs.gridTemplateRows && cs.gridTemplateRows !== 'none') {
+      cloneEl.style.setProperty('grid-template-rows', cs.gridTemplateRows, 'important');
+    }
+    const colGap = cs.columnGap;
+    if (colGap && colGap !== 'normal') {
+      cloneEl.style.setProperty('column-gap', colGap, 'important');
+    }
+    const rowGap = cs.rowGap;
+    if (rowGap && rowGap !== 'normal') {
+      cloneEl.style.setProperty('row-gap', rowGap, 'important');
+    }
   }
 
-  // Padding — preserve spacing exactly
+  // ── Spacing: freeze all padding and margin values ─────────────────────────
   if (cs.paddingTop) cloneEl.style.setProperty('padding-top', cs.paddingTop, 'important');
   if (cs.paddingRight) cloneEl.style.setProperty('padding-right', cs.paddingRight, 'important');
   if (cs.paddingBottom) cloneEl.style.setProperty('padding-bottom', cs.paddingBottom, 'important');
   if (cs.paddingLeft) cloneEl.style.setProperty('padding-left', cs.paddingLeft, 'important');
+  if (cs.marginTop && cs.marginTop !== '0px') cloneEl.style.setProperty('margin-top', cs.marginTop, 'important');
+  if (cs.marginRight && cs.marginRight !== '0px') cloneEl.style.setProperty('margin-right', cs.marginRight, 'important');
+  if (cs.marginBottom && cs.marginBottom !== '0px') cloneEl.style.setProperty('margin-bottom', cs.marginBottom, 'important');
+  if (cs.marginLeft && cs.marginLeft !== '0px') cloneEl.style.setProperty('margin-left', cs.marginLeft, 'important');
+
+  // ── Border-radius: preserve rounded corners ────────────────────────────────
+  if (cs.borderRadius && cs.borderRadius !== '0px') {
+    cloneEl.style.setProperty('border-radius', cs.borderRadius, 'important');
+  }
 }
 
 function prepareCloneForPrint(cloneDoc: Document, liveRoot: HTMLElement | null): void {
@@ -112,8 +150,16 @@ function prepareCloneForPrint(cloneDoc: Document, liveRoot: HTMLElement | null):
       box-sizing: border-box !important;
       -webkit-print-color-adjust: exact !important;
       print-color-adjust: exact !important;
+      /* Kill all transforms globally — none must distort html2canvas coordinates */
+      transform: none !important;
     }
-    /* Remove scale transforms that corrupt html2canvas coordinates */
+    /* Anti-fragmentation: prevent word-splitting (e.g. "Universität", "Ingenieurwesen") */
+    span, p, div, li, h1, h2, h3, h4, h5, h6, a, strong, em, b, i {
+      white-space: pre-wrap !important;
+      word-break: keep-all !important;
+      overflow-wrap: normal !important;
+    }
+    /* Remove scale transforms that corrupt html2canvas coordinate system */
     .cv-scale-wrapper, [class*="scale-"] {
       transform: none !important;
       margin: 0 !important;
