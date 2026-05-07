@@ -1,13 +1,3 @@
-/**
- * PDF Export — definitive implementation
- *
- * Strategy: snapshot-based rendering
- *  1. Measure all element rects in the live DOM while it's fully painted
- *  2. Build a flat list of absolutely-positioned div/span/text nodes that
- *     replicate EXACTLY what's on screen — no layout re-calculation needed
- *  3. Render that snapshot with html2canvas
- *  4. Slice into A4 pages, placing the footer at the bottom of the last page
- */
 import html2canvas from 'html2canvas';
 import jsPDF from 'jspdf';
 
@@ -63,33 +53,47 @@ async function toBase64(src: string): Promise<string> {
   } catch { return src; }
 }
 
-// ─── Core: clone the live DOM and bake computed styles ───────────────────────
-// We walk the live DOM and the clone simultaneously, copying every computed
-// style as an inline style. This makes the clone CSS-class independent.
-// Key insight: we do NOT bake width/height/minHeight on elements whose size
-// is determined by their content (overflow: visible, height: auto), because
-// those elements need to re-flow correctly in the off-screen container.
+// ─── Style baking ─────────────────────────────────────────────────────────────
+// Walk live+clone trees simultaneously, copying every computed style as inline.
+// The clone becomes fully self-contained (no CSS classes required).
+//
+// Height policy:
+//   - Block containers that contain flex/grid children: bake the computed height
+//     so columns don't collapse off-screen.
+//   - Inputs, textareas, content-sized inline elements: height: auto so text
+//     can flow without clipping.
+//   - SVG root: bake exact pixel dimensions; preserve verticalAlign for
+//     inline-flex icon alignment.
 
-const CONTENT_SIZED_TAGS = new Set(['span', 'a', 'strong', 'em', 'b', 'i', 'label']);
+const INLINE_TAGS = new Set(['span', 'a', 'strong', 'em', 'b', 'i', 'label', 'small', 'code']);
 
 function bakeComputedStyles(liveEl: HTMLElement, cloneEl: HTMLElement): void {
-  const cs = window.getComputedStyle(liveEl);
   const tag = liveEl.tagName.toLowerCase();
-  const inSVG = !!liveEl.closest('svg');
+  const cs = window.getComputedStyle(liveEl);
 
-  // SVG internals: only fix dimensions to avoid viewBox distortion
-  if (inSVG && tag !== 'svg') {
-    return;
-  }
+  // ── SVG root ──────────────────────────────────────────────────────────────
   if (tag === 'svg') {
     const r = liveEl.getBoundingClientRect();
-    cloneEl.style.width = r.width ? `${r.width}px` : cs.width;
-    cloneEl.style.height = r.height ? `${r.height}px` : cs.height;
+    cloneEl.style.width = `${r.width}px`;
+    cloneEl.style.height = `${r.height}px`;
+    cloneEl.style.minWidth = `${r.width}px`;
+    cloneEl.style.minHeight = `${r.height}px`;
     cloneEl.style.flexShrink = '0';
+    // Use inline-block so it participates in the flex row of its parent.
+    // verticalAlign: middle ensures it sits on the same baseline as adjacent text.
     cloneEl.style.display = 'inline-block';
+    cloneEl.style.verticalAlign = 'middle';
     cloneEl.style.overflow = 'visible';
+    cloneEl.style.transition = 'none';
+    cloneEl.style.animation = 'none';
     return;
   }
+
+  // ── SVG children (path, circle, polyline …) ───────────────────────────────
+  // Do not touch these — they use SVG attributes (d, cx, stroke…), not CSS.
+  if (liveEl.closest('svg')) return;
+
+  // ── Everything else ───────────────────────────────────────────────────────
 
   // Typography
   cloneEl.style.fontFamily = cs.fontFamily;
@@ -139,34 +143,35 @@ function bakeComputedStyles(liveEl: HTMLElement, cloneEl: HTMLElement): void {
   cloneEl.style.marginBottom = cs.marginBottom;
   cloneEl.style.marginLeft = cs.marginLeft;
 
-  // Display & position — do NOT bake position for normal flow elements
-  const display = cs.display;
-  cloneEl.style.display = display;
+  // Position — convert fixed/sticky to relative so off-screen layout works
   const pos = cs.position;
-  // fixed/sticky break off-screen layout — make them relative
   cloneEl.style.position = (pos === 'fixed' || pos === 'sticky') ? 'relative' : pos;
 
-  // Width: always bake — it's crucial for column layouts
+  // Display
+  cloneEl.style.display = cs.display;
+
+  // Width — always bake to preserve column layouts
   cloneEl.style.width = cs.width;
   cloneEl.style.maxWidth = cs.maxWidth;
   cloneEl.style.minWidth = cs.minWidth;
 
-  // Height: only bake if the element is NOT content-sized.
-  // Content-sized = inline elements, auto-height textareas, flex-grow children.
+  // Height — only bake for block containers, not for content-sized elements.
+  // Inputs/textareas need height:auto so replaced divs can size to their text.
+  // Inline elements size from content naturally.
   const isContentSized =
-    CONTENT_SIZED_TAGS.has(tag) ||
+    INLINE_TAGS.has(tag) ||
     tag === 'textarea' ||
     tag === 'input' ||
-    cs.height === 'auto' ||
-    cs.overflow === 'visible';
+    cs.height === 'auto';
 
-  if (!isContentSized) {
+  if (isContentSized) {
+    cloneEl.style.height = 'auto';
+    cloneEl.style.minHeight = cs.minHeight !== 'auto' ? cs.minHeight : '0';
+    cloneEl.style.maxHeight = 'none';
+  } else {
     cloneEl.style.height = cs.height;
     cloneEl.style.minHeight = cs.minHeight;
     cloneEl.style.maxHeight = cs.maxHeight === 'none' ? 'none' : cs.maxHeight;
-  } else {
-    cloneEl.style.height = 'auto';
-    cloneEl.style.minHeight = cs.minHeight !== 'auto' ? cs.minHeight : '0';
   }
 
   // Overflow
@@ -175,7 +180,7 @@ function bakeComputedStyles(liveEl: HTMLElement, cloneEl: HTMLElement): void {
   cloneEl.style.overflowY = cs.overflowY;
 
   // Flex container
-  if (display === 'flex' || display === 'inline-flex') {
+  if (cs.display === 'flex' || cs.display === 'inline-flex') {
     cloneEl.style.flexDirection = cs.flexDirection;
     cloneEl.style.flexWrap = cs.flexWrap;
     cloneEl.style.alignItems = cs.alignItems;
@@ -194,7 +199,7 @@ function bakeComputedStyles(liveEl: HTMLElement, cloneEl: HTMLElement): void {
   cloneEl.style.order = cs.order;
 
   // Grid container
-  if (display === 'grid' || display === 'inline-grid') {
+  if (cs.display === 'grid' || cs.display === 'inline-grid') {
     cloneEl.style.gridTemplateColumns = cs.gridTemplateColumns;
     cloneEl.style.gridTemplateRows = cs.gridTemplateRows;
     cloneEl.style.gap = cs.gap;
@@ -204,26 +209,23 @@ function bakeComputedStyles(liveEl: HTMLElement, cloneEl: HTMLElement): void {
   cloneEl.style.gridColumn = cs.gridColumn;
   cloneEl.style.gridRow = cs.gridRow;
 
-  // Visibility
+  // Misc
   cloneEl.style.opacity = cs.opacity;
   cloneEl.style.visibility = cs.visibility;
-
-  // Kill animations/transitions
   cloneEl.style.transform = 'none';
   cloneEl.style.transition = 'none';
   cloneEl.style.animation = 'none';
   cloneEl.style.caretColor = 'transparent';
 
-  // Remove Tailwind classes — all needed styles are now inline
+  // Remove Tailwind class list — all needed styles are now inline
   cloneEl.removeAttribute('class');
 }
 
-// Walk live + clone simultaneously and bake all styles
 function bakeAll(liveRoot: HTMLElement, cloneRoot: HTMLElement): void {
-  const liveEls = [liveRoot, ...Array.from(liveRoot.querySelectorAll<HTMLElement>('*'))];
-  const cloneEls = [cloneRoot, ...Array.from(cloneRoot.querySelectorAll<HTMLElement>('*'))];
-  for (let i = 0; i < liveEls.length && i < cloneEls.length; i++) {
-    bakeComputedStyles(liveEls[i], cloneEls[i]);
+  const lEls = [liveRoot, ...Array.from(liveRoot.querySelectorAll<HTMLElement>('*'))];
+  const cEls = [cloneRoot, ...Array.from(cloneRoot.querySelectorAll<HTMLElement>('*'))];
+  for (let i = 0; i < lEls.length && i < cEls.length; i++) {
+    bakeComputedStyles(lEls[i], cEls[i]);
   }
 }
 
@@ -231,100 +233,84 @@ function bakeAll(liveRoot: HTMLElement, cloneRoot: HTMLElement): void {
 
 function prepareClone(clone: HTMLElement, liveRoot: HTMLElement): void {
   // Remove editor-only UI
-  clone.querySelectorAll<HTMLElement>(
-    'button, [data-pdf-hidden]'
-  ).forEach(el => el.remove());
+  clone.querySelectorAll<HTMLElement>('button, [data-pdf-hidden]').forEach(el => el.remove());
 
-  // Get live inputs/textareas BEFORE any removals (index must stay in sync)
+  // Snapshot live input/textarea values BEFORE any DOM changes
   const liveInputs = Array.from(liveRoot.querySelectorAll<HTMLInputElement>('input'));
-  const liveTextareas = Array.from(liveRoot.querySelectorAll<HTMLTextAreaElement>('textarea'));
+  const liveTAs = Array.from(liveRoot.querySelectorAll<HTMLTextAreaElement>('textarea'));
   const cloneInputs = Array.from(clone.querySelectorAll<HTMLInputElement>('input'));
-  const cloneTextareas = Array.from(clone.querySelectorAll<HTMLTextAreaElement>('textarea'));
+  const cloneTAs = Array.from(clone.querySelectorAll<HTMLTextAreaElement>('textarea'));
 
-  // Replace <input> with <div> carrying the same baked styles + the text value
+  // Replace <input> → <div>
   for (let i = 0; i < cloneInputs.length; i++) {
-    const cInput = cloneInputs[i];
-    const lInput = liveInputs[i];
-    const val = (lInput?.value ?? cInput.value ?? '').trim();
+    const ci = cloneInputs[i];
+    const val = (liveInputs[i]?.value ?? ci.value ?? '').trim();
 
-    if (isPlaceholder(val) || val === '') {
-      // Remove the whole ancestor row so no empty gap remains
-      const row = cInput.closest('[data-pdf-field-wrap]') ?? cInput.closest('li');
-      (row ?? cInput).remove();
+    if (isPlaceholder(val)) {
+      const row = ci.closest('[data-pdf-field-wrap]') ?? ci.closest('li');
+      (row ?? ci).remove();
       continue;
     }
 
     const div = clone.ownerDocument.createElement('div');
     div.textContent = val;
-    // Copy ALL baked inline styles from the clone input
-    div.style.cssText = cInput.style.cssText;
-    // Ensure text renders like an input: vertically centred, no clipping
+    div.style.cssText = ci.style.cssText;
+    // Ensure text sits at the same vertical position as in the live input
     div.style.display = 'flex';
     div.style.alignItems = 'center';
     div.style.overflow = 'hidden';
     div.style.whiteSpace = 'nowrap';
-    div.style.height = cInput.style.height !== 'auto' && cInput.style.height
-      ? cInput.style.height
-      : 'auto';
-    cInput.parentNode?.replaceChild(div, cInput);
+    ci.parentNode?.replaceChild(div, ci);
   }
 
-  // Replace <textarea> with <div> carrying the same baked styles + the text value
-  for (let i = 0; i < cloneTextareas.length; i++) {
-    const cTa = cloneTextareas[i];
-    const lTa = liveTextareas[i];
-    const val = (lTa?.value ?? cTa.value ?? '').trim();
+  // Replace <textarea> → <div>
+  for (let i = 0; i < cloneTAs.length; i++) {
+    const ct = cloneTAs[i];
+    const val = (liveTAs[i]?.value ?? ct.value ?? '').trim();
 
-    if (isPlaceholder(val) || val === '') {
-      const row = cTa.closest('[data-pdf-field-wrap]') ?? cTa.closest('li');
-      (row ?? cTa).remove();
+    if (isPlaceholder(val)) {
+      const row = ct.closest('[data-pdf-field-wrap]') ?? ct.closest('li');
+      (row ?? ct).remove();
       continue;
     }
 
     const div = clone.ownerDocument.createElement('div');
     div.textContent = val;
-    div.style.cssText = cTa.style.cssText;
-    div.style.overflow = 'visible';
+    div.style.cssText = ct.style.cssText;
     div.style.height = 'auto';
+    div.style.overflow = 'visible';
     div.style.whiteSpace = 'pre-wrap';
     div.style.wordBreak = 'break-word';
     div.style.resize = 'none';
-    cTa.parentNode?.replaceChild(div, cTa);
+    ct.parentNode?.replaceChild(div, ct);
   }
 
-  // contentEditable elements (ModernCVTemplate uses these)
+  // contentEditable spans (ModernCVTemplate)
   clone.querySelectorAll<HTMLElement>('[contenteditable]').forEach(el => {
     el.removeAttribute('contenteditable');
-    // Neutralise placeholder pseudo-element
     el.setAttribute('data-placeholder', '');
     el.style.outline = 'none';
     el.style.cursor = 'default';
     el.style.caretColor = 'transparent';
-
     const text = (el.textContent ?? '').trim();
     if (isPlaceholder(text) || text === '') {
       el.textContent = '';
-      // Only collapse inline/span elements — don't collapse block containers
       const d = el.style.display || 'inline';
-      if (d === 'inline' || d === 'inline-block' || d === 'inline-flex') {
+      if (d === 'inline' || d === 'inline-block' || d === 'inline-flex' || d === 'none') {
         el.style.display = 'none';
       }
     }
   });
 
-  // html2canvas mishandles object-fit:cover — convert to background-image
+  // img with object-fit → background-image div
   clone.querySelectorAll<HTMLImageElement>('img').forEach(img => {
     const src = img.getAttribute('src') || '';
     if (!src) { img.remove(); return; }
-    const cs = img.style;
-    const w = cs.width;
-    const h = cs.height;
-    if (!w || !h) return; // skip if no baked size
-
+    const w = img.style.width;
+    const h = img.style.height;
+    if (!w || !h || w === 'auto' || h === 'auto') return;
     const div = clone.ownerDocument.createElement('div');
     div.style.cssText = img.style.cssText;
-    div.style.width = w;
-    div.style.height = h;
     div.style.backgroundImage = `url("${src}")`;
     div.style.backgroundSize = 'cover';
     div.style.backgroundPosition = 'center';
@@ -333,82 +319,82 @@ function prepareClone(clone: HTMLElement, liveRoot: HTMLElement): void {
   });
 }
 
-// ─── Page break logic ────────────────────────────────────────────────────────
+// ─── Page break detection (measured from the CLONE after baking) ─────────────
+// This is critical: we measure break candidates from the CLONE DOM (while it's
+// attached to the document), not the live DOM. This guarantees that the CSS
+// pixel positions match the canvas pixel positions after html2canvas renders.
 
 interface BreakCandidate {
-  topCss: number;
-  bottomCss: number;
+  topPx: number;
+  bottomPx: number;
   priority: number;
 }
 
-function collectBreaks(root: HTMLElement): BreakCandidate[] {
-  const rootTop = root.getBoundingClientRect().top;
+function collectBreaksFromClone(cloneRoot: HTMLElement): BreakCandidate[] {
+  const rootTop = cloneRoot.getBoundingClientRect().top;
   const list: BreakCandidate[] = [];
 
   const add = (el: HTMLElement, prio: number) => {
     const r = el.getBoundingClientRect();
     if (r.height < 5 || r.width < 5) return;
-    const cs = window.getComputedStyle(el);
-    if (cs.display === 'none' || cs.visibility === 'hidden') return;
-    list.push({ topCss: r.top - rootTop, bottomCss: r.bottom - rootTop, priority: prio });
+    if (el.style.display === 'none' || el.style.visibility === 'hidden') return;
+    list.push({ topPx: r.top - rootTop, bottomPx: r.bottom - rootTop, priority: prio });
   };
 
-  // Priority order: explicit markers > sections > headings > list items > divs
-  root.querySelectorAll<HTMLElement>('[data-pdf-section]').forEach(el => add(el, 300));
-  root.querySelectorAll<HTMLElement>('section, article, header, footer').forEach(el => add(el, 200));
-  root.querySelectorAll<HTMLElement>('h1,h2,h3,h4').forEach(el => add(el, 150));
-  root.querySelectorAll<HTMLElement>('li').forEach(el => add(el, 100));
-  root.querySelectorAll<HTMLElement>('p').forEach(el => add(el, 70));
-  root.querySelectorAll<HTMLElement>('div').forEach(el => {
-    const cs = window.getComputedStyle(el);
-    const spacing = (parseFloat(cs.marginTop) || 0) + (parseFloat(cs.paddingTop) || 0);
-    if (spacing >= 10) add(el, 60);
+  cloneRoot.querySelectorAll<HTMLElement>('[data-pdf-section]').forEach(el => add(el, 300));
+  cloneRoot.querySelectorAll<HTMLElement>('section, article').forEach(el => add(el, 200));
+  cloneRoot.querySelectorAll<HTMLElement>('h1,h2,h3,h4').forEach(el => add(el, 150));
+  cloneRoot.querySelectorAll<HTMLElement>('li').forEach(el => add(el, 100));
+  cloneRoot.querySelectorAll<HTMLElement>('p').forEach(el => add(el, 70));
+  cloneRoot.querySelectorAll<HTMLElement>('div').forEach(el => {
+    const mt = parseFloat(el.style.marginTop || '0') || 0;
+    const pt = parseFloat(el.style.paddingTop || '0') || 0;
+    if (mt + pt >= 10) add(el, 60);
   });
 
-  // Deduplicate by position, keep highest priority
-  const byBottom = new Map<number, BreakCandidate>();
+  // Deduplicate — keep highest priority at each bottom position
+  const map = new Map<number, BreakCandidate>();
   for (const c of list) {
-    const k = Math.round(c.bottomCss);
-    const prev = byBottom.get(k);
-    if (!prev || c.priority > prev.priority) byBottom.set(k, c);
+    const k = Math.round(c.bottomPx);
+    const prev = map.get(k);
+    if (!prev || c.priority > prev.priority) map.set(k, c);
   }
-  return Array.from(byBottom.values()).sort((a, b) => a.topCss - b.topCss);
+  return Array.from(map.values()).sort((a, b) => a.topPx - b.topPx);
 }
 
-// Returns the slice height in CSS pixels for this page.
+// Find the best slice height (in CSS/clone pixels) for a page.
 // Rules:
-//   - Never break inside an element
-//   - Prefer break at element top (element goes to next page) — avoids "orphan" heads
-//   - Fill the page as much as possible (score favours positions close to page end)
-//   - Minimum 55% fill to avoid tiny pages
+//   1. Only break at element TOP or BOTTOM — never mid-element.
+//   2. Prefer breaks that fill the page as much as possible.
+//   3. Minimum fill: 55% of page height.
 function findBreak(
   candidates: BreakCandidate[],
-  pageStartCss: number,
-  pageHCss: number,
-  contentEndCss: number,
+  pageStart: number,
+  pageH: number,
+  contentEnd: number,
 ): number {
-  const maxCss = Math.min(pageStartCss + pageHCss, contentEndCss);
-  const minCss = pageStartCss + pageHCss * 0.55;
+  const maxPos = Math.min(pageStart + pageH, contentEnd);
+  const minPos = pageStart + pageH * 0.55;
 
-  // Build candidate break positions
-  const options: { pos: number; score: number }[] = [];
+  const opts: { pos: number; score: number }[] = [];
+
   for (const c of candidates) {
-    // Break BEFORE element (element goes to next page)
-    if (c.topCss > minCss && c.topCss <= maxCss) {
-      const fill = (c.topCss - pageStartCss) / pageHCss;
-      options.push({ pos: c.topCss, score: c.priority * 2 + fill * 300 });
+    // Break BEFORE this element (element starts next page)
+    if (c.topPx > minPos && c.topPx <= maxPos) {
+      const fill = (c.topPx - pageStart) / pageH;
+      opts.push({ pos: c.topPx, score: c.priority * 2 + fill * 400 });
     }
-    // Break AFTER element (element stays on this page)
-    if (c.bottomCss > minCss && c.bottomCss <= maxCss) {
-      const fill = (c.bottomCss - pageStartCss) / pageHCss;
-      options.push({ pos: c.bottomCss, score: c.priority + fill * 300 });
+    // Break AFTER this element (element stays on this page)
+    if (c.bottomPx > minPos && c.bottomPx <= maxPos) {
+      const fill = (c.bottomPx - pageStart) / pageH;
+      opts.push({ pos: c.bottomPx, score: c.priority + fill * 400 });
     }
-    if (c.topCss > maxCss + 50) break;
+    if (c.topPx > maxPos + 100) break;
   }
 
-  if (options.length === 0) return Math.min(pageHCss, contentEndCss - pageStartCss);
-  options.sort((a, b) => b.score - a.score);
-  return Math.max(pageHCss * 0.5, options[0].pos - pageStartCss);
+  if (opts.length === 0) return Math.min(pageH, contentEnd - pageStart);
+  opts.sort((a, b) => b.score - a.score);
+  return Math.max(pageH * 0.5, opts[0].pos - pageStart);
 }
 
 // ─── Core render ─────────────────────────────────────────────────────────────
@@ -421,7 +407,7 @@ async function renderElementToPDFBlob(
 
   await waitForFonts();
 
-  // Pre-convert images to base64 so html2canvas can access them cross-origin
+  // Pre-convert images to base64
   const liveImgs = Array.from(element.querySelectorAll<HTMLImageElement>('img'));
   const origSrcs = liveImgs.map(img => img.getAttribute('src') || '');
   await Promise.all(liveImgs.map(async (img, i) => {
@@ -429,52 +415,53 @@ async function renderElementToPDFBlob(
       img.setAttribute('src', await toBase64(origSrcs[i]));
     }
   }));
-  // Wait for images to decode
   await Promise.all(liveImgs.map(img =>
     img.complete ? Promise.resolve()
       : new Promise<void>(r => { img.onload = img.onerror = () => r(); })
   ));
 
-  // Wait for paint
   await new Promise<void>(r => requestAnimationFrame(() => requestAnimationFrame(() => r())));
   window.scrollTo(0, 0);
 
-  // ── Measure everything in the live DOM ──────────────────────────────────
-  const rootRect = element.getBoundingClientRect();
-  const liveHeight = rootRect.height;
-  const liveWidth = rootRect.width;
-
-  const breakCandidates = collectBreaks(element);
-
-  // Measure footer
+  // Measure footer ratio in live DOM
+  const liveRect = element.getBoundingClientRect();
+  const liveH = liveRect.height;
   const footerEl = element.querySelector<HTMLElement>('[data-pdf-footer]');
   let footerTopRatio = 1;
   let footerHRatio = 0;
   if (footerEl) {
     const fr = footerEl.getBoundingClientRect();
-    footerTopRatio = (fr.top - rootRect.top) / liveHeight;
-    footerHRatio = fr.height / liveHeight;
+    footerTopRatio = (fr.top - liveRect.top) / liveH;
+    footerHRatio = fr.height / liveH;
   }
 
-  // Also stamp img dimensions for img→div conversion
+  // Stamp img dimensions for img→div conversion
   liveImgs.forEach(img => {
     const cs = window.getComputedStyle(img);
     img.setAttribute('data-pdf-w', cs.width || `${img.offsetWidth}px`);
     img.setAttribute('data-pdf-h', cs.height || `${img.offsetHeight}px`);
   });
 
-  // ── Build style-baked off-screen clone ───────────────────────────────────
+  // Build baked clone
   const clone = element.cloneNode(true) as HTMLElement;
   bakeAll(element, clone);
 
-  // Restore live images
+  // Restore live images & cleanup attrs
   liveImgs.forEach((img, i) => {
     img.setAttribute('src', origSrcs[i]);
     img.removeAttribute('data-pdf-w');
     img.removeAttribute('data-pdf-h');
   });
 
-  // Set root dimensions on clone
+  // Apply baked img dimensions to clone
+  const cloneImgs = Array.from(clone.querySelectorAll<HTMLImageElement>('img'));
+  liveImgs.forEach((lImg, i) => {
+    if (!cloneImgs[i]) return;
+    cloneImgs[i].style.width = lImg.getAttribute('data-pdf-w') || cloneImgs[i].style.width;
+    cloneImgs[i].style.height = lImg.getAttribute('data-pdf-h') || cloneImgs[i].style.height;
+  });
+
+  // Root clone styles
   clone.style.position = 'absolute';
   clone.style.left = '-9999px';
   clone.style.top = '0';
@@ -489,29 +476,32 @@ async function renderElementToPDFBlob(
   clone.style.boxShadow = 'none';
   clone.style.borderRadius = '0';
 
-  // Scale factor (live DOM may be 794px, same as A4_WIDTH_PX — factor is 1)
-  const widthScale = A4_WIDTH_PX / liveWidth;
-
-  // Apply img baked dimensions to clone imgs before prepareClone
-  const cloneImgs = Array.from(clone.querySelectorAll<HTMLImageElement>('img'));
-  liveImgs.forEach((lImg, i) => {
-    if (cloneImgs[i]) {
-      cloneImgs[i].style.width = lImg.getAttribute('data-pdf-w') || cloneImgs[i].style.width;
-      cloneImgs[i].style.height = lImg.getAttribute('data-pdf-h') || cloneImgs[i].style.height;
-    }
-  });
-  // Restore live img data-attrs cleanup (already done above, but keep clean)
-
   document.body.appendChild(clone);
   prepareClone(clone, element);
 
-  // One layout pass
+  // Let browser lay out the clone
   await new Promise<void>(r => requestAnimationFrame(() => r()));
 
   const cloneH = clone.scrollHeight;
-  console.log('[PDF] Clone:', clone.scrollWidth, 'x', cloneH, '  scale:', widthScale.toFixed(3));
 
-  // ── Render ───────────────────────────────────────────────────────────────
+  // ── Measure break candidates from the CLONE (not live DOM) ───────────────
+  const breakCandidates = collectBreaksFromClone(clone);
+  // Measure footer position from clone
+  const cloneFooter = clone.querySelector<HTMLElement>('[data-pdf-footer]');
+  let cloneFooterTopPx = cloneH;
+  let cloneFooterHPx = 0;
+  if (cloneFooter) {
+    const cr = clone.getBoundingClientRect();
+    const fr = cloneFooter.getBoundingClientRect();
+    cloneFooterTopPx = fr.top - cr.top;
+    cloneFooterHPx = fr.height;
+  }
+  const hasFooter = cloneFooter != null && cloneFooterHPx > 5;
+
+  console.log('[PDF] Clone:', clone.scrollWidth, 'x', cloneH,
+    hasFooter ? `  footer at ${cloneFooterTopPx.toFixed(0)}+${cloneFooterHPx.toFixed(0)}px` : '');
+
+  // Render
   let canvas: HTMLCanvasElement;
   try {
     canvas = await (html2canvas as any)(clone, {
@@ -533,83 +523,81 @@ async function renderElementToPDFBlob(
 
   console.log('[PDF] Canvas:', canvas.width, 'x', canvas.height);
 
-  // ── Compute page geometry ─────────────────────────────────────────────────
+  // ── Page geometry ─────────────────────────────────────────────────────────
+  const cssToCanvas = canvas.height / cloneH;
   // A4 page height in canvas pixels
   const canvasPageH = Math.round(A4_HEIGHT_MM * canvas.width / A4_WIDTH_MM);
-  // CSS pixels per canvas pixel (in the clone coordinate system)
-  const cssToCanvas = canvas.height / cloneH;
+  // Clone-CSS pixels per A4 page
+  const clonePageHCss = canvasPageH / cssToCanvas;
 
-  // Footer position in canvas pixels (measured from live DOM ratios × clone height)
-  const hasFooter = footerEl != null && footerHRatio > 0;
-  const footerStartCanvas = hasFooter ? Math.round(footerTopRatio * canvas.height) : canvas.height;
-  const footerHCanvas = hasFooter ? Math.round(footerHRatio * canvas.height) : 0;
-  // Content = everything above footer
+  // Footer in canvas pixels
+  const footerStartCanvas = hasFooter ? Math.round(cloneFooterTopPx * cssToCanvas) : canvas.height;
+  const footerHCanvas = hasFooter ? Math.round(cloneFooterHPx * cssToCanvas) : 0;
+  // Content (without footer)
+  const contentEndCss = hasFooter ? cloneFooterTopPx : cloneH;
   const contentEndCanvas = hasFooter ? footerStartCanvas : canvas.height;
 
-  // CSS-space equivalents (for break candidate matching)
-  const clonePageHCss = canvasPageH / cssToCanvas;
-  const contentEndCss = contentEndCanvas / cssToCanvas;
-
-  // ── Determine page slices (in CSS pixels) ────────────────────────────────
   const pdfDoc = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4', compress: true });
 
-  // Helper: draw one PDF page
-  const drawPage = (srcCanvasY: number, srcCanvasH: number, addFooter: boolean, isFirst: boolean) => {
-    const dstH = (addFooter || srcCanvasH > canvasPageH * 0.95) ? canvasPageH : srcCanvasH;
+  // Draw one PDF page
+  const drawPage = (srcY: number, srcH: number, addFooter: boolean, isFirst: boolean) => {
+    // Last page (with footer) is always full A4; other pages are sized to content
+    const dstH = addFooter ? canvasPageH : srcH;
     const pc = document.createElement('canvas');
     pc.width = canvas.width;
     pc.height = dstH;
     const ctx = pc.getContext('2d')!;
     ctx.fillStyle = '#ffffff';
     ctx.fillRect(0, 0, pc.width, pc.height);
-    // Content
-    ctx.drawImage(canvas, 0, srcCanvasY, canvas.width, srcCanvasH, 0, 0, canvas.width, srcCanvasH);
-    // Footer at very bottom
+    // Content slice
+    ctx.drawImage(canvas, 0, srcY, canvas.width, srcH, 0, 0, canvas.width, srcH);
+    // Footer at very bottom of last page
     if (addFooter && footerHCanvas > 0) {
-      const footerY = dstH - footerHCanvas;
-      ctx.drawImage(canvas, 0, footerStartCanvas, canvas.width, footerHCanvas, 0, footerY, canvas.width, footerHCanvas);
+      const fy = dstH - footerHCanvas;
+      ctx.drawImage(canvas, 0, footerStartCanvas, canvas.width, footerHCanvas, 0, fy, canvas.width, footerHCanvas);
     }
     if (!isFirst) pdfDoc.addPage();
-    const pageMmH = (pc.height / scale) * (A4_WIDTH_MM / A4_WIDTH_PX);
-    pdfDoc.addImage(pc.toDataURL('image/jpeg', quality), 'JPEG', 0, 0, A4_WIDTH_MM, pageMmH, undefined, 'FAST');
+    const mmH = (dstH / scale) * (A4_WIDTH_MM / A4_WIDTH_PX);
+    pdfDoc.addImage(pc.toDataURL('image/jpeg', quality), 'JPEG', 0, 0, A4_WIDTH_MM, mmH, undefined, 'FAST');
   };
 
-  // Single page case
-  const totalContentH = contentEndCanvas + footerHCanvas;
-  if (totalContentH <= canvasPageH * 1.02) {
+  // Single page?
+  const totalH = contentEndCanvas + footerHCanvas;
+  if (totalH <= canvasPageH * 1.02) {
     drawPage(0, contentEndCanvas, hasFooter, true);
     console.log('[PDF] Single page');
-  } else {
-    // Multi-page: build CSS-space slice list
-    const footerHCss = footerHRatio * liveHeight;
-    let cursor = 0;
-    const slicesCss: number[] = [];
-
-    while (cursor < contentEndCss && slicesCss.length < 30) {
-      const remaining = contentEndCss - cursor;
-      // If rest of content + footer fits on one page → last slice
-      if (remaining + footerHCss <= clonePageHCss * 1.02) {
-        slicesCss.push(remaining);
-        break;
-      }
-      if (remaining <= clonePageHCss * 1.02) {
-        slicesCss.push(remaining);
-        break;
-      }
-      slicesCss.push(findBreak(breakCandidates, cursor, clonePageHCss, contentEndCss));
-      cursor += slicesCss[slicesCss.length - 1];
-    }
-
-    let canvasCursor = 0;
-    for (let p = 0; p < slicesCss.length; p++) {
-      const sliceH = Math.round(slicesCss[p] * cssToCanvas);
-      const isLast = p === slicesCss.length - 1;
-      drawPage(canvasCursor, sliceH, isLast && hasFooter, p === 0);
-      console.log(`[PDF] p${p + 1}: canvas ${canvasCursor}–${canvasCursor + sliceH}${isLast && hasFooter ? ' +footer' : ''}`);
-      canvasCursor += sliceH;
-    }
-    console.log('[PDF] Total pages:', slicesCss.length);
+    return pdfDoc.output('blob') as Blob;
   }
+
+  // Multi-page: slice content using CLONE CSS coordinates
+  const footerHCss = hasFooter ? cloneFooterHPx : 0;
+  let cursor = 0;
+  const slicesCss: number[] = [];
+
+  while (cursor < contentEndCss && slicesCss.length < 30) {
+    const remaining = contentEndCss - cursor;
+    // If rest + footer fits on one page → final slice
+    if (remaining + footerHCss <= clonePageHCss * 1.02) {
+      slicesCss.push(remaining);
+      break;
+    }
+    if (remaining <= clonePageHCss * 1.02) {
+      slicesCss.push(remaining);
+      break;
+    }
+    slicesCss.push(findBreak(breakCandidates, cursor, clonePageHCss, contentEndCss));
+    cursor += slicesCss[slicesCss.length - 1];
+  }
+
+  let canvasCursor = 0;
+  for (let p = 0; p < slicesCss.length; p++) {
+    const sliceH = Math.round(slicesCss[p] * cssToCanvas);
+    const isLast = p === slicesCss.length - 1;
+    drawPage(canvasCursor, sliceH, isLast && hasFooter, p === 0);
+    console.log(`[PDF] p${p + 1}: ${canvasCursor}–${canvasCursor + sliceH}px` + (isLast && hasFooter ? ' +footer' : ''));
+    canvasCursor += sliceH;
+  }
+  console.log('[PDF] Total pages:', slicesCss.length);
 
   return pdfDoc.output('blob') as Blob;
 }
