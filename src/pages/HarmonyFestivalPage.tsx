@@ -1365,6 +1365,27 @@ export default function HarmonyFestivalPage() {
                 </p>
               </div>
 
+              {/* Füchschen Alt – Lokaler Sponsor */}
+              <div className="mb-6 rounded-2xl p-6" style={{ background: 'rgba(180,60,20,0.06)', border: '1px solid rgba(180,60,20,0.2)' }}>
+                <div className="flex items-center gap-3 mb-5">
+                  <div className="w-2 h-2 rounded-full" style={{ background: '#B43C14', boxShadow: '0 0 8px #B43C1488' }} />
+                  <div style={{ fontFamily: "'Barlow Condensed', sans-serif", fontWeight: 700, fontSize: '13px', color: 'rgba(220,100,60,0.9)', letterSpacing: '0.12em', textTransform: 'uppercase' }}>
+                    Lokaler Sponsor
+                  </div>
+                </div>
+                <div className="flex items-center gap-5">
+                  <div className="rounded-xl p-3 flex-shrink-0" style={{ background: '#fff', width: '80px', height: '80px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                    <img src="/logo_fuechschen-alt.jpg" alt="Füchschen Alt" style={{ display: 'block', width: '100%', height: '100%', objectFit: 'contain', borderRadius: '6px' }} />
+                  </div>
+                  <div>
+                    <h4 style={{ fontFamily: "'Barlow Condensed', sans-serif", fontWeight: 700, fontSize: '20px', color: '#fff', marginBottom: '4px' }}>Füchschen Alt</h4>
+                    <p style={{ fontFamily: "'Inter', sans-serif", fontSize: '13px', color: 'rgba(160,230,230,0.55)', lineHeight: 1.65 }}>
+                      Eine traditionelle Brauerei aus der Düsseldorfer Altstadt – echtes Altbier, echter Charakter. Füchschen bringt die Altstadt-Seele zu Harmony.
+                    </p>
+                  </div>
+                </div>
+              </div>
+
               {/* Fränkische Biermarken */}
               <div className="mb-7 rounded-2xl p-6" style={{ background: 'rgba(200,232,64,0.04)', border: '1px solid rgba(200,232,64,0.12)' }}>
                 <div className="flex items-center gap-3 mb-4">
@@ -1374,13 +1395,14 @@ export default function HarmonyFestivalPage() {
                   </div>
                 </div>
                 <p style={{ fontFamily: "'Inter', sans-serif", fontSize: '13px', color: 'rgba(160,230,230,0.5)', lineHeight: 1.7, marginBottom: '16px' }}>
-                  Als Fürther bringe ich echtes fränkisches Handwerk mit nach Düsseldorf. Diese drei Brauereien zeigen, wie lokales Sponsoring aussehen kann – authentisch, mit Charakter.
+                  Als Fürther bringe ich echtes fränkisches Handwerk mit nach Düsseldorf – und mit Füchschen Alt eine echte Altstadt-Legende direkt aus Düsseldorf. Diese Brauereien zeigen, wie lokales Sponsoring aussehen kann – authentisch, mit Charakter.
                 </p>
-                <div className="grid grid-cols-3 gap-3">
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
                   {[
                     { file: 'gruner_bier_radeberger_gruppe_41338-167277218.png', name: 'Grüner Bier', city: 'Fürth' },
                     { file: 'Hofmann.png', name: 'Hofmann', city: 'Pahres' },
                     { file: 'brauerei-greif.png', name: 'Greif Bräu', city: 'Forchheim' },
+                    { file: 'logo_fuechschen-alt.jpg', name: 'Füchschen Alt', city: 'Düsseldorf' },
                   ].map(brand => (
                     <motion.div key={brand.name} whileHover={{ y: -2 }}
                       className="flex flex-col items-center gap-2 rounded-xl py-5 px-3 transition-all duration-200"
