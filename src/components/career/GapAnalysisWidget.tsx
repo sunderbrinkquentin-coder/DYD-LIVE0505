@@ -1,8 +1,7 @@
 import { useState } from 'react';
 import { TrendingUp, Lock, Sparkles, ArrowRight, Target } from 'lucide-react';
 import { LearningPath } from '../../types/learningPath';
-import { PaywallModal } from '../PaywallModal';
-import { careerService } from '../../services/careerService';
+import { LearningPathPaywall } from './LearningPathPaywall';
 
 interface GapAnalysisWidgetProps {
   learningPath: LearningPath;
@@ -80,13 +79,6 @@ export function GapAnalysisWidget({ learningPath, onStartLearning }: GapAnalysis
     } else {
       setShowPaywall(true);
     }
-  };
-
-  const handleUnlock = async () => {
-    await careerService.unlockLearningPath(learningPath.id);
-    setLocalPaid(true);
-    setShowPaywall(false);
-    onStartLearning?.();
   };
 
   const prioritySkills = missingSkills
@@ -226,12 +218,13 @@ export function GapAnalysisWidget({ learningPath, onStartLearning }: GapAnalysis
       </div>
 
       {showPaywall && (
-        <PaywallModal
+        <LearningPathPaywall
           isOpen={showPaywall}
           onClose={() => setShowPaywall(false)}
-          onConfirm={handleUnlock}
-          context="learning_path"
-          feature="Career Vision Learning Path"
+          learningPathId={learningPath.id}
+          targetJob={learningPath.target_job}
+          targetCompany={learningPath.target_company}
+          skillCount={missingSkillsCount}
         />
       )}
     </>

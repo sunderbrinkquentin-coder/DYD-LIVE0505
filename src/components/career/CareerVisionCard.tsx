@@ -5,8 +5,7 @@ import {
   Lightbulb, BarChart3, Trophy, PlayCircle, BookOpen, Wrench,
 } from 'lucide-react';
 import { LearningPath, Skill } from '../../types/learningPath';
-import { PaywallModal } from '../PaywallModal';
-import { careerService } from '../../services/careerService';
+import { LearningPathPaywall } from './LearningPathPaywall';
 
 // ── Skill normalization ────────────────────────────────────────────────────────
 
@@ -348,13 +347,6 @@ function CompactCard({ learningPath, onStartLearning }: Omit<CareerVisionCardPro
     else setShowPaywall(true);
   };
 
-  const handleUnlock = async () => {
-    await careerService.unlockLearningPath(learningPath.id);
-    setLocalPaid(true);
-    setShowPaywall(false);
-    onStartLearning?.();
-  };
-
   return (
     <>
       <div className="relative rounded-2xl overflow-hidden"
@@ -469,12 +461,13 @@ function CompactCard({ learningPath, onStartLearning }: Omit<CareerVisionCardPro
       </div>
 
       {showPaywall && (
-        <PaywallModal
+        <LearningPathPaywall
           isOpen
           onClose={() => setShowPaywall(false)}
-          onConfirm={handleUnlock}
-          context="learning_path"
-          feature="Career Vision Learning Path"
+          learningPathId={learningPath.id}
+          targetJob={learningPath.target_job}
+          targetCompany={learningPath.target_company}
+          skillCount={sorted.length}
         />
       )}
     </>
@@ -500,13 +493,6 @@ function DetailCard({ learningPath, onStartLearning }: Omit<CareerVisionCardProp
   const handleCta = (skillIdx?: number) => {
     if (isPaidOrFree) onStartLearning?.(skillIdx);
     else setShowPaywall(true);
-  };
-
-  const handleUnlock = async () => {
-    await careerService.unlockLearningPath(learningPath.id);
-    setLocalPaid(true);
-    setShowPaywall(false);
-    onStartLearning?.();
   };
 
   // Split skills by category for visual grouping
@@ -722,12 +708,13 @@ function DetailCard({ learningPath, onStartLearning }: Omit<CareerVisionCardProp
       </div>
 
       {showPaywall && (
-        <PaywallModal
+        <LearningPathPaywall
           isOpen
           onClose={() => setShowPaywall(false)}
-          onConfirm={handleUnlock}
-          context="learning_path"
-          feature="Career Vision Learning Path"
+          learningPathId={learningPath.id}
+          targetJob={learningPath.target_job}
+          targetCompany={learningPath.target_company}
+          skillCount={sorted.length}
         />
       )}
     </>

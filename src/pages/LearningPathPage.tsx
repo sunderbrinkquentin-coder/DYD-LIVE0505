@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
+import { useParams, useNavigate, useSearchParams } from 'react-router-dom';
 import { ArrowLeft, Loader2, AlertCircle } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import { LearningPathDashboard } from '../components/career/LearningPathDashboard';
@@ -13,6 +13,7 @@ export default function LearningPathPage() {
   const { pathId } = useParams<{ pathId: string }>();
   const { user } = useAuth();
   const navigate = useNavigate();
+  const [searchParams, setSearchParams] = useSearchParams();
 
   const [learningPath, setLearningPath] = useState<LearningPath | null>(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -28,6 +29,19 @@ export default function LearningPathPage() {
       loadLearningPath(true);
     }
   }, [pathId]);
+
+  // Handle Stripe payment success return
+  useEffect(() => {
+    const payment = searchParams.get('payment');
+    if (payment === 'success' && pathId) {
+      // Remove the query param so a refresh doesn't re-trigger
+      setSearchParams({}, { replace: true });
+      careerService.unlockLearningPath(pathId).catch((e) =>
+        console.error('[LearningPath] Unlock after payment failed:', e)
+      );
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   // Realtime: any UPDATE on this row triggers a silent re-fetch (no loader flicker)
   useEffect(() => {
