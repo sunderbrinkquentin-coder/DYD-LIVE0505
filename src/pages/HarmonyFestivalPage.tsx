@@ -1386,6 +1386,27 @@ export default function HarmonyFestivalPage() {
                 </div>
               </div>
 
+              {/* Monsterslush – Lokaler Sponsor */}
+              <div className="mb-6 rounded-2xl p-6" style={{ background: 'rgba(220,40,40,0.05)', border: '1px solid rgba(220,40,40,0.18)' }}>
+                <div className="flex items-center gap-3 mb-5">
+                  <div className="w-2 h-2 rounded-full" style={{ background: '#DC2828', boxShadow: '0 0 8px #DC282888' }} />
+                  <div style={{ fontFamily: "'Barlow Condensed', sans-serif", fontWeight: 700, fontSize: '13px', color: 'rgba(220,80,60,0.9)', letterSpacing: '0.12em', textTransform: 'uppercase' }}>
+                    Lokaler Sponsor
+                  </div>
+                </div>
+                <div className="flex items-center gap-5">
+                  <div className="rounded-xl p-2 flex-shrink-0" style={{ background: '#fff', width: '80px', height: '80px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                    <img src="/monsterslush-logo.png" alt="Monsterslush" style={{ display: 'block', width: '100%', height: '100%', objectFit: 'contain' }} />
+                  </div>
+                  <div>
+                    <h4 style={{ fontFamily: "'Barlow Condensed', sans-serif", fontWeight: 700, fontSize: '20px', color: '#fff', marginBottom: '4px' }}>Monsterslush</h4>
+                    <p style={{ fontFamily: "'Inter', sans-serif", fontSize: '13px', color: 'rgba(160,230,230,0.55)', lineHeight: 1.65 }}>
+                      Kühle Erfrischung für heiße Abende – Monsterslush sorgt dafür, dass auf Harmony niemand dursten muss.
+                    </p>
+                  </div>
+                </div>
+              </div>
+
               {/* Fränkische Biermarken */}
               <div className="mb-7 rounded-2xl p-6" style={{ background: 'rgba(200,232,64,0.04)', border: '1px solid rgba(200,232,64,0.12)' }}>
                 <div className="flex items-center gap-3 mb-4">
