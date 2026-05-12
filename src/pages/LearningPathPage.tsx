@@ -180,7 +180,7 @@ export default function LearningPathPage() {
             <CareerVisionCard
               learningPath={learningPath}
               variant="detail"
-              onStartLearning={() => {
+              onStartLearning={(_skillIndex?: number) => {
                 if (learningPath.is_paid || !!learningPath.curriculum) {
                   navigate(`/learning-path/${learningPath.id}`);
                 }

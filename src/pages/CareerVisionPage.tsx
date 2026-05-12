@@ -115,7 +115,7 @@ export default function CareerVisionPage() {
                   key={path.id}
                   learningPath={path}
                   variant="compact"
-                  onStartLearning={() => navigate(`/learning-path/${path.id}`)}
+                  onStartLearning={(_skillIndex?: number) => navigate(`/learning-path/${path.id}`)}
                 />
               ))}
             </div>

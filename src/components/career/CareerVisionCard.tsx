@@ -2,7 +2,7 @@ import { useState } from 'react';
 import {
   ArrowRight, Sparkles, TrendingUp, Zap, Target, Building2,
   Lock, Brain, ChevronRight, CheckCircle2, XCircle, Flame,
-  Lightbulb, BarChart3, Trophy,
+  Lightbulb, BarChart3, Trophy, PlayCircle, BookOpen, Wrench,
 } from 'lucide-react';
 import { LearningPath, Skill } from '../../types/learningPath';
 import { PaywallModal } from '../PaywallModal';
@@ -29,28 +29,44 @@ function skillName(s: Skill & Record<string, any>): string {
   return (s as any).skill_name || s.name || '';
 }
 
+// Handles both numeric (1-5) and string ("High"/"Medium"/"Low") severity
 function severityOf(s: Skill & Record<string, any>): number {
-  return (s as any).gap_severity ?? (s.priority === 'high' ? 4 : s.priority === 'medium' ? 3 : 2);
+  const raw = (s as any).gap_severity;
+  if (typeof raw === 'number') return raw;
+  if (typeof raw === 'string') {
+    const lower = raw.toLowerCase();
+    if (lower === 'high') return 4;
+    if (lower === 'medium') return 3;
+    if (lower === 'low') return 2;
+  }
+  // Fallback from priority field
+  if (s.priority === 'high') return 4;
+  if (s.priority === 'medium') return 3;
+  return 2;
 }
 
-// ── ARCS color palette — each tier has a distinct hue ─────────────────────────
+function categoryOf(s: Skill & Record<string, any>): 'Hard' | 'Soft' {
+  const cat = (s as any).category;
+  if (typeof cat === 'string' && cat.toLowerCase() === 'soft') return 'Soft';
+  return 'Hard';
+}
 
-// Tier colours are deliberately varied so the card has chromatic richness
+// ── Color palette ──────────────────────────────────────────────────────────────
+
 const SKILL_PALETTE = [
-  { color: '#30E3CA', bg: 'rgba(48,227,202,0.12)',  border: 'rgba(48,227,202,0.28)',  glow: 'rgba(48,227,202,0.18)'  }, // teal
-  { color: '#f97316', bg: 'rgba(249,115,22,0.12)',  border: 'rgba(249,115,22,0.28)',  glow: 'rgba(249,115,22,0.15)'  }, // orange
-  { color: '#a78bfa', bg: 'rgba(167,139,250,0.10)', border: 'rgba(167,139,250,0.25)', glow: 'rgba(167,139,250,0.12)' }, // violet — only used when user explicitly picks it, never default
-  { color: '#22c55e', bg: 'rgba(34,197,94,0.10)',   border: 'rgba(34,197,94,0.25)',   glow: 'rgba(34,197,94,0.12)'  }, // green
-  { color: '#f59e0b', bg: 'rgba(245,158,11,0.10)',  border: 'rgba(245,158,11,0.25)',  glow: 'rgba(245,158,11,0.12)' }, // amber
-  { color: '#38bdf8', bg: 'rgba(56,189,248,0.10)',  border: 'rgba(56,189,248,0.25)',  glow: 'rgba(56,189,248,0.12)' }, // sky
+  { color: '#30E3CA', bg: 'rgba(48,227,202,0.10)',  border: 'rgba(48,227,202,0.25)' }, // teal
+  { color: '#f97316', bg: 'rgba(249,115,22,0.10)',  border: 'rgba(249,115,22,0.25)' }, // orange
+  { color: '#22c55e', bg: 'rgba(34,197,94,0.10)',   border: 'rgba(34,197,94,0.22)'  }, // green
+  { color: '#f59e0b', bg: 'rgba(245,158,11,0.10)',  border: 'rgba(245,158,11,0.22)' }, // amber
+  { color: '#38bdf8', bg: 'rgba(56,189,248,0.10)',  border: 'rgba(56,189,248,0.22)' }, // sky
+  { color: '#fb7185', bg: 'rgba(251,113,133,0.10)', border: 'rgba(251,113,133,0.22)' }, // rose
 ];
 
-// Map severity → palette slot (top-severity gets teal/orange accent, lower gets cooler)
 const TIERS = [
   { min: 4, palette: 0, label: 'Top-Hebel',    icon: Flame },
   { min: 3, palette: 1, label: 'Hoher Impact',  icon: TrendingUp },
-  { min: 2, palette: 3, label: 'Quick Win',     icon: Lightbulb },
-  { min: 0, palette: 5, label: 'Nice-to-have',  icon: BarChart3 },
+  { min: 2, palette: 2, label: 'Quick Win',     icon: Lightbulb },
+  { min: 0, palette: 4, label: 'Nice-to-have',  icon: BarChart3 },
 ];
 
 function tierOf(sev: number) {
@@ -84,71 +100,71 @@ function ReadinessRing({ score }: { score: number }) {
   );
 }
 
-// ── ARCS skill tile (compact dashboard) ───────────────────────────────────────
-// Each tile = one skill card showing:
-//   A — Attention:  vivid color + skill name + tier badge
-//   R — Relevance:  pitch (WHY this matters for the user's target)
-//   C — Confidence: market_value_bonus (what they gain)
-//   S — Satisfaction: implied via the CTA "Skill freischalten"
+// ── Skill Tile — used in compact grid ─────────────────────────────────────────
 
-function ARCSSkillTile({
-  skill, index, targetJob,
-}: { skill: Skill & Record<string, any>; index: number; targetJob: string }) {
-  const name   = skillName(skill);
-  const sev    = severityOf(skill);
-  const t      = tierOf(sev);
-  const p      = paletteOf(sev);
-  const pitch  = (skill as any).pitch || '';
-  const bonus  = (skill as any).market_value_bonus || '';
+function SkillTile({
+  skill, index, targetJob, onStart, isLocked,
+}: {
+  skill: Skill & Record<string, any>;
+  index: number;
+  targetJob: string;
+  onStart: () => void;
+  isLocked: boolean;
+}) {
+  const name  = skillName(skill);
+  const sev   = severityOf(skill);
+  const t     = tierOf(sev);
+  const p     = paletteOf(sev);
+  const pitch = (skill as any).pitch || '';
+  const cat   = categoryOf(skill);
   const TierIcon = t.icon;
+  const CatIcon  = cat === 'Hard' ? Wrench : Brain;
 
   if (!name) return null;
 
   return (
     <div
-      className="relative rounded-2xl overflow-hidden flex flex-col"
+      className="relative rounded-2xl overflow-hidden flex flex-col group/tile cursor-pointer transition-all duration-200 hover:scale-[1.015]"
       style={{ background: p.bg, border: `1px solid ${p.border}` }}
+      onClick={onStart}
     >
-      {/* Glow accent top */}
-      <div className="h-[2px]" style={{ background: `linear-gradient(90deg,${p.color},transparent)` }} />
+      {/* Top accent line */}
+      <div className="h-[2px]" style={{ background: `linear-gradient(90deg,${p.color},transparent 70%)` }} />
 
-      {/* Corner number */}
-      <div className="absolute top-2.5 right-2.5 w-6 h-6 rounded-full flex items-center justify-center text-[10px] font-black"
-        style={{ background: 'rgba(0,0,0,0.35)', color: p.color }}>
+      {/* Corner number badge */}
+      <div className="absolute top-2.5 right-2.5 w-5 h-5 rounded-full flex items-center justify-center text-[9px] font-black"
+        style={{ background: 'rgba(0,0,0,0.40)', color: p.color }}>
         {index + 1}
       </div>
 
-      <div className="p-4 flex flex-col gap-3 flex-1">
-        {/* A — Attention: tier badge + name */}
-        <div className="space-y-1.5">
-          <div className="flex items-center gap-1.5">
-            <TierIcon size={11} style={{ color: p.color }} />
+      <div className="p-4 flex flex-col gap-2.5 flex-1">
+        {/* Tier + category badges */}
+        <div className="flex items-center gap-1.5 flex-wrap">
+          <div className="flex items-center gap-1">
+            <TierIcon size={10} style={{ color: p.color }} />
             <span className="text-[9px] font-black uppercase tracking-widest" style={{ color: p.color }}>
               {t.label}
             </span>
           </div>
-          <h4 className="text-[14px] font-black text-white leading-snug pr-6">{name}</h4>
+          <span className="flex items-center gap-0.5 text-[9px] font-bold px-1.5 py-0.5 rounded-full"
+            style={{ background: 'rgba(255,255,255,0.06)', color: 'rgba(255,255,255,0.45)' }}>
+            <CatIcon size={8} />{cat}
+          </span>
         </div>
 
-        {/* R — Relevance: pitch (WHY it matters) */}
+        {/* Skill name */}
+        <h4 className="text-[13px] font-black text-white leading-snug pr-4">{name}</h4>
+
+        {/* Pitch */}
         {pitch ? (
-          <p className="text-[11px] text-white/60 leading-relaxed flex-1">{pitch}</p>
+          <p className="text-[11px] text-white/55 leading-relaxed flex-1 line-clamp-3">{pitch}</p>
         ) : (
-          <p className="text-[11px] text-white/45 leading-relaxed flex-1">
+          <p className="text-[11px] text-white/35 leading-relaxed flex-1">
             Kritischer Skill für den Karriereschritt zum {targetJob}.
           </p>
         )}
 
-        {/* C — Confidence: market value gain */}
-        {bonus && (
-          <div className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg"
-            style={{ background: 'rgba(0,0,0,0.25)', border: `1px solid ${p.border}` }}>
-            <Zap size={10} className="text-amber-400 flex-shrink-0" />
-            <span className="text-[10px] font-black text-amber-300 leading-snug">{bonus}</span>
-          </div>
-        )}
-
-        {/* S — Satisfaction: impact bar */}
+        {/* Impact bar */}
         <div className="flex items-center gap-2">
           <div className="flex gap-0.5 flex-1">
             {Array.from({ length: 5 }).map((_, i) => (
@@ -158,21 +174,40 @@ function ARCSSkillTile({
           </div>
           <span className="text-[9px] text-white/30 font-bold whitespace-nowrap">Impact {sev}/5</span>
         </div>
+
+        {/* Start CTA */}
+        <button
+          className="mt-1 w-full py-2 rounded-xl text-[11px] font-black flex items-center justify-center gap-1.5 transition-all duration-150 group-hover/tile:gap-2"
+          style={{
+            background: isLocked ? 'rgba(255,255,255,0.05)' : `${p.color}18`,
+            border: isLocked ? '1px solid rgba(255,255,255,0.10)' : `1px solid ${p.border}`,
+            color: isLocked ? 'rgba(255,255,255,0.40)' : p.color,
+          }}
+          onClick={(e) => { e.stopPropagation(); onStart(); }}
+        >
+          {isLocked ? (
+            <><Lock size={10} />Lernpfad freischalten</>
+          ) : (
+            <><PlayCircle size={10} />Lernpfad starten<ArrowRight size={9} className="transition-transform group-hover/tile:translate-x-0.5" /></>
+          )}
+        </button>
       </div>
     </div>
   );
 }
 
-// ── Skill row for detail view — expandable ────────────────────────────────────
+// ── Skill Row — used in detail view, expandable ───────────────────────────────
 
 function SkillRow({
-  skill, rank, targetJob, targetCompany, isFirst,
+  skill, rank, targetJob, targetCompany, isFirst, onStart, isLocked,
 }: {
   skill: Skill & Record<string, any>;
   rank: number;
   targetJob: string;
   targetCompany?: string;
   isFirst: boolean;
+  onStart: () => void;
+  isLocked: boolean;
 }) {
   const [open, setOpen] = useState(false);
   const name  = skillName(skill);
@@ -181,15 +216,17 @@ function SkillRow({
   const t     = tierOf(sev);
   const pitch = (skill as any).pitch || '';
   const bonus = (skill as any).market_value_bonus || '';
+  const cat   = categoryOf(skill);
   const TierIcon = t.icon;
+  const CatIcon  = cat === 'Hard' ? Wrench : Brain;
 
   if (!name) return null;
 
   return (
-    <div className="overflow-hidden transition-all duration-300"
+    <div className="overflow-hidden transition-all duration-300 group/row"
       style={{
         borderRadius: '14px',
-        border: `1px solid ${open ? p.color + '35' : 'rgba(255,255,255,0.07)'}`,
+        border: `1px solid ${open ? p.color + '40' : 'rgba(255,255,255,0.07)'}`,
         background: open ? p.bg : 'rgba(255,255,255,0.015)',
       }}>
       <button className="w-full flex items-center gap-3 px-4 py-3.5 text-left"
@@ -201,10 +238,14 @@ function SkillRow({
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-2 flex-wrap">
             <span className="font-bold text-white text-[13px] leading-snug">{name}</span>
+            <span className="flex items-center gap-0.5 text-[9px] px-1.5 py-0.5 rounded-full font-bold"
+              style={{ background: 'rgba(255,255,255,0.05)', color: 'rgba(255,255,255,0.35)' }}>
+              <CatIcon size={8} />{cat}
+            </span>
             {isFirst && (
               <span className="text-[9px] font-black uppercase tracking-widest px-1.5 py-0.5 rounded"
                 style={{ background: p.color, color: '#000' }}>
-                Start hier
+                Einstieg
               </span>
             )}
           </div>
@@ -231,7 +272,7 @@ function SkillRow({
       </button>
 
       <div className="overflow-hidden transition-all duration-300"
-        style={{ maxHeight: open ? '260px' : '0', opacity: open ? 1 : 0 }}>
+        style={{ maxHeight: open ? '320px' : '0', opacity: open ? 1 : 0 }}>
         <div className="px-4 pb-4 space-y-3 border-t" style={{ borderColor: `${p.color}15` }}>
           {pitch && <p className="text-[12px] text-white/65 leading-relaxed pt-3">{pitch}</p>}
           <div className="grid grid-cols-2 gap-2">
@@ -254,11 +295,24 @@ function SkillRow({
               </p>
             </div>
           </div>
-          <div className="flex items-center gap-1.5 text-[10px] text-white/30">
-            <TierIcon size={10} style={{ color: p.color }} />
-            <span style={{ color: p.color }}>{t.label}</span>
-            <span className="mx-1">·</span>
-            <span>Impact {sev}/5</span>
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-1.5 text-[10px] text-white/30">
+              <TierIcon size={10} style={{ color: p.color }} />
+              <span style={{ color: p.color }}>{t.label}</span>
+              <span className="mx-1">·</span>
+              <span>Impact {sev}/5</span>
+            </div>
+            <button
+              onClick={(e) => { e.stopPropagation(); onStart(); }}
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[11px] font-black transition-all hover:scale-105"
+              style={{
+                background: isLocked ? 'rgba(255,255,255,0.05)' : `${p.color}18`,
+                border: isLocked ? '1px solid rgba(255,255,255,0.10)' : `1px solid ${p.border}`,
+                color: isLocked ? 'rgba(255,255,255,0.45)' : p.color,
+              }}
+            >
+              {isLocked ? <><Lock size={10} />Freischalten</> : <><PlayCircle size={10} />Jetzt starten</>}
+            </button>
           </div>
         </div>
       </div>
@@ -271,28 +325,26 @@ function SkillRow({
 interface CareerVisionCardProps {
   learningPath: LearningPath;
   variant?: 'compact' | 'detail';
-  onStartLearning?: () => void;
+  onStartLearning?: (skillIndex?: number) => void;
 }
 
-// ── COMPACT variant — ARCS-driven, colorful ───────────────────────────────────
+// ── COMPACT variant ───────────────────────────────────────────────────────────
 
 function CompactCard({ learningPath, onStartLearning }: Omit<CareerVisionCardProps, 'variant'>) {
   const [showPaywall, setShowPaywall] = useState(false);
 
-  const missing    = toSkillArray(learningPath.missing_skills);
-  const sorted     = [...missing].sort((a, b) => severityOf(b) - severityOf(a));
-  const topSkills  = sorted.slice(0, 4);
-  const score      = learningPath.match_score ?? 0;
-  const outlook    = learningPath.strategic_outlook_2026 ?? '';
+  const missing      = toSkillArray(learningPath.missing_skills);
+  const sorted       = [...missing].sort((a, b) => severityOf(b) - severityOf(a));
+  const topSkills    = sorted.slice(0, 4);
+  const score        = learningPath.match_score ?? 0;
+  const outlook      = learningPath.strategic_outlook_2026 ?? (learningPath as any).market_trend_2026 ?? '';
   const isPaidOrFree = learningPath.is_paid || !!learningPath.curriculum;
+  const accentColor  = sorted[0] ? paletteOf(severityOf(sorted[0])).color : '#30E3CA';
 
-  const handleCta = () => {
-    if (isPaidOrFree) onStartLearning?.();
+  const handleCta = (skillIdx?: number) => {
+    if (isPaidOrFree) onStartLearning?.(skillIdx);
     else setShowPaywall(true);
   };
-
-  // Pick dominant color from top skill for card accent
-  const accentColor = sorted[0] ? paletteOf(severityOf(sorted[0])).color : '#30E3CA';
 
   return (
     <>
@@ -300,24 +352,18 @@ function CompactCard({ learningPath, onStartLearning }: Omit<CareerVisionCardPro
         style={{
           background: 'linear-gradient(160deg,rgba(10,14,30,0.98),rgba(15,20,40,0.99))',
           border: `1px solid ${accentColor}25`,
-          boxShadow: `0 0 0 0 transparent`,
         }}>
-
-        {/* Top gradient bar — vivid */}
         <div className="h-[3px]"
-          style={{ background: `linear-gradient(90deg,${accentColor},${SKILL_PALETTE[1].color},${SKILL_PALETTE[3].color})` }} />
+          style={{ background: `linear-gradient(90deg,${accentColor},${SKILL_PALETTE[1].color},${SKILL_PALETTE[2].color})` }} />
 
-        {/* Background glow */}
+        {/* Ambient glow */}
         <div className="absolute inset-0 pointer-events-none overflow-hidden">
           <div className="absolute -top-12 -right-12 w-48 h-48 rounded-full opacity-[0.06]"
             style={{ background: `radial-gradient(circle,${accentColor},transparent)` }} />
-          <div className="absolute -bottom-8 -left-8 w-32 h-32 rounded-full opacity-[0.04]"
-            style={{ background: `radial-gradient(circle,${SKILL_PALETTE[1].color},transparent)` }} />
         </div>
 
         <div className="relative p-5 space-y-5">
-
-          {/* ── Header: job + readiness ring ── */}
+          {/* Header */}
           <div className="flex items-start gap-4">
             {score > 0 && <ReadinessRing score={score} />}
             <div className="flex-1 min-w-0 space-y-1.5 pt-1">
@@ -341,7 +387,7 @@ function CompactCard({ learningPath, onStartLearning }: Omit<CareerVisionCardPro
             </div>
           </div>
 
-          {/* ── ARCS — market insight (Relevance) ── */}
+          {/* Market insight */}
           {outlook && (
             <div className="flex gap-2.5 items-start p-3 rounded-xl"
               style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.07)' }}>
@@ -350,38 +396,41 @@ function CompactCard({ learningPath, onStartLearning }: Omit<CareerVisionCardPro
             </div>
           )}
 
-          {/* ── ARCS skill tiles grid ── */}
+          {/* Skill tiles grid — each individually startable */}
           {topSkills.length > 0 && (
             <div className="space-y-2">
               <div className="flex items-center justify-between">
-                <p className="text-[9px] font-black uppercase tracking-widest text-white/35">
-                  {sorted.length} Wachstums-Chancen
-                </p>
+                <div className="flex items-center gap-1.5">
+                  <Sparkles size={11} style={{ color: accentColor }} />
+                  <p className="text-[9px] font-black uppercase tracking-widest text-white/35">
+                    {sorted.length} Lernpfade verfügbar
+                  </p>
+                </div>
                 {sorted.length > 4 && (
                   <span className="text-[9px] text-white/25">+{sorted.length - 4} weitere</span>
                 )}
               </div>
-
-              {/* 2-column grid for top 4 skill tiles */}
               <div className="grid grid-cols-2 gap-2">
                 {topSkills.map((skill, i) => (
-                  <ARCSSkillTile
+                  <SkillTile
                     key={i}
                     skill={skill}
                     index={i}
                     targetJob={learningPath.target_job}
+                    onStart={() => handleCta(i)}
+                    isLocked={!isPaidOrFree}
                   />
                 ))}
               </div>
             </div>
           )}
 
-          {/* ── Stats row ── */}
+          {/* Stats row */}
           <div className="grid grid-cols-3 gap-2">
             {[
-              { val: sorted.length,              label: 'Chancen',   color: accentColor },
+              { val: sorted.length,              label: 'Lernpfade', color: accentColor },
               { val: sorted.filter(s => severityOf(s) >= 4).length, label: 'Top-Hebel', color: SKILL_PALETTE[1].color },
-              { val: toSkillArray(learningPath.current_skills ?? []).length, label: 'Basis',  color: SKILL_PALETTE[3].color },
+              { val: toSkillArray(learningPath.current_skills ?? []).length, label: 'Basis',  color: SKILL_PALETTE[2].color },
             ].map(({ val, label, color }) => (
               <div key={label} className="flex flex-col items-center py-2.5 rounded-xl"
                 style={{ background: `${color}09`, border: `1px solid ${color}18` }}>
@@ -391,17 +440,17 @@ function CompactCard({ learningPath, onStartLearning }: Omit<CareerVisionCardPro
             ))}
           </div>
 
-          {/* ── CTA ── */}
+          {/* Main CTA */}
           <button
-            onClick={handleCta}
+            onClick={() => handleCta()}
             className="group/btn relative w-full py-3.5 rounded-xl font-black text-[14px] text-black flex items-center justify-center gap-2.5 overflow-hidden transition-all duration-200 hover:scale-[1.015] active:scale-[0.98]"
             style={{ background: `linear-gradient(135deg,${accentColor},${SKILL_PALETTE[1].color})` }}
           >
             <div className="absolute inset-0 pointer-events-none"
               style={{ background: 'linear-gradient(90deg,transparent,rgba(255,255,255,0.14),transparent)', backgroundSize: '200% 100%', animation: 'cvShimmerC 2.5s ease-in-out infinite' }} />
             {isPaidOrFree
-              ? <><Trophy size={15} className="relative z-10 group-hover/btn:scale-110 transition-transform" /><span className="relative z-10">Lernpfad starten</span><ArrowRight size={14} className="relative z-10 group-hover/btn:translate-x-0.5 transition-transform" /></>
-              : <><Lock size={15} className="relative z-10" /><span className="relative z-10">Exklusiven Fahrplan freischalten</span><ArrowRight size={14} className="relative z-10 group-hover/btn:translate-x-0.5 transition-transform" /></>
+              ? <><Trophy size={15} className="relative z-10" /><span className="relative z-10">Alle Lernpfade starten</span><ArrowRight size={14} className="relative z-10 group-hover/btn:translate-x-0.5 transition-transform" /></>
+              : <><Lock size={15} className="relative z-10" /><span className="relative z-10">Lernpfade freischalten</span><ArrowRight size={14} className="relative z-10 group-hover/btn:translate-x-0.5 transition-transform" /></>
             }
           </button>
         </div>
@@ -417,29 +466,33 @@ function CompactCard({ learningPath, onStartLearning }: Omit<CareerVisionCardPro
   );
 }
 
-// ── DETAIL variant (Analysis result / LearningPathPage) ───────────────────────
+// ── DETAIL variant ─────────────────────────────────────────────────────────────
 
 function DetailCard({ learningPath, onStartLearning }: Omit<CareerVisionCardProps, 'variant'>) {
   const [showPaywall, setShowPaywall] = useState(false);
 
-  const missing  = toSkillArray(learningPath.missing_skills);
-  const current  = toSkillArray(learningPath.current_skills ?? []);
-  const sorted   = [...missing].sort((a, b) => severityOf(b) - severityOf(a));
-  const topSkill = sorted[0];
-  const score    = learningPath.match_score ?? 0;
-  const outlook  = learningPath.strategic_outlook_2026 ?? '';
+  const missing      = toSkillArray(learningPath.missing_skills);
+  const current      = toSkillArray(learningPath.current_skills ?? []);
+  const sorted       = [...missing].sort((a, b) => severityOf(b) - severityOf(a));
+  const topSkill     = sorted[0];
+  const score        = learningPath.match_score ?? 0;
+  const outlook      = learningPath.strategic_outlook_2026 ?? (learningPath as any).market_trend_2026 ?? '';
   const isPaidOrFree = learningPath.is_paid || !!learningPath.curriculum;
-  const highCount = sorted.filter((s) => severityOf(s) >= 4).length;
-  const accentColor = sorted[0] ? paletteOf(severityOf(sorted[0])).color : '#30E3CA';
+  const highCount    = sorted.filter((s) => severityOf(s) >= 4).length;
+  const accentColor  = sorted[0] ? paletteOf(severityOf(sorted[0])).color : '#30E3CA';
 
-  const handleCta = () => {
-    if (isPaidOrFree) onStartLearning?.();
+  const handleCta = (skillIdx?: number) => {
+    if (isPaidOrFree) onStartLearning?.(skillIdx);
     else setShowPaywall(true);
   };
 
+  // Split skills by category for visual grouping
+  const hardSkills = sorted.filter(s => categoryOf(s) === 'Hard');
+  const softSkills = sorted.filter(s => categoryOf(s) === 'Soft');
+
   return (
     <>
-      <div className="space-y-4">
+      <div className="space-y-5">
 
         {/* ── 1. Hero summary bar ── */}
         <div className="relative overflow-hidden rounded-2xl p-5"
@@ -449,8 +502,6 @@ function DetailCard({ learningPath, onStartLearning }: Omit<CareerVisionCardProp
           }}>
           <div className="absolute top-0 left-0 right-0 h-px"
             style={{ background: `linear-gradient(90deg,transparent,${accentColor}80,transparent)` }} />
-          <div className="absolute right-0 top-0 bottom-0 w-32 pointer-events-none opacity-[0.05]"
-            style={{ background: `radial-gradient(circle at right center,${accentColor},transparent)` }} />
 
           <div className="flex items-center gap-4 relative">
             {score > 0 && <ReadinessRing score={score} />}
@@ -476,9 +527,9 @@ function DetailCard({ learningPath, onStartLearning }: Omit<CareerVisionCardProp
             </div>
             <div className="flex-shrink-0 hidden sm:flex flex-col gap-1.5 text-right">
               {[
-                { val: sorted.length,  label: 'Chancen',      color: accentColor },
+                { val: sorted.length,  label: 'Lernpfade',    color: accentColor },
                 { val: highCount,      label: 'Top-Hebel',    color: SKILL_PALETTE[1].color },
-                { val: current.length, label: 'Basis-Skills', color: SKILL_PALETTE[3].color },
+                { val: current.length, label: 'Basis-Skills', color: SKILL_PALETTE[2].color },
               ].map(({ val, label, color }) => (
                 <div key={label} className="flex items-center justify-end gap-1.5">
                   <span className="text-[11px] font-black" style={{ color }}>{val}</span>
@@ -495,52 +546,100 @@ function DetailCard({ learningPath, onStartLearning }: Omit<CareerVisionCardProp
             style={{ background: 'rgba(102,192,182,0.05)', border: '1px solid rgba(102,192,182,0.13)' }}>
             <Brain size={15} className="text-[#66c0b6] flex-shrink-0 mt-0.5" />
             <div className="space-y-1 flex-1">
-              <p className="text-[9px] font-black text-[#66c0b6]/70 uppercase tracking-widest">Markt-Insight</p>
+              <p className="text-[9px] font-black text-[#66c0b6]/70 uppercase tracking-widest">Markt-Insight 2026</p>
               <p className="text-[12px] text-white/65 leading-relaxed">{outlook}</p>
             </div>
           </div>
         )}
 
-        {/* ── 3. Skill list — ranked, expandable ── */}
-        {sorted.length > 0 && (
-          <div className="space-y-2">
-            <div className="flex items-center justify-between px-1">
-              <div className="flex items-center gap-2">
-                <Sparkles size={13} className="text-[#30E3CA]" />
-                <span className="text-[11px] font-black text-white uppercase tracking-wider">
-                  Deine {sorted.length} Wachstums-Chancen
-                </span>
-              </div>
-              <span className="text-[10px] text-white/25 italic">Klappe für Details</span>
+        {/* ── 3. Current skills summary ── */}
+        {current.length > 0 && (
+          <div className="p-4 rounded-xl space-y-2"
+            style={{ background: 'rgba(34,197,94,0.04)', border: '1px solid rgba(34,197,94,0.12)' }}>
+            <div className="flex items-center gap-1.5">
+              <CheckCircle2 size={12} className="text-green-400" />
+              <p className="text-[9px] font-black text-green-400/70 uppercase tracking-widest">Deine vorhandene Basis</p>
             </div>
-            <div className="space-y-1.5">
-              {sorted.map((skill, i) => (
-                <SkillRow key={i} skill={skill} rank={i + 1}
-                  targetJob={learningPath.target_job}
-                  targetCompany={learningPath.target_company}
-                  isFirst={i === 0} />
-              ))}
-            </div>
+            <p className="text-[12px] text-white/65 leading-relaxed">{typeof current[0] === 'string' ? current[0] : (current[0] as any).name || (current[0] as any).skill_name || ''}</p>
           </div>
         )}
 
-        {/* ── 4. Ist-Soll bridge ── */}
-        {current.length > 0 && sorted.length > 0 && (
+        {/* ── 4. Skill rows — grouped by category ── */}
+        {sorted.length > 0 && (
+          <div className="space-y-4">
+            {/* Hard skills */}
+            {hardSkills.length > 0 && (
+              <div className="space-y-2">
+                <div className="flex items-center gap-2 px-1">
+                  <Wrench size={12} className="text-[#30E3CA]" />
+                  <span className="text-[10px] font-black text-white/40 uppercase tracking-wider">
+                    Hard Skills · {hardSkills.length} Lernpfade
+                  </span>
+                </div>
+                <div className="space-y-1.5">
+                  {hardSkills.map((skill, i) => (
+                    <SkillRow key={i} skill={skill}
+                      rank={sorted.indexOf(skill) + 1}
+                      targetJob={learningPath.target_job}
+                      targetCompany={learningPath.target_company}
+                      isFirst={sorted.indexOf(skill) === 0}
+                      onStart={() => handleCta(sorted.indexOf(skill))}
+                      isLocked={!isPaidOrFree}
+                    />
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* Soft skills */}
+            {softSkills.length > 0 && (
+              <div className="space-y-2">
+                <div className="flex items-center gap-2 px-1">
+                  <Brain size={12} className="text-[#f97316]" />
+                  <span className="text-[10px] font-black text-white/40 uppercase tracking-wider">
+                    Soft Skills · {softSkills.length} Lernpfade
+                  </span>
+                </div>
+                <div className="space-y-1.5">
+                  {softSkills.map((skill, i) => (
+                    <SkillRow key={i} skill={skill}
+                      rank={sorted.indexOf(skill) + 1}
+                      targetJob={learningPath.target_job}
+                      targetCompany={learningPath.target_company}
+                      isFirst={false}
+                      onStart={() => handleCta(sorted.indexOf(skill))}
+                      isLocked={!isPaidOrFree}
+                    />
+                  ))}
+                </div>
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* ── 5. Existing skills bridge ── */}
+        {current.length > 0 && sorted.length > 0 && typeof current[0] !== 'string' && (
           <div className="rounded-xl overflow-hidden" style={{ border: '1px solid rgba(255,255,255,0.07)' }}>
             <div className="grid grid-cols-2 divide-x divide-white/7">
-              <div className="p-4 space-y-2" style={{ background: 'rgba(102,192,182,0.04)' }}>
-                <p className="text-[9px] font-black text-[#66c0b6]/60 uppercase tracking-widest">Deine Basis</p>
+              <div className="p-4 space-y-2" style={{ background: 'rgba(34,197,94,0.04)' }}>
+                <div className="flex items-center gap-1.5">
+                  <BookOpen size={10} className="text-green-400/60" />
+                  <p className="text-[9px] font-black text-green-400/60 uppercase tracking-widest">Deine Basis</p>
+                </div>
                 <div className="flex flex-wrap gap-1">
-                  {current.slice(0, 8).map((s, i) => {
+                  {current.slice(0, 8).map((s: any, i) => {
                     const n = skillName(s);
                     if (!n) return null;
-                    return <span key={i} className="text-[10px] px-2 py-0.5 rounded text-[#66c0b6]/70 bg-[#66c0b6]/8 border border-[#66c0b6]/13">{n}</span>;
+                    return <span key={i} className="text-[10px] px-2 py-0.5 rounded text-green-400/70 bg-green-500/8 border border-green-500/13">{n}</span>;
                   })}
                   {current.length > 8 && <span className="text-[10px] text-white/25">+{current.length - 8}</span>}
                 </div>
               </div>
               <div className="p-4 space-y-2" style={{ background: `${accentColor}05` }}>
-                <p className="text-[9px] font-black uppercase tracking-widest" style={{ color: `${accentColor}60` }}>Dein Ziel</p>
+                <div className="flex items-center gap-1.5">
+                  <Target size={10} style={{ color: `${accentColor}60` }} />
+                  <p className="text-[9px] font-black uppercase tracking-widest" style={{ color: `${accentColor}60` }}>Dein Ziel</p>
+                </div>
                 <div className="flex flex-wrap gap-1">
                   {sorted.slice(0, 8).map((s, i) => {
                     const n = skillName(s);
@@ -554,7 +653,7 @@ function DetailCard({ learningPath, onStartLearning }: Omit<CareerVisionCardProp
           </div>
         )}
 
-        {/* ── 5. CTA ── */}
+        {/* ── 6. Main CTA block ── */}
         <div className="relative overflow-hidden rounded-2xl"
           style={{ border: `1px solid ${accentColor}35`, background: `linear-gradient(135deg,${accentColor}09,rgba(10,14,30,0.98))` }}>
           <div className="absolute top-0 left-0 right-0 h-px"
@@ -572,21 +671,22 @@ function DetailCard({ learningPath, onStartLearning }: Omit<CareerVisionCardProp
                     Starte mit <span style={{ color: accentColor }}>{skillName(topSkill)}</span>
                   </p>
                   <p className="text-[11px] text-white/45 mt-0.5 leading-snug">
-                    Jede Stunde Lernzeit zahlt direkt auf dein Gehaltspotenzial ein.
+                    Höchste Wirkung auf deine Chancen bei {learningPath.target_company || 'Top-Arbeitgebern'}.
                   </p>
                 </div>
               </div>
             )}
+
             <button
-              onClick={handleCta}
+              onClick={() => handleCta()}
               className="group/cta relative w-full py-4 rounded-xl font-black text-[15px] text-black flex items-center justify-center gap-3 overflow-hidden transition-all duration-200 hover:scale-[1.015] active:scale-[0.98]"
               style={{ background: `linear-gradient(135deg,${accentColor},${SKILL_PALETTE[1].color})`, animation: 'cvCTApulseD 2.5s ease-in-out infinite' }}
             >
               <div className="absolute inset-0 pointer-events-none"
                 style={{ background: 'linear-gradient(90deg,transparent,rgba(255,255,255,0.15),transparent)', backgroundSize: '200% 100%', animation: 'cvShimmerD 2.2s ease-in-out infinite' }} />
               {isPaidOrFree
-                ? <><Sparkles size={17} className="relative z-10 group-hover/cta:rotate-12 transition-transform" /><span className="relative z-10">Lernpfad starten</span><ArrowRight size={17} className="relative z-10 group-hover/cta:translate-x-1 transition-transform" /></>
-                : <><Lock size={17} className="relative z-10" /><span className="relative z-10">Exklusiven Fahrplan freischalten</span><ArrowRight size={17} className="relative z-10 group-hover/cta:translate-x-1 transition-transform" /></>
+                ? <><Sparkles size={17} className="relative z-10" /><span className="relative z-10">Alle Lernpfade starten</span><ArrowRight size={17} className="relative z-10 group-hover/cta:translate-x-1 transition-transform" /></>
+                : <><Lock size={17} className="relative z-10" /><span className="relative z-10">Lernpfade freischalten</span><ArrowRight size={17} className="relative z-10 group-hover/cta:translate-x-1 transition-transform" /></>
               }
             </button>
             <p className="text-center text-[10px] text-white/22">ESCO-validiert · Branchenspezifisch · {new Date().getFullYear()}</p>

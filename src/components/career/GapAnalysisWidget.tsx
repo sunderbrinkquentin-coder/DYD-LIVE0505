@@ -45,10 +45,20 @@ function toSkillArray(raw: unknown): import('../../types/learningPath').Skill[] 
 }
 
 function normalizeSkillItem(item: any): import('../../types/learningPath').Skill {
+  const rawSev = item.gap_severity;
+  let priority: 'high' | 'medium' | 'low' = 'low';
+  if (typeof rawSev === 'number') {
+    priority = rawSev >= 4 ? 'high' : rawSev >= 3 ? 'medium' : 'low';
+  } else if (typeof rawSev === 'string') {
+    const lower = rawSev.toLowerCase();
+    priority = lower === 'high' ? 'high' : lower === 'medium' ? 'medium' : 'low';
+  } else if (item.priority) {
+    priority = item.priority;
+  }
   return {
     name: item.name ?? item.skill_name ?? item.skill ?? String(item),
     category: item.category ?? 'technical',
-    priority: item.priority ?? (item.gap_severity >= 4 ? 'high' : item.gap_severity >= 2 ? 'medium' : 'low'),
+    priority,
     estimatedTime: item.estimatedTime ?? item.estimated_time ?? undefined,
   };
 }
