@@ -1268,9 +1268,20 @@ export default function HarmonyFestivalPage() {
                 <p style={{ fontFamily: "'Inter', sans-serif", fontSize: '15px', color: 'rgba(160,230,230,0.65)', lineHeight: 1.8, marginBottom: '8px', maxWidth: '620px' }}>
                   Du kannst nicht dabei sein – aber du glaubst an die Idee? Dann unterstütz Harmony von zuhause aus.
                 </p>
-                <p style={{ fontFamily: "'Inter', sans-serif", fontSize: '14px', color: 'rgba(160,230,230,0.45)', lineHeight: 1.75, marginBottom: '24px', maxWidth: '620px' }}>
+                <p style={{ fontFamily: "'Inter', sans-serif", fontSize: '14px', color: 'rgba(160,230,230,0.45)', lineHeight: 1.75, marginBottom: '20px', maxWidth: '620px' }}>
                   Harmony ist ein privates Festival – kein Konzern, kein Sponsor-Budget, nur echte Leidenschaft. Jeder Euro geht direkt in Technik, Künstlergagen und die Atmosphäre, die diesen Abend besonders macht.
                 </p>
+
+                {/* Official Sponsor Badge */}
+                <div className="flex items-center gap-4 mb-6 rounded-xl px-5 py-4" style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.1)', display: 'inline-flex', maxWidth: '380px' }}>
+                  <div className="rounded-lg overflow-hidden flex-shrink-0" style={{ background: '#E8330A', padding: '6px 10px' }}>
+                    <img src="/SSKDD_Logo1.png" alt="Stadtsparkasse Düsseldorf" className="h-8 w-auto object-contain" style={{ filter: 'brightness(0) invert(1)' }} />
+                  </div>
+                  <div>
+                    <div style={{ fontFamily: "'Barlow Condensed', sans-serif", fontWeight: 700, fontSize: '13px', color: 'rgba(0,212,212,0.8)', letterSpacing: '0.1em', textTransform: 'uppercase', marginBottom: '2px' }}>Offizieller Sponsor</div>
+                    <div style={{ fontFamily: "'Inter', sans-serif", fontSize: '13px', color: 'rgba(255,255,255,0.7)' }}>Stadtsparkasse Düsseldorf</div>
+                  </div>
+                </div>
 
                 <motion.button
                   whileHover={{ scale: 1.02 }}
@@ -1339,6 +1350,27 @@ export default function HarmonyFestivalPage() {
                     </div>
                   </motion.div>
                 ))}
+              </div>
+
+              {/* Stadtsparkasse Düsseldorf – Official Sponsor */}
+              <div className="mb-6 rounded-2xl p-6" style={{ background: 'rgba(232,51,10,0.06)', border: '1px solid rgba(232,51,10,0.2)' }}>
+                <div className="flex items-center gap-3 mb-4">
+                  <div className="w-2 h-2 rounded-full" style={{ background: '#E8330A', boxShadow: '0 0 8px #E8330A88' }} />
+                  <div style={{ fontFamily: "'Barlow Condensed', sans-serif", fontWeight: 700, fontSize: '13px', color: 'rgba(232,51,10,0.9)', letterSpacing: '0.12em', textTransform: 'uppercase' }}>
+                    Offizieller Sponsor
+                  </div>
+                </div>
+                <div className="flex flex-col sm:flex-row items-start sm:items-center gap-5">
+                  <div className="rounded-xl overflow-hidden flex-shrink-0" style={{ background: '#E8330A', padding: '14px 20px' }}>
+                    <img src="/SSKDD_Logo1.png" alt="Stadtsparkasse Düsseldorf" className="h-10 w-auto object-contain" style={{ filter: 'brightness(0) invert(1)' }} />
+                  </div>
+                  <div>
+                    <h4 style={{ fontFamily: "'Barlow Condensed', sans-serif", fontWeight: 700, fontSize: '20px', color: '#fff', marginBottom: '4px' }}>Stadtsparkasse Düsseldorf</h4>
+                    <p style={{ fontFamily: "'Inter', sans-serif", fontSize: '13px', color: 'rgba(160,230,230,0.55)', lineHeight: 1.65 }}>
+                      Die Stadtsparkasse Düsseldorf ist offizieller Sponsor von Harmony – und zeigt damit, wie ein starker lokaler Partner aussieht.
+                    </p>
+                  </div>
+                </div>
               </div>
 
               {/* Fränkische Biermarken */}
