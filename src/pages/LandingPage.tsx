@@ -32,6 +32,7 @@ import {
   Building,
   Handshake,
   Mic,
+  Mail,
 } from 'lucide-react';
 import { useState } from 'react';
 import { useAuth } from '../contexts/AuthContext';
@@ -1061,6 +1062,94 @@ export default function LandingPage() {
               </p>
             </motion.div>
 
+            {/* Featured Workshop: Hochschule Fresenius */}
+            <motion.div
+              initial={{ opacity: 0, y: 24 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: true }}
+              transition={{ duration: 0.5 }}
+              className="mb-8 sm:mb-10"
+            >
+              <div className="relative overflow-hidden rounded-3xl border border-[#30E3CA]/25 bg-gradient-to-br from-[#0a1a20] via-[#081218] to-[#050d14]">
+                {/* Top accent line */}
+                <div className="h-[3px]" style={{ background: 'linear-gradient(90deg,#30E3CA,#66c0b6,transparent)' }} />
+
+                {/* Ambient glow */}
+                <div className="absolute top-0 right-0 w-80 h-80 rounded-full opacity-[0.07] pointer-events-none"
+                  style={{ background: 'radial-gradient(circle,#30E3CA,transparent)', transform: 'translate(30%,-30%)' }} />
+                <div className="absolute bottom-0 left-0 w-48 h-48 rounded-full opacity-[0.04] pointer-events-none"
+                  style={{ background: 'radial-gradient(circle,#f59e0b,transparent)', transform: 'translate(-30%,30%)' }} />
+
+                <div className="relative z-10 flex flex-col lg:flex-row gap-0">
+                  {/* Left: content */}
+                  <div className="flex-1 p-6 sm:p-8 lg:p-10 space-y-5">
+                    {/* Badge row */}
+                    <div className="flex flex-wrap items-center gap-2">
+                      <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-[11px] font-black uppercase tracking-widest text-amber-300 border border-amber-400/30"
+                        style={{ background: 'rgba(245,158,11,0.10)' }}>
+                        <span className="w-1.5 h-1.5 rounded-full bg-amber-400 animate-pulse" />
+                        28. Mai 2026
+                      </span>
+                      <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-[11px] font-black uppercase tracking-widest text-[#30E3CA] border border-[#30E3CA]/25"
+                        style={{ background: 'rgba(48,227,202,0.07)' }}>
+                        Exklusiv · ~50 Teilnehmer
+                      </span>
+                    </div>
+
+                    {/* Title */}
+                    <div>
+                      <p className="text-[11px] font-black uppercase tracking-widest text-[#30E3CA]/60 mb-2">Workshop · Hochschule Fresenius</p>
+                      <h3 className="text-2xl sm:text-3xl font-black text-white leading-tight">
+                        Beyond the Template:<br />
+                        <span className="text-[#30E3CA]">Dein CV-Boost</span> im KI-Zeitalter
+                      </h3>
+                    </div>
+
+                    {/* Details */}
+                    <div className="space-y-3">
+                      <div className="flex items-start gap-3">
+                        <Calendar className="w-4 h-4 text-[#66c0b6] flex-shrink-0 mt-0.5" />
+                        <div>
+                          <p className="text-sm font-bold text-white">28. Mai 2026</p>
+                          <p className="text-xs text-white/50">Mega Event der Hochschule Fresenius</p>
+                        </div>
+                      </div>
+                      <div className="flex items-start gap-3">
+                        <Users className="w-4 h-4 text-[#66c0b6] flex-shrink-0 mt-0.5" />
+                        <div>
+                          <p className="text-sm font-bold text-white">~50 der besten Studierenden</p>
+                          <p className="text-xs text-white/50">Exklusiver Workshop für Top-Talente</p>
+                        </div>
+                      </div>
+                      <div className="flex items-start gap-3">
+                        <Sparkles className="w-4 h-4 text-[#66c0b6] flex-shrink-0 mt-0.5" />
+                        <div>
+                          <p className="text-sm font-bold text-white">KI-gestützte CV-Optimierung live</p>
+                          <p className="text-xs text-white/50">ATS, Storytelling & Personal Branding im KI-Zeitalter</p>
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full border border-[#30E3CA]/30 text-sm font-bold text-[#30E3CA]"
+                      style={{ background: 'rgba(48,227,202,0.08)' }}>
+                      <GraduationCap className="w-4 h-4" />
+                      Workshop: KI &amp; CV-Optimierung
+                    </div>
+                  </div>
+
+                  {/* Right: lineup image */}
+                  <div className="lg:w-[320px] flex-shrink-0 flex items-end justify-center lg:justify-end overflow-hidden">
+                    <img
+                      src="/public-static/Workshop_LineUP_Quentin.png"
+                      alt="Workshop Lineup – Quentin Sunderbrink"
+                      className="w-full max-w-[280px] lg:max-w-none lg:w-[320px] object-contain object-bottom rounded-b-3xl lg:rounded-none lg:rounded-br-3xl"
+                      style={{ maxHeight: '380px' }}
+                    />
+                  </div>
+                </div>
+              </div>
+            </motion.div>
+
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6 sm:gap-8">
               {[
                 {
@@ -1179,6 +1268,91 @@ export default function LandingPage() {
                 </motion.div>
               ))}
             </div>
+
+            {/* Workshop buchen CTA */}
+            <motion.div
+              initial={{ opacity: 0, y: 24 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: true }}
+              transition={{ duration: 0.5 }}
+              className="mt-10 sm:mt-14"
+            >
+              <div className="relative overflow-hidden rounded-3xl border border-white/10"
+                style={{ background: 'linear-gradient(135deg,rgba(10,20,28,0.95),rgba(5,13,20,0.98))' }}>
+                <div className="absolute inset-0 pointer-events-none">
+                  <div className="absolute w-64 h-64 rounded-full opacity-[0.06]"
+                    style={{ background: 'radial-gradient(circle,#30E3CA,transparent)', top: '-60px', left: '-40px' }} />
+                  <div className="absolute w-48 h-48 rounded-full opacity-[0.04]"
+                    style={{ background: 'radial-gradient(circle,#66c0b6,transparent)', bottom: '-30px', right: '-30px' }} />
+                </div>
+                <div className="relative z-10 p-6 sm:p-10 flex flex-col sm:flex-row items-start sm:items-center gap-8">
+                  {/* Left */}
+                  <div className="flex-1 space-y-4">
+                    <div>
+                      <p className="text-[11px] font-black uppercase tracking-widest text-[#30E3CA]/60 mb-2">Für Hochschulen &amp; Unternehmen</p>
+                      <h3 className="text-2xl sm:text-3xl font-black text-white leading-tight">
+                        Du willst auch einen<br />
+                        <span className="text-[#30E3CA]">Workshop buchen?</span>
+                      </h3>
+                    </div>
+                    <p className="text-sm text-white/60 leading-relaxed max-w-md">
+                      Quentin bringt praxisnahes Know-how zu KI-gestützter Bewerbungsoptimierung, ATS und Personal Branding direkt zu deiner Zielgruppe.
+                    </p>
+                    {/* Contact options */}
+                    <div className="flex flex-col sm:flex-row gap-3">
+                      <a
+                        href="mailto:kontakt.dyd@googlemail.com?subject=Workshop-Anfrage"
+                        className="group inline-flex items-center gap-2.5 px-5 py-3 rounded-xl font-bold text-sm text-black transition-all hover:scale-[1.02] active:scale-[0.98]"
+                        style={{ background: 'linear-gradient(135deg,#30E3CA,#66c0b6)', boxShadow: '0 0 0 0 rgba(48,227,202,0.4)' }}
+                      >
+                        <Mail className="w-4 h-4 flex-shrink-0" />
+                        Workshop anfragen
+                      </a>
+                      <a
+                        href="https://www.linkedin.com/in/quentin-sunderbrink"
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="inline-flex items-center gap-2.5 px-5 py-3 rounded-xl font-bold text-sm text-white/80 border border-white/15 hover:bg-white/8 hover:text-white transition-all"
+                      >
+                        <svg viewBox="0 0 24 24" fill="currentColor" className="w-4 h-4 flex-shrink-0"><path d="M20.447 20.452h-3.554v-5.569c0-1.328-.027-3.037-1.852-3.037-1.853 0-2.136 1.445-2.136 2.939v5.667H9.351V9h3.414v1.561h.046c.477-.9 1.637-1.85 3.37-1.85 3.601 0 4.267 2.37 4.267 5.455v6.286zM5.337 7.433a2.062 2.062 0 01-2.063-2.065 2.064 2.064 0 112.063 2.065zm1.782 13.019H3.555V9h3.564v11.452zM22.225 0H1.771C.792 0 0 .774 0 1.729v20.542C0 23.227.792 24 1.771 24h20.451C23.2 24 24 23.227 24 22.271V1.729C24 .774 23.2 0 22.222 0h.003z"/></svg>
+                        LinkedIn
+                      </a>
+                      <a
+                        href="https://www.instagram.com/quentin.sunderbrink"
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="inline-flex items-center gap-2.5 px-5 py-3 rounded-xl font-bold text-sm text-white/80 border border-white/15 hover:bg-white/8 hover:text-white transition-all"
+                      >
+                        <svg viewBox="0 0 24 24" fill="none" className="w-4 h-4 flex-shrink-0" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+                          <rect x="2" y="2" width="20" height="20" rx="5" ry="5"/>
+                          <circle cx="12" cy="12" r="4"/>
+                          <circle cx="17.5" cy="6.5" r="0.5" fill="currentColor" stroke="none"/>
+                        </svg>
+                        Instagram
+                      </a>
+                    </div>
+                    <p className="text-xs text-white/35">
+                      kontakt.dyd@googlemail.com
+                    </p>
+                  </div>
+
+                  {/* Right: speaker card */}
+                  <div className="flex-shrink-0 w-full sm:w-56 rounded-2xl overflow-hidden border border-white/10"
+                    style={{ background: 'rgba(255,255,255,0.03)' }}>
+                    <img
+                      src="/public-static/Workshop_LineUP_Quentin.png"
+                      alt="Quentin Sunderbrink – Speaker"
+                      className="w-full object-cover object-top"
+                      style={{ maxHeight: '200px' }}
+                    />
+                    <div className="p-3 space-y-1">
+                      <p className="text-sm font-black text-white">Quentin Sunderbrink</p>
+                      <p className="text-[11px] text-white/50">Gründer · Senior Consultant · IHK Prüfer</p>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </motion.div>
 
             <motion.div
               initial={{ opacity: 0, y: 20 }}
