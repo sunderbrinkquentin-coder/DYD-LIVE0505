@@ -1407,6 +1407,35 @@ export default function HarmonyFestivalPage() {
                 </div>
               </div>
 
+              {/* Medienpartner & Reichweite */}
+              <div className="mb-6 rounded-2xl p-6" style={{ background: 'rgba(0,140,212,0.05)', border: '1px solid rgba(0,140,212,0.18)' }}>
+                <div className="flex items-center gap-3 mb-2">
+                  <div className="w-2 h-2 rounded-full" style={{ background: C.sky, boxShadow: `0 0 8px ${C.sky}88` }} />
+                  <div style={{ fontFamily: "'Barlow Condensed', sans-serif", fontWeight: 700, fontSize: '13px', color: 'rgba(100,190,255,0.9)', letterSpacing: '0.12em', textTransform: 'uppercase' }}>
+                    Reichweite & Sichtbarkeit
+                  </div>
+                </div>
+                <p style={{ fontFamily: "'Inter', sans-serif", fontSize: '14px', color: 'rgba(160,230,230,0.65)', lineHeight: 1.7, marginBottom: '20px' }}>
+                  Harmony ist dort zu finden, wo Düsseldorf unterwegs ist – auf den größten lokalen Plattformen der Stadt.
+                </p>
+                <div className="grid grid-cols-3 gap-4">
+                  {[
+                    { file: 'Mr._Duesseldorf.png', name: 'Mr. Düsseldorf', bg: '#fff' },
+                    { file: 'Visit_Dusseldorf.png', name: 'Visit Düsseldorf', bg: '#fff' },
+                    { file: 'rausgegangen.png', name: 'Rausgegangen', bg: '#fff' },
+                  ].map(p => (
+                    <motion.div key={p.name} whileHover={{ y: -2 }}
+                      className="flex flex-col items-center gap-3 rounded-xl py-5 px-3"
+                      style={{ background: 'rgba(0,140,212,0.04)', border: '1px solid rgba(0,140,212,0.12)' }}>
+                      <div className="w-16 h-16 rounded-xl flex items-center justify-center overflow-hidden" style={{ background: p.bg }}>
+                        <img src={`/${p.file}`} alt={p.name} className="w-full h-full object-contain p-2" />
+                      </div>
+                      <div style={{ fontFamily: "'Inter', sans-serif", fontWeight: 600, fontSize: '12px', color: 'rgba(160,210,255,0.75)', textAlign: 'center', lineHeight: 1.3 }}>{p.name}</div>
+                    </motion.div>
+                  ))}
+                </div>
+              </div>
+
               {/* Fränkische Biermarken */}
               <div className="mb-7 rounded-2xl p-6" style={{ background: 'rgba(200,232,64,0.04)', border: '1px solid rgba(200,232,64,0.12)' }}>
                 <div className="flex items-center gap-3 mb-4">
