@@ -931,7 +931,7 @@ export function CareerVisionSection({ cvId: initialCvId, onAnalysisComplete }: C
 
   const uploadCvAndWaitForData = useCallback(async (file: File): Promise<{ uploadId: string; cvData: string }> => {
     // 1. Upload file to Supabase storage + create stored_cvs record
-    const up = await uploadCvAndCreateRecord(file, { source: 'check', userId: user?.id ?? null });
+    const up = await uploadCvAndCreateRecord(file, { source: 'skill', userId: user?.id ?? null });
     if (!up.success || !up.uploadId) {
       throw new Error('CV-Upload fehlgeschlagen');
     }
@@ -957,7 +957,7 @@ export function CareerVisionSection({ cvId: initialCvId, onAnalysisComplete }: C
         file_url_fallback: null,
         file_name: cvRow?.file_name ?? file.name,
         file_path: cvRow?.file_path ?? null,
-        source: 'check',
+        source: 'skill',
         user_id: user?.id ?? null,
         temp_id: null,
         callback_url: callbackUrl,
@@ -1005,7 +1005,6 @@ export function CareerVisionSection({ cvId: initialCvId, onAnalysisComplete }: C
   const runAnalysis = useCallback(async () => {
     if (!targetJob.trim()) { setFormError('Bitte gib eine Zielposition ein.'); return; }
     if (!user?.id)          { setFormError('Bitte melde dich zuerst an.'); return; }
-    if (useNewCv && !newCvFile) { setFormError('Bitte wähle eine CV-Datei aus.'); return; }
 
     setFormError(null);
     setApiError(null);
@@ -1145,7 +1144,7 @@ export function CareerVisionSection({ cvId: initialCvId, onAnalysisComplete }: C
   const showLoader    = isCvUploading || isAnalyzing;
   const showResult    = phase === 'done' && result !== null;
   const showForm      = !showLoader && phase !== 'done' && phase !== 'fallback';
-  const canSubmit     = !!targetJob.trim() && !showLoader && (!useNewCv || !!newCvFile);
+  const canSubmit     = !!targetJob.trim() && !showLoader;
 
   // Drag-drop handlers for the CV upload area
   const handleDragOver = (e: React.DragEvent) => { e.preventDefault(); setIsDragging(true); };
@@ -1154,7 +1153,10 @@ export function CareerVisionSection({ cvId: initialCvId, onAnalysisComplete }: C
     e.preventDefault();
     setIsDragging(false);
     const file = e.dataTransfer.files?.[0];
-    if (file && file.type === 'application/pdf') setNewCvFile(file);
+    if (file && file.type === 'application/pdf') {
+      setUseNewCv(true);
+      setNewCvFile(file);
+    }
   };
 
   // When user selects/drops a CV file while targetJob is already filled → auto-start
@@ -1463,7 +1465,7 @@ export function CareerVisionSection({ cvId: initialCvId, onAnalysisComplete }: C
               style={{ background: 'linear-gradient(90deg,transparent,rgba(255,255,255,0.18),transparent)', backgroundSize: '200% 100%', animation: canSubmit ? 'shimmer 2s ease-in-out infinite' : 'none' }} />
             <Sparkles className="w-5 h-5 relative z-10 group-hover:rotate-12 transition-transform duration-300" />
             <span className="relative z-10">
-              {newCvFile ? 'CV hochladen & Vision analysieren' : 'Vision analysieren'}
+              {newCvFile ? 'CV hochladen & Vision analysieren' : (useNewCv ? 'Ohne CV analysieren' : 'Vision analysieren')}
             </span>
             <ArrowRight className="w-5 h-5 relative z-10 group-hover:translate-x-1 transition-transform" />
           </button>
