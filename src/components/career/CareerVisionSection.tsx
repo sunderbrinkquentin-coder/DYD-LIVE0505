@@ -1,10 +1,11 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
-  Sparkles, Target, X, RefreshCw, Upload,
+  Sparkles, X, RefreshCw, Upload,
   FileText, ChevronDown, AlertCircle, Eye,
   ArrowRight, Brain, Building2, Check, Zap,
-  BarChart3, ChevronRight, CheckCircle2,
+  BarChart3, ChevronRight, CheckCircle2, Star,
+  TrendingUp, ShieldCheck,
 } from 'lucide-react';
 import { useAuth } from '../../contexts/AuthContext';
 import { supabase } from '../../lib/supabase';
@@ -13,7 +14,6 @@ import { uploadCvAndCreateRecord } from '../../services/cvUploadService';
 // ── Constants ──────────────────────────────────────────────────────────────────
 
 const VISION_WEBHOOK_URL = 'https://hook.eu2.make.com/2gw464yqj339tqv3eh6yiv6qnw2q76q1';
-const CV_CHECK_WEBHOOK_URL = 'https://hook.eu2.make.com/5epcuiq2py8p84vw1328w3y9u1p68mx9';
 const POLL_INTERVAL_MS = 3_000;
 const POLL_MAX = 40;
 const FALLBACK_TIMEOUT_MS = 60_000;
@@ -192,9 +192,9 @@ function SmartProgressBar({ done, paused }: { done: boolean; paused: boolean }) 
 function CvUploadLoader({ fileName }: { fileName: string }) {
   const STEPS = [
     { label: 'Lebenslauf wird hochgeladen', detail: 'Datei wird sicher übertragen…' },
-    { label: 'CV-Check wird gestartet', detail: 'Webhook sendet Analyse-Anfrage…' },
-    { label: 'Inhalte werden extrahiert', detail: 'Skills, Erfahrungen & Ausbildung…' },
-    { label: 'cv_data wird vorbereitet', detail: 'Strukturierte Daten werden gespeichert…' },
+    { label: 'KI liest deinen Lebenslauf', detail: 'Skills, Erfahrungen & Ausbildung werden erkannt…' },
+    { label: 'Skills werden strukturiert', detail: 'Deine Stärken werden für die Analyse aufbereitet…' },
+    { label: 'Skill-Gap Analyse startet', detail: 'Gleich geht es los…' },
   ];
   const [stepIdx, setStepIdx] = useState(0);
 
@@ -779,6 +779,7 @@ export function CareerVisionSection({ cvId: initialCvId, onAnalysisComplete }: C
   const [cvFileName, setCvFileName] = useState<string | null>(null);
   const [useNewCv, setUseNewCv] = useState(false);
   const [newCvFile, setNewCvFile] = useState<File | null>(null);
+  const [isDragging, setIsDragging] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   // Phase & result
@@ -932,7 +933,7 @@ export function CareerVisionSection({ cvId: initialCvId, onAnalysisComplete }: C
     // 1. Upload file to Supabase storage + create stored_cvs record
     const up = await uploadCvAndCreateRecord(file, { source: 'check', userId: user?.id ?? null });
     if (!up.success || !up.uploadId) {
-      throw new Error(up.error || 'CV-Upload fehlgeschlagen');
+      throw new Error('CV-Upload fehlgeschlagen');
     }
 
     const uploadId = up.uploadId;
@@ -1146,21 +1147,28 @@ export function CareerVisionSection({ cvId: initialCvId, onAnalysisComplete }: C
   const showForm      = !showLoader && phase !== 'done' && phase !== 'fallback';
   const canSubmit     = !!targetJob.trim() && !showLoader && (!useNewCv || !!newCvFile);
 
+  // Drag-drop handlers for the CV upload area
+  const handleDragOver = (e: React.DragEvent) => { e.preventDefault(); setIsDragging(true); };
+  const handleDragLeave = () => setIsDragging(false);
+  const handleDrop = (e: React.DragEvent) => {
+    e.preventDefault();
+    setIsDragging(false);
+    const file = e.dataTransfer.files?.[0];
+    if (file && file.type === 'application/pdf') setNewCvFile(file);
+  };
+
+  // When user selects/drops a CV file while targetJob is already filled → auto-start
+  useEffect(() => {
+    if (newCvFile && targetJob.trim() && phase === 'idle') {
+      runAnalysis();
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [newCvFile]);
+
   // ── Render ───────────────────────────────────────────────────────────────────
 
   return (
-    <div className="space-y-8">
-      {/* Header */}
-      <div className="text-center space-y-4">
-        <div className="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-gradient-to-br from-[#66c0b6] to-[#30E3CA] mb-2">
-          <Target className="w-8 h-8 text-white" />
-        </div>
-        <h2 className="text-3xl font-bold text-white">Deine Vision 2030/2035</h2>
-        <p className="text-white/65 max-w-2xl mx-auto leading-relaxed">
-          Definiere deine Traumposition und wir analysieren deine persönlichen Skill-Gaps — basierend auf aktuellen Marktdaten und Deep Research.
-        </p>
-      </div>
-
+    <div className="space-y-6">
       {/* CV uploading loader */}
       {isCvUploading && <CvUploadLoader fileName={cvUploadFileName} />}
 
@@ -1264,72 +1272,167 @@ export function CareerVisionSection({ cvId: initialCvId, onAnalysisComplete }: C
 
           {/* CV section */}
           <div className="space-y-3">
-            <label className="block text-sm font-medium text-white/80">
-              Dein Lebenslauf <span className="text-white/30 text-xs font-normal">(für personalisierten Skill-Abgleich, optional)</span>
-            </label>
+            <div className="flex items-center justify-between">
+              <label className="block text-sm font-medium text-white/80">
+                Lebenslauf
+              </label>
+              {!activeCvId && !useNewCv && (
+                <span className="text-[10px] font-bold text-white/30 uppercase tracking-wider">Optional — aber empfohlen</span>
+              )}
+            </div>
 
-            {/* Existing CV */}
+            {/* Existing CV — already linked */}
             {activeCvId && !useNewCv && (
-              <div className="flex items-center gap-3 px-4 py-3 bg-[#66c0b6]/10 border border-[#66c0b6]/20 rounded-xl">
-                <FileText size={18} className="text-[#66c0b6] flex-shrink-0" />
+              <div className="flex items-center gap-3 px-4 py-3 rounded-xl"
+                style={{ background: 'rgba(102,192,182,0.08)', border: '1px solid rgba(102,192,182,0.22)' }}>
+                <div className="w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0"
+                  style={{ background: 'rgba(102,192,182,0.15)', border: '1px solid rgba(102,192,182,0.3)' }}>
+                  <FileText size={16} className="text-[#66c0b6]" />
+                </div>
                 <div className="flex-1 min-w-0">
-                  <p className="text-sm text-[#66c0b6] font-medium truncate">
+                  <p className="text-sm text-[#66c0b6] font-semibold truncate">
                     {cvFileName ?? 'Vorhandener Lebenslauf'}
                   </p>
-                  <p className="text-xs text-white/40">Deine Skills fließen in die Analyse ein</p>
+                  <div className="flex items-center gap-1 mt-0.5">
+                    <ShieldCheck size={10} className="text-[#66c0b6]/60" />
+                    <p className="text-[10px] text-[#66c0b6]/60">Deine Skills fließen personalisiert in die Analyse ein</p>
+                  </div>
                 </div>
-                <button type="button" onClick={() => { setUseNewCv(true); setNewCvFile(null); }}
-                  className="flex-shrink-0 flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium text-white/55 hover:text-white border border-white/10 hover:border-white/30 transition-all">
-                  <Upload size={12} /> Anderen hochladen
+                <button type="button"
+                  onClick={() => { setUseNewCv(true); setNewCvFile(null); }}
+                  className="flex-shrink-0 flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium text-white/45 hover:text-white border border-white/10 hover:border-white/25 transition-all">
+                  <Upload size={11} /> Anderen
                 </button>
               </div>
             )}
 
-            {/* New CV upload */}
-            {useNewCv && (
-              <div className="space-y-2">
-                <div
-                  role="button" tabIndex={0}
-                  onClick={() => fileInputRef.current?.click()}
-                  onKeyDown={(e) => e.key === 'Enter' && fileInputRef.current?.click()}
-                  className="flex flex-col items-center gap-2 px-4 py-5 rounded-xl border-2 border-dashed border-white/20 hover:border-[#66c0b6]/50 cursor-pointer transition-all"
-                >
-                  <Upload size={20} className="text-white/40" />
-                  {newCvFile
-                    ? <p className="text-sm text-[#66c0b6] font-medium">{newCvFile.name}</p>
-                    : <p className="text-sm text-white/50">PDF hier ablegen oder klicken</p>
-                  }
-                </div>
+            {/* Upload area — shown when useNewCv OR no CV exists */}
+            {(useNewCv || (!activeCvId && !useNewCv)) && (
+              <div className="space-y-3">
+                {/* Recommendation banner — only when no CV exists and not in upload mode */}
+                {!activeCvId && !useNewCv && (
+                  <div className="relative overflow-hidden rounded-2xl p-4"
+                    style={{ background: 'linear-gradient(135deg,rgba(48,227,202,0.07),rgba(10,14,30,0.95))', border: '1px solid rgba(48,227,202,0.18)' }}>
+                    <div className="absolute top-0 left-0 right-0 h-px"
+                      style={{ background: 'linear-gradient(90deg,transparent,rgba(48,227,202,0.5),transparent)' }} />
+                    <div className="flex gap-3 items-start">
+                      <div className="w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0 mt-0.5"
+                        style={{ background: 'rgba(48,227,202,0.1)', border: '1px solid rgba(48,227,202,0.25)' }}>
+                        <Star size={15} className="text-[#30E3CA]" />
+                      </div>
+                      <div className="flex-1 space-y-2">
+                        <div>
+                          <p className="text-sm font-black text-white">Präzisere Ergebnisse mit Lebenslauf</p>
+                          <p className="text-[11px] text-white/50 mt-0.5 leading-relaxed">
+                            Mit deinem CV erkennt die KI genau welche Skills du schon hast — und zeigt nur die echten Lücken. Ohne CV basiert die Analyse nur auf Marktdaten.
+                          </p>
+                        </div>
+                        <div className="flex flex-wrap gap-2">
+                          {[
+                            { icon: <TrendingUp size={9} />, text: 'Personalisierte Skill-Gaps' },
+                            { icon: <ShieldCheck size={9} />, text: 'Kein Duplikat-Lernen' },
+                            { icon: <Sparkles size={9} />, text: 'Höherer Match-Score' },
+                          ].map(({ icon, text }) => (
+                            <span key={text} className="flex items-center gap-1 text-[10px] font-bold px-2 py-1 rounded-lg"
+                              style={{ background: 'rgba(48,227,202,0.08)', color: '#30E3CA', border: '1px solid rgba(48,227,202,0.18)' }}>
+                              {icon}{text}
+                            </span>
+                          ))}
+                        </div>
+                      </div>
+                    </div>
+                    {/* CTA to enter upload mode */}
+                    <button
+                      type="button"
+                      onClick={() => setUseNewCv(true)}
+                      className="mt-3 w-full py-2.5 rounded-xl text-sm font-black flex items-center justify-center gap-2 transition-all hover:scale-[1.01]"
+                      style={{ background: 'rgba(48,227,202,0.12)', border: '1px solid rgba(48,227,202,0.28)', color: '#30E3CA' }}
+                    >
+                      <Upload size={14} />
+                      Lebenslauf hochladen (PDF)
+                      <ArrowRight size={13} />
+                    </button>
+                    <p className="text-center text-[10px] text-white/25 mt-2">
+                      Oder einfach nach unten scrollen und ohne CV starten
+                    </p>
+                  </div>
+                )}
+
+                {/* Drag-drop upload area — shown when useNewCv is true */}
+                {useNewCv && (
+                  <div
+                    role="button"
+                    tabIndex={0}
+                    onClick={() => !newCvFile && fileInputRef.current?.click()}
+                    onKeyDown={(e) => e.key === 'Enter' && !newCvFile && fileInputRef.current?.click()}
+                    onDragOver={handleDragOver}
+                    onDragLeave={handleDragLeave}
+                    onDrop={handleDrop}
+                    className="relative overflow-hidden rounded-2xl transition-all duration-200"
+                    style={{
+                      border: `2px dashed ${isDragging ? 'rgba(48,227,202,0.6)' : newCvFile ? 'rgba(34,197,94,0.5)' : 'rgba(255,255,255,0.15)'}`,
+                      background: isDragging ? 'rgba(48,227,202,0.06)' : newCvFile ? 'rgba(34,197,94,0.05)' : 'rgba(255,255,255,0.02)',
+                      cursor: newCvFile ? 'default' : 'pointer',
+                    }}
+                  >
+                    <div className="p-6 flex flex-col items-center gap-3 text-center">
+                      {newCvFile ? (
+                        <>
+                          <div className="w-12 h-12 rounded-2xl flex items-center justify-center"
+                            style={{ background: 'rgba(34,197,94,0.12)', border: '1px solid rgba(34,197,94,0.3)' }}>
+                            <FileText size={22} className="text-green-400" />
+                          </div>
+                          <div>
+                            <p className="text-sm font-black text-white">{newCvFile.name}</p>
+                            <p className="text-[11px] text-green-400/80 mt-0.5 flex items-center justify-center gap-1">
+                              <CheckCircle2 size={10} />
+                              Bereit — Analyse startet automatisch nach Klick auf "Vision analysieren"
+                            </p>
+                          </div>
+                          <button
+                            type="button"
+                            onClick={(e) => { e.stopPropagation(); setNewCvFile(null); fileInputRef.current && (fileInputRef.current.value = ''); }}
+                            className="text-[10px] text-white/30 hover:text-white/60 transition-colors flex items-center gap-1"
+                          >
+                            <X size={10} /> Andere Datei wählen
+                          </button>
+                        </>
+                      ) : (
+                        <>
+                          <div className="w-12 h-12 rounded-2xl flex items-center justify-center"
+                            style={{ background: isDragging ? 'rgba(48,227,202,0.12)' : 'rgba(255,255,255,0.05)', border: `1px solid ${isDragging ? 'rgba(48,227,202,0.3)' : 'rgba(255,255,255,0.1)'}` }}>
+                            <Upload size={22} className={isDragging ? 'text-[#30E3CA]' : 'text-white/30'} />
+                          </div>
+                          <div>
+                            <p className="text-sm font-semibold text-white/70">
+                              {isDragging ? 'Datei loslassen' : 'PDF hier ablegen oder klicken'}
+                            </p>
+                            <p className="text-[11px] text-white/35 mt-0.5">Nur PDF-Dateien · Max. 10 MB</p>
+                          </div>
+                        </>
+                      )}
+                    </div>
+                  </div>
+                )}
+
                 <input ref={fileInputRef} type="file" accept=".pdf" className="hidden"
                   onChange={(e) => setNewCvFile(e.target.files?.[0] ?? null)} />
-                {activeCvId && (
-                  <button type="button" onClick={() => { setUseNewCv(false); setNewCvFile(null); }}
-                    className="text-xs text-white/45 hover:text-white/70 transition-colors">
-                    ← Vorhandenen CV verwenden
+
+                {useNewCv && activeCvId && (
+                  <button type="button"
+                    onClick={() => { setUseNewCv(false); setNewCvFile(null); }}
+                    className="text-xs text-white/35 hover:text-white/60 transition-colors flex items-center gap-1">
+                    <X size={11} /> Abbrechen — vorhandenen CV verwenden
                   </button>
                 )}
               </div>
             )}
 
-            {/* No CV at all */}
+            {/* No CV note */}
             {!activeCvId && !useNewCv && (
-              <div className="space-y-2">
-                <div className="flex items-start gap-3 px-4 py-3 bg-blue-500/10 border border-blue-500/20 rounded-xl">
-                  <Upload size={18} className="text-blue-400 flex-shrink-0 mt-0.5" />
-                  <div className="flex-1 space-y-1.5">
-                    <p className="text-sm text-blue-300">
-                      Lebenslauf hochladen für präzisen Skill-Abgleich — oder direkt ohne CV starten.
-                    </p>
-                    <button type="button" onClick={() => setUseNewCv(true)}
-                      className="text-xs font-semibold text-[#66c0b6] hover:text-white transition-colors underline underline-offset-2">
-                      CV jetzt hochladen
-                    </button>
-                  </div>
-                </div>
-                <p className="text-xs text-white/35 pl-1">
-                  Ohne CV: Skills werden aus aktuellen Marktdaten für deine Zielposition ermittelt.
-                </p>
-              </div>
+              <p className="text-[11px] text-white/30 pl-1">
+                Kein CV? Kein Problem — die Analyse läuft auch ohne, basiert dann aber nur auf allgemeinen Marktdaten.
+              </p>
             )}
           </div>
         </div>
@@ -1349,15 +1452,26 @@ export function CareerVisionSection({ cvId: initialCvId, onAnalysisComplete }: C
 
       {/* Submit button */}
       {showForm && (
-        <div className="flex justify-center">
+        <div className="space-y-2">
           <button
             onClick={runAnalysis}
             disabled={!canSubmit}
-            className="group px-12 py-4 rounded-xl bg-gradient-to-r from-[#66c0b6] to-[#30E3CA] text-black font-bold text-lg hover:scale-105 transition-all disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100 flex items-center gap-3"
+            className="group relative w-full py-4 rounded-xl font-black text-lg text-black flex items-center justify-center gap-3 overflow-hidden transition-all duration-200 hover:scale-[1.015] active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100"
+            style={{ background: 'linear-gradient(135deg,#66c0b6,#30E3CA)', animation: canSubmit ? 'ctaPulse 2.5s ease-in-out infinite' : 'none' }}
           >
-            <Sparkles className="w-5 h-5" />
-            Vision analysieren
+            <div className="absolute inset-0 pointer-events-none"
+              style={{ background: 'linear-gradient(90deg,transparent,rgba(255,255,255,0.18),transparent)', backgroundSize: '200% 100%', animation: canSubmit ? 'shimmer 2s ease-in-out infinite' : 'none' }} />
+            <Sparkles className="w-5 h-5 relative z-10 group-hover:rotate-12 transition-transform duration-300" />
+            <span className="relative z-10">
+              {newCvFile ? 'CV hochladen & Vision analysieren' : 'Vision analysieren'}
+            </span>
+            <ArrowRight className="w-5 h-5 relative z-10 group-hover:translate-x-1 transition-transform" />
           </button>
+          {!activeCvId && !useNewCv && targetJob.trim() && (
+            <p className="text-center text-[11px] text-white/30">
+              Analyse startet ohne CV — du kannst ihn später noch hinzufügen
+            </p>
+          )}
         </div>
       )}
     </div>
