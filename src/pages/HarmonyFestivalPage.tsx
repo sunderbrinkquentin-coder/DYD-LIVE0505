@@ -1273,14 +1273,9 @@ export default function HarmonyFestivalPage() {
                 </p>
 
                 {/* Official Sponsor Badge */}
-                <div className="flex items-center gap-4 mb-6 rounded-xl px-5 py-4" style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.1)', display: 'inline-flex', maxWidth: '380px' }}>
-                  <div className="rounded-lg overflow-hidden flex-shrink-0" style={{ background: '#E8330A', padding: '6px 10px' }}>
-                    <img src="/SSKDD_Logo1.png" alt="Stadtsparkasse Düsseldorf" className="h-8 w-auto object-contain" style={{ filter: 'brightness(0) invert(1)' }} />
-                  </div>
-                  <div>
-                    <div style={{ fontFamily: "'Barlow Condensed', sans-serif", fontWeight: 700, fontSize: '13px', color: 'rgba(0,212,212,0.8)', letterSpacing: '0.1em', textTransform: 'uppercase', marginBottom: '2px' }}>Offizieller Sponsor</div>
-                    <div style={{ fontFamily: "'Inter', sans-serif", fontSize: '13px', color: 'rgba(255,255,255,0.7)' }}>Stadtsparkasse Düsseldorf</div>
-                  </div>
+                <div className="flex items-center gap-4 mb-6" style={{ display: 'inline-flex', alignItems: 'center', gap: '14px' }}>
+                  <img src="/SSKDD_Logo1.png" alt="Stadtsparkasse Düsseldorf – Offizieller Sponsor" className="rounded-xl object-cover" style={{ height: '52px', width: 'auto' }} />
+                  <div style={{ fontFamily: "'Barlow Condensed', sans-serif", fontWeight: 700, fontSize: '13px', color: 'rgba(0,212,212,0.7)', letterSpacing: '0.1em', textTransform: 'uppercase' }}>Offizieller Sponsor</div>
                 </div>
 
                 <motion.button
@@ -1354,16 +1349,19 @@ export default function HarmonyFestivalPage() {
 
               {/* Stadtsparkasse Düsseldorf – Official Sponsor */}
               <div className="mb-6 rounded-2xl p-6" style={{ background: 'rgba(232,51,10,0.06)', border: '1px solid rgba(232,51,10,0.2)' }}>
-                <div className="flex items-center gap-3 mb-4">
+                <div className="flex items-center gap-3 mb-5">
                   <div className="w-2 h-2 rounded-full" style={{ background: '#E8330A', boxShadow: '0 0 8px #E8330A88' }} />
                   <div style={{ fontFamily: "'Barlow Condensed', sans-serif", fontWeight: 700, fontSize: '13px', color: 'rgba(232,51,10,0.9)', letterSpacing: '0.12em', textTransform: 'uppercase' }}>
                     Offizieller Sponsor
                   </div>
                 </div>
-                <div className="flex flex-col sm:flex-row items-start sm:items-center gap-5">
-                  <div className="rounded-xl overflow-hidden flex-shrink-0" style={{ background: '#E8330A', padding: '14px 20px' }}>
-                    <img src="/SSKDD_Logo1.png" alt="Stadtsparkasse Düsseldorf" className="h-10 w-auto object-contain" style={{ filter: 'brightness(0) invert(1)' }} />
-                  </div>
+                <div className="flex flex-col sm:flex-row items-start sm:items-center gap-6">
+                  <img
+                    src="/SSKDD_Logo1.png"
+                    alt="Stadtsparkasse Düsseldorf"
+                    className="rounded-xl flex-shrink-0"
+                    style={{ height: '72px', width: 'auto', objectFit: 'cover' }}
+                  />
                   <div>
                     <h4 style={{ fontFamily: "'Barlow Condensed', sans-serif", fontWeight: 700, fontSize: '20px', color: '#fff', marginBottom: '4px' }}>Stadtsparkasse Düsseldorf</h4>
                     <p style={{ fontFamily: "'Inter', sans-serif", fontSize: '13px', color: 'rgba(160,230,230,0.55)', lineHeight: 1.65 }}>
