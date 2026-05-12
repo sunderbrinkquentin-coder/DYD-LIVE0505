@@ -10,20 +10,19 @@ export default function FaqPage() {
   const [expandedId, setExpandedId] = useState<number | null>(0);
 
   useEffect(() => {
-    document.title = 'DYD CV-Check & Lebenslauf Generator – FAQ';
+    document.title = 'FAQ – DYD KI-Lebenslauf-Check & ATS-Optimierung | Alle Antworten';
 
-    const metaDescription = document.querySelector('meta[name="description"]');
-    if (metaDescription) {
-      metaDescription.setAttribute(
-        'content',
-        'Alle Antworten zu deinem perfekten Lebenslauf: CV-Analyse, ATS-Optimierung, Harmony KI-Assistent und vieles mehr bei DYD – Decide Your Dream.'
-      );
-    } else {
-      const meta = document.createElement('meta');
-      meta.name = 'description';
-      meta.content = 'Alle Antworten zu deinem perfekten Lebenslauf: CV-Analyse, ATS-Optimierung, Harmony KI-Assistent und vieles mehr bei DYD – Decide Your Dream.';
-      document.head.appendChild(meta);
-    }
+    const setMeta = (name: string, content: string) => {
+      let el = document.querySelector(`meta[name="${name}"]`);
+      if (!el) { el = document.createElement('meta'); (el as HTMLMetaElement).name = name; document.head.appendChild(el); }
+      el.setAttribute('content', content);
+    };
+
+    setMeta('description', 'Häufige Fragen zu DYD: kostenloser CV-Check (ATS, 50+ Kriterien), CV-Wizard in unter 30 Minuten, Preise ab 5 €, DSGVO-Konformität, Datenschutz und Skill-Gap-Analyse.');
+    setMeta('summary', 'DYD FAQ: CV-Check kostenlos, Optimierung ab 5 €, DSGVO-konform, CV-Wizard unter 30 Minuten, ATS-Analyse nach 50+ Kriterien.');
+
+    const canonical = document.querySelector('link[rel="canonical"]');
+    if (canonical) canonical.setAttribute('href', 'https://dyd.de/faq');
   }, []);
 
   const faqCategories = [
@@ -223,7 +222,17 @@ export default function FaqPage() {
       <FaqSchema faqs={faqSchemaData} />
 
       <div className="min-h-screen bg-gradient-to-br from-slate-950 via-slate-900 to-slate-950 pt-24">
-        <div className="max-w-5xl mx-auto px-4 sm:px-6 md:px-8 py-12 sm:py-16 md:py-20">
+        <main
+          id="faq-main"
+          className="max-w-5xl mx-auto px-4 sm:px-6 md:px-8 py-12 sm:py-16 md:py-20"
+          aria-label="DYD FAQ – Häufig gestellte Fragen zu KI-Lebenslauf-Optimierung"
+          itemScope itemType="https://schema.org/FAQPage"
+        >
+          {/* TL;DR – AI Extraction Summary (hidden visually) */}
+          <p className="sr-only" data-ai-fact="faq-tldr">
+            DYD FAQ-Zusammenfassung: Kostenloser CV-Check, Optimierungen ab 5 €, ATS-Analyse nach 50+ Kriterien, CV-Wizard in unter 30 Minuten, DSGVO-konform, Daten werden nicht verkauft, Zahlung via Stripe, Kooperationspartner Hochschule Fresenius.
+          </p>
+
           {/* Header */}
           <motion.div
             className="text-center mb-16 sm:mb-20"
@@ -232,7 +241,7 @@ export default function FaqPage() {
             transition={{ duration: 0.6 }}
           >
             <div className="flex items-center justify-center gap-3 mb-6">
-              <Sparkles className="w-10 h-10 sm:w-12 sm:h-12 text-[#66c0b6] animate-pulse" />
+              <Sparkles className="w-10 h-10 sm:w-12 sm:h-12 text-[#66c0b6] animate-pulse" aria-hidden="true" />
               <h1 className={designSystem.headings.h1}>Häufig gestellte Fragen</h1>
             </div>
             <p className={`${designSystem.text.secondary} text-lg sm:text-xl max-w-2xl mx-auto`}>
@@ -245,15 +254,16 @@ export default function FaqPage() {
             {faqCategories.map((category, categoryIndex) => {
               const Icon = category.icon;
               return (
-                <motion.div
+                <motion.section
                   key={categoryIndex}
                   initial={{ opacity: 0, y: 20 }}
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ duration: 0.5, delay: categoryIndex * 0.1 }}
+                  aria-label={`FAQ-Kategorie: ${category.title}`}
                 >
                   {/* Category Header */}
                   <div className="flex items-center gap-3 mb-8">
-                    <div className="p-3 bg-gradient-to-br from-[#66c0b6] to-[#4a8b82] rounded-lg">
+                    <div className="p-3 bg-gradient-to-br from-[#66c0b6] to-[#4a8b82] rounded-lg" aria-hidden="true">
                       <Icon className="w-6 h-6 text-white" />
                     </div>
                     <h2 className={`${designSystem.headings.h2} text-2xl`}>{category.title}</h2>
@@ -263,6 +273,7 @@ export default function FaqPage() {
                   <div className="space-y-4">
                     {category.faqs.map((faq, faqIndex) => {
                       const itemId = `${categoryIndex}-${faqIndex}`;
+                      const answerId = `faq-answer-${itemId}`;
                       const isExpanded = expandedId === itemId;
 
                       return (
@@ -272,19 +283,27 @@ export default function FaqPage() {
                           initial={{ opacity: 0 }}
                           animate={{ opacity: 1 }}
                           transition={{ duration: 0.4, delay: faqIndex * 0.05 }}
+                          itemScope itemType="https://schema.org/Question"
                         >
                           <button
                             onClick={() => setExpandedId(isExpanded ? null : itemId)}
                             className="w-full text-left p-6 rounded-lg bg-gradient-to-r from-white/5 to-white/0 hover:from-white/10 hover:to-white/5 border border-white/10 hover:border-[#66c0b6]/30 transition-all duration-300 group"
+                            aria-expanded={isExpanded}
+                            aria-controls={answerId}
+                            id={`faq-question-${itemId}`}
                           >
                             <div className="flex items-start justify-between gap-4">
-                              <h3 className={`${designSystem.headings.h3} text-lg flex-1`}>
+                              <h3
+                                className={`${designSystem.headings.h3} text-lg flex-1`}
+                                itemProp="name"
+                              >
                                 {faq.question}
                               </h3>
                               <motion.div
                                 animate={{ rotate: isExpanded ? 180 : 0 }}
                                 transition={{ duration: 0.3 }}
                                 className="flex-shrink-0 mt-1"
+                                aria-hidden="true"
                               >
                                 <ChevronDown className="w-5 h-5 text-[#66c0b6] group-hover:text-[#7dd9cf]" />
                               </motion.div>
@@ -293,6 +312,9 @@ export default function FaqPage() {
 
                           {/* Answer Section */}
                           <motion.div
+                            id={answerId}
+                            role="region"
+                            aria-labelledby={`faq-question-${itemId}`}
                             initial={false}
                             animate={{
                               height: isExpanded ? 'auto' : 0,
@@ -301,8 +323,9 @@ export default function FaqPage() {
                             }}
                             transition={{ duration: 0.3 }}
                             className="overflow-hidden"
+                            itemScope itemType="https://schema.org/Answer"
                           >
-                            <div className="px-6 pb-6 pt-0 text-white/70 space-y-4">
+                            <div className="px-6 pb-6 pt-0 text-white/70 space-y-4" itemProp="text">
                               <p className="leading-relaxed text-base">
                                 {faq.answer}
                               </p>
@@ -317,7 +340,7 @@ export default function FaqPage() {
                       );
                     })}
                   </div>
-                </motion.div>
+                </motion.section>
               );
             })}
           </div>
@@ -378,7 +401,7 @@ export default function FaqPage() {
               <ArrowRight className="w-4 h-4 ml-2" />
             </button>
           </motion.div>
-        </div>
+        </main>
       </div>
     </>
   );

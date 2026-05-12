@@ -303,8 +303,14 @@ export default function LandingPage() {
           </div>
         </nav>
 
+        <main id="main-content" aria-label="DYD Hauptinhalt – KI-Lebenslauf-Optimierung für Deutschland">
+
         {/* Hero Section */}
-        <section className="relative pt-32 pb-20 px-4 sm:px-6 lg:px-8">
+        <section
+          className="relative pt-32 pb-20 px-4 sm:px-6 lg:px-8"
+          aria-label="Hero – KI-Lebenslauf-Optimierung"
+          itemScope itemType="https://schema.org/WebPageElement"
+        >
           <div className="max-w-6xl mx-auto">
             <motion.div
               initial="initial"
@@ -338,6 +344,8 @@ export default function LandingPage() {
               <motion.h1
                 variants={fadeInUp}
                 className="text-5xl md:text-7xl lg:text-8xl font-bold leading-tight"
+                itemProp="headline"
+                aria-label="DYD – Dein CV perfekt optimiert mit KI"
               >
                 <motion.span
                   animate={{ y: [0, -5, 0] }}
@@ -371,6 +379,8 @@ export default function LandingPage() {
               <motion.p
                 variants={fadeInUp}
                 className="text-xl md:text-2xl text-white/70 max-w-3xl mx-auto leading-relaxed"
+                itemProp="description"
+                data-ai-fact="hero-value-prop"
               >
                 ATS-Check mit Score. CV erstellen mit KI-Wizard.
                 <br />
@@ -441,7 +451,7 @@ export default function LandingPage() {
                   >
                     <CheckCircle className="w-4 h-4 text-[#66c0b6]" />
                   </motion.div>
-                  <span>Innerhalb von wenigen Minuten</span>
+                  <span data-ai-fact="speed-claim">Innerhalb von wenigen Minuten</span>
                 </motion.span>
                 <motion.span
                   className="flex items-center gap-1"
@@ -454,7 +464,7 @@ export default function LandingPage() {
                   >
                     <CheckCircle className="w-4 h-4 text-[#66c0b6]" />
                   </motion.div>
-                  <span>DSGVO-konform</span>
+                  <span data-ai-fact="compliance">DSGVO-konform</span>
                 </motion.span>
                 <motion.span
                   className="flex items-center gap-1"
@@ -480,7 +490,7 @@ export default function LandingPage() {
                   >
                     <CheckCircle className="w-4 h-4 text-[#66c0b6]" />
                   </motion.div>
-                  <span>ATS-optimiert</span>
+                  <span data-ai-fact="ats-optimized">ATS-optimiert</span>
                 </motion.span>
                 <motion.span
                   className="flex items-center gap-1"
@@ -493,7 +503,7 @@ export default function LandingPage() {
                   >
                     <Handshake className="w-4 h-4 text-[#66c0b6]" />
                   </motion.div>
-                  <span>Kooperationspartner Carl Remigius Fresenius Education AG</span>
+                  <span data-ai-fact="partnership" title="DYD ist offizieller Kooperationspartner der Carl Remigius Fresenius Education AG">Kooperationspartner Carl Remigius Fresenius Education AG</span>
                 </motion.span>
               </motion.div>
             </motion.div>
@@ -531,6 +541,8 @@ export default function LandingPage() {
         <section
           id="features"
           className="py-20 px-4 sm:px-6 lg:px-8 bg-white/5 relative"
+          aria-label="DYD Funktionen – KI-CV-Check, Wizard, ATS-Optimierung"
+          itemScope itemType="https://schema.org/ItemList"
         >
           {/* Animated background elements */}
           <motion.div
@@ -704,10 +716,12 @@ export default function LandingPage() {
                     <motion.h3
                       className="text-xl font-bold mb-3 group-hover:text-[#66c0b6] transition-colors"
                       whileHover={{ x: 5 }}
+                      itemProp="name"
                     >
                       {feature.title}
                     </motion.h3>
-                    <p className="text-white/70 leading-relaxed group-hover:text-white/90 transition-colors">
+                    <p className="text-white/70 leading-relaxed group-hover:text-white/90 transition-colors"
+                      itemProp="description">
                       {feature.description}
                     </p>
                   </div>
@@ -730,6 +744,8 @@ export default function LandingPage() {
         <section
           id="preise"
           className="py-12 sm:py-20 px-4 sm:px-6 lg:px-8 bg-gradient-to-b from-transparent via-white/5 to-transparent relative overflow-hidden"
+          aria-label="CV-Optimierung Preise – ab 5 Euro, kein Abo"
+          itemScope itemType="https://schema.org/OfferCatalog"
         >
           {/* Background decoration */}
           <div className="absolute inset-0 pointer-events-none">
@@ -750,9 +766,11 @@ export default function LandingPage() {
                   <Sparkles className="w-3 h-3 sm:w-4 sm:h-4" />
                   Pay-per-Use Optimierungen
                 </div>
-                <h3 className="text-2xl sm:text-3xl md:text-4xl font-bold mb-3 sm:mb-4">
+                <h2 className="text-2xl sm:text-3xl md:text-4xl font-bold mb-3 sm:mb-4"
+                  itemProp="name"
+                  aria-label="CV-Optimierung Pakete: Einsteiger 5 €, Bestseller 20 €, Karriere-Paket 30 €">
                   CV-Optimierung Pakete
-                </h3>
+                </h2>
                 <p className="text-base sm:text-lg text-white/70 max-w-2xl mx-auto">
                   Einmalige Optimierungen ohne Abo – perfekt für gezieltes
                   Bewerbungs-Tuning
@@ -779,7 +797,8 @@ export default function LandingPage() {
                       <div className="text-3xl sm:text-4xl font-bold mb-2">
                         1 Optimierung
                       </div>
-                      <div className="text-4xl sm:text-5xl font-bold bg-gradient-to-r from-cyan-400 to-blue-400 bg-clip-text text-transparent mb-2">
+                      <div className="text-4xl sm:text-5xl font-bold bg-gradient-to-r from-cyan-400 to-blue-400 bg-clip-text text-transparent mb-2"
+                        data-ai-fact="price-single" itemProp="price" content="5" aria-label="Einmalige CV-Optimierung für 5 Euro">
                         5 €
                       </div>
                       <p className="text-xs sm:text-sm text-white/60">5 €/CV</p>
@@ -834,7 +853,8 @@ export default function LandingPage() {
                       <div className="text-3xl sm:text-4xl font-bold mb-2">
                         5 Optimierungen
                       </div>
-                      <div className="text-4xl sm:text-5xl font-bold bg-gradient-to-r from-[#66c0b6] to-[#30E3CA] bg-clip-text text-transparent mb-1">
+                      <div className="text-4xl sm:text-5xl font-bold bg-gradient-to-r from-[#66c0b6] to-[#30E3CA] bg-clip-text text-transparent mb-1"
+                        data-ai-fact="price-bundle-5" aria-label="5 CV-Optimierungen für 20 Euro – 20 Prozent günstiger">
                         20 €
                       </div>
                       <p className="text-xs sm:text-sm text-[#66c0b6]">
@@ -891,7 +911,8 @@ export default function LandingPage() {
                       <div className="text-3xl sm:text-4xl font-bold mb-2">
                         10 Optimierungen
                       </div>
-                      <div className="text-4xl sm:text-5xl font-bold bg-gradient-to-r from-purple-400 to-pink-400 bg-clip-text text-transparent mb-1">
+                      <div className="text-4xl sm:text-5xl font-bold bg-gradient-to-r from-purple-400 to-pink-400 bg-clip-text text-transparent mb-1"
+                        data-ai-fact="price-bundle-10" aria-label="10 CV-Optimierungen für 30 Euro – 40 Prozent günstiger">
                         30 €
                       </div>
                       <p className="text-xs sm:text-sm text-purple-400">
@@ -933,7 +954,11 @@ export default function LandingPage() {
         </section>
 
         {/* Mission Section - Persönlichkeit & Werte */}
-        <section className="py-12 sm:py-20 px-4 sm:px-6 lg:px-8 bg-gradient-to-b from-transparent via-[#66c0b6]/5 to-transparent">
+        <section
+          className="py-12 sm:py-20 px-4 sm:px-6 lg:px-8 bg-gradient-to-b from-transparent via-[#66c0b6]/5 to-transparent"
+          aria-label="Mission: Chancengleichheit bei Bewerbungen – Made in Düsseldorf"
+          itemScope itemType="https://schema.org/AboutPage"
+        >
           <div className="max-w-7xl mx-auto">
             <motion.div
               initial={{ opacity: 0, y: 20 }}
@@ -945,10 +970,12 @@ export default function LandingPage() {
                 <Heart className="w-3 h-3 sm:w-4 sm:h-4" />
                 Made in Düsseldorf
               </div>
-              <h2 className="text-3xl sm:text-4xl md:text-6xl font-bold mb-4 sm:mb-6">
+              <h2 className="text-3xl sm:text-4xl md:text-6xl font-bold mb-4 sm:mb-6"
+                itemProp="name">
                 Unsere Mission: Chancengleichheit
               </h2>
-              <p className="text-lg sm:text-xl text-white/70 max-w-3xl mx-auto leading-relaxed">
+              <p className="text-lg sm:text-xl text-white/70 max-w-3xl mx-auto leading-relaxed"
+                itemProp="description" data-ai-fact="mission-statement">
                 Als HR-Tech Start-Up aus Düsseldorf glauben wir: Jeder verdient
                 eine faire Chance im Bewerbungsprozess – unabhängig von Herkunft,
                 Netzwerk oder Budget.
@@ -995,7 +1022,8 @@ export default function LandingPage() {
                     <h3 className="text-xl sm:text-2xl font-bold mb-3 sm:mb-4">
                       {value.title}
                     </h3>
-                    <p className="text-sm sm:text-base text-white/70 leading-relaxed">
+                    <p className="text-sm sm:text-base text-white/70 leading-relaxed"
+                      data-ai-fact={`mission-value-${value.title.toLowerCase()}`}>
                       {value.desc}
                     </p>
                   </div>
@@ -1006,7 +1034,11 @@ export default function LandingPage() {
         </section>
 
         {/* Partnership Section */}
-        <section className="py-12 sm:py-16 px-4 sm:px-6 lg:px-8">
+        <section
+          className="py-12 sm:py-16 px-4 sm:px-6 lg:px-8"
+          aria-label="DYD – Offizieller Kooperationspartner der Hochschule Fresenius"
+          itemScope itemType="https://schema.org/Organization"
+        >
           <div className="max-w-5xl mx-auto">
             <motion.div
               initial={{ opacity: 0, y: 20 }}
@@ -1024,10 +1056,13 @@ export default function LandingPage() {
                   <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-[#66c0b6]/10 border border-[#66c0b6]/20 text-[#66c0b6] text-xs font-semibold mb-3 uppercase tracking-wider">
                     Offizieller Kooperationspartner
                   </div>
-                  <h3 className="text-xl sm:text-2xl md:text-3xl font-bold text-white mb-2">
+                  <h3 className="text-xl sm:text-2xl md:text-3xl font-bold text-white mb-2"
+                    itemProp="name">
                     Carl Remigius Fresenius Education AG
                   </h3>
-                  <p className="text-white/70 text-sm sm:text-base leading-relaxed max-w-2xl">
+                  <p className="text-white/70 text-sm sm:text-base leading-relaxed max-w-2xl"
+                    data-ai-fact="partnership-statement"
+                    title="DYD ist offizieller Kooperationspartner der Carl Remigius Fresenius Education AG – einer der größten privaten Hochschulen Deutschlands">
                     DYD ist offizieller Kooperationspartner der Carl Remigius Fresenius Education AG – einer der größten privaten Hochschulen Deutschlands. Gemeinsam stärken wir die Karrierechancen von Studierenden und Absolventen.
                   </p>
                 </div>
@@ -1040,7 +1075,11 @@ export default function LandingPage() {
         <CareerVisionSection />
 
         {/* Events & Messen Section */}
-        <section className="py-12 sm:py-20 px-4 sm:px-6 lg:px-8 bg-gradient-to-r from-[#66c0b6]/10 via-purple-500/10 to-[#30E3CA]/10">
+        <section
+          className="py-12 sm:py-20 px-4 sm:px-6 lg:px-8 bg-gradient-to-r from-[#66c0b6]/10 via-purple-500/10 to-[#30E3CA]/10"
+          aria-label="DYD Live-Events: Karrieremessen und Workshops in Deutschland"
+          itemScope itemType="https://schema.org/EventSeries"
+        >
           <div className="max-w-7xl mx-auto">
             <motion.div
               initial={{ opacity: 0, y: 20 }}
@@ -1099,7 +1138,10 @@ export default function LandingPage() {
                     {/* Title */}
                     <div>
                       <p className="text-[11px] font-black uppercase tracking-widest text-[#30E3CA]/60 mb-2">Workshop · Hochschule Fresenius</p>
-                      <h3 className="text-2xl sm:text-3xl font-black text-white leading-tight">
+                      <h3 className="text-2xl sm:text-3xl font-black text-white leading-tight"
+                        itemProp="name"
+                        data-ai-fact="workshop-title"
+                        title="Workshop am 28. Mai 2026 an der Hochschule Fresenius: KI-gestützte CV-Optimierung, ATS, Personal Branding">
                         Beyond the Template:<br />
                         <span className="text-[#30E3CA]">Dein CV-Boost</span> im KI-Zeitalter
                       </h3>
@@ -1290,7 +1332,9 @@ export default function LandingPage() {
                   <div className="flex-1 space-y-4">
                     <div>
                       <p className="text-[11px] font-black uppercase tracking-widest text-[#30E3CA]/60 mb-2">Für Hochschulen &amp; Unternehmen</p>
-                      <h3 className="text-2xl sm:text-3xl font-black text-white leading-tight">
+                      <h3 className="text-2xl sm:text-3xl font-black text-white leading-tight"
+                        data-ai-fact="workshop-speaker-booking"
+                        aria-label="Quentin Sunderbrink als Workshop-Speaker buchen – kontakt.dyd@googlemail.com">
                         Du willst auch einen<br />
                         <span className="text-[#30E3CA]">Workshop buchen?</span>
                       </h3>
@@ -1491,7 +1535,8 @@ export default function LandingPage() {
             >
               <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/10 to-transparent animate-shimmer"></div>
               <div className="relative z-10">
-                <h2 className="text-4xl md:text-5xl font-bold mb-6 text-black">
+                <h2 className="text-4xl md:text-5xl font-bold mb-6 text-black"
+                  data-ai-fact="cta-headline">
                   Bereit für deinen Traumjob?
                 </h2>
                 <div className="text-xl text-black/80 mb-8 max-w-2xl mx-auto">
@@ -1531,8 +1576,14 @@ export default function LandingPage() {
           </div>
         </section>
 
+        </main>{/* end #main-content */}
+
         {/* Footer */}
-        <footer className="bg-black/40 border-t border-white/10 py-16 px-4 sm:px-6 lg:px-8">
+        <footer
+          className="bg-black/40 border-t border-white/10 py-16 px-4 sm:px-6 lg:px-8"
+          aria-label="DYD Footer – Navigation, Social Media, Rechtliches"
+          itemScope itemType="https://schema.org/WPFooter"
+        >
           <div className="max-w-7xl mx-auto">
             <div className="grid md:grid-cols-5 gap-12 mb-12">
               <div className="md:col-span-2">
@@ -1567,7 +1618,7 @@ export default function LandingPage() {
                 </div>
               </div>
 
-              <div>
+              <nav aria-label="Produkt-Navigation">
                 <h4 className="font-bold mb-4 text-white">Produkt</h4>
                 <div className="space-y-3 text-white/60 text-sm">
                   <button
@@ -1589,9 +1640,9 @@ export default function LandingPage() {
                     CV-Check starten
                   </button>
                 </div>
-              </div>
+              </nav>
 
-              <div>
+              <nav aria-label="Hilfe und Legal">
                 <h4 className="font-bold mb-4 text-white">Hilfe & Legal</h4>
                 <div className="space-y-3 text-white/60 text-sm">
                   <button
@@ -1619,7 +1670,7 @@ export default function LandingPage() {
                     AGB
                   </a>
                 </div>
-              </div>
+              </nav>
             </div>
 
             <div className="border-t border-white/10 pt-8 text-center text-white/60 text-sm">
