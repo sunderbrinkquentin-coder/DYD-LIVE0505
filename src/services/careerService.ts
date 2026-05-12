@@ -14,6 +14,7 @@ import {
 const VISION_WEBHOOK_URL = import.meta.env.VITE_MAKE_WEBHOOK_VISION || '';
 const CURRICULUM_WEBHOOK_URL = import.meta.env.VITE_MAKE_WEBHOOK_CURRICULUM || '';
 const TARGET_SKILLS_WEBHOOK_URL = import.meta.env.VITE_MAKE_WEBHOOK_TARGET_SKILLS || '';
+const LEARNINGPATH_WEBHOOK_URL = import.meta.env.VITE_MAKE_WEBHOOK_LEARNINGPATH || '';
 
 export class CareerVisionService {
   static async getTargetSkills(targetJob: string): Promise<Skill[]> {
@@ -241,6 +242,46 @@ export class CareerVisionService {
     } catch (error: any) {
       console.error('[CareerVision] Failed to load user paths:', error.message);
       return [];
+    }
+  }
+
+  static async unlockLearningPath(pathId: string): Promise<void> {
+    // Mark as paid in DB
+    const { error } = await supabase
+      .from('learning_paths')
+      .update({ is_paid: true, updated_at: new Date().toISOString() })
+      .eq('id', pathId);
+
+    if (error) throw new Error(`Failed to unlock learning path: ${error.message}`);
+
+    // Fetch full path data to send to Make
+    const { data: path } = await supabase
+      .from('learning_paths')
+      .select('*')
+      .eq('id', pathId)
+      .maybeSingle();
+
+    if (LEARNINGPATH_WEBHOOK_URL && path) {
+      try {
+        await fetch(LEARNINGPATH_WEBHOOK_URL, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            id: pathId,
+            user_id: path.user_id,
+            target_job: path.target_job,
+            target_company: path.target_company,
+            industry: path.industry,
+            missing_skills: path.missing_skills,
+            current_skills: path.current_skills,
+            match_score: path.match_score,
+            is_paid: true,
+            unlocked_at: new Date().toISOString(),
+          }),
+        });
+      } catch (e: any) {
+        console.warn('[CareerVision] Unlock webhook error (non-fatal):', e.message);
+      }
     }
   }
 

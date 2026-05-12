@@ -6,6 +6,7 @@ import {
 } from 'lucide-react';
 import { LearningPath, Skill } from '../../types/learningPath';
 import { PaywallModal } from '../PaywallModal';
+import { careerService } from '../../services/careerService';
 
 // ── Skill normalization ────────────────────────────────────────────────────────
 
@@ -332,18 +333,26 @@ interface CareerVisionCardProps {
 
 function CompactCard({ learningPath, onStartLearning }: Omit<CareerVisionCardProps, 'variant'>) {
   const [showPaywall, setShowPaywall] = useState(false);
+  const [localPaid, setLocalPaid] = useState(learningPath.is_paid);
 
   const missing      = toSkillArray(learningPath.missing_skills);
   const sorted       = [...missing].sort((a, b) => severityOf(b) - severityOf(a));
   const topSkills    = sorted.slice(0, 4);
   const score        = learningPath.match_score ?? 0;
   const outlook      = learningPath.strategic_outlook_2026 ?? (learningPath as any).market_trend_2026 ?? '';
-  const isPaidOrFree = learningPath.is_paid || !!learningPath.curriculum;
+  const isPaidOrFree = localPaid || !!learningPath.curriculum;
   const accentColor  = sorted[0] ? paletteOf(severityOf(sorted[0])).color : '#30E3CA';
 
   const handleCta = (skillIdx?: number) => {
     if (isPaidOrFree) onStartLearning?.(skillIdx);
     else setShowPaywall(true);
+  };
+
+  const handleUnlock = async () => {
+    await careerService.unlockLearningPath(learningPath.id);
+    setLocalPaid(true);
+    setShowPaywall(false);
+    onStartLearning?.();
   };
 
   return (
@@ -460,7 +469,13 @@ function CompactCard({ learningPath, onStartLearning }: Omit<CareerVisionCardPro
       </div>
 
       {showPaywall && (
-        <PaywallModal isOpen onClose={() => setShowPaywall(false)} context="learning_path" feature="Career Vision Learning Path" />
+        <PaywallModal
+          isOpen
+          onClose={() => setShowPaywall(false)}
+          onConfirm={handleUnlock}
+          context="learning_path"
+          feature="Career Vision Learning Path"
+        />
       )}
     </>
   );
@@ -470,6 +485,7 @@ function CompactCard({ learningPath, onStartLearning }: Omit<CareerVisionCardPro
 
 function DetailCard({ learningPath, onStartLearning }: Omit<CareerVisionCardProps, 'variant'>) {
   const [showPaywall, setShowPaywall] = useState(false);
+  const [localPaid, setLocalPaid] = useState(learningPath.is_paid);
 
   const missing      = toSkillArray(learningPath.missing_skills);
   const current      = toSkillArray(learningPath.current_skills ?? []);
@@ -477,13 +493,20 @@ function DetailCard({ learningPath, onStartLearning }: Omit<CareerVisionCardProp
   const topSkill     = sorted[0];
   const score        = learningPath.match_score ?? 0;
   const outlook      = learningPath.strategic_outlook_2026 ?? (learningPath as any).market_trend_2026 ?? '';
-  const isPaidOrFree = learningPath.is_paid || !!learningPath.curriculum;
+  const isPaidOrFree = localPaid || !!learningPath.curriculum;
   const highCount    = sorted.filter((s) => severityOf(s) >= 4).length;
   const accentColor  = sorted[0] ? paletteOf(severityOf(sorted[0])).color : '#30E3CA';
 
   const handleCta = (skillIdx?: number) => {
     if (isPaidOrFree) onStartLearning?.(skillIdx);
     else setShowPaywall(true);
+  };
+
+  const handleUnlock = async () => {
+    await careerService.unlockLearningPath(learningPath.id);
+    setLocalPaid(true);
+    setShowPaywall(false);
+    onStartLearning?.();
   };
 
   // Split skills by category for visual grouping
@@ -699,7 +722,13 @@ function DetailCard({ learningPath, onStartLearning }: Omit<CareerVisionCardProp
       </div>
 
       {showPaywall && (
-        <PaywallModal isOpen onClose={() => setShowPaywall(false)} context="learning_path" feature="Career Vision Learning Path" />
+        <PaywallModal
+          isOpen
+          onClose={() => setShowPaywall(false)}
+          onConfirm={handleUnlock}
+          context="learning_path"
+          feature="Career Vision Learning Path"
+        />
       )}
     </>
   );
