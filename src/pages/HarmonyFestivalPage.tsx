@@ -1273,9 +1273,9 @@ export default function HarmonyFestivalPage() {
                 </p>
 
                 {/* Official Sponsor Badge */}
-                <div className="flex items-center gap-4 mb-6" style={{ display: 'inline-flex', alignItems: 'center', gap: '14px' }}>
-                  <img src="/SSKDD_Logo1.png" alt="Stadtsparkasse Düsseldorf – Offizieller Sponsor" className="rounded-xl object-cover" style={{ height: '52px', width: 'auto' }} />
-                  <div style={{ fontFamily: "'Barlow Condensed', sans-serif", fontWeight: 700, fontSize: '13px', color: 'rgba(0,212,212,0.7)', letterSpacing: '0.1em', textTransform: 'uppercase' }}>Offizieller Sponsor</div>
+                <div className="mb-6" style={{ maxWidth: '420px' }}>
+                  <div style={{ fontFamily: "'Barlow Condensed', sans-serif", fontWeight: 700, fontSize: '12px', color: 'rgba(0,212,212,0.7)', letterSpacing: '0.12em', textTransform: 'uppercase', marginBottom: '8px' }}>Offizieller Sponsor</div>
+                  <img src="/SSKDD_Logo1 copy.png" alt="Stadtsparkasse Düsseldorf – Offizieller Sponsor" className="rounded-xl w-full" style={{ display: 'block' }} />
                 </div>
 
                 <motion.button
@@ -1355,20 +1355,15 @@ export default function HarmonyFestivalPage() {
                     Offizieller Sponsor
                   </div>
                 </div>
-                <div className="flex flex-col sm:flex-row items-start sm:items-center gap-6">
-                  <img
-                    src="/SSKDD_Logo1.png"
-                    alt="Stadtsparkasse Düsseldorf"
-                    className="rounded-xl flex-shrink-0"
-                    style={{ height: '72px', width: 'auto', objectFit: 'cover' }}
-                  />
-                  <div>
-                    <h4 style={{ fontFamily: "'Barlow Condensed', sans-serif", fontWeight: 700, fontSize: '20px', color: '#fff', marginBottom: '4px' }}>Stadtsparkasse Düsseldorf</h4>
-                    <p style={{ fontFamily: "'Inter', sans-serif", fontSize: '13px', color: 'rgba(160,230,230,0.55)', lineHeight: 1.65 }}>
-                      Die Stadtsparkasse Düsseldorf ist offizieller Sponsor von Harmony – und zeigt damit, wie ein starker lokaler Partner aussieht.
-                    </p>
-                  </div>
-                </div>
+                <img
+                  src="/SSKDD_Logo1 copy.png"
+                  alt="Stadtsparkasse Düsseldorf"
+                  className="rounded-xl w-full mb-4"
+                  style={{ display: 'block', maxWidth: '480px' }}
+                />
+                <p style={{ fontFamily: "'Inter', sans-serif", fontSize: '13px', color: 'rgba(160,230,230,0.55)', lineHeight: 1.65 }}>
+                  Die Stadtsparkasse Düsseldorf ist offizieller Sponsor von Harmony – und zeigt damit, wie ein starker lokaler Partner aussieht.
+                </p>
               </div>
 
               {/* Fränkische Biermarken */}
