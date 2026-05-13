@@ -14,7 +14,9 @@ import { supabase } from '../lib/supabase';
 
 // ── Constants ──────────────────────────────────────────────────────────────────
 
-const CURRICULUM_WEBHOOK_URL = import.meta.env.VITE_MAKE_WEBHOOK_CURRICULUM || '';
+const CURRICULUM_WEBHOOK_URL = import.meta.env.VITE_MAKE_WEBHOOK_CURRICULUM
+  || import.meta.env.VITE_MAKE_WEBHOOK_LEARNINGPATH
+  || '';
 const COMPLETE_STATUSES = new Set(['curriculum_ready', 'completed']);
 const POLL_INTERVAL_MS = 3_000;
 const POLL_MAX = 60;

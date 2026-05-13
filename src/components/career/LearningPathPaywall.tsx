@@ -20,41 +20,26 @@ interface LearningPathPaywallProps {
 const BENEFITS = [
   {
     icon: BookOpen,
-    color: '#30E3CA',
-    bg: 'rgba(48,227,202,0.10)',
-    border: 'rgba(48,227,202,0.22)',
     title: '5–10 strukturierte Lernmodule',
     desc: 'Schritt-für-Schritt-Roadmap, genau auf deine Skill-Gaps zugeschnitten',
   },
   {
     icon: Award,
-    color: '#f59e0b',
-    bg: 'rgba(245,158,11,0.10)',
-    border: 'rgba(245,158,11,0.22)',
     title: 'Offizielles Abschlusszertifikat',
     desc: 'Beweise deinen Fortschritt — downloadbares PDF-Zertifikat nach Abschluss',
   },
   {
     icon: TrendingUp,
-    color: '#22c55e',
-    bg: 'rgba(34,197,94,0.10)',
-    border: 'rgba(34,197,94,0.22)',
     title: 'Fortschritts-Tracking',
     desc: 'Behalte deinen Lernfortschritt immer im Blick — Modul für Modul',
   },
   {
     icon: Sparkles,
-    color: '#38bdf8',
-    bg: 'rgba(56,189,248,0.10)',
-    border: 'rgba(56,189,248,0.22)',
     title: 'Kuratierte Lernressourcen',
     desc: 'Hochwertige Kurse, Artikel & Videos — keine Zeitverschwendung',
   },
   {
     icon: Zap,
-    color: '#f97316',
-    bg: 'rgba(249,115,22,0.10)',
-    border: 'rgba(249,115,22,0.22)',
     title: 'Sofortiger Zugriff & lebenslang',
     desc: 'Einmal freischalten — für immer nutzen, in deinem eigenen Tempo',
   },
@@ -137,16 +122,14 @@ export function LearningPathPaywall({
           overflowY: 'auto',
         }}
       >
-        {/* Ambient orbs */}
+        {/* Ambient orb */}
         <div className="absolute inset-0 pointer-events-none overflow-hidden">
-          <div className="absolute w-72 h-72 rounded-full opacity-[0.06]"
+          <div className="absolute w-72 h-72 rounded-full opacity-[0.05]"
             style={{ background: 'radial-gradient(circle,#30E3CA,transparent)', top: '-80px', right: '-60px', animation: 'lpOrb 9s ease-in-out infinite' }} />
-          <div className="absolute w-48 h-48 rounded-full opacity-[0.04]"
-            style={{ background: 'radial-gradient(circle,#f59e0b,transparent)', bottom: '-40px', left: '-40px' }} />
         </div>
 
         {/* Top accent line */}
-        <div className="h-[3px]" style={{ background: 'linear-gradient(90deg,#30E3CA,#66c0b6,#f59e0b,transparent)' }} />
+        <div className="h-[3px]" style={{ background: 'linear-gradient(90deg,#30E3CA,#66c0b6,transparent)' }} />
 
         <div className="relative">
           {/* Header */}
@@ -177,13 +160,6 @@ export function LearningPathPaywall({
               <div className="absolute top-0 left-0 right-0 h-px"
                 style={{ background: 'linear-gradient(90deg,transparent,rgba(48,227,202,0.6),transparent)' }} />
 
-              {/* Döner comparison badge */}
-              <div className="absolute top-4 right-4 flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl"
-                style={{ background: 'rgba(245,158,11,0.12)', border: '1px solid rgba(245,158,11,0.25)' }}>
-                <span className="text-base leading-none">🌯</span>
-                <span className="text-[10px] font-black text-amber-300">= 1 Döner + Getränk</span>
-              </div>
-
               <div className="flex items-end gap-3">
                 <div>
                   <p className="text-[11px] font-black text-[#30E3CA]/60 uppercase tracking-widest mb-1">Einmalig</p>
@@ -192,22 +168,6 @@ export function LearningPathPaywall({
                     <span className="text-2xl font-black text-white/70 mb-0.5">€</span>
                   </div>
                   <p className="text-xs text-white/40 mt-1">Kein Abo · Kein Verstecktes · Einmal zahlen</p>
-                </div>
-              </div>
-
-              {/* Comparison row */}
-              <div className="mt-4 grid grid-cols-2 gap-2">
-                <div className="rounded-xl p-3 text-center"
-                  style={{ background: 'rgba(239,68,68,0.07)', border: '1px solid rgba(239,68,68,0.15)' }}>
-                  <p className="text-[9px] font-black uppercase tracking-wider text-red-400 mb-1">Döner + Getränk</p>
-                  <p className="text-lg font-black text-white/60">~9 €</p>
-                  <p className="text-[9px] text-white/35 mt-0.5">Vergessen in 30 Minuten</p>
-                </div>
-                <div className="rounded-xl p-3 text-center"
-                  style={{ background: 'rgba(48,227,202,0.07)', border: '1px solid rgba(48,227,202,0.18)' }}>
-                  <p className="text-[9px] font-black uppercase tracking-wider text-[#30E3CA] mb-1">Dein Zertifikat</p>
-                  <p className="text-lg font-black text-white">~9,99 €</p>
-                  <p className="text-[9px] text-white/35 mt-0.5">Lebenslang im Lebenslauf</p>
                 </div>
               </div>
 
@@ -226,18 +186,18 @@ export function LearningPathPaywall({
           {/* Benefits list */}
           <div className="px-6 pb-4 space-y-2">
             <p className="text-[10px] font-black uppercase tracking-widest text-white/35 mb-3">Was du bekommst</p>
-            {BENEFITS.map(({ icon: Icon, color, bg, border, title, desc }) => (
+            {BENEFITS.map(({ icon: Icon, title, desc }) => (
               <div key={title} className="flex items-start gap-3 p-3 rounded-xl transition-all"
-                style={{ background: bg, border: `1px solid ${border}` }}>
+                style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.07)' }}>
                 <div className="w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0 mt-0.5"
-                  style={{ background: 'rgba(0,0,0,0.25)', border: `1px solid ${border}` }}>
-                  <Icon size={15} style={{ color }} />
+                  style={{ background: 'rgba(48,227,202,0.08)', border: '1px solid rgba(48,227,202,0.15)' }}>
+                  <Icon size={15} className="text-[#66c0b6]" />
                 </div>
                 <div className="flex-1 min-w-0">
                   <p className="text-sm font-black text-white leading-snug">{title}</p>
                   <p className="text-[11px] text-white/50 mt-0.5 leading-relaxed">{desc}</p>
                 </div>
-                <CheckCircle2 size={14} style={{ color }} className="flex-shrink-0 mt-1" />
+                <CheckCircle2 size={14} className="text-[#66c0b6] flex-shrink-0 mt-1" />
               </div>
             ))}
           </div>

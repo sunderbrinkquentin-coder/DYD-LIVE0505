@@ -5,7 +5,9 @@ import { careerService } from '../services/careerService';
 
 // ── Constants ──────────────────────────────────────────────────────────────────
 
-const CURRICULUM_WEBHOOK_URL = import.meta.env.VITE_MAKE_WEBHOOK_CURRICULUM || '';
+const CURRICULUM_WEBHOOK_URL = import.meta.env.VITE_MAKE_WEBHOOK_CURRICULUM
+  || import.meta.env.VITE_MAKE_WEBHOOK_LEARNINGPATH
+  || '';
 const COMPLETE_STATUSES = new Set(['curriculum_ready', 'completed']);
 // Statuses that mean the curriculum is already being generated or done — don't re-trigger
 const ALREADY_TRIGGERED_STATUSES = new Set(['curriculum_ready', 'completed', 'in_progress']);
