@@ -1311,52 +1311,55 @@ export function CareerVisionSection({ cvId: initialCvId, onAnalysisComplete }: C
             {/* Upload area — shown when useNewCv OR no CV exists */}
             {(useNewCv || (!activeCvId && !useNewCv)) && (
               <div className="space-y-3">
-                {/* Recommendation banner — only when no CV exists and not in upload mode */}
+                {/* Two-option layout when no CV exists and not in upload mode */}
                 {!activeCvId && !useNewCv && (
-                  <div className="relative overflow-hidden rounded-2xl p-4"
-                    style={{ background: 'linear-gradient(135deg,rgba(48,227,202,0.07),rgba(10,14,30,0.95))', border: '1px solid rgba(48,227,202,0.18)' }}>
-                    <div className="absolute top-0 left-0 right-0 h-px"
-                      style={{ background: 'linear-gradient(90deg,transparent,rgba(48,227,202,0.5),transparent)' }} />
-                    <div className="flex gap-3 items-start">
-                      <div className="w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0 mt-0.5"
-                        style={{ background: 'rgba(48,227,202,0.1)', border: '1px solid rgba(48,227,202,0.25)' }}>
-                        <Star size={15} className="text-[#30E3CA]" />
-                      </div>
-                      <div className="flex-1 space-y-2">
-                        <div>
-                          <p className="text-sm font-black text-white">Präzisere Ergebnisse mit Lebenslauf</p>
-                          <p className="text-[11px] text-white/50 mt-0.5 leading-relaxed">
-                            Mit deinem CV erkennt die KI genau welche Skills du schon hast — und zeigt nur die echten Lücken. Ohne CV basiert die Analyse nur auf Marktdaten.
-                          </p>
-                        </div>
-                        <div className="flex flex-wrap gap-2">
-                          {[
-                            { icon: <TrendingUp size={9} />, text: 'Personalisierte Skill-Gaps' },
-                            { icon: <ShieldCheck size={9} />, text: 'Kein Duplikat-Lernen' },
-                            { icon: <Sparkles size={9} />, text: 'Höherer Match-Score' },
-                          ].map(({ icon, text }) => (
-                            <span key={text} className="flex items-center gap-1 text-[10px] font-bold px-2 py-1 rounded-lg"
-                              style={{ background: 'rgba(48,227,202,0.08)', color: '#30E3CA', border: '1px solid rgba(48,227,202,0.18)' }}>
-                              {icon}{text}
-                            </span>
-                          ))}
-                        </div>
-                      </div>
-                    </div>
-                    {/* CTA to enter upload mode */}
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    {/* Option A: Upload CV */}
                     <button
                       type="button"
                       onClick={() => setUseNewCv(true)}
-                      className="mt-3 w-full py-2.5 rounded-xl text-sm font-black flex items-center justify-center gap-2 transition-all hover:scale-[1.01]"
-                      style={{ background: 'rgba(48,227,202,0.12)', border: '1px solid rgba(48,227,202,0.28)', color: '#30E3CA' }}
+                      className="group flex flex-col items-start gap-2.5 p-4 rounded-2xl text-left transition-all hover:scale-[1.02] active:scale-[0.98]"
+                      style={{ background: 'rgba(48,227,202,0.07)', border: '1px solid rgba(48,227,202,0.22)' }}
                     >
-                      <Upload size={14} />
-                      Lebenslauf hochladen (PDF)
-                      <ArrowRight size={13} />
+                      <div className="flex items-center gap-2.5 w-full">
+                        <div className="w-8 h-8 rounded-xl flex items-center justify-center flex-shrink-0"
+                          style={{ background: 'rgba(48,227,202,0.12)', border: '1px solid rgba(48,227,202,0.28)' }}>
+                          <Upload size={14} className="text-[#30E3CA]" />
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <p className="text-sm font-black text-white">Mit Lebenslauf</p>
+                          <p className="text-[10px] font-bold uppercase tracking-wider" style={{ color: 'rgba(48,227,202,0.6)' }}>Empfohlen</p>
+                        </div>
+                        <ArrowRight size={14} className="text-[#30E3CA]/50 group-hover:translate-x-0.5 transition-transform flex-shrink-0" />
+                      </div>
+                      <p className="text-[11px] text-white/45 leading-relaxed">
+                        Die KI erkennt deine vorhandenen Skills — nur echte Lücken werden angezeigt.
+                      </p>
                     </button>
-                    <p className="text-center text-[10px] text-white/25 mt-2">
-                      Oder einfach nach unten scrollen und ohne CV starten
-                    </p>
+
+                    {/* Option B: Generalist mode — start without CV */}
+                    <button
+                      type="button"
+                      onClick={runAnalysis}
+                      disabled={!targetJob.trim()}
+                      className="group flex flex-col items-start gap-2.5 p-4 rounded-2xl text-left transition-all hover:scale-[1.02] active:scale-[0.98] disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:scale-100"
+                      style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.12)' }}
+                    >
+                      <div className="flex items-center gap-2.5 w-full">
+                        <div className="w-8 h-8 rounded-xl flex items-center justify-center flex-shrink-0"
+                          style={{ background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.15)' }}>
+                          <Sparkles size={14} className="text-white/60" />
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <p className="text-sm font-black text-white">Ohne Lebenslauf</p>
+                          <p className="text-[10px] font-bold uppercase tracking-wider text-white/35">Generalistenmodus</p>
+                        </div>
+                        <ArrowRight size={14} className="text-white/25 group-hover:translate-x-0.5 transition-transform flex-shrink-0" />
+                      </div>
+                      <p className="text-[11px] text-white/40 leading-relaxed">
+                        Sofort starten — Analyse basiert auf allgemeinen Marktdaten für {targetJob.trim() || 'deine Zielposition'}.
+                      </p>
+                    </button>
                   </div>
                 )}
 
@@ -1430,12 +1433,6 @@ export function CareerVisionSection({ cvId: initialCvId, onAnalysisComplete }: C
               </div>
             )}
 
-            {/* No CV note */}
-            {!activeCvId && !useNewCv && (
-              <p className="text-[11px] text-white/30 pl-1">
-                Kein CV? Kein Problem — die Analyse läuft auch ohne, basiert dann aber nur auf allgemeinen Marktdaten.
-              </p>
-            )}
           </div>
         </div>
       )}
