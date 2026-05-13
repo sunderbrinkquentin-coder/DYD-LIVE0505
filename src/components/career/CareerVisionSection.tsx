@@ -10,6 +10,7 @@ import {
 import { useAuth } from '../../contexts/AuthContext';
 import { supabase } from '../../lib/supabase';
 import { uploadCvAndCreateRecord } from '../../services/cvUploadService';
+import { LearningPathPaywall } from './LearningPathPaywall';
 
 // ── Constants ──────────────────────────────────────────────────────────────────
 
@@ -486,8 +487,8 @@ function tierFor(severity: number) {
 // ── Skill detail panel (shown when skill tab is active) ───────────────────────
 
 function SkillDetailPanel({
-  skill, targetCompany, targetJob,
-}: { skill: RawSkill; targetCompany: string; targetJob: string }) {
+  skill, targetCompany, targetJob, onStartLearning,
+}: { skill: RawSkill; targetCompany: string; targetJob: string; onStartLearning?: () => void }) {
   const name     = skillDisplayName(skill);
   const severity = skill?.gap_severity ?? 3;
   const tier     = tierFor(severity);
@@ -503,7 +504,6 @@ function SkillDetailPanel({
       }}
     >
       <style>{GLOBAL_STYLES}</style>
-      {/* Top accent bar */}
       <div className="h-[3px]" style={{ background: `linear-gradient(90deg,${tier.color},${tier.color}22)` }} />
 
       <div className="p-5 space-y-4">
@@ -551,7 +551,6 @@ function SkillDetailPanel({
           </div>
         )}
 
-        {/* Company-specific context */}
         {targetCompany && (
           <div className="rounded-xl p-4" style={{ background: tier.bg, border: `1px solid ${tier.border}` }}>
             <p className="text-[11px] font-black uppercase tracking-wider mb-2" style={{ color: tier.color }}>
@@ -566,7 +565,6 @@ function SkillDetailPanel({
           </div>
         )}
 
-        {/* Market value bonus */}
         {skill?.market_value_bonus && (
           <div className="flex items-center gap-2.5 px-4 py-3 rounded-xl"
             style={{ background: 'rgba(251,191,36,0.08)', border: '1px solid rgba(251,191,36,0.2)' }}>
@@ -578,7 +576,6 @@ function SkillDetailPanel({
           </div>
         )}
 
-        {/* Details row */}
         <div className="grid grid-cols-2 gap-3">
           <div className="rounded-xl p-3" style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.07)' }}>
             <p className="text-[10px] text-white/35 font-bold uppercase tracking-wider mb-1">Ziel-Level</p>
@@ -594,7 +591,6 @@ function SkillDetailPanel({
           )}
         </div>
 
-        {/* ESCO link */}
         {skill?.esco_code && (
           <a
             href={skill.esco_code}
@@ -606,16 +602,31 @@ function SkillDetailPanel({
             <BarChart3 size={11} /> ESCO-Referenz ansehen <ArrowRight size={10} />
           </a>
         )}
+
+        {/* Per-skill CTA */}
+        {onStartLearning && (
+          <button
+            onClick={onStartLearning}
+            className="group relative w-full py-3.5 rounded-xl font-black text-[14px] text-black flex items-center justify-center gap-2.5 overflow-hidden transition-all duration-200 hover:scale-[1.015] active:scale-[0.98]"
+            style={{ background: `linear-gradient(135deg,${tier.color},#30E3CA)` }}
+          >
+            <div className="absolute inset-0 pointer-events-none"
+              style={{ background: 'linear-gradient(90deg,transparent,rgba(255,255,255,0.18),transparent)', backgroundSize: '200% 100%', animation: 'shimmer 2s ease-in-out infinite' }} />
+            <Sparkles size={15} className="relative z-10 group-hover:rotate-12 transition-transform" />
+            <span className="relative z-10">Lernpfad für {name} starten</span>
+            <ArrowRight size={14} className="relative z-10 group-hover:translate-x-0.5 transition-transform" />
+          </button>
+        )}
       </div>
     </div>
   );
 }
 
-// ── Skill switcher (tabs on top, detail below) ────────────────────────────────
+// ── Skill switcher (pill grid + detail panel) ────────────────────────────────
 
 function SkillSwitcher({
-  skills, targetCompany, targetJob,
-}: { skills: RawSkill[]; targetCompany: string; targetJob: string }) {
+  skills, targetCompany, targetJob, onStartLearning,
+}: { skills: RawSkill[]; targetCompany: string; targetJob: string; onStartLearning?: (skillName: string) => void }) {
   const [activeIdx, setActiveIdx] = useState(0);
 
   if (skills.length === 0) return null;
@@ -624,8 +635,8 @@ function SkillSwitcher({
 
   return (
     <div className="space-y-3">
-      {/* Tab strip — horizontally scrollable */}
-      <div className="flex gap-2 overflow-x-auto pb-1 -mx-1 px-1" style={{ scrollbarWidth: 'none' }}>
+      {/* Pill grid — wraps naturally, no horizontal scroll, all skills visible */}
+      <div className="flex flex-wrap gap-2">
         {skills.map((skill, i) => {
           const name     = skillDisplayName(skill);
           const severity = skill?.gap_severity ?? 3;
@@ -636,26 +647,22 @@ function SkillSwitcher({
             <button
               key={i}
               onClick={() => setActiveIdx(i)}
-              className="flex-shrink-0 flex items-center gap-2 px-3 py-2 rounded-xl text-left transition-all duration-200"
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-full text-left transition-all duration-200 hover:scale-[1.03]"
               style={{
-                background: isActive ? tier.bg : 'rgba(255,255,255,0.03)',
-                border: `1px solid ${isActive ? tier.color + '60' : 'rgba(255,255,255,0.08)'}`,
-                boxShadow: isActive ? `0 0 16px -4px ${tier.color}30` : 'none',
+                background: isActive ? tier.bg : 'rgba(255,255,255,0.04)',
+                border: `1px solid ${isActive ? tier.color + '55' : 'rgba(255,255,255,0.09)'}`,
+                boxShadow: isActive ? `0 0 12px -3px ${tier.color}25` : 'none',
               }}
             >
-              <span className="text-base leading-none">{tier.emoji}</span>
-              <div className="min-w-0">
-                <p className="text-[12px] font-black text-white whitespace-nowrap truncate max-w-[120px]"
-                  style={{ color: isActive ? tier.color : undefined }}>
-                  {name}
-                </p>
-                <p className="text-[9px] font-bold uppercase tracking-wider mt-0.5"
-                  style={{ color: isActive ? `${tier.color}80` : 'rgba(255,255,255,0.25)' }}>
-                  Impact {severity}/5
-                </p>
-              </div>
+              <span className="text-sm leading-none">{tier.emoji}</span>
+              <span
+                className="text-[12px] font-black whitespace-nowrap"
+                style={{ color: isActive ? tier.color : 'rgba(255,255,255,0.7)' }}
+              >
+                {name}
+              </span>
               {isActive && (
-                <ChevronRight size={12} style={{ color: tier.color }} className="flex-shrink-0" />
+                <div className="w-1 h-1 rounded-full flex-shrink-0" style={{ background: tier.color }} />
               )}
             </button>
           );
@@ -668,6 +675,7 @@ function SkillSwitcher({
         skill={activeSkill}
         targetCompany={targetCompany}
         targetJob={targetJob}
+        onStartLearning={onStartLearning ? () => onStartLearning(skillDisplayName(activeSkill)) : undefined}
       />
     </div>
   );
@@ -723,7 +731,10 @@ function WhereToStartCard({ skill, targetJob, onNavigate }: { skill: RawSkill; t
 
 // ── Result view ────────────────────────────────────────────────────────────────
 
-function ResultView({ result, onNavigate }: { result: AnalysisResult; onNavigate: () => void }) {
+function ResultView({ result, onNavigate }: { result: AnalysisResult; onNavigate: (selectedSkill?: string) => void }) {
+  const [showPaywall, setShowPaywall] = useState(false);
+  const [pendingSkill, setPendingSkill] = useState<string | undefined>(undefined);
+
   const { missingSkills, currentSkills, strategicOutlook, matchScore, industry, targetJob, targetCompany } = result;
 
   const visibleSkills = missingSkills
@@ -733,6 +744,11 @@ function ResultView({ result, onNavigate }: { result: AnalysisResult; onNavigate
   const visibleCurrent = currentSkills.filter((s) => skillDisplayName(s) !== '(unbenannt)');
   const topSkill = visibleSkills[0];
   const scoreColor = matchScore >= 70 ? '#22c55e' : matchScore >= 40 ? '#f59e0b' : '#30E3CA';
+
+  const openPaywall = (skillName?: string) => {
+    setPendingSkill(skillName);
+    setShowPaywall(true);
+  };
 
   return (
     <div className="space-y-5" style={{ animation: 'fadeUp 0.5s ease' }}>
@@ -782,12 +798,13 @@ function ResultView({ result, onNavigate }: { result: AnalysisResult; onNavigate
               <Sparkles size={14} className="text-[#30E3CA]" />
               <h4 className="text-sm font-black text-white">Deine {visibleSkills.length} Wachstums-Chancen</h4>
             </div>
-            <span className="text-[10px] text-white/30 italic">Skill antippen für Analyse</span>
+            <span className="text-[10px] text-white/30 italic">Skill antippen für Details</span>
           </div>
           <SkillSwitcher
             skills={visibleSkills}
             targetCompany={targetCompany}
             targetJob={targetJob}
+            onStartLearning={(skillName) => openPaywall(skillName)}
           />
         </div>
       )}
@@ -812,10 +829,10 @@ function ResultView({ result, onNavigate }: { result: AnalysisResult; onNavigate
 
       {/* CTA */}
       {topSkill ? (
-        <WhereToStartCard skill={topSkill} targetJob={targetJob} onNavigate={onNavigate} />
+        <WhereToStartCard skill={topSkill} targetJob={targetJob} onNavigate={() => openPaywall()} />
       ) : (
         <button
-          onClick={onNavigate}
+          onClick={() => openPaywall()}
           className="group w-full py-4 rounded-xl font-black text-base text-black flex items-center justify-center gap-3 transition-all hover:scale-[1.02]"
           style={{ background: 'linear-gradient(135deg,#66c0b6,#30E3CA)', animation: 'ctaPulse 2.5s ease-in-out infinite' }}
         >
@@ -823,6 +840,18 @@ function ResultView({ result, onNavigate }: { result: AnalysisResult; onNavigate
           Meinen Lernpfad starten
           <ArrowRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
         </button>
+      )}
+
+      {showPaywall && (
+        <LearningPathPaywall
+          isOpen
+          onClose={() => { setShowPaywall(false); setPendingSkill(undefined); }}
+          learningPathId={result.pathId}
+          targetJob={targetJob}
+          targetCompany={targetCompany}
+          skillCount={visibleSkills.length}
+          selectedSkill={pendingSkill}
+        />
       )}
     </div>
   );
@@ -1202,7 +1231,7 @@ export function CareerVisionSection({ cvId: initialCvId, onAnalysisComplete }: C
     }
   };
 
-  const handleNavigate = () => {
+  const handleNavigate = (_selectedSkill?: string) => {
     if (!result) return;
     if (onAnalysisComplete) onAnalysisComplete(result.pathId);
     else navigate(`/learning-path/${result.pathId}`);
