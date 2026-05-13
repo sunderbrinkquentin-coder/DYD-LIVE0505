@@ -30,6 +30,7 @@ import AgbPage from '../pages/AgbPage';
 import FaqPage from '../pages/FaqPage';
 import CareerVisionPage from '../pages/CareerVisionPage';
 import LearningPathPage from '../pages/LearningPathPage';
+import LearningPathWaitingPage from '../pages/LearningPathWaitingPage';
 import HarmonyFestivalPage from '../pages/HarmonyFestivalPage';
 import FestivalPaymentSuccessPage from '../pages/FestivalPaymentSuccessPage';
 
@@ -99,6 +100,7 @@ export const router = createHashRouter([
   // Career Vision
   { path: '/career-vision', element: <CareerVisionPage /> },
   { path: '/learning-path/:pathId', element: <LearningPathPage /> },
+  { path: '/learning-path-waiting/:pathId', element: <LearningPathWaitingPage /> },
 
   // 🔐 Dashboard → jetzt geschützt
   {

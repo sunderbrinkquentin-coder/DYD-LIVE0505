@@ -181,6 +181,7 @@ Deno.serve(async (req: Request) => {
       const userId = session.client_reference_id || session.metadata?.user_id;
       const tokensToAdd = TOKEN_MAPPING[priceId] || 0;
       const cvId = session.metadata?.cvId || session.metadata?.cv_id;
+      const learningPathId = session.metadata?.learning_path_id;
       const isCvCheckPrice = CV_CHECK_PRICE_IDS.has(priceId);
 
       console.log("[Stripe Webhook] Price:", priceId, "| isCvCheck:", isCvCheckPrice, "| Tokens:", tokensToAdd, "| cvId:", cvId, "| userId:", userId);
@@ -266,6 +267,24 @@ Deno.serve(async (req: Request) => {
             }
           }
         }
+      }
+
+      // Handle learning path payment
+      if (learningPathId) {
+        console.log("[Stripe Webhook] Payment for learning path:", learningPathId);
+        const { error: lpError } = await supabase
+          .from("learning_paths")
+          .update({ is_paid: true, updated_at: new Date().toISOString() })
+          .eq("id", learningPathId);
+        if (lpError) {
+          console.error("[Stripe Webhook] Error unlocking learning path:", lpError);
+        } else {
+          console.log("[Stripe Webhook] Learning path unlocked:", learningPathId);
+        }
+        return new Response(JSON.stringify({ received: true }), {
+          status: 200,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
       }
 
       if (!userId) {

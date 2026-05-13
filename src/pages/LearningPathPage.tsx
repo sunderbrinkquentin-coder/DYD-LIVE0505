@@ -491,7 +491,7 @@ function ResultView({
             <span className="relative z-10">Meinen Lernpfad jetzt starten</span>
             <ArrowRight className="w-5 h-5 relative z-10 group-hover:translate-x-1 transition-transform" />
           </button>
-          <p className="text-center text-[11px] text-white/25">Zertifikat inklusive · Einmalig 9,90 € · Lebenslanger Zugriff</p>
+          <p className="text-center text-[11px] text-white/25">Zertifikat inklusive · Einmalig 9,99 € · Lebenslanger Zugriff</p>
         </div>
       </div>
 

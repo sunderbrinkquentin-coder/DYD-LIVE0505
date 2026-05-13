@@ -270,7 +270,7 @@ export function GapAnalysisWidget({ learningPath, onStartLearning }: GapAnalysis
               <div>
                 <p className="text-sm font-bold text-white mb-1">Vollständigen Lernpfad freischalten</p>
                 <p className="text-xs text-white/50 leading-relaxed">
-                  Strukturierte Module, kuratierte Ressourcen, Zeitplan & Abschlusszertifikat — einmalig 9,90 €.
+                  Strukturierte Module, kuratierte Ressourcen, Zeitplan & Abschlusszertifikat — einmalig 9,99 €.
                 </p>
               </div>
             </div>

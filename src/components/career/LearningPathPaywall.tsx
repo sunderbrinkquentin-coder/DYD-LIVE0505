@@ -84,8 +84,9 @@ export function LearningPathPaywall({
       const token = session?.access_token || import.meta.env.VITE_SUPABASE_ANON_KEY;
 
       const origin = window.location.origin;
-      const successUrl = `${origin}/learning-path/${learningPathId}?payment=success&session_id={CHECKOUT_SESSION_ID}`;
-      const cancelUrl  = `${origin}/learning-path/${learningPathId}?payment=cancelled`;
+      // HashRouter requires /#/ prefix so Stripe lands on the correct route
+      const successUrl = `${origin}/#/learning-path-waiting/${learningPathId}?session_id={CHECKOUT_SESSION_ID}`;
+      const cancelUrl  = `${origin}/#/learning-path/${learningPathId}?payment=cancelled`;
 
       const resp = await fetch(STRIPE_CHECKOUT_URL, {
         method: 'POST',
@@ -187,7 +188,7 @@ export function LearningPathPaywall({
                 <div>
                   <p className="text-[11px] font-black text-[#30E3CA]/60 uppercase tracking-widest mb-1">Einmalig</p>
                   <div className="flex items-baseline gap-1.5">
-                    <span className="text-5xl font-black text-white leading-none">9<span className="text-3xl">,90</span></span>
+                    <span className="text-5xl font-black text-white leading-none">9<span className="text-3xl">,99</span></span>
                     <span className="text-2xl font-black text-white/70 mb-0.5">€</span>
                   </div>
                   <p className="text-xs text-white/40 mt-1">Kein Abo · Kein Verstecktes · Einmal zahlen</p>
@@ -205,7 +206,7 @@ export function LearningPathPaywall({
                 <div className="rounded-xl p-3 text-center"
                   style={{ background: 'rgba(48,227,202,0.07)', border: '1px solid rgba(48,227,202,0.18)' }}>
                   <p className="text-[9px] font-black uppercase tracking-wider text-[#30E3CA] mb-1">Dein Zertifikat</p>
-                  <p className="text-lg font-black text-white">~9,90 €</p>
+                  <p className="text-lg font-black text-white">~9,99 €</p>
                   <p className="text-[9px] text-white/35 mt-0.5">Lebenslang im Lebenslauf</p>
                 </div>
               </div>

@@ -54,6 +54,7 @@ export function DashboardPage() {
   const [showAccountSettings, setShowAccountSettings] = useState(false);
   const [highlightedCvId, setHighlightedCvId] = useState<string | null>(null);
   const [expandedCheckId, setExpandedCheckId] = useState<string | null>(null);
+  const [expandedLearningPathId, setExpandedLearningPathId] = useState<string | null>(null);
   const [showNewCvCheckBanner, setShowNewCvCheckBanner] = useState(false);
   const [newCvUnlockId, setNewCvUnlockId] = useState<string | null>(null);
 
@@ -1038,22 +1039,61 @@ export function DashboardPage() {
                 </div>
 
                 {/* Primary card */}
-                <CareerVisionCard
-                  learningPath={primary}
-                  variant="compact"
-                  onStartLearning={() => navigate(`/learning-path/${primary.id}`)}
-                />
+                <div className="space-y-3">
+                  {expandedLearningPathId === primary.id ? (
+                    <>
+                      <div className="flex items-center justify-between">
+                        <p className="text-[11px] font-black uppercase tracking-widest text-[#30E3CA]/60">Analyse-Ergebnis</p>
+                        <button
+                          onClick={() => setExpandedLearningPathId(null)}
+                          className="flex items-center gap-1 text-[11px] text-white/40 hover:text-white/70 transition-colors"
+                        >
+                          <ChevronUp size={13} /> Schließen
+                        </button>
+                      </div>
+                      <CareerVisionCard
+                        learningPath={primary}
+                        variant="detail"
+                        onStartLearning={() => navigate(`/learning-path/${primary.id}`)}
+                      />
+                    </>
+                  ) : (
+                    <div
+                      className="cursor-pointer"
+                      onClick={() => setExpandedLearningPathId(primary.id)}
+                    >
+                      <CareerVisionCard
+                        learningPath={primary}
+                        variant="compact"
+                        onStartLearning={() => navigate(`/learning-path/${primary.id}`)}
+                      />
+                    </div>
+                  )}
+                </div>
 
                 {/* Secondary cards */}
                 {rest.length > 0 && (
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                     {rest.map((path) => (
-                      <CareerVisionCard
+                      <div
                         key={path.id}
-                        learningPath={path}
-                        variant="compact"
-                        onStartLearning={() => navigate(`/learning-path/${path.id}`)}
-                      />
+                        className="cursor-pointer"
+                        onClick={() => setExpandedLearningPathId(expandedLearningPathId === path.id ? null : path.id)}
+                      >
+                        {expandedLearningPathId === path.id ? (
+                          <CareerVisionCard
+                            learningPath={path}
+                            variant="detail"
+                            onStartLearning={() => navigate(`/learning-path/${path.id}`)}
+                          />
+                        ) : (
+                          <CareerVisionCard
+                            learningPath={path}
+                            variant="compact"
+                            onStartLearning={() => navigate(`/learning-path/${path.id}`)}
+                          />
+                        )}
+                      </div>
                     ))}
                   </div>
                 )}
