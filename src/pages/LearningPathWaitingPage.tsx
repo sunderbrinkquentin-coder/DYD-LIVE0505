@@ -373,12 +373,15 @@ export default function LearningPathWaitingPage() {
         const alreadyTriggered = ALREADY_TRIGGERED_STATUSES.has(path.status);
         if (!alreadyTriggered && CURRICULUM_WEBHOOK_URL) {
           try {
+            const allSkills = parseSkills(path.missing_skills);
+            const selectedSkill = path.selected_skill || null;
             await fetch(CURRICULUM_WEBHOOK_URL, {
               method: 'POST',
               headers: { 'Content-Type': 'application/json' },
               body: JSON.stringify({
                 learning_path_id: pathId,
-                missing_skills: parseSkills(path.missing_skills),
+                selected_skill: selectedSkill,
+                missing_skills: selectedSkill ? [selectedSkill] : allSkills,
                 current_skills: parseSkills(path.current_skills),
                 target_job: path.target_job,
                 target_company: path.target_company,

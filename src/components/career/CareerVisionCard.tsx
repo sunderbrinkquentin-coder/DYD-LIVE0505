@@ -333,6 +333,7 @@ interface CareerVisionCardProps {
 function CompactCard({ learningPath, onStartLearning }: Omit<CareerVisionCardProps, 'variant'>) {
   const [showPaywall, setShowPaywall] = useState(false);
   const [localPaid, setLocalPaid] = useState(learningPath.is_paid);
+  const [pendingSkill, setPendingSkill] = useState<string | undefined>(undefined);
 
   const missing      = toSkillArray(learningPath.missing_skills);
   const sorted       = [...missing].sort((a, b) => severityOf(b) - severityOf(a));
@@ -344,7 +345,10 @@ function CompactCard({ learningPath, onStartLearning }: Omit<CareerVisionCardPro
 
   const handleCta = (skillIdx?: number) => {
     if (isPaidOrFree) onStartLearning?.(skillIdx);
-    else setShowPaywall(true);
+    else {
+      setPendingSkill(skillIdx !== undefined ? sorted[skillIdx]?.name : undefined);
+      setShowPaywall(true);
+    }
   };
 
   return (
@@ -468,6 +472,7 @@ function CompactCard({ learningPath, onStartLearning }: Omit<CareerVisionCardPro
           targetJob={learningPath.target_job}
           targetCompany={learningPath.target_company}
           skillCount={sorted.length}
+          selectedSkill={pendingSkill}
         />
       )}
     </>
@@ -479,6 +484,7 @@ function CompactCard({ learningPath, onStartLearning }: Omit<CareerVisionCardPro
 function DetailCard({ learningPath, onStartLearning }: Omit<CareerVisionCardProps, 'variant'>) {
   const [showPaywall, setShowPaywall] = useState(false);
   const [localPaid, setLocalPaid] = useState(learningPath.is_paid);
+  const [pendingSkill, setPendingSkill] = useState<string | undefined>(undefined);
 
   const missing      = toSkillArray(learningPath.missing_skills);
   const current      = toSkillArray(learningPath.current_skills ?? []);
@@ -492,7 +498,10 @@ function DetailCard({ learningPath, onStartLearning }: Omit<CareerVisionCardProp
 
   const handleCta = (skillIdx?: number) => {
     if (isPaidOrFree) onStartLearning?.(skillIdx);
-    else setShowPaywall(true);
+    else {
+      setPendingSkill(skillIdx !== undefined ? sorted[skillIdx]?.name : undefined);
+      setShowPaywall(true);
+    }
   };
 
   // Split skills by category for visual grouping
@@ -715,6 +724,7 @@ function DetailCard({ learningPath, onStartLearning }: Omit<CareerVisionCardProp
           targetJob={learningPath.target_job}
           targetCompany={learningPath.target_company}
           skillCount={sorted.length}
+          selectedSkill={pendingSkill}
         />
       )}
     </>

@@ -272,9 +272,12 @@ Deno.serve(async (req: Request) => {
       // Handle learning path payment
       if (learningPathId) {
         console.log("[Stripe Webhook] Payment for learning path:", learningPathId);
+        const selectedSkill = session.metadata?.selected_skill || null;
+        const lpUpdate: Record<string, unknown> = { is_paid: true, updated_at: new Date().toISOString() };
+        if (selectedSkill) lpUpdate.selected_skill = selectedSkill;
         const { error: lpError } = await supabase
           .from("learning_paths")
-          .update({ is_paid: true, updated_at: new Date().toISOString() })
+          .update(lpUpdate)
           .eq("id", learningPathId);
         if (lpError) {
           console.error("[Stripe Webhook] Error unlocking learning path:", lpError);

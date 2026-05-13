@@ -641,14 +641,16 @@ export default function LearningPathPage() {
 
     // Fire curriculum webhook
     try {
-      const missingSkills = parseSkills(path.missing_skills);
+      const allMissingSkills = parseSkills(path.missing_skills);
       const currentSkills = parseSkills(path.current_skills);
+      const selectedSkill = (path as any).selected_skill || null;
       await fetch(CURRICULUM_WEBHOOK_URL, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           learning_path_id: path.id,
-          missing_skills: missingSkills,
+          selected_skill: selectedSkill,
+          missing_skills: selectedSkill ? [selectedSkill] : allMissingSkills,
           current_skills: currentSkills,
           target_job: path.target_job,
           target_company: path.target_company,

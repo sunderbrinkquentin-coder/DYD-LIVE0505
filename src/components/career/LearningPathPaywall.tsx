@@ -15,6 +15,7 @@ interface LearningPathPaywallProps {
   targetJob: string;
   targetCompany?: string;
   skillCount?: number;
+  selectedSkill?: string;
 }
 
 const BENEFITS = [
@@ -53,7 +54,7 @@ const GLOBAL_STYLES = `
 `;
 
 export function LearningPathPaywall({
-  isOpen, onClose, learningPathId, targetJob, targetCompany, skillCount = 0,
+  isOpen, onClose, learningPathId, targetJob, targetCompany, skillCount = 0, selectedSkill,
 }: LearningPathPaywallProps) {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -88,6 +89,7 @@ export function LearningPathPaywall({
             learning_path_id: learningPathId,
             target_job: targetJob,
             source: 'learning_path',
+            ...(selectedSkill ? { selected_skill: selectedSkill } : {}),
           },
         }),
       });
