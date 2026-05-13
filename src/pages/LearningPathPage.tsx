@@ -558,11 +558,23 @@ export default function LearningPathPage() {
   // ── Phase resolver ────────────────────────────────────────────────────────────
 
   const resolvePhase = useCallback((path: LearningPath) => {
-    // Has curriculum → done
-    if (path.curriculum && (path.is_paid || (path.curriculum as any).modules?.length > 0)) {
+    // Has curriculum with modules → done
+    if (path.curriculum && (path.curriculum as any).modules?.length > 0) {
       return 'done' as PagePhase;
     }
-    // Analysis done but curriculum not yet generated (not paid or generating)
+    // Curriculum ready status without modules (shouldn't happen, but safe fallback)
+    if (path.status === 'curriculum_ready' || path.status === 'completed') {
+      return 'done' as PagePhase;
+    }
+    // Paid + curriculum being generated (in_progress) → show generating loader so user can wait
+    if (path.is_paid && path.status === 'in_progress') {
+      return 'generating' as PagePhase;
+    }
+    // Analysis done, paid but curriculum not yet started → show generating (resume waiting)
+    if (path.is_paid && path.status === 'gap_analysis_complete') {
+      return 'generating' as PagePhase;
+    }
+    // Not paid or still analyzing → show result view
     return 'result' as PagePhase;
   }, []);
 
@@ -674,6 +686,28 @@ export default function LearningPathPage() {
   useEffect(() => {
     if (pathId) loadLearningPath(true);
   }, [pathId, loadLearningPath]);
+
+  // When phase becomes 'generating' from loadLearningPath (resume after browser close),
+  // start polling/realtime WITHOUT re-triggering the webhook
+  useEffect(() => {
+    if (phase !== 'generating' || !learningPath) return;
+    if (completedRef.current) return;
+    completedRef.current = false;
+    const channel = supabase
+      .channel(`lp_resume_${learningPath.id}_${Date.now()}`)
+      .on('postgres_changes',
+        { event: 'UPDATE', schema: 'public', table: 'learning_paths', filter: `id=eq.${learningPath.id}` },
+        (payload) => {
+          const row = payload.new as any;
+          if (COMPLETE_STATUSES.has(row?.status) || (row?.curriculum as any)?.modules?.length > 0) {
+            handleCurriculumReady(row as unknown as LearningPath);
+          }
+        })
+      .subscribe();
+    realtimeChannelRef.current = channel;
+    startCurriculumPolling(learningPath.id);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [phase, learningPath?.id]);
 
   // Handle Stripe payment return
   useEffect(() => {

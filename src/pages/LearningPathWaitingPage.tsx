@@ -7,6 +7,8 @@ import { careerService } from '../services/careerService';
 
 const CURRICULUM_WEBHOOK_URL = import.meta.env.VITE_MAKE_WEBHOOK_CURRICULUM || '';
 const COMPLETE_STATUSES = new Set(['curriculum_ready', 'completed']);
+// Statuses that mean the curriculum is already being generated or done — don't re-trigger
+const ALREADY_TRIGGERED_STATUSES = new Set(['curriculum_ready', 'completed', 'in_progress']);
 const POLL_INTERVAL_MS = 3_000;
 const POLL_MAX = 80;
 
@@ -334,59 +336,63 @@ export default function LearningPathWaitingPage() {
   useEffect(() => {
     if (!pathId) { navigate('/', { replace: true }); return; }
 
-    // Load target job for personalisation
-    supabase.from('learning_paths').select('target_job,status,curriculum,is_paid,missing_skills,current_skills')
-      .eq('id', pathId).maybeSingle()
+    const parseSkills = (raw: unknown): unknown[] => {
+      if (!raw) return [];
+      if (Array.isArray(raw)) return raw;
+      if (typeof raw === 'string') {
+        try { const p = JSON.parse(raw); return Array.isArray(p) ? p : [p]; } catch { /* */ }
+        try { return JSON.parse(`[${raw}]`); } catch { /* */ }
+      }
+      return [];
+    };
+
+    supabase.from('learning_paths').select('*').eq('id', pathId).maybeSingle()
       .then(async ({ data }) => {
-        if (data?.target_job) setTargetJob(data.target_job);
+        if (!data) { navigate('/', { replace: true }); return; }
+        if (data.target_job) setTargetJob(data.target_job);
 
-        // 1. Unlock the path (mark is_paid = true)
-        try { await careerService.unlockLearningPath(pathId); } catch { /* non-fatal */ }
+        // 1. Always ensure is_paid = true (idempotent — safe to call multiple times)
+        if (!data.is_paid) {
+          try { await careerService.unlockLearningPath(pathId); } catch { /* non-fatal */ }
+        }
 
-        // 2. Re-fetch after unlock
+        // 2. Re-fetch fresh state after potential unlock
         const { data: fresh } = await supabase.from('learning_paths').select('*').eq('id', pathId).maybeSingle();
-        if (!fresh) return;
+        const path = fresh ?? data;
 
-        // 3. If curriculum already exists → go straight to done
-        if (fresh.curriculum && (fresh.curriculum as any).modules?.length > 0) {
-          handleReady();
-          return;
-        }
-        if (COMPLETE_STATUSES.has(fresh.status)) {
+        // 3. If curriculum already complete → navigate immediately (handles page revisit)
+        if (COMPLETE_STATUSES.has(path.status) || (path.curriculum && (path.curriculum as any)?.modules?.length > 0)) {
           handleReady();
           return;
         }
 
-        // 4. Trigger curriculum webhook
-        try {
-          const parseSkills = (raw: unknown) => {
-            if (!raw) return [];
-            if (Array.isArray(raw)) return raw;
-            if (typeof raw === 'string') {
-              try { const p = JSON.parse(raw); return Array.isArray(p) ? p : [p]; } catch { /* */ }
-              try { return JSON.parse(`[${raw}]`); } catch { /* */ }
-            }
-            return [];
-          };
-          await fetch(CURRICULUM_WEBHOOK_URL, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-              learning_path_id: pathId,
-              missing_skills: parseSkills(fresh.missing_skills),
-              current_skills: parseSkills(fresh.current_skills),
-              target_job: fresh.target_job,
-              target_company: fresh.target_company,
-              industry: fresh.industry,
-              user_id: fresh.user_id,
-              timeframe: '12_months',
-              learning_style: 'balanced',
-              timestamp: new Date().toISOString(),
-            }),
-          });
-        } catch (e: any) { console.warn('[WaitingPage] curriculum webhook error:', e.message); }
+        // 4. Only trigger curriculum webhook if not already triggered
+        //    (gap_analysis_complete = analysis done but curriculum not yet started)
+        const alreadyTriggered = ALREADY_TRIGGERED_STATUSES.has(path.status);
+        if (!alreadyTriggered && CURRICULUM_WEBHOOK_URL) {
+          try {
+            await fetch(CURRICULUM_WEBHOOK_URL, {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                learning_path_id: pathId,
+                missing_skills: parseSkills(path.missing_skills),
+                current_skills: parseSkills(path.current_skills),
+                target_job: path.target_job,
+                target_company: path.target_company,
+                industry: path.industry,
+                user_id: path.user_id,
+                timeframe: '12_months',
+                learning_style: 'balanced',
+                timestamp: new Date().toISOString(),
+              }),
+            });
+            // Mark as in_progress so revisiting doesn't re-trigger
+            await supabase.from('learning_paths').update({ status: 'in_progress' }).eq('id', pathId);
+          } catch (e: any) { console.warn('[WaitingPage] curriculum webhook error:', e.message); }
+        }
 
-        // 5. Realtime subscription
+        // 5. Realtime subscription — listen for completion
         const ch = supabase.channel(`lpw_${pathId}_${Date.now()}`)
           .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'learning_paths', filter: `id=eq.${pathId}` },
             (payload) => {
@@ -400,8 +406,11 @@ export default function LearningPathWaitingPage() {
           if (completedRef.current) return;
           if (pollCountRef.current >= POLL_MAX) return;
           pollCountRef.current += 1;
-          const { data: row } = await supabase.from('learning_paths').select('status').eq('id', pathId).maybeSingle();
-          if (row && COMPLETE_STATUSES.has(row.status)) { handleReady(); return; }
+          const { data: row } = await supabase.from('learning_paths').select('status,curriculum').eq('id', pathId).maybeSingle();
+          if (row && (COMPLETE_STATUSES.has(row.status) || (row.curriculum as any)?.modules?.length > 0)) {
+            handleReady();
+            return;
+          }
           if (!completedRef.current) pollTimerRef.current = setTimeout(tick, POLL_INTERVAL_MS);
         };
         pollTimerRef.current = setTimeout(tick, POLL_INTERVAL_MS);

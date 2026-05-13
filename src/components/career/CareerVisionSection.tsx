@@ -191,61 +191,118 @@ function SmartProgressBar({ done, paused }: { done: boolean; paused: boolean }) 
 
 function CvUploadLoader({ fileName }: { fileName: string }) {
   const STEPS = [
-    { label: 'Lebenslauf wird hochgeladen', detail: 'Datei wird sicher übertragen…' },
-    { label: 'KI liest deinen Lebenslauf', detail: 'Skills, Erfahrungen & Ausbildung werden erkannt…' },
-    { label: 'Skills werden strukturiert', detail: 'Deine Stärken werden für die Analyse aufbereitet…' },
-    { label: 'Skill-Gap Analyse startet', detail: 'Gleich geht es los…' },
+    { label: 'Lebenslauf wird hochgeladen',   detail: 'Datei wird sicher übertragen…' },
+    { label: 'KI liest deinen Lebenslauf',    detail: 'Skills, Erfahrungen & Ausbildung werden erkannt…' },
+    { label: 'Skills werden strukturiert',    detail: 'Deine Stärken werden für die Analyse aufbereitet…' },
+    { label: 'Skill-Gap Analyse startet',     detail: 'Gleich geht es los…' },
   ];
   const [stepIdx, setStepIdx] = useState(0);
+  const [uploadPct, setUploadPct] = useState(0);
+  const pctRef = useRef(0);
+  const rafRef = useRef<number | null>(null);
+  const startRef = useRef<number | null>(null);
 
   useEffect(() => {
     const id = setInterval(() => {
       setStepIdx((i) => Math.min(i + 1, STEPS.length - 1));
-    }, 4_000);
+    }, 6_000);
     return () => clearInterval(id);
   }, []);
 
+  // Animate upload progress bar — fills to ~80% quickly, then slows
+  useEffect(() => {
+    const tick = (now: number) => {
+      if (!startRef.current) startRef.current = now;
+      const e = now - startRef.current;
+      const target = e < 8_000 ? (e / 8_000) * 70 : e < 60_000 ? 70 + ((e - 8_000) / 52_000) * 15 : 85;
+      pctRef.current += (target - pctRef.current) * 0.05;
+      setUploadPct(Math.min(pctRef.current, 85));
+      rafRef.current = requestAnimationFrame(tick);
+    };
+    rafRef.current = requestAnimationFrame(tick);
+    return () => { if (rafRef.current) cancelAnimationFrame(rafRef.current); };
+  }, []);
+
+  const display = Math.round(uploadPct);
+
   return (
-    <div className="relative overflow-hidden rounded-2xl border border-white/10 bg-[#050d14] p-6 space-y-5">
+    <div className="relative overflow-hidden rounded-2xl bg-[#050d14]"
+      style={{ border: '1px solid rgba(48,227,202,0.2)' }}>
       <style>{GLOBAL_STYLES}</style>
-      <div className="flex items-center gap-3">
-        <div className="w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0"
-          style={{ background: 'rgba(48,227,202,0.1)', border: '1px solid rgba(48,227,202,0.25)' }}>
-          <FileText size={18} className="text-[#30E3CA]" />
-        </div>
-        <div className="flex-1 min-w-0">
-          <p className="text-sm font-black text-white truncate">{fileName}</p>
-          <p className="text-[11px] text-white/40">Wird für die Skill-Gap Analyse verarbeitet…</p>
-        </div>
-        <div className="w-5 h-5 rounded-full border-2 border-[#30E3CA] border-t-transparent animate-spin flex-shrink-0" />
+      {/* Phase label bar */}
+      <div className="flex items-center gap-2.5 px-5 py-3 border-b border-white/[0.07]"
+        style={{ background: 'rgba(48,227,202,0.06)' }}>
+        <div className="w-1.5 h-1.5 rounded-full bg-[#30E3CA] animate-pulse" />
+        <span className="text-[10px] font-black uppercase tracking-[0.18em] text-[#30E3CA]/70">
+          Schritt 1 von 2 · Lebenslauf wird gelesen
+        </span>
       </div>
-      <div className="space-y-2">
-        {STEPS.map((step, i) => {
-          const done = i < stepIdx;
-          const active = i === stepIdx;
-          return (
-            <div key={step.label} className="flex items-center gap-2.5"
-              style={{ opacity: done || active ? 1 : 0.3, transition: 'opacity 0.4s' }}>
-              <div className="flex-shrink-0 w-4 h-4 rounded-full flex items-center justify-center"
-                style={{
-                  background: done ? '#22c55e22' : active ? 'rgba(48,227,202,0.15)' : 'rgba(255,255,255,0.05)',
-                  border: `1px solid ${done ? '#22c55e' : active ? '#30E3CA' : 'rgba(255,255,255,0.1)'}`,
-                }}>
-                {done
-                  ? <svg width="8" height="8" viewBox="0 0 8 8"><polyline points="1,4 3,6 7,2" fill="none" stroke="#22c55e" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/></svg>
-                  : active
-                    ? <div className="w-1.5 h-1.5 rounded-full animate-pulse bg-[#30E3CA]" />
-                    : <div className="w-1 h-1 rounded-full bg-white/20" />
-                }
+
+      <div className="p-5 space-y-4">
+        {/* File info row */}
+        <div className="flex items-center gap-3">
+          <div className="w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0"
+            style={{ background: 'rgba(48,227,202,0.1)', border: '1px solid rgba(48,227,202,0.25)' }}>
+            <FileText size={16} className="text-[#30E3CA]" />
+          </div>
+          <div className="flex-1 min-w-0">
+            <p className="text-sm font-black text-white truncate">{fileName || 'Lebenslauf'}</p>
+            <p className="text-[11px] text-white/40 mt-0.5">KI extrahiert deine Skills & Erfahrungen…</p>
+          </div>
+          <div className="w-4 h-4 rounded-full border-2 border-[#30E3CA] border-t-transparent animate-spin flex-shrink-0" />
+        </div>
+
+        {/* Steps */}
+        <div className="space-y-2">
+          {STEPS.map((step, i) => {
+            const done2 = i < stepIdx;
+            const active = i === stepIdx;
+            return (
+              <div key={step.label} className="flex items-center gap-2.5"
+                style={{ opacity: done2 || active ? 1 : 0.28, transition: 'opacity 0.4s' }}>
+                <div className="flex-shrink-0 w-4 h-4 rounded-full flex items-center justify-center"
+                  style={{
+                    background: done2 ? '#22c55e22' : active ? 'rgba(48,227,202,0.15)' : 'rgba(255,255,255,0.04)',
+                    border: `1px solid ${done2 ? '#22c55e' : active ? '#30E3CA' : 'rgba(255,255,255,0.09)'}`,
+                  }}>
+                  {done2
+                    ? <svg width="8" height="8" viewBox="0 0 8 8"><polyline points="1,4 3,6 7,2" fill="none" stroke="#22c55e" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/></svg>
+                    : active
+                      ? <div className="w-1.5 h-1.5 rounded-full animate-pulse bg-[#30E3CA]" />
+                      : <div className="w-1 h-1 rounded-full bg-white/18" />
+                  }
+                </div>
+                <span className={`text-xs ${done2 ? 'text-white/35 line-through' : active ? 'text-white/90 font-semibold' : 'text-white/22'}`}>
+                  {step.label}
+                </span>
               </div>
-              <span className={`text-xs ${done ? 'text-white/40 line-through' : active ? 'text-white/90 font-semibold' : 'text-white/25'}`}>
-                {step.label}
-              </span>
+            );
+          })}
+        </div>
+
+        {/* Upload progress bar */}
+        <div className="space-y-1.5">
+          <div className="flex justify-between items-center text-[11px]">
+            <span className="text-white/40">Lebenslauf wird verarbeitet</span>
+            <span className="font-black text-[#30E3CA] tabular-nums">{display}%</span>
+          </div>
+          <div className="h-2 rounded-full overflow-hidden" style={{ background: 'rgba(255,255,255,0.07)' }}>
+            <div
+              className="h-full rounded-full relative overflow-hidden"
+              style={{
+                width: `${display}%`,
+                background: 'linear-gradient(90deg,#66c0b6,#30E3CA)',
+                backgroundSize: '200% 100%',
+                animation: 'gradShift 2s ease infinite',
+                transition: 'width 0.4s ease',
+              }}
+            >
+              <div className="absolute inset-0 rounded-full"
+                style={{ background: 'linear-gradient(90deg,transparent,rgba(255,255,255,0.3),transparent)', backgroundSize: '200% 100%', animation: 'shimmer 1.4s ease-in-out infinite' }} />
             </div>
-          );
-        })}
+          </div>
+        </div>
       </div>
-      <SmartProgressBar done={false} paused={false} />
     </div>
   );
 }
@@ -284,8 +341,22 @@ function AnalysisLoader({ messages, success }: { messages: string[]; success: bo
   const displayMsg = messages[stepIdx % messages.length] || currentStep.label;
 
   return (
-    <div className="relative overflow-hidden rounded-2xl border border-white/10 bg-[#050d14]">
+    <div className="relative overflow-hidden rounded-2xl bg-[#050d14]"
+      style={{ border: `1px solid ${success ? 'rgba(34,197,94,0.25)' : 'rgba(102,192,182,0.22)'}` }}>
       <style>{GLOBAL_STYLES}</style>
+      {/* Phase label bar */}
+      <div className="flex items-center gap-2.5 px-5 py-3 border-b border-white/[0.07]"
+        style={{ background: success ? 'rgba(34,197,94,0.06)' : 'rgba(102,192,182,0.05)' }}>
+        {success ? (
+          <svg width="12" height="12" viewBox="0 0 12 12"><circle cx="6" cy="6" r="5" fill="#22c55e22" stroke="#22c55e" strokeWidth="1.2"/><polyline points="3.5,6 5,7.5 8.5,4.5" fill="none" stroke="#22c55e" strokeWidth="1.2" strokeLinecap="round"/></svg>
+        ) : (
+          <div className="w-1.5 h-1.5 rounded-full animate-pulse" style={{ background: accent }} />
+        )}
+        <span className="text-[10px] font-black uppercase tracking-[0.18em]"
+          style={{ color: success ? 'rgba(34,197,94,0.7)' : 'rgba(102,192,182,0.65)' }}>
+          {success ? 'Analyse abgeschlossen' : 'Schritt 2 von 2 · KI-Tiefenanalyse läuft'}
+        </span>
+      </div>
       <div className="absolute inset-0 pointer-events-none overflow-hidden">
         <div className="absolute w-64 h-64 rounded-full opacity-[0.07]"
           style={{ background: 'radial-gradient(circle,#30E3CA,transparent)', top: '-60px', right: '-60px', animation: 'orb1 8s ease-in-out infinite' }} />
