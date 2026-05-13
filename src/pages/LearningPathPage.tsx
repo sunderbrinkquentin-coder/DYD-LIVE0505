@@ -279,14 +279,14 @@ function CurriculumLoader({ success, targetJob }: { success: boolean; targetJob:
 // ── Skill helpers for ResultView ───────────────────────────────────────────────
 
 const IMPACT_TIERS = [
-  { min: 5, color: '#f97316', bg: 'rgba(249,115,22,0.08)', border: 'rgba(249,115,22,0.2)', label: 'Top-Hebel', emoji: '🚀' },
-  { min: 4, color: '#30E3CA', bg: 'rgba(48,227,202,0.08)', border: 'rgba(48,227,202,0.2)', label: 'Hoher Impact', emoji: '⚡' },
-  { min: 3, color: '#66c0b6', bg: 'rgba(102,192,182,0.07)', border: 'rgba(102,192,182,0.2)', label: 'Starker Aufbau', emoji: '📈' },
-  { min: 0, color: '#4ade80', bg: 'rgba(74,222,128,0.07)', border: 'rgba(74,222,128,0.2)', label: 'Quick Win', emoji: '✅' },
+  { min: 5, color: '#f97316', bg: 'rgba(249,115,22,0.08)', border: 'rgba(249,115,22,0.2)', label: 'Kritisch' },
+  { min: 4, color: '#30E3CA', bg: 'rgba(48,227,202,0.08)', border: 'rgba(48,227,202,0.2)', label: 'Hoher Impact' },
+  { min: 3, color: '#66c0b6', bg: 'rgba(102,192,182,0.07)', border: 'rgba(102,192,182,0.2)', label: 'Aufbau' },
+  { min: 0, color: '#4ade80', bg: 'rgba(74,222,128,0.07)', border: 'rgba(74,222,128,0.2)', label: 'Quick Win' },
 ];
 function tierFor(severity: number) { return IMPACT_TIERS.find((t) => severity >= t.min) ?? IMPACT_TIERS[3]; }
 
-// ── Result view (mirrors CareerVisionSection ResultView) ───────────────────────
+// ── Result view ────────────────────────────────────────────────────────────────
 
 interface AnalysisResult {
   missingSkills: RawSkill[];
@@ -302,6 +302,7 @@ function ResultView({
   result, learningPath, onPaywallClose,
 }: { result: AnalysisResult; learningPath: LearningPath; onPaywallClose: () => void }) {
   const [showPaywall, setShowPaywall] = useState(false);
+  const [showAllCurrent, setShowAllCurrent] = useState(false);
   const { missingSkills, currentSkills, strategicOutlook, matchScore, targetJob, targetCompany, industry } = result;
 
   const visibleSkills = missingSkills
@@ -311,143 +312,188 @@ function ResultView({
   const topSkill = visibleSkills[0];
   const scoreColor = matchScore >= 70 ? '#22c55e' : matchScore >= 40 ? '#f59e0b' : '#30E3CA';
 
+  // CLT: Group by tier for schema-based processing
+  const criticalSkills  = visibleSkills.filter(s => (s?.gap_severity ?? 0) >= 4);
+  const buildSkills     = visibleSkills.filter(s => (s?.gap_severity ?? 0) >= 2 && (s?.gap_severity ?? 0) < 4);
+
   return (
     <div className="space-y-5 max-w-2xl mx-auto" style={{ animation: 'lp_fadeUp 0.5s ease' }}>
       <style>{GLOBAL_STYLES}</style>
 
-      {/* Hero header */}
-      <div className="relative overflow-hidden rounded-2xl p-5"
-        style={{ background: 'linear-gradient(135deg,rgba(48,227,202,0.1) 0%,rgba(10,14,30,0.85) 60%,rgba(102,192,182,0.06) 100%)', border: '1px solid rgba(48,227,202,0.18)' }}>
-        <div className="absolute top-0 right-0 w-40 h-40 pointer-events-none opacity-[0.08]"
-          style={{ background: 'radial-gradient(circle,#30E3CA,transparent)', transform: 'translate(25%,-25%)' }} />
-        <div className="relative flex items-start justify-between gap-4">
+      {/* ── 1. ORIENTIERUNG: Ziel + Match-Score ──────────────────────── */}
+      {/* CLT: Two key facts only — where are you going, how close are you */}
+      <div
+        className="rounded-2xl p-5"
+        style={{ background: 'linear-gradient(135deg,rgba(48,227,202,0.08) 0%,rgba(6,7,15,0.95) 70%)', border: '1px solid rgba(48,227,202,0.15)' }}
+      >
+        <div className="flex items-start justify-between gap-4">
           <div className="space-y-1.5 flex-1 min-w-0">
-            <div className="flex items-center gap-1.5">
-              <div className="w-1.5 h-1.5 rounded-full bg-[#30E3CA] animate-pulse" />
-              <span className="text-[10px] font-black text-[#30E3CA]/75 uppercase tracking-widest">Karriere-Report · {new Date().getFullYear()}</span>
-            </div>
+            <p className="text-[10px] font-black text-[#30E3CA]/60 uppercase tracking-widest">Dein Karriere-Ziel</p>
             <h3 className="text-xl font-black text-white leading-tight">{targetJob}</h3>
             <div className="flex flex-wrap items-center gap-2">
               {targetCompany && (
-                <span className="flex items-center gap-1 text-xs text-white/55"><Building2 size={11} /> {targetCompany}</span>
+                <span className="flex items-center gap-1 text-xs text-white/50">
+                  <Building2 size={11} /> {targetCompany}
+                </span>
               )}
               {industry && (
-                <span className="px-2 py-0.5 rounded-full text-[11px] font-bold bg-[#66c0b6]/12 text-[#66c0b6] border border-[#66c0b6]/20">{industry}</span>
+                <span
+                  className="px-2 py-0.5 rounded-full text-[11px] font-bold"
+                  style={{ background: 'rgba(102,192,182,0.1)', color: '#66c0b6', border: '1px solid rgba(102,192,182,0.2)' }}
+                >
+                  {industry}
+                </span>
               )}
             </div>
           </div>
           {matchScore > 0 && (
-            <div className="flex-shrink-0 flex flex-col items-center gap-0.5 px-3 py-2.5 rounded-xl bg-white/5 border border-white/10 min-w-[70px] text-center">
+            <div
+              className="flex-shrink-0 flex flex-col items-center px-4 py-3 rounded-xl min-w-[68px] text-center"
+              style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)' }}
+            >
               <span className="text-[22px] font-black leading-none" style={{ color: scoreColor }}>{matchScore}%</span>
-              <span className="text-[10px] text-white/40 mt-0.5">Match</span>
+              <span className="text-[10px] text-white/35 mt-0.5">Basis</span>
             </div>
           )}
         </div>
+
+        {/* Strategic context — collapsed visual weight, secondary info */}
         {strategicOutlook && (
-          <div className="relative mt-4 flex gap-2.5 p-3 rounded-xl bg-white/[0.04] border border-white/8">
-            <Brain size={15} className="text-[#66c0b6] flex-shrink-0 mt-0.5" />
-            <p className="text-xs text-white/65 leading-relaxed">{strategicOutlook}</p>
+          <div className="mt-4 flex gap-2.5 p-3 rounded-xl" style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.07)' }}>
+            <Brain size={14} className="text-[#66c0b6] flex-shrink-0 mt-0.5" />
+            <p className="text-xs text-white/55 leading-relaxed">{strategicOutlook}</p>
           </div>
         )}
       </div>
 
-      {/* Skill list */}
+      {/* ── 2. LÜCKEN-ANALYSE: Priorisiert in zwei Gruppen ───────────── */}
+      {/* CLT: Max 2 chunks — critical first (3 items), build second (compact) */}
       {visibleSkills.length > 0 && (
-        <div className="space-y-3">
-          <div className="flex items-center gap-2">
-            <Sparkles size={14} className="text-[#30E3CA]" />
-            <h4 className="text-sm font-black text-white">Deine {visibleSkills.length} Wachstums-Chancen</h4>
-          </div>
-          <div className="space-y-2">
-            {visibleSkills.slice(0, 5).map((skill, i) => {
-              const tier = tierFor(skill?.gap_severity ?? 3);
-              return (
-                <div key={i} className="flex items-start gap-3 p-3 rounded-xl"
-                  style={{ background: tier.bg, border: `1px solid ${tier.border}` }}>
-                  <span className="text-base flex-shrink-0">{tier.emoji}</span>
-                  <div className="flex-1 min-w-0">
-                    <p className="text-sm font-black text-white leading-tight">{skillDisplayName(skill)}</p>
-                    {skill.pitch && <p className="text-xs text-white/50 mt-0.5 leading-relaxed">{skill.pitch}</p>}
+        <div className="space-y-4">
+          <p className="text-[11px] font-black uppercase tracking-widest text-white/30 px-1">Deine Wachstums-Chancen</p>
+
+          {/* Critical skills: full cards, highest cognitive priority */}
+          {criticalSkills.length > 0 && (
+            <div className="space-y-2">
+              <div className="flex items-center gap-2 px-1">
+                <div className="w-1.5 h-1.5 rounded-full bg-[#f97316]" />
+                <span className="text-xs font-bold text-[#f97316]/75">Zuerst lernen · Höchste Wirkung</span>
+              </div>
+              {criticalSkills.slice(0, 3).map((skill, i) => {
+                const tier = tierFor(skill?.gap_severity ?? 4);
+                return (
+                  <div key={i} className="flex items-start gap-3 px-4 py-3.5 rounded-xl"
+                    style={{ background: tier.bg, border: `1px solid ${tier.border}` }}>
+                    <span
+                      className="flex-shrink-0 w-5 h-5 rounded-md flex items-center justify-center text-xs font-black mt-0.5"
+                      style={{ background: `${tier.color}18`, color: tier.color }}
+                    >
+                      {i + 1}
+                    </span>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm font-bold text-white leading-tight">{skillDisplayName(skill)}</p>
+                      {skill.pitch && <p className="text-xs text-white/45 mt-0.5 leading-relaxed">{skill.pitch}</p>}
+                    </div>
+                    {/* Severity bar: simple visual encoding */}
+                    <div className="flex gap-0.5 flex-shrink-0 mt-1">
+                      {Array.from({ length: 5 }).map((_, j) => (
+                        <div key={j} className="w-1 h-3 rounded-sm"
+                          style={{ background: j < (skill?.gap_severity ?? 4) ? tier.color : 'rgba(255,255,255,0.07)' }} />
+                      ))}
+                    </div>
                   </div>
-                  <div className="flex gap-0.5 flex-shrink-0 mt-0.5">
-                    {Array.from({ length: 5 }).map((_, j) => (
-                      <div key={j} className="w-1.5 h-3.5 rounded-sm"
-                        style={{ background: j < (skill?.gap_severity ?? 3) ? tier.color : 'rgba(255,255,255,0.08)' }} />
-                    ))}
-                  </div>
+                );
+              })}
+              {criticalSkills.length > 3 && (
+                <p className="text-xs text-white/30 px-1">+{criticalSkills.length - 3} weitere kritische Skills im Lernpfad</p>
+              )}
+            </div>
+          )}
+
+          {/* Build skills: compact list, lower visual weight */}
+          {buildSkills.length > 0 && (
+            <div className="space-y-1.5">
+              <div className="flex items-center gap-2 px-1">
+                <div className="w-1.5 h-1.5 rounded-full bg-[#66c0b6]" />
+                <span className="text-xs font-bold text-[#66c0b6]/65">Danach aufbauen</span>
+              </div>
+              {buildSkills.slice(0, 4).map((skill, i) => (
+                <div key={i} className="flex items-center gap-2.5 px-3 py-2 rounded-lg"
+                  style={{ background: 'rgba(102,192,182,0.05)', border: '1px solid rgba(102,192,182,0.12)' }}>
+                  <div className="w-1 h-1 rounded-full flex-shrink-0" style={{ background: '#66c0b6' }} />
+                  <span className="text-sm text-white/65 truncate">{skillDisplayName(skill)}</span>
                 </div>
-              );
-            })}
-          </div>
+              ))}
+              {buildSkills.length > 4 && (
+                <p className="text-xs text-white/30 px-1">+{buildSkills.length - 4} weitere</p>
+              )}
+            </div>
+          )}
         </div>
       )}
 
-      {/* Current skills */}
+      {/* ── 3. BASIS-SKILLS: Minimal, fördert Schema-Aktivierung ─────── */}
+      {/* CLT: Secondary info — small chips, not competing with gaps */}
       {visibleCurrent.length > 0 && (
         <div className="space-y-2">
-          <div className="flex items-center gap-1.5">
-            <Check size={13} className="text-[#66c0b6]" />
-            <span className="text-xs font-bold text-white/50">Deine Basis</span>
-            <span className="text-[10px] text-[#66c0b6]/60 font-bold">· {visibleCurrent.length} Skills</span>
+          <div className="flex items-center gap-2 px-1">
+            <Check size={12} className="text-[#66c0b6]" />
+            <span className="text-xs font-bold text-white/40">Bereits vorhanden · {visibleCurrent.length} Skills</span>
           </div>
           <div className="flex flex-wrap gap-1.5">
-            {visibleCurrent.map((skill, i) => (
-              <span key={i} className="px-2.5 py-1 rounded-lg text-[11px] text-white/50 bg-white/[0.03] border border-white/8">
+            {(showAllCurrent ? visibleCurrent : visibleCurrent.slice(0, 6)).map((skill, i) => (
+              <span key={i}
+                className="px-2.5 py-1 rounded-lg text-[11px] text-white/45"
+                style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.08)' }}
+              >
                 {skillDisplayName(skill)}
               </span>
             ))}
           </div>
+          {visibleCurrent.length > 6 && (
+            <button
+              onClick={() => setShowAllCurrent(!showAllCurrent)}
+              className="text-xs text-white/30 hover:text-white/55 transition-colors px-1"
+            >
+              {showAllCurrent ? 'Weniger anzeigen' : `+${visibleCurrent.length - 6} weitere`}
+            </button>
+          )}
         </div>
       )}
 
-      {/* CTA: start learning path */}
-      {topSkill ? (
-        <div className="relative overflow-hidden rounded-2xl"
-          style={{ background: `linear-gradient(135deg,${tierFor(topSkill?.gap_severity ?? 3).bg} 0%,rgba(10,14,30,0.97) 100%)`, border: `1px solid ${tierFor(topSkill?.gap_severity ?? 3).color}40` }}>
-          <div className="h-px w-full" style={{ background: `linear-gradient(90deg,transparent,${tierFor(topSkill?.gap_severity ?? 3).color},transparent)` }} />
-          <div className="relative p-6 space-y-4">
-            <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-2xl flex items-center justify-center text-xl flex-shrink-0"
-                style={{ background: `${tierFor(topSkill?.gap_severity ?? 3).color}15`, border: `1px solid ${tierFor(topSkill?.gap_severity ?? 3).color}30` }}>
-                🎯
-              </div>
-              <div>
-                <p className="text-[11px] font-black uppercase tracking-widest" style={{ color: tierFor(topSkill?.gap_severity ?? 3).color }}>
-                  Womit fangen wir an?
-                </p>
-                <h3 className="text-lg font-black text-white leading-tight mt-0.5">
-                  Starte mit <span style={{ color: tierFor(topSkill?.gap_severity ?? 3).color }}>{skillDisplayName(topSkill)}</span>
-                </h3>
-              </div>
+      {/* ── 4. EINE KLARE AKTION ─────────────────────────────────────── */}
+      {/* CLT: Single decision point — no competing options */}
+      <div
+        className="rounded-2xl overflow-hidden"
+        style={{ background: 'rgba(48,227,202,0.05)', border: '1px solid rgba(48,227,202,0.2)' }}
+      >
+        <div className="h-px w-full" style={{ background: 'linear-gradient(90deg,transparent,rgba(48,227,202,0.4),transparent)' }} />
+        <div className="p-5 space-y-4">
+          {topSkill && (
+            <div className="space-y-1">
+              <p className="text-[11px] font-black uppercase tracking-widest text-[#30E3CA]/60">Nächster Schritt</p>
+              <h3 className="text-lg font-black text-white leading-tight">
+                Starte mit <span style={{ color: '#30E3CA' }}>{skillDisplayName(topSkill)}</span>
+              </h3>
+              <p className="text-xs text-white/50 leading-relaxed pt-0.5">
+                {topSkill?.pitch ?? `Dieser Skill hat den größten Einfluss auf deinen Weg zum ${targetJob}.`}
+              </p>
             </div>
-            <p className="text-sm text-white/65 leading-relaxed">
-              {topSkill?.pitch ?? `Dieser Skill hat den größten direkten Einfluss auf deinen Weg zum ${targetJob}.`}
-            </p>
-            <button
-              onClick={() => setShowPaywall(true)}
-              className="group relative w-full py-4 rounded-xl font-black text-[15px] text-black flex items-center justify-center gap-3 overflow-hidden transition-all duration-200 hover:scale-[1.02] active:scale-[0.98]"
-              style={{ background: `linear-gradient(135deg,${tierFor(topSkill?.gap_severity ?? 3).color},#30E3CA)`, animation: 'lp_ctaPulse 2.5s ease-in-out infinite' }}
-            >
-              <div className="absolute inset-0 pointer-events-none"
-                style={{ background: 'linear-gradient(90deg,transparent,rgba(255,255,255,0.18),transparent)', backgroundSize: '200% 100%', animation: 'lp_shimmer 2s ease-in-out infinite' }} />
-              <Sparkles className="w-5 h-5 relative z-10 group-hover:rotate-12 transition-transform duration-300" />
-              <span className="relative z-10">Meinen Lernpfad jetzt starten</span>
-              <ArrowRight className="w-5 h-5 relative z-10 group-hover:translate-x-1 transition-transform" />
-            </button>
-            <p className="text-center text-[11px] text-white/25">Zertifikat inklusive · Einmalig 9,90 € · Lebenslanger Zugriff</p>
-          </div>
+          )}
+          <button
+            onClick={() => setShowPaywall(true)}
+            className="group relative w-full py-4 rounded-xl font-black text-[15px] text-black flex items-center justify-center gap-3 overflow-hidden transition-all duration-200 hover:scale-[1.02] active:scale-[0.98]"
+            style={{ background: 'linear-gradient(135deg,#66c0b6,#30E3CA)', animation: 'lp_ctaPulse 2.5s ease-in-out infinite', boxShadow: '0 4px 20px rgba(48,227,202,0.3)' }}
+          >
+            <div className="absolute inset-0 pointer-events-none"
+              style={{ background: 'linear-gradient(90deg,transparent,rgba(255,255,255,0.15),transparent)', backgroundSize: '200% 100%', animation: 'lp_shimmer 2s ease-in-out infinite' }} />
+            <Sparkles className="w-5 h-5 relative z-10 group-hover:rotate-12 transition-transform duration-300" />
+            <span className="relative z-10">Meinen Lernpfad jetzt starten</span>
+            <ArrowRight className="w-5 h-5 relative z-10 group-hover:translate-x-1 transition-transform" />
+          </button>
+          <p className="text-center text-[11px] text-white/25">Zertifikat inklusive · Einmalig 9,90 € · Lebenslanger Zugriff</p>
         </div>
-      ) : (
-        <button
-          onClick={() => setShowPaywall(true)}
-          className="group w-full py-4 rounded-xl font-black text-base text-black flex items-center justify-center gap-3 transition-all hover:scale-[1.02]"
-          style={{ background: 'linear-gradient(135deg,#66c0b6,#30E3CA)', animation: 'lp_ctaPulse 2.5s ease-in-out infinite' }}
-        >
-          <Sparkles className="w-5 h-5 group-hover:rotate-12 transition-transform" />
-          Meinen Lernpfad starten
-          <ArrowRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
-        </button>
-      )}
+      </div>
 
       {showPaywall && (
         <LearningPathPaywall

@@ -1,6 +1,5 @@
 import { useState } from 'react';
 import {
-  BookOpen,
   CheckCircle2,
   Circle,
   Clock,
@@ -11,6 +10,9 @@ import {
   PlayCircle,
   ExternalLink,
   Sparkles,
+  BookOpen,
+  Target,
+  Zap,
 } from 'lucide-react';
 import { LearningPath, LearningModule } from '../../types/learningPath';
 import { careerService } from '../../services/careerService';
@@ -18,6 +20,28 @@ import { careerService } from '../../services/careerService';
 interface LearningPathDashboardProps {
   learningPath: LearningPath;
   onCertificateRequest?: () => void;
+}
+
+const RESOURCE_ICONS: Record<string, React.ReactNode> = {
+  course:   <Sparkles size={15} style={{ color: '#30E3CA' }} />,
+  book:     <BookOpen size={15} style={{ color: '#66c0b6' }} />,
+  article:  <BookOpen size={15} style={{ color: '#66c0b6' }} />,
+  video:    <PlayCircle size={15} style={{ color: '#f97316' }} />,
+  practice: <Zap size={15} style={{ color: '#f59e0b' }} />,
+};
+
+function getModulePhaseLabel(index: number, total: number): string {
+  const third = Math.ceil(total / 3);
+  if (index < third) return 'Fundament';
+  if (index < third * 2) return 'Aufbau';
+  return 'Vertiefung';
+}
+
+function getModulePhaseColor(index: number, total: number) {
+  const third = Math.ceil(total / 3);
+  if (index < third) return { color: '#30E3CA', bg: 'rgba(48,227,202,0.08)', border: 'rgba(48,227,202,0.2)' };
+  if (index < third * 2) return { color: '#66c0b6', bg: 'rgba(102,192,182,0.08)', border: 'rgba(102,192,182,0.2)' };
+  return { color: '#f97316', bg: 'rgba(249,115,22,0.08)', border: 'rgba(249,115,22,0.2)' };
 }
 
 export function LearningPathDashboard({
@@ -32,11 +56,8 @@ export function LearningPathDashboard({
   const toggleModule = (moduleId: string) => {
     setExpandedModules((prev) => {
       const next = new Set(prev);
-      if (next.has(moduleId)) {
-        next.delete(moduleId);
-      } else {
-        next.add(moduleId);
-      }
+      if (next.has(moduleId)) next.delete(moduleId);
+      else next.add(moduleId);
       return next;
     });
   };
@@ -53,263 +74,337 @@ export function LearningPathDashboard({
     }
   };
 
-  const getModuleStatus = (moduleId: string) => {
-    return learningPath.progress?.[moduleId]?.status || 'not_started';
-  };
+  const getModuleStatus = (moduleId: string) =>
+    learningPath.progress?.[moduleId]?.status || 'not_started';
 
   const sortedModules = [...(learningPath.curriculum?.modules || [])].sort(
     (a, b) => a.order - b.order
   );
-
+  const total = sortedModules.length;
+  const completedCount = Object.values(learningPath.progress || {}).filter(
+    (p: any) => p.status === 'completed'
+  ).length;
+  const inProgressModule = sortedModules.find(m => getModuleStatus(m.id) === 'in_progress');
+  const nextModule = sortedModules.find(m => getModuleStatus(m.id) === 'not_started');
   const isCompleted = learningPath.status === 'completed';
 
   return (
-    <div className="space-y-8">
-      <div className="bg-gradient-to-br from-[#020617] via-[#0a0a1a] to-[#020617] rounded-3xl border border-white/10 p-8">
-        <div className="flex items-start justify-between mb-6">
-          <div className="space-y-2">
-            <h2 className="text-3xl font-bold text-white">{learningPath.target_job}</h2>
-            {learningPath.target_company && (
-              <p className="text-white/60">@ {learningPath.target_company}</p>
-            )}
-          </div>
+    <div className="space-y-6">
 
-          {isCompleted && learningPath.certificate_url && (
-            <a
-              href={learningPath.certificate_url}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="flex items-center gap-2 px-4 py-2 rounded-xl bg-gradient-to-r from-yellow-500/20 to-orange-500/20 border border-yellow-500/30 text-yellow-300 hover:scale-105 transition-all"
-            >
-              <Award size={20} />
-              <span className="font-semibold">Zertifikat anzeigen</span>
-            </a>
-          )}
-
-          {isCompleted && !learningPath.certificate_url && (
-            <button
-              onClick={onCertificateRequest}
-              className="flex items-center gap-2 px-4 py-2 rounded-xl bg-gradient-to-r from-[#66c0b6] to-[#30E3CA] text-black font-semibold hover:scale-105 transition-all"
-            >
-              <Download size={20} />
-              Zertifikat erstellen
-            </button>
-          )}
-        </div>
-
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
-          <div className="p-4 rounded-xl bg-white/5 border border-white/10">
-            <div className="flex items-center gap-2 mb-2">
-              <BookOpen size={20} className="text-[#66c0b6]" />
-              <span className="text-sm font-medium text-white/80">Module</span>
-            </div>
-            <div className="text-2xl font-bold text-white">
-              {Object.values(learningPath.progress || {}).filter((p: any) => p.status === 'completed')
-                .length}{' '}
-              / {sortedModules.length}
-            </div>
-          </div>
-
-          <div className="p-4 rounded-xl bg-white/5 border border-white/10">
-            <div className="flex items-center gap-2 mb-2">
-              <Clock size={20} className="text-blue-400" />
-              <span className="text-sm font-medium text-white/80">Gesamtdauer</span>
-            </div>
-            <div className="text-2xl font-bold text-white">
-              {learningPath.curriculum?.totalDuration || 'N/A'}
-            </div>
-          </div>
-
-          <div className="p-4 rounded-xl bg-white/5 border border-white/10">
-            <div className="flex items-center gap-2 mb-2">
-              <Sparkles size={20} className="text-yellow-400" />
-              <span className="text-sm font-medium text-white/80">Fortschritt</span>
-            </div>
-            <div className="text-2xl font-bold text-white">{completionPercentage}%</div>
-          </div>
-        </div>
-
-        <div className="relative pt-2 pb-1">
-          <div className="h-3 bg-white/10 rounded-full overflow-hidden">
+      {/* ── 1. ORIENTIERUNG: Wo bin ich & was ist das Ziel ─────────── */}
+      {/* CLT: Establish mental model first — target + single progress number */}
+      <div
+        className="rounded-3xl p-6 space-y-5"
+        style={{ background: 'linear-gradient(160deg,#06070f 0%,#0a0d1a 100%)', border: '1px solid rgba(255,255,255,0.08)' }}
+      >
+        <div className="flex items-start justify-between gap-4">
+          <div className="flex items-center gap-3">
             <div
-              className="h-full bg-gradient-to-r from-[#66c0b6] to-[#30E3CA] rounded-full transition-all duration-500"
-              style={{ width: `${completionPercentage}%` }}
+              className="w-11 h-11 rounded-xl flex items-center justify-center flex-shrink-0"
+              style={{ background: 'rgba(48,227,202,0.1)', border: '1px solid rgba(48,227,202,0.2)' }}
+            >
+              <Target size={20} style={{ color: '#30E3CA' }} />
+            </div>
+            <div>
+              <p className="text-[11px] font-bold uppercase tracking-widest text-white/30 mb-0.5">Dein Lernpfad</p>
+              <h2 className="text-2xl font-black text-white leading-tight">{learningPath.target_job}</h2>
+              {learningPath.target_company && (
+                <p className="text-sm text-white/45">@ {learningPath.target_company}</p>
+              )}
+            </div>
+          </div>
+
+          <div className="flex-shrink-0 flex flex-col items-center gap-1">
+            {isCompleted && learningPath.certificate_url ? (
+              <a
+                href={learningPath.certificate_url}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="flex items-center gap-2 px-3 py-2 rounded-xl text-sm font-bold transition-all hover:scale-105"
+                style={{ background: 'rgba(234,179,8,0.12)', border: '1px solid rgba(234,179,8,0.25)', color: '#fbbf24' }}
+              >
+                <Award size={16} />
+                Zertifikat
+              </a>
+            ) : isCompleted && !learningPath.certificate_url ? (
+              <button
+                onClick={onCertificateRequest}
+                className="flex items-center gap-2 px-3 py-2 rounded-xl text-sm font-bold text-black transition-all hover:scale-105"
+                style={{ background: 'linear-gradient(135deg,#66c0b6,#30E3CA)' }}
+              >
+                <Download size={16} />
+                Zertifikat
+              </button>
+            ) : null}
+          </div>
+        </div>
+
+        {/* Progress: single clear number + bar */}
+        <div className="space-y-2">
+          <div className="flex items-center justify-between text-sm">
+            <span className="text-white/50 font-medium">
+              {completedCount} von {total} Modulen abgeschlossen
+            </span>
+            <span
+              className="font-black text-base"
+              style={{ color: completionPercentage === 100 ? '#22c55e' : '#30E3CA' }}
+            >
+              {completionPercentage}%
+            </span>
+          </div>
+          <div className="h-2.5 rounded-full overflow-hidden" style={{ background: 'rgba(255,255,255,0.07)' }}>
+            <div
+              className="h-full rounded-full transition-all duration-700"
+              style={{
+                width: `${completionPercentage}%`,
+                background: completionPercentage === 100
+                  ? 'linear-gradient(90deg,#22c55e,#4ade80)'
+                  : 'linear-gradient(90deg,#66c0b6,#30E3CA)',
+              }}
             />
           </div>
           {estimatedCompletion && !isCompleted && (
-            <p className="text-xs text-white/50 mt-2">
+            <p className="text-xs text-white/30">
               Voraussichtlicher Abschluss: {estimatedCompletion.toLocaleDateString('de-DE')}
             </p>
           )}
         </div>
+
+        {/* Secondary stats: small, not competing with progress */}
+        <div className="flex items-center gap-4 pt-1">
+          <div className="flex items-center gap-1.5 text-xs text-white/35">
+            <Clock size={13} style={{ color: '#66c0b6' }} />
+            <span>{learningPath.curriculum?.totalDuration || 'N/A'} Gesamtdauer</span>
+          </div>
+          {inProgressModule && (
+            <div className="flex items-center gap-1.5 text-xs text-white/35">
+              <PlayCircle size={13} style={{ color: '#30E3CA' }} />
+              <span className="truncate max-w-[180px]">Aktiv: {inProgressModule.title}</span>
+            </div>
+          )}
+        </div>
       </div>
 
-      <div className="space-y-4">
-        <h3 className="text-2xl font-bold text-white">Lernmodule</h3>
+      {/* ── 2. NÄCHSTER SCHRITT (Was soll ich jetzt tun?) ─────────── */}
+      {/* CLT: Reduce decision paralysis — surface the one next action */}
+      {!isCompleted && (inProgressModule || nextModule) && (
+        <div
+          className="rounded-2xl px-5 py-4 flex items-center gap-4"
+          style={{ background: 'rgba(48,227,202,0.06)', border: '1px solid rgba(48,227,202,0.2)' }}
+        >
+          <div
+            className="w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0"
+            style={{ background: 'rgba(48,227,202,0.12)', border: '1px solid rgba(48,227,202,0.25)' }}
+          >
+            <Zap size={16} style={{ color: '#30E3CA' }} />
+          </div>
+          <div className="flex-1 min-w-0">
+            <p className="text-[11px] font-black uppercase tracking-widest text-[#30E3CA]/60 mb-0.5">
+              {inProgressModule ? 'Weitermachen' : 'Als nächstes'}
+            </p>
+            <p className="text-sm font-bold text-white truncate">
+              {(inProgressModule || nextModule)?.title}
+            </p>
+          </div>
+          <button
+            onClick={() => {
+              const m = inProgressModule || nextModule;
+              if (m) toggleModule(m.id);
+            }}
+            className="flex-shrink-0 px-3 py-1.5 rounded-lg text-xs font-bold text-black transition-all hover:scale-105"
+            style={{ background: 'linear-gradient(135deg,#66c0b6,#30E3CA)' }}
+          >
+            Öffnen
+          </button>
+        </div>
+      )}
+
+      {/* ── 3. LERNMODULE: Phasiert nach Schema-Aufbau ──────────────── */}
+      {/* CLT: Modules grouped in 3 learning phases (Fundament/Aufbau/Vertiefung) */}
+      {/* Each module expands progressively — details only when needed */}
+      <div className="space-y-3">
+        <p className="text-[11px] font-black uppercase tracking-widest text-white/30 px-1">Module</p>
 
         {sortedModules.map((module, index) => {
           const moduleStatus = getModuleStatus(module.id);
           const isExpanded = expandedModules.has(module.id);
           const isModuleCompleted = moduleStatus === 'completed';
           const isModuleInProgress = moduleStatus === 'in_progress';
+          const phase = getModulePhaseColor(index, total);
 
           return (
             <div
               key={module.id}
-              className={`
-                bg-white/5 backdrop-blur-xl border rounded-2xl overflow-hidden transition-all
-                ${
+              className="rounded-2xl overflow-hidden transition-all duration-200"
+              style={{
+                background: isModuleCompleted
+                  ? 'rgba(34,197,94,0.04)'
+                  : isModuleInProgress
+                  ? 'rgba(48,227,202,0.05)'
+                  : 'rgba(255,255,255,0.03)',
+                border: `1px solid ${
                   isModuleCompleted
-                    ? 'border-[#66c0b6]/50'
+                    ? 'rgba(34,197,94,0.2)'
                     : isModuleInProgress
-                    ? 'border-blue-500/50'
-                    : 'border-white/10'
-                }
-              `}
+                    ? 'rgba(48,227,202,0.2)'
+                    : 'rgba(255,255,255,0.07)'
+                }`,
+              }}
             >
+              {/* Module header — always visible, contains essential info only */}
               <button
                 onClick={() => toggleModule(module.id)}
-                className="w-full p-6 flex items-start gap-4 hover:bg-white/5 transition-all"
+                className="w-full px-5 py-4 flex items-center gap-4 text-left transition-all hover:bg-white/[0.025]"
               >
-                <div className="flex-shrink-0 w-12 h-12 rounded-xl bg-gradient-to-br from-[#66c0b6]/20 to-[#30E3CA]/20 border border-[#66c0b6]/30 flex items-center justify-center">
+                {/* Status icon */}
+                <div className="flex-shrink-0">
                   {isModuleCompleted ? (
-                    <CheckCircle2 size={24} className="text-[#66c0b6]" />
+                    <CheckCircle2 size={22} style={{ color: '#22c55e' }} />
                   ) : isModuleInProgress ? (
-                    <PlayCircle size={24} className="text-blue-400" />
+                    <PlayCircle size={22} style={{ color: '#30E3CA' }} />
                   ) : (
-                    <Circle size={24} className="text-white/30" />
+                    <Circle size={22} style={{ color: 'rgba(255,255,255,0.2)' }} />
                   )}
                 </div>
 
-                <div className="flex-1 min-w-0 text-left">
-                  <div className="flex items-start justify-between gap-4">
-                    <div className="flex-1">
-                      <div className="flex items-center gap-2 mb-1">
-                        <span className="text-sm font-medium text-white/50">Modul {index + 1}</span>
-                        {isModuleCompleted && (
-                          <span className="px-2 py-0.5 rounded-full bg-[#66c0b6]/20 text-[#66c0b6] text-xs font-medium">
-                            Abgeschlossen
-                          </span>
-                        )}
-                        {isModuleInProgress && (
-                          <span className="px-2 py-0.5 rounded-full bg-blue-500/20 text-blue-400 text-xs font-medium">
-                            In Bearbeitung
-                          </span>
-                        )}
-                      </div>
-                      <h4 className="text-lg font-semibold text-white mb-2">{module.title}</h4>
-                      <p className="text-sm text-white/70 mb-3">{module.description}</p>
-                      <div className="flex items-center gap-4 text-xs text-white/50">
-                        <span className="flex items-center gap-1">
-                          <Clock size={14} />
-                          {module.estimatedDuration}
-                        </span>
-                        <span>{module.skills.length} Skills</span>
-                      </div>
-                    </div>
-
-                    <div className="flex-shrink-0">
-                      {isExpanded ? (
-                        <ChevronUp size={24} className="text-white/50" />
-                      ) : (
-                        <ChevronDown size={24} className="text-white/50" />
-                      )}
-                    </div>
+                <div className="flex-1 min-w-0">
+                  {/* Phase label + module number: context without overload */}
+                  <div className="flex items-center gap-2 mb-0.5">
+                    <span className="text-[10px] font-black uppercase tracking-widest" style={{ color: phase.color + 'aa' }}>
+                      {getModulePhaseLabel(index, total)}
+                    </span>
+                    <span className="text-[10px] text-white/25">· Modul {index + 1}</span>
                   </div>
+                  <h4 className="text-base font-bold text-white leading-snug truncate">{module.title}</h4>
+                  {/* Only show description when collapsed — reduces visual noise */}
+                  {!isExpanded && (
+                    <p className="text-xs text-white/40 mt-0.5 truncate">{module.description}</p>
+                  )}
+                </div>
+
+                <div className="flex items-center gap-3 flex-shrink-0">
+                  <span className="text-xs text-white/30 hidden sm:flex items-center gap-1">
+                    <Clock size={12} />
+                    {module.estimatedDuration}
+                  </span>
+                  {isExpanded
+                    ? <ChevronUp size={18} style={{ color: 'rgba(255,255,255,0.3)' }} />
+                    : <ChevronDown size={18} style={{ color: 'rgba(255,255,255,0.3)' }} />
+                  }
                 </div>
               </button>
 
+              {/* Expanded content — progressive disclosure */}
               {isExpanded && (
-                <div className="px-6 pb-6 space-y-6 border-t border-white/10 pt-6">
-                  <div className="space-y-3">
-                    <h5 className="text-sm font-semibold text-white/80">Zu lernende Skills</h5>
-                    <div className="flex flex-wrap gap-2">
-                      {module.skills.map((skill, idx) => (
-                        <span
-                          key={idx}
-                          className="px-3 py-1 rounded-full bg-white/5 border border-white/10 text-sm text-white/80"
-                        >
-                          {skill}
-                        </span>
-                      ))}
-                    </div>
-                  </div>
+                <div
+                  className="px-5 pb-5 pt-3 space-y-5"
+                  style={{ borderTop: '1px solid rgba(255,255,255,0.06)' }}
+                >
+                  {/* Description */}
+                  <p className="text-sm text-white/60 leading-relaxed">{module.description}</p>
 
+                  {/* Skills: small chips, low visual weight */}
+                  {module.skills.length > 0 && (
+                    <div className="space-y-2">
+                      <p className="text-[11px] font-black uppercase tracking-widest text-white/25">Skills in diesem Modul</p>
+                      <div className="flex flex-wrap gap-1.5">
+                        {module.skills.map((skill, idx) => (
+                          <span
+                            key={idx}
+                            className="px-2.5 py-1 rounded-lg text-xs text-white/55"
+                            style={{ background: phase.bg, border: `1px solid ${phase.border}` }}
+                          >
+                            {skill}
+                          </span>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Resources: titled list, icon communicates type */}
                   {module.resources && module.resources.length > 0 && (
-                    <div className="space-y-3">
-                      <h5 className="text-sm font-semibold text-white/80">Lernressourcen</h5>
-                      <div className="space-y-2">
+                    <div className="space-y-2">
+                      <p className="text-[11px] font-black uppercase tracking-widest text-white/25">Lernressourcen</p>
+                      <div className="space-y-1.5">
                         {module.resources.map((resource, idx) => (
                           <a
                             key={idx}
                             href={resource.url}
                             target="_blank"
                             rel="noopener noreferrer"
-                            className="group flex items-center gap-3 p-3 rounded-xl bg-white/5 border border-white/10 hover:border-[#66c0b6]/50 transition-all"
+                            className="group flex items-center gap-3 px-3.5 py-3 rounded-xl transition-all"
+                            style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.07)' }}
+                            onMouseEnter={e => (e.currentTarget.style.borderColor = 'rgba(102,192,182,0.3)')}
+                            onMouseLeave={e => (e.currentTarget.style.borderColor = 'rgba(255,255,255,0.07)')}
                           >
-                            <div className="flex-shrink-0 w-10 h-10 rounded-lg bg-gradient-to-br from-[#66c0b6]/20 to-[#30E3CA]/20 flex items-center justify-center">
-                              <BookOpen size={20} className="text-[#66c0b6]" />
+                            <div
+                              className="flex-shrink-0 w-8 h-8 rounded-lg flex items-center justify-center"
+                              style={{ background: 'rgba(255,255,255,0.05)' }}
+                            >
+                              {RESOURCE_ICONS[resource.type] ?? <BookOpen size={15} style={{ color: '#66c0b6' }} />}
                             </div>
                             <div className="flex-1 min-w-0">
-                              <p className="font-medium text-white group-hover:text-[#66c0b6] transition-colors">
+                              <p className="text-sm font-semibold text-white/85 group-hover:text-white transition-colors truncate">
                                 {resource.title}
                               </p>
                               {resource.provider && (
-                                <p className="text-xs text-white/50">{resource.provider}</p>
+                                <p className="text-xs text-white/35">{resource.provider}</p>
                               )}
                             </div>
-                            <ExternalLink
-                              size={16}
-                              className="flex-shrink-0 text-white/30 group-hover:text-[#66c0b6] transition-colors"
-                            />
+                            <ExternalLink size={14} style={{ color: 'rgba(255,255,255,0.2)' }} className="flex-shrink-0 group-hover:text-[#66c0b6] transition-colors" />
                           </a>
                         ))}
                       </div>
                     </div>
                   )}
 
+                  {/* Milestones: checklist — clear goal signposts */}
                   {module.milestones && module.milestones.length > 0 && (
-                    <div className="space-y-3">
-                      <h5 className="text-sm font-semibold text-white/80">Meilensteine</h5>
-                      <div className="space-y-2">
+                    <div className="space-y-2">
+                      <p className="text-[11px] font-black uppercase tracking-widest text-white/25">Meilensteine</p>
+                      <div className="space-y-1.5">
                         {module.milestones.map((milestone, idx) => (
-                          <div
-                            key={idx}
-                            className="flex items-start gap-3 p-3 rounded-xl bg-white/5"
-                          >
-                            <CheckCircle2 size={16} className="flex-shrink-0 text-[#66c0b6] mt-0.5" />
-                            <span className="text-sm text-white/80">{milestone}</span>
+                          <div key={idx} className="flex items-start gap-2.5">
+                            <CheckCircle2 size={14} style={{ color: '#66c0b6' }} className="flex-shrink-0 mt-0.5" />
+                            <span className="text-sm text-white/60 leading-snug">{milestone}</span>
                           </div>
                         ))}
                       </div>
                     </div>
                   )}
 
-                  <div className="flex items-center gap-3 pt-4 border-t border-white/10">
+                  {/* Module action: single clear next step */}
+                  <div
+                    className="flex items-center gap-3 pt-2"
+                    style={{ borderTop: '1px solid rgba(255,255,255,0.06)' }}
+                  >
                     {moduleStatus === 'not_started' && (
                       <button
                         onClick={() => handleModuleStatusChange(module.id, 'in_progress')}
-                        className="px-6 py-2 rounded-xl bg-gradient-to-r from-blue-500 to-blue-600 text-white font-semibold hover:scale-105 transition-all"
+                        className="px-5 py-2.5 rounded-xl font-bold text-sm text-white flex items-center gap-2 transition-all hover:scale-105"
+                        style={{ background: 'rgba(48,227,202,0.15)', border: '1px solid rgba(48,227,202,0.3)' }}
                       >
-                        <PlayCircle size={18} className="inline mr-2" />
-                        Modul starten
+                        <PlayCircle size={16} style={{ color: '#30E3CA' }} />
+                        <span style={{ color: '#30E3CA' }}>Modul starten</span>
                       </button>
                     )}
-
                     {moduleStatus === 'in_progress' && (
                       <button
                         onClick={() => handleModuleStatusChange(module.id, 'completed')}
-                        className="px-6 py-2 rounded-xl bg-gradient-to-r from-[#66c0b6] to-[#30E3CA] text-black font-semibold hover:scale-105 transition-all"
+                        className="px-5 py-2.5 rounded-xl font-bold text-sm text-black flex items-center gap-2 transition-all hover:scale-105"
+                        style={{ background: 'linear-gradient(135deg,#66c0b6,#30E3CA)' }}
                       >
-                        <CheckCircle2 size={18} className="inline mr-2" />
-                        Als abgeschlossen markieren
+                        <CheckCircle2 size={16} />
+                        Abgeschlossen
                       </button>
                     )}
-
                     {moduleStatus === 'completed' && (
-                      <div className="flex items-center gap-2 px-4 py-2 rounded-xl bg-[#66c0b6]/10 border border-[#66c0b6]/20 text-[#66c0b6]">
-                        <CheckCircle2 size={18} />
-                        <span className="font-semibold">Abgeschlossen</span>
+                      <div
+                        className="flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-bold"
+                        style={{ background: 'rgba(34,197,94,0.1)', border: '1px solid rgba(34,197,94,0.2)', color: '#22c55e' }}
+                      >
+                        <CheckCircle2 size={15} />
+                        Abgeschlossen
                       </div>
                     )}
                   </div>
@@ -320,19 +415,27 @@ export function LearningPathDashboard({
         })}
       </div>
 
+      {/* ── 4. ABSCHLUSS: Belohnung & nächster Schritt ──────────────── */}
+      {/* CLT: Positive reinforcement anchors the schema — completion = reward */}
       {isCompleted && (
-        <div className="bg-gradient-to-r from-yellow-500/10 via-orange-500/10 to-red-500/10 border border-yellow-500/20 rounded-2xl p-8 text-center space-y-4">
-          <Award size={48} className="text-yellow-400 mx-auto" />
-          <h3 className="text-2xl font-bold text-white">Herzlichen Glückwunsch!</h3>
-          <p className="text-white/70 max-w-2xl mx-auto">
-            Du hast alle Module erfolgreich abgeschlossen. Lade dir jetzt dein Zertifikat herunter!
-          </p>
+        <div
+          className="rounded-3xl p-8 text-center space-y-4"
+          style={{ background: 'linear-gradient(135deg,rgba(234,179,8,0.08) 0%,rgba(249,115,22,0.06) 100%)', border: '1px solid rgba(234,179,8,0.2)' }}
+        >
+          <Award size={44} style={{ color: '#fbbf24' }} className="mx-auto" />
+          <div>
+            <h3 className="text-2xl font-black text-white mb-1">Herzlichen Glückwunsch!</h3>
+            <p className="text-sm text-white/55 max-w-sm mx-auto">
+              Du hast alle Module erfolgreich abgeschlossen. Lade dir jetzt dein Zertifikat herunter.
+            </p>
+          </div>
           {!learningPath.certificate_url && onCertificateRequest && (
             <button
               onClick={onCertificateRequest}
-              className="px-8 py-3 rounded-xl bg-gradient-to-r from-yellow-500 to-orange-500 text-white font-bold hover:scale-105 transition-all"
+              className="inline-flex items-center gap-2 px-7 py-3 rounded-xl font-bold text-white transition-all hover:scale-105"
+              style={{ background: 'linear-gradient(135deg,#f59e0b,#f97316)' }}
             >
-              <Download size={20} className="inline mr-2" />
+              <Download size={18} />
               Zertifikat erstellen
             </button>
           )}
