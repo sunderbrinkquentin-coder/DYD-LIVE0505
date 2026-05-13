@@ -246,6 +246,24 @@ export function CVLiveEditorPage() {
   const cvPreviewRef = useRef<HTMLDivElement | null>(null);
   const [isExportingPDF, setIsExportingPDF] = useState(false);
   const autoDownloadTriggeredRef = useRef(false);
+  const previewContainerRef = useRef<HTMLDivElement | null>(null);
+  const [cvScale, setCvScale] = useState(1);
+
+  useEffect(() => {
+    const CV_WIDTH = 794;
+    const PADDING = 32;
+    const recalc = () => {
+      const container = previewContainerRef.current;
+      if (!container) return;
+      const available = container.clientWidth - PADDING;
+      const scale = available < CV_WIDTH ? available / CV_WIDTH : 1;
+      setCvScale(scale);
+    };
+    recalc();
+    const observer = new ResizeObserver(recalc);
+    if (previewContainerRef.current) observer.observe(previewContainerRef.current);
+    return () => observer.disconnect();
+  }, []);
 
   // Expose debug helper on window so it can be triggered from DevTools console:
   //   window.__debugPdfHtml()
@@ -1577,14 +1595,16 @@ export function CVLiveEditorPage() {
       </div>
 
       {/* A4-Vorschau – feste 210mm Breite, WYSIWYG-Blatt-Optik */}
-      <div className="flex-1 flex flex-col items-center py-4 sm:py-8 px-2 sm:px-4 overflow-auto bg-zinc-800/40">
+      <div ref={previewContainerRef} className="flex-1 flex flex-col items-center py-4 sm:py-8 px-2 sm:px-4 overflow-auto bg-zinc-800/40">
         <div className="flex flex-col items-center w-full">
           {/* Mobile scale wrapper: on small screens, scale the 794px CV to fit the viewport */}
+          <div style={{ width: cvScale < 1 ? `${794 * cvScale}px` : '794px' }}>
           <div
             className="cv-scale-wrapper"
             style={{
               width: '794px',
-              transformOrigin: 'top center',
+              transformOrigin: 'top left',
+              transform: cvScale < 1 ? `scale(${cvScale})` : undefined,
             }}
           >
           <div
@@ -1705,9 +1725,10 @@ export function CVLiveEditorPage() {
             </div>
           </div>
           </div>{/* end cv-scale-wrapper */}
+          </div>{/* end scale outer wrapper */}
 
           {jobData && (jobData.jobTitle || jobData.company) && (
-            <div className="mt-4" style={{ width: '794px', maxWidth: '794px' }}>
+            <div className="mt-4" style={{ width: cvScale < 1 ? `${794 * cvScale}px` : '794px', maxWidth: '794px' }}>
               <button
                 onClick={() => setShowJobDescription(!showJobDescription)}
                 className="w-full flex items-center justify-between gap-3 px-4 py-3 bg-white/5 border border-white/10 rounded-xl hover:bg-white/[0.08] hover:border-[#66c0b6]/30 transition-all"
