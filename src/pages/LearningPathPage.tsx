@@ -539,6 +539,7 @@ interface QuizQuestion {
   options: { A: string; B: string; C: string; D: string };
   correct_key: string;
   rationale: string;
+  clt_rating?: string;
 }
 
 interface LearningResult {
@@ -549,6 +550,24 @@ interface LearningResult {
     dqr_reference?: string;
     verification_footer?: string;
   } | null;
+}
+
+// ── ARCS/DSR/CLT Learning Journey phases ──────────────────────────────────────
+// Phase 1 (ARCS – Attention):    Intro card — hook, relevance, why this matters now
+// Phase 2 (DSR – Discipline):    Pre-learning — understand competency list, learning goals
+// Phase 3 (CLT – guided learn):  Guided practice — quiz questions one-by-one with instant
+//                                 rationale; schema building, progressive complexity
+// Phase 4 (DSR – Skill):         Consolidation — review what was learned, confidence check
+// Phase 5 (ARCS – Satisfaction): Final exam — full timed quiz without hints
+// Phase 6:                       Certificate — reward, achievement, next steps
+
+type LearningPhase = 'intro' | 'goals' | 'practice' | 'consolidation' | 'exam' | 'certificate';
+
+interface PracticeState {
+  currentIdx: number;
+  selected: string | null;
+  revealed: boolean;
+  correct: number;
 }
 
 function LearningContent({
@@ -563,10 +582,16 @@ function LearningContent({
   const [result, setResult] = useState<LearningResult | null>(null);
   const [loadingResult, setLoadingResult] = useState(true);
   const [stillGenerating, setStillGenerating] = useState(false);
-  const [quizPhase, setQuizPhase] = useState<'competencies' | 'quiz' | 'done'>('competencies');
-  const [answers, setAnswers] = useState<Record<number, string>>({});
-  const [revealed, setRevealed] = useState<Record<number, boolean>>({});
-  const [quizSubmitted, setQuizSubmitted] = useState(false);
+  const [learningPhase, setLearningPhase] = useState<LearningPhase>('intro');
+
+  // Guided practice state
+  const [practice, setPractice] = useState<PracticeState>({ currentIdx: 0, selected: null, revealed: false, correct: 0 });
+
+  // Final exam state
+  const [examAnswers, setExamAnswers] = useState<Record<number, string>>({});
+  const [examSubmitted, setExamSubmitted] = useState(false);
+  const [examRevealed, setExamRevealed] = useState<Record<number, boolean>>({});
+
   const realtimeRef = useRef<ReturnType<typeof supabase.channel> | null>(null);
 
   useEffect(() => {
@@ -588,8 +613,7 @@ function LearningContent({
         return;
       }
 
-      // Canonical row not yet available — show content from first partial result
-      // while remaining Make runs finish in background
+      // Fall back to partial row with final_exam content
       const { data: partial } = await supabase
         .from('learning_results')
         .select('final_exam, certificate_metadata')
@@ -604,45 +628,26 @@ function LearningContent({
         setResult(partial as LearningResult);
         setStillGenerating(true);
         setLoadingResult(false);
-
-        // Listen for canonical row to arrive and update
         const ch = supabase
           .channel(`lc_canonical_${learningPath.id}_${Date.now()}`)
-          .on('postgres_changes',
-            { event: 'INSERT', schema: 'public', table: 'learning_results', filter: `id=eq.${learningPath.id}` },
-            (payload) => {
-              const row = payload.new as any;
-              if (row?.final_exam) { setResult(row as LearningResult); setStillGenerating(false); }
-            })
-          .on('postgres_changes',
-            { event: 'UPDATE', schema: 'public', table: 'learning_results', filter: `id=eq.${learningPath.id}` },
-            (payload) => {
-              const row = payload.new as any;
-              if (row?.final_exam) { setResult(row as LearningResult); setStillGenerating(false); }
-            })
+          .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'learning_results', filter: `id=eq.${learningPath.id}` },
+            (payload) => { const row = payload.new as any; if (row?.final_exam) { setResult(row as LearningResult); setStillGenerating(false); } })
+          .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'learning_results', filter: `id=eq.${learningPath.id}` },
+            (payload) => { const row = payload.new as any; if (row?.final_exam) { setResult(row as LearningResult); setStillGenerating(false); } })
           .subscribe();
         realtimeRef.current = ch;
         return;
       }
 
-      // Nothing yet — show loading state and wait
+      // Nothing yet — wait via realtime
       setLoadingResult(false);
       setStillGenerating(true);
-
       const ch = supabase
         .channel(`lc_wait_${learningPath.id}_${Date.now()}`)
-        .on('postgres_changes',
-          { event: 'INSERT', schema: 'public', table: 'learning_results', filter: `id=eq.${learningPath.id}` },
-          (payload) => {
-            const row = payload.new as any;
-            if (row?.final_exam) { setResult(row as LearningResult); setStillGenerating(false); }
-          })
-        .on('postgres_changes',
-          { event: 'INSERT', schema: 'public', table: 'learning_results', filter: `learning_path_id=eq.${learningPath.id}` },
-          (payload) => {
-            const row = payload.new as any;
-            if (row?.final_exam) { setResult(row as LearningResult); setStillGenerating(false); }
-          })
+        .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'learning_results', filter: `id=eq.${learningPath.id}` },
+          (payload) => { const row = payload.new as any; if (row?.final_exam) { setResult(row as LearningResult); setStillGenerating(false); } })
+        .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'learning_results', filter: `learning_path_id=eq.${learningPath.id}` },
+          (payload) => { const row = payload.new as any; if (row?.final_exam) { setResult(row as LearningResult); setStillGenerating(false); } })
         .subscribe();
       realtimeRef.current = ch;
     };
@@ -654,41 +659,72 @@ function LearningContent({
     };
   }, [learningPath.id]);
 
+  // Parse questions — handle double-encoded JSON from Make
   const questions: QuizQuestion[] = (() => {
     if (!result?.final_exam) return [];
+    const raw = result.final_exam as unknown;
     try {
-      const parsed = JSON.parse(result.final_exam);
-      if (Array.isArray(parsed)) return parsed as QuizQuestion[];
+      if (Array.isArray(raw)) return raw as QuizQuestion[];
+      if (typeof raw === 'string') {
+        let s = raw.trim();
+        // Handle double-encoded: starts/ends with quote means it's a JSON string of a JSON string
+        if (s.startsWith('"')) s = JSON.parse(s) as string;
+        // Now it should be the actual array — but Make sometimes sends comma-separated objects
+        // Try wrapping in array brackets if it doesn't start with [
+        if (!s.startsWith('[')) s = `[${s}]`;
+        const parsed = JSON.parse(s);
+        if (Array.isArray(parsed)) return parsed as QuizQuestion[];
+      }
     } catch { /* */ }
     return [];
   })();
 
-  const competencies: string[] = result?.certificate_metadata?.competency_profile ?? [];
-  const officialTitle = result?.certificate_metadata?.official_title || learningPath.target_job || '';
+  // Parse certificate_metadata — also handle double-encoded
+  const certMeta = (() => {
+    const raw = result?.certificate_metadata;
+    if (!raw) return null;
+    if (typeof raw === 'object' && !Array.isArray(raw)) return raw as LearningResult['certificate_metadata'];
+    if (typeof raw === 'string') {
+      try {
+        let s = (raw as string).trim();
+        if (s.startsWith('"')) s = JSON.parse(s) as string;
+        return JSON.parse(s) as LearningResult['certificate_metadata'];
+      } catch { /* */ }
+    }
+    return null;
+  })();
 
-  const score = quizSubmitted
-    ? questions.filter(q => answers[q.question_id] === q.correct_key).length
+  const competencies: string[] = certMeta?.competency_profile ?? [];
+  const officialTitle = certMeta?.official_title || learningPath.target_job || '';
+  const dqrRef = certMeta?.dqr_reference || '';
+  const verificationFooter = certMeta?.verification_footer || '';
+
+  // Split questions: first half for guided practice, all for final exam
+  const practiceQuestions = questions.slice(0, Math.ceil(questions.length / 2));
+  const examScore = examSubmitted
+    ? questions.filter(q => examAnswers[q.question_id] === q.correct_key).length
     : 0;
-  const passed = quizSubmitted && score >= Math.ceil(questions.length * 0.6);
+  const examPassed = examSubmitted && examScore >= Math.ceil(questions.length * 0.6);
+  const allExamAnswered = questions.length > 0 && questions.every(q => examAnswers[q.question_id]);
 
-  const handleAnswer = (qId: number, key: string) => {
-    if (quizSubmitted) return;
-    setAnswers(prev => ({ ...prev, [qId]: key }));
-  };
+  // Phase step indicator
+  const PHASE_STEPS: { key: LearningPhase; label: string }[] = [
+    { key: 'intro', label: 'Einstieg' },
+    { key: 'goals', label: 'Lernziele' },
+    { key: 'practice', label: 'Üben' },
+    { key: 'consolidation', label: 'Festigung' },
+    { key: 'exam', label: 'Abschlusstest' },
+    { key: 'certificate', label: 'Zertifikat' },
+  ];
+  const phaseIdx = PHASE_STEPS.findIndex(s => s.key === learningPhase);
 
-  const handleSubmitQuiz = () => {
-    setQuizSubmitted(true);
-    setRevealed(Object.fromEntries(questions.map(q => [q.question_id, true])));
-    setQuizPhase('done');
-  };
-
-  const allAnswered = questions.length > 0 && questions.every(q => answers[q.question_id]);
+  // ── Loading states ────────────────────────────────────────────────────────────
 
   if (loadingResult) {
     return (
       <div className="flex flex-col items-center gap-4 py-20">
         <Loader2 className="w-10 h-10 text-[#66c0b6] animate-spin" />
-        <p className="text-white/60">Lernpfad wird geladen…</p>
+        <p className="text-white/60">Lerneinheit wird geladen…</p>
       </div>
     );
   }
@@ -703,7 +739,7 @@ function LearningContent({
         <div>
           <p className="text-white font-black text-lg">Lernpfad wird fertiggestellt…</p>
           <p className="text-white/45 text-sm mt-1.5 leading-relaxed">
-            Weitere Inhalte werden im Hintergrund geladen. Diese Seite aktualisiert sich automatisch.
+            Inhalte werden im Hintergrund generiert. Diese Seite aktualisiert sich automatisch.
           </p>
         </div>
         <div className="flex gap-1.5">
@@ -716,225 +752,474 @@ function LearningContent({
     );
   }
 
+  // ── Main render ───────────────────────────────────────────────────────────────
+
   return (
-    <div className="space-y-6 max-w-2xl mx-auto" style={{ animation: 'lp_fadeUp 0.5s ease' }}>
+    <div className="space-y-6 max-w-2xl mx-auto" style={{ animation: 'lp_fadeUp 0.45s ease' }}>
       <style>{GLOBAL_STYLES}</style>
 
-      {/* "More results loading" banner */}
-      {stillGenerating && (
-        <div className="flex items-center gap-3 px-4 py-3 rounded-xl"
-          style={{ background: 'rgba(48,227,202,0.05)', border: '1px solid rgba(48,227,202,0.2)' }}>
-          <div className="w-1.5 h-1.5 rounded-full bg-[#30E3CA] flex-shrink-0"
-            style={{ animation: 'lpw2_pulse 1.4s ease-in-out infinite' }} />
-          <p className="text-xs text-[#30E3CA]/70 flex-1">
-            Weitere Lernpfad-Inhalte werden im Hintergrund geladen…
-          </p>
-        </div>
-      )}
-
-      {/* Header */}
-      <div className="rounded-2xl p-5"
-        style={{ background: 'linear-gradient(135deg,rgba(48,227,202,0.08) 0%,rgba(6,7,15,0.95) 70%)', border: '1px solid rgba(48,227,202,0.2)' }}>
-        <p className="text-[10px] font-black uppercase tracking-widest text-[#30E3CA]/60 mb-1">Dein Lernpfad</p>
-        <h2 className="text-2xl font-black text-white leading-tight">{officialTitle}</h2>
-        {result?.certificate_metadata?.dqr_reference && (
-          <p className="text-xs text-white/40 mt-1">{result.certificate_metadata.dqr_reference}</p>
-        )}
-      </div>
-
-      {/* Tab navigation */}
-      <div className="flex gap-2 p-1 rounded-xl" style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)' }}>
-        {(['competencies', 'quiz', 'done'] as const).map((tab, idx) => {
-          const labels = ['Kompetenzen', 'Abschlusstest', 'Zertifikat'];
-          const icons = ['🎯', '📝', '🏆'];
-          const isActive = quizPhase === tab;
-          const isLocked = (tab === 'quiz' && false) || (tab === 'done' && !quizSubmitted);
+      {/* Progress stepper */}
+      <div className="flex items-center gap-1 overflow-x-auto pb-1">
+        {PHASE_STEPS.map((step, i) => {
+          const isDone = i < phaseIdx;
+          const isActive = i === phaseIdx;
+          const isLocked = step.key === 'certificate' && !examPassed;
           return (
-            <button
-              key={tab}
-              disabled={isLocked}
-              onClick={() => !isLocked && setQuizPhase(tab)}
-              className="flex-1 flex items-center justify-center gap-1.5 py-2 rounded-lg text-sm font-bold transition-all"
-              style={{
-                background: isActive ? 'rgba(48,227,202,0.15)' : 'transparent',
-                color: isActive ? '#30E3CA' : isLocked ? 'rgba(255,255,255,0.2)' : 'rgba(255,255,255,0.5)',
-                border: isActive ? '1px solid rgba(48,227,202,0.3)' : '1px solid transparent',
-              }}
-            >
-              <span>{icons[idx]}</span>
-              <span className="hidden sm:inline">{labels[idx]}</span>
-            </button>
+            <div key={step.key} className="flex items-center gap-1 flex-shrink-0">
+              <button
+                onClick={() => {
+                  if (isDone && step.key !== 'certificate') setLearningPhase(step.key);
+                  if (isActive) return;
+                  if (step.key === 'certificate' && examPassed) setLearningPhase('certificate');
+                }}
+                disabled={!isDone && !isActive}
+                className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-[10px] font-black uppercase tracking-wider transition-all"
+                style={{
+                  background: isActive ? 'rgba(48,227,202,0.15)' : isDone ? 'rgba(34,197,94,0.08)' : 'rgba(255,255,255,0.03)',
+                  border: `1px solid ${isActive ? 'rgba(48,227,202,0.35)' : isDone ? 'rgba(34,197,94,0.25)' : 'rgba(255,255,255,0.07)'}`,
+                  color: isActive ? '#30E3CA' : isDone ? '#4ade80' : isLocked ? 'rgba(255,255,255,0.15)' : 'rgba(255,255,255,0.3)',
+                  cursor: isDone && step.key !== 'certificate' ? 'pointer' : isActive ? 'default' : 'not-allowed',
+                }}
+              >
+                {isDone && <svg width="9" height="9" viewBox="0 0 9 9"><polyline points="1.5,4.5 3.5,6.5 7.5,2.5" fill="none" stroke="#4ade80" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/></svg>}
+                {step.label}
+              </button>
+              {i < PHASE_STEPS.length - 1 && (
+                <div className="w-3 h-px flex-shrink-0" style={{ background: i < phaseIdx ? 'rgba(34,197,94,0.3)' : 'rgba(255,255,255,0.08)' }} />
+              )}
+            </div>
           );
         })}
       </div>
 
-      {/* Phase: competencies */}
-      {quizPhase === 'competencies' && (
-        <div className="space-y-4">
-          <p className="text-[11px] font-black uppercase tracking-widest text-white/30 px-1">Was du nach diesem Lernpfad kannst</p>
-          {competencies.length > 0 ? (
-            <div className="space-y-3">
-              {competencies.map((comp, i) => (
-                <div key={i} className="flex items-start gap-3 px-4 py-4 rounded-xl"
-                  style={{ background: 'rgba(102,192,182,0.06)', border: '1px solid rgba(102,192,182,0.15)' }}>
-                  <div className="flex-shrink-0 w-7 h-7 rounded-xl flex items-center justify-center text-xs font-black"
-                    style={{ background: 'rgba(48,227,202,0.12)', color: '#30E3CA', border: '1px solid rgba(48,227,202,0.25)' }}>
-                    {i + 1}
+      {/* ── Phase 1: ARCS Attention — Intro ───────────────────────────────────── */}
+      {learningPhase === 'intro' && (
+        <div className="space-y-5" style={{ animation: 'lp_fadeUp 0.4s ease' }}>
+          <div className="rounded-2xl overflow-hidden"
+            style={{ background: 'linear-gradient(135deg,rgba(48,227,202,0.1) 0%,rgba(6,7,15,0.98) 65%)', border: '1px solid rgba(48,227,202,0.25)' }}>
+            <div className="h-px w-full" style={{ background: 'linear-gradient(90deg,transparent,rgba(48,227,202,0.6),transparent)' }} />
+            <div className="p-6 space-y-4">
+              <div className="flex items-center gap-2">
+                <div className="w-8 h-8 rounded-xl flex items-center justify-center"
+                  style={{ background: 'rgba(48,227,202,0.12)', border: '1px solid rgba(48,227,202,0.3)' }}>
+                  <Sparkles size={15} className="text-[#30E3CA]" />
+                </div>
+                <span className="text-[10px] font-black uppercase tracking-widest text-[#30E3CA]/60">Deine Lerneinheit</span>
+              </div>
+              <h2 className="text-2xl font-black text-white leading-tight">{officialTitle}</h2>
+              {dqrRef && <p className="text-xs text-white/35">{dqrRef}</p>}
+              <p className="text-sm text-white/60 leading-relaxed">
+                Diese Lerneinheit wurde speziell für dein Karriereziel <span className="text-white font-bold">{learningPath.target_job}</span> zusammengestellt.
+                Du wirst Schritt für Schritt durch die wichtigsten Kompetenzen geführt — mit geführter Übungsphase, Vertiefung und einem IHK-konformen Abschlusstest.
+              </p>
+            </div>
+          </div>
+
+          {/* How it works — DSR structure preview */}
+          <div className="grid grid-cols-3 gap-2">
+            {[
+              { icon: '🎯', title: 'Lernziele', desc: 'Was du am Ende kannst', phase: 'goals' as LearningPhase },
+              { icon: '🧠', title: 'Geführtes Üben', desc: 'Schritt für Schritt mit Feedback', phase: 'practice' as LearningPhase },
+              { icon: '🏆', title: 'Abschlusstest', desc: 'IHK-konformes Zertifikat', phase: 'exam' as LearningPhase },
+            ].map((item) => (
+              <div key={item.title} className="px-3 py-3.5 rounded-xl text-center"
+                style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.07)' }}>
+                <div className="text-xl mb-2">{item.icon}</div>
+                <p className="text-xs font-black text-white">{item.title}</p>
+                <p className="text-[10px] text-white/35 mt-0.5 leading-snug">{item.desc}</p>
+              </div>
+            ))}
+          </div>
+
+          <div className="rounded-xl px-4 py-3 flex items-start gap-3"
+            style={{ background: 'rgba(248,197,100,0.06)', border: '1px solid rgba(248,197,100,0.18)' }}>
+            <div className="w-1.5 h-1.5 rounded-full bg-amber-400 flex-shrink-0 mt-1.5" />
+            <p className="text-xs text-amber-300/70 leading-relaxed">
+              <span className="font-bold text-amber-300/90">Tipp:</span> Gehe die Übungsphase gewissenhaft durch — sie bereitet dich direkt auf den Abschlusstest vor.
+            </p>
+          </div>
+
+          <button
+            onClick={() => setLearningPhase('goals')}
+            className="w-full py-4 rounded-2xl font-black text-[15px] text-black flex items-center justify-center gap-2 transition-all hover:scale-[1.02] active:scale-[0.98]"
+            style={{ background: 'linear-gradient(135deg,#66c0b6,#30E3CA)', boxShadow: '0 4px 24px rgba(48,227,202,0.3)' }}>
+            Lerneinheit starten
+            <ArrowRight size={18} />
+          </button>
+        </div>
+      )}
+
+      {/* ── Phase 2: DSR Discipline — Learning Goals ──────────────────────────── */}
+      {learningPhase === 'goals' && (
+        <div className="space-y-5" style={{ animation: 'lp_fadeUp 0.4s ease' }}>
+          <div>
+            <p className="text-[10px] font-black uppercase tracking-widest text-white/30 px-1 mb-3">Nach dieser Einheit kannst du…</p>
+            {competencies.length > 0 ? (
+              <div className="space-y-2">
+                {competencies.map((comp, i) => (
+                  <div key={i} className="flex items-start gap-3 px-4 py-3.5 rounded-xl"
+                    style={{ background: 'rgba(102,192,182,0.06)', border: '1px solid rgba(102,192,182,0.14)' }}>
+                    <div className="flex-shrink-0 w-6 h-6 rounded-lg flex items-center justify-center text-xs font-black mt-0.5"
+                      style={{ background: 'rgba(48,227,202,0.12)', color: '#30E3CA', border: '1px solid rgba(48,227,202,0.22)' }}>
+                      {i + 1}
+                    </div>
+                    <p className="text-sm text-white/80 leading-relaxed">{comp}</p>
                   </div>
-                  <p className="text-sm text-white/80 leading-relaxed">{comp}</p>
+                ))}
+              </div>
+            ) : (
+              <div className="px-4 py-6 rounded-xl text-center text-white/35"
+                style={{ border: '1px solid rgba(255,255,255,0.07)' }}>
+                Lernziele werden geladen…
+              </div>
+            )}
+          </div>
+
+          <div className="rounded-xl px-4 py-3.5 space-y-1"
+            style={{ background: 'rgba(48,227,202,0.04)', border: '1px solid rgba(48,227,202,0.14)' }}>
+            <p className="text-xs font-black text-[#30E3CA]/70">Übungsphase</p>
+            <p className="text-xs text-white/45 leading-relaxed">
+              Du wirst jetzt {practiceQuestions.length} Übungsfragen durchgehen — mit sofortigem Feedback und Erklärung nach jeder Antwort. So baust du gezielt Verständnis auf, bevor du den finalen Test angehst.
+            </p>
+          </div>
+
+          <button
+            onClick={() => setLearningPhase('practice')}
+            className="w-full py-4 rounded-2xl font-black text-[15px] text-black flex items-center justify-center gap-2 transition-all hover:scale-[1.02] active:scale-[0.98]"
+            style={{ background: 'linear-gradient(135deg,#66c0b6,#30E3CA)', boxShadow: '0 4px 20px rgba(48,227,202,0.25)' }}>
+            Mit Übungsphase starten
+            <ArrowRight size={18} />
+          </button>
+        </div>
+      )}
+
+      {/* ── Phase 3: CLT Guided Practice ──────────────────────────────────────── */}
+      {learningPhase === 'practice' && (() => {
+        const q = practiceQuestions[practice.currentIdx];
+        if (!q) return (
+          <div className="text-center py-12 text-white/40">Keine Übungsfragen vorhanden.</div>
+        );
+        const progressPct = Math.round(((practice.currentIdx) / practiceQuestions.length) * 100);
+        const isLast = practice.currentIdx === practiceQuestions.length - 1;
+
+        return (
+          <div className="space-y-5" style={{ animation: 'lp_fadeUp 0.35s ease' }}>
+            {/* Progress */}
+            <div className="space-y-1.5">
+              <div className="flex items-center justify-between text-xs">
+                <span className="text-white/35 font-bold">Übungsfrage {practice.currentIdx + 1} / {practiceQuestions.length}</span>
+                <span className="text-[#30E3CA] font-black">{progressPct}%</span>
+              </div>
+              <div className="h-1.5 rounded-full bg-white/[0.06] overflow-hidden">
+                <div className="h-full rounded-full transition-all duration-500"
+                  style={{ width: `${progressPct}%`, background: 'linear-gradient(90deg,#66c0b6,#30E3CA)' }} />
+              </div>
+            </div>
+
+            {/* CLT: practice score badge */}
+            {practice.currentIdx > 0 && (
+              <div className="flex items-center gap-2 text-xs text-white/35">
+                <div className="w-1.5 h-1.5 rounded-full bg-green-400/60" />
+                <span>{practice.correct} von {practice.currentIdx} richtig bisher</span>
+              </div>
+            )}
+
+            {/* Question card */}
+            <div className="rounded-2xl overflow-hidden"
+              style={{ border: `1px solid ${practice.revealed ? (practice.selected === q.correct_key ? 'rgba(74,222,128,0.35)' : 'rgba(248,113,113,0.35)') : 'rgba(255,255,255,0.1)'}` }}>
+              <div className="px-5 py-4" style={{ background: 'rgba(255,255,255,0.03)' }}>
+                <p className="text-base font-bold text-white leading-snug">{q.question}</p>
+                {q.clt_rating && (
+                  <p className="text-[10px] text-white/20 mt-1.5">{q.clt_rating}</p>
+                )}
+              </div>
+              <div className="p-4 space-y-2">
+                {(Object.entries(q.options) as [string, string][]).map(([key, text]) => {
+                  const isSelected = practice.selected === key;
+                  const isCorrectOpt = key === q.correct_key;
+                  let bg = 'rgba(255,255,255,0.03)';
+                  let border = 'rgba(255,255,255,0.09)';
+                  let color = 'rgba(255,255,255,0.75)';
+                  if (practice.revealed) {
+                    if (isCorrectOpt) { bg = 'rgba(74,222,128,0.1)'; border = 'rgba(74,222,128,0.4)'; color = '#4ade80'; }
+                    else if (isSelected) { bg = 'rgba(248,113,113,0.08)'; border = 'rgba(248,113,113,0.3)'; color = '#f87171'; }
+                    else { color = 'rgba(255,255,255,0.25)'; }
+                  } else if (isSelected) {
+                    bg = 'rgba(48,227,202,0.1)'; border = 'rgba(48,227,202,0.35)'; color = '#30E3CA';
+                  }
+                  return (
+                    <button key={key}
+                      disabled={practice.revealed}
+                      onClick={() => {
+                        if (practice.revealed) return;
+                        const correct = key === q.correct_key;
+                        setPractice(p => ({ ...p, selected: key, revealed: true, correct: p.correct + (correct ? 1 : 0) }));
+                      }}
+                      className="w-full text-left flex items-start gap-3 px-4 py-3 rounded-xl transition-all hover:scale-[1.005] active:scale-[0.995]"
+                      style={{ background: bg, border: `1px solid ${border}`, color }}>
+                      <span className="flex-shrink-0 w-6 h-6 rounded-lg flex items-center justify-center text-xs font-black"
+                        style={{ background: `rgba(255,255,255,0.06)`, border: `1px solid ${border}` }}>{key}</span>
+                      <span className="text-sm leading-relaxed">{text}</span>
+                    </button>
+                  );
+                })}
+              </div>
+
+              {/* CLT: immediate rationale after answer */}
+              {practice.revealed && (
+                <div className="px-5 pb-5 space-y-3">
+                  <div className="flex gap-2.5 items-start p-3.5 rounded-xl"
+                    style={{ background: practice.selected === q.correct_key ? 'rgba(74,222,128,0.06)' : 'rgba(248,113,113,0.06)', border: `1px solid ${practice.selected === q.correct_key ? 'rgba(74,222,128,0.2)' : 'rgba(248,113,113,0.2)'}` }}>
+                    <div className="flex-shrink-0 mt-0.5">
+                      {practice.selected === q.correct_key
+                        ? <svg width="14" height="14" viewBox="0 0 14 14"><circle cx="7" cy="7" r="6" fill="rgba(74,222,128,0.15)" stroke="#4ade80" strokeWidth="1.5"/><polyline points="4,7 6,9 10,5" fill="none" stroke="#4ade80" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/></svg>
+                        : <svg width="14" height="14" viewBox="0 0 14 14"><circle cx="7" cy="7" r="6" fill="rgba(248,113,113,0.15)" stroke="#f87171" strokeWidth="1.5"/><line x1="4.5" y1="4.5" x2="9.5" y2="9.5" stroke="#f87171" strokeWidth="1.5" strokeLinecap="round"/><line x1="9.5" y1="4.5" x2="4.5" y2="9.5" stroke="#f87171" strokeWidth="1.5" strokeLinecap="round"/></svg>
+                      }
+                    </div>
+                    <div>
+                      <p className="text-xs font-black" style={{ color: practice.selected === q.correct_key ? '#4ade80' : '#f87171' }}>
+                        {practice.selected === q.correct_key ? 'Richtig!' : `Falsch — richtig wäre: ${q.correct_key}`}
+                      </p>
+                      {q.rationale && <p className="text-xs text-white/55 mt-1 leading-relaxed">{q.rationale}</p>}
+                    </div>
+                  </div>
+
+                  <button
+                    onClick={() => {
+                      if (isLast) {
+                        setLearningPhase('consolidation');
+                      } else {
+                        setPractice(p => ({ ...p, currentIdx: p.currentIdx + 1, selected: null, revealed: false }));
+                      }
+                    }}
+                    className="w-full py-3.5 rounded-xl font-black text-sm text-black flex items-center justify-center gap-2 transition-all hover:scale-[1.01] active:scale-[0.99]"
+                    style={{ background: 'linear-gradient(135deg,#66c0b6,#30E3CA)' }}>
+                    {isLast ? 'Zur Vertiefung' : 'Nächste Frage'}
+                    <ArrowRight size={15} />
+                  </button>
+                </div>
+              )}
+            </div>
+          </div>
+        );
+      })()}
+
+      {/* ── Phase 4: DSR Skill — Consolidation ────────────────────────────────── */}
+      {learningPhase === 'consolidation' && (
+        <div className="space-y-5" style={{ animation: 'lp_fadeUp 0.4s ease' }}>
+          {/* Score summary */}
+          <div className="rounded-2xl p-5 text-center space-y-2"
+            style={{
+              background: practice.correct >= Math.ceil(practiceQuestions.length * 0.6) ? 'rgba(74,222,128,0.06)' : 'rgba(248,197,100,0.06)',
+              border: `1px solid ${practice.correct >= Math.ceil(practiceQuestions.length * 0.6) ? 'rgba(74,222,128,0.25)' : 'rgba(248,197,100,0.2)'}`,
+            }}>
+            <div className="text-4xl font-black" style={{ color: practice.correct >= Math.ceil(practiceQuestions.length * 0.6) ? '#4ade80' : '#fbbf24' }}>
+              {practice.correct}/{practiceQuestions.length}
+            </div>
+            <p className="text-white font-black">Übungsphase abgeschlossen</p>
+            <p className="text-xs text-white/45 leading-relaxed">
+              {practice.correct >= Math.ceil(practiceQuestions.length * 0.6)
+                ? 'Gute Leistung! Du bist bereit für den Abschlusstest.'
+                : 'Gehe die Erklärungen nochmal durch — beim Abschlusstest stehen die gleichen Themen an.'}
+            </p>
+          </div>
+
+          {/* What was learned — ARCS Relevance */}
+          <div>
+            <p className="text-[10px] font-black uppercase tracking-widest text-white/30 px-1 mb-3">Was du gelernt hast</p>
+            <div className="space-y-2">
+              {competencies.slice(0, 3).map((comp, i) => (
+                <div key={i} className="flex items-center gap-3 px-4 py-2.5 rounded-xl"
+                  style={{ background: 'rgba(48,227,202,0.04)', border: '1px solid rgba(48,227,202,0.1)' }}>
+                  <svg width="13" height="13" viewBox="0 0 13 13"><circle cx="6.5" cy="6.5" r="5.5" fill="rgba(48,227,202,0.1)" stroke="#30E3CA" strokeWidth="1.2"/><polyline points="3.5,6.5 5.5,8.5 9.5,4.5" fill="none" stroke="#30E3CA" strokeWidth="1.2" strokeLinecap="round" strokeLinejoin="round"/></svg>
+                  <p className="text-xs text-white/65 leading-relaxed">{comp}</p>
                 </div>
               ))}
             </div>
+          </div>
+
+          {/* Next step info */}
+          <div className="rounded-xl px-4 py-3.5"
+            style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.08)' }}>
+            <p className="text-xs font-black text-white/70 mb-1">Jetzt: IHK-Abschlusstest</p>
+            <p className="text-xs text-white/40 leading-relaxed">
+              Der Abschlusstest enthält {questions.length} Fragen zu allen Themen dieser Einheit. Diesmal ohne Feedback nach jeder Antwort — erst am Ende siehst du dein Ergebnis. Mindestens 60% zum Bestehen.
+            </p>
+          </div>
+
+          <button
+            onClick={() => setLearningPhase('exam')}
+            className="w-full py-4 rounded-2xl font-black text-[15px] text-black flex items-center justify-center gap-2 transition-all hover:scale-[1.02] active:scale-[0.98]"
+            style={{ background: 'linear-gradient(135deg,#66c0b6,#30E3CA)', boxShadow: '0 4px 20px rgba(48,227,202,0.3)' }}>
+            Abschlusstest starten
+            <ArrowRight size={18} />
+          </button>
+        </div>
+      )}
+
+      {/* ── Phase 5: ARCS Satisfaction — Final Exam ───────────────────────────── */}
+      {learningPhase === 'exam' && (
+        <div className="space-y-4" style={{ animation: 'lp_fadeUp 0.4s ease' }}>
+          {!examSubmitted && (
+            <div className="flex items-center justify-between px-1">
+              <p className="text-[11px] font-black uppercase tracking-widest text-white/30">IHK-Abschlusstest · {questions.length} Fragen</p>
+              <span className="text-xs text-white/40">{Object.keys(examAnswers).length}/{questions.length} beantwortet</span>
+            </div>
+          )}
+
+          {!examSubmitted ? (
+            <>
+              {questions.map((q, idx) => {
+                const selected = examAnswers[q.question_id];
+                return (
+                  <div key={q.question_id} className="rounded-xl overflow-hidden"
+                    style={{ border: selected ? '1px solid rgba(48,227,202,0.2)' : '1px solid rgba(255,255,255,0.08)' }}>
+                    <div className="px-4 py-3" style={{ background: 'rgba(255,255,255,0.03)' }}>
+                      <div className="flex items-start gap-2">
+                        <span className="flex-shrink-0 text-xs font-black text-white/25 mt-0.5">{idx + 1}.</span>
+                        <p className="text-sm font-semibold text-white leading-snug">{q.question}</p>
+                      </div>
+                    </div>
+                    <div className="p-3 space-y-2">
+                      {(Object.entries(q.options) as [string, string][]).map(([key, text]) => {
+                        const isSelected = selected === key;
+                        return (
+                          <button key={key}
+                            onClick={() => setExamAnswers(prev => ({ ...prev, [q.question_id]: key }))}
+                            className="w-full text-left flex items-start gap-2.5 px-3 py-2.5 rounded-lg transition-all hover:scale-[1.003]"
+                            style={{
+                              background: isSelected ? 'rgba(48,227,202,0.1)' : 'rgba(255,255,255,0.03)',
+                              border: `1px solid ${isSelected ? 'rgba(48,227,202,0.35)' : 'rgba(255,255,255,0.08)'}`,
+                              color: isSelected ? '#30E3CA' : 'rgba(255,255,255,0.7)',
+                            }}>
+                            <span className="flex-shrink-0 w-5 h-5 rounded-md flex items-center justify-center text-xs font-black"
+                              style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)' }}>{key}</span>
+                            <span className="text-xs leading-relaxed">{text}</span>
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
+                );
+              })}
+              <button
+                disabled={!allExamAnswered}
+                onClick={() => {
+                  setExamSubmitted(true);
+                  setExamRevealed(Object.fromEntries(questions.map(q => [q.question_id, true])));
+                }}
+                className="w-full py-4 rounded-2xl font-black text-[15px] text-black flex items-center justify-center gap-2 transition-all disabled:opacity-40 disabled:cursor-not-allowed hover:scale-[1.02] active:scale-[0.98]"
+                style={{ background: 'linear-gradient(135deg,#66c0b6,#30E3CA)', boxShadow: allExamAnswered ? '0 4px 20px rgba(48,227,202,0.25)' : 'none' }}>
+                Test abschicken
+                <Check size={18} />
+              </button>
+            </>
           ) : (
-            <div className="px-4 py-6 rounded-xl text-center text-white/40" style={{ border: '1px solid rgba(255,255,255,0.07)' }}>
-              Kompetenzen werden geladen…
-            </div>
-          )}
-
-          {questions.length > 0 && (
-            <button
-              onClick={() => setQuizPhase('quiz')}
-              className="w-full py-4 rounded-xl font-black text-[15px] text-black flex items-center justify-center gap-2 transition-all hover:scale-[1.02] active:scale-[0.98]"
-              style={{ background: 'linear-gradient(135deg,#66c0b6,#30E3CA)', boxShadow: '0 4px 20px rgba(48,227,202,0.25)' }}>
-              <span>Zum Abschlusstest</span>
-              <ArrowRight size={18} />
-            </button>
-          )}
-        </div>
-      )}
-
-      {/* Phase: quiz */}
-      {quizPhase === 'quiz' && (
-        <div className="space-y-4">
-          <div className="flex items-center justify-between px-1">
-            <p className="text-[11px] font-black uppercase tracking-widest text-white/30">IHK-Abschlusstest · {questions.length} Fragen</p>
-            <span className="text-xs text-white/40">{Object.keys(answers).length}/{questions.length} beantwortet</span>
-          </div>
-
-          {questions.map((q, idx) => {
-            const selected = answers[q.question_id];
-            const isRevealed = revealed[q.question_id];
-            const isCorrect = selected === q.correct_key;
-
-            return (
-              <div key={q.question_id} className="rounded-xl overflow-hidden"
-                style={{ border: `1px solid ${isRevealed ? (isCorrect ? 'rgba(74,222,128,0.3)' : 'rgba(248,113,113,0.3)') : 'rgba(255,255,255,0.08)'}` }}>
-                <div className="px-4 py-3" style={{ background: 'rgba(255,255,255,0.03)' }}>
-                  <div className="flex items-start gap-2">
-                    <span className="flex-shrink-0 text-xs font-black text-white/30 mt-0.5">{idx + 1}.</span>
-                    <p className="text-sm font-semibold text-white leading-snug">{q.question}</p>
-                  </div>
+            <div className="space-y-4">
+              {/* Score */}
+              <div className="rounded-2xl p-6 text-center space-y-3"
+                style={{ background: examPassed ? 'rgba(74,222,128,0.06)' : 'rgba(248,113,113,0.06)', border: `1px solid ${examPassed ? 'rgba(74,222,128,0.25)' : 'rgba(248,113,113,0.25)'}` }}>
+                <div className="text-5xl font-black" style={{ color: examPassed ? '#4ade80' : '#f87171' }}>
+                  {examScore}/{questions.length}
                 </div>
-                <div className="p-3 space-y-2">
-                  {(Object.entries(q.options) as [string, string][]).map(([key, text]) => {
-                    const isSelected = selected === key;
-                    const isCorrectOption = key === q.correct_key;
-                    let bg = 'rgba(255,255,255,0.03)';
-                    let border = 'rgba(255,255,255,0.08)';
-                    let color = 'rgba(255,255,255,0.7)';
-
-                    if (isRevealed) {
-                      if (isCorrectOption) { bg = 'rgba(74,222,128,0.1)'; border = 'rgba(74,222,128,0.4)'; color = '#4ade80'; }
-                      else if (isSelected && !isCorrectOption) { bg = 'rgba(248,113,113,0.1)'; border = 'rgba(248,113,113,0.35)'; color = '#f87171'; }
-                      else { bg = 'rgba(255,255,255,0.02)'; border = 'rgba(255,255,255,0.05)'; color = 'rgba(255,255,255,0.3)'; }
-                    } else if (isSelected) {
-                      bg = 'rgba(48,227,202,0.1)'; border = 'rgba(48,227,202,0.35)'; color = '#30E3CA';
-                    }
-
-                    return (
-                      <button
-                        key={key}
-                        disabled={quizSubmitted}
-                        onClick={() => handleAnswer(q.question_id, key)}
-                        className="w-full text-left flex items-start gap-2.5 px-3 py-2.5 rounded-lg transition-all"
-                        style={{ background: bg, border: `1px solid ${border}`, color }}>
-                        <span className="flex-shrink-0 w-5 h-5 rounded-md flex items-center justify-center text-xs font-black"
-                          style={{ background: `${border}55`, border: `1px solid ${border}` }}>{key}</span>
-                        <span className="text-xs leading-relaxed">{text}</span>
-                      </button>
-                    );
-                  })}
-                </div>
-                {isRevealed && q.rationale && (
-                  <div className="px-4 pb-3 flex gap-2 items-start">
-                    <Brain size={13} className="text-[#66c0b6] flex-shrink-0 mt-0.5" />
-                    <p className="text-xs text-white/50 leading-relaxed">{q.rationale}</p>
-                  </div>
-                )}
+                <p className="text-lg font-bold text-white">{examPassed ? 'Bestanden!' : 'Nicht bestanden'}</p>
+                <p className="text-sm text-white/55">
+                  {examPassed
+                    ? `${examScore} von ${questions.length} Fragen richtig. Herzlichen Glückwunsch!`
+                    : `${examScore} von ${questions.length} richtig — mindestens ${Math.ceil(questions.length * 0.6)} benötigt.`}
+                </p>
               </div>
-            );
-          })}
 
-          {!quizSubmitted && (
-            <button
-              disabled={!allAnswered}
-              onClick={handleSubmitQuiz}
-              className="w-full py-4 rounded-xl font-black text-[15px] text-black flex items-center justify-center gap-2 transition-all disabled:opacity-40 disabled:cursor-not-allowed hover:scale-[1.02] active:scale-[0.98]"
-              style={{ background: 'linear-gradient(135deg,#66c0b6,#30E3CA)', boxShadow: allAnswered ? '0 4px 20px rgba(48,227,202,0.25)' : 'none' }}>
-              <span>Test abschicken</span>
-              <Check size={18} />
-            </button>
+              {/* Review answers */}
+              <p className="text-[10px] font-black uppercase tracking-widest text-white/25 px-1">Antworten im Überblick</p>
+              {questions.map((q, idx) => {
+                const selected = examAnswers[q.question_id];
+                const isCorrect = selected === q.correct_key;
+                return (
+                  <div key={q.question_id} className="rounded-xl overflow-hidden"
+                    style={{ border: `1px solid ${isCorrect ? 'rgba(74,222,128,0.25)' : 'rgba(248,113,113,0.25)'}` }}>
+                    <div className="px-4 py-3 flex items-start gap-2" style={{ background: 'rgba(255,255,255,0.02)' }}>
+                      <span className="flex-shrink-0 text-xs font-black text-white/25 mt-0.5">{idx + 1}.</span>
+                      <div className="flex-1 min-w-0">
+                        <p className="text-xs font-semibold text-white/80 leading-snug">{q.question}</p>
+                        <div className="flex items-center gap-1.5 mt-1.5">
+                          {isCorrect
+                            ? <span className="text-[10px] font-black text-green-400/70">Richtig · {q.correct_key}</span>
+                            : <span className="text-[10px] font-black text-red-400/70">Falsch · Deine Antwort: {selected} · Richtig: {q.correct_key}</span>}
+                        </div>
+                        {q.rationale && <p className="text-[10px] text-white/35 mt-1 leading-relaxed">{q.rationale}</p>}
+                      </div>
+                    </div>
+                  </div>
+                );
+              })}
+
+              {examPassed ? (
+                <button
+                  onClick={() => setLearningPhase('certificate')}
+                  className="w-full py-4 rounded-2xl font-black text-[15px] text-black flex items-center justify-center gap-2 transition-all hover:scale-[1.02] active:scale-[0.98]"
+                  style={{ background: 'linear-gradient(135deg,#22c55e,#4ade80)', boxShadow: '0 4px 24px rgba(34,197,94,0.3)' }}>
+                  <Award size={18} />
+                  Zum Zertifikat
+                </button>
+              ) : (
+                <button
+                  onClick={() => { setExamSubmitted(false); setExamAnswers({}); setExamRevealed({}); }}
+                  className="w-full py-3 rounded-xl font-bold text-sm text-white/70 transition-all hover:bg-white/5"
+                  style={{ border: '1px solid rgba(255,255,255,0.1)' }}>
+                  Test wiederholen
+                </button>
+              )}
+            </div>
           )}
         </div>
       )}
 
-      {/* Phase: done / certificate */}
-      {quizPhase === 'done' && quizSubmitted && (
-        <div className="space-y-4">
-          {/* Score card */}
-          <div className="rounded-2xl p-6 text-center space-y-3"
-            style={{ background: passed ? 'rgba(74,222,128,0.06)' : 'rgba(248,113,113,0.06)', border: `1px solid ${passed ? 'rgba(74,222,128,0.25)' : 'rgba(248,113,113,0.25)'}` }}>
-            <div className="text-5xl font-black" style={{ color: passed ? '#4ade80' : '#f87171' }}>
-              {score}/{questions.length}
-            </div>
-            <p className="text-lg font-bold text-white">
-              {passed ? 'Bestanden!' : 'Nicht bestanden'}
-            </p>
-            <p className="text-sm text-white/55">
-              {passed
-                ? `Du hast ${score} von ${questions.length} Fragen richtig beantwortet. Herzlichen Glückwunsch!`
-                : `Du hast ${score} von ${questions.length} Fragen richtig. Mindestens ${Math.ceil(questions.length * 0.6)} nötig. Schau dir die Erklärungen an und versuche es erneut.`
-              }
-            </p>
-          </div>
-
-          {passed && (
-            <div className="rounded-2xl p-5 space-y-4"
-              style={{ background: 'rgba(48,227,202,0.06)', border: '1px solid rgba(48,227,202,0.2)' }}>
+      {/* ── Phase 6: Certificate ───────────────────────────────────────────────── */}
+      {learningPhase === 'certificate' && (
+        <div className="space-y-5" style={{ animation: 'lp_fadeUp 0.4s ease' }}>
+          <div className="rounded-2xl overflow-hidden"
+            style={{ background: 'linear-gradient(135deg,rgba(34,197,94,0.08) 0%,rgba(6,7,15,0.98) 65%)', border: '1px solid rgba(34,197,94,0.3)' }}>
+            <div className="h-px w-full" style={{ background: 'linear-gradient(90deg,transparent,rgba(34,197,94,0.6),transparent)' }} />
+            <div className="p-6 space-y-4">
               <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-2xl flex items-center justify-center"
-                  style={{ background: 'rgba(48,227,202,0.12)', border: '1px solid rgba(48,227,202,0.25)' }}>
-                  <Award size={18} className="text-[#30E3CA]" />
+                <div className="w-12 h-12 rounded-2xl flex items-center justify-center"
+                  style={{ background: 'rgba(34,197,94,0.12)', border: '1px solid rgba(34,197,94,0.3)' }}>
+                  <Award size={22} className="text-green-400" />
                 </div>
                 <div>
-                  <p className="text-[11px] font-black uppercase tracking-widest text-[#30E3CA]/60">Zertifikat</p>
-                  <p className="text-sm font-bold text-white leading-tight">{officialTitle}</p>
+                  <p className="text-[10px] font-black uppercase tracking-widest text-green-400/60">Zertifikat bereit</p>
+                  <h3 className="text-lg font-black text-white leading-tight">{officialTitle}</h3>
                 </div>
               </div>
-              {result?.certificate_metadata?.verification_footer && (
-                <p className="text-xs text-white/40 leading-relaxed">{result.certificate_metadata.verification_footer}</p>
-              )}
-              <button
-                disabled={isGeneratingCertificate}
-                onClick={onCertificateRequest}
-                className="w-full py-4 rounded-xl font-black text-[15px] text-black flex items-center justify-center gap-2 transition-all disabled:opacity-60 hover:scale-[1.02] active:scale-[0.98]"
-                style={{ background: 'linear-gradient(135deg,#66c0b6,#30E3CA)', boxShadow: '0 4px 20px rgba(48,227,202,0.3)' }}>
-                {isGeneratingCertificate
-                  ? <><Loader2 size={18} className="animate-spin" /><span>Wird erstellt…</span></>
-                  : <><Award size={18} /><span>Zertifikat als PDF herunterladen</span></>
-                }
-              </button>
+              {dqrRef && <p className="text-xs text-white/30">{dqrRef}</p>}
+              {verificationFooter && <p className="text-xs text-white/40 leading-relaxed">{verificationFooter}</p>}
             </div>
-          )}
+          </div>
 
-          {!passed && (
-            <button
-              onClick={() => { setQuizSubmitted(false); setAnswers({}); setRevealed({}); setQuizPhase('quiz'); }}
-              className="w-full py-3 rounded-xl font-bold text-sm text-white/70 transition-all hover:bg-white/5"
-              style={{ border: '1px solid rgba(255,255,255,0.1)' }}>
-              Test wiederholen
-            </button>
-          )}
+          <div>
+            <p className="text-[10px] font-black uppercase tracking-widest text-white/25 px-1 mb-3">Nachgewiesene Kompetenzen</p>
+            <div className="space-y-2">
+              {competencies.map((comp, i) => (
+                <div key={i} className="flex items-center gap-3 px-4 py-2.5 rounded-xl"
+                  style={{ background: 'rgba(34,197,94,0.04)', border: '1px solid rgba(34,197,94,0.15)' }}>
+                  <svg width="13" height="13" viewBox="0 0 13 13"><circle cx="6.5" cy="6.5" r="5.5" fill="rgba(34,197,94,0.1)" stroke="#22c55e" strokeWidth="1.2"/><polyline points="3.5,6.5 5.5,8.5 9.5,4.5" fill="none" stroke="#22c55e" strokeWidth="1.2" strokeLinecap="round" strokeLinejoin="round"/></svg>
+                  <p className="text-xs text-white/65 leading-relaxed">{comp}</p>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          <button
+            disabled={isGeneratingCertificate}
+            onClick={onCertificateRequest}
+            className="w-full py-4 rounded-2xl font-black text-[15px] text-black flex items-center justify-center gap-2 transition-all disabled:opacity-60 hover:scale-[1.02] active:scale-[0.98]"
+            style={{ background: 'linear-gradient(135deg,#22c55e,#4ade80)', boxShadow: '0 4px 24px rgba(34,197,94,0.3)' }}>
+            {isGeneratingCertificate
+              ? <><Loader2 size={18} className="animate-spin" /><span>Wird erstellt…</span></>
+              : <><Award size={18} /><span>Zertifikat als PDF herunterladen</span></>
+            }
+          </button>
         </div>
       )}
     </div>
@@ -1063,14 +1348,13 @@ export default function LearningPathPage() {
       if (pollCountRef.current >= POLL_MAX) return;
       pollCountRef.current += 1;
       try {
-        // Primary: check learning_results (Make writes here when done)
+        // Primary: check learning_results — ready when final_exam exists
         const { data: result } = await supabase
           .from('learning_results')
-          .select('status, final_exam')
+          .select('final_exam')
           .eq('id', id)
           .maybeSingle();
-        if (result?.status === 'completed' || result?.final_exam) {
-          // Fetch full learning_path to pass to handler
+        if (result?.final_exam) {
           const { data: lp } = await supabase.from('learning_paths').select('*').eq('id', id).maybeSingle();
           if (lp) { handleCurriculumReady(lp as unknown as LearningPath); return; }
         }
@@ -1170,19 +1454,21 @@ export default function LearningPathPage() {
       if (!raw) { setError('Lernpfad nicht gefunden'); setPhase('error'); return; }
       const path = normalizePath(raw);
 
-      // Check learning_results — canonical row (id = pathId) or any partial row (learning_path_id = pathId)
+      // Check learning_results — only count as "ready" when final_exam data actually exists
       const { data: resultRow } = await supabase
         .from('learning_results')
         .select('status, final_exam')
         .eq('id', pathId)
         .maybeSingle();
+      // Also check partial rows written via learning_path_id (Make multi-run support)
       const { data: partialRow } = await supabase
         .from('learning_results')
-        .select('id')
+        .select('id, final_exam')
         .eq('learning_path_id', pathId)
+        .not('final_exam', 'is', null)
         .limit(1)
         .maybeSingle();
-      const hasResults = resultRow?.status === 'completed' || !!resultRow?.final_exam || !!partialRow;
+      const hasResults = !!resultRow?.final_exam || !!partialRow?.final_exam;
 
       setLearningPath(path);
       setAnalysisResult(resultFromPath(path));
@@ -1225,10 +1511,10 @@ export default function LearningPathPage() {
     const id = learningPath.id;
 
     (async () => {
-      // Check if learning_results already has content — if so, go straight to done
+      // Check if learning_results already has final_exam content — if so, go straight to done
       const { data: result } = await supabase
-        .from('learning_results').select('status, final_exam').eq('id', id).maybeSingle();
-      if (result?.status === 'completed' || result?.final_exam) {
+        .from('learning_results').select('final_exam').eq('id', id).maybeSingle();
+      if (result?.final_exam) {
         handleCurriculumReady(learningPath);
         return;
       }
