@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState, useCallback } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
+import { useParams, useNavigate, useSearchParams } from 'react-router-dom';
 import { supabase } from '../lib/supabase';
 
 // ── Constants ──────────────────────────────────────────────────────────────────
@@ -8,8 +8,8 @@ const WEBHOOK_URL =
   import.meta.env.VITE_MAKE_WEBHOOK_LEARNINGPATH
   || 'https://hook.eu2.make.com/1pvur1oth8sibonqc3twq57itg2ti1d0';
 
-const POLL_INTERVAL_MS = 5_000;
-const POLL_MAX = 80; // ~6.5 minutes max wait
+const POLL_INTERVAL_MS = 2_500;
+const POLL_MAX = 150; // ~6.5 minutes max wait
 
 const DONE_STATUSES = new Set(['completed']);
 
@@ -190,6 +190,9 @@ function StageRow({
 export default function LearningPathWaitingPage() {
   const { pathId } = useParams<{ pathId: string }>();
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+  // Fallback: skill passed via URL param when Stripe webhook hasn't written to DB yet
+  const skillFromUrl = searchParams.get('skill') || null;
 
   const [phase, setPhase] = useState<'loading' | 'waiting' | 'done' | 'error'>('loading');
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
@@ -312,14 +315,13 @@ export default function LearningPathWaitingPage() {
 
     const ch = supabase
       .channel(`lpw2_${pathId}_${Date.now()}`)
-      // First INSERT via learning_path_id → navigate immediately
+      // Only mark done when final_exam content is present
       .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'learning_results', filter: `learning_path_id=eq.${pathId}` },
-        () => { markDone(); })
-      // Final canonical row (id = learning_path_id) as fallback
+        (payload) => { if ((payload.new as any)?.final_exam) markDone(); })
       .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'learning_results', filter: `id=eq.${pathId}` },
-        () => { markDone(); })
+        (payload) => { if ((payload.new as any)?.final_exam) markDone(); })
       .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'learning_results', filter: `id=eq.${pathId}` },
-        (payload) => { if ((payload.new as any)?.status === 'completed') markDone(); })
+        (payload) => { if ((payload.new as any)?.final_exam) markDone(); })
       .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'learning_paths', filter: `id=eq.${pathId}` },
         (payload) => {
           const s = (payload.new as any)?.status as string;
@@ -337,15 +339,15 @@ export default function LearningPathWaitingPage() {
       }
       pollCountRef.current += 1;
 
-      // Check for any result row linked via learning_path_id (first partial result)
-      const { data: partialResult } = await supabase
-        .from('learning_results').select('id').eq('learning_path_id', pathId).limit(1).maybeSingle();
-      if (partialResult) { markDone(); return; }
-
-      // Fallback: final canonical row where id = learning_path_id
+      // Only mark done when actual final_exam content is present
       const { data: finalResult } = await supabase
-        .from('learning_results').select('status').eq('id', pathId).maybeSingle();
-      if (finalResult?.status === 'completed') { markDone(); return; }
+        .from('learning_results').select('final_exam').eq('id', pathId).maybeSingle();
+      if (finalResult?.final_exam) { markDone(); return; }
+
+      const { data: partialResult } = await supabase
+        .from('learning_results').select('final_exam').eq('learning_path_id', pathId)
+        .not('final_exam', 'is', null).limit(1).maybeSingle();
+      if (partialResult?.final_exam) { markDone(); return; }
 
       const { data: lp } = await supabase
         .from('learning_paths').select('status').eq('id', pathId).maybeSingle();
@@ -356,7 +358,7 @@ export default function LearningPathWaitingPage() {
 
       if (!doneRef.current) pollTimerRef.current = setTimeout(tick, POLL_INTERVAL_MS);
     };
-    pollTimerRef.current = setTimeout(tick, POLL_INTERVAL_MS);
+    pollTimerRef.current = setTimeout(tick, 1_500); // first check earlier
   }, [pathId, markDone, markError]);
 
   // ── Trigger Make ───────────────────────────────────────────────────────────
@@ -420,22 +422,35 @@ export default function LearningPathWaitingPage() {
       if (!lp) { navigate('/dashboard', { replace: true }); return; }
 
       if (lp.target_job) setTargetJob(lp.target_job);
-      pathDataRef.current = lp as Record<string, unknown>;
 
-      // Check for any result row already written (via learning_path_id or canonical id)
-      const { data: partialResult } = await supabase
-        .from('learning_results').select('id').eq('learning_path_id', pathId).limit(1).maybeSingle();
+      // If DB doesn't have selected_skill yet (race condition: webhook still processing),
+      // use the URL param as fallback and persist it immediately so Make gets the right value
+      let effectivePath = lp as Record<string, unknown>;
+      if (!lp.selected_skill && skillFromUrl) {
+        console.log('[LPW2] selected_skill missing from DB — using URL param:', skillFromUrl);
+        await supabase.from('learning_paths')
+          .update({ selected_skill: skillFromUrl, updated_at: new Date().toISOString() })
+          .eq('id', pathId);
+        effectivePath = { ...effectivePath, selected_skill: skillFromUrl };
+      }
+
+      pathDataRef.current = effectivePath;
+
+      // Check for result rows — only "ready" if final_exam is actually present
       const { data: finalResult } = await supabase
-        .from('learning_results').select('status, final_exam').eq('id', pathId).maybeSingle();
+        .from('learning_results').select('final_exam').eq('id', pathId).maybeSingle();
+      const { data: partialResult } = await supabase
+        .from('learning_results').select('final_exam').eq('learning_path_id', pathId)
+        .not('final_exam', 'is', null).limit(1).maybeSingle();
 
-      if (partialResult || finalResult?.status === 'completed' || finalResult?.final_exam) {
+      if (finalResult?.final_exam || partialResult?.final_exam) {
         console.log('[LPW2] Already has results — skipping trigger');
         markDone();
         return;
       }
 
-      console.log('[LPW2] No learning_results content — triggering Make | lp.status:', lp.status);
-      const ok = await triggerMake(lp as Record<string, unknown>);
+      console.log('[LPW2] No learning_results content — triggering Make | lp.status:', lp.status, '| selected_skill:', effectivePath.selected_skill);
+      const ok = await triggerMake(effectivePath);
       if (!ok) {
         markError('Der Lernpfad konnte nicht gestartet werden. Bitte versuche es erneut.');
         return;

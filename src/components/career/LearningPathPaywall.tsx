@@ -104,7 +104,8 @@ export function LearningPathPaywall({
       const token = session?.access_token || import.meta.env.VITE_SUPABASE_ANON_KEY;
 
       const origin = window.location.origin;
-      const successUrl = `${origin}/#/learning-path-waiting/${learningPathId}?session_id={CHECKOUT_SESSION_ID}`;
+      const skillParam = selectedSkill ? `&skill=${encodeURIComponent(selectedSkill)}` : '';
+      const successUrl = `${origin}/#/learning-path-waiting/${learningPathId}?session_id={CHECKOUT_SESSION_ID}${skillParam}`;
       const cancelUrl  = `${origin}/#/learning-path/${learningPathId}?payment=cancelled`;
 
       const resp = await fetch(STRIPE_CHECKOUT_URL, {

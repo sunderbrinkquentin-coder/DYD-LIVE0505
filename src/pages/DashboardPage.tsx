@@ -267,19 +267,18 @@ export function DashboardPage() {
       console.log('[Dashboard] Loaded', paths.length, 'learning paths');
       setLearningPaths(paths);
 
-      // Check which paths have any learning_results (one-click start available)
-      // A path is "ready" if either the canonical row (id = pathId) exists
-      // or any partial row written by Make (learning_path_id = pathId) exists
+      // A path is "ready" only when final_exam content exists in learning_results
       if (paths.length > 0) {
         const ids = paths.filter(p => p.is_paid).map(p => p.id);
         if (ids.length > 0) {
           const [{ data: canonical }, { data: partial }] = await Promise.all([
-            supabase.from('learning_results').select('id, status').in('id', ids),
-            supabase.from('learning_results').select('learning_path_id').in('learning_path_id', ids),
+            supabase.from('learning_results').select('id, final_exam').in('id', ids),
+            supabase.from('learning_results').select('learning_path_id, final_exam')
+              .in('learning_path_id', ids).not('final_exam', 'is', null),
           ]);
           const map: Record<string, boolean> = {};
           (canonical ?? []).forEach((r: any) => {
-            map[r.id] = true;
+            if (r.final_exam) map[r.id] = true;
           });
           (partial ?? []).forEach((r: any) => {
             if (r.learning_path_id) map[r.learning_path_id] = true;
@@ -504,6 +503,39 @@ export function DashboardPage() {
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  // Realtime: update lpResults as soon as Make writes final_exam to learning_results
+  useEffect(() => {
+    if (learningPaths.length === 0) return;
+    const paidIds = learningPaths.filter(p => p.is_paid).map(p => p.id);
+    if (paidIds.length === 0) return;
+
+    const ch = supabase
+      .channel(`dashboard_lp_results_${Date.now()}`)
+      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'learning_results' },
+        (payload) => {
+          const row = payload.new as any;
+          if (!row?.final_exam) return;
+          if (row.id && paidIds.includes(row.id)) {
+            setLpResults(prev => ({ ...prev, [row.id]: true }));
+          } else if (row.learning_path_id && paidIds.includes(row.learning_path_id)) {
+            setLpResults(prev => ({ ...prev, [row.learning_path_id]: true }));
+          }
+        })
+      .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'learning_results' },
+        (payload) => {
+          const row = payload.new as any;
+          if (!row?.final_exam) return;
+          if (row.id && paidIds.includes(row.id)) {
+            setLpResults(prev => ({ ...prev, [row.id]: true }));
+          } else if (row.learning_path_id && paidIds.includes(row.learning_path_id)) {
+            setLpResults(prev => ({ ...prev, [row.learning_path_id]: true }));
+          }
+        })
+      .subscribe();
+
+    return () => { supabase.removeChannel(ch); };
+  }, [learningPaths]);
 
   useEffect(() => {
     if (!localStorage.getItem('dyd_optimize_tip_seen')) {
@@ -1049,11 +1081,13 @@ export function DashboardPage() {
                       Meine Lernpfade
                     </p>
                     {paidPaths.map((path) => {
+                      // 3 clear states:
+                      // isReady      — final_exam exists → grün, direkt starten
+                      // isPending    — bezahlt aber noch kein Ergebnis → teal, wird erstellt
+                      // (else would be unpaid, but paidPaths already filtered to is_paid=true)
                       const isReady = lpResults[path.id] === true;
-                      const isProcessing = !isReady && (path.status === 'in_progress' || path.status === 'curriculum_ready');
-                      const isCompleted = path.status === 'completed' && isReady;
+                      const isPending = !isReady; // is_paid=true but no final_exam yet
 
-                      // Show selected_skill or first missing skill instead of company name
                       const skillLabel = (() => {
                         const sel = (path as any).selected_skill;
                         if (sel && typeof sel === 'string') return sel;
@@ -1078,47 +1112,50 @@ export function DashboardPage() {
                           style={{
                             background: isReady
                               ? 'linear-gradient(135deg,rgba(34,197,94,0.07),rgba(8,13,24,0.98))'
-                              : isProcessing
-                              ? 'linear-gradient(135deg,rgba(48,227,202,0.05),rgba(8,13,24,0.98))'
-                              : 'rgba(255,255,255,0.02)',
+                              : 'linear-gradient(135deg,rgba(48,227,202,0.05),rgba(8,13,24,0.98))',
                             border: isReady
                               ? '1px solid rgba(34,197,94,0.22)'
-                              : isProcessing
-                              ? '1px solid rgba(48,227,202,0.18)'
-                              : '1px solid rgba(255,255,255,0.08)',
+                              : '1px solid rgba(48,227,202,0.18)',
                           }}
                         >
                           {/* Status icon */}
                           <div
                             className="w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0"
                             style={{
-                              background: isReady ? 'rgba(34,197,94,0.12)' : isProcessing ? 'rgba(48,227,202,0.1)' : 'rgba(255,255,255,0.04)',
-                              border: isReady ? '1px solid rgba(34,197,94,0.3)' : isProcessing ? '1px solid rgba(48,227,202,0.25)' : '1px solid rgba(255,255,255,0.09)',
+                              background: isReady ? 'rgba(34,197,94,0.12)' : 'rgba(48,227,202,0.1)',
+                              border: isReady ? '1px solid rgba(34,197,94,0.3)' : '1px solid rgba(48,227,202,0.25)',
                             }}
                           >
                             {isReady ? (
                               <CheckCircle size={16} className="text-green-400" />
-                            ) : isProcessing ? (
-                              <div className="w-3.5 h-3.5 rounded-full border-2 border-[#30E3CA]/40 border-t-[#30E3CA] animate-spin" />
                             ) : (
-                              <Target size={15} className="text-white/30" />
+                              <div className="w-3.5 h-3.5 rounded-full border-2 border-[#30E3CA]/40 border-t-[#30E3CA] animate-spin" />
                             )}
                           </div>
 
                           {/* Info */}
                           <div className="flex-1 min-w-0">
-                            <p className="text-sm font-black text-white leading-tight truncate">{path.target_job}</p>
-                            <div className="flex items-center gap-2 mt-0.5">
+                            <div className="flex items-center gap-2">
+                              <p className="text-sm font-black text-white leading-tight truncate">{path.target_job}</p>
+                              {/* Freigeschaltet badge — always shown for paid paths */}
+                              <span className="flex-shrink-0 text-[9px] font-black uppercase tracking-widest px-1.5 py-0.5 rounded-full"
+                                style={{
+                                  background: isReady ? 'rgba(34,197,94,0.12)' : 'rgba(48,227,202,0.1)',
+                                  color: isReady ? '#4ade80' : '#30E3CA',
+                                  border: isReady ? '1px solid rgba(34,197,94,0.25)' : '1px solid rgba(48,227,202,0.25)',
+                                }}>
+                                {isReady ? 'Bereit' : 'Freigeschaltet'}
+                              </span>
+                            </div>
+                            <div className="flex items-center gap-1.5 mt-0.5">
                               {isReady ? (
                                 <span className="text-[10px] font-black uppercase tracking-wider text-green-400/70">
                                   Bereit zum Starten
                                 </span>
-                              ) : isProcessing ? (
-                                <span className="text-[10px] font-black uppercase tracking-wider text-[#30E3CA]/60">
-                                  Wird erstellt…
-                                </span>
                               ) : (
-                                <span className="text-[10px] text-white/30">Freigeschaltet</span>
+                                <span className="text-[10px] font-black uppercase tracking-wider text-[#30E3CA]/60">
+                                  Lernpfad wird erstellt…
+                                </span>
                               )}
                               {skillLabel && (
                                 <span className="text-[10px] text-white/25 truncate">· {skillLabel}</span>
@@ -1137,12 +1174,8 @@ export function DashboardPage() {
                             }}
                             className="flex-shrink-0 flex items-center gap-1.5 px-3 py-2 rounded-xl text-[11px] font-black transition-all hover:scale-105 active:scale-95"
                             style={{
-                              background: isReady
-                                ? 'rgba(34,197,94,0.12)'
-                                : 'rgba(48,227,202,0.08)',
-                              border: isReady
-                                ? '1px solid rgba(34,197,94,0.3)'
-                                : '1px solid rgba(48,227,202,0.2)',
+                              background: isReady ? 'rgba(34,197,94,0.12)' : 'rgba(48,227,202,0.08)',
+                              border: isReady ? '1px solid rgba(34,197,94,0.3)' : '1px solid rgba(48,227,202,0.2)',
                               color: isReady ? '#4ade80' : '#30E3CA',
                             }}
                           >

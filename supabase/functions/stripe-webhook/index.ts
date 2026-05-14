@@ -278,11 +278,11 @@ Deno.serve(async (req: Request) => {
         if (selectedSkill) lpUpdate.selected_skill = selectedSkill;
 
         if (unlockAll && userId) {
-          // Unlock ALL learning paths for this user
+          // Unlock ALL learning paths for this user (preserve selected_skill if provided)
           console.log("[Stripe Webhook] Unlocking ALL learning paths for user:", userId);
           const { error: allLpError } = await supabase
             .from("learning_paths")
-            .update({ is_paid: true, updated_at: new Date().toISOString() })
+            .update(lpUpdate)
             .eq("user_id", userId);
           if (allLpError) {
             console.error("[Stripe Webhook] Error unlocking all learning paths:", allLpError);
