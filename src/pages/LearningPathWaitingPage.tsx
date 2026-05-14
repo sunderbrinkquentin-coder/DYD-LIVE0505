@@ -432,55 +432,52 @@ export default function LearningPathWaitingPage() {
   }, [pathId]);
 
   // ── Boot sequence ─────────────────────────────────────────────────────────────
-
+  //
+  // Rule: trigger Make ALWAYS if learning_results has no completed content.
+  // learning_paths.status is NEVER used to skip the trigger — it may be stale
+  // (e.g. 'completed' from a previous unpaid test run, or 'in_progress' from a
+  // failed prior attempt). The ONLY source of truth for "Make is done" is
+  // learning_results.status = 'completed'.
+  //
   useEffect(() => {
     if (!pathId) { navigate('/', { replace: true }); return; }
 
     (async () => {
-      // Show waiting UI immediately — never a blank screen
+      // Always show waiting UI immediately — no blank screen ever
       setPhase('waiting');
 
-      // 1. Fetch learning path
-      const { data: lp } = await supabase.from('learning_paths').select('*').eq('id', pathId).maybeSingle();
+      // 1. Fetch learning path data for the webhook payload
+      const { data: lp } = await supabase
+        .from('learning_paths').select('*').eq('id', pathId).maybeSingle();
       if (!lp) { navigate('/dashboard', { replace: true }); return; }
 
       if (lp.target_job) setTargetJob(lp.target_job);
       pathDataRef.current = lp as Record<string, unknown>;
 
-      // 2. Check learning_results — Make writes here when done (final_exam + status)
+      // 2. Check learning_results — this is the single source of truth
       const { data: result } = await supabase
         .from('learning_results')
         .select('status, final_exam')
         .eq('id', pathId)
         .maybeSingle();
 
-      // Already complete — show done state immediately
+      // Make already delivered → show done immediately
       if (result?.status === 'completed' || result?.final_exam) {
+        console.log('[WaitingPage] learning_results already completed — skipping trigger');
         markDone();
         return;
       }
 
-      // 3. Check if already failed
-      if (lp.status === 'failed') {
-        markError('Die KI-Analyse ist fehlgeschlagen. Bitte versuche es erneut.');
+      // 3. learning_results has NO content → always trigger Make
+      //    This handles: first purchase, re-purchase, "all paths" plan, any status on learning_paths
+      console.log('[WaitingPage] No learning_results content — triggering Make webhook | lp.status:', lp.status);
+      const ok = await triggerMake(lp as Record<string, unknown>);
+      if (!ok) {
+        markError('Der Lernpfad konnte nicht gestartet werden. Bitte versuche es erneut.');
         return;
       }
 
-      // 4. Decide whether to trigger Make:
-      //    - Always trigger if learning_results has no content, UNLESS status is 'completed'
-      //    - 'in_progress' is NOT enough to skip — Make may have silently failed
-      //    - Only skip if status is 'curriculum_ready' or 'completed' (both mean Make delivered)
-      const definitelyDone = lp.status === 'curriculum_ready' || lp.status === 'completed';
-      if (!definitelyDone) {
-        console.log('[WaitingPage] Triggering Make webhook for path:', pathId, '| status:', lp.status);
-        const ok = await triggerMake(lp as Record<string, unknown>);
-        if (!ok) {
-          markError('Der Lernpfad konnte nicht gestartet werden. Bitte versuche es erneut.');
-          return;
-        }
-      }
-
-      // 5. Start listening for completion
+      // 4. Start listening — wait for learning_results.status = 'completed'
       startListening();
     })();
 
@@ -648,8 +645,12 @@ export default function LearningPathWaitingPage() {
                   <h1 className="text-3xl sm:text-4xl font-black text-white leading-tight">
                     Dein Lernpfad ist bereit!
                   </h1>
-                  <p className="text-white/50 text-sm mt-1.5">
-                    Dein persönlicher Lernpfad wurde erfolgreich erstellt.
+                  <p className="text-sm mt-2" style={{ color: 'rgba(255,255,255,0.45)' }}>
+                    Lernpfad für{' '}
+                    <span className="font-black" style={{ background: 'linear-gradient(90deg,#30E3CA,#66c0b6)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent', backgroundClip: 'text' }}>
+                      {targetJob}
+                    </span>
+                    {' '}wurde erstellt.
                   </p>
                 </div>
               ) : (
@@ -738,7 +739,7 @@ export default function LearningPathWaitingPage() {
                       <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
                         <polygon points="5,3 19,12 5,21 5,3"/>
                       </svg>
-                      Lernpfad starten
+                      Lernpfad starten — {targetJob}
                     </button>
                   </div>
                 )}
