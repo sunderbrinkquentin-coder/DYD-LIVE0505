@@ -1385,25 +1385,34 @@ export function CareerVisionSection({ cvId: initialCvId, onAnalysisComplete }: C
 
             {/* Existing CV — already linked */}
             {activeCvId && !useNewCv && (
-              <div className="flex items-center gap-3 px-4 py-3 rounded-xl"
-                style={{ background: 'rgba(102,192,182,0.08)', border: '1px solid rgba(102,192,182,0.22)' }}>
-                <div className="w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0"
-                  style={{ background: 'rgba(102,192,182,0.15)', border: '1px solid rgba(102,192,182,0.3)' }}>
-                  <FileText size={16} className="text-[#66c0b6]" />
-                </div>
-                <div className="flex-1 min-w-0">
-                  <p className="text-sm text-[#66c0b6] font-semibold truncate">
-                    {cvFileName ?? 'Vorhandener Lebenslauf'}
-                  </p>
-                  <div className="flex items-center gap-1 mt-0.5">
-                    <ShieldCheck size={10} className="text-[#66c0b6]/60" />
-                    <p className="text-[10px] text-[#66c0b6]/60">Deine Skills fließen personalisiert in die Analyse ein</p>
+              <div className="space-y-2">
+                <div className="flex items-center gap-3 px-4 py-3 rounded-xl"
+                  style={{ background: 'rgba(102,192,182,0.08)', border: '1px solid rgba(102,192,182,0.22)' }}>
+                  <div className="w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0"
+                    style={{ background: 'rgba(102,192,182,0.15)', border: '1px solid rgba(102,192,182,0.3)' }}>
+                    <FileText size={16} className="text-[#66c0b6]" />
                   </div>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm text-[#66c0b6] font-semibold truncate">
+                      {cvFileName ?? 'Vorhandener Lebenslauf'}
+                    </p>
+                    <div className="flex items-center gap-1 mt-0.5">
+                      <ShieldCheck size={10} className="text-[#66c0b6]/60" />
+                      <p className="text-[10px] text-[#66c0b6]/60">Deine Skills fließen personalisiert in die Analyse ein</p>
+                    </div>
+                  </div>
+                  <button type="button"
+                    onClick={() => { setUseNewCv(true); setNewCvFile(null); }}
+                    className="flex-shrink-0 flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium text-white/45 hover:text-white border border-white/10 hover:border-white/25 transition-all">
+                    <Upload size={11} /> Anderen
+                  </button>
                 </div>
-                <button type="button"
-                  onClick={() => { setUseNewCv(true); setNewCvFile(null); }}
-                  className="flex-shrink-0 flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium text-white/45 hover:text-white border border-white/10 hover:border-white/25 transition-all">
-                  <Upload size={11} /> Anderen
+                <button
+                  type="button"
+                  onClick={() => { setActiveCvId(undefined); setCvFileName(null); }}
+                  className="text-xs text-white/30 hover:text-white/60 transition-colors flex items-center gap-1.5 px-1"
+                >
+                  <X size={11} /> Ohne Lebenslauf starten
                 </button>
               </div>
             )}
