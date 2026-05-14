@@ -108,20 +108,38 @@ export function DetailCard({ title, score, feedback, zitat, tipp, delay = 0 }: P
             </div>
           )}
 
-          {/* Tipp — Confidence: prominent green recommendation, clean text only */}
-          {cleanTipp && (
-            <div className="rounded-xl bg-[#0d2420] border border-[#66c0b6]/35 px-4 py-3">
-              <div className="flex gap-2.5 items-start">
-                <Lightbulb size={15} className="text-[#66c0b6] flex-shrink-0 mt-0.5" />
-                <div>
-                  <p className="text-[10px] font-semibold uppercase tracking-widest text-[#66c0b6]/75 mb-1.5">
-                    Recruiter-Empfehlung
-                  </p>
-                  <p className="text-xs sm:text-sm text-[#b8ede8] leading-relaxed">{cleanTipp}</p>
+          {/* Tipp — Confidence: prominent green recommendation, bullet list */}
+          {cleanTipp && (() => {
+            // Split on sentence boundaries, semicolons, or explicit newlines — filter empties
+            const bullets = cleanTipp
+              .split(/\n|(?<=\.)\s+(?=[A-ZÄÖÜ])|;\s*/)
+              .map(s => s.trim())
+              .filter(s => s.length > 3);
+            return (
+              <div className="rounded-xl bg-[#0d2420] border border-[#66c0b6]/35 px-4 py-3">
+                <div className="flex gap-2.5 items-start">
+                  <Lightbulb size={15} className="text-[#66c0b6] flex-shrink-0 mt-0.5" />
+                  <div className="flex-1 min-w-0">
+                    <p className="text-[10px] font-semibold uppercase tracking-widest text-[#66c0b6]/75 mb-2">
+                      Recruiter-Empfehlung
+                    </p>
+                    {bullets.length > 1 ? (
+                      <ul className="space-y-1.5">
+                        {bullets.map((b, i) => (
+                          <li key={i} className="flex items-start gap-2">
+                            <span className="flex-shrink-0 mt-1.5 w-1.5 h-1.5 rounded-full bg-[#66c0b6]/60" />
+                            <span className="text-xs sm:text-sm text-[#b8ede8] leading-relaxed">{b}</span>
+                          </li>
+                        ))}
+                      </ul>
+                    ) : (
+                      <p className="text-xs sm:text-sm text-[#b8ede8] leading-relaxed">{cleanTipp}</p>
+                    )}
+                  </div>
                 </div>
               </div>
-            </div>
-          )}
+            );
+          })()}
         </motion.div>
       )}
     </motion.article>

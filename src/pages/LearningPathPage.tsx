@@ -559,26 +559,44 @@ export default function LearningPathPage() {
 
   // ── Phase resolver ────────────────────────────────────────────────────────────
 
+  const parseCurriculumModules = useCallback((curriculum: unknown): unknown[] => {
+    if (!curriculum) return [];
+    // Already an object with modules
+    if (typeof curriculum === 'object' && (curriculum as any).modules?.length > 0) {
+      return (curriculum as any).modules;
+    }
+    // Stored as JSON string
+    if (typeof curriculum === 'string') {
+      try {
+        const parsed = JSON.parse(curriculum);
+        if (parsed?.modules?.length > 0) return parsed.modules;
+        if (Array.isArray(parsed) && parsed.length > 0) return parsed;
+      } catch { /* */ }
+    }
+    return [];
+  }, []);
+
   const resolvePhase = useCallback((path: LearningPath) => {
-    // Has curriculum with modules → done
-    if (path.curriculum && (path.curriculum as any).modules?.length > 0) {
+    const modules = parseCurriculumModules(path.curriculum);
+    // Has curriculum with modules → done (regardless of status)
+    if (modules.length > 0) {
       return 'done' as PagePhase;
     }
-    // Curriculum ready status without modules (shouldn't happen, but safe fallback)
+    // Terminal complete statuses → done
     if (path.status === 'curriculum_ready' || path.status === 'completed') {
       return 'done' as PagePhase;
     }
-    // Paid + curriculum being generated (in_progress) → show generating loader so user can wait
+    // Paid + curriculum being generated → show generating loader
     if (path.is_paid && path.status === 'in_progress') {
       return 'generating' as PagePhase;
     }
-    // Analysis done, paid but curriculum not yet started → show generating (resume waiting)
+    // Analysis done, paid but curriculum not yet started → resume waiting
     if (path.is_paid && path.status === 'gap_analysis_complete') {
       return 'generating' as PagePhase;
     }
     // Not paid or still analyzing → show result view
     return 'result' as PagePhase;
-  }, []);
+  }, [parseCurriculumModules]);
 
   // ── Curriculum ready handler (after generation) ───────────────────────────────
 
@@ -588,9 +606,9 @@ export default function LearningPathPage() {
     cleanupListeners();
     setGeneratorSuccess(true);
     await new Promise((r) => setTimeout(r, 1_800));
-    setLearningPath(path);
+    setLearningPath(normalizePath(path));
     setPhase('done');
-  }, [cleanupListeners]);
+  }, [cleanupListeners, normalizePath]);
 
   // ── Polling for curriculum ────────────────────────────────────────────────────
 
@@ -668,13 +686,24 @@ export default function LearningPathPage() {
 
   // ── Load learning path ────────────────────────────────────────────────────────
 
+  const normalizePath = useCallback((path: LearningPath): LearningPath => {
+    if (path.curriculum && typeof path.curriculum === 'string') {
+      try {
+        const parsed = JSON.parse(path.curriculum as unknown as string);
+        return { ...path, curriculum: parsed };
+      } catch { /* leave as-is */ }
+    }
+    return path;
+  }, []);
+
   const loadLearningPath = useCallback(async (showLoader = false) => {
     if (!pathId) return;
     if (showLoader) setPhase('loading');
     setError(null);
     try {
-      const path = await careerService.getLearningPath(pathId);
-      if (!path) { setError('Lernpfad nicht gefunden'); setPhase('error'); return; }
+      const raw = await careerService.getLearningPath(pathId);
+      if (!raw) { setError('Lernpfad nicht gefunden'); setPhase('error'); return; }
+      const path = normalizePath(raw);
       setLearningPath(path);
       setAnalysisResult(resultFromPath(path));
       setPhase(resolvePhase(path));
@@ -683,7 +712,7 @@ export default function LearningPathPage() {
       setPhase('error');
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [pathId, resolvePhase]);
+  }, [pathId, resolvePhase, normalizePath]);
 
   // ── Effects ───────────────────────────────────────────────────────────────────
 
@@ -722,11 +751,13 @@ export default function LearningPathPage() {
         try {
           await careerService.unlockLearningPath(pathId);
           // Reload path then decide: if curriculum already exists, go done; else generate
-          const path = await careerService.getLearningPath(pathId);
-          if (!path) return;
+          const raw = await careerService.getLearningPath(pathId);
+          if (!raw) return;
+          const path = normalizePath(raw);
           setLearningPath(path);
           setAnalysisResult(resultFromPath(path));
-          if (path.curriculum && (path.curriculum as any).modules?.length > 0) {
+          const modules = parseCurriculumModules(path.curriculum);
+          if (modules.length > 0) {
             setPhase('done');
           } else {
             triggerCurriculumGeneration(path);
