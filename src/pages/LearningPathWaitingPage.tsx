@@ -294,6 +294,8 @@ export default function LearningPathWaitingPage() {
 
   const [stepIdx, setStepIdx]         = useState(0);
   const [done, setDone]               = useState(false);
+  const [errorMsg, setErrorMsg]       = useState<string | null>(null);
+  const [retrying, setRetrying]       = useState(false);
   const [targetJob, setTargetJob]     = useState('deinem Ziel');
   const [tickerMsg, setTickerMsg]     = useState(PROCESS_STEPS[0].label);
   const [tickerVisible, setTickerVisible] = useState(true);
@@ -302,6 +304,8 @@ export default function LearningPathWaitingPage() {
   const pollTimerRef  = useRef<ReturnType<typeof setTimeout> | null>(null);
   const pollCountRef  = useRef(0);
   const channelRef    = useRef<ReturnType<typeof supabase.channel> | null>(null);
+  // Store path data for retry
+  const pathDataRef   = useRef<Record<string, unknown> | null>(null);
 
   const cleanupListeners = useCallback(() => {
     if (channelRef.current) { supabase.removeChannel(channelRef.current); channelRef.current = null; }
@@ -317,6 +321,13 @@ export default function LearningPathWaitingPage() {
     await new Promise(r => setTimeout(r, 1_800));
     navigate(`/learning-path/${pathId}`, { replace: true });
   }, [cleanupListeners, navigate, pathId]);
+
+  const handleError = useCallback((msg: string) => {
+    if (completedRef.current) return;
+    completedRef.current = true;
+    cleanupListeners();
+    setErrorMsg(msg);
+  }, [cleanupListeners]);
 
   // Advance step ticker every 4s (ARCS: Attention — visible progress)
   useEffect(() => {
@@ -335,8 +346,8 @@ export default function LearningPathWaitingPage() {
     return () => clearInterval(id);
   }, [done]);
 
-  useEffect(() => {
-    if (!pathId) { navigate('/', { replace: true }); return; }
+  const triggerAndListen = useCallback(async (path: Record<string, unknown>) => {
+    if (!pathId) return;
 
     const parseSkills = (raw: unknown): unknown[] => {
       if (!raw) return [];
@@ -348,82 +359,136 @@ export default function LearningPathWaitingPage() {
       return [];
     };
 
+    // Trigger curriculum webhook if not already triggered
+    const alreadyTriggered = ALREADY_TRIGGERED_STATUSES.has(path.status as string);
+    if (!alreadyTriggered && CURRICULUM_WEBHOOK_URL) {
+      try {
+        const allSkills = parseSkills(path.missing_skills);
+        const selectedSkill = (path.selected_skill as string) || null;
+        const res = await fetch(CURRICULUM_WEBHOOK_URL, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            learning_path_id: pathId,
+            selected_skill: selectedSkill,
+            missing_skills: selectedSkill ? [selectedSkill] : allSkills,
+            current_skills: parseSkills(path.current_skills),
+            target_job: path.target_job,
+            target_company: path.target_company,
+            industry: path.industry,
+            user_id: path.user_id,
+            timeframe: '12_months',
+            learning_style: 'balanced',
+            timestamp: new Date().toISOString(),
+          }),
+        });
+        if (!res.ok) {
+          handleError(`Der Lernpfad konnte nicht gestartet werden (Webhook-Fehler ${res.status}). Bitte versuche es erneut.`);
+          return;
+        }
+        // Mark as in_progress so revisiting doesn't re-trigger
+        await supabase.from('learning_paths').update({ status: 'in_progress' }).eq('id', pathId);
+      } catch (e: any) {
+        handleError('Die Verbindung zum Server ist fehlgeschlagen. Bitte überprüfe deine Internetverbindung und versuche es erneut.');
+        return;
+      }
+    }
+
+    // Realtime subscription — listen for completion or failure
+    completedRef.current = false;
+    pollCountRef.current = 0;
+
+    const ch = supabase.channel(`lpw_${pathId}_${Date.now()}`)
+      .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'learning_paths', filter: `id=eq.${pathId}` },
+        (payload) => {
+          const newStatus = (payload.new as any)?.status as string;
+          if (COMPLETE_STATUSES.has(newStatus)) { handleReady(); return; }
+          if (newStatus === 'failed') handleError('Die KI-Analyse ist fehlgeschlagen. Bitte versuche es erneut oder kontaktiere den Support.');
+        })
+      .subscribe();
+    channelRef.current = ch;
+
+    // Polling fallback
+    const tick = async () => {
+      if (completedRef.current) return;
+      if (pollCountRef.current >= POLL_MAX) {
+        handleError('Der Lernpfad konnte nicht innerhalb der erwarteten Zeit erstellt werden. Bitte versuche es erneut.');
+        return;
+      }
+      pollCountRef.current += 1;
+      const { data: row } = await supabase.from('learning_paths').select('status,curriculum').eq('id', pathId).maybeSingle();
+      if (row) {
+        if (COMPLETE_STATUSES.has(row.status) || (row.curriculum as any)?.modules?.length > 0) {
+          handleReady(); return;
+        }
+        if (row.status === 'failed') {
+          handleError('Die KI-Analyse ist fehlgeschlagen. Bitte versuche es erneut oder kontaktiere den Support.');
+          return;
+        }
+      }
+      if (!completedRef.current) pollTimerRef.current = setTimeout(tick, POLL_INTERVAL_MS);
+    };
+    pollTimerRef.current = setTimeout(tick, POLL_INTERVAL_MS);
+  }, [pathId, handleReady, handleError]);
+
+  useEffect(() => {
+    if (!pathId) { navigate('/', { replace: true }); return; }
+
     supabase.from('learning_paths').select('*').eq('id', pathId).maybeSingle()
       .then(async ({ data }) => {
         if (!data) { navigate('/', { replace: true }); return; }
         if (data.target_job) setTargetJob(data.target_job);
+        pathDataRef.current = data as Record<string, unknown>;
 
-        // 1. Always ensure is_paid = true (idempotent — safe to call multiple times)
+        // 1. Always ensure is_paid = true (idempotent)
         if (!data.is_paid) {
           try { await careerService.unlockLearningPath(pathId); } catch { /* non-fatal */ }
         }
 
         // 2. Re-fetch fresh state after potential unlock
         const { data: fresh } = await supabase.from('learning_paths').select('*').eq('id', pathId).maybeSingle();
-        const path = fresh ?? data;
+        const path = (fresh ?? data) as Record<string, unknown>;
+        pathDataRef.current = path;
 
-        // 3. If curriculum already complete → navigate immediately (handles page revisit)
-        if (COMPLETE_STATUSES.has(path.status) || (path.curriculum && (path.curriculum as any)?.modules?.length > 0)) {
-          handleReady();
+        // 3. If curriculum already complete → navigate immediately
+        if (COMPLETE_STATUSES.has(path.status as string) || ((path.curriculum as any)?.modules?.length > 0)) {
+          handleReady(); return;
+        }
+
+        // 4. If already failed → show error immediately
+        if (path.status === 'failed') {
+          handleError('Die KI-Analyse ist fehlgeschlagen. Bitte versuche es erneut oder kontaktiere den Support.');
           return;
         }
 
-        // 4. Only trigger curriculum webhook if not already triggered
-        //    (gap_analysis_complete = analysis done but curriculum not yet started)
-        const alreadyTriggered = ALREADY_TRIGGERED_STATUSES.has(path.status);
-        if (!alreadyTriggered && CURRICULUM_WEBHOOK_URL) {
-          try {
-            const allSkills = parseSkills(path.missing_skills);
-            const selectedSkill = path.selected_skill || null;
-            await fetch(CURRICULUM_WEBHOOK_URL, {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({
-                learning_path_id: pathId,
-                selected_skill: selectedSkill,
-                missing_skills: selectedSkill ? [selectedSkill] : allSkills,
-                current_skills: parseSkills(path.current_skills),
-                target_job: path.target_job,
-                target_company: path.target_company,
-                industry: path.industry,
-                user_id: path.user_id,
-                timeframe: '12_months',
-                learning_style: 'balanced',
-                timestamp: new Date().toISOString(),
-              }),
-            });
-            // Mark as in_progress so revisiting doesn't re-trigger
-            await supabase.from('learning_paths').update({ status: 'in_progress' }).eq('id', pathId);
-          } catch (e: any) { console.warn('[WaitingPage] curriculum webhook error:', e.message); }
-        }
-
-        // 5. Realtime subscription — listen for completion
-        const ch = supabase.channel(`lpw_${pathId}_${Date.now()}`)
-          .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'learning_paths', filter: `id=eq.${pathId}` },
-            (payload) => {
-              if (COMPLETE_STATUSES.has((payload.new as any)?.status)) handleReady();
-            })
-          .subscribe();
-        channelRef.current = ch;
-
-        // 6. Polling fallback
-        const tick = async () => {
-          if (completedRef.current) return;
-          if (pollCountRef.current >= POLL_MAX) return;
-          pollCountRef.current += 1;
-          const { data: row } = await supabase.from('learning_paths').select('status,curriculum').eq('id', pathId).maybeSingle();
-          if (row && (COMPLETE_STATUSES.has(row.status) || (row.curriculum as any)?.modules?.length > 0)) {
-            handleReady();
-            return;
-          }
-          if (!completedRef.current) pollTimerRef.current = setTimeout(tick, POLL_INTERVAL_MS);
-        };
-        pollTimerRef.current = setTimeout(tick, POLL_INTERVAL_MS);
+        // 5. Trigger webhook + start listening
+        await triggerAndListen(path);
       });
 
     return () => cleanupListeners();
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [pathId]);
+
+  const handleRetry = useCallback(async () => {
+    if (!pathId || !pathDataRef.current) return;
+    setRetrying(true);
+    setErrorMsg(null);
+    completedRef.current = false;
+    pollCountRef.current = 0;
+    try {
+      // Reset status so webhook triggers again
+      await supabase.from('learning_paths').update({ status: 'gap_analysis_complete' }).eq('id', pathId);
+      const { data: fresh } = await supabase.from('learning_paths').select('*').eq('id', pathId).maybeSingle();
+      if (fresh) {
+        pathDataRef.current = fresh as Record<string, unknown>;
+        await triggerAndListen(fresh as Record<string, unknown>);
+      }
+    } catch (e: any) {
+      setErrorMsg('Retry fehlgeschlagen. Bitte lade die Seite neu.');
+    } finally {
+      setRetrying(false);
+    }
+  }, [pathId, triggerAndListen]);
 
   const currentStep = PROCESS_STEPS[stepIdx];
 
@@ -443,6 +508,85 @@ export default function LearningPathWaitingPage() {
 
       <div className="relative z-10 max-w-2xl mx-auto px-4 py-12 sm:py-16 space-y-6">
 
+        {/* ── ERROR STATE ── */}
+        {errorMsg && (
+          <div style={{ animation: 'lpw_fadeUp 0.5s ease' }}>
+            {/* Brand header */}
+            <div className="text-center mb-8">
+              <div className="flex items-center justify-center mb-3">
+                <div className="w-12 h-12 rounded-2xl flex items-center justify-center"
+                  style={{ background: 'rgba(239,68,68,0.12)', border: '1px solid rgba(239,68,68,0.3)' }}>
+                  <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#ef4444" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+                    <circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/>
+                  </svg>
+                </div>
+              </div>
+              <p className="text-[11px] font-black uppercase tracking-[0.2em] text-white/30">Design Your Dream</p>
+            </div>
+
+            {/* Error card */}
+            <div className="rounded-2xl overflow-hidden"
+              style={{ background: 'rgba(239,68,68,0.07)', border: '1px solid rgba(239,68,68,0.25)' }}>
+              <div className="h-[3px]" style={{ background: 'linear-gradient(90deg,#ef4444,#f97316)' }} />
+              <div className="p-6 space-y-5">
+                <div className="flex items-start gap-4">
+                  <div className="flex-shrink-0 w-10 h-10 rounded-xl flex items-center justify-center"
+                    style={{ background: 'rgba(239,68,68,0.1)', border: '1px solid rgba(239,68,68,0.2)' }}>
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#ef4444" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                      <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/>
+                    </svg>
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <h2 className="text-lg font-black text-white mb-1">Lernpfad konnte nicht erstellt werden</h2>
+                    <p className="text-sm text-white/60 leading-relaxed">{errorMsg}</p>
+                  </div>
+                </div>
+
+                <div className="flex flex-col sm:flex-row gap-3">
+                  <button
+                    onClick={handleRetry}
+                    disabled={retrying}
+                    className="flex-1 flex items-center justify-center gap-2 py-3 px-5 rounded-xl font-black text-sm text-black transition-all hover:scale-[1.02] active:scale-[0.98] disabled:opacity-60 disabled:cursor-not-allowed"
+                    style={{ background: 'linear-gradient(135deg,#66c0b6,#30E3CA)' }}
+                  >
+                    {retrying ? (
+                      <>
+                        <div className="w-4 h-4 rounded-full border-2 border-black/30 border-t-black animate-spin" />
+                        Wird wiederholt…
+                      </>
+                    ) : (
+                      <>
+                        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                          <polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/>
+                        </svg>
+                        Erneut versuchen
+                      </>
+                    )}
+                  </button>
+                  <button
+                    onClick={() => navigate('/dashboard')}
+                    className="flex items-center justify-center gap-2 py-3 px-5 rounded-xl font-bold text-sm text-white/60 transition-all hover:text-white"
+                    style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)' }}
+                  >
+                    Zum Dashboard
+                  </button>
+                </div>
+
+                <p className="text-center text-[11px] text-white/25">
+                  Deine Zahlung war erfolgreich — der Lernpfad ist bereits freigeschaltet.
+                  <br />Bei anhaltenden Problemen schreib uns an{' '}
+                  <a href="mailto:support@designyourdream.de" className="text-[#66c0b6]/60 hover:text-[#66c0b6] transition-colors underline">
+                    support@designyourdream.de
+                  </a>
+                </p>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* ── NORMAL WAITING / DONE STATE ── */}
+        {!errorMsg && (
+          <>
         {/* ── HEADER: ARCS Attention — strong brand + personal relevance ── */}
         <div className="text-center space-y-3" style={{ animation: 'lpw_fadeUp 0.6s ease' }}>
           {/* DYD logo area */}
@@ -598,6 +742,8 @@ export default function LearningPathWaitingPage() {
         <p className="text-center text-[10px] text-white/20 pb-4">
           Diese Seite aktualisiert sich automatisch — du kannst das Fenster geöffnet lassen.
         </p>
+          </>
+        )}
       </div>
     </div>
   );
