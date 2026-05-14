@@ -2,7 +2,7 @@ import { useState, useEffect, useRef, useCallback } from 'react';
 import { useParams, useNavigate, useSearchParams } from 'react-router-dom';
 import {
   ArrowLeft, Loader2, AlertCircle, Sparkles, Brain, Building2,
-  ArrowRight, Check, Award,
+  ArrowRight, Check, Award, PlayCircle,
 } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import { LearningPathDashboard } from '../components/career/LearningPathDashboard';
@@ -301,9 +301,10 @@ interface AnalysisResult {
 }
 
 function ResultView({
-  result, learningPath, onPaywallClose,
-}: { result: AnalysisResult; learningPath: LearningPath; onPaywallClose: () => void }) {
+  result, learningPath, onPaywallClose, onGoToDashboard,
+}: { result: AnalysisResult; learningPath: LearningPath; onPaywallClose: () => void; onGoToDashboard?: () => void }) {
   const [showPaywall, setShowPaywall] = useState(false);
+  const isPaid = !!(learningPath.is_paid || learningPath.curriculum);
   const [showAllCurrent, setShowAllCurrent] = useState(false);
   const { missingSkills, currentSkills, strategicOutlook, matchScore, targetJob, targetCompany, industry } = result;
 
@@ -482,18 +483,34 @@ function ResultView({
               </p>
             </div>
           )}
-          <button
-            onClick={() => setShowPaywall(true)}
-            className="group relative w-full py-4 rounded-xl font-black text-[15px] text-black flex items-center justify-center gap-3 overflow-hidden transition-all duration-200 hover:scale-[1.02] active:scale-[0.98]"
-            style={{ background: 'linear-gradient(135deg,#66c0b6,#30E3CA)', animation: 'lp_ctaPulse 2.5s ease-in-out infinite', boxShadow: '0 4px 20px rgba(48,227,202,0.3)' }}
-          >
-            <div className="absolute inset-0 pointer-events-none"
-              style={{ background: 'linear-gradient(90deg,transparent,rgba(255,255,255,0.15),transparent)', backgroundSize: '200% 100%', animation: 'lp_shimmer 2s ease-in-out infinite' }} />
-            <Sparkles className="w-5 h-5 relative z-10 group-hover:rotate-12 transition-transform duration-300" />
-            <span className="relative z-10">Meinen Lernpfad jetzt starten</span>
-            <ArrowRight className="w-5 h-5 relative z-10 group-hover:translate-x-1 transition-transform" />
-          </button>
-          <p className="text-center text-[11px] text-white/25">Zertifikat inklusive · Einmalig 9,99 € · Lebenslanger Zugriff</p>
+          {isPaid ? (
+            <button
+              onClick={onGoToDashboard}
+              className="group relative w-full py-4 rounded-xl font-black text-[15px] text-black flex items-center justify-center gap-3 overflow-hidden transition-all duration-200 hover:scale-[1.02] active:scale-[0.98]"
+              style={{ background: 'linear-gradient(135deg,#66c0b6,#30E3CA)', boxShadow: '0 4px 20px rgba(48,227,202,0.3)' }}
+            >
+              <div className="absolute inset-0 pointer-events-none"
+                style={{ background: 'linear-gradient(90deg,transparent,rgba(255,255,255,0.15),transparent)', backgroundSize: '200% 100%', animation: 'lp_shimmer 2s ease-in-out infinite' }} />
+              <PlayCircle className="w-5 h-5 relative z-10" />
+              <span className="relative z-10">Zum Lernpfad</span>
+              <ArrowRight className="w-5 h-5 relative z-10 group-hover:translate-x-1 transition-transform" />
+            </button>
+          ) : (
+            <>
+              <button
+                onClick={() => setShowPaywall(true)}
+                className="group relative w-full py-4 rounded-xl font-black text-[15px] text-black flex items-center justify-center gap-3 overflow-hidden transition-all duration-200 hover:scale-[1.02] active:scale-[0.98]"
+                style={{ background: 'linear-gradient(135deg,#66c0b6,#30E3CA)', animation: 'lp_ctaPulse 2.5s ease-in-out infinite', boxShadow: '0 4px 20px rgba(48,227,202,0.3)' }}
+              >
+                <div className="absolute inset-0 pointer-events-none"
+                  style={{ background: 'linear-gradient(90deg,transparent,rgba(255,255,255,0.15),transparent)', backgroundSize: '200% 100%', animation: 'lp_shimmer 2s ease-in-out infinite' }} />
+                <Sparkles className="w-5 h-5 relative z-10 group-hover:rotate-12 transition-transform duration-300" />
+                <span className="relative z-10">Meinen Lernpfad jetzt starten</span>
+                <ArrowRight className="w-5 h-5 relative z-10 group-hover:translate-x-1 transition-transform" />
+              </button>
+              <p className="text-center text-[11px] text-white/25">Zertifikat inklusive · Einmalig 9,99 € · Lebenslanger Zugriff</p>
+            </>
+          )}
         </div>
       </div>
 
@@ -527,6 +544,8 @@ export default function LearningPathPage() {
   const [analysisResult, setAnalysisResult] = useState<AnalysisResult | null>(null);
   const [isGeneratingCertificate, setIsGeneratingCertificate] = useState(false);
   const [generatorSuccess, setGeneratorSuccess] = useState(false);
+  // When true, show the full dashboard instead of the result/analysis view
+  const [showDashboard, setShowDashboard] = useState(false);
 
   const realtimeChannelRef = useRef<ReturnType<typeof supabase.channel> | null>(null);
   const pollTimerRef       = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -578,13 +597,10 @@ export default function LearningPathPage() {
 
   const resolvePhase = useCallback((path: LearningPath) => {
     const modules = parseCurriculumModules(path.curriculum);
-    // Has curriculum with modules → done (regardless of status)
-    if (modules.length > 0) {
-      return 'done' as PagePhase;
-    }
-    // Terminal complete statuses → done
-    if (path.status === 'curriculum_ready' || path.status === 'completed') {
-      return 'done' as PagePhase;
+    // Has curriculum with modules → show result/analysis view first
+    // User explicitly navigates to dashboard via "Zum Lernpfad" button
+    if (modules.length > 0 || path.status === 'curriculum_ready' || path.status === 'completed') {
+      return 'result' as PagePhase;
     }
     // Paid + curriculum being generated → show generating loader
     if (path.is_paid && path.status === 'in_progress') {
@@ -618,7 +634,11 @@ export default function LearningPathPage() {
     cleanupListeners();
     setGeneratorSuccess(true);
     await new Promise((r) => setTimeout(r, 1_800));
-    setLearningPath(normalizePath(path));
+    const normalized = normalizePath(path);
+    setLearningPath(normalized);
+    setAnalysisResult(resultFromPath(normalized));
+    // After generation completes, go straight to dashboard
+    setShowDashboard(true);
     setPhase('done');
   }, [cleanupListeners, normalizePath]);
 
@@ -760,6 +780,8 @@ export default function LearningPathPage() {
           setAnalysisResult(resultFromPath(path));
           const modules = parseCurriculumModules(path.curriculum);
           if (modules.length > 0) {
+            // Curriculum already exists → show dashboard directly after payment
+            setShowDashboard(true);
             setPhase('done');
           } else {
             triggerCurriculumGeneration(path);
@@ -824,7 +846,8 @@ export default function LearningPathPage() {
 
         {/* Nav bar */}
         <div className="flex items-center justify-between">
-          <button onClick={() => navigate('/career-vision')}
+          <button
+            onClick={() => showDashboard ? setShowDashboard(false) : navigate(-1)}
             className="flex items-center gap-2 px-4 py-2 rounded-xl bg-white/5 border border-white/10 hover:bg-white/10 transition-all">
             <ArrowLeft size={20} />
             <span>Zurück</span>
@@ -836,12 +859,13 @@ export default function LearningPathPage() {
           )}
         </div>
 
-        {/* Phase: result — analysis done, not yet paid */}
-        {phase === 'result' && analysisResult && (
+        {/* Phase: result — analysis view (all skills); also shown for paid paths before entering dashboard */}
+        {(phase === 'result' || (phase === 'done' && !showDashboard)) && analysisResult && (
           <ResultView
             result={analysisResult}
             learningPath={learningPath}
             onPaywallClose={() => loadLearningPath(false)}
+            onGoToDashboard={() => setShowDashboard(true)}
           />
         )}
 
@@ -852,8 +876,8 @@ export default function LearningPathPage() {
           </div>
         )}
 
-        {/* Phase: done — show full dashboard */}
-        {phase === 'done' && (
+        {/* Dashboard — shown after user clicks "Zum Lernpfad" or after generation/payment */}
+        {showDashboard && (
           <div style={{ animation: 'lp_fadeUp 0.6s ease' }}>
             <style>{GLOBAL_STYLES}</style>
             <LearningPathDashboard
