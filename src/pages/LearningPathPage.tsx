@@ -5,7 +5,6 @@ import {
   ArrowRight, Check, Award, PlayCircle,
 } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
-import { LearningPathDashboard } from '../components/career/LearningPathDashboard';
 import { LearningPathPaywall } from '../components/career/LearningPathPaywall';
 import { careerService } from '../services/careerService';
 import { certificateService } from '../services/certificateService';
@@ -532,6 +531,306 @@ function ResultView({
   );
 }
 
+// ── Learning Content (quiz + certificate — uses actual Make data) ──────────────
+
+interface QuizQuestion {
+  question_id: number;
+  question: string;
+  options: { A: string; B: string; C: string; D: string };
+  correct_key: string;
+  rationale: string;
+}
+
+interface LearningResult {
+  final_exam: string | null;
+  certificate_metadata: {
+    official_title?: string;
+    competency_profile?: string[];
+    dqr_reference?: string;
+    verification_footer?: string;
+  } | null;
+}
+
+function LearningContent({
+  learningPath,
+  onCertificateRequest,
+  isGeneratingCertificate,
+}: {
+  learningPath: LearningPath;
+  onCertificateRequest: () => void;
+  isGeneratingCertificate: boolean;
+}) {
+  const [result, setResult] = useState<LearningResult | null>(null);
+  const [loadingResult, setLoadingResult] = useState(true);
+  const [quizPhase, setQuizPhase] = useState<'competencies' | 'quiz' | 'done'>('competencies');
+  const [answers, setAnswers] = useState<Record<number, string>>({});
+  const [revealed, setRevealed] = useState<Record<number, boolean>>({});
+  const [quizSubmitted, setQuizSubmitted] = useState(false);
+
+  useEffect(() => {
+    (async () => {
+      const { data } = await supabase
+        .from('learning_results')
+        .select('final_exam, certificate_metadata')
+        .eq('id', learningPath.id)
+        .maybeSingle();
+      setResult(data as LearningResult | null);
+      setLoadingResult(false);
+    })();
+  }, [learningPath.id]);
+
+  const questions: QuizQuestion[] = (() => {
+    if (!result?.final_exam) return [];
+    try {
+      const parsed = JSON.parse(result.final_exam);
+      if (Array.isArray(parsed)) return parsed as QuizQuestion[];
+    } catch { /* */ }
+    return [];
+  })();
+
+  const competencies: string[] = result?.certificate_metadata?.competency_profile ?? [];
+  const officialTitle = result?.certificate_metadata?.official_title || learningPath.target_job || '';
+
+  const score = quizSubmitted
+    ? questions.filter(q => answers[q.question_id] === q.correct_key).length
+    : 0;
+  const passed = quizSubmitted && score >= Math.ceil(questions.length * 0.6);
+
+  const handleAnswer = (qId: number, key: string) => {
+    if (quizSubmitted) return;
+    setAnswers(prev => ({ ...prev, [qId]: key }));
+  };
+
+  const handleSubmitQuiz = () => {
+    setQuizSubmitted(true);
+    setRevealed(Object.fromEntries(questions.map(q => [q.question_id, true])));
+    setQuizPhase('done');
+  };
+
+  const allAnswered = questions.length > 0 && questions.every(q => answers[q.question_id]);
+
+  if (loadingResult) {
+    return (
+      <div className="flex flex-col items-center gap-4 py-20">
+        <Loader2 className="w-10 h-10 text-[#66c0b6] animate-spin" />
+        <p className="text-white/60">Lernpfad wird geladen…</p>
+      </div>
+    );
+  }
+
+  return (
+    <div className="space-y-6 max-w-2xl mx-auto" style={{ animation: 'lp_fadeUp 0.5s ease' }}>
+      <style>{GLOBAL_STYLES}</style>
+
+      {/* Header */}
+      <div className="rounded-2xl p-5"
+        style={{ background: 'linear-gradient(135deg,rgba(48,227,202,0.08) 0%,rgba(6,7,15,0.95) 70%)', border: '1px solid rgba(48,227,202,0.2)' }}>
+        <p className="text-[10px] font-black uppercase tracking-widest text-[#30E3CA]/60 mb-1">Dein Lernpfad</p>
+        <h2 className="text-2xl font-black text-white leading-tight">{officialTitle}</h2>
+        {result?.certificate_metadata?.dqr_reference && (
+          <p className="text-xs text-white/40 mt-1">{result.certificate_metadata.dqr_reference}</p>
+        )}
+      </div>
+
+      {/* Tab navigation */}
+      <div className="flex gap-2 p-1 rounded-xl" style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)' }}>
+        {(['competencies', 'quiz', 'done'] as const).map((tab, idx) => {
+          const labels = ['Kompetenzen', 'Abschlusstest', 'Zertifikat'];
+          const icons = ['🎯', '📝', '🏆'];
+          const isActive = quizPhase === tab;
+          const isLocked = (tab === 'quiz' && false) || (tab === 'done' && !quizSubmitted);
+          return (
+            <button
+              key={tab}
+              disabled={isLocked}
+              onClick={() => !isLocked && setQuizPhase(tab)}
+              className="flex-1 flex items-center justify-center gap-1.5 py-2 rounded-lg text-sm font-bold transition-all"
+              style={{
+                background: isActive ? 'rgba(48,227,202,0.15)' : 'transparent',
+                color: isActive ? '#30E3CA' : isLocked ? 'rgba(255,255,255,0.2)' : 'rgba(255,255,255,0.5)',
+                border: isActive ? '1px solid rgba(48,227,202,0.3)' : '1px solid transparent',
+              }}
+            >
+              <span>{icons[idx]}</span>
+              <span className="hidden sm:inline">{labels[idx]}</span>
+            </button>
+          );
+        })}
+      </div>
+
+      {/* Phase: competencies */}
+      {quizPhase === 'competencies' && (
+        <div className="space-y-4">
+          <p className="text-[11px] font-black uppercase tracking-widest text-white/30 px-1">Was du nach diesem Lernpfad kannst</p>
+          {competencies.length > 0 ? (
+            <div className="space-y-3">
+              {competencies.map((comp, i) => (
+                <div key={i} className="flex items-start gap-3 px-4 py-4 rounded-xl"
+                  style={{ background: 'rgba(102,192,182,0.06)', border: '1px solid rgba(102,192,182,0.15)' }}>
+                  <div className="flex-shrink-0 w-7 h-7 rounded-xl flex items-center justify-center text-xs font-black"
+                    style={{ background: 'rgba(48,227,202,0.12)', color: '#30E3CA', border: '1px solid rgba(48,227,202,0.25)' }}>
+                    {i + 1}
+                  </div>
+                  <p className="text-sm text-white/80 leading-relaxed">{comp}</p>
+                </div>
+              ))}
+            </div>
+          ) : (
+            <div className="px-4 py-6 rounded-xl text-center text-white/40" style={{ border: '1px solid rgba(255,255,255,0.07)' }}>
+              Kompetenzen werden geladen…
+            </div>
+          )}
+
+          {questions.length > 0 && (
+            <button
+              onClick={() => setQuizPhase('quiz')}
+              className="w-full py-4 rounded-xl font-black text-[15px] text-black flex items-center justify-center gap-2 transition-all hover:scale-[1.02] active:scale-[0.98]"
+              style={{ background: 'linear-gradient(135deg,#66c0b6,#30E3CA)', boxShadow: '0 4px 20px rgba(48,227,202,0.25)' }}>
+              <span>Zum Abschlusstest</span>
+              <ArrowRight size={18} />
+            </button>
+          )}
+        </div>
+      )}
+
+      {/* Phase: quiz */}
+      {quizPhase === 'quiz' && (
+        <div className="space-y-4">
+          <div className="flex items-center justify-between px-1">
+            <p className="text-[11px] font-black uppercase tracking-widest text-white/30">IHK-Abschlusstest · {questions.length} Fragen</p>
+            <span className="text-xs text-white/40">{Object.keys(answers).length}/{questions.length} beantwortet</span>
+          </div>
+
+          {questions.map((q, idx) => {
+            const selected = answers[q.question_id];
+            const isRevealed = revealed[q.question_id];
+            const isCorrect = selected === q.correct_key;
+
+            return (
+              <div key={q.question_id} className="rounded-xl overflow-hidden"
+                style={{ border: `1px solid ${isRevealed ? (isCorrect ? 'rgba(74,222,128,0.3)' : 'rgba(248,113,113,0.3)') : 'rgba(255,255,255,0.08)'}` }}>
+                <div className="px-4 py-3" style={{ background: 'rgba(255,255,255,0.03)' }}>
+                  <div className="flex items-start gap-2">
+                    <span className="flex-shrink-0 text-xs font-black text-white/30 mt-0.5">{idx + 1}.</span>
+                    <p className="text-sm font-semibold text-white leading-snug">{q.question}</p>
+                  </div>
+                </div>
+                <div className="p-3 space-y-2">
+                  {(Object.entries(q.options) as [string, string][]).map(([key, text]) => {
+                    const isSelected = selected === key;
+                    const isCorrectOption = key === q.correct_key;
+                    let bg = 'rgba(255,255,255,0.03)';
+                    let border = 'rgba(255,255,255,0.08)';
+                    let color = 'rgba(255,255,255,0.7)';
+
+                    if (isRevealed) {
+                      if (isCorrectOption) { bg = 'rgba(74,222,128,0.1)'; border = 'rgba(74,222,128,0.4)'; color = '#4ade80'; }
+                      else if (isSelected && !isCorrectOption) { bg = 'rgba(248,113,113,0.1)'; border = 'rgba(248,113,113,0.35)'; color = '#f87171'; }
+                      else { bg = 'rgba(255,255,255,0.02)'; border = 'rgba(255,255,255,0.05)'; color = 'rgba(255,255,255,0.3)'; }
+                    } else if (isSelected) {
+                      bg = 'rgba(48,227,202,0.1)'; border = 'rgba(48,227,202,0.35)'; color = '#30E3CA';
+                    }
+
+                    return (
+                      <button
+                        key={key}
+                        disabled={quizSubmitted}
+                        onClick={() => handleAnswer(q.question_id, key)}
+                        className="w-full text-left flex items-start gap-2.5 px-3 py-2.5 rounded-lg transition-all"
+                        style={{ background: bg, border: `1px solid ${border}`, color }}>
+                        <span className="flex-shrink-0 w-5 h-5 rounded-md flex items-center justify-center text-xs font-black"
+                          style={{ background: `${border}55`, border: `1px solid ${border}` }}>{key}</span>
+                        <span className="text-xs leading-relaxed">{text}</span>
+                      </button>
+                    );
+                  })}
+                </div>
+                {isRevealed && q.rationale && (
+                  <div className="px-4 pb-3 flex gap-2 items-start">
+                    <Brain size={13} className="text-[#66c0b6] flex-shrink-0 mt-0.5" />
+                    <p className="text-xs text-white/50 leading-relaxed">{q.rationale}</p>
+                  </div>
+                )}
+              </div>
+            );
+          })}
+
+          {!quizSubmitted && (
+            <button
+              disabled={!allAnswered}
+              onClick={handleSubmitQuiz}
+              className="w-full py-4 rounded-xl font-black text-[15px] text-black flex items-center justify-center gap-2 transition-all disabled:opacity-40 disabled:cursor-not-allowed hover:scale-[1.02] active:scale-[0.98]"
+              style={{ background: 'linear-gradient(135deg,#66c0b6,#30E3CA)', boxShadow: allAnswered ? '0 4px 20px rgba(48,227,202,0.25)' : 'none' }}>
+              <span>Test abschicken</span>
+              <Check size={18} />
+            </button>
+          )}
+        </div>
+      )}
+
+      {/* Phase: done / certificate */}
+      {quizPhase === 'done' && quizSubmitted && (
+        <div className="space-y-4">
+          {/* Score card */}
+          <div className="rounded-2xl p-6 text-center space-y-3"
+            style={{ background: passed ? 'rgba(74,222,128,0.06)' : 'rgba(248,113,113,0.06)', border: `1px solid ${passed ? 'rgba(74,222,128,0.25)' : 'rgba(248,113,113,0.25)'}` }}>
+            <div className="text-5xl font-black" style={{ color: passed ? '#4ade80' : '#f87171' }}>
+              {score}/{questions.length}
+            </div>
+            <p className="text-lg font-bold text-white">
+              {passed ? 'Bestanden!' : 'Nicht bestanden'}
+            </p>
+            <p className="text-sm text-white/55">
+              {passed
+                ? `Du hast ${score} von ${questions.length} Fragen richtig beantwortet. Herzlichen Glückwunsch!`
+                : `Du hast ${score} von ${questions.length} Fragen richtig. Mindestens ${Math.ceil(questions.length * 0.6)} nötig. Schau dir die Erklärungen an und versuche es erneut.`
+              }
+            </p>
+          </div>
+
+          {passed && (
+            <div className="rounded-2xl p-5 space-y-4"
+              style={{ background: 'rgba(48,227,202,0.06)', border: '1px solid rgba(48,227,202,0.2)' }}>
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-2xl flex items-center justify-center"
+                  style={{ background: 'rgba(48,227,202,0.12)', border: '1px solid rgba(48,227,202,0.25)' }}>
+                  <Award size={18} className="text-[#30E3CA]" />
+                </div>
+                <div>
+                  <p className="text-[11px] font-black uppercase tracking-widest text-[#30E3CA]/60">Zertifikat</p>
+                  <p className="text-sm font-bold text-white leading-tight">{officialTitle}</p>
+                </div>
+              </div>
+              {result?.certificate_metadata?.verification_footer && (
+                <p className="text-xs text-white/40 leading-relaxed">{result.certificate_metadata.verification_footer}</p>
+              )}
+              <button
+                disabled={isGeneratingCertificate}
+                onClick={onCertificateRequest}
+                className="w-full py-4 rounded-xl font-black text-[15px] text-black flex items-center justify-center gap-2 transition-all disabled:opacity-60 hover:scale-[1.02] active:scale-[0.98]"
+                style={{ background: 'linear-gradient(135deg,#66c0b6,#30E3CA)', boxShadow: '0 4px 20px rgba(48,227,202,0.3)' }}>
+                {isGeneratingCertificate
+                  ? <><Loader2 size={18} className="animate-spin" /><span>Wird erstellt…</span></>
+                  : <><Award size={18} /><span>Zertifikat als PDF herunterladen</span></>
+                }
+              </button>
+            </div>
+          )}
+
+          {!passed && (
+            <button
+              onClick={() => { setQuizSubmitted(false); setAnswers({}); setRevealed({}); setQuizPhase('quiz'); }}
+              className="w-full py-3 rounded-xl font-bold text-sm text-white/70 transition-all hover:bg-white/5"
+              style={{ border: '1px solid rgba(255,255,255,0.1)' }}>
+              Test wiederholen
+            </button>
+          )}
+        </div>
+      )}
+    </div>
+  );
+}
+
 // ── Main page ──────────────────────────────────────────────────────────────────
 
 type PagePhase = 'loading' | 'result' | 'generating' | 'revealing' | 'done' | 'error' | 'redirect_waiting';
@@ -953,15 +1252,13 @@ export default function LearningPathPage() {
           </div>
         )}
 
-        {/* Dashboard — shown after user clicks "Zum Lernpfad" or after generation/payment */}
+        {/* Learning content — shown after user clicks "Zum Lernpfad" or after generation/payment */}
         {showDashboard && (
-          <div style={{ animation: 'lp_fadeUp 0.6s ease' }}>
-            <style>{GLOBAL_STYLES}</style>
-            <LearningPathDashboard
-              learningPath={learningPath}
-              onCertificateRequest={handleCertificateRequest}
-            />
-          </div>
+          <LearningContent
+            learningPath={learningPath}
+            onCertificateRequest={handleCertificateRequest}
+            isGeneratingCertificate={isGeneratingCertificate}
+          />
         )}
 
         {/* Certificate overlay */}

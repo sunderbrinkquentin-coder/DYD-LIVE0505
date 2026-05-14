@@ -8,10 +8,6 @@ export class CertificateService {
     learningPath: LearningPath,
     recipientName: string
   ): Promise<string> {
-    if (learningPath.status !== 'completed') {
-      throw new Error('Lernpfad muss vollständig abgeschlossen sein');
-    }
-
     // Try to get the full display name from the profile
     let displayName = recipientName;
     if (learningPath.user_id) {
@@ -66,7 +62,7 @@ export class CertificateService {
       mastered_skills: masteredSkills,
       completion_date: new Date().toISOString(),
       certificate_id: certificateId,
-      issuer: 'DYD – Design Your Dream',
+      issuer: 'DYD – Decide your Dream',
       dqr_reference: certMeta?.dqr_reference,
       verification_footer: certMeta?.verification_footer,
     };
