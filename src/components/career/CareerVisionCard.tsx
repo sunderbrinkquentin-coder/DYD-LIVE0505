@@ -4,9 +4,248 @@ import {
   ArrowRight, Sparkles, TrendingUp, Zap, Target, Building2,
   Lock, Brain, ChevronRight, CheckCircle2, XCircle, Flame,
   Lightbulb, BarChart3, Trophy, PlayCircle, BookOpen, Wrench,
+  X as XIcon, Check,
 } from 'lucide-react';
 import { LearningPath, Skill } from '../../types/learningPath';
 import { LearningPathPaywall } from './LearningPathPaywall';
+
+// ── Skill detail modal helpers ─────────────────────────────────────────────────
+
+const MODAL_IMPACT_TIERS = [
+  { min: 5, color: '#f97316', bg: 'rgba(249,115,22,0.08)',  border: 'rgba(249,115,22,0.2)',  label: 'Top-Hebel',      emoji: '🚀' },
+  { min: 4, color: '#30E3CA', bg: 'rgba(48,227,202,0.08)',  border: 'rgba(48,227,202,0.2)',  label: 'Hoher Impact',   emoji: '⚡' },
+  { min: 3, color: '#66c0b6', bg: 'rgba(102,192,182,0.07)', border: 'rgba(102,192,182,0.2)', label: 'Starker Aufbau', emoji: '📈' },
+  { min: 0, color: '#4ade80', bg: 'rgba(74,222,128,0.07)',  border: 'rgba(74,222,128,0.2)',  label: 'Quick Win',      emoji: '✅' },
+];
+function modalTierFor(severity: number) {
+  return MODAL_IMPACT_TIERS.find((t) => severity >= t.min) ?? MODAL_IMPACT_TIERS[3];
+}
+
+interface ModalSkill {
+  skill_name?: string;
+  name?: string;
+  pitch?: string;
+  gap_severity?: number;
+  market_value_bonus?: string;
+  category?: string;
+  esco_code?: string;
+}
+function modalSkillName(s: ModalSkill) { return s.skill_name || s.name || '(unbenannt)'; }
+
+function SkillDetailModal({
+  skill, targetJob, targetCompany, onStartLearning,
+}: { skill: ModalSkill; targetJob?: string; targetCompany?: string; onStartLearning?: () => void }) {
+  const severity = skill?.gap_severity ?? 3;
+  const tier = modalTierFor(severity);
+  const name = modalSkillName(skill);
+  return (
+    <div className="rounded-2xl overflow-hidden" style={{ background: `linear-gradient(150deg,${tier.bg},rgba(10,14,30,0.97))`, border: `1px solid ${tier.color}40`, animation: 'cvModalFadeUp 0.25s ease' }}>
+      <div className="h-[3px]" style={{ background: `linear-gradient(90deg,${tier.color},${tier.color}22)` }} />
+      <div className="p-5 space-y-4">
+        <div className="flex items-start gap-3">
+          <div className="flex-1 min-w-0">
+            <span className="text-[11px] font-black uppercase tracking-widest" style={{ color: tier.color }}>{tier.emoji} {tier.label}</span>
+            <h4 className="font-black text-white text-[17px] leading-snug mt-1">{name}</h4>
+          </div>
+        </div>
+        {/* Impact bar */}
+        <div className="flex items-center gap-3">
+          <div className="flex gap-1 flex-1">
+            {Array.from({ length: 5 }).map((_, i) => (
+              <div key={i} className="flex-1 h-2.5 rounded-sm" style={{ backgroundColor: i < severity ? tier.color : 'rgba(255,255,255,0.07)', transform: i < severity ? 'scaleY(1)' : 'scaleY(0.6)', transition: 'all 0.2s' }} />
+            ))}
+          </div>
+          <span className="text-sm font-black tabular-nums" style={{ color: tier.color }}>Impact {severity}/5</span>
+        </div>
+        {skill?.pitch && (
+          <div className="rounded-xl p-4" style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.07)' }}>
+            <p className="text-[11px] font-black uppercase tracking-wider text-white/35 mb-2">Warum das wichtig ist</p>
+            <p className="text-sm text-white/80 leading-relaxed">{skill.pitch}</p>
+          </div>
+        )}
+        {targetCompany && (
+          <div className="rounded-xl p-4" style={{ background: tier.bg, border: `1px solid ${tier.border}` }}>
+            <p className="text-[11px] font-black uppercase tracking-wider mb-2" style={{ color: tier.color }}>Warum bei {targetCompany} entscheidend</p>
+            <p className="text-xs text-white/60 leading-relaxed">
+              {skill?.pitch
+                ? `Für eine Position als ${targetJob} bei ${targetCompany} ist ${name} ein kritischer Faktor. ${skill.pitch}`
+                : `${name} ist ein Schlüssel-Skill für ${targetJob}-Rollen bei ${targetCompany}.`}
+            </p>
+          </div>
+        )}
+        {skill?.market_value_bonus && (
+          <div className="flex items-center gap-2.5 px-4 py-3 rounded-xl" style={{ background: 'rgba(251,191,36,0.08)', border: '1px solid rgba(251,191,36,0.2)' }}>
+            <Zap size={14} className="text-amber-400 flex-shrink-0" />
+            <div>
+              <p className="text-[10px] text-amber-400/60 font-bold uppercase tracking-wider">Marktwert-Bonus</p>
+              <p className="text-sm font-black text-amber-300">{skill.market_value_bonus}</p>
+            </div>
+          </div>
+        )}
+        {onStartLearning && (
+          <button onClick={onStartLearning}
+            className="group relative w-full py-3.5 rounded-xl font-black text-[14px] text-black flex items-center justify-center gap-2.5 overflow-hidden transition-all duration-200 hover:scale-[1.015] active:scale-[0.98]"
+            style={{ background: `linear-gradient(135deg,${tier.color},#30E3CA)` }}>
+            <Sparkles size={15} className="relative z-10 group-hover:rotate-12 transition-transform" />
+            <span className="relative z-10">Lernpfad für {name} starten</span>
+            <ArrowRight size={14} className="relative z-10 group-hover:translate-x-0.5 transition-transform" />
+          </button>
+        )}
+      </div>
+    </div>
+  );
+}
+
+// ── Skills overview modal ──────────────────────────────────────────────────────
+
+function SkillsOverviewModal({
+  learningPath, onClose, onStartLearning,
+}: { learningPath: LearningPath; onClose: () => void; onStartLearning: (skillName?: string) => void }) {
+  const skills = [...toSkillArray(learningPath.missing_skills)].sort((a, b) => severityOf(b) - severityOf(a));
+  const currentSkills = toSkillArray(learningPath.current_skills ?? []).filter(s => skillName(s) !== '(unbenannt)');
+  const [activeIdx, setActiveIdx] = useState(0);
+  const outlook = learningPath.strategic_outlook_2026 ?? (learningPath as any).market_trend_2026 ?? '';
+  const score = learningPath.match_score ?? 0;
+  const scoreColor = score >= 70 ? '#22c55e' : score >= 40 ? '#f59e0b' : '#30E3CA';
+
+  return (
+    <div
+      className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-0 sm:p-4"
+      style={{ background: 'rgba(0,0,0,0.85)', backdropFilter: 'blur(8px)', animation: 'cvModalFadeIn 0.2s ease' }}
+      onClick={(e) => { if (e.target === e.currentTarget) onClose(); }}
+    >
+      <div
+        className="relative w-full sm:max-w-xl max-h-[92vh] overflow-y-auto rounded-t-3xl sm:rounded-3xl"
+        style={{ background: 'linear-gradient(160deg,rgba(10,14,30,0.99),rgba(6,9,20,1))', border: '1px solid rgba(48,227,202,0.15)' }}
+        onClick={(e) => e.stopPropagation()}
+      >
+        {/* Header */}
+        <div className="sticky top-0 z-10 flex items-center justify-between px-5 py-4 border-b border-white/[0.07]"
+          style={{ background: 'rgba(6,9,20,0.97)', backdropFilter: 'blur(12px)' }}>
+          <div className="flex-1 min-w-0">
+            <p className="text-[10px] font-black uppercase tracking-widest text-[#30E3CA]/60">Analyse-Ergebnis</p>
+            <h2 className="text-base font-black text-white truncate">{learningPath.target_job}</h2>
+          </div>
+          {score > 0 && (
+            <span className="mx-3 text-lg font-black tabular-nums px-3 py-1 rounded-lg" style={{ color: scoreColor, background: `${scoreColor}15`, border: `1px solid ${scoreColor}30` }}>{score}%</span>
+          )}
+          <button onClick={onClose} className="p-2 rounded-xl bg-white/5 hover:bg-white/10 transition-colors">
+            <XIcon size={18} className="text-white/60" />
+          </button>
+        </div>
+
+        <div className="p-5 space-y-5">
+          {/* Meta: company + industry */}
+          {(learningPath.target_company || learningPath.industry) && (
+            <div className="flex flex-wrap gap-2">
+              {learningPath.target_company && (
+                <span className="flex items-center gap-1 text-xs text-white/50"><Building2 size={11} />{learningPath.target_company}</span>
+              )}
+              {learningPath.industry && (
+                <span className="px-2 py-0.5 rounded-full text-[11px] font-bold" style={{ background: 'rgba(102,192,182,0.1)', color: '#66c0b6', border: '1px solid rgba(102,192,182,0.2)' }}>{learningPath.industry}</span>
+              )}
+            </div>
+          )}
+
+          {/* Strategic outlook */}
+          {outlook && (
+            <div className="flex gap-2.5 p-3 rounded-xl" style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.07)' }}>
+              <Brain size={14} className="text-[#66c0b6] flex-shrink-0 mt-0.5" />
+              <p className="text-xs text-white/60 leading-relaxed">{outlook}</p>
+            </div>
+          )}
+
+          {/* All skills as pills */}
+          {skills.length > 0 && (
+            <div className="space-y-3">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <Sparkles size={13} className="text-[#30E3CA]" />
+                  <h4 className="text-sm font-black text-white">Deine {skills.length} Wachstums-Chancen</h4>
+                </div>
+                <span className="text-[10px] text-white/30 italic">Skill antippen für Details</span>
+              </div>
+              {/* Pill grid — all skills */}
+              <div className="flex flex-wrap gap-2">
+                {skills.map((skill, i) => {
+                  const sName = skillName(skill);
+                  const sev = severityOf(skill);
+                  const tier = modalTierFor(sev);
+                  const isActive = i === activeIdx;
+                  return (
+                    <button key={i} onClick={() => setActiveIdx(i)}
+                      className="flex items-center gap-1.5 px-3 py-1.5 rounded-full text-left transition-all duration-200 hover:scale-[1.03]"
+                      style={{
+                        background: isActive ? tier.bg : 'rgba(255,255,255,0.04)',
+                        border: `1px solid ${isActive ? tier.color + '55' : 'rgba(255,255,255,0.09)'}`,
+                        boxShadow: isActive ? `0 0 12px -3px ${tier.color}25` : 'none',
+                      }}>
+                      <span className="text-sm leading-none">{tier.emoji}</span>
+                      <span className="text-[12px] font-black whitespace-nowrap" style={{ color: isActive ? tier.color : 'rgba(255,255,255,0.7)' }}>{sName}</span>
+                      {isActive && <div className="w-1 h-1 rounded-full flex-shrink-0" style={{ background: tier.color }} />}
+                    </button>
+                  );
+                })}
+              </div>
+              {/* Active skill detail */}
+              <SkillDetailModal
+                key={activeIdx}
+                skill={skills[activeIdx]}
+                targetJob={learningPath.target_job ?? undefined}
+                targetCompany={learningPath.target_company ?? undefined}
+                onStartLearning={() => onStartLearning(skillName(skills[activeIdx]))}
+              />
+            </div>
+          )}
+
+          {/* Current / base skills */}
+          {currentSkills.length > 0 && (
+            <div className="space-y-2">
+              <div className="flex items-center gap-1.5">
+                <Check size={12} className="text-[#66c0b6]" />
+                <span className="text-xs font-bold text-white/50">Deine Basis · {currentSkills.length} Skills</span>
+              </div>
+              <div className="flex flex-wrap gap-1.5">
+                {currentSkills.map((s, i) => (
+                  <span key={i} className="px-2.5 py-1 rounded-lg text-[11px] text-white/45" style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.08)' }}>{skillName(s)}</span>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* CTA block */}
+          <div className="rounded-2xl overflow-hidden" style={{ background: 'rgba(48,227,202,0.05)', border: '1px solid rgba(48,227,202,0.2)' }}>
+            <div className="h-px w-full" style={{ background: 'linear-gradient(90deg,transparent,rgba(48,227,202,0.4),transparent)' }} />
+            <div className="p-5 space-y-3">
+              {skills[0] && (
+                <div className="space-y-1">
+                  <p className="text-[11px] font-black uppercase tracking-widest text-[#30E3CA]/60">Nächster Schritt</p>
+                  <h3 className="text-base font-black text-white leading-tight">Starte mit <span style={{ color: '#30E3CA' }}>{skillName(skills[0])}</span></h3>
+                  {skills[0]?.pitch && <p className="text-xs text-white/50 leading-relaxed pt-0.5">{(skills[0] as any).pitch}</p>}
+                </div>
+              )}
+              <button
+                onClick={() => onStartLearning()}
+                className="group relative w-full py-4 rounded-xl font-black text-[15px] text-black flex items-center justify-center gap-3 overflow-hidden transition-all duration-200 hover:scale-[1.02] active:scale-[0.98]"
+                style={{ background: 'linear-gradient(135deg,#66c0b6,#30E3CA)', boxShadow: '0 4px 20px rgba(48,227,202,0.3)', animation: 'cvCtaPulse 2.5s ease-in-out infinite' }}>
+                <div className="absolute inset-0 pointer-events-none" style={{ background: 'linear-gradient(90deg,transparent,rgba(255,255,255,0.15),transparent)', backgroundSize: '200% 100%', animation: 'cvShimmerC 2s ease-in-out infinite' }} />
+                <Lock size={15} className="relative z-10" />
+                <span className="relative z-10">Lernpfade freischalten</span>
+                <ArrowRight size={14} className="relative z-10 group-hover:translate-x-0.5 transition-transform" />
+              </button>
+              <p className="text-center text-[11px] text-white/25">Zertifikat inklusive · Einmalig 9,99 € · Lebenslanger Zugriff</p>
+            </div>
+          </div>
+        </div>
+      </div>
+      <style>{`
+        @keyframes cvModalFadeIn  { from { opacity:0; } to { opacity:1; } }
+        @keyframes cvModalFadeUp  { from { opacity:0; transform:translateY(10px); } to { opacity:1; transform:translateY(0); } }
+        @keyframes cvCtaPulse     { 0%,100% { box-shadow:0 0 0 0 rgba(48,227,202,0.4); } 60% { box-shadow:0 0 0 14px rgba(48,227,202,0); } }
+      `}</style>
+    </div>
+  );
+}
 
 // ── Skill normalization ────────────────────────────────────────────────────────
 
@@ -334,6 +573,7 @@ interface CareerVisionCardProps {
 function CompactCard({ learningPath, onStartLearning }: Omit<CareerVisionCardProps, 'variant'>) {
   const navigate = useNavigate();
   const [showPaywall, setShowPaywall] = useState(false);
+  const [showModal, setShowModal] = useState(false);
   const [localPaid, setLocalPaid] = useState(learningPath.is_paid);
   const [pendingSkill, setPendingSkill] = useState<string | undefined>(undefined);
 
@@ -356,7 +596,7 @@ function CompactCard({ learningPath, onStartLearning }: Omit<CareerVisionCardPro
   return (
     <>
       <div
-        onClick={() => navigate(`/learning-path/${learningPath.id}`)}
+        onClick={() => setShowModal(true)}
         className="relative rounded-2xl overflow-hidden cursor-pointer transition-transform duration-200 hover:scale-[1.012] active:scale-[0.99]"
         style={{
           background: 'linear-gradient(160deg,rgba(10,14,30,0.98),rgba(15,20,40,0.99))',
@@ -467,6 +707,23 @@ function CompactCard({ learningPath, onStartLearning }: Omit<CareerVisionCardPro
           @keyframes cvShimmerC { 0% { background-position:-200% 0; } 100% { background-position:200% 0; } }
         `}</style>
       </div>
+
+      {showModal && (
+        <SkillsOverviewModal
+          learningPath={learningPath}
+          onClose={() => setShowModal(false)}
+          onStartLearning={(skill) => {
+            setShowModal(false);
+            if (isPaidOrFree) {
+              if (onStartLearning) onStartLearning();
+              else navigate(`/learning-path/${learningPath.id}`);
+            } else {
+              setPendingSkill(skill);
+              setShowPaywall(true);
+            }
+          }}
+        />
+      )}
 
       {showPaywall && (
         <LearningPathPaywall
