@@ -102,118 +102,151 @@ function CheckVisual() {
 }
 
 function SkillGapVisual() {
+  // Mimics the CompactCard from the dashboard
   const skills = [
-    { name: 'Datenkompetenz',      have: 25, need: 90, severity: 5, color: '#f97316' },
-    { name: 'KI-Tools',            have: 40, need: 85, severity: 4, color: ACCENT2  },
-    { name: 'Projektmanagement',   have: 70, need: 90, severity: 3, color: ACCENT   },
-    { name: 'SQL / Python',        have: 10, need: 75, severity: 5, color: '#f97316' },
-    { name: 'Kommunikation',       have: 80, need: 88, severity: 2, color: '#4ade80' },
+    { name: 'Talent Sourcing',     sev: 5, color: '#f97316', bg: 'rgba(249,115,22,0.1)',  border: 'rgba(249,115,22,0.25)',  tier: '🚀 Top-Hebel',    hard: true  },
+    { name: 'People Analytics',    sev: 4, color: ACCENT2,   bg: 'rgba(48,227,202,0.08)', border: 'rgba(48,227,202,0.22)',  tier: '⚡ Hoher Impact', hard: true  },
+    { name: 'KI im Recruiting',    sev: 4, color: ACCENT2,   bg: 'rgba(48,227,202,0.08)', border: 'rgba(48,227,202,0.22)',  tier: '⚡ Hoher Impact', hard: true  },
+    { name: 'ATS-Systeme',         sev: 3, color: '#f97316', bg: 'rgba(249,115,22,0.07)', border: 'rgba(249,115,22,0.18)',  tier: '🚀 Top-Hebel',    hard: false },
   ];
-  const tierLabels: Record<number, string> = { 5: '🚀 Top-Hebel', 4: '⚡ Hoher Impact', 3: '📈 Aufbau', 2: '✅ Quick Win' };
 
   return (
-    <div className="h-full flex flex-col justify-center gap-3 p-5">
-      {/* Header */}
-      <div className="flex items-center justify-between mb-1">
-        <span className="text-[10px] font-black uppercase tracking-widest text-white/35">Deine Skill-Gaps</span>
-        <span className="text-[10px] font-black px-2 py-0.5 rounded-full" style={{ background: 'rgba(48,227,202,0.1)', color: ACCENT2, border: '1px solid rgba(48,227,202,0.2)' }}>30% Match</span>
-      </div>
+    <div className="h-full flex items-center justify-center p-4">
+      <motion.div
+        initial={{ opacity: 0, y: 16 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.45 }}
+        className="w-full max-w-xs rounded-2xl overflow-hidden"
+        style={{ background: 'linear-gradient(160deg,rgba(10,14,30,0.98),rgba(15,20,40,0.99))', border: `1px solid ${ACCENT2}25` }}
+      >
+        {/* Top accent stripe */}
+        <div className="h-[3px]" style={{ background: `linear-gradient(90deg,#f97316,${ACCENT2},${ACCENT})` }} />
 
-      {skills.map((skill, i) => {
-        const gap = skill.need - skill.have;
-        return (
-          <motion.div
-            key={i}
-            initial={{ opacity: 0, x: -16 }}
-            animate={{ opacity: 1, x: 0 }}
-            transition={{ delay: 0.1 + i * 0.1 }}
-            className="space-y-1.5"
-          >
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-1.5">
-                <span className="text-[10px] leading-none">{tierLabels[skill.severity]?.split(' ')[0]}</span>
-                <span className="text-[11px] font-bold text-white/80">{skill.name}</span>
+        <div className="p-4 space-y-4">
+          {/* Header: ring + title */}
+          <div className="flex items-start gap-3">
+            {/* Readiness ring */}
+            <div className="relative w-12 h-12 flex-shrink-0">
+              <svg className="w-full h-full -rotate-90" viewBox="0 0 48 48">
+                <circle cx="24" cy="24" r="20" fill="none" stroke="rgba(255,255,255,0.07)" strokeWidth="4" />
+                <motion.circle
+                  cx="24" cy="24" r="20" fill="none" stroke={ACCENT2} strokeWidth="4"
+                  strokeLinecap="round"
+                  strokeDasharray={2 * Math.PI * 20}
+                  initial={{ strokeDashoffset: 2 * Math.PI * 20 }}
+                  animate={{ strokeDashoffset: 2 * Math.PI * 20 * (1 - 0.30) }}
+                  transition={{ duration: 1.2, delay: 0.4, ease: 'easeOut' }}
+                />
+              </svg>
+              <div className="absolute inset-0 flex flex-col items-center justify-center">
+                <span className="text-[11px] font-black leading-none" style={{ color: ACCENT2 }}>30%</span>
               </div>
-              <span className="text-[10px] font-black tabular-nums" style={{ color: skill.color }}>–{gap}%</span>
             </div>
-            <div className="relative h-3 rounded-full overflow-hidden" style={{ background: 'rgba(255,255,255,0.06)' }}>
-              {/* current level */}
-              <motion.div
-                className="absolute left-0 top-0 h-full rounded-full"
-                style={{ background: 'rgba(255,255,255,0.15)' }}
-                initial={{ width: 0 }}
-                animate={{ width: `${skill.have}%` }}
-                transition={{ delay: 0.3 + i * 0.1, duration: 0.6 }}
-              />
-              {/* target level */}
-              <motion.div
-                className="absolute left-0 top-0 h-full rounded-full opacity-30"
-                style={{ background: `linear-gradient(90deg, ${skill.color}55, ${skill.color})` }}
-                initial={{ width: 0 }}
-                animate={{ width: `${skill.need}%` }}
-                transition={{ delay: 0.5 + i * 0.1, duration: 0.7 }}
-              />
-              {/* gap fill (animated stripe) */}
-              <motion.div
-                className="absolute top-0 h-full rounded-r-full"
-                style={{
-                  left: `${skill.have}%`,
-                  background: `linear-gradient(90deg, ${skill.color}33, ${skill.color}88)`,
-                  backgroundSize: '200% 100%',
-                }}
-                initial={{ width: 0 }}
-                animate={{ width: `${gap}%` }}
-                transition={{ delay: 0.6 + i * 0.1, duration: 0.5 }}
-              />
+            <div className="flex-1 min-w-0 pt-0.5">
+              <p className="text-[9px] font-black uppercase tracking-widest" style={{ color: `${ACCENT2}99` }}>Deine Vision</p>
+              <h3 className="text-sm font-black text-white leading-tight">Senior Consultant</h3>
+              <span className="text-[10px] text-white/40">YER · Deutschland</span>
             </div>
-            <div className="flex justify-between text-[9px] text-white/25 px-0.5">
-              <span>Jetzt: {skill.have}%</span>
-              <span>Ziel: {skill.need}%</span>
-            </div>
-          </motion.div>
-        );
-      })}
+          </div>
 
-      {/* Legend */}
-      <div className="flex items-center gap-3 mt-1 pt-2 border-t border-white/[0.07]">
-        <div className="flex items-center gap-1.5">
-          <div className="w-3 h-1.5 rounded-full bg-white/20" />
-          <span className="text-[9px] text-white/30">Vorhanden</span>
+          {/* Market insight */}
+          <div className="flex gap-2 p-2.5 rounded-xl" style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.07)' }}>
+            <span className="text-[10px] leading-relaxed text-white/50">KI-gestützte Prozesse werden 2026 zum Standard im Recruiting. Frühzeitiger Aufbau dieser Skills sichert Wettbewerbsvorteile.</span>
+          </div>
+
+          {/* Skill tiles 2×2 */}
+          <div className="space-y-1.5">
+            <div className="flex items-center gap-1.5">
+              <span className="text-[8px] font-black uppercase tracking-widest text-white/30">5 Lernpfade verfügbar</span>
+              <span className="text-[8px] text-white/20 ml-auto">+1 weitere</span>
+            </div>
+            <div className="grid grid-cols-2 gap-1.5">
+              {skills.map((skill, i) => (
+                <motion.div
+                  key={i}
+                  initial={{ opacity: 0, scale: 0.92 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  transition={{ delay: 0.3 + i * 0.09 }}
+                  className="rounded-xl p-2.5 space-y-2"
+                  style={{ background: skill.bg, border: `1px solid ${skill.border}` }}
+                >
+                  <div className="flex items-center justify-between gap-1">
+                    <span className="text-[8px] font-black uppercase tracking-wider leading-tight" style={{ color: skill.color }}>
+                      {skill.tier}
+                    </span>
+                    <span className="text-[8px] text-white/30">{skill.hard ? '🔧 Hard' : '🧠 Soft'}</span>
+                  </div>
+                  <p className="text-[10px] font-black text-white leading-tight">{skill.name}</p>
+                  <div className="flex gap-0.5">
+                    {Array.from({ length: 5 }).map((_, j) => (
+                      <div key={j} className="flex-1 h-1.5 rounded-sm" style={{ background: j < skill.sev ? skill.color : 'rgba(255,255,255,0.06)' }} />
+                    ))}
+                  </div>
+                  <div className="flex items-center gap-1 px-2 py-1 rounded-lg" style={{ background: 'rgba(0,0,0,0.25)', border: '1px solid rgba(255,255,255,0.08)' }}>
+                    <svg width="8" height="8" viewBox="0 0 8 8"><rect x="1" y="1" width="6" height="6" rx="1" fill="none" stroke="rgba(255,255,255,0.3)" strokeWidth="1"/><line x1="1" y1="3" x2="7" y2="3" stroke="rgba(255,255,255,0.3)" strokeWidth="0.8"/></svg>
+                    <span className="text-[8px] text-white/35">Lernpfad freischalten</span>
+                  </div>
+                </motion.div>
+              ))}
+            </div>
+          </div>
+
+          {/* Stats row */}
+          <div className="grid grid-cols-3 gap-1.5">
+            {[
+              { val: '5', label: 'Lernpfade', color: ACCENT2 },
+              { val: '3', label: 'Top-Hebel',  color: '#f97316' },
+              { val: '0', label: 'Basis',       color: ACCENT   },
+            ].map(({ val, label, color }) => (
+              <div key={label} className="flex flex-col items-center py-2 rounded-xl" style={{ background: `${color}09`, border: `1px solid ${color}18` }}>
+                <span className="text-base font-black leading-none" style={{ color }}>{val}</span>
+                <span className="text-[8px] text-white/30 mt-0.5 font-bold">{label}</span>
+              </div>
+            ))}
+          </div>
+
+          {/* CTA */}
+          <div className="w-full py-2.5 rounded-xl font-black text-[11px] text-black flex items-center justify-center gap-1.5"
+            style={{ background: `linear-gradient(135deg,${ACCENT},${ACCENT2})` }}>
+            <svg width="10" height="10" viewBox="0 0 10 10"><rect x="1" y="1" width="8" height="8" rx="1.5" fill="none" stroke="black" strokeWidth="1.2"/><line x1="1" y1="3.5" x2="9" y2="3.5" stroke="black" strokeWidth="1"/></svg>
+            Lernpfade freischalten
+          </div>
         </div>
-        <div className="flex items-center gap-1.5">
-          <div className="w-3 h-1.5 rounded-full" style={{ background: `${ACCENT2}88` }} />
-          <span className="text-[9px] text-white/30">Lücke</span>
-        </div>
-      </div>
+      </motion.div>
     </div>
   );
 }
 
 function LernpfadeVisual() {
   const modules = [
-    { week: 'Woche 1–2',  title: 'Python Grundlagen',         done: true,    hours: 8  },
-    { week: 'Woche 3–4',  title: 'Datenanalyse mit Pandas',   done: true,    hours: 10 },
-    { week: 'Woche 5–7',  title: 'KI-Tools im Arbeitsalltag', done: false,   hours: 14, active: true },
-    { week: 'Woche 8–10', title: 'SQL & Datenbankabfragen',   done: false,   hours: 12 },
-    { week: 'Woche 11–12',title: 'Projekt & Zertifikat',       done: false,   hours: 8  },
+    { label: 'Modul 1', title: 'Talent Sourcing Grundlagen',   done: true,   active: false, tier: '🚀', color: '#f97316' },
+    { label: 'Modul 2', title: 'Boolean Search & Active Sourcing', done: true, active: false, tier: '🚀', color: '#f97316' },
+    { label: 'Modul 3', title: 'KI-Tools im Recruiting-Alltag', done: false,  active: true,  tier: '⚡', color: ACCENT2  },
+    { label: 'Modul 4', title: 'People Analytics & Kennzahlen', done: false,  active: false, tier: '⚡', color: ACCENT2  },
+    { label: 'Modul 5', title: 'Abschlussprojekt & Zertifikat', done: false,  active: false, tier: '🏆', color: '#fbbf24' },
   ];
-  const totalHours = modules.reduce((s, m) => s + m.hours, 0);
-  const doneHours  = modules.filter(m => m.done).reduce((s, m) => s + m.hours, 0);
-  const pct = Math.round((doneHours / totalHours) * 100);
+  const doneCount = modules.filter(m => m.done).length;
+  const pct = Math.round((doneCount / modules.length) * 100);
 
   return (
     <div className="h-full flex flex-col justify-center gap-3 p-5">
-      {/* Overall progress */}
+      {/* Path header */}
       <motion.div
         initial={{ opacity: 0, y: -8 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ delay: 0.1 }}
-        className="rounded-xl p-3 mb-1"
-        style={{ background: 'rgba(48,227,202,0.06)', border: '1px solid rgba(48,227,202,0.15)' }}
+        className="rounded-xl p-3"
+        style={{ background: 'rgba(48,227,202,0.06)', border: '1px solid rgba(48,227,202,0.18)' }}
       >
         <div className="flex items-center justify-between mb-2">
-          <span className="text-[10px] font-black uppercase tracking-widest" style={{ color: ACCENT2 }}>Senior Consultant</span>
-          <span className="text-[11px] font-black tabular-nums" style={{ color: ACCENT2 }}>{pct}% fertig</span>
+          <div>
+            <p className="text-[9px] font-black uppercase tracking-widest text-[#30E3CA]/60">Dein Lernpfad</p>
+            <p className="text-[12px] font-black text-white leading-tight">Talent Sourcing Techniken</p>
+          </div>
+          <div className="flex flex-col items-end gap-0.5">
+            <span className="text-[14px] font-black tabular-nums" style={{ color: ACCENT2 }}>{pct}%</span>
+            <span className="text-[9px] text-white/30">{doneCount}/{modules.length} Module</span>
+          </div>
         </div>
         <div className="h-2 rounded-full overflow-hidden" style={{ background: 'rgba(255,255,255,0.07)' }}>
           <motion.div
@@ -221,12 +254,8 @@ function LernpfadeVisual() {
             style={{ background: `linear-gradient(90deg, ${ACCENT}, ${ACCENT2})` }}
             initial={{ width: 0 }}
             animate={{ width: `${pct}%` }}
-            transition={{ delay: 0.4, duration: 0.8 }}
+            transition={{ delay: 0.4, duration: 0.9, ease: 'easeOut' }}
           />
-        </div>
-        <div className="flex justify-between mt-1.5 text-[9px] text-white/30">
-          <span>{doneHours}h abgeschlossen</span>
-          <span>{totalHours}h gesamt</span>
         </div>
       </motion.div>
 
@@ -238,32 +267,17 @@ function LernpfadeVisual() {
             initial={{ opacity: 0, x: -12 }}
             animate={{ opacity: 1, x: 0 }}
             transition={{ delay: 0.2 + i * 0.09 }}
-            className="flex items-center gap-2.5 px-3 py-2 rounded-xl transition-all"
+            className="flex items-center gap-2.5 px-3 py-2 rounded-xl"
             style={{
-              background: mod.active
-                ? 'rgba(48,227,202,0.08)'
-                : mod.done
-                  ? 'rgba(255,255,255,0.03)'
-                  : 'rgba(255,255,255,0.02)',
-              border: mod.active
-                ? '1px solid rgba(48,227,202,0.25)'
-                : mod.done
-                  ? '1px solid rgba(255,255,255,0.07)'
-                  : '1px solid rgba(255,255,255,0.04)',
+              background: mod.active ? 'rgba(48,227,202,0.07)' : mod.done ? 'rgba(255,255,255,0.03)' : 'rgba(255,255,255,0.02)',
+              border: mod.active ? '1px solid rgba(48,227,202,0.22)' : mod.done ? '1px solid rgba(255,255,255,0.07)' : '1px solid rgba(255,255,255,0.04)',
             }}
           >
-            {/* Status dot */}
-            <div
-              className="w-5 h-5 rounded-full flex items-center justify-center flex-shrink-0"
+            <div className="w-5 h-5 rounded-full flex items-center justify-center flex-shrink-0"
               style={{
-                background: mod.done
-                  ? 'rgba(34,197,94,0.15)'
-                  : mod.active
-                    ? 'rgba(48,227,202,0.15)'
-                    : 'rgba(255,255,255,0.05)',
+                background: mod.done ? 'rgba(34,197,94,0.15)' : mod.active ? `rgba(48,227,202,0.15)` : 'rgba(255,255,255,0.05)',
                 border: `1px solid ${mod.done ? '#22c55e' : mod.active ? ACCENT2 : 'rgba(255,255,255,0.1)'}`,
-              }}
-            >
+              }}>
               {mod.done ? (
                 <svg width="8" height="8" viewBox="0 0 8 8"><polyline points="1,4 3,6 7,2" fill="none" stroke="#22c55e" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" /></svg>
               ) : mod.active ? (
@@ -274,10 +288,13 @@ function LernpfadeVisual() {
             </div>
 
             <div className="flex-1 min-w-0">
-              <p className={`text-[11px] font-bold leading-tight truncate ${mod.done ? 'text-white/35 line-through' : mod.active ? 'text-white' : 'text-white/50'}`}>
-                {mod.title}
-              </p>
-              <p className="text-[9px] text-white/25">{mod.week} · {mod.hours}h</p>
+              <div className="flex items-center gap-1">
+                <span className="text-[10px] leading-none">{mod.tier}</span>
+                <p className={`text-[11px] font-bold leading-tight truncate ${mod.done ? 'text-white/30 line-through decoration-white/20' : mod.active ? 'text-white' : 'text-white/45'}`}>
+                  {mod.title}
+                </p>
+              </div>
+              <p className="text-[9px] text-white/25 mt-0.5">{mod.label}</p>
             </div>
 
             {mod.active && (
@@ -285,7 +302,7 @@ function LernpfadeVisual() {
                 animate={{ opacity: [0.5, 1, 0.5] }}
                 transition={{ duration: 1.8, repeat: Infinity }}
                 className="text-[9px] font-black px-1.5 py-0.5 rounded-full flex-shrink-0"
-                style={{ background: 'rgba(48,227,202,0.15)', color: ACCENT2, border: '1px solid rgba(48,227,202,0.3)' }}
+                style={{ background: 'rgba(48,227,202,0.12)', color: ACCENT2, border: '1px solid rgba(48,227,202,0.28)' }}
               >
                 Aktiv
               </motion.span>
@@ -294,16 +311,16 @@ function LernpfadeVisual() {
         ))}
       </div>
 
-      {/* Certificate badge */}
+      {/* Certificate */}
       <motion.div
-        initial={{ opacity: 0, scale: 0.95 }}
-        animate={{ opacity: 1, scale: 1 }}
-        transition={{ delay: 0.8 }}
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        transition={{ delay: 0.85 }}
         className="flex items-center gap-2 px-3 py-2 rounded-xl"
         style={{ background: 'rgba(251,191,36,0.06)', border: '1px solid rgba(251,191,36,0.15)' }}
       >
         <span className="text-sm">🏆</span>
-        <span className="text-[10px] text-amber-300/70 font-bold">Zertifikat nach Abschluss aller Module</span>
+        <span className="text-[10px] text-amber-300/65 font-bold">Offizielles Zertifikat nach Abschluss</span>
       </motion.div>
     </div>
   );
@@ -386,12 +403,12 @@ const tabContent = {
   skillgap: {
     icon: TrendingUp,
     heading: 'Skill-Gap-Analyse',
-    sub: 'Erkenne exakt, was dir noch fehlt',
+    sub: 'Erkenne exakt, was dich von deinem Traumjob trennt',
     bullets: [
-      'KI vergleicht dein Profil mit echten Stellenanforderungen deines Traumjobs.',
-      'Jede Lücke wird priorisiert: Top-Hebel zuerst – für maximale Wirkung.',
-      'Du siehst sofort, welche Skills den größten Unterschied machen.',
-      'ESCO-validiert nach europäischem Berufsstandard – keine Schätzungen, nur Fakten.',
+      'KI vergleicht dein CV mit echten Stellenanforderungen – kein Rätselraten mehr.',
+      'Jede Lücke wird nach Impact priorisiert: Top-Hebel zuerst, Quick Wins danach.',
+      'Du siehst genau, welche 3–5 Skills den größten Unterschied für dich machen.',
+      'ESCO-validiert nach europäischem Qualifikationsrahmen – präzise, nicht pauschal.',
     ],
     cta: 'Meine Skills analysieren',
     ctaHref: '/career-vision',
@@ -401,12 +418,12 @@ const tabContent = {
   lernpfade: {
     icon: Map,
     heading: 'Personalisierte Lernpfade',
-    sub: 'Dein Weg zum Traumjob – Schritt für Schritt',
+    sub: 'Von der Lücke zum gefragten Experten',
     bullets: [
-      'KI erstellt einen maßgeschneiderten 12-Wochen-Plan basierend auf deinen Lücken.',
-      'Jeder Skill-Gap wird in konkrete Lernmodule mit Zeitplan übersetzt.',
-      'Wöchentliche Fortschrittsverfolgung – du weißt immer, wo du stehst.',
-      'Am Ende erhältst du ein Zertifikat als Beweis für deinen Fortschritt.',
+      'Für jeden identifizierten Skill-Gap erstellt die KI einen konkreten Lernpfad.',
+      'Strukturierte Module mit klarem Ziel – kein zielloses Durchklicken mehr.',
+      'Du verfolgst deinen Fortschritt live und weißt immer, was als nächstes kommt.',
+      'Nach Abschluss erhältst du ein Zertifikat, das du direkt in Bewerbungen einsetzt.',
     ],
     cta: 'Lernpfad starten',
     ctaHref: '/career-vision',
