@@ -195,6 +195,8 @@ export default function LearningPathWaitingPage() {
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
   const [targetJob, setTargetJob] = useState('deinem Ziel');
   const [retrying, setRetrying] = useState(false);
+  const [showCompletionPopup, setShowCompletionPopup] = useState(false);
+  const [countdown, setCountdown] = useState(5);
 
   // Progress: 0–100
   const [progress, setProgress] = useState(0);
@@ -230,6 +232,21 @@ export default function LearningPathWaitingPage() {
     setProgress(100);
     setActiveStageIdx(STAGES.length);
     setPhase('done');
+    setShowCompletionPopup(true);
+
+    // Auto-navigate after 5 seconds with countdown
+    let remaining = 5;
+    setCountdown(remaining);
+    const interval = setInterval(() => {
+      remaining -= 1;
+      setCountdown(remaining);
+      if (remaining <= 0) {
+        clearInterval(interval);
+      }
+    }, 1000);
+    setTimeout(() => {
+      clearInterval(interval);
+    }, 5500);
   }, [cleanup]);
 
   const markError = useCallback((msg: string) => {
@@ -459,6 +476,14 @@ export default function LearningPathWaitingPage() {
       setRetrying(false);
     }
   }, [pathId, triggerMake, startListening, markError, startProgressAnimation]);
+
+  // Auto-navigate when countdown reaches 0
+  useEffect(() => {
+    if (showCompletionPopup && countdown <= 0) {
+      setShowCompletionPopup(false);
+      navigate(`/learning-path/${pathId}`);
+    }
+  }, [countdown, showCompletionPopup, pathId, navigate]);
 
   const quote = QUOTES[quoteIdx];
   const isDone = phase === 'done';
@@ -753,6 +778,74 @@ export default function LearningPathWaitingPage() {
           </>
         )}
       </div>
+
+      {/* ── Completion popup ─────────────────────────────────────────────────── */}
+      {showCompletionPopup && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center px-4"
+          style={{ background: 'rgba(0,0,0,0.7)', backdropFilter: 'blur(8px)', animation: 'lpw2_up 0.35s ease' }}
+          onClick={() => { setShowCompletionPopup(false); navigate(`/learning-path/${pathId}`); }}
+        >
+          <div
+            className="relative max-w-sm w-full rounded-3xl overflow-hidden text-center"
+            style={{
+              background: 'linear-gradient(145deg,#080f1a,#0a1520)',
+              border: '1px solid rgba(34,197,94,0.3)',
+              boxShadow: '0 0 60px rgba(34,197,94,0.2), 0 20px 60px rgba(0,0,0,0.6)',
+              animation: 'lpw2_pop 0.45s cubic-bezier(0.175,0.885,0.32,1.275)',
+            }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            {/* Green glow top */}
+            <div className="absolute inset-x-0 top-0 h-px" style={{ background: 'linear-gradient(90deg,transparent,rgba(34,197,94,0.7),transparent)' }} />
+            <div className="absolute inset-x-0 top-0 h-24 opacity-[0.06]" style={{ background: 'radial-gradient(ellipse at 50% 0%,#22c55e,transparent)' }} />
+
+            <div className="relative z-10 p-8 space-y-5">
+              {/* Trophy icon */}
+              <div className="mx-auto w-16 h-16 rounded-2xl flex items-center justify-center"
+                style={{ background: 'rgba(34,197,94,0.12)', border: '1px solid rgba(34,197,94,0.3)' }}>
+                <svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="#22c55e" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <polyline points="20 12 20 22 4 22 4 12"/><rect x="2" y="7" width="20" height="5"/><line x1="12" y1="22" x2="12" y2="7"/>
+                  <path d="M12 7H7.5a2.5 2.5 0 0 1 0-5C11 2 12 7 12 7z"/><path d="M12 7h4.5a2.5 2.5 0 0 0 0-5C13 2 12 7 12 7z"/>
+                </svg>
+              </div>
+
+              {/* Text */}
+              <div className="space-y-2">
+                <h2 className="text-xl font-black text-white">Dein Lernpfad ist bereit!</h2>
+                <p className="text-sm text-white/55 leading-relaxed">
+                  <span className="text-[#22c55e] font-bold">{targetJob}</span> — alle Module, der Abschlusstest und dein Zertifikat warten auf dich.
+                </p>
+              </div>
+
+              {/* Auto-nav countdown */}
+              <div className="flex items-center justify-center gap-2 text-xs text-white/30">
+                <div className="w-1.5 h-1.5 rounded-full bg-[#22c55e] animate-pulse" />
+                <span>Weiterleitung in {countdown}s…</span>
+              </div>
+
+              {/* CTA */}
+              <button
+                onClick={() => { setShowCompletionPopup(false); navigate(`/learning-path/${pathId}`); }}
+                className="w-full py-4 rounded-2xl font-black text-base text-black flex items-center justify-center gap-2 transition-all hover:scale-[1.02] active:scale-[0.98]"
+                style={{ background: 'linear-gradient(135deg,#22c55e,#4ade80)', boxShadow: '0 4px 24px rgba(34,197,94,0.35)' }}
+              >
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
+                  <polygon points="5,3 19,12 5,21 5,3"/>
+                </svg>
+                Jetzt starten
+              </button>
+
+              <button
+                onClick={() => setShowCompletionPopup(false)}
+                className="text-xs text-white/25 hover:text-white/45 transition-colors"
+              >
+                Schließen
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

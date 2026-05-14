@@ -1053,6 +1053,24 @@ export function DashboardPage() {
                       const isProcessing = !isReady && (path.status === 'in_progress' || path.status === 'curriculum_ready');
                       const isCompleted = path.status === 'completed' && isReady;
 
+                      // Show selected_skill or first missing skill instead of company name
+                      const skillLabel = (() => {
+                        const sel = (path as any).selected_skill;
+                        if (sel && typeof sel === 'string') return sel;
+                        if (sel && typeof sel === 'object') return sel.skill_name || sel.name || null;
+                        const missing = (path as any).missing_skills;
+                        if (Array.isArray(missing) && missing.length > 0) {
+                          return missing[0]?.skill_name || missing[0]?.name || null;
+                        }
+                        if (typeof missing === 'string') {
+                          try {
+                            const parsed = JSON.parse(missing);
+                            if (Array.isArray(parsed) && parsed.length > 0) return parsed[0]?.skill_name || parsed[0]?.name || null;
+                          } catch { /* */ }
+                        }
+                        return null;
+                      })();
+
                       return (
                         <div
                           key={path.id}
@@ -1102,8 +1120,8 @@ export function DashboardPage() {
                               ) : (
                                 <span className="text-[10px] text-white/30">Freigeschaltet</span>
                               )}
-                              {path.target_company && (
-                                <span className="text-[10px] text-white/25 truncate">· {path.target_company}</span>
+                              {skillLabel && (
+                                <span className="text-[10px] text-white/25 truncate">· {skillLabel}</span>
                               )}
                             </div>
                           </div>

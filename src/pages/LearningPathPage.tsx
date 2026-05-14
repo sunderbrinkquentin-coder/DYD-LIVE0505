@@ -1186,17 +1186,18 @@ export default function LearningPathPage() {
 
       setLearningPath(path);
       setAnalysisResult(resultFromPath(path));
+
+      // If any results exist and path is paid, go straight to learning content
+      if (hasResults && path.is_paid) {
+        setShowDashboard(true);
+        setPhase('done');
+        return;
+      }
+
       const resolvedPhase = resolvePhase(path, hasResults);
 
       if (resolvedPhase === 'redirect_waiting') {
         navigate(`/learning-path-waiting/${pathId}`, { replace: true });
-        return;
-      }
-
-      // If results exist and path is paid, go straight to dashboard
-      if (hasResults && path.is_paid) {
-        setShowDashboard(true);
-        setPhase('done');
         return;
       }
 
