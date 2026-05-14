@@ -11,6 +11,8 @@ const CURRICULUM_WEBHOOK_URL = import.meta.env.VITE_MAKE_WEBHOOK_CURRICULUM
 const COMPLETE_STATUSES = new Set(['curriculum_ready', 'completed']);
 // Statuses that mean the curriculum is already being generated or done — don't re-trigger
 const ALREADY_TRIGGERED_STATUSES = new Set(['curriculum_ready', 'completed', 'in_progress']);
+const PRICE_ID_SINGLE = import.meta.env.VITE_STRIPE_PRICE_LEARNING_PATH_SINGLE || 'price_1TWw5G3Sd9dZl64SKYanIg6m';
+const PRICE_ID_ALL    = import.meta.env.VITE_STRIPE_PRICE_LEARNING_PATH || 'price_1TWEoZ3Sd9dZl64S5I8uj597';
 const POLL_INTERVAL_MS = 3_000;
 const POLL_MAX = 80;
 
@@ -312,15 +314,12 @@ export default function LearningPathWaitingPage() {
     if (pollTimerRef.current) { clearTimeout(pollTimerRef.current); pollTimerRef.current = null; }
   }, []);
 
-  const handleReady = useCallback(async () => {
+  const handleReady = useCallback(() => {
     if (completedRef.current) return;
     completedRef.current = true;
     cleanupListeners();
     setDone(true);
-    // CLT: short celebration pause before navigating (Satisfaction)
-    await new Promise(r => setTimeout(r, 1_800));
-    navigate(`/learning-path/${pathId}`, { replace: true });
-  }, [cleanupListeners, navigate, pathId]);
+  }, [cleanupListeners]);
 
   const handleError = useCallback((msg: string) => {
     if (completedRef.current) return;
@@ -394,11 +393,19 @@ export default function LearningPathWaitingPage() {
       }
     }
 
-    // Realtime subscription — listen for completion or failure
+    // Realtime subscriptions — listen on both learning_results and learning_paths
     completedRef.current = false;
     pollCountRef.current = 0;
 
     const ch = supabase.channel(`lpw_${pathId}_${Date.now()}`)
+      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'learning_results', filter: `id=eq.${pathId}` },
+        (payload) => {
+          if ((payload.new as any)?.status === 'completed') handleReady();
+        })
+      .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'learning_results', filter: `id=eq.${pathId}` },
+        (payload) => {
+          if ((payload.new as any)?.status === 'completed') handleReady();
+        })
       .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'learning_paths', filter: `id=eq.${pathId}` },
         (payload) => {
           const newStatus = (payload.new as any)?.status as string;
@@ -408,7 +415,7 @@ export default function LearningPathWaitingPage() {
       .subscribe();
     channelRef.current = ch;
 
-    // Polling fallback
+    // Polling fallback — checks both learning_paths and learning_results
     const tick = async () => {
       if (completedRef.current) return;
       if (pollCountRef.current >= POLL_MAX) {
@@ -416,6 +423,18 @@ export default function LearningPathWaitingPage() {
         return;
       }
       pollCountRef.current += 1;
+
+      // Check learning_results first (Make writes completion here)
+      const { data: result } = await supabase
+        .from('learning_results')
+        .select('status')
+        .eq('id', pathId)
+        .maybeSingle();
+      if (result?.status === 'completed') {
+        handleReady(); return;
+      }
+
+      // Fallback: check learning_paths
       const { data: row } = await supabase.from('learning_paths').select('status,curriculum').eq('id', pathId).maybeSingle();
       if (row) {
         if (COMPLETE_STATUSES.has(row.status) || (row.curriculum as any)?.modules?.length > 0) {
@@ -450,7 +469,17 @@ export default function LearningPathWaitingPage() {
         const path = (fresh ?? data) as Record<string, unknown>;
         pathDataRef.current = path;
 
-        // 3. If curriculum already complete → navigate immediately
+        // 3. Check learning_results for completion first
+        const { data: resultRow } = await supabase
+          .from('learning_results')
+          .select('status')
+          .eq('id', pathId)
+          .maybeSingle();
+        if (resultRow?.status === 'completed') {
+          handleReady(); return;
+        }
+
+        // Also check learning_paths completion flags
         if (COMPLETE_STATUSES.has(path.status as string) || ((path.curriculum as any)?.modules?.length > 0)) {
           handleReady(); return;
         }
@@ -609,7 +638,7 @@ export default function LearningPathWaitingPage() {
               <h1 className="text-3xl sm:text-4xl font-black text-white leading-tight">
                 Dein Lernpfad ist bereit!
               </h1>
-              <p className="text-white/55 text-base mt-2">Du wirst gleich weitergeleitet…</p>
+              <p className="text-white/55 text-base mt-2">Dein persönlicher Lernpfad wurde erfolgreich erstellt.</p>
             </div>
           ) : (
             <>
@@ -681,6 +710,22 @@ export default function LearningPathWaitingPage() {
 
             {/* Progress bar */}
             <ProgressBar done={done} />
+
+            {/* Launch button — shown when done */}
+            {done && (
+              <div style={{ animation: 'lpw_fadeUp 0.5s ease' }}>
+                <button
+                  onClick={() => navigate(`/learning-path/${pathId}`)}
+                  className="w-full flex items-center justify-center gap-3 py-4 rounded-2xl font-black text-base text-black transition-all hover:scale-[1.02] active:scale-[0.98]"
+                  style={{ background: 'linear-gradient(135deg,#22c55e,#4ade80)', boxShadow: '0 0 32px rgba(34,197,94,0.35)' }}
+                >
+                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                    <polygon points="5,3 19,12 5,21 5,3"/>
+                  </svg>
+                  Lernpfad starten
+                </button>
+              </div>
+            )}
           </div>
         </div>
 

@@ -25,9 +25,33 @@ export class CertificateService {
       } catch { /* fall back to provided name */ }
     }
 
+    // Fetch certificate_metadata from learning_results (Make writes rich cert data here)
+    let certMeta: {
+      official_title?: string;
+      competency_profile?: string[];
+      dqr_reference?: string;
+      verification_footer?: string;
+    } | null = null;
+    try {
+      const { data: resultRow } = await supabase
+        .from('learning_results')
+        .select('certificate_metadata')
+        .eq('id', learningPath.id)
+        .maybeSingle();
+      if (resultRow?.certificate_metadata) {
+        certMeta = resultRow.certificate_metadata;
+      }
+    } catch { /* non-fatal, fall back to learning_path data */ }
+
     const certificateId = `DYD-${Date.now()}-${Math.random().toString(36).substring(2, 7).toUpperCase()}`;
 
-    const masteredSkills = (learningPath.missing_skills ?? []).map((s: any) => s.skill_name || s.name || s);
+    // Use competency_profile from learning_results if available, otherwise fall back to missing_skills
+    const masteredSkills = certMeta?.competency_profile?.length
+      ? certMeta.competency_profile
+      : (learningPath.missing_skills ?? []).map((s: any) => s.skill_name || s.name || s);
+
+    // Use official_title from learning_results if available
+    const certTitle = certMeta?.official_title || learningPath.target_job;
 
     // Collect completed module titles
     const allModules = learningPath.curriculum?.modules ?? [];
@@ -38,11 +62,13 @@ export class CertificateService {
 
     const certificate: Certificate = {
       recipient_name: displayName,
-      target_job: learningPath.target_job,
+      target_job: certTitle,
       mastered_skills: masteredSkills,
       completion_date: new Date().toISOString(),
       certificate_id: certificateId,
       issuer: 'DYD – Design Your Dream',
+      dqr_reference: certMeta?.dqr_reference,
+      verification_footer: certMeta?.verification_footer,
     };
 
     const blob = await pdf(

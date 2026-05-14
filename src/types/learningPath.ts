@@ -110,4 +110,6 @@ export interface Certificate {
   completion_date: string;
   certificate_id: string;
   issuer: string;
+  dqr_reference?: string;
+  verification_footer?: string;
 }

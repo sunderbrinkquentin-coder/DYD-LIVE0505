@@ -373,12 +373,23 @@ export function CertificatePDF({ certificate, modules = [] }: CertificatePDFProp
             <View style={styles.footerCol}>
               <Text style={styles.footerLabel}>Ausstellungsdatum</Text>
               <Text style={styles.footerValue}>{formattedDate}</Text>
+              {certificate.dqr_reference ? (
+                <>
+                  <Text style={[styles.footerLabel, { marginTop: 6 }]}>DQR-Referenz</Text>
+                  <Text style={styles.footerValue}>{certificate.dqr_reference}</Text>
+                </>
+              ) : null}
             </View>
 
             <View style={styles.footerCol}>
               <View style={styles.sigLine} />
               <Text style={styles.sigName}>DYD – Design Your Dream</Text>
               <Text style={styles.sigTitle}>Career Academy Leitung</Text>
+              {certificate.verification_footer ? (
+                <Text style={[styles.sigTitle, { marginTop: 4, fontSize: 6.5, color: '#9ca3af' }]}>
+                  {certificate.verification_footer}
+                </Text>
+              ) : null}
             </View>
 
             <View style={styles.footerCol}>

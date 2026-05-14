@@ -273,17 +273,35 @@ Deno.serve(async (req: Request) => {
       if (learningPathId) {
         console.log("[Stripe Webhook] Payment for learning path:", learningPathId);
         const selectedSkill = session.metadata?.selected_skill || null;
+        const unlockAll = session.metadata?.unlock_all === 'true';
         const lpUpdate: Record<string, unknown> = { is_paid: true, updated_at: new Date().toISOString() };
         if (selectedSkill) lpUpdate.selected_skill = selectedSkill;
-        const { error: lpError } = await supabase
-          .from("learning_paths")
-          .update(lpUpdate)
-          .eq("id", learningPathId);
-        if (lpError) {
-          console.error("[Stripe Webhook] Error unlocking learning path:", lpError);
+
+        if (unlockAll && userId) {
+          // Unlock ALL learning paths for this user
+          console.log("[Stripe Webhook] Unlocking ALL learning paths for user:", userId);
+          const { error: allLpError } = await supabase
+            .from("learning_paths")
+            .update({ is_paid: true, updated_at: new Date().toISOString() })
+            .eq("user_id", userId);
+          if (allLpError) {
+            console.error("[Stripe Webhook] Error unlocking all learning paths:", allLpError);
+          } else {
+            console.log("[Stripe Webhook] All learning paths unlocked for user:", userId);
+          }
         } else {
-          console.log("[Stripe Webhook] Learning path unlocked:", learningPathId);
+          // Unlock only the specific learning path
+          const { error: lpError } = await supabase
+            .from("learning_paths")
+            .update(lpUpdate)
+            .eq("id", learningPathId);
+          if (lpError) {
+            console.error("[Stripe Webhook] Error unlocking learning path:", lpError);
+          } else {
+            console.log("[Stripe Webhook] Learning path unlocked:", learningPathId);
+          }
         }
+
         return new Response(JSON.stringify({ received: true }), {
           status: 200,
           headers: { ...corsHeaders, "Content-Type": "application/json" },
