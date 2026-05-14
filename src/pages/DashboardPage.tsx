@@ -267,17 +267,22 @@ export function DashboardPage() {
       console.log('[Dashboard] Loaded', paths.length, 'learning paths');
       setLearningPaths(paths);
 
-      // Check which paths have completed learning_results (one-click start available)
+      // Check which paths have any learning_results (one-click start available)
+      // A path is "ready" if either the canonical row (id = pathId) exists
+      // or any partial row written by Make (learning_path_id = pathId) exists
       if (paths.length > 0) {
         const ids = paths.filter(p => p.is_paid).map(p => p.id);
         if (ids.length > 0) {
-          const { data: results } = await supabase
-            .from('learning_results')
-            .select('id, status')
-            .in('id', ids);
+          const [{ data: canonical }, { data: partial }] = await Promise.all([
+            supabase.from('learning_results').select('id, status').in('id', ids),
+            supabase.from('learning_results').select('learning_path_id').in('learning_path_id', ids),
+          ]);
           const map: Record<string, boolean> = {};
-          (results ?? []).forEach((r: any) => {
-            map[r.id] = r.status === 'completed';
+          (canonical ?? []).forEach((r: any) => {
+            map[r.id] = true;
+          });
+          (partial ?? []).forEach((r: any) => {
+            if (r.learning_path_id) map[r.learning_path_id] = true;
           });
           setLpResults(map);
         }

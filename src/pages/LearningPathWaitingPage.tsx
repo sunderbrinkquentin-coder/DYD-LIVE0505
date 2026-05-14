@@ -295,8 +295,12 @@ export default function LearningPathWaitingPage() {
 
     const ch = supabase
       .channel(`lpw2_${pathId}_${Date.now()}`)
+      // First INSERT via learning_path_id → navigate immediately
+      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'learning_results', filter: `learning_path_id=eq.${pathId}` },
+        () => { markDone(); })
+      // Final canonical row (id = learning_path_id) as fallback
       .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'learning_results', filter: `id=eq.${pathId}` },
-        (payload) => { if ((payload.new as any)?.status === 'completed') markDone(); })
+        () => { markDone(); })
       .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'learning_results', filter: `id=eq.${pathId}` },
         (payload) => { if ((payload.new as any)?.status === 'completed') markDone(); })
       .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'learning_paths', filter: `id=eq.${pathId}` },
@@ -316,9 +320,15 @@ export default function LearningPathWaitingPage() {
       }
       pollCountRef.current += 1;
 
-      const { data: result } = await supabase
+      // Check for any result row linked via learning_path_id (first partial result)
+      const { data: partialResult } = await supabase
+        .from('learning_results').select('id').eq('learning_path_id', pathId).limit(1).maybeSingle();
+      if (partialResult) { markDone(); return; }
+
+      // Fallback: final canonical row where id = learning_path_id
+      const { data: finalResult } = await supabase
         .from('learning_results').select('status').eq('id', pathId).maybeSingle();
-      if (result?.status === 'completed') { markDone(); return; }
+      if (finalResult?.status === 'completed') { markDone(); return; }
 
       const { data: lp } = await supabase
         .from('learning_paths').select('status').eq('id', pathId).maybeSingle();
@@ -395,11 +405,14 @@ export default function LearningPathWaitingPage() {
       if (lp.target_job) setTargetJob(lp.target_job);
       pathDataRef.current = lp as Record<string, unknown>;
 
-      const { data: result } = await supabase
+      // Check for any result row already written (via learning_path_id or canonical id)
+      const { data: partialResult } = await supabase
+        .from('learning_results').select('id').eq('learning_path_id', pathId).limit(1).maybeSingle();
+      const { data: finalResult } = await supabase
         .from('learning_results').select('status, final_exam').eq('id', pathId).maybeSingle();
 
-      if (result?.status === 'completed' || result?.final_exam) {
-        console.log('[LPW2] Already completed in learning_results — skipping trigger');
+      if (partialResult || finalResult?.status === 'completed' || finalResult?.final_exam) {
+        console.log('[LPW2] Already has results — skipping trigger');
         markDone();
         return;
       }

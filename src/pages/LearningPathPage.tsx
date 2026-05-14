@@ -562,21 +562,96 @@ function LearningContent({
 }) {
   const [result, setResult] = useState<LearningResult | null>(null);
   const [loadingResult, setLoadingResult] = useState(true);
+  const [stillGenerating, setStillGenerating] = useState(false);
   const [quizPhase, setQuizPhase] = useState<'competencies' | 'quiz' | 'done'>('competencies');
   const [answers, setAnswers] = useState<Record<number, string>>({});
   const [revealed, setRevealed] = useState<Record<number, boolean>>({});
   const [quizSubmitted, setQuizSubmitted] = useState(false);
+  const realtimeRef = useRef<ReturnType<typeof supabase.channel> | null>(null);
 
   useEffect(() => {
-    (async () => {
-      const { data } = await supabase
+    let cancelled = false;
+
+    const load = async () => {
+      // Try canonical row first (id = learning_path_id)
+      const { data: canonical } = await supabase
         .from('learning_results')
         .select('final_exam, certificate_metadata')
         .eq('id', learningPath.id)
         .maybeSingle();
-      setResult(data as LearningResult | null);
+
+      if (cancelled) return;
+
+      if (canonical?.final_exam) {
+        setResult(canonical as LearningResult);
+        setLoadingResult(false);
+        return;
+      }
+
+      // Canonical row not yet available — show content from first partial result
+      // while remaining Make runs finish in background
+      const { data: partial } = await supabase
+        .from('learning_results')
+        .select('final_exam, certificate_metadata')
+        .eq('learning_path_id', learningPath.id)
+        .not('final_exam', 'is', null)
+        .limit(1)
+        .maybeSingle();
+
+      if (cancelled) return;
+
+      if (partial?.final_exam) {
+        setResult(partial as LearningResult);
+        setStillGenerating(true);
+        setLoadingResult(false);
+
+        // Listen for canonical row to arrive and update
+        const ch = supabase
+          .channel(`lc_canonical_${learningPath.id}_${Date.now()}`)
+          .on('postgres_changes',
+            { event: 'INSERT', schema: 'public', table: 'learning_results', filter: `id=eq.${learningPath.id}` },
+            (payload) => {
+              const row = payload.new as any;
+              if (row?.final_exam) { setResult(row as LearningResult); setStillGenerating(false); }
+            })
+          .on('postgres_changes',
+            { event: 'UPDATE', schema: 'public', table: 'learning_results', filter: `id=eq.${learningPath.id}` },
+            (payload) => {
+              const row = payload.new as any;
+              if (row?.final_exam) { setResult(row as LearningResult); setStillGenerating(false); }
+            })
+          .subscribe();
+        realtimeRef.current = ch;
+        return;
+      }
+
+      // Nothing yet — show loading state and wait
       setLoadingResult(false);
-    })();
+      setStillGenerating(true);
+
+      const ch = supabase
+        .channel(`lc_wait_${learningPath.id}_${Date.now()}`)
+        .on('postgres_changes',
+          { event: 'INSERT', schema: 'public', table: 'learning_results', filter: `id=eq.${learningPath.id}` },
+          (payload) => {
+            const row = payload.new as any;
+            if (row?.final_exam) { setResult(row as LearningResult); setStillGenerating(false); }
+          })
+        .on('postgres_changes',
+          { event: 'INSERT', schema: 'public', table: 'learning_results', filter: `learning_path_id=eq.${learningPath.id}` },
+          (payload) => {
+            const row = payload.new as any;
+            if (row?.final_exam) { setResult(row as LearningResult); setStillGenerating(false); }
+          })
+        .subscribe();
+      realtimeRef.current = ch;
+    };
+
+    load();
+    return () => {
+      cancelled = true;
+      if (realtimeRef.current) { supabase.removeChannel(realtimeRef.current); realtimeRef.current = null; }
+    };
   }, [learningPath.id]);
 
   const questions: QuizQuestion[] = (() => {
@@ -618,9 +693,44 @@ function LearningContent({
     );
   }
 
+  if (!result && stillGenerating) {
+    return (
+      <div className="flex flex-col items-center gap-5 py-20 max-w-sm mx-auto text-center">
+        <div className="w-14 h-14 rounded-2xl flex items-center justify-center"
+          style={{ background: 'rgba(48,227,202,0.1)', border: '1px solid rgba(48,227,202,0.25)' }}>
+          <Loader2 className="w-7 h-7 text-[#30E3CA] animate-spin" />
+        </div>
+        <div>
+          <p className="text-white font-black text-lg">Lernpfad wird fertiggestellt…</p>
+          <p className="text-white/45 text-sm mt-1.5 leading-relaxed">
+            Weitere Inhalte werden im Hintergrund geladen. Diese Seite aktualisiert sich automatisch.
+          </p>
+        </div>
+        <div className="flex gap-1.5">
+          {[0, 1, 2].map(i => (
+            <div key={i} className="w-1.5 h-1.5 rounded-full bg-[#30E3CA]"
+              style={{ animation: `lpw2_pulse 1.4s ease-in-out ${i * 0.2}s infinite` }} />
+          ))}
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="space-y-6 max-w-2xl mx-auto" style={{ animation: 'lp_fadeUp 0.5s ease' }}>
       <style>{GLOBAL_STYLES}</style>
+
+      {/* "More results loading" banner */}
+      {stillGenerating && (
+        <div className="flex items-center gap-3 px-4 py-3 rounded-xl"
+          style={{ background: 'rgba(48,227,202,0.05)', border: '1px solid rgba(48,227,202,0.2)' }}>
+          <div className="w-1.5 h-1.5 rounded-full bg-[#30E3CA] flex-shrink-0"
+            style={{ animation: 'lpw2_pulse 1.4s ease-in-out infinite' }} />
+          <p className="text-xs text-[#30E3CA]/70 flex-1">
+            Weitere Lernpfad-Inhalte werden im Hintergrund geladen…
+          </p>
+        </div>
+      )}
 
       {/* Header */}
       <div className="rounded-2xl p-5"
@@ -1060,13 +1170,19 @@ export default function LearningPathPage() {
       if (!raw) { setError('Lernpfad nicht gefunden'); setPhase('error'); return; }
       const path = normalizePath(raw);
 
-      // Check learning_results — Make writes final_exam + status here when done
+      // Check learning_results — canonical row (id = pathId) or any partial row (learning_path_id = pathId)
       const { data: resultRow } = await supabase
         .from('learning_results')
         .select('status, final_exam')
         .eq('id', pathId)
         .maybeSingle();
-      const hasResults = resultRow?.status === 'completed' || !!resultRow?.final_exam;
+      const { data: partialRow } = await supabase
+        .from('learning_results')
+        .select('id')
+        .eq('learning_path_id', pathId)
+        .limit(1)
+        .maybeSingle();
+      const hasResults = resultRow?.status === 'completed' || !!resultRow?.final_exam || !!partialRow;
 
       setLearningPath(path);
       setAnalysisResult(resultFromPath(path));
