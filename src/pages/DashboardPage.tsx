@@ -40,6 +40,7 @@ export function DashboardPage() {
   const [showPaymentSuccess, setShowPaymentSuccess] = useState(false);
   const [showTicketSuccess, setShowTicketSuccess] = useState(false);
   const [learningPaths, setLearningPaths] = useState<LearningPath[]>([]);
+  const [lpResults, setLpResults] = useState<Record<string, boolean>>({}); // pathId → has completed learning_results
   const [userFirstName, setUserFirstName] = useState<string>('');
   const [festivalTickets, setFestivalTickets] = useState<any[]>([]);
   const [isCvChecksExpanded, setIsCvChecksExpanded] = useState(false);
@@ -265,6 +266,22 @@ export function DashboardPage() {
       const paths = await careerService.getUserLearningPaths(user.id);
       console.log('[Dashboard] Loaded', paths.length, 'learning paths');
       setLearningPaths(paths);
+
+      // Check which paths have completed learning_results (one-click start available)
+      if (paths.length > 0) {
+        const ids = paths.filter(p => p.is_paid).map(p => p.id);
+        if (ids.length > 0) {
+          const { data: results } = await supabase
+            .from('learning_results')
+            .select('id, status')
+            .in('id', ids);
+          const map: Record<string, boolean> = {};
+          (results ?? []).forEach((r: any) => {
+            map[r.id] = r.status === 'completed';
+          });
+          setLpResults(map);
+        }
+      }
     } catch (error) {
       console.error('[Dashboard] Error loading learning paths:', error);
       setLearningPaths([]);
@@ -983,17 +1000,19 @@ export function DashboardPage() {
             </div>
           )}
 
-          {/* Career Vision Status-Zentrale */}
+          {/* Career Vision — Lernpfade */}
           {learningPaths.length > 0 && (() => {
-            // Show the most recent completed path first, else the newest
-            const sorted = [...learningPaths].sort((a, b) => {
-              const aScore = a.status === 'completed' ? 2 : a.status === 'curriculum_ready' ? 1 : 0;
-              const bScore = b.status === 'completed' ? 2 : b.status === 'curriculum_ready' ? 1 : 0;
-              if (aScore !== bScore) return bScore - aScore;
-              return new Date(b.updated_at).getTime() - new Date(a.updated_at).getTime();
-            });
-            const primary = sorted[0];
-            const rest    = sorted.slice(1, 3);
+            const paidPaths = [...learningPaths]
+              .filter(p => p.is_paid)
+              .sort((a, b) => {
+                // Ready first, then in_progress, then others
+                const score = (p: LearningPath) =>
+                  lpResults[p.id] ? 3 : p.status === 'completed' ? 2 : p.status === 'in_progress' ? 1 : 0;
+                if (score(b) !== score(a)) return score(b) - score(a);
+                return new Date(b.updated_at).getTime() - new Date(a.updated_at).getTime();
+              });
+            const unpaidPaths = learningPaths.filter(p => !p.is_paid);
+            const primaryUnpaid = unpaidPaths[0];
 
             return (
               <div className="space-y-4">
@@ -1018,46 +1037,129 @@ export function DashboardPage() {
                   )}
                 </div>
 
-                {/* Status-Zentrale banner */}
-                <div className="flex items-center gap-3 px-4 py-3 rounded-xl"
-                  style={{ background: 'linear-gradient(135deg,rgba(48,227,202,0.07),rgba(10,14,30,0.8))', border: '1px solid rgba(48,227,202,0.15)' }}>
-                  <div className="w-2 h-2 rounded-full bg-[#30E3CA] animate-pulse flex-shrink-0" />
-                  <div className="flex-1 min-w-0">
-                    <p className="text-[11px] font-black text-[#30E3CA]/70 uppercase tracking-widest">Aktive Vision</p>
-                    <p className="text-sm font-black text-white truncate">
-                      {primary.target_job}
-                      {primary.target_company ? <span className="text-white/50 font-normal"> bei {primary.target_company}</span> : null}
+                {/* Paid learning paths list */}
+                {paidPaths.length > 0 && (
+                  <div className="space-y-2">
+                    <p className="text-[10px] font-black uppercase tracking-widest text-white/25 px-1">
+                      Meine Lernpfade
                     </p>
-                  </div>
-                  {primary.match_score && primary.match_score > 0 && (
-                    <div className="flex-shrink-0 px-3 py-1.5 rounded-lg text-center"
-                      style={{ background: 'rgba(48,227,202,0.08)', border: '1px solid rgba(48,227,202,0.2)' }}>
-                      <p className="text-lg font-black text-[#30E3CA] leading-none">{primary.match_score}%</p>
-                      <p className="text-[9px] text-white/40 font-bold uppercase tracking-wide">Readiness</p>
-                    </div>
-                  )}
-                </div>
+                    {paidPaths.map((path) => {
+                      const isReady = lpResults[path.id] === true;
+                      const isProcessing = !isReady && (path.status === 'in_progress' || path.status === 'curriculum_ready');
+                      const isCompleted = path.status === 'completed' && isReady;
 
-                {/* Primary card */}
-                <CareerVisionCard
-                  learningPath={primary}
-                  variant="compact"
-                  onStartLearning={() => navigate(`/learning-path/${primary.id}`)}
-                />
+                      return (
+                        <div
+                          key={path.id}
+                          className="flex items-center gap-3 px-4 py-3.5 rounded-2xl transition-all hover:scale-[1.005]"
+                          style={{
+                            background: isReady
+                              ? 'linear-gradient(135deg,rgba(34,197,94,0.07),rgba(8,13,24,0.98))'
+                              : isProcessing
+                              ? 'linear-gradient(135deg,rgba(48,227,202,0.05),rgba(8,13,24,0.98))'
+                              : 'rgba(255,255,255,0.02)',
+                            border: isReady
+                              ? '1px solid rgba(34,197,94,0.22)'
+                              : isProcessing
+                              ? '1px solid rgba(48,227,202,0.18)'
+                              : '1px solid rgba(255,255,255,0.08)',
+                          }}
+                        >
+                          {/* Status icon */}
+                          <div
+                            className="w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0"
+                            style={{
+                              background: isReady ? 'rgba(34,197,94,0.12)' : isProcessing ? 'rgba(48,227,202,0.1)' : 'rgba(255,255,255,0.04)',
+                              border: isReady ? '1px solid rgba(34,197,94,0.3)' : isProcessing ? '1px solid rgba(48,227,202,0.25)' : '1px solid rgba(255,255,255,0.09)',
+                            }}
+                          >
+                            {isReady ? (
+                              <CheckCircle size={16} className="text-green-400" />
+                            ) : isProcessing ? (
+                              <div className="w-3.5 h-3.5 rounded-full border-2 border-[#30E3CA]/40 border-t-[#30E3CA] animate-spin" />
+                            ) : (
+                              <Target size={15} className="text-white/30" />
+                            )}
+                          </div>
 
-                {/* Secondary cards */}
-                {rest.length > 0 && (
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                    {rest.map((path) => (
-                      <CareerVisionCard
-                        key={path.id}
-                        learningPath={path}
-                        variant="compact"
-                        onStartLearning={() => navigate(`/learning-path/${path.id}`)}
-                      />
-                    ))}
+                          {/* Info */}
+                          <div className="flex-1 min-w-0">
+                            <p className="text-sm font-black text-white leading-tight truncate">{path.target_job}</p>
+                            <div className="flex items-center gap-2 mt-0.5">
+                              {isReady ? (
+                                <span className="text-[10px] font-black uppercase tracking-wider text-green-400/70">
+                                  Bereit zum Starten
+                                </span>
+                              ) : isProcessing ? (
+                                <span className="text-[10px] font-black uppercase tracking-wider text-[#30E3CA]/60">
+                                  Wird erstellt…
+                                </span>
+                              ) : (
+                                <span className="text-[10px] text-white/30">Freigeschaltet</span>
+                              )}
+                              {path.target_company && (
+                                <span className="text-[10px] text-white/25 truncate">· {path.target_company}</span>
+                              )}
+                            </div>
+                          </div>
+
+                          {/* Action button */}
+                          <button
+                            onClick={() => {
+                              if (isReady) {
+                                navigate(`/learning-path/${path.id}`);
+                              } else {
+                                navigate(`/learning-path-waiting/${path.id}`);
+                              }
+                            }}
+                            className="flex-shrink-0 flex items-center gap-1.5 px-3 py-2 rounded-xl text-[11px] font-black transition-all hover:scale-105 active:scale-95"
+                            style={{
+                              background: isReady
+                                ? 'rgba(34,197,94,0.12)'
+                                : 'rgba(48,227,202,0.08)',
+                              border: isReady
+                                ? '1px solid rgba(34,197,94,0.3)'
+                                : '1px solid rgba(48,227,202,0.2)',
+                              color: isReady ? '#4ade80' : '#30E3CA',
+                            }}
+                          >
+                            {isReady ? (
+                              <>
+                                <svg width="11" height="11" viewBox="0 0 12 12" fill="currentColor">
+                                  <polygon points="2,1 10,6 2,11"/>
+                                </svg>
+                                Starten
+                              </>
+                            ) : (
+                              <>
+                                <div className="w-2.5 h-2.5 rounded-full border border-current border-t-transparent animate-spin" />
+                                Öffnen
+                              </>
+                            )}
+                          </button>
+                        </div>
+                      );
+                    })}
                   </div>
                 )}
+
+                {/* Unpaid path — show the first one as a teaser with CareerVisionCard */}
+                {primaryUnpaid && (
+                  <CareerVisionCard
+                    learningPath={primaryUnpaid}
+                    variant="compact"
+                    onStartLearning={() => navigate(`/learning-path/${primaryUnpaid.id}`)}
+                  />
+                )}
+
+                {!primaryUnpaid && paidPaths.length === 0 && learningPaths.slice(0, 1).map(path => (
+                  <CareerVisionCard
+                    key={path.id}
+                    learningPath={path}
+                    variant="compact"
+                    onStartLearning={() => navigate(`/learning-path/${path.id}`)}
+                  />
+                ))}
 
                 {learningPaths.length > 3 && (
                   <button
@@ -1069,7 +1171,7 @@ export function DashboardPage() {
                   </button>
                 )}
 
-                {/* Certificate showcase — only paths with issued certificates */}
+                {/* Certificate showcase */}
                 {(() => {
                   const certPaths = learningPaths.filter(p => p.certificate_url && p.certificate_issued_at);
                   if (!certPaths.length) return null;
