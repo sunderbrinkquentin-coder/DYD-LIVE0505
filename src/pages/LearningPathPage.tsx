@@ -598,6 +598,18 @@ export default function LearningPathPage() {
     return 'result' as PagePhase;
   }, [parseCurriculumModules]);
 
+  // ── Normalize path (parse curriculum if stored as JSON string) ───────────────
+
+  const normalizePath = useCallback((path: LearningPath): LearningPath => {
+    if (path.curriculum && typeof path.curriculum === 'string') {
+      try {
+        const parsed = JSON.parse(path.curriculum as unknown as string);
+        return { ...path, curriculum: parsed };
+      } catch { /* leave as-is */ }
+    }
+    return path;
+  }, []);
+
   // ── Curriculum ready handler (after generation) ───────────────────────────────
 
   const handleCurriculumReady = useCallback(async (path: LearningPath) => {
@@ -685,16 +697,6 @@ export default function LearningPathPage() {
   }, [handleCurriculumReady, startCurriculumPolling]);
 
   // ── Load learning path ────────────────────────────────────────────────────────
-
-  const normalizePath = useCallback((path: LearningPath): LearningPath => {
-    if (path.curriculum && typeof path.curriculum === 'string') {
-      try {
-        const parsed = JSON.parse(path.curriculum as unknown as string);
-        return { ...path, curriculum: parsed };
-      } catch { /* leave as-is */ }
-    }
-    return path;
-  }, []);
 
   const loadLearningPath = useCallback(async (showLoader = false) => {
     if (!pathId) return;
