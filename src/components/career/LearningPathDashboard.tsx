@@ -45,10 +45,29 @@ function getModulePhaseColor(index: number, total: number) {
 }
 
 export function LearningPathDashboard({
-  learningPath,
+  learningPath: initialPath,
   onCertificateRequest,
 }: LearningPathDashboardProps) {
+  const [localProgress, setLocalProgress] = useState<Record<string, { status: 'not_started' | 'in_progress' | 'completed' }>>(
+    () => Object.fromEntries(
+      Object.entries(initialPath.progress ?? {}).map(([k, v]) => [k, { status: v.status }])
+    )
+  );
+  const [localCompleted, setLocalCompleted] = useState(initialPath.status === 'completed');
   const [expandedModules, setExpandedModules] = useState<Set<string>>(new Set());
+  const [updatingModule, setUpdatingModule] = useState<string | null>(null);
+
+  // Merge local progress into the path object for display
+  const learningPath: LearningPathDashboardProps['learningPath'] = {
+    ...initialPath,
+    status: localCompleted ? 'completed' : initialPath.status,
+    progress: {
+      ...initialPath.progress,
+      ...Object.fromEntries(
+        Object.entries(localProgress).map(([k, v]) => [k, { ...(initialPath.progress?.[k] ?? {}), status: v.status } as any])
+      ),
+    },
+  };
 
   const completionPercentage = careerService.calculateCompletionPercentage(learningPath);
   const estimatedCompletion = careerService.getEstimatedCompletionDate(learningPath);
@@ -66,27 +85,38 @@ export function LearningPathDashboard({
     moduleId: string,
     status: 'not_started' | 'in_progress' | 'completed'
   ) => {
+    // Optimistic update
+    setLocalProgress(prev => ({ ...prev, [moduleId]: { status } }));
+    setUpdatingModule(moduleId);
+
     try {
       await careerService.updateModuleProgress(learningPath.id, moduleId, { status });
-      window.location.reload();
+
+      // Check if all modules are now completed
+      const sortedMods = [...(learningPath.curriculum?.modules || [])].sort((a, b) => a.order - b.order);
+      const updatedProgress = { ...localProgress, [moduleId]: { status } };
+      const allDone = sortedMods.every(m => updatedProgress[m.id]?.status === 'completed');
+      if (allDone) setLocalCompleted(true);
     } catch (error) {
       console.error('Failed to update module status:', error);
+      // Revert on failure
+      setLocalProgress(prev => ({ ...prev, [moduleId]: { status: initialPath.progress?.[moduleId]?.status ?? 'not_started' } }));
+    } finally {
+      setUpdatingModule(null);
     }
   };
 
   const getModuleStatus = (moduleId: string) =>
-    learningPath.progress?.[moduleId]?.status || 'not_started';
+    localProgress[moduleId]?.status ?? learningPath.progress?.[moduleId]?.status ?? 'not_started';
 
   const sortedModules = [...(learningPath.curriculum?.modules || [])].sort(
     (a, b) => a.order - b.order
   );
   const total = sortedModules.length;
-  const completedCount = Object.values(learningPath.progress || {}).filter(
-    (p: any) => p.status === 'completed'
-  ).length;
+  const completedCount = sortedModules.filter(m => getModuleStatus(m.id) === 'completed').length;
   const inProgressModule = sortedModules.find(m => getModuleStatus(m.id) === 'in_progress');
   const nextModule = sortedModules.find(m => getModuleStatus(m.id) === 'not_started');
-  const isCompleted = learningPath.status === 'completed';
+  const isCompleted = localCompleted || learningPath.status === 'completed';
 
   return (
     <div className="space-y-6">
@@ -381,21 +411,31 @@ export function LearningPathDashboard({
                     {moduleStatus === 'not_started' && (
                       <button
                         onClick={() => handleModuleStatusChange(module.id, 'in_progress')}
-                        className="px-5 py-2.5 rounded-xl font-bold text-sm text-white flex items-center gap-2 transition-all hover:scale-105"
+                        disabled={updatingModule === module.id}
+                        className="px-5 py-2.5 rounded-xl font-bold text-sm text-white flex items-center gap-2 transition-all hover:scale-105 disabled:opacity-60 disabled:cursor-not-allowed"
                         style={{ background: 'rgba(48,227,202,0.15)', border: '1px solid rgba(48,227,202,0.3)' }}
                       >
-                        <PlayCircle size={16} style={{ color: '#30E3CA' }} />
+                        {updatingModule === module.id ? (
+                          <div className="w-4 h-4 rounded-full border-2 border-[#30E3CA]/40 border-t-[#30E3CA] animate-spin" />
+                        ) : (
+                          <PlayCircle size={16} style={{ color: '#30E3CA' }} />
+                        )}
                         <span style={{ color: '#30E3CA' }}>Modul starten</span>
                       </button>
                     )}
                     {moduleStatus === 'in_progress' && (
                       <button
                         onClick={() => handleModuleStatusChange(module.id, 'completed')}
-                        className="px-5 py-2.5 rounded-xl font-bold text-sm text-black flex items-center gap-2 transition-all hover:scale-105"
+                        disabled={updatingModule === module.id}
+                        className="px-5 py-2.5 rounded-xl font-bold text-sm text-black flex items-center gap-2 transition-all hover:scale-105 disabled:opacity-60 disabled:cursor-not-allowed"
                         style={{ background: 'linear-gradient(135deg,#66c0b6,#30E3CA)' }}
                       >
-                        <CheckCircle2 size={16} />
-                        Abgeschlossen
+                        {updatingModule === module.id ? (
+                          <div className="w-4 h-4 rounded-full border-2 border-black/30 border-t-black animate-spin" />
+                        ) : (
+                          <CheckCircle2 size={16} />
+                        )}
+                        Als abgeschlossen markieren
                       </button>
                     )}
                     {moduleStatus === 'completed' && (

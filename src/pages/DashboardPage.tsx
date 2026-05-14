@@ -1,7 +1,7 @@
 // src/pages/DashboardPage.tsx
 import { useState, useEffect } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
-import { Plus, Briefcase, LogOut, ClipboardCheck, Coins, CheckCircle, Target, Lock, ExternalLink, Calendar, TrendingUp, FileSearch, ChevronDown, ChevronUp, Download, FileText, X, Zap, ArrowRight, Settings, CreditCard as Edit2 } from 'lucide-react';
+import { Plus, Briefcase, LogOut, ClipboardCheck, Coins, CheckCircle, Target, Lock, ExternalLink, Calendar, TrendingUp, FileSearch, ChevronDown, ChevronUp, Download, FileText, X, Zap, ArrowRight, Settings, CreditCard as Edit2, Award } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import { cvStorageService } from '../services/cvStorageService';
 import { tokenService } from '../services/tokenService';
@@ -929,7 +929,8 @@ export function DashboardPage() {
 
               <button
                 onClick={() => navigate('/career-vision')}
-                className="flex-1 sm:flex-none px-4 py-2 rounded-lg bg-gradient-to-r from-purple-500 to-pink-500 text-white font-semibold hover:opacity-90 transition-all flex items-center justify-center gap-2 text-sm shadow-lg"
+                className="flex-1 sm:flex-none px-4 py-2 rounded-lg text-black font-semibold hover:opacity-90 transition-all flex items-center justify-center gap-2 text-sm shadow-lg"
+              style={{ background: 'linear-gradient(135deg,#66c0b6,#30E3CA)' }}
               >
                 <Target size={18} />
                 <span className="hidden sm:inline">Career Vision</span>
@@ -1067,6 +1068,49 @@ export function DashboardPage() {
                     {learningPaths.length - 3} weitere Analysen anzeigen
                   </button>
                 )}
+
+                {/* Certificate showcase — only paths with issued certificates */}
+                {(() => {
+                  const certPaths = learningPaths.filter(p => p.certificate_url && p.certificate_issued_at);
+                  if (!certPaths.length) return null;
+                  return (
+                    <div className="space-y-3">
+                      <div className="flex items-center gap-2">
+                        <div className="w-5 h-5 rounded-lg flex items-center justify-center" style={{ background: 'rgba(251,191,36,0.12)', border: '1px solid rgba(251,191,36,0.25)' }}>
+                          <Award size={12} className="text-amber-400" />
+                        </div>
+                        <span className="text-[11px] font-black uppercase tracking-widest text-white/30">Meine Zertifikate</span>
+                      </div>
+                      {certPaths.map(path => (
+                        <div
+                          key={path.id}
+                          className="flex items-center gap-3 px-4 py-3 rounded-2xl"
+                          style={{ background: 'linear-gradient(135deg,rgba(251,191,36,0.06),rgba(249,115,22,0.04))', border: '1px solid rgba(251,191,36,0.18)' }}
+                        >
+                          <div className="w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0" style={{ background: 'rgba(251,191,36,0.1)', border: '1px solid rgba(251,191,36,0.25)' }}>
+                            <Award size={18} className="text-amber-400" />
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <p className="text-sm font-black text-white leading-tight truncate">{path.target_job}</p>
+                            <p className="text-[10px] text-white/35 mt-0.5">
+                              Abgeschlossen {path.certificate_issued_at ? new Date(path.certificate_issued_at).toLocaleDateString('de-DE', { day: '2-digit', month: 'long', year: 'numeric' }) : ''}
+                            </p>
+                          </div>
+                          <a
+                            href={path.certificate_url}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-[11px] font-black transition-all hover:scale-105 flex-shrink-0"
+                            style={{ background: 'rgba(251,191,36,0.12)', border: '1px solid rgba(251,191,36,0.28)', color: '#fbbf24' }}
+                          >
+                            <Download size={12} />
+                            PDF
+                          </a>
+                        </div>
+                      ))}
+                    </div>
+                  );
+                })()}
               </div>
             );
           })()}

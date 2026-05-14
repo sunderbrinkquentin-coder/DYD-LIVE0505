@@ -2,170 +2,294 @@ import React from 'react';
 import { Document, Page, Text, View, StyleSheet, Image } from '@react-pdf/renderer';
 import { Certificate } from '../types/learningPath';
 
+// DYD logo hosted from public folder — works in both dev and prod
+const DYD_LOGO_URL = `${typeof window !== 'undefined' ? window.location.origin : ''}/DYD Logo RGB.svg`;
+
+const TEAL = '#66c0b6';
+const TEAL2 = '#30E3CA';
+const DARK = '#0a0f1a';
+const DARK2 = '#111827';
+
 const styles = StyleSheet.create({
   page: {
-    padding: 50,
+    padding: 0,
     backgroundColor: '#ffffff',
     fontFamily: 'Helvetica',
   },
-  header: {
-    marginBottom: 30,
-    textAlign: 'center',
+
+  // Outer decorative border frame
+  outerBorder: {
+    position: 'absolute',
+    top: 14,
+    left: 14,
+    right: 14,
+    bottom: 14,
+    border: '2.5px solid #66c0b6',
+    borderRadius: 6,
   },
-  logo: {
-    width: 80,
-    height: 80,
-    marginBottom: 20,
-    alignSelf: 'center',
-  },
-  title: {
-    fontSize: 32,
-    fontWeight: 'bold',
-    color: '#1a1a1a',
-    marginBottom: 10,
-    textAlign: 'center',
-    letterSpacing: 2,
-  },
-  subtitle: {
-    fontSize: 14,
-    color: '#666666',
-    textAlign: 'center',
-    marginBottom: 40,
-  },
-  mainContent: {
-    marginTop: 40,
-    marginBottom: 40,
-  },
-  certificateText: {
-    fontSize: 12,
-    color: '#333333',
-    textAlign: 'center',
-    marginBottom: 20,
-  },
-  recipientName: {
-    fontSize: 28,
-    fontWeight: 'bold',
-    color: '#66c0b6',
-    textAlign: 'center',
-    marginVertical: 20,
-    textDecoration: 'underline',
-  },
-  achievementText: {
-    fontSize: 14,
-    color: '#333333',
-    textAlign: 'center',
-    marginBottom: 15,
-    lineHeight: 1.6,
-  },
-  targetJob: {
-    fontSize: 20,
-    fontWeight: 'bold',
-    color: '#1a1a1a',
-    textAlign: 'center',
-    marginVertical: 15,
-  },
-  skillsSection: {
-    marginTop: 30,
-    marginBottom: 30,
-    padding: 20,
-    backgroundColor: '#f8f9fa',
-    borderRadius: 8,
-  },
-  skillsTitle: {
-    fontSize: 14,
-    fontWeight: 'bold',
-    color: '#1a1a1a',
-    marginBottom: 15,
-    textAlign: 'center',
-  },
-  skillsGrid: {
-    display: 'flex',
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    justifyContent: 'center',
-    gap: 8,
-  },
-  skillBadge: {
-    backgroundColor: '#66c0b6',
-    color: '#ffffff',
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 16,
-    fontSize: 10,
-    margin: 4,
-  },
-  footer: {
-    marginTop: 50,
-    paddingTop: 20,
-    borderTop: '2px solid #e0e0e0',
-  },
-  footerRow: {
-    display: 'flex',
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    marginBottom: 10,
-  },
-  footerItem: {
-    flex: 1,
-    textAlign: 'center',
-  },
-  footerLabel: {
-    fontSize: 10,
-    color: '#999999',
-    marginBottom: 5,
-  },
-  footerValue: {
-    fontSize: 11,
-    color: '#333333',
-    fontWeight: 'bold',
-  },
-  signature: {
-    marginTop: 30,
-    textAlign: 'center',
-  },
-  signatureLine: {
-    width: 200,
-    height: 1,
-    backgroundColor: '#333333',
-    marginBottom: 5,
-    alignSelf: 'center',
-  },
-  signatureName: {
-    fontSize: 11,
-    color: '#333333',
-    fontWeight: 'bold',
-  },
-  signatureTitle: {
-    fontSize: 9,
-    color: '#666666',
-    marginTop: 2,
-  },
-  decorativeBorder: {
+  innerBorder: {
     position: 'absolute',
     top: 20,
     left: 20,
     right: 20,
     bottom: 20,
-    border: '4px solid #66c0b6',
-    borderRadius: 8,
+    border: '0.8px solid rgba(102,192,182,0.35)',
+    borderRadius: 4,
   },
+
+  // Top accent bar
+  accentBar: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    height: 8,
+    backgroundColor: TEAL,
+  },
+
+  content: {
+    margin: 36,
+    flex: 1,
+    flexDirection: 'column',
+  },
+
+  header: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 22,
+    paddingBottom: 18,
+    borderBottom: '1px solid rgba(102,192,182,0.25)',
+  },
+
+  logoArea: {
+    flexDirection: 'column',
+    alignItems: 'flex-start',
+    gap: 3,
+  },
+  orgName: {
+    fontSize: 13,
+    fontFamily: 'Helvetica-Bold',
+    color: DARK,
+    letterSpacing: 1,
+  },
+  orgSub: {
+    fontSize: 9,
+    color: '#6b7280',
+    letterSpacing: 0.5,
+  },
+
+  certBadge: {
+    flexDirection: 'column',
+    alignItems: 'flex-end',
+    gap: 2,
+  },
+  certLabel: {
+    fontSize: 9,
+    color: TEAL,
+    fontFamily: 'Helvetica-Bold',
+    letterSpacing: 2,
+    textTransform: 'uppercase',
+  },
+  certId: {
+    fontSize: 7.5,
+    color: '#9ca3af',
+    letterSpacing: 0.5,
+  },
+
+  // Main body
+  mainHeading: {
+    fontSize: 9,
+    color: '#9ca3af',
+    fontFamily: 'Helvetica-Bold',
+    letterSpacing: 3,
+    textTransform: 'uppercase',
+    textAlign: 'center',
+    marginBottom: 10,
+  },
+  mainTitle: {
+    fontSize: 34,
+    fontFamily: 'Helvetica-Bold',
+    color: DARK,
+    textAlign: 'center',
+    letterSpacing: 3,
+    marginBottom: 20,
+  },
+
+  divider: {
+    height: 2,
+    width: 60,
+    backgroundColor: TEAL,
+    alignSelf: 'center',
+    marginBottom: 20,
+    borderRadius: 1,
+  },
+
+  bodyText: {
+    fontSize: 11,
+    color: '#4b5563',
+    textAlign: 'center',
+    marginBottom: 4,
+    lineHeight: 1.5,
+  },
+
+  recipientName: {
+    fontSize: 26,
+    fontFamily: 'Helvetica-Bold',
+    color: DARK,
+    textAlign: 'center',
+    marginVertical: 10,
+    letterSpacing: 0.5,
+  },
+  recipientUnderline: {
+    height: 1,
+    width: 220,
+    alignSelf: 'center',
+    backgroundColor: TEAL,
+    marginBottom: 12,
+    opacity: 0.6,
+  },
+
+  achievementText: {
+    fontSize: 11,
+    color: '#4b5563',
+    textAlign: 'center',
+    marginBottom: 4,
+    lineHeight: 1.5,
+  },
+
+  jobTitle: {
+    fontSize: 17,
+    fontFamily: 'Helvetica-Bold',
+    color: TEAL,
+    textAlign: 'center',
+    marginVertical: 10,
+    letterSpacing: 0.5,
+  },
+
+  // Skills + modules row
+  twoCol: {
+    flexDirection: 'row',
+    gap: 14,
+    marginTop: 18,
+    marginBottom: 18,
+  },
+  colBox: {
+    flex: 1,
+    padding: 12,
+    backgroundColor: '#f9fafb',
+    borderRadius: 6,
+    border: '1px solid rgba(102,192,182,0.2)',
+  },
+  colTitle: {
+    fontSize: 8,
+    fontFamily: 'Helvetica-Bold',
+    color: TEAL,
+    letterSpacing: 2,
+    textTransform: 'uppercase',
+    marginBottom: 8,
+  },
+
+  skillsWrap: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 4,
+  },
+  skillChip: {
+    backgroundColor: '#e6f5f3',
+    paddingHorizontal: 7,
+    paddingVertical: 3,
+    borderRadius: 20,
+    fontSize: 7.5,
+    color: DARK,
+    margin: 2,
+  },
+
+  moduleItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 5,
+    marginBottom: 5,
+  },
+  moduleDot: {
+    width: 5,
+    height: 5,
+    borderRadius: 3,
+    backgroundColor: TEAL,
+    flexShrink: 0,
+  },
+  moduleText: {
+    fontSize: 8.5,
+    color: '#374151',
+    flex: 1,
+  },
+
+  // Footer
+  footer: {
+    borderTop: '1px solid rgba(102,192,182,0.25)',
+    paddingTop: 14,
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'flex-end',
+  },
+
+  footerCol: {
+    flexDirection: 'column',
+    alignItems: 'center',
+    flex: 1,
+  },
+  footerLabel: {
+    fontSize: 7.5,
+    color: '#9ca3af',
+    marginBottom: 3,
+    letterSpacing: 0.5,
+  },
+  footerValue: {
+    fontSize: 9.5,
+    fontFamily: 'Helvetica-Bold',
+    color: DARK,
+    textAlign: 'center',
+  },
+
+  sigLine: {
+    width: 80,
+    height: 0.8,
+    backgroundColor: '#374151',
+    marginBottom: 4,
+  },
+  sigName: {
+    fontSize: 8.5,
+    fontFamily: 'Helvetica-Bold',
+    color: DARK,
+    textAlign: 'center',
+  },
+  sigTitle: {
+    fontSize: 7,
+    color: '#6b7280',
+    textAlign: 'center',
+    marginTop: 1,
+  },
+
   watermark: {
     position: 'absolute',
-    top: '50%',
-    left: '50%',
-    transform: 'translate(-50%, -50%) rotate(-45deg)',
-    fontSize: 60,
+    top: '40%',
+    left: '20%',
+    fontSize: 80,
     color: '#f0f0f0',
-    opacity: 0.1,
+    opacity: 0.08,
+    transform: 'rotate(-35deg)',
+    fontFamily: 'Helvetica-Bold',
+    letterSpacing: 6,
     zIndex: -1,
   },
 });
 
 interface CertificatePDFProps {
   certificate: Certificate;
+  modules?: string[];
 }
 
-export function CertificatePDF({ certificate }: CertificatePDFProps) {
+export function CertificatePDF({ certificate, modules = [] }: CertificatePDFProps) {
   const completionDate = new Date(certificate.completion_date);
   const formattedDate = completionDate.toLocaleDateString('de-DE', {
     day: '2-digit',
@@ -173,66 +297,94 @@ export function CertificatePDF({ certificate }: CertificatePDFProps) {
     year: 'numeric',
   });
 
+  const displaySkills = certificate.mastered_skills.slice(0, 10);
+  const displayModules = modules.slice(0, 6);
+
   return (
     <Document>
       <Page size="A4" style={styles.page} orientation="landscape">
-        <View style={styles.decorativeBorder} />
-        <Text style={styles.watermark}>CERTIFICATE</Text>
+        {/* Decorative borders */}
+        <View style={styles.outerBorder} />
+        <View style={styles.innerBorder} />
+        {/* Top accent bar */}
+        <View style={styles.accentBar} />
+        {/* Watermark */}
+        <Text style={styles.watermark}>ZERTIFIKAT</Text>
 
-        <View style={styles.header}>
-          <Text style={styles.title}>ZERTIFIKAT</Text>
-          <Text style={styles.subtitle}>Career Vision Academy</Text>
-        </View>
-
-        <View style={styles.mainContent}>
-          <Text style={styles.certificateText}>
-            Hiermit wird bescheinigt, dass
-          </Text>
-
-          <Text style={styles.recipientName}>{certificate.recipient_name}</Text>
-
-          <Text style={styles.achievementText}>
-            erfolgreich den Learning Path für die Position
-          </Text>
-
-          <Text style={styles.targetJob}>{certificate.target_job}</Text>
-
-          <Text style={styles.achievementText}>
-            abgeschlossen und folgende Fähigkeiten erworben hat:
-          </Text>
-
-          <View style={styles.skillsSection}>
-            <Text style={styles.skillsTitle}>Erworbene Kompetenzen</Text>
-            <View style={styles.skillsGrid}>
-              {certificate.mastered_skills.slice(0, 12).map((skill, index) => (
-                <Text key={index} style={styles.skillBadge}>
-                  {skill}
-                </Text>
-              ))}
+        <View style={styles.content}>
+          {/* ── Header: Logo + cert ID ── */}
+          <View style={styles.header}>
+            <View style={styles.logoArea}>
+              <Text style={styles.orgName}>DYD – Design Your Dream</Text>
+              <Text style={styles.orgSub}>Career Academy · dyd.academy</Text>
+            </View>
+            <View style={styles.certBadge}>
+              <Text style={styles.certLabel}>Abschlusszertifikat</Text>
+              <Text style={styles.certId}>ID: {certificate.certificate_id}</Text>
             </View>
           </View>
-        </View>
 
-        <View style={styles.footer}>
-          <View style={styles.footerRow}>
-            <View style={styles.footerItem}>
+          {/* ── Main content ── */}
+          <Text style={styles.mainHeading}>Certificate of Completion</Text>
+          <Text style={styles.mainTitle}>ZERTIFIKAT</Text>
+          <View style={styles.divider} />
+
+          <Text style={styles.bodyText}>Hiermit wird bescheinigt, dass</Text>
+
+          <Text style={styles.recipientName}>{certificate.recipient_name}</Text>
+          <View style={styles.recipientUnderline} />
+
+          <Text style={styles.achievementText}>
+            den Lernpfad für die Zielposition
+          </Text>
+          <Text style={styles.jobTitle}>{certificate.target_job}</Text>
+          <Text style={styles.achievementText}>
+            erfolgreich abgeschlossen und alle Module absolviert hat.
+          </Text>
+
+          {/* ── Skills + Modules ── */}
+          <View style={styles.twoCol}>
+            {/* Skills */}
+            <View style={styles.colBox}>
+              <Text style={styles.colTitle}>Erworbene Kompetenzen</Text>
+              <View style={styles.skillsWrap}>
+                {displaySkills.map((skill, i) => (
+                  <Text key={i} style={styles.skillChip}>{skill}</Text>
+                ))}
+              </View>
+            </View>
+
+            {/* Modules */}
+            {displayModules.length > 0 && (
+              <View style={styles.colBox}>
+                <Text style={styles.colTitle}>Abgeschlossene Module</Text>
+                {displayModules.map((mod, i) => (
+                  <View key={i} style={styles.moduleItem}>
+                    <View style={styles.moduleDot} />
+                    <Text style={styles.moduleText}>{mod}</Text>
+                  </View>
+                ))}
+              </View>
+            )}
+          </View>
+
+          {/* ── Footer ── */}
+          <View style={styles.footer}>
+            <View style={styles.footerCol}>
               <Text style={styles.footerLabel}>Ausstellungsdatum</Text>
               <Text style={styles.footerValue}>{formattedDate}</Text>
             </View>
-            <View style={styles.footerItem}>
-              <Text style={styles.footerLabel}>Zertifikat-ID</Text>
-              <Text style={styles.footerValue}>{certificate.certificate_id}</Text>
+
+            <View style={styles.footerCol}>
+              <View style={styles.sigLine} />
+              <Text style={styles.sigName}>DYD – Design Your Dream</Text>
+              <Text style={styles.sigTitle}>Career Academy Leitung</Text>
             </View>
-            <View style={styles.footerItem}>
+
+            <View style={styles.footerCol}>
               <Text style={styles.footerLabel}>Ausgestellt von</Text>
               <Text style={styles.footerValue}>{certificate.issuer}</Text>
             </View>
-          </View>
-
-          <View style={styles.signature}>
-            <View style={styles.signatureLine} />
-            <Text style={styles.signatureName}>Career Vision Team</Text>
-            <Text style={styles.signatureTitle}>Leitung Bildungseinrichtung</Text>
           </View>
         </View>
       </Page>
