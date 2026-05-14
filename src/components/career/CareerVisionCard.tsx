@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import {
   ArrowRight, Sparkles, TrendingUp, Zap, Target, Building2,
   Lock, Brain, ChevronRight, CheckCircle2, XCircle, Flame,
@@ -331,6 +332,7 @@ interface CareerVisionCardProps {
 // ── COMPACT variant ───────────────────────────────────────────────────────────
 
 function CompactCard({ learningPath, onStartLearning }: Omit<CareerVisionCardProps, 'variant'>) {
+  const navigate = useNavigate();
   const [showPaywall, setShowPaywall] = useState(false);
   const [localPaid, setLocalPaid] = useState(learningPath.is_paid);
   const [pendingSkill, setPendingSkill] = useState<string | undefined>(undefined);
@@ -353,7 +355,9 @@ function CompactCard({ learningPath, onStartLearning }: Omit<CareerVisionCardPro
 
   return (
     <>
-      <div className="relative rounded-2xl overflow-hidden"
+      <div
+        onClick={() => navigate(`/learning-path/${learningPath.id}`)}
+        className="relative rounded-2xl overflow-hidden cursor-pointer transition-transform duration-200 hover:scale-[1.012] active:scale-[0.99]"
         style={{
           background: 'linear-gradient(160deg,rgba(10,14,30,0.98),rgba(15,20,40,0.99))',
           border: `1px solid ${accentColor}25`,
@@ -447,7 +451,7 @@ function CompactCard({ learningPath, onStartLearning }: Omit<CareerVisionCardPro
 
           {/* Main CTA */}
           <button
-            onClick={() => handleCta()}
+            onClick={(e) => { e.stopPropagation(); handleCta(); }}
             className="group/btn relative w-full py-3.5 rounded-xl font-black text-[14px] text-black flex items-center justify-center gap-2.5 overflow-hidden transition-all duration-200 hover:scale-[1.015] active:scale-[0.98]"
             style={{ background: `linear-gradient(135deg,${accentColor},${SKILL_PALETTE[1].color})` }}
           >
