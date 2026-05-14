@@ -14,12 +14,16 @@ import { supabase } from '../lib/supabase';
 
 // ── Constants ──────────────────────────────────────────────────────────────────
 
-const CURRICULUM_WEBHOOK_URL = import.meta.env.VITE_MAKE_WEBHOOK_CURRICULUM
-  || import.meta.env.VITE_MAKE_WEBHOOK_LEARNINGPATH
-  || '';
+// Hardcoded as ultimate fallback — env var must match this URL
+const LEARNINGPATH_WEBHOOK_URL =
+  import.meta.env.VITE_MAKE_WEBHOOK_LEARNINGPATH
+  || 'https://hook.eu2.make.com/1pvur1oth8sibonqc3twq57itg2ti1d0';
+
 const COMPLETE_STATUSES = new Set(['curriculum_ready', 'completed']);
-const POLL_INTERVAL_MS = 3_000;
-const POLL_MAX = 60;
+// Statuses where generation is in-flight — only skip re-trigger if learning_results also has content
+const IN_FLIGHT_STATUSES = new Set(['in_progress', 'curriculum_ready', 'completed']);
+const POLL_INTERVAL_MS = 4_000;
+const POLL_MAX = 75;
 
 // ── Keyframes shared with CareerVisionSection ──────────────────────────────────
 
@@ -530,7 +534,7 @@ function ResultView({
 
 // ── Main page ──────────────────────────────────────────────────────────────────
 
-type PagePhase = 'loading' | 'result' | 'generating' | 'revealing' | 'done' | 'error';
+type PagePhase = 'loading' | 'result' | 'generating' | 'revealing' | 'done' | 'error' | 'redirect_waiting';
 
 export default function LearningPathPage() {
   const { pathId } = useParams<{ pathId: string }>();
@@ -595,22 +599,21 @@ export default function LearningPathPage() {
     return [];
   }, []);
 
-  const resolvePhase = useCallback((path: LearningPath) => {
+  const resolvePhase = useCallback((path: LearningPath, hasLearningResults: boolean) => {
     const modules = parseCurriculumModules(path.curriculum);
-    // Has curriculum with modules → show result/analysis view first
-    // User explicitly navigates to dashboard via "Zum Lernpfad" button
+    // learning_results exists + completed → show dashboard content
+    if (hasLearningResults) {
+      return 'result' as PagePhase;
+    }
+    // Has curriculum modules → show result/analysis view
     if (modules.length > 0 || path.status === 'curriculum_ready' || path.status === 'completed') {
       return 'result' as PagePhase;
     }
-    // Paid + curriculum being generated → show generating loader
-    if (path.is_paid && path.status === 'in_progress') {
-      return 'generating' as PagePhase;
+    // Paid but no content yet → redirect to waiting page (handles trigger + polling)
+    if (path.is_paid) {
+      return 'redirect_waiting' as PagePhase;
     }
-    // Analysis done, paid but curriculum not yet started → resume waiting
-    if (path.is_paid && path.status === 'gap_analysis_complete') {
-      return 'generating' as PagePhase;
-    }
-    // Not paid or still analyzing → show result view
+    // Not paid → show result/analysis view with paywall CTA
     return 'result' as PagePhase;
   }, [parseCurriculumModules]);
 
@@ -651,6 +654,18 @@ export default function LearningPathPage() {
       if (pollCountRef.current >= POLL_MAX) return;
       pollCountRef.current += 1;
       try {
+        // Primary: check learning_results (Make writes here when done)
+        const { data: result } = await supabase
+          .from('learning_results')
+          .select('status, final_exam')
+          .eq('id', id)
+          .maybeSingle();
+        if (result?.status === 'completed' || result?.final_exam) {
+          // Fetch full learning_path to pass to handler
+          const { data: lp } = await supabase.from('learning_paths').select('*').eq('id', id).maybeSingle();
+          if (lp) { handleCurriculumReady(lp as unknown as LearningPath); return; }
+        }
+        // Fallback: check learning_paths status
         const { data } = await supabase
           .from('learning_paths')
           .select('*')
@@ -674,9 +689,25 @@ export default function LearningPathPage() {
     setGeneratorSuccess(false);
     setPhase('generating');
 
-    // Start realtime + polling immediately
+    // Start realtime + polling immediately — listen to both tables
     const channel = supabase
       .channel(`lp_curriculum_${path.id}_${Date.now()}`)
+      .on('postgres_changes',
+        { event: 'INSERT', schema: 'public', table: 'learning_results', filter: `id=eq.${path.id}` },
+        async (payload) => {
+          if ((payload.new as any)?.status === 'completed') {
+            const { data: lp } = await supabase.from('learning_paths').select('*').eq('id', path.id).maybeSingle();
+            if (lp) handleCurriculumReady(lp as unknown as LearningPath);
+          }
+        })
+      .on('postgres_changes',
+        { event: 'UPDATE', schema: 'public', table: 'learning_results', filter: `id=eq.${path.id}` },
+        async (payload) => {
+          if ((payload.new as any)?.status === 'completed') {
+            const { data: lp } = await supabase.from('learning_paths').select('*').eq('id', path.id).maybeSingle();
+            if (lp) handleCurriculumReady(lp as unknown as LearningPath);
+          }
+        })
       .on('postgres_changes',
         { event: 'UPDATE', schema: 'public', table: 'learning_paths', filter: `id=eq.${path.id}` },
         (payload) => {
@@ -689,12 +720,13 @@ export default function LearningPathPage() {
     realtimeChannelRef.current = channel;
     startCurriculumPolling(path.id);
 
-    // Fire curriculum webhook
+    // Fire learning path webhook
     try {
       const allMissingSkills = parseSkills(path.missing_skills);
       const currentSkills = parseSkills(path.current_skills);
       const selectedSkill = (path as any).selected_skill || null;
-      await fetch(CURRICULUM_WEBHOOK_URL, {
+      console.log('[LearningPath] Triggering webhook:', LEARNINGPATH_WEBHOOK_URL);
+      const res = await fetch(LEARNINGPATH_WEBHOOK_URL, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -711,6 +743,8 @@ export default function LearningPathPage() {
           timestamp: new Date().toISOString(),
         }),
       });
+      if (!res.ok) console.warn('[LearningPath] Webhook response:', res.status);
+      else console.log('[LearningPath] Webhook triggered successfully');
     } catch (e: any) {
       console.warn('[LearningPath] Curriculum webhook error (non-fatal):', e.message);
     }
@@ -726,15 +760,38 @@ export default function LearningPathPage() {
       const raw = await careerService.getLearningPath(pathId);
       if (!raw) { setError('Lernpfad nicht gefunden'); setPhase('error'); return; }
       const path = normalizePath(raw);
+
+      // Check learning_results — Make writes final_exam + status here when done
+      const { data: resultRow } = await supabase
+        .from('learning_results')
+        .select('status, final_exam')
+        .eq('id', pathId)
+        .maybeSingle();
+      const hasResults = resultRow?.status === 'completed' || !!resultRow?.final_exam;
+
       setLearningPath(path);
       setAnalysisResult(resultFromPath(path));
-      setPhase(resolvePhase(path));
+      const resolvedPhase = resolvePhase(path, hasResults);
+
+      if (resolvedPhase === 'redirect_waiting') {
+        navigate(`/learning-path-waiting/${pathId}`, { replace: true });
+        return;
+      }
+
+      // If results exist and path is paid, go straight to dashboard
+      if (hasResults && path.is_paid) {
+        setShowDashboard(true);
+        setPhase('done');
+        return;
+      }
+
+      setPhase(resolvedPhase);
     } catch (err: any) {
       setError(err.message || 'Fehler beim Laden');
       setPhase('error');
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [pathId, resolvePhase, normalizePath]);
+  }, [pathId, resolvePhase, normalizePath, navigate]);
 
   // ── Effects ───────────────────────────────────────────────────────────────────
 
@@ -742,54 +799,74 @@ export default function LearningPathPage() {
     if (pathId) loadLearningPath(true);
   }, [pathId, loadLearningPath]);
 
-  // When phase becomes 'generating' from loadLearningPath (resume after browser close),
-  // start polling/realtime WITHOUT re-triggering the webhook
+  // When phase becomes 'generating' (resume after browser close or direct navigation)
+  // start polling/realtime. Also check if we need to re-trigger Make.
   useEffect(() => {
     if (phase !== 'generating' || !learningPath) return;
     if (completedRef.current) return;
     completedRef.current = false;
-    const channel = supabase
-      .channel(`lp_resume_${learningPath.id}_${Date.now()}`)
-      .on('postgres_changes',
-        { event: 'UPDATE', schema: 'public', table: 'learning_paths', filter: `id=eq.${learningPath.id}` },
-        (payload) => {
-          const row = payload.new as any;
-          if (COMPLETE_STATUSES.has(row?.status) || (row?.curriculum as any)?.modules?.length > 0) {
-            handleCurriculumReady(row as unknown as LearningPath);
-          }
-        })
-      .subscribe();
-    realtimeChannelRef.current = channel;
-    startCurriculumPolling(learningPath.id);
+
+    const id = learningPath.id;
+
+    (async () => {
+      // Check if learning_results already has content — if so, go straight to done
+      const { data: result } = await supabase
+        .from('learning_results').select('status, final_exam').eq('id', id).maybeSingle();
+      if (result?.status === 'completed' || result?.final_exam) {
+        handleCurriculumReady(learningPath);
+        return;
+      }
+
+      // If status is not in-flight (e.g. gap_analysis_complete), re-trigger Make
+      const needsRetrigger = !IN_FLIGHT_STATUSES.has(learningPath.status as string);
+      if (needsRetrigger) {
+        console.log('[LearningPath] Re-triggering Make for path:', id);
+        triggerCurriculumGeneration(learningPath);
+        return;
+      }
+
+      // Already in-flight — just listen
+      const channel = supabase
+        .channel(`lp_resume_${id}_${Date.now()}`)
+        .on('postgres_changes',
+          { event: 'INSERT', schema: 'public', table: 'learning_results', filter: `id=eq.${id}` },
+          async (payload) => {
+            if ((payload.new as any)?.status === 'completed') {
+              const { data: lp } = await supabase.from('learning_paths').select('*').eq('id', id).maybeSingle();
+              if (lp) handleCurriculumReady(lp as unknown as LearningPath);
+            }
+          })
+        .on('postgres_changes',
+          { event: 'UPDATE', schema: 'public', table: 'learning_results', filter: `id=eq.${id}` },
+          async (payload) => {
+            if ((payload.new as any)?.status === 'completed') {
+              const { data: lp } = await supabase.from('learning_paths').select('*').eq('id', id).maybeSingle();
+              if (lp) handleCurriculumReady(lp as unknown as LearningPath);
+            }
+          })
+        .on('postgres_changes',
+          { event: 'UPDATE', schema: 'public', table: 'learning_paths', filter: `id=eq.${id}` },
+          (payload) => {
+            const row = payload.new as any;
+            if (COMPLETE_STATUSES.has(row?.status) || (row?.curriculum as any)?.modules?.length > 0) {
+              handleCurriculumReady(row as unknown as LearningPath);
+            }
+          })
+        .subscribe();
+      realtimeChannelRef.current = channel;
+      startCurriculumPolling(id);
+    })();
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [phase, learningPath?.id]);
 
-  // Handle Stripe payment return
+  // Handle Stripe payment return (?payment=success)
+  // Note: Stripe success_url normally goes to /learning-path-waiting/:id — this handles edge cases
   useEffect(() => {
     const payment = searchParams.get('payment');
     if (payment === 'success' && pathId) {
       setSearchParams({}, { replace: true });
-      (async () => {
-        try {
-          await careerService.unlockLearningPath(pathId);
-          // Reload path then decide: if curriculum already exists, go done; else generate
-          const raw = await careerService.getLearningPath(pathId);
-          if (!raw) return;
-          const path = normalizePath(raw);
-          setLearningPath(path);
-          setAnalysisResult(resultFromPath(path));
-          const modules = parseCurriculumModules(path.curriculum);
-          if (modules.length > 0) {
-            // Curriculum already exists → show dashboard directly after payment
-            setShowDashboard(true);
-            setPhase('done');
-          } else {
-            triggerCurriculumGeneration(path);
-          }
-        } catch (e: any) {
-          console.error('[LearningPath] Post-payment error:', e.message);
-        }
-      })();
+      // Redirect to waiting page which handles trigger + polling cleanly
+      navigate(`/learning-path-waiting/${pathId}`, { replace: true });
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);

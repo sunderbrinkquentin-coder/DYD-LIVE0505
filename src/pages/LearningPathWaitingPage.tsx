@@ -1,17 +1,20 @@
 import { useEffect, useRef, useState, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { supabase } from '../lib/supabase';
+// Note: useSearchParams removed — waiting page no longer reads search params
 
 // ── Constants ──────────────────────────────────────────────────────────────────
 
-const WEBHOOK_URL = import.meta.env.VITE_MAKE_WEBHOOK_LEARNINGPATH || '';
+// Hardcoded as ultimate fallback
+const WEBHOOK_URL =
+  import.meta.env.VITE_MAKE_WEBHOOK_LEARNINGPATH
+  || 'https://hook.eu2.make.com/1pvur1oth8sibonqc3twq57itg2ti1d0';
+
 const POLL_INTERVAL_MS = 4_000;
 const POLL_MAX = 75; // ~5 minutes
 
-// Statuses where the curriculum is definitively done
+// Status where Make has definitively delivered results
 const DONE_STATUSES = new Set(['completed']);
-// Statuses that mean a generation is already underway — don't re-trigger Make
-const IN_FLIGHT_STATUSES = new Set(['in_progress', 'curriculum_ready', 'completed']);
 
 // ── Animations ────────────────────────────────────────────────────────────────
 
@@ -378,9 +381,10 @@ export default function LearningPathWaitingPage() {
 
   const triggerMake = useCallback(async (path: Record<string, unknown>): Promise<boolean> => {
     if (!WEBHOOK_URL) {
-      console.warn('[LPW] No webhook URL configured');
-      return true; // not fatal — still listen
+      console.error('[LPW] No webhook URL configured — cannot trigger Make');
+      return false;
     }
+    console.log('[LPW] Firing Make webhook:', WEBHOOK_URL);
 
     const parseSkills = (raw: unknown): unknown[] => {
       if (!raw) return [];
@@ -414,11 +418,12 @@ export default function LearningPathWaitingPage() {
         }),
       });
       if (!res.ok) {
-        console.error('[LPW] Webhook error:', res.status);
+        console.error('[LPW] Webhook HTTP error:', res.status, await res.text().catch(() => ''));
         return false;
       }
-      // Mark in_progress so a page refresh doesn't re-trigger
-      await supabase.from('learning_paths').update({ status: 'in_progress' }).eq('id', pathId);
+      console.log('[LPW] Make webhook triggered successfully');
+      // Mark in_progress so a page refresh doesn't double-trigger
+      await supabase.from('learning_paths').update({ status: 'in_progress', updated_at: new Date().toISOString() }).eq('id', pathId);
       return true;
     } catch (e) {
       console.error('[LPW] Webhook fetch failed:', e);
@@ -432,6 +437,9 @@ export default function LearningPathWaitingPage() {
     if (!pathId) { navigate('/', { replace: true }); return; }
 
     (async () => {
+      // Show waiting UI immediately — never a blank screen
+      setPhase('waiting');
+
       // 1. Fetch learning path
       const { data: lp } = await supabase.from('learning_paths').select('*').eq('id', pathId).maybeSingle();
       if (!lp) { navigate('/dashboard', { replace: true }); return; }
@@ -439,12 +447,16 @@ export default function LearningPathWaitingPage() {
       if (lp.target_job) setTargetJob(lp.target_job);
       pathDataRef.current = lp as Record<string, unknown>;
 
-      // 2. Check learning_results first — definitive completion signal
+      // 2. Check learning_results — Make writes here when done (final_exam + status)
       const { data: result } = await supabase
-        .from('learning_results').select('status').eq('id', pathId).maybeSingle();
-      if (result?.status === 'completed') {
-        setPhase('done');
-        doneRef.current = true;
+        .from('learning_results')
+        .select('status, final_exam')
+        .eq('id', pathId)
+        .maybeSingle();
+
+      // Already complete — show done state immediately
+      if (result?.status === 'completed' || result?.final_exam) {
+        markDone();
         return;
       }
 
@@ -454,12 +466,13 @@ export default function LearningPathWaitingPage() {
         return;
       }
 
-      // 4. Show waiting UI immediately — no blank screen
-      setPhase('waiting');
-
-      // 5. Trigger Make if not already in flight
-      const alreadyInFlight = IN_FLIGHT_STATUSES.has(lp.status as string);
-      if (!alreadyInFlight) {
+      // 4. Decide whether to trigger Make:
+      //    - Always trigger if learning_results has no content, UNLESS status is 'completed'
+      //    - 'in_progress' is NOT enough to skip — Make may have silently failed
+      //    - Only skip if status is 'curriculum_ready' or 'completed' (both mean Make delivered)
+      const definitelyDone = lp.status === 'curriculum_ready' || lp.status === 'completed';
+      if (!definitelyDone) {
+        console.log('[WaitingPage] Triggering Make webhook for path:', pathId, '| status:', lp.status);
         const ok = await triggerMake(lp as Record<string, unknown>);
         if (!ok) {
           markError('Der Lernpfad konnte nicht gestartet werden. Bitte versuche es erneut.');
@@ -467,7 +480,7 @@ export default function LearningPathWaitingPage() {
         }
       }
 
-      // 6. Start listening for completion
+      // 5. Start listening for completion
       startListening();
     })();
 
@@ -485,11 +498,15 @@ export default function LearningPathWaitingPage() {
     pollCountRef.current = 0;
 
     try {
-      await supabase.from('learning_paths').update({ status: 'gap_analysis_complete' }).eq('id', pathId);
+      // Reset status so trigger condition is met
+      await supabase.from('learning_paths')
+        .update({ status: 'gap_analysis_complete', updated_at: new Date().toISOString() })
+        .eq('id', pathId);
       const { data: fresh } = await supabase.from('learning_paths').select('*').eq('id', pathId).maybeSingle();
       if (!fresh) { setErrorMsg('Pfad nicht gefunden.'); return; }
       pathDataRef.current = fresh as Record<string, unknown>;
       setPhase('waiting');
+      console.log('[WaitingPage] Retry — triggering Make webhook');
       const ok = await triggerMake(fresh as Record<string, unknown>);
       if (!ok) { markError('Webhook-Fehler. Bitte lade die Seite neu.'); return; }
       startListening();
