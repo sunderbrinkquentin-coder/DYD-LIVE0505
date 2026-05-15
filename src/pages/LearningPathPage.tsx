@@ -319,12 +319,36 @@ function ResultView({
     .filter((s) => skillDisplayName(s) !== '(unbenannt)')
     .sort((a, b) => (b?.gap_severity ?? 0) - (a?.gap_severity ?? 0));
   const visibleCurrent = currentSkills.filter((s) => skillDisplayName(s) !== '(unbenannt)');
-  const topSkill = visibleSkills[0];
   const scoreColor = matchScore >= 70 ? '#22c55e' : matchScore >= 40 ? '#f59e0b' : '#30E3CA';
 
   // CLT: Group by tier for schema-based processing
   const criticalSkills  = visibleSkills.filter(s => (s?.gap_severity ?? 0) >= 4);
   const buildSkills     = visibleSkills.filter(s => (s?.gap_severity ?? 0) >= 2 && (s?.gap_severity ?? 0) < 4);
+
+  // Skill selection — persisted to DB immediately so Make always gets the chosen skill
+  const initialSkill = (() => {
+    const stored = (learningPath as any).selected_skill;
+    if (stored && typeof stored === 'string') return stored;
+    if (stored && typeof stored === 'object') return stored.skill_name || stored.name || null;
+    return visibleSkills[0] ? skillDisplayName(visibleSkills[0]) : null;
+  })();
+  const [selectedSkillName, setSelectedSkillName] = useState<string | null>(initialSkill);
+  const [isSavingSkill, setIsSavingSkill] = useState(false);
+
+  const selectSkill = async (name: string) => {
+    if (name === selectedSkillName) return;
+    setSelectedSkillName(name);
+    setIsSavingSkill(true);
+    try {
+      await supabase.from('learning_paths')
+        .update({ selected_skill: name, updated_at: new Date().toISOString() })
+        .eq('id', learningPath.id);
+    } finally {
+      setIsSavingSkill(false);
+    }
+  };
+
+  const allSelectableSkills = visibleSkills.slice(0, 8);
 
   return (
     <div className="space-y-5 max-w-2xl mx-auto" style={{ animation: 'lp_fadeUp 0.5s ease' }}>
@@ -471,25 +495,73 @@ function ResultView({
         </div>
       )}
 
-      {/* ── 4. EINE KLARE AKTION ─────────────────────────────────────── */}
-      {/* CLT: Single decision point — no competing options */}
+      {/* ── 4. SKILL AUSWAHL + AKTION ────────────────────────────────── */}
+      {/* ARCS:Relevance — user picks their focus skill, feels ownership */}
       <div
         className="rounded-2xl overflow-hidden"
         style={{ background: 'rgba(48,227,202,0.05)', border: '1px solid rgba(48,227,202,0.2)' }}
       >
         <div className="h-px w-full" style={{ background: 'linear-gradient(90deg,transparent,rgba(48,227,202,0.4),transparent)' }} />
         <div className="p-5 space-y-4">
-          {topSkill && (
-            <div className="space-y-1">
-              <p className="text-[11px] font-black uppercase tracking-widest text-[#30E3CA]/60">Nächster Schritt</p>
-              <h3 className="text-lg font-black text-white leading-tight">
-                Starte mit <span style={{ color: '#30E3CA' }}>{skillDisplayName(topSkill)}</span>
-              </h3>
-              <p className="text-xs text-white/50 leading-relaxed pt-0.5">
-                {topSkill?.pitch ?? `Dieser Skill hat den größten Einfluss auf deinen Weg zum ${targetJob}.`}
-              </p>
+
+          {/* Skill picker — CLT: one decision at a time */}
+          {!isPaid && allSelectableSkills.length > 0 && (
+            <div className="space-y-2">
+              <div className="flex items-center justify-between">
+                <p className="text-[11px] font-black uppercase tracking-widest text-[#30E3CA]/60">
+                  Mit welchem Skill startest du?
+                </p>
+                {isSavingSkill && (
+                  <div className="w-3 h-3 rounded-full border border-[#30E3CA]/40 border-t-[#30E3CA] animate-spin" />
+                )}
+              </div>
+              <div className="flex flex-wrap gap-2">
+                {allSelectableSkills.map((skill, i) => {
+                  const name = skillDisplayName(skill);
+                  const isSelected = selectedSkillName === name;
+                  const tier = tierFor(skill?.gap_severity ?? 3);
+                  return (
+                    <button
+                      key={i}
+                      onClick={() => selectSkill(name)}
+                      className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold transition-all hover:scale-[1.04] active:scale-95"
+                      style={{
+                        background: isSelected ? `${tier.color}18` : 'rgba(255,255,255,0.04)',
+                        border: isSelected ? `1px solid ${tier.color}50` : '1px solid rgba(255,255,255,0.1)',
+                        color: isSelected ? tier.color : 'rgba(255,255,255,0.5)',
+                      }}
+                    >
+                      {isSelected && (
+                        <svg width="10" height="10" viewBox="0 0 10 10">
+                          <polyline points="2,5 4.5,7.5 8,3" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"/>
+                        </svg>
+                      )}
+                      {name}
+                    </button>
+                  );
+                })}
+              </div>
+              {selectedSkillName && (() => {
+                const match = visibleSkills.find(s => skillDisplayName(s) === selectedSkillName);
+                return match?.pitch ? (
+                  <p className="text-[11px] text-white/45 leading-relaxed px-1 pt-1">
+                    {match.pitch}
+                  </p>
+                ) : null;
+              })()}
             </div>
           )}
+
+          {/* Selected skill summary when paid */}
+          {isPaid && selectedSkillName && (
+            <div className="space-y-1">
+              <p className="text-[11px] font-black uppercase tracking-widest text-[#30E3CA]/60">Dein Fokus-Skill</p>
+              <h3 className="text-lg font-black text-white leading-tight">
+                <span style={{ color: '#30E3CA' }}>{selectedSkillName}</span>
+              </h3>
+            </div>
+          )}
+
           {isPaid ? (
             <button
               onClick={onGoToDashboard}
@@ -506,16 +578,19 @@ function ResultView({
             <>
               <button
                 onClick={() => setShowPaywall(true)}
-                className="group relative w-full py-4 rounded-xl font-black text-[15px] text-black flex items-center justify-center gap-3 overflow-hidden transition-all duration-200 hover:scale-[1.02] active:scale-[0.98]"
-                style={{ background: 'linear-gradient(135deg,#66c0b6,#30E3CA)', animation: 'lp_ctaPulse 2.5s ease-in-out infinite', boxShadow: '0 4px 20px rgba(48,227,202,0.3)' }}
+                disabled={!selectedSkillName}
+                className="group relative w-full py-4 rounded-xl font-black text-[15px] text-black flex items-center justify-center gap-3 overflow-hidden transition-all duration-200 hover:scale-[1.02] active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed"
+                style={{ background: 'linear-gradient(135deg,#66c0b6,#30E3CA)', animation: selectedSkillName ? 'lp_ctaPulse 2.5s ease-in-out infinite' : 'none', boxShadow: '0 4px 20px rgba(48,227,202,0.3)' }}
               >
                 <div className="absolute inset-0 pointer-events-none"
                   style={{ background: 'linear-gradient(90deg,transparent,rgba(255,255,255,0.15),transparent)', backgroundSize: '200% 100%', animation: 'lp_shimmer 2s ease-in-out infinite' }} />
                 <Sparkles className="w-5 h-5 relative z-10 group-hover:rotate-12 transition-transform duration-300" />
-                <span className="relative z-10">Meinen Lernpfad jetzt starten</span>
+                <span className="relative z-10">
+                  {selectedSkillName ? `Lernpfad für "${selectedSkillName}" starten` : 'Skill auswählen…'}
+                </span>
                 <ArrowRight className="w-5 h-5 relative z-10 group-hover:translate-x-1 transition-transform" />
               </button>
-              <p className="text-center text-[11px] text-white/25">Zertifikat inklusive · Einmalig 9,99 € · Lebenslanger Zugriff</p>
+              <p className="text-center text-[11px] text-white/25">Zertifikat inklusive · Einmalig ab 5 € · Lebenslanger Zugriff</p>
             </>
           )}
         </div>
@@ -529,7 +604,7 @@ function ResultView({
           targetJob={targetJob}
           targetCompany={targetCompany}
           skillCount={visibleSkills.length}
-          selectedSkill={(learningPath as any).selected_skill || undefined}
+          selectedSkill={selectedSkillName ?? undefined}
         />
       )}
     </div>
