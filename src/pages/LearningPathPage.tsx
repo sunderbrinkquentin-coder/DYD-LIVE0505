@@ -1912,10 +1912,10 @@ export default function LearningPathPage() {
         {/* Nav bar */}
         <div className="flex items-center justify-between">
           <button
-            onClick={() => showDashboard ? setShowDashboard(false) : navigate(-1)}
+            onClick={() => navigate('/dashboard')}
             className="flex items-center gap-2 px-4 py-2 rounded-xl bg-white/5 border border-white/10 hover:bg-white/10 transition-all">
             <ArrowLeft size={20} />
-            <span>Zurück</span>
+            <span>Dashboard</span>
           </button>
           {phase === 'done' && learningPath.status === 'completed' && (
             <div className="px-4 py-2 rounded-xl bg-gradient-to-r from-[#66c0b6]/20 to-[#30E3CA]/20 border border-[#66c0b6]/30">
