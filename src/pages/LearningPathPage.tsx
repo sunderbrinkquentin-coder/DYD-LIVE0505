@@ -1183,112 +1183,204 @@ function ModuleOverview({
   const TOTAL = 5;
   const doneCount = completedUnits.size;
   const isGenerating = unitRows.length === 0;
+  const progressPct = Math.round((doneCount / TOTAL) * 100);
+
+  const skillLabel = (() => {
+    const sel = (learningPath as any).selected_skill;
+    if (sel && typeof sel === 'string') return sel;
+    if (sel && typeof sel === 'object') return sel.skill_name || sel.name || null;
+    const missing = (learningPath as any).missing_skills;
+    if (Array.isArray(missing) && missing.length > 0) return missing[0]?.skill_name || missing[0]?.name || null;
+    if (typeof missing === 'string') {
+      try { const p = JSON.parse(missing); if (Array.isArray(p) && p.length > 0) return p[0]?.skill_name || p[0]?.name || null; } catch { /**/ }
+    }
+    return null;
+  })();
+
+  const UNIT_COLORS = ['#30E3CA', '#38bdf8', '#818cf8', '#a78bfa', '#f472b6'];
+  const UNIT_ICONS = ['🎯', '🧩', '⚡', '🔬', '🏆'];
 
   return (
-    <div className="max-w-2xl mx-auto space-y-5" style={{ animation: 'lp_fadeUp 0.4s ease' }}>
-      {/* Header */}
-      <div className="rounded-2xl overflow-hidden"
-        style={{ background: 'linear-gradient(135deg,rgba(48,227,202,0.07) 0%,rgba(6,7,15,0.98) 60%)', border: '1px solid rgba(48,227,202,0.2)' }}>
-        <div className="h-px w-full" style={{ background: 'linear-gradient(90deg,transparent,rgba(48,227,202,0.4),transparent)' }} />
-        <div className="p-5 flex items-start gap-4">
-          <div className="w-12 h-12 rounded-2xl flex items-center justify-center flex-shrink-0"
-            style={{ background: 'rgba(48,227,202,0.1)', border: '1px solid rgba(48,227,202,0.25)' }}>
-            <Brain size={22} className="text-[#30E3CA]" />
+    <div className="max-w-2xl mx-auto space-y-4" style={{ animation: 'lp_fadeUp 0.4s ease' }}>
+      <style>{`
+        @keyframes mo_shimmer { 0%{background-position:-200% 0} 100%{background-position:200% 0} }
+        @keyframes mo_pulse { 0%,100%{opacity:1} 50%{opacity:0.5} }
+        @keyframes mo_glow { 0%,100%{box-shadow:0 0 0 0 rgba(48,227,202,0)} 50%{box-shadow:0 0 20px 4px rgba(48,227,202,0.15)} }
+      `}</style>
+
+      {/* ── Hero header: skill + progress ─────────────────────────────────────── */}
+      <div className="relative rounded-3xl overflow-hidden"
+        style={{ background: 'linear-gradient(135deg,#040c14 0%,#061018 50%,#030810 100%)', border: '1px solid rgba(48,227,202,0.18)' }}>
+        {/* Ambient glow blobs */}
+        <div className="absolute top-0 right-0 w-40 h-40 rounded-full pointer-events-none"
+          style={{ background: 'radial-gradient(circle,rgba(48,227,202,0.1) 0%,transparent 70%)', transform: 'translate(20%,-20%)' }} />
+        <div className="absolute bottom-0 left-0 w-32 h-32 rounded-full pointer-events-none"
+          style={{ background: 'radial-gradient(circle,rgba(56,189,248,0.07) 0%,transparent 70%)', transform: 'translate(-20%,20%)' }} />
+
+        <div className="relative p-6 space-y-4">
+          {/* Skill badge — ARCS: Attention, clear focus */}
+          {skillLabel && (
+            <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full"
+              style={{ background: 'rgba(48,227,202,0.1)', border: '1px solid rgba(48,227,202,0.25)' }}>
+              <div className="w-1.5 h-1.5 rounded-full bg-[#30E3CA]" style={{ animation: 'mo_pulse 2s ease infinite' }} />
+              <span className="text-xs font-black text-[#30E3CA] tracking-wide">{skillLabel}</span>
+            </div>
+          )}
+
+          {/* Job title */}
+          <div>
+            <p className="text-[10px] font-black uppercase tracking-widest text-white/30 mb-1">Lernpfad</p>
+            <h2 className="text-2xl font-black text-white leading-tight">{learningPath.target_job}</h2>
           </div>
-          <div className="flex-1 min-w-0">
-            <p className="text-[10px] font-black uppercase tracking-widest text-[#30E3CA]/60 mb-0.5">Dein Lernpfad</p>
-            <p className="text-lg font-black text-white leading-tight truncate">{learningPath.target_job}</p>
-            <div className="flex items-center gap-3 mt-2">
-              <div className="flex items-center gap-1.5">
-                <div className="flex gap-0.5">
-                  {Array.from({ length: TOTAL }, (_, i) => (
-                    <div key={i} className="w-5 h-1.5 rounded-full transition-all"
-                      style={{ background: completedUnits.has(i + 1) ? '#22c55e' : 'rgba(255,255,255,0.1)' }} />
-                  ))}
-                </div>
-                <span className="text-[10px] font-black text-white/40">{doneCount}/{TOTAL}</span>
+
+          {/* Progress ring + stats row — CLT: reduce cognitive load with visual encoding */}
+          <div className="flex items-center gap-4 pt-1">
+            {/* Ring progress */}
+            <div className="relative flex-shrink-0 w-14 h-14">
+              <svg width="56" height="56" viewBox="0 0 56 56" className="-rotate-90">
+                <circle cx="28" cy="28" r="22" fill="none" stroke="rgba(255,255,255,0.06)" strokeWidth="4" />
+                <circle cx="28" cy="28" r="22" fill="none" stroke="#30E3CA" strokeWidth="4"
+                  strokeLinecap="round"
+                  strokeDasharray={`${2 * Math.PI * 22}`}
+                  strokeDashoffset={`${2 * Math.PI * 22 * (1 - progressPct / 100)}`}
+                  style={{ transition: 'stroke-dashoffset 0.8s ease' }} />
+              </svg>
+              <div className="absolute inset-0 flex items-center justify-center">
+                <span className="text-[13px] font-black text-white">{progressPct}%</span>
               </div>
-              {doneCount > 0 && (
-                <span className="text-[10px] font-semibold text-green-400/70">
-                  {doneCount === TOTAL ? 'Alle bestanden!' : `${doneCount} bestanden`}
+            </div>
+
+            <div className="flex-1 space-y-1.5">
+              {/* Segment bar */}
+              <div className="flex gap-1">
+                {Array.from({ length: TOTAL }, (_, i) => (
+                  <div key={i} className="flex-1 h-2 rounded-full transition-all duration-500"
+                    style={{
+                      background: completedUnits.has(i + 1)
+                        ? `linear-gradient(90deg,${UNIT_COLORS[i]},${UNIT_COLORS[Math.min(i + 1, 4)]})`
+                        : 'rgba(255,255,255,0.08)',
+                    }} />
+                ))}
+              </div>
+              <div className="flex items-center justify-between">
+                <span className="text-xs text-white/50">
+                  {doneCount === 0 ? 'Noch nicht gestartet' : doneCount === TOTAL ? 'Alle Einheiten bestanden!' : `${doneCount} von ${TOTAL} Einheiten`}
                 </span>
-              )}
+                {doneCount > 0 && doneCount < TOTAL && (
+                  <span className="text-[10px] font-black text-[#30E3CA]/70">
+                    Weiter mit Einheit {doneCount + 1}
+                  </span>
+                )}
+              </div>
             </div>
           </div>
+
+          {/* Motivational ARCS:Relevance micro-copy */}
+          {doneCount === 0 && (
+            <p className="text-xs text-white/40 leading-relaxed">
+              Dein strukturierter Weg zum Ziel — 5 Einheiten, aufeinander aufbauend. Starte mit Einheit 1.
+            </p>
+          )}
+          {doneCount > 0 && doneCount < TOTAL && (
+            <p className="text-xs text-white/40 leading-relaxed">
+              Stark! Du bist bereits {progressPct}% durch. Jede abgeschlossene Einheit bringt dich messbar näher an dein Ziel.
+            </p>
+          )}
+          {doneCount === TOTAL && (
+            <p className="text-xs text-green-400/70 leading-relaxed font-semibold">
+              Alle Einheiten bestanden — du bist bereit für die Abschlussprüfung und dein Zertifikat.
+            </p>
+          )}
         </div>
       </div>
 
-      {/* Generating state */}
+      {/* ── Generating skeleton ───────────────────────────────────────────────── */}
       {isGenerating && (
-        <div className="rounded-2xl p-6 flex items-center gap-4"
-          style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.08)' }}>
-          <div className="w-10 h-10 rounded-2xl flex items-center justify-center flex-shrink-0"
+        <div className="rounded-2xl p-5 flex items-center gap-4"
+          style={{ background: 'rgba(48,227,202,0.04)', border: '1px solid rgba(48,227,202,0.15)' }}>
+          <div className="w-10 h-10 rounded-2xl flex items-center justify-center flex-shrink-0 flex-none"
             style={{ background: 'rgba(48,227,202,0.08)', border: '1px solid rgba(48,227,202,0.2)' }}>
             <Loader2 size={18} className="animate-spin text-[#30E3CA]" />
           </div>
           <div>
-            <p className="text-sm font-black text-white">Lernmodule werden erstellt…</p>
-            <p className="text-xs text-white/40 mt-0.5 leading-relaxed">
-              Deine 5 personalisierten Lerneinheiten werden vorbereitet. Das dauert in der Regel 1–2 Minuten.
-            </p>
+            <p className="text-sm font-black text-white">Lernmodule werden generiert…</p>
+            <p className="text-xs text-white/40 mt-0.5">Personalisierte Einheiten werden vorbereitet — dauert 1–2 Minuten.</p>
           </div>
         </div>
       )}
 
-      {/* Module cards */}
+      {/* ── Unit cards ────────────────────────────────────────────────────────── */}
       {!isGenerating && (
-        <div className="space-y-3">
-          <p className="text-[10px] font-black uppercase tracking-widest text-white/25 px-1">
-            5 Lerneinheiten — ARCS / DSR Methodik
+        <div className="space-y-2.5">
+          <p className="text-[10px] font-black uppercase tracking-widest text-white/20 px-1">
+            Deine 5 Lerneinheiten
           </p>
           {Array.from({ length: TOTAL }, (_, i) => {
             const idx = i + 1;
             const done = completedUnits.has(idx);
             const score = unitScores.get(idx);
             const phase = ARCS_PHASES[i];
+            const color = UNIT_COLORS[i];
+            const icon = UNIT_ICONS[i];
             const isNext = !done && (i === 0 || completedUnits.has(i));
-            const locked = !done && !isNext && i > 0 && !completedUnits.has(i);
+            const locked = !done && !isNext;
 
             return (
               <button
                 key={idx}
                 onClick={() => !locked && onOpenUnit(idx)}
                 disabled={locked}
-                className="w-full text-left rounded-2xl overflow-hidden transition-all hover:scale-[1.01] active:scale-[0.99] disabled:opacity-40 disabled:cursor-not-allowed"
+                className="group w-full text-left rounded-2xl overflow-hidden transition-all duration-300 hover:scale-[1.012] active:scale-[0.99] disabled:cursor-not-allowed"
                 style={{
                   background: done
-                    ? 'linear-gradient(135deg,rgba(34,197,94,0.07) 0%,rgba(6,7,15,0.98) 60%)'
+                    ? `linear-gradient(135deg,rgba(34,197,94,0.06) 0%,rgba(4,8,16,0.97) 55%)`
                     : isNext
-                      ? 'linear-gradient(135deg,rgba(48,227,202,0.07) 0%,rgba(6,7,15,0.98) 60%)'
-                      : 'rgba(255,255,255,0.025)',
+                      ? `linear-gradient(135deg,${color}0e 0%,rgba(4,8,16,0.97) 55%)`
+                      : 'rgba(255,255,255,0.02)',
                   border: done
-                    ? '1px solid rgba(34,197,94,0.22)'
+                    ? '1px solid rgba(34,197,94,0.2)'
                     : isNext
-                      ? '1px solid rgba(48,227,202,0.2)'
-                      : '1px solid rgba(255,255,255,0.07)',
+                      ? `1px solid ${color}35`
+                      : '1px solid rgba(255,255,255,0.06)',
+                  opacity: locked ? 0.38 : 1,
                 }}
               >
-                <div className="p-4 flex items-center gap-4">
-                  {/* Phase badge */}
-                  <div className="w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0 text-xs font-black"
+                <div className="p-4 flex items-center gap-3.5">
+                  {/* Number / state icon */}
+                  <div className="relative flex-shrink-0 w-11 h-11 rounded-2xl flex items-center justify-center"
                     style={{
-                      background: done ? 'rgba(34,197,94,0.12)' : isNext ? 'rgba(48,227,202,0.1)' : 'rgba(255,255,255,0.05)',
-                      border: done ? '1px solid rgba(34,197,94,0.3)' : isNext ? '1px solid rgba(48,227,202,0.25)' : '1px solid rgba(255,255,255,0.08)',
-                      color: done ? '#4ade80' : isNext ? '#30E3CA' : 'rgba(255,255,255,0.3)',
+                      background: done ? 'rgba(34,197,94,0.1)' : isNext ? `${color}12` : 'rgba(255,255,255,0.04)',
+                      border: done ? '1px solid rgba(34,197,94,0.28)' : isNext ? `1px solid ${color}30` : '1px solid rgba(255,255,255,0.07)',
                     }}>
-                    {done
-                      ? <svg width="14" height="14" viewBox="0 0 14 14"><polyline points="3,7 6,10 11,4" fill="none" stroke="#4ade80" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/></svg>
-                      : phase.icon
-                    }
+                    {done ? (
+                      <svg width="16" height="16" viewBox="0 0 16 16">
+                        <polyline points="3,8 6.5,11.5 13,5" fill="none" stroke="#4ade80" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"/>
+                      </svg>
+                    ) : locked ? (
+                      <svg width="13" height="13" viewBox="0 0 13 13">
+                        <rect x="2.5" y="5.5" width="8" height="5.5" rx="1.5" fill="none" stroke="rgba(255,255,255,0.2)" strokeWidth="1.2"/>
+                        <path d="M4.5,5.5 V4.2 a2.2,2.2 0 0,1 4,0 V5.5" fill="none" stroke="rgba(255,255,255,0.2)" strokeWidth="1.2"/>
+                      </svg>
+                    ) : (
+                      <span className="text-base leading-none">{icon}</span>
+                    )}
                   </div>
 
-                  {/* Info */}
+                  {/* Content */}
                   <div className="flex-1 min-w-0">
-                    <div className="flex items-center gap-2">
-                      <p className="text-[10px] font-black uppercase tracking-widest"
-                        style={{ color: done ? 'rgba(74,222,128,0.6)' : isNext ? 'rgba(48,227,202,0.6)' : 'rgba(255,255,255,0.25)' }}>
-                        Einheit {idx} · {phase.label}
-                      </p>
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <span className="text-[9px] font-black uppercase tracking-widest"
+                        style={{ color: done ? 'rgba(74,222,128,0.55)' : isNext ? `${color}90` : 'rgba(255,255,255,0.2)' }}>
+                        Einheit {idx}
+                      </span>
+                      <span className="text-[9px] font-bold px-1.5 py-0.5 rounded-md"
+                        style={{
+                          background: done ? 'rgba(34,197,94,0.08)' : isNext ? `${color}12` : 'rgba(255,255,255,0.04)',
+                          color: done ? '#4ade80' : isNext ? color : 'rgba(255,255,255,0.2)',
+                          border: done ? '1px solid rgba(34,197,94,0.15)' : isNext ? `1px solid ${color}20` : '1px solid transparent',
+                        }}>
+                        {phase.label}
+                      </span>
                       {done && score !== undefined && (
                         <span className="text-[9px] font-black px-1.5 py-0.5 rounded-full"
                           style={{ background: 'rgba(34,197,94,0.1)', border: '1px solid rgba(34,197,94,0.2)', color: '#4ade80' }}>
@@ -1296,66 +1388,124 @@ function ModuleOverview({
                         </span>
                       )}
                     </div>
-                    <p className="text-sm font-bold text-white/85 mt-0.5 leading-tight">{phase.sub}</p>
-                    <p className="text-[10px] text-white/30 mt-1">
-                      {done ? 'Abgeschlossen' : isNext ? 'Jetzt starten' : 'Nach vorheriger Einheit verfügbar'}
+                    <p className="text-sm font-bold mt-0.5 leading-tight"
+                      style={{ color: done ? 'rgba(255,255,255,0.6)' : isNext ? '#fff' : 'rgba(255,255,255,0.35)' }}>
+                      {phase.sub}
+                    </p>
+                    <p className="text-[10px] mt-1"
+                      style={{ color: done ? 'rgba(74,222,128,0.5)' : isNext ? `${color}70` : 'rgba(255,255,255,0.2)' }}>
+                      {done ? 'Abgeschlossen' : isNext ? '→ Jetzt starten' : 'Vorherige Einheit zuerst abschließen'}
                     </p>
                   </div>
 
-                  {/* Arrow */}
-                  {!locked && (
-                    <ArrowRight size={15} style={{ color: done ? '#4ade80' : isNext ? '#30E3CA' : 'rgba(255,255,255,0.2)', flexShrink: 0 }} />
+                  {/* CTA area */}
+                  {isNext && !done && (
+                    <div className="flex-shrink-0 flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-[11px] font-black transition-all group-hover:scale-105"
+                      style={{ background: `${color}15`, border: `1px solid ${color}30`, color }}>
+                      <svg width="10" height="10" viewBox="0 0 10 10" fill="currentColor">
+                        <polygon points="1,1 9,5 1,9"/>
+                      </svg>
+                      Start
+                    </div>
                   )}
-                  {locked && (
-                    <svg width="14" height="14" viewBox="0 0 14 14" style={{ flexShrink: 0 }}>
-                      <rect x="3" y="6" width="8" height="6" rx="1.5" fill="none" stroke="rgba(255,255,255,0.15)" strokeWidth="1.2"/>
-                      <path d="M5,6 V4.5 a2.5,2.5 0 0,1 4,0 V6" fill="none" stroke="rgba(255,255,255,0.15)" strokeWidth="1.2"/>
-                    </svg>
+                  {done && (
+                    <ArrowRight size={14} style={{ color: '#4ade80', flexShrink: 0, opacity: 0.6 }} />
                   )}
                 </div>
+
+                {/* Active glow strip */}
+                {isNext && !done && (
+                  <div className="h-px w-full" style={{ background: `linear-gradient(90deg,transparent,${color}40,transparent)` }} />
+                )}
               </button>
             );
           })}
         </div>
       )}
 
-      {/* Final exam card */}
-      <div className={`rounded-2xl overflow-hidden transition-all ${allUnitsPassed ? '' : 'opacity-50'}`}
+      {/* ── Certificate exam card — DSR: culminating achievement ─────────────── */}
+      <div
+        className={`relative rounded-3xl overflow-hidden transition-all duration-500 ${allUnitsPassed ? 'cursor-pointer hover:scale-[1.01]' : ''}`}
+        onClick={allUnitsPassed ? onStartFinalExam : undefined}
         style={{
           background: allUnitsPassed
-            ? 'linear-gradient(135deg,rgba(251,191,36,0.07) 0%,rgba(6,7,15,0.98) 60%)'
-            : 'rgba(255,255,255,0.02)',
-          border: allUnitsPassed ? '1px solid rgba(251,191,36,0.25)' : '1px solid rgba(255,255,255,0.07)',
-        }}>
-        {allUnitsPassed && <div className="h-px w-full" style={{ background: 'linear-gradient(90deg,transparent,rgba(251,191,36,0.4),transparent)' }} />}
-        <div className="p-5 flex items-center gap-4">
-          <div className="w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0"
+            ? 'linear-gradient(135deg,rgba(251,191,36,0.1) 0%,rgba(234,179,8,0.04) 40%,rgba(4,8,16,0.98) 100%)'
+            : 'rgba(255,255,255,0.025)',
+          border: allUnitsPassed ? '1px solid rgba(251,191,36,0.28)' : '1px solid rgba(255,255,255,0.07)',
+          opacity: allUnitsPassed ? 1 : 0.45,
+        }}
+      >
+        {allUnitsPassed && (
+          <>
+            <div className="h-px w-full" style={{ background: 'linear-gradient(90deg,transparent,rgba(251,191,36,0.5),transparent)' }} />
+            {/* Gold shimmer */}
+            <div className="absolute inset-0 pointer-events-none overflow-hidden rounded-3xl">
+              <div className="absolute inset-0"
+                style={{
+                  background: 'linear-gradient(105deg,transparent 40%,rgba(251,191,36,0.06) 50%,transparent 60%)',
+                  backgroundSize: '200% 100%',
+                  animation: 'mo_shimmer 3s ease-in-out infinite',
+                }} />
+            </div>
+          </>
+        )}
+
+        <div className="relative p-5 flex items-center gap-4">
+          <div className="w-12 h-12 rounded-2xl flex items-center justify-center flex-shrink-0"
             style={{
-              background: allUnitsPassed ? 'rgba(251,191,36,0.12)' : 'rgba(255,255,255,0.04)',
+              background: allUnitsPassed ? 'rgba(251,191,36,0.13)' : 'rgba(255,255,255,0.04)',
               border: allUnitsPassed ? '1px solid rgba(251,191,36,0.3)' : '1px solid rgba(255,255,255,0.08)',
+              animation: allUnitsPassed ? 'mo_glow 3s ease-in-out infinite' : 'none',
             }}>
-            <Award size={18} style={{ color: allUnitsPassed ? '#fbbf24' : 'rgba(255,255,255,0.2)' }} />
+            <Award size={22} style={{ color: allUnitsPassed ? '#fbbf24' : 'rgba(255,255,255,0.18)' }} />
           </div>
+
           <div className="flex-1 min-w-0">
-            <p className="text-[10px] font-black uppercase tracking-widest"
-              style={{ color: allUnitsPassed ? 'rgba(251,191,36,0.7)' : 'rgba(255,255,255,0.2)' }}>
-              Abschlussprüfung · Zertifikat
+            <div className="flex items-center gap-2 mb-0.5">
+              <p className="text-[10px] font-black uppercase tracking-widest"
+                style={{ color: allUnitsPassed ? 'rgba(251,191,36,0.8)' : 'rgba(255,255,255,0.2)' }}>
+                Zertifikatsprüfung
+              </p>
+              {allUnitsPassed && (
+                <span className="text-[9px] font-black px-1.5 py-0.5 rounded-full"
+                  style={{ background: 'rgba(251,191,36,0.12)', border: '1px solid rgba(251,191,36,0.25)', color: '#fbbf24' }}>
+                  Freigeschaltet!
+                </span>
+              )}
+            </div>
+            <p className="text-base font-black leading-tight"
+              style={{ color: allUnitsPassed ? '#fff' : 'rgba(255,255,255,0.3)' }}>
+              Offizielles Abschlusszertifikat
             </p>
-            <p className="text-sm font-bold text-white/85 mt-0.5">Alle 5 Einheiten bestehen, dann freischalten</p>
-            <p className="text-[10px] mt-1" style={{ color: allUnitsPassed ? 'rgba(251,191,36,0.6)' : 'rgba(255,255,255,0.2)' }}>
-              {allUnitsPassed ? '100% erforderlich für Zertifikat' : `Noch ${TOTAL - doneCount} Einheit(en) offen`}
+            <p className="text-[11px] mt-1 leading-relaxed"
+              style={{ color: allUnitsPassed ? 'rgba(251,191,36,0.65)' : 'rgba(255,255,255,0.2)' }}>
+              {allUnitsPassed
+                ? '100% erforderlich · personalisierbares PDF-Zertifikat'
+                : `Noch ${TOTAL - doneCount} Einheit${TOTAL - doneCount !== 1 ? 'en' : ''} zum Freischalten`}
             </p>
           </div>
+
           {allUnitsPassed && (
-            <button
-              onClick={onStartFinalExam}
-              className="flex-shrink-0 flex items-center gap-1.5 px-4 py-2.5 rounded-xl text-xs font-black transition-all hover:scale-105 active:scale-95"
-              style={{ background: 'rgba(251,191,36,0.12)', border: '1px solid rgba(251,191,36,0.3)', color: '#fbbf24' }}>
-              <Sparkles size={13} />
-              Starten
-            </button>
+            <div className="flex-shrink-0 flex items-center gap-1.5 px-4 py-2.5 rounded-xl text-[11px] font-black transition-all hover:scale-105 active:scale-95"
+              style={{ background: 'rgba(251,191,36,0.13)', border: '1px solid rgba(251,191,36,0.3)', color: '#fbbf24' }}>
+              <Sparkles size={12} />
+              Prüfung starten
+            </div>
           )}
         </div>
+
+        {/* Locked: teaser progress */}
+        {!allUnitsPassed && !isGenerating && (
+          <div className="px-5 pb-4">
+            <div className="flex gap-1">
+              {Array.from({ length: TOTAL }, (_, i) => (
+                <div key={i} className="flex-1 h-1 rounded-full"
+                  style={{ background: completedUnits.has(i + 1) ? 'rgba(251,191,36,0.4)' : 'rgba(255,255,255,0.06)' }} />
+              ))}
+            </div>
+            <p className="text-[9px] text-white/20 mt-1.5">{doneCount}/{TOTAL} Einheiten für Prüfungszugang</p>
+          </div>
+        )}
       </div>
     </div>
   );

@@ -1088,8 +1088,8 @@ export function DashboardPage() {
 
                 {/* Paid learning paths list */}
                 {paidPaths.length > 0 && (
-                  <div className="space-y-2">
-                    <p className="text-[10px] font-black uppercase tracking-widest text-white/25 px-1">
+                  <div className="space-y-2.5">
+                    <p className="text-[10px] font-black uppercase tracking-widest text-white/20 px-1">
                       Meine Lernpfade
                     </p>
                     {paidPaths.map((path) => {
@@ -1098,6 +1098,7 @@ export function DashboardPage() {
                       const allDone = unitsDone >= 5;
                       const hasCert = !!(path as any).certificate_url;
                       const TOTAL_U = 5;
+                      const progressPct = Math.round((unitsDone / TOTAL_U) * 100);
 
                       const skillLabel = (() => {
                         const sel = (path as any).selected_skill;
@@ -1116,100 +1117,121 @@ export function DashboardPage() {
                         return null;
                       })();
 
-                      const accentColor = hasCert ? '#fbbf24' : allDone ? '#fbbf24' : isReady ? '#4ade80' : '#30E3CA';
-                      const bgColor = hasCert
-                        ? 'linear-gradient(135deg,rgba(251,191,36,0.07),rgba(8,13,24,0.98))'
-                        : allDone
-                          ? 'linear-gradient(135deg,rgba(251,191,36,0.06),rgba(8,13,24,0.98))'
-                          : isReady
-                            ? 'linear-gradient(135deg,rgba(34,197,94,0.07),rgba(8,13,24,0.98))'
-                            : 'linear-gradient(135deg,rgba(48,227,202,0.05),rgba(8,13,24,0.98))';
-                      const borderColor = hasCert ? 'rgba(251,191,36,0.22)' : allDone ? 'rgba(251,191,36,0.2)' : isReady ? 'rgba(34,197,94,0.22)' : 'rgba(48,227,202,0.18)';
+                      const accentColor = hasCert ? '#fbbf24' : allDone ? '#fbbf24' : isReady ? '#30E3CA' : '#30E3CA';
+                      const statusLabel = hasCert ? 'Zertifikat' : allDone ? 'Prüfung offen' : isReady ? (unitsDone > 0 ? `${unitsDone}/${TOTAL_U}` : 'Starten') : 'Wird erstellt';
 
                       return (
                         <div
                           key={path.id}
-                          className="rounded-2xl overflow-hidden transition-all hover:scale-[1.005] cursor-pointer"
-                          style={{ background: bgColor, border: `1px solid ${borderColor}` }}
+                          className="group relative rounded-2xl overflow-hidden cursor-pointer transition-all duration-300 hover:scale-[1.008]"
+                          style={{
+                            background: hasCert
+                              ? 'linear-gradient(135deg,rgba(251,191,36,0.09) 0%,rgba(5,9,18,0.98) 60%)'
+                              : allDone
+                                ? 'linear-gradient(135deg,rgba(251,191,36,0.07) 0%,rgba(5,9,18,0.98) 60%)'
+                                : isReady
+                                  ? 'linear-gradient(135deg,rgba(48,227,202,0.07) 0%,rgba(5,9,18,0.98) 60%)'
+                                  : 'linear-gradient(135deg,rgba(48,227,202,0.04) 0%,rgba(5,9,18,0.98) 60%)',
+                            border: hasCert ? '1px solid rgba(251,191,36,0.25)' : allDone ? '1px solid rgba(251,191,36,0.2)' : isReady ? '1px solid rgba(48,227,202,0.2)' : '1px solid rgba(48,227,202,0.12)',
+                          }}
                           onClick={() => isReady ? navigate(`/learning-path/${path.id}`) : navigate(`/learning-path-waiting/${path.id}`)}
                         >
+                          {/* Top shimmer line */}
+                          {(hasCert || allDone) && (
+                            <div className="h-px w-full" style={{ background: 'linear-gradient(90deg,transparent,rgba(251,191,36,0.4),transparent)' }} />
+                          )}
+                          {isReady && !allDone && !hasCert && (
+                            <div className="h-px w-full" style={{ background: 'linear-gradient(90deg,transparent,rgba(48,227,202,0.3),transparent)' }} />
+                          )}
+
                           <div className="px-4 py-3.5 flex items-center gap-3">
-                            {/* Status icon */}
-                            <div
-                              className="w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0"
-                              style={{ background: `${accentColor}18`, border: `1px solid ${accentColor}40` }}
-                            >
+                            {/* Status orb */}
+                            <div className="relative flex-shrink-0 w-10 h-10 rounded-2xl flex items-center justify-center"
+                              style={{ background: `${accentColor}12`, border: `1px solid ${accentColor}30` }}>
                               {hasCert ? (
-                                <Award size={16} style={{ color: accentColor }} />
+                                <Award size={17} style={{ color: '#fbbf24' }} />
+                              ) : allDone ? (
+                                <Sparkles size={16} style={{ color: '#fbbf24' }} />
+                              ) : isReady && unitsDone > 0 ? (
+                                <svg width="17" height="17" viewBox="0 0 17 17">
+                                  <circle cx="8.5" cy="8.5" r="7" fill="none" stroke="rgba(48,227,202,0.15)" strokeWidth="2"/>
+                                  <circle cx="8.5" cy="8.5" r="7" fill="none" stroke="#30E3CA" strokeWidth="2"
+                                    strokeLinecap="round"
+                                    strokeDasharray={`${2 * Math.PI * 7}`}
+                                    strokeDashoffset={`${2 * Math.PI * 7 * (1 - progressPct / 100)}`}
+                                    style={{ transition: 'stroke-dashoffset 0.6s ease' }}
+                                    transform="rotate(-90 8.5 8.5)"/>
+                                  <text x="8.5" y="12" textAnchor="middle" fill="#30E3CA" style={{ fontSize: '5px', fontWeight: 900 }}>{progressPct}%</text>
+                                </svg>
                               ) : isReady ? (
-                                <CheckCircle size={16} style={{ color: accentColor }} />
+                                <svg width="14" height="14" viewBox="0 0 12 12" fill="#30E3CA">
+                                  <polygon points="2,1 10,6 2,11"/>
+                                </svg>
                               ) : (
-                                <div className="w-3.5 h-3.5 rounded-full border-2 border-[#30E3CA]/40 border-t-[#30E3CA] animate-spin" />
+                                <div className="w-3.5 h-3.5 rounded-full border-[1.5px] border-[#30E3CA]/30 border-t-[#30E3CA] animate-spin" />
                               )}
                             </div>
 
-                            {/* Info */}
+                            {/* Content */}
                             <div className="flex-1 min-w-0">
-                              <div className="flex items-center gap-2">
-                                <p className="text-sm font-black text-white leading-tight truncate">{path.target_job}</p>
-                                <span className="flex-shrink-0 text-[9px] font-black uppercase tracking-widest px-1.5 py-0.5 rounded-full"
-                                  style={{ background: `${accentColor}15`, color: accentColor, border: `1px solid ${accentColor}30` }}>
-                                  {hasCert ? 'Zertifikat' : allDone ? 'Abschluss' : isReady ? 'Aktiv' : 'Wird erstellt'}
-                                </span>
-                              </div>
-
-                              {/* Skill label — primary subtitle */}
+                              {/* Skill — primary, prominent */}
                               {skillLabel && (
-                                <p className="text-xs font-semibold mt-0.5 truncate" style={{ color: `${accentColor}80` }}>
+                                <p className="text-xs font-black truncate mb-0.5" style={{ color: `${accentColor}` }}>
                                   {skillLabel}
                                 </p>
                               )}
+                              {/* Job — secondary */}
+                              <p className="text-sm font-bold text-white/80 leading-tight truncate">{path.target_job}</p>
 
-                              {/* Progress bar — shown when ready */}
-                              {isReady && (
-                                <div className="flex items-center gap-2 mt-1">
+                              {/* Progress segments */}
+                              {isReady && unitsDone > 0 && (
+                                <div className="flex items-center gap-1.5 mt-1.5">
                                   <div className="flex gap-0.5">
                                     {Array.from({ length: TOTAL_U }, (_, i) => (
-                                      <div key={i} className="w-4 h-1 rounded-full transition-all"
-                                        style={{ background: i < unitsDone ? accentColor : 'rgba(255,255,255,0.1)' }} />
+                                      <div key={i} className="w-3.5 h-1 rounded-full transition-all duration-500"
+                                        style={{ background: i < unitsDone ? accentColor : 'rgba(255,255,255,0.09)' }} />
                                     ))}
                                   </div>
-                                  <span className="text-[10px] font-black" style={{ color: `${accentColor}70` }}>
-                                    {unitsDone}/{TOTAL_U} Einheiten
+                                  <span className="text-[9px] font-black" style={{ color: `${accentColor}70` }}>
+                                    {unitsDone}/{TOTAL_U}
                                   </span>
                                 </div>
                               )}
 
+                              {isReady && unitsDone === 0 && (
+                                <p className="text-[10px] text-[#30E3CA]/55 mt-0.5 font-semibold">Einheit 1 starten →</p>
+                              )}
+
                               {!isReady && (
-                                <span className="text-[10px] font-black uppercase tracking-wider text-[#30E3CA]/50 mt-0.5 block">
-                                  Lernpfad wird erstellt…
-                                </span>
+                                <p className="text-[10px] font-black uppercase tracking-wider text-[#30E3CA]/40 mt-0.5">
+                                  Wird generiert…
+                                </p>
                               )}
                             </div>
 
-                            {/* Action button */}
-                            <button
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                isReady ? navigate(`/learning-path/${path.id}`) : navigate(`/learning-path-waiting/${path.id}`);
-                              }}
-                              className="flex-shrink-0 flex items-center gap-1.5 px-3 py-2 rounded-xl text-[11px] font-black transition-all hover:scale-105 active:scale-95"
-                              style={{ background: `${accentColor}15`, border: `1px solid ${accentColor}35`, color: accentColor }}
-                            >
-                              {isReady ? (
-                                <>
-                                  <svg width="11" height="11" viewBox="0 0 12 12" fill="currentColor">
-                                    <polygon points="2,1 10,6 2,11"/>
-                                  </svg>
-                                  {allDone ? 'Öffnen' : 'Weiter'}
-                                </>
-                              ) : (
-                                <>
+                            {/* Status pill + CTA */}
+                            <div className="flex-shrink-0 flex flex-col items-end gap-1.5">
+                              <span className="text-[9px] font-black uppercase tracking-widest px-2 py-1 rounded-full"
+                                style={{ background: `${accentColor}12`, color: accentColor, border: `1px solid ${accentColor}25` }}>
+                                {statusLabel}
+                              </span>
+                              <button
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  isReady ? navigate(`/learning-path/${path.id}`) : navigate(`/learning-path-waiting/${path.id}`);
+                                }}
+                                className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-[10px] font-black transition-all hover:scale-105 active:scale-95"
+                                style={{ background: `${accentColor}15`, border: `1px solid ${accentColor}30`, color: accentColor }}>
+                                {isReady ? (
+                                  <>
+                                    {allDone ? 'Prüfung' : 'Weiter'}
+                                    <svg width="9" height="9" viewBox="0 0 9 9" fill="currentColor"><polygon points="1,1 8,4.5 1,8"/></svg>
+                                  </>
+                                ) : (
                                   <div className="w-2.5 h-2.5 rounded-full border border-current border-t-transparent animate-spin" />
-                                  Öffnen
-                                </>
-                              )}
-                            </button>
+                                )}
+                              </button>
+                            </div>
                           </div>
                         </div>
                       );
