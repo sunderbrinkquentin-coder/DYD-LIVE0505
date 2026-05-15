@@ -67,9 +67,11 @@ async function toBase64(src: string): Promise<string> {
 
 const INLINE_TAGS = new Set(['span', 'a', 'strong', 'em', 'b', 'i', 'label', 'small', 'code']);
 
-function bakeComputedStyles(liveEl: HTMLElement, cloneEl: HTMLElement): void {
-  const tag = liveEl.tagName.toLowerCase();
-  const cs = window.getComputedStyle(liveEl);
+function bakeComputedStyles(el: HTMLElement): void {
+  const liveEl = el;
+  const cloneEl = el;
+  const tag = el.tagName.toLowerCase();
+  const cs = window.getComputedStyle(el);
 
   // ── SVG root ──────────────────────────────────────────────────────────────
   if (tag === 'svg') {
@@ -150,10 +152,13 @@ function bakeComputedStyles(liveEl: HTMLElement, cloneEl: HTMLElement): void {
   // Display
   cloneEl.style.display = cs.display;
 
-  // Width — always bake to preserve column layouts
-  cloneEl.style.width = cs.width;
+  // Width — bake to preserve column layouts, but let inline chip spans size to content
+  // (their input children will be replaced with auto-width divs during prepareClone)
+  const isChipSpan = tag === 'span' && (cs.display === 'inline-flex' || cs.display === 'inline-block')
+    && el.querySelector('input') !== null;
+  cloneEl.style.width = isChipSpan ? 'auto' : cs.width;
   cloneEl.style.maxWidth = cs.maxWidth;
-  cloneEl.style.minWidth = cs.minWidth;
+  cloneEl.style.minWidth = isChipSpan ? '0' : cs.minWidth;
 
   // Height — only bake for block containers, not for content-sized elements.
   // Inputs/textareas need height:auto so replaced divs can size to their text.
@@ -221,30 +226,31 @@ function bakeComputedStyles(liveEl: HTMLElement, cloneEl: HTMLElement): void {
   cloneEl.removeAttribute('class');
 }
 
-function bakeAll(liveRoot: HTMLElement, cloneRoot: HTMLElement): void {
-  const lEls = [liveRoot, ...Array.from(liveRoot.querySelectorAll<HTMLElement>('*'))];
-  const cEls = [cloneRoot, ...Array.from(cloneRoot.querySelectorAll<HTMLElement>('*'))];
-  for (let i = 0; i < lEls.length && i < cEls.length; i++) {
-    bakeComputedStyles(lEls[i], cEls[i]);
+// Self-bake: reads computed styles from the clone itself (already in DOM at 794px).
+// This ensures responsive Tailwind classes (md:grid-cols-12 etc.) resolve correctly
+// at A4 width rather than at the current viewport width.
+function bakeAll(cloneRoot: HTMLElement): void {
+  const els = [cloneRoot, ...Array.from(cloneRoot.querySelectorAll<HTMLElement>('*'))];
+  for (const el of els) {
+    bakeComputedStyles(el);
   }
 }
 
 // ─── Prepare clone for capture ───────────────────────────────────────────────
 
-function prepareClone(clone: HTMLElement, liveRoot: HTMLElement): void {
+function prepareClone(clone: HTMLElement, _liveRoot?: HTMLElement): void {
   // Remove editor-only UI
   clone.querySelectorAll<HTMLElement>('button, [data-pdf-hidden]').forEach(el => el.remove());
 
-  // Snapshot live input/textarea values BEFORE any DOM changes
-  const liveInputs = Array.from(liveRoot.querySelectorAll<HTMLInputElement>('input'));
-  const liveTAs = Array.from(liveRoot.querySelectorAll<HTMLTextAreaElement>('textarea'));
+  // Values were already synced from live→clone before DOM insertion.
+  // Read directly from clone elements.
   const cloneInputs = Array.from(clone.querySelectorAll<HTMLInputElement>('input'));
   const cloneTAs = Array.from(clone.querySelectorAll<HTMLTextAreaElement>('textarea'));
 
   // Replace <input> → <div>
   for (let i = 0; i < cloneInputs.length; i++) {
     const ci = cloneInputs[i];
-    const val = (liveInputs[i]?.value ?? ci.value ?? '').trim();
+    const val = (ci.value ?? '').trim();
 
     if (isPlaceholder(val)) {
       const row = ci.closest('[data-pdf-field-wrap]') ?? ci.closest('li');
@@ -270,7 +276,7 @@ function prepareClone(clone: HTMLElement, liveRoot: HTMLElement): void {
   // Replace <textarea> → <div>
   for (let i = 0; i < cloneTAs.length; i++) {
     const ct = cloneTAs[i];
-    const val = (liveTAs[i]?.value ?? ct.value ?? '').trim();
+    const val = (ct.value ?? '').trim();
 
     if (isPlaceholder(val)) {
       const row = ct.closest('[data-pdf-field-wrap]') ?? ct.closest('li');
@@ -430,45 +436,20 @@ async function renderElementToPDFBlob(
   await new Promise<void>(r => requestAnimationFrame(() => requestAnimationFrame(() => r())));
   window.scrollTo(0, 0);
 
-  // Measure footer ratio in live DOM
-  const liveRect = element.getBoundingClientRect();
-  const liveH = liveRect.height;
-  const footerEl = element.querySelector<HTMLElement>('[data-pdf-footer]');
-  let footerTopRatio = 1;
-  let footerHRatio = 0;
-  if (footerEl) {
-    const fr = footerEl.getBoundingClientRect();
-    footerTopRatio = (fr.top - liveRect.top) / liveH;
-    footerHRatio = fr.height / liveH;
-  }
-
-  // Stamp img dimensions for img→div conversion
-  liveImgs.forEach(img => {
-    const cs = window.getComputedStyle(img);
-    img.setAttribute('data-pdf-w', cs.width || `${img.offsetWidth}px`);
-    img.setAttribute('data-pdf-h', cs.height || `${img.offsetHeight}px`);
-  });
-
-  // Build baked clone
+  // Build clone and insert into DOM at A4 width BEFORE baking styles.
+  // This ensures responsive Tailwind classes (md:grid-cols-12 etc.) resolve at 794px,
+  // not at the current viewport width, so the PDF matches the live editor layout.
   const clone = element.cloneNode(true) as HTMLElement;
-  bakeAll(element, clone);
 
-  // Restore live images & cleanup attrs
-  liveImgs.forEach((img, i) => {
-    img.setAttribute('src', origSrcs[i]);
-    img.removeAttribute('data-pdf-w');
-    img.removeAttribute('data-pdf-h');
-  });
+  // Sync live input/textarea values into clone before DOM insertion
+  const liveInputs = Array.from(element.querySelectorAll<HTMLInputElement>('input'));
+  const liveTAs = Array.from(element.querySelectorAll<HTMLTextAreaElement>('textarea'));
+  const cloneInputsSync = Array.from(clone.querySelectorAll<HTMLInputElement>('input'));
+  const cloneTAsSync = Array.from(clone.querySelectorAll<HTMLTextAreaElement>('textarea'));
+  liveInputs.forEach((li, i) => { if (cloneInputsSync[i]) cloneInputsSync[i].value = li.value; });
+  liveTAs.forEach((lt, i) => { if (cloneTAsSync[i]) cloneTAsSync[i].value = lt.value; });
 
-  // Apply baked img dimensions to clone
-  const cloneImgs = Array.from(clone.querySelectorAll<HTMLImageElement>('img'));
-  liveImgs.forEach((lImg, i) => {
-    if (!cloneImgs[i]) return;
-    cloneImgs[i].style.width = lImg.getAttribute('data-pdf-w') || cloneImgs[i].style.width;
-    cloneImgs[i].style.height = lImg.getAttribute('data-pdf-h') || cloneImgs[i].style.height;
-  });
-
-  // Root clone styles
+  // Position off-screen at A4 width
   clone.style.position = 'absolute';
   clone.style.left = '-9999px';
   clone.style.top = '0';
@@ -484,9 +465,37 @@ async function renderElementToPDFBlob(
   clone.style.borderRadius = '0';
 
   document.body.appendChild(clone);
+
+  // Let browser resolve all responsive CSS at A4 width before baking
+  await new Promise<void>(r => requestAnimationFrame(() => requestAnimationFrame(() => r())));
+
+  // Stamp img dimensions from clone (now at correct 794px width)
+  const cloneImgs = Array.from(clone.querySelectorAll<HTMLImageElement>('img'));
+  cloneImgs.forEach(img => {
+    const cs = window.getComputedStyle(img);
+    img.setAttribute('data-pdf-w', cs.width || `${img.offsetWidth}px`);
+    img.setAttribute('data-pdf-h', cs.height || `${img.offsetHeight}px`);
+  });
+
+  // Self-bake: read computed styles from clone at 794px
+  bakeAll(clone);
+
+  // Restore live images
+  liveImgs.forEach((img, i) => img.setAttribute('src', origSrcs[i]));
+
+  // Apply baked img dimensions
+  cloneImgs.forEach(img => {
+    const w = img.getAttribute('data-pdf-w');
+    const h = img.getAttribute('data-pdf-h');
+    if (w) img.style.width = w;
+    if (h) img.style.height = h;
+    img.removeAttribute('data-pdf-w');
+    img.removeAttribute('data-pdf-h');
+  });
+
   prepareClone(clone, element);
 
-  // Let browser lay out the clone
+  // Let browser lay out the baked clone
   await new Promise<void>(r => requestAnimationFrame(() => r()));
 
   const cloneH = clone.scrollHeight;
