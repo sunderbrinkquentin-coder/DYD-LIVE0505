@@ -255,11 +255,15 @@ function prepareClone(clone: HTMLElement, liveRoot: HTMLElement): void {
     const div = clone.ownerDocument.createElement('div');
     div.textContent = val;
     div.style.cssText = ci.style.cssText;
-    // Ensure text sits at the same vertical position as in the live input
+    // Let the div size to its content — fixed-width inputs would clip text
     div.style.display = 'flex';
     div.style.alignItems = 'center';
-    div.style.overflow = 'hidden';
-    div.style.whiteSpace = 'nowrap';
+    div.style.width = 'auto';
+    div.style.minWidth = '0';
+    div.style.maxWidth = '100%';
+    div.style.overflow = 'visible';
+    div.style.whiteSpace = 'normal';
+    div.style.wordBreak = 'break-word';
     ci.parentNode?.replaceChild(div, ci);
   }
 
@@ -277,7 +281,10 @@ function prepareClone(clone: HTMLElement, liveRoot: HTMLElement): void {
     const div = clone.ownerDocument.createElement('div');
     div.textContent = val;
     div.style.cssText = ct.style.cssText;
+    // Always auto-height — fixed rows=N bakes a px height that clips content
     div.style.height = 'auto';
+    div.style.minHeight = '0';
+    div.style.maxHeight = 'none';
     div.style.overflow = 'visible';
     div.style.whiteSpace = 'pre-wrap';
     div.style.wordBreak = 'break-word';

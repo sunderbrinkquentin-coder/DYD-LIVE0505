@@ -55,6 +55,11 @@ const StarRating: React.FC<{ stars: number; total?: number }> = ({ stars, total 
   </span>
 );
 
+const autoResize = (el: HTMLTextAreaElement) => {
+  el.style.height = 'auto';
+  el.style.height = el.scrollHeight + 'px';
+};
+
 const EditableText: React.FC<{
   value?: string;
   onChange: (value: string) => void;
@@ -67,11 +72,15 @@ const EditableText: React.FC<{
     return (
       <textarea
         className={`w-full resize-none bg-transparent outline-none border-none focus:ring-0 ${className}`}
-        style={style}
+        style={{ ...style, overflow: 'hidden', minHeight: '40px' }}
         value={value ?? ''}
         placeholder={placeholder}
-        onChange={(e) => onChange(e.target.value)}
-        rows={3}
+        onChange={(e) => {
+          autoResize(e.target);
+          onChange(e.target.value);
+        }}
+        onFocus={(e) => autoResize(e.target)}
+        ref={(el) => { if (el) autoResize(el); }}
       />
     );
   }

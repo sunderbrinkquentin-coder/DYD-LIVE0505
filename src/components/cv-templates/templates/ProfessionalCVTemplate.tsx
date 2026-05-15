@@ -34,6 +34,11 @@ interface ProfessionalCVTemplateProps {
   ) => void;
 }
 
+const autoResize = (el: HTMLTextAreaElement) => {
+  el.style.height = 'auto';
+  el.style.height = el.scrollHeight + 'px';
+};
+
 // Einheitlicher Section-Titel
 const SectionTitle: React.FC<{ children: React.ReactNode }> = ({ children }) => (
   <h2 className="mt-4 mb-2 text-[10px] font-semibold tracking-[0.16em] text-slate-700 uppercase flex items-center gap-1.5">
@@ -251,18 +256,14 @@ export const ProfessionalCVTemplate: React.FC<ProfessionalCVTemplateProps> = ({
                             <span style={{ flexShrink: 0, marginTop: '4px', width: '4px', height: '4px', borderRadius: '50%', background: '#334155', display: 'inline-block' }} />
                             <textarea
                               className="w-full bg-transparent outline-none text-slate-800 text-[10px] leading-tight resize-none"
-                              style={{ flex: 1 }}
-                              rows={2}
+                              style={{ flex: 1, overflow: 'hidden', minHeight: '20px' }}
                               value={bp}
-                              onChange={(e) =>
-                                handleBulletChange(
-                                  sectionIndex,
-                                  idx,
-                                  bIdx,
-                                  e.target.value,
-                                  exp
-                                )
-                              }
+                              onChange={(e) => {
+                                autoResize(e.target);
+                                handleBulletChange(sectionIndex, idx, bIdx, e.target.value, exp);
+                              }}
+                              onFocus={(e) => autoResize(e.target)}
+                              ref={(el) => { if (el) autoResize(el); }}
                               placeholder="Aufgabe / Erfolg"
                             />
                           </li>
@@ -271,16 +272,14 @@ export const ProfessionalCVTemplate: React.FC<ProfessionalCVTemplateProps> = ({
                     ) : (
                       <textarea
                         className="mt-0.5 w-full text-[10px] text-slate-800 bg-transparent outline-none resize-none leading-tight"
-                        rows={3}
+                        style={{ overflow: 'hidden', minHeight: '40px' }}
                         value={exp.description || ''}
-                        onChange={(e) =>
-                          onUpdateSectionItem(
-                            sectionIndex,
-                            idx,
-                            'description',
-                            e.target.value
-                          )
-                        }
+                        onChange={(e) => {
+                          autoResize(e.target);
+                          onUpdateSectionItem(sectionIndex, idx, 'description', e.target.value);
+                        }}
+                        onFocus={(e) => autoResize(e.target)}
+                        ref={(el) => { if (el) autoResize(el); }}
                         placeholder="Aufgaben / Erfolge"
                       />
                     )}
@@ -350,17 +349,14 @@ export const ProfessionalCVTemplate: React.FC<ProfessionalCVTemplateProps> = ({
                           <li key={bIdx}>
                             <textarea
                               className="w-full bg-transparent outline-none text-slate-800 text-[10px] leading-tight resize-none"
-                              rows={2}
+                              style={{ overflow: 'hidden', minHeight: '20px' }}
                               value={bp}
-                              onChange={(e) =>
-                                handleBulletChange(
-                                  sectionIndex,
-                                  idx,
-                                  bIdx,
-                                  e.target.value,
-                                  proj
-                                )
-                              }
+                              onChange={(e) => {
+                                autoResize(e.target);
+                                handleBulletChange(sectionIndex, idx, bIdx, e.target.value, proj);
+                              }}
+                              onFocus={(e) => autoResize(e.target)}
+                              ref={(el) => { if (el) autoResize(el); }}
                               placeholder="Ergebnis / Beitrag"
                             />
                           </li>
@@ -369,16 +365,14 @@ export const ProfessionalCVTemplate: React.FC<ProfessionalCVTemplateProps> = ({
                     ) : (
                       <textarea
                         className="mt-0.5 w-full text-[10px] text-slate-800 bg-transparent outline-none resize-none leading-tight"
-                        rows={3}
+                        style={{ overflow: 'hidden', minHeight: '40px' }}
                         value={proj.description || ''}
-                        onChange={(e) =>
-                          onUpdateSectionItem(
-                            sectionIndex,
-                            idx,
-                            'description',
-                            e.target.value
-                          )
-                        }
+                        onChange={(e) => {
+                          autoResize(e.target);
+                          onUpdateSectionItem(sectionIndex, idx, 'description', e.target.value);
+                        }}
+                        onFocus={(e) => autoResize(e.target)}
+                        ref={(el) => { if (el) autoResize(el); }}
                         placeholder="Kurzbeschreibung"
                       />
                     )}

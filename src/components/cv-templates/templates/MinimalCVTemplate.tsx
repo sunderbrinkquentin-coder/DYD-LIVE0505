@@ -64,6 +64,11 @@ const getBullets = (item: any): string[] => {
   return [];
 };
 
+const autoResize = (el: HTMLTextAreaElement) => {
+  el.style.height = 'auto';
+  el.style.height = el.scrollHeight + 'px';
+};
+
 export const MinimalCVTemplate: React.FC<MinimalCVTemplateProps> = ({
   personalInfo,
   summary,
@@ -78,10 +83,7 @@ export const MinimalCVTemplate: React.FC<MinimalCVTemplateProps> = ({
 
   // Summary auto-height
   useEffect(() => {
-    if (summaryRef.current) {
-      summaryRef.current.style.height = 'auto';
-      summaryRef.current.style.height = summaryRef.current.scrollHeight + 'px';
-    }
+    if (summaryRef.current) autoResize(summaryRef.current);
   }, [summary]);
 
   const renderExperienceOrProjects = (
@@ -178,9 +180,9 @@ export const MinimalCVTemplate: React.FC<MinimalCVTemplateProps> = ({
                         <span className="mt-[4px] h-[3px] w-[3px] rounded-full bg-slate-500" />
                         <textarea
                           className="flex-1 bg-transparent outline-none text-slate-800 text-[10px] leading-tight resize-none"
-                          rows={2}
                           value={bp}
                           onChange={(e) => {
+                            autoResize(e.target);
                             const newBullets = [...bullets];
                             newBullets[bIdx] = e.target.value;
                             onUpdateSectionItem(
@@ -190,8 +192,10 @@ export const MinimalCVTemplate: React.FC<MinimalCVTemplateProps> = ({
                               newBullets
                             );
                           }}
+                          onFocus={(e) => autoResize(e.target)}
+                          ref={(el) => { if (el) autoResize(el); }}
                           placeholder="Aufgabe / Ergebnis"
-                          style={{ overflow: 'hidden' }}
+                          style={{ overflow: 'hidden', minHeight: '20px' }}
                         />
                       </li>
                     ))}
@@ -199,18 +203,15 @@ export const MinimalCVTemplate: React.FC<MinimalCVTemplateProps> = ({
                 ) : (
                   <textarea
                     className="mt-1 w-full text-[10px] text-slate-800 bg-transparent outline-none resize-none leading-tight"
-                    rows={3}
                     value={item.description || ''}
-                    onChange={(e) =>
-                      onUpdateSectionItem(
-                        sectionIndex,
-                        idx,
-                        'description',
-                        e.target.value
-                      )
-                    }
+                    onChange={(e) => {
+                      autoResize(e.target);
+                      onUpdateSectionItem(sectionIndex, idx, 'description', e.target.value);
+                    }}
+                    onFocus={(e) => autoResize(e.target)}
+                    ref={(el) => { if (el) autoResize(el); }}
                     placeholder="Kurz Aufgaben und Erfolge beschreiben"
-                    style={{ overflow: 'hidden' }}
+                    style={{ overflow: 'hidden', minHeight: '40px' }}
                   />
                 )}
               </div>
