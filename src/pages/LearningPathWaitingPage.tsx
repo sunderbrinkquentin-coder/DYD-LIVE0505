@@ -313,20 +313,15 @@ export default function LearningPathWaitingPage() {
     doneRef.current = false;
     pollCountRef.current = 0;
 
-    // Mark done when learning_paths.status = 'completed'
+    // Navigate as soon as the first learning_results row appears — no need to wait for all 10
     const ch = supabase
       .channel(`lpw2_${pathId}_${Date.now()}`)
       .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'learning_results', filter: `learning_path_id=eq.${pathId}` },
-        () => {
-          // Any new unit row → check if path is now completed
-          supabase.from('learning_paths').select('status').eq('id', pathId).maybeSingle().then(({ data }) => {
-            if (data?.status === 'completed') markDone();
-          });
-        })
+        () => { markDone(); })
       .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'learning_paths', filter: `id=eq.${pathId}` },
         (payload) => {
           const s = (payload.new as any)?.status as string;
-          if (s === 'completed') markDone();
+          if (s === 'completed' || s === 'in_progress') markDone();
           if (s === 'failed') markError('Die KI konnte deinen Lernpfad nicht erstellen. Bitte versuche es erneut.');
         })
       .subscribe();
@@ -340,13 +335,18 @@ export default function LearningPathWaitingPage() {
       }
       pollCountRef.current += 1;
 
-      // Primary check: learning_paths.status = 'completed'
+      // Check if any learning_results row exists — first row = ready to start
+      const { data: rows } = await supabase
+        .from('learning_results')
+        .select('id')
+        .eq('learning_path_id', pathId)
+        .limit(1);
+      if (rows && rows.length > 0) { markDone(); return; }
+
+      // Also check path status for error states
       const { data: lp } = await supabase
         .from('learning_paths').select('status').eq('id', pathId).maybeSingle();
-      if (lp) {
-        if (lp.status === 'completed') { markDone(); return; }
-        if (lp.status === 'failed') { markError('Die KI konnte deinen Lernpfad nicht erstellen.'); return; }
-      }
+      if (lp?.status === 'failed') { markError('Die KI konnte deinen Lernpfad nicht erstellen.'); return; }
 
       if (!doneRef.current) pollTimerRef.current = setTimeout(tick, POLL_INTERVAL_MS);
     };
@@ -429,14 +429,30 @@ export default function LearningPathWaitingPage() {
 
       pathDataRef.current = effectivePath;
 
-      // Already completed? → navigate immediately
+      // Already has rows? → navigate immediately (remaining rows load in background)
+      const { data: existingRows } = await supabase
+        .from('learning_results').select('id').eq('learning_path_id', pathId).limit(1);
+      if (existingRows && existingRows.length > 0) {
+        console.log('[LPW2] learning_results exist — navigating immediately');
+        markDone();
+        return;
+      }
+
+      // Path already completed status (but rows somehow missing) → navigate
       if (lp.status === 'completed') {
         console.log('[LPW2] Already completed — navigating');
         markDone();
         return;
       }
 
-      console.log('[LPW2] No learning_results content — triggering Make | lp.status:', lp.status, '| selected_skill:', effectivePath.selected_skill);
+      // Already in-flight → just listen, don't re-trigger
+      if (lp.status === 'in_progress') {
+        console.log('[LPW2] Already in_progress — listening for first row');
+        startListening();
+        return;
+      }
+
+      console.log('[LPW2] Triggering Make | lp.status:', lp.status, '| selected_skill:', effectivePath.selected_skill);
       const ok = await triggerMake(effectivePath);
       if (!ok) {
         markError('Der Lernpfad konnte nicht gestartet werden. Bitte versuche es erneut.');

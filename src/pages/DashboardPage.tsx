@@ -1158,27 +1158,31 @@ export function DashboardPage() {
                                 </span>
                               </div>
 
-                              {/* Progress bar — shown when ready and has some progress */}
+                              {/* Skill label — primary subtitle */}
+                              {skillLabel && (
+                                <p className="text-xs font-semibold mt-0.5 truncate" style={{ color: `${accentColor}80` }}>
+                                  {skillLabel}
+                                </p>
+                              )}
+
+                              {/* Progress bar — shown when ready */}
                               {isReady && (
-                                <div className="flex items-center gap-2 mt-1.5">
+                                <div className="flex items-center gap-2 mt-1">
                                   <div className="flex gap-0.5">
                                     {Array.from({ length: TOTAL_U }, (_, i) => (
                                       <div key={i} className="w-4 h-1 rounded-full transition-all"
                                         style={{ background: i < unitsDone ? accentColor : 'rgba(255,255,255,0.1)' }} />
                                     ))}
                                   </div>
-                                  <span className="text-[10px] font-black" style={{ color: `${accentColor}90` }}>
+                                  <span className="text-[10px] font-black" style={{ color: `${accentColor}70` }}>
                                     {unitsDone}/{TOTAL_U} Einheiten
                                   </span>
-                                  {skillLabel && (
-                                    <span className="text-[10px] text-white/25 truncate">· {skillLabel}</span>
-                                  )}
                                 </div>
                               )}
 
                               {!isReady && (
-                                <span className="text-[10px] font-black uppercase tracking-wider text-[#30E3CA]/60 mt-0.5 block">
-                                  Lernpfad wird erstellt…{skillLabel ? ` · ${skillLabel}` : ''}
+                                <span className="text-[10px] font-black uppercase tracking-wider text-[#30E3CA]/50 mt-0.5 block">
+                                  Lernpfad wird erstellt…
                                 </span>
                               )}
                             </div>

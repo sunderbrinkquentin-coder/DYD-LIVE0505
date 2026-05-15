@@ -1503,11 +1503,12 @@ export default function LearningPathPage() {
       if (pollCountRef.current >= POLL_MAX) return;
       pollCountRef.current += 1;
       try {
-        const { data: lp } = await supabase
-          .from('learning_paths').select('*').eq('id', id).maybeSingle();
-        if (lp?.status === 'completed') {
-          handleCurriculumReady(lp as unknown as LearningPath);
-          return;
+        // Ready as soon as first learning_results row exists
+        const { data: rows } = await supabase
+          .from('learning_results').select('id').eq('learning_path_id', id).limit(1);
+        if (rows && rows.length > 0) {
+          const { data: lp } = await supabase.from('learning_paths').select('*').eq('id', id).maybeSingle();
+          if (lp) { handleCurriculumReady(lp as unknown as LearningPath); return; }
         }
       } catch { /* */ }
       pollTimerRef.current = setTimeout(tick, POLL_INTERVAL_MS);
@@ -1623,8 +1624,10 @@ export default function LearningPathPage() {
       if (!raw) { setError('Lernpfad nicht gefunden'); setPhase('error'); return; }
       const path = normalizePath(raw);
 
-      // Ready when Make has set status = 'completed' on the learning_path
-      const hasResults = path.status === 'completed';
+      // Ready as soon as at least 1 learning_results row exists (remaining rows load in background)
+      const { data: rowCheck } = await supabase
+        .from('learning_results').select('id').eq('learning_path_id', pathId).limit(1);
+      const hasResults = (rowCheck?.length ?? 0) > 0 || path.status === 'completed';
 
       setLearningPath(path);
       setAnalysisResult(resultFromPath(path));
@@ -1668,6 +1671,22 @@ export default function LearningPathPage() {
     if (pathId) { loadLearningPath(true); loadCompletedUnits(); }
   }, [pathId, loadLearningPath, loadCompletedUnits]);
 
+  // Live-update unitRows as Make writes the remaining rows in the background
+  useEffect(() => {
+    if (!showDashboard || !learningPath) return;
+    const id = learningPath.id;
+    const ch = supabase
+      .channel(`unit_rows_live_${id}_${Date.now()}`)
+      .on('postgres_changes',
+        { event: 'INSERT', schema: 'public', table: 'learning_results', filter: `learning_path_id=eq.${id}` },
+        () => { loadUnitRows(id); })
+      .on('postgres_changes',
+        { event: 'UPDATE', schema: 'public', table: 'learning_results', filter: `learning_path_id=eq.${id}` },
+        () => { loadUnitRows(id); })
+      .subscribe();
+    return () => { supabase.removeChannel(ch); };
+  }, [showDashboard, learningPath?.id, loadUnitRows]);
+
   // When phase becomes 'generating' (resume after browser close or direct navigation)
   // start polling/realtime. Also check if we need to re-trigger Make.
   useEffect(() => {
@@ -1679,9 +1698,10 @@ export default function LearningPathPage() {
 
     (async () => {
       // Check if already completed
-      const { data: lpCheck } = await supabase
-        .from('learning_paths').select('status').eq('id', id).maybeSingle();
-      if (lpCheck?.status === 'completed') {
+      // Already has rows? → immediately show dashboard
+      const { data: existingRows } = await supabase
+        .from('learning_results').select('id').eq('learning_path_id', id).limit(1);
+      if (existingRows && existingRows.length > 0) {
         handleCurriculumReady(learningPath);
         return;
       }
