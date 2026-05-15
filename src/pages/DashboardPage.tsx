@@ -516,37 +516,42 @@ export function DashboardPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // Realtime: update lpResults as soon as Make writes final_exam to learning_results
+  // Realtime: update lpResults as soon as Make writes learning_results rows
+  // Also watch learning_paths for final_exam_status changes
   useEffect(() => {
     if (learningPaths.length === 0) return;
     const paidIds = learningPaths.filter(p => p.is_paid).map(p => p.id);
     if (paidIds.length === 0) return;
 
     const ch = supabase
-      .channel(`dashboard_lp_results_${Date.now()}`)
+      .channel(`dashboard_lp_realtime_${Date.now()}`)
       .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'learning_results' },
         (payload) => {
           const row = payload.new as any;
-          if (!row?.final_exam) return;
-          if (row.id && paidIds.includes(row.id)) {
-            setLpResults(prev => ({ ...prev, [row.id]: true }));
-          } else if (row.learning_path_id && paidIds.includes(row.learning_path_id)) {
-            setLpResults(prev => ({ ...prev, [row.learning_path_id]: true }));
+          const lpId = row?.learning_path_id;
+          if (lpId && paidIds.includes(lpId)) {
+            setLpResults(prev => ({ ...prev, [lpId]: true }));
           }
         })
       .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'learning_results' },
         (payload) => {
           const row = payload.new as any;
-          if (!row?.final_exam) return;
-          if (row.id && paidIds.includes(row.id)) {
-            setLpResults(prev => ({ ...prev, [row.id]: true }));
-          } else if (row.learning_path_id && paidIds.includes(row.learning_path_id)) {
-            setLpResults(prev => ({ ...prev, [row.learning_path_id]: true }));
+          const lpId = row?.learning_path_id;
+          if (lpId && paidIds.includes(lpId)) {
+            setLpResults(prev => ({ ...prev, [lpId]: true }));
           }
+        })
+      .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'learning_paths' },
+        (payload) => {
+          const row = payload.new as any;
+          if (!row?.id || !paidIds.includes(row.id)) return;
+          // Refresh learning paths so final_exam_status, certificate_url etc. are current
+          loadLearningPaths();
         })
       .subscribe();
 
     return () => { supabase.removeChannel(ch); };
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [learningPaths]);
 
   useEffect(() => {
@@ -1096,7 +1101,10 @@ export function DashboardPage() {
                       const isReady = lpResults[path.id] === true;
                       const unitsDone = lpUnitCounts[path.id] ?? 0;
                       const allDone = unitsDone >= 5;
-                      const hasCert = !!(path as any).certificate_url;
+                      const hasCert = !!path.certificate_url;
+                      const examStatus = path.final_exam_status;
+                      const examInProgress = examStatus === 'triggered' || examStatus === 'ready';
+                      const examDone = examStatus === 'done' || examStatus === 'passed';
                       const TOTAL_U = 5;
                       const progressPct = Math.round((unitsDone / TOTAL_U) * 100);
 
@@ -1117,8 +1125,23 @@ export function DashboardPage() {
                         return null;
                       })();
 
-                      const accentColor = hasCert ? '#fbbf24' : allDone ? '#fbbf24' : isReady ? '#30E3CA' : '#30E3CA';
-                      const statusLabel = hasCert ? 'Zertifikat' : allDone ? 'Prüfung offen' : isReady ? (unitsDone > 0 ? `${unitsDone}/${TOTAL_U}` : 'Starten') : 'Wird erstellt';
+                      // Determine accent color based on state priority
+                      const accentColor = hasCert ? '#fbbf24'
+                        : examDone && !hasCert ? '#f87171'
+                        : examInProgress ? '#fbbf24'
+                        : allDone ? '#fbbf24'
+                        : isReady ? '#30E3CA'
+                        : '#30E3CA';
+
+                      const statusLabel = hasCert ? 'Zertifikat'
+                        : examDone && !hasCert ? 'Wiederholen'
+                        : examStatus === 'triggered' ? 'Prüfung lädt'
+                        : examStatus === 'ready' ? 'Prüfung bereit'
+                        : allDone ? 'Prüfung starten'
+                        : isReady ? (unitsDone > 0 ? `${unitsDone}/${TOTAL_U}` : 'Starten')
+                        : 'Wird erstellt';
+
+                      const handleClick = () => navigate(`/learning-path/${path.id}`);
 
                       return (
                         <div
@@ -1127,20 +1150,23 @@ export function DashboardPage() {
                           style={{
                             background: hasCert
                               ? 'linear-gradient(135deg,rgba(251,191,36,0.09) 0%,rgba(5,9,18,0.98) 60%)'
-                              : allDone
+                              : (allDone || examInProgress || examDone)
                                 ? 'linear-gradient(135deg,rgba(251,191,36,0.07) 0%,rgba(5,9,18,0.98) 60%)'
                                 : isReady
                                   ? 'linear-gradient(135deg,rgba(48,227,202,0.07) 0%,rgba(5,9,18,0.98) 60%)'
                                   : 'linear-gradient(135deg,rgba(48,227,202,0.04) 0%,rgba(5,9,18,0.98) 60%)',
-                            border: hasCert ? '1px solid rgba(251,191,36,0.25)' : allDone ? '1px solid rgba(251,191,36,0.2)' : isReady ? '1px solid rgba(48,227,202,0.2)' : '1px solid rgba(48,227,202,0.12)',
+                            border: hasCert ? '1px solid rgba(251,191,36,0.25)'
+                              : (allDone || examInProgress || examDone) ? '1px solid rgba(251,191,36,0.2)'
+                              : isReady ? '1px solid rgba(48,227,202,0.2)'
+                              : '1px solid rgba(48,227,202,0.12)',
                           }}
-                          onClick={() => isReady ? navigate(`/learning-path/${path.id}`) : navigate(`/learning-path-waiting/${path.id}`)}
+                          onClick={handleClick}
                         >
                           {/* Top shimmer line */}
-                          {(hasCert || allDone) && (
+                          {(hasCert || allDone || examInProgress || examDone) && (
                             <div className="h-px w-full" style={{ background: 'linear-gradient(90deg,transparent,rgba(251,191,36,0.4),transparent)' }} />
                           )}
-                          {isReady && !allDone && !hasCert && (
+                          {isReady && !allDone && !hasCert && !examInProgress && !examDone && (
                             <div className="h-px w-full" style={{ background: 'linear-gradient(90deg,transparent,rgba(48,227,202,0.3),transparent)' }} />
                           )}
 
@@ -1150,6 +1176,14 @@ export function DashboardPage() {
                               style={{ background: `${accentColor}12`, border: `1px solid ${accentColor}30` }}>
                               {hasCert ? (
                                 <Award size={17} style={{ color: '#fbbf24' }} />
+                              ) : examDone && !hasCert ? (
+                                <svg width="15" height="15" viewBox="0 0 15 15" fill="none">
+                                  <circle cx="7.5" cy="7.5" r="6" stroke="#f87171" strokeWidth="1.5"/>
+                                  <line x1="5" y1="5" x2="10" y2="10" stroke="#f87171" strokeWidth="1.5" strokeLinecap="round"/>
+                                  <line x1="10" y1="5" x2="5" y2="10" stroke="#f87171" strokeWidth="1.5" strokeLinecap="round"/>
+                                </svg>
+                              ) : examInProgress ? (
+                                <div className="w-3.5 h-3.5 rounded-full border-[1.5px] border-[#fbbf24]/30 border-t-[#fbbf24] animate-spin" />
                               ) : allDone ? (
                                 <Sparkles size={16} style={{ color: '#fbbf24' }} />
                               ) : isReady && unitsDone > 0 ? (
@@ -1183,8 +1217,22 @@ export function DashboardPage() {
                               {/* Job — secondary */}
                               <p className="text-sm font-bold text-white/80 leading-tight truncate">{path.target_job}</p>
 
-                              {/* Progress segments */}
-                              {isReady && unitsDone > 0 && (
+                              {/* State-specific sub-line */}
+                              {hasCert && (
+                                <p className="text-[10px] text-amber-400/60 mt-0.5 font-semibold">Zertifikat verfügbar →</p>
+                              )}
+                              {!hasCert && examDone && (
+                                <p className="text-[10px] text-red-400/60 mt-0.5 font-semibold">
+                                  {path.final_exam_score !== undefined ? `${path.final_exam_score}% — Prüfung wiederholen` : 'Prüfung wiederholen →'}
+                                </p>
+                              )}
+                              {!hasCert && examStatus === 'triggered' && (
+                                <p className="text-[10px] text-amber-400/55 mt-0.5 font-semibold">Abschlussprüfung wird generiert…</p>
+                              )}
+                              {!hasCert && examStatus === 'ready' && (
+                                <p className="text-[10px] text-amber-400/70 mt-0.5 font-semibold">Prüfung bereit — jetzt starten →</p>
+                              )}
+                              {!hasCert && !examStatus && isReady && unitsDone > 0 && !allDone && (
                                 <div className="flex items-center gap-1.5 mt-1.5">
                                   <div className="flex gap-0.5">
                                     {Array.from({ length: TOTAL_U }, (_, i) => (
@@ -1197,8 +1245,11 @@ export function DashboardPage() {
                                   </span>
                                 </div>
                               )}
+                              {!hasCert && !examStatus && allDone && !examInProgress && (
+                                <p className="text-[10px] text-amber-400/60 mt-0.5 font-semibold">Alle Einheiten bestanden — Prüfung starten →</p>
+                              )}
 
-                              {isReady && unitsDone === 0 && (
+                              {isReady && unitsDone === 0 && !allDone && !examStatus && (
                                 <p className="text-[10px] text-[#30E3CA]/55 mt-0.5 font-semibold">Einheit 1 starten →</p>
                               )}
 
@@ -1218,13 +1269,13 @@ export function DashboardPage() {
                               <button
                                 onClick={(e) => {
                                   e.stopPropagation();
-                                  isReady ? navigate(`/learning-path/${path.id}`) : navigate(`/learning-path-waiting/${path.id}`);
+                                  handleClick();
                                 }}
                                 className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-[10px] font-black transition-all hover:scale-105 active:scale-95"
                                 style={{ background: `${accentColor}15`, border: `1px solid ${accentColor}30`, color: accentColor }}>
-                                {isReady ? (
+                                {isReady || hasCert ? (
                                   <>
-                                    {allDone ? 'Prüfung' : 'Weiter'}
+                                    {hasCert ? 'Download' : allDone || examInProgress || examDone ? 'Prüfung' : 'Weiter'}
                                     <svg width="9" height="9" viewBox="0 0 9 9" fill="currentColor"><polygon points="1,1 8,4.5 1,8"/></svg>
                                   </>
                                 ) : (

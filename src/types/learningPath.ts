@@ -56,6 +56,11 @@ export interface LearningPath {
   is_paid: boolean;
   certificate_issued_at?: string;
   certificate_url?: string;
+  final_exam_status?: 'none' | 'triggered' | 'ready' | 'done' | 'passed' | 'failed';
+  final_exam_score?: number;
+  final_exam_questions?: unknown;
+  final_exam_triggered_at?: string;
+  triggered_at?: string;
   created_at: string;
   updated_at: string;
 }

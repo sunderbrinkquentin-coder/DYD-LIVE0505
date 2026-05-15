@@ -42,7 +42,9 @@ export class CertificateService {
       const { data: resultRow } = await supabase
         .from('learning_results')
         .select('certificate_metadata')
-        .eq('id', learningPath.id)
+        .eq('learning_path_id', learningPath.id)
+        .order('created_at', { ascending: true })
+        .limit(1)
         .maybeSingle();
       if (resultRow?.certificate_metadata) {
         certMeta = resultRow.certificate_metadata;
