@@ -8,6 +8,15 @@ export class CertificateService {
     learningPath: LearningPath,
     recipientName: string
   ): Promise<string> {
+    // Guard: all 5 units must be completed before certificate can be issued
+    const { count } = await supabase
+      .from('unit_completions')
+      .select('id', { count: 'exact', head: true })
+      .eq('learning_path_id', learningPath.id);
+    if ((count ?? 0) < 5) {
+      throw new Error(`Noch nicht alle Lerneinheiten abgeschlossen (${count ?? 0}/5). Bitte schließe alle 5 Einheiten ab.`);
+    }
+
     // Try to get the full display name from the profile
     let displayName = recipientName;
     if (learningPath.user_id) {
@@ -49,12 +58,28 @@ export class CertificateService {
     // Use official_title from learning_results if available
     const certTitle = certMeta?.official_title || learningPath.target_job;
 
-    // Collect completed module titles
-    const allModules = learningPath.curriculum?.modules ?? [];
-    const moduleTitles = Object.entries(learningPath.progress ?? {})
-      .filter(([, p]) => p.status === 'completed')
-      .map(([moduleId]) => allModules.find((m) => m.id === moduleId)?.title)
-      .filter((t): t is string => Boolean(t));
+    // Collect completed unit titles from unit_completions (5 units, each with variant A/B)
+    let moduleTitles: string[] = [];
+    try {
+      const { data: completions } = await supabase
+        .from('unit_completions')
+        .select('unit_index, variant, exam_score')
+        .eq('learning_path_id', learningPath.id)
+        .order('unit_index');
+      if (completions && completions.length > 0) {
+        moduleTitles = completions.map(
+          (c: any) => `Lerneinheit ${c.unit_index} (${c.variant}) — ${c.exam_score}% bestanden`
+        );
+      }
+    } catch { /* non-fatal — fall back to empty */ }
+    // Fall back to old curriculum-based titles if no unit_completions exist yet
+    if (moduleTitles.length === 0) {
+      const allModules = learningPath.curriculum?.modules ?? [];
+      moduleTitles = Object.entries(learningPath.progress ?? {})
+        .filter(([, p]) => p.status === 'completed')
+        .map(([moduleId]) => allModules.find((m) => m.id === moduleId)?.title)
+        .filter((t): t is string => Boolean(t));
+    }
 
     const certificate: Certificate = {
       recipient_name: displayName,

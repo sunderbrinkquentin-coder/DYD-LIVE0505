@@ -574,15 +574,30 @@ function LearningContent({
   learningPath,
   onCertificateRequest,
   isGeneratingCertificate,
+  unitIndex,
+  unitVariant,
+  userId,
+  completedUnits,
+  onUnitCompleted,
 }: {
   learningPath: LearningPath;
   onCertificateRequest: () => void;
   isGeneratingCertificate: boolean;
+  unitIndex: number;
+  unitVariant: 'A' | 'B';
+  userId: string | null;
+  completedUnits: Set<number>;
+  onUnitCompleted: (unitIdx: number) => void;
 }) {
+  const TOTAL_UNITS = 5;
+  const allUnitsComplete = completedUnits.size >= TOTAL_UNITS;
+  const thisUnitComplete = completedUnits.has(unitIndex);
+
   const [result, setResult] = useState<LearningResult | null>(null);
   const [loadingResult, setLoadingResult] = useState(true);
   const [stillGenerating, setStillGenerating] = useState(false);
   const [learningPhase, setLearningPhase] = useState<LearningPhase>('intro');
+  const [savingCompletion, setSavingCompletion] = useState(false);
 
   // Guided practice state
   const [practice, setPractice] = useState<PracticeState>({ currentIdx: 0, selected: null, revealed: false, correct: 0 });
@@ -593,6 +608,26 @@ function LearningContent({
   const [examRevealed, setExamRevealed] = useState<Record<number, boolean>>({});
 
   const realtimeRef = useRef<ReturnType<typeof supabase.channel> | null>(null);
+
+  // Save unit completion to DB (idempotent via unique index)
+  const saveUnitCompletion = async (score: number, resultId?: string) => {
+    if (!userId || thisUnitComplete) return;
+    setSavingCompletion(true);
+    try {
+      await supabase.from('unit_completions').upsert({
+        learning_path_id: learningPath.id,
+        user_id: userId,
+        learning_result_id: resultId ?? null,
+        unit_index: unitIndex,
+        variant: unitVariant,
+        exam_score: score,
+        completed_at: new Date().toISOString(),
+      }, { onConflict: 'learning_path_id,unit_index', ignoreDuplicates: true });
+      onUnitCompleted(unitIndex);
+    } catch { /* non-fatal */ } finally {
+      setSavingCompletion(false);
+    }
+  };
 
   useEffect(() => {
     let cancelled = false;
@@ -701,10 +736,11 @@ function LearningContent({
 
   // Split questions: first half for guided practice, all for final exam
   const practiceQuestions = questions.slice(0, Math.ceil(questions.length / 2));
-  const examScore = examSubmitted
+  const examScoreRaw = examSubmitted
     ? questions.filter(q => examAnswers[q.question_id] === q.correct_key).length
     : 0;
-  const examPassed = examSubmitted && examScore >= Math.ceil(questions.length * 0.6);
+  const examScorePct = questions.length > 0 ? Math.round((examScoreRaw / questions.length) * 100) : 0;
+  const examPassed = examSubmitted && examScoreRaw >= Math.ceil(questions.length * 0.6);
   const allExamAnswered = questions.length > 0 && questions.every(q => examAnswers[q.question_id]);
 
   // Phase step indicator
@@ -1104,9 +1140,15 @@ function LearningContent({
               })}
               <button
                 disabled={!allExamAnswered}
-                onClick={() => {
+                onClick={async () => {
+                  const correct = questions.filter(q => examAnswers[q.question_id] === q.correct_key).length;
+                  const pct = questions.length > 0 ? Math.round((correct / questions.length) * 100) : 0;
+                  const passed = correct >= Math.ceil(questions.length * 0.6);
                   setExamSubmitted(true);
                   setExamRevealed(Object.fromEntries(questions.map(q => [q.question_id, true])));
+                  if (passed) {
+                    await saveUnitCompletion(pct, (result as any)?.id);
+                  }
                 }}
                 className="w-full py-4 rounded-2xl font-black text-[15px] text-black flex items-center justify-center gap-2 transition-all disabled:opacity-40 disabled:cursor-not-allowed hover:scale-[1.02] active:scale-[0.98]"
                 style={{ background: 'linear-gradient(135deg,#66c0b6,#30E3CA)', boxShadow: allExamAnswered ? '0 4px 20px rgba(48,227,202,0.25)' : 'none' }}>
@@ -1125,8 +1167,8 @@ function LearningContent({
                 <p className="text-lg font-bold text-white">{examPassed ? 'Bestanden!' : 'Nicht bestanden'}</p>
                 <p className="text-sm text-white/55">
                   {examPassed
-                    ? `${examScore} von ${questions.length} Fragen richtig. Herzlichen Glückwunsch!`
-                    : `${examScore} von ${questions.length} richtig — mindestens ${Math.ceil(questions.length * 0.6)} benötigt.`}
+                    ? `${examScoreRaw} von ${questions.length} Fragen richtig. Herzlichen Glückwunsch!`
+                    : `${examScoreRaw} von ${questions.length} richtig — mindestens ${Math.ceil(questions.length * 0.6)} benötigt.`}
                 </p>
               </div>
 
@@ -1155,13 +1197,50 @@ function LearningContent({
               })}
 
               {examPassed ? (
-                <button
-                  onClick={() => setLearningPhase('certificate')}
-                  className="w-full py-4 rounded-2xl font-black text-[15px] text-black flex items-center justify-center gap-2 transition-all hover:scale-[1.02] active:scale-[0.98]"
-                  style={{ background: 'linear-gradient(135deg,#22c55e,#4ade80)', boxShadow: '0 4px 24px rgba(34,197,94,0.3)' }}>
-                  <Award size={18} />
-                  Zum Zertifikat
-                </button>
+                <div className="space-y-3">
+                  {savingCompletion && (
+                    <div className="flex items-center justify-center gap-2 text-[#30E3CA]/70 text-xs">
+                      <Loader2 size={13} className="animate-spin" />
+                      <span>Fortschritt wird gespeichert…</span>
+                    </div>
+                  )}
+                  {/* Unit progress indicator */}
+                  <div className="rounded-xl px-4 py-3 flex items-center gap-3"
+                    style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.08)' }}>
+                    <div className="flex gap-1">
+                      {Array.from({ length: TOTAL_UNITS }, (_, i) => {
+                        const done = completedUnits.has(i + 1);
+                        return (
+                          <div key={i} className="w-6 h-6 rounded-lg flex items-center justify-center text-[9px] font-black"
+                            style={{
+                              background: done ? 'rgba(34,197,94,0.15)' : 'rgba(255,255,255,0.05)',
+                              border: done ? '1px solid rgba(34,197,94,0.35)' : '1px solid rgba(255,255,255,0.1)',
+                              color: done ? '#4ade80' : 'rgba(255,255,255,0.25)',
+                            }}>
+                            {done ? '✓' : i + 1}
+                          </div>
+                        );
+                      })}
+                    </div>
+                    <p className="text-[11px] text-white/45 flex-1">
+                      {completedUnits.size} / {TOTAL_UNITS} Lerneinheiten abgeschlossen
+                    </p>
+                  </div>
+                  <button
+                    disabled={!allUnitsComplete}
+                    onClick={() => allUnitsComplete && setLearningPhase('certificate')}
+                    className="w-full py-4 rounded-2xl font-black text-[15px] text-black flex items-center justify-center gap-2 transition-all disabled:opacity-40 disabled:cursor-not-allowed hover:scale-[1.02] active:scale-[0.98]"
+                    style={{
+                      background: allUnitsComplete ? 'linear-gradient(135deg,#22c55e,#4ade80)' : 'rgba(255,255,255,0.08)',
+                      boxShadow: allUnitsComplete ? '0 4px 24px rgba(34,197,94,0.3)' : 'none',
+                      color: allUnitsComplete ? 'black' : 'rgba(255,255,255,0.4)',
+                    }}>
+                    <Award size={18} />
+                    {allUnitsComplete
+                      ? 'Zum Zertifikat'
+                      : `Noch ${TOTAL_UNITS - completedUnits.size} Lerneinheit${TOTAL_UNITS - completedUnits.size === 1 ? '' : 'en'} ausstehend`}
+                  </button>
+                </div>
               ) : (
                 <button
                   onClick={() => { setExamSubmitted(false); setExamAnswers({}); setExamRevealed({}); }}
@@ -1244,6 +1323,10 @@ export default function LearningPathPage() {
   const [generatorSuccess, setGeneratorSuccess] = useState(false);
   // When true, show the full dashboard instead of the result/analysis view
   const [showDashboard, setShowDashboard] = useState(false);
+  // Unit tracking: which of the 5 units are done, and which unit is currently open
+  const [completedUnits, setCompletedUnits] = useState<Set<number>>(new Set());
+  const [activeUnitIndex, setActiveUnitIndex] = useState(1); // 1–5
+  const TOTAL_UNITS = 5;
 
   const realtimeChannelRef = useRef<ReturnType<typeof supabase.channel> | null>(null);
   const pollTimerRef       = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -1445,6 +1528,17 @@ export default function LearningPathPage() {
 
   // ── Load learning path ────────────────────────────────────────────────────────
 
+  const loadCompletedUnits = useCallback(async () => {
+    if (!pathId) return;
+    const { data } = await supabase
+      .from('unit_completions')
+      .select('unit_index')
+      .eq('learning_path_id', pathId);
+    if (data) {
+      setCompletedUnits(new Set(data.map((r: any) => r.unit_index as number)));
+    }
+  }, [pathId]);
+
   const loadLearningPath = useCallback(async (showLoader = false) => {
     if (!pathId) return;
     if (showLoader) setPhase('loading');
@@ -1477,6 +1571,7 @@ export default function LearningPathPage() {
       if (hasResults && path.is_paid) {
         setShowDashboard(true);
         setPhase('done');
+        loadCompletedUnits();
         return;
       }
 
@@ -1498,8 +1593,8 @@ export default function LearningPathPage() {
   // ── Effects ───────────────────────────────────────────────────────────────────
 
   useEffect(() => {
-    if (pathId) loadLearningPath(true);
-  }, [pathId, loadLearningPath]);
+    if (pathId) { loadLearningPath(true); loadCompletedUnits(); }
+  }, [pathId, loadLearningPath, loadCompletedUnits]);
 
   // When phase becomes 'generating' (resume after browser close or direct navigation)
   // start polling/realtime. Also check if we need to re-trigger Make.
@@ -1657,11 +1752,58 @@ export default function LearningPathPage() {
 
         {/* Learning content — shown after user clicks "Zum Lernpfad" or after generation/payment */}
         {showDashboard && (
-          <LearningContent
-            learningPath={learningPath}
-            onCertificateRequest={handleCertificateRequest}
-            isGeneratingCertificate={isGeneratingCertificate}
-          />
+          <div className="space-y-6">
+            {/* Unit selector: 5 units, each with A/B variant determined by unit index parity */}
+            <div className="max-w-2xl mx-auto">
+              <p className="text-[10px] font-black uppercase tracking-widest text-white/25 mb-3">
+                Lerneinheiten ({completedUnits.size}/{TOTAL_UNITS} abgeschlossen)
+              </p>
+              <div className="flex gap-2 overflow-x-auto pb-1">
+                {Array.from({ length: TOTAL_UNITS }, (_, i) => {
+                  const idx = i + 1;
+                  const done = completedUnits.has(idx);
+                  const active = activeUnitIndex === idx;
+                  return (
+                    <button
+                      key={idx}
+                      onClick={() => setActiveUnitIndex(idx)}
+                      className="flex-shrink-0 flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs font-black transition-all hover:scale-[1.03]"
+                      style={{
+                        background: active
+                          ? 'rgba(48,227,202,0.12)'
+                          : done
+                          ? 'rgba(34,197,94,0.08)'
+                          : 'rgba(255,255,255,0.04)',
+                        border: active
+                          ? '1px solid rgba(48,227,202,0.35)'
+                          : done
+                          ? '1px solid rgba(34,197,94,0.3)'
+                          : '1px solid rgba(255,255,255,0.09)',
+                        color: active ? '#30E3CA' : done ? '#4ade80' : 'rgba(255,255,255,0.45)',
+                      }}>
+                      {done && (
+                        <svg width="10" height="10" viewBox="0 0 10 10"><polyline points="1.5,5 4,7.5 8.5,2.5" fill="none" stroke="#4ade80" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/></svg>
+                      )}
+                      Einheit {idx}
+                      <span className="text-[9px] opacity-60">{idx % 2 === 0 ? 'B' : 'A'}</span>
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+
+            <LearningContent
+              key={activeUnitIndex}
+              learningPath={learningPath}
+              onCertificateRequest={handleCertificateRequest}
+              isGeneratingCertificate={isGeneratingCertificate}
+              unitIndex={activeUnitIndex}
+              unitVariant={activeUnitIndex % 2 === 0 ? 'B' : 'A'}
+              userId={user?.id ?? null}
+              completedUnits={completedUnits}
+              onUnitCompleted={(idx) => setCompletedUnits(prev => new Set([...prev, idx]))}
+            />
+          </div>
         )}
 
         {/* Certificate overlay */}
