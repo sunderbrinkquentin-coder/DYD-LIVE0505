@@ -20,7 +20,7 @@ const LEARNINGPATH_WEBHOOK_URL =
 
 const FINAL_EXAM_WEBHOOK_URL =
   import.meta.env.VITE_MAKE_WEBHOOK_FINAL_EXAM
-  || 'https://hook.eu2.make.com/1pvur1oth8sibonqc3twq57itg2ti1d0';
+  || 'https://hook.eu2.make.com/jp9n42qofc5zvtab8x58o3i2j53ebpt2';
 
 const COMPLETE_STATUSES = new Set(['curriculum_ready', 'completed']);
 // Statuses where generation is in-flight — only skip re-trigger if learning_results also has content
@@ -325,9 +325,9 @@ function ResultView({
   const criticalSkills  = visibleSkills.filter(s => (s?.gap_severity ?? 0) >= 4);
   const buildSkills     = visibleSkills.filter(s => (s?.gap_severity ?? 0) >= 2 && (s?.gap_severity ?? 0) < 4);
 
-  // Skill selection — persisted to DB immediately so Make always gets the chosen skill
+  // Skill selection — persisted to DB column `skill` immediately so Make always gets the chosen skill
   const initialSkill = (() => {
-    const stored = (learningPath as any).selected_skill;
+    const stored = (learningPath as any).skill;
     if (stored && typeof stored === 'string') return stored;
     if (stored && typeof stored === 'object') return stored.skill_name || stored.name || null;
     return visibleSkills[0] ? skillDisplayName(visibleSkills[0]) : null;
@@ -341,7 +341,7 @@ function ResultView({
     setIsSavingSkill(true);
     try {
       await supabase.from('learning_paths')
-        .update({ selected_skill: name, updated_at: new Date().toISOString() })
+        .update({ skill: name, updated_at: new Date().toISOString() })
         .eq('id', learningPath.id);
     } finally {
       setIsSavingSkill(false);
@@ -1261,7 +1261,7 @@ function ModuleOverview({
   const progressPct = Math.round((doneCount / TOTAL) * 100);
 
   const skillLabel = (() => {
-    const sel = (learningPath as any).selected_skill;
+    const sel = (learningPath as any).skill;
     if (sel && typeof sel === 'string') return sel;
     if (sel && typeof sel === 'object') return sel.skill_name || sel.name || null;
     const missing = (learningPath as any).missing_skills;
@@ -1997,12 +1997,13 @@ export default function LearningPathPage() {
     if (!learningPath) return;
     setFinalExamPhase('triggering');
     try {
-      const selectedSkill = (learningPath as any).selected_skill || null;
+      const selectedSkill = (learningPath as any).skill || null;
       await fetch(FINAL_EXAM_WEBHOOK_URL, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           learning_path_id: learningPath.id,
+          skill: selectedSkill,
           selected_skill: selectedSkill,
           target_job: learningPath.target_job,
           user_id: learningPath.user_id,

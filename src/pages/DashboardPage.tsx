@@ -1101,7 +1101,7 @@ export function DashboardPage() {
                       const progressPct = Math.round((unitsDone / TOTAL_U) * 100);
 
                       const skillLabel = (() => {
-                        const sel = (path as any).selected_skill;
+                        const sel = (path as any).skill;
                         if (sel && typeof sel === 'string') return sel;
                         if (sel && typeof sel === 'object') return sel.skill_name || sel.name || null;
                         const missing = (path as any).missing_skills;

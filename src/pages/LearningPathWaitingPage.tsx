@@ -366,13 +366,14 @@ export default function LearningPathWaitingPage() {
       }
       return [];
     };
-    const selectedSkill = (path.selected_skill as string) || null;
+    const selectedSkill = (path.skill as string) || null;
     try {
       const res = await fetch(WEBHOOK_URL, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           learning_path_id: pathId,
+          skill: selectedSkill,
           selected_skill: selectedSkill,
           missing_skills: selectedSkill ? [selectedSkill] : parseSkills(path.missing_skills),
           current_skills: parseSkills(path.current_skills),
@@ -416,15 +417,15 @@ export default function LearningPathWaitingPage() {
 
       if (lp.target_job) setTargetJob(lp.target_job);
 
-      // If DB doesn't have selected_skill yet (race condition: webhook still processing),
+      // If DB doesn't have skill yet (race condition: webhook still processing),
       // use the URL param as fallback and persist it immediately so Make gets the right value
       let effectivePath = lp as Record<string, unknown>;
-      if (!lp.selected_skill && skillFromUrl) {
-        console.log('[LPW2] selected_skill missing from DB — using URL param:', skillFromUrl);
+      if (!(lp as any).skill && skillFromUrl) {
+        console.log('[LPW2] skill missing from DB — using URL param:', skillFromUrl);
         await supabase.from('learning_paths')
-          .update({ selected_skill: skillFromUrl, updated_at: new Date().toISOString() })
+          .update({ skill: skillFromUrl, updated_at: new Date().toISOString() })
           .eq('id', pathId);
-        effectivePath = { ...effectivePath, selected_skill: skillFromUrl };
+        effectivePath = { ...effectivePath, skill: skillFromUrl };
       }
 
       pathDataRef.current = effectivePath;
