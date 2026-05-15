@@ -1780,13 +1780,14 @@ export default function LearningPathPage() {
     try {
       const allMissingSkills = parseSkills(path.missing_skills);
       const currentSkills = parseSkills(path.current_skills);
-      const selectedSkill = (path as any).selected_skill || null;
+      const selectedSkill = (path as any).skill || null;
       console.log('[LearningPath] Triggering webhook:', LEARNINGPATH_WEBHOOK_URL);
       const res = await fetch(LEARNINGPATH_WEBHOOK_URL, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           learning_path_id: path.id,
+          skill: selectedSkill,
           selected_skill: selectedSkill,
           missing_skills: selectedSkill ? [selectedSkill] : allMissingSkills,
           current_skills: currentSkills,

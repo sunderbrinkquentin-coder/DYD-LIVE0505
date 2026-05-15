@@ -453,7 +453,7 @@ export default function LearningPathWaitingPage() {
         return;
       }
 
-      console.log('[LPW2] Triggering Make | lp.status:', lp.status, '| selected_skill:', effectivePath.selected_skill);
+      console.log('[LPW2] Triggering Make | lp.status:', lp.status, '| skill:', effectivePath.skill);
       const ok = await triggerMake(effectivePath);
       if (!ok) {
         markError('Der Lernpfad konnte nicht gestartet werden. Bitte versuche es erneut.');
