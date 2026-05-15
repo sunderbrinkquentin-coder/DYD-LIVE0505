@@ -1156,6 +1156,211 @@ function LearningContent({
   );
 }
 
+// ── ARCS/DSR phase labels per unit ────────────────────────────────────────────
+
+const ARCS_PHASES = [
+  { label: 'Attention',     sub: 'Einstieg & Motivation',   icon: 'A' },
+  { label: 'Relevance',     sub: 'Lernziele & Bedeutung',   icon: 'R' },
+  { label: 'Confidence',    sub: 'Geführte Übung',          icon: 'C' },
+  { label: 'Satisfaction',  sub: 'Festigung & Reflexion',   icon: 'S' },
+  { label: 'Prüfung',       sub: 'Einheitentest',           icon: 'P' },
+];
+
+interface ModuleOverviewProps {
+  learningPath: LearningPath;
+  unitRows: LearningResultRow[];
+  completedUnits: Set<number>;
+  unitScores: Map<number, number>;
+  allUnitsPassed: boolean;
+  onOpenUnit: (idx: number) => void;
+  onStartFinalExam: () => void;
+}
+
+function ModuleOverview({
+  learningPath, unitRows, completedUnits, unitScores,
+  allUnitsPassed, onOpenUnit, onStartFinalExam,
+}: ModuleOverviewProps) {
+  const TOTAL = 5;
+  const doneCount = completedUnits.size;
+  const isGenerating = unitRows.length === 0;
+
+  return (
+    <div className="max-w-2xl mx-auto space-y-5" style={{ animation: 'lp_fadeUp 0.4s ease' }}>
+      {/* Header */}
+      <div className="rounded-2xl overflow-hidden"
+        style={{ background: 'linear-gradient(135deg,rgba(48,227,202,0.07) 0%,rgba(6,7,15,0.98) 60%)', border: '1px solid rgba(48,227,202,0.2)' }}>
+        <div className="h-px w-full" style={{ background: 'linear-gradient(90deg,transparent,rgba(48,227,202,0.4),transparent)' }} />
+        <div className="p-5 flex items-start gap-4">
+          <div className="w-12 h-12 rounded-2xl flex items-center justify-center flex-shrink-0"
+            style={{ background: 'rgba(48,227,202,0.1)', border: '1px solid rgba(48,227,202,0.25)' }}>
+            <Brain size={22} className="text-[#30E3CA]" />
+          </div>
+          <div className="flex-1 min-w-0">
+            <p className="text-[10px] font-black uppercase tracking-widest text-[#30E3CA]/60 mb-0.5">Dein Lernpfad</p>
+            <p className="text-lg font-black text-white leading-tight truncate">{learningPath.target_job}</p>
+            <div className="flex items-center gap-3 mt-2">
+              <div className="flex items-center gap-1.5">
+                <div className="flex gap-0.5">
+                  {Array.from({ length: TOTAL }, (_, i) => (
+                    <div key={i} className="w-5 h-1.5 rounded-full transition-all"
+                      style={{ background: completedUnits.has(i + 1) ? '#22c55e' : 'rgba(255,255,255,0.1)' }} />
+                  ))}
+                </div>
+                <span className="text-[10px] font-black text-white/40">{doneCount}/{TOTAL}</span>
+              </div>
+              {doneCount > 0 && (
+                <span className="text-[10px] font-semibold text-green-400/70">
+                  {doneCount === TOTAL ? 'Alle bestanden!' : `${doneCount} bestanden`}
+                </span>
+              )}
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Generating state */}
+      {isGenerating && (
+        <div className="rounded-2xl p-6 flex items-center gap-4"
+          style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.08)' }}>
+          <div className="w-10 h-10 rounded-2xl flex items-center justify-center flex-shrink-0"
+            style={{ background: 'rgba(48,227,202,0.08)', border: '1px solid rgba(48,227,202,0.2)' }}>
+            <Loader2 size={18} className="animate-spin text-[#30E3CA]" />
+          </div>
+          <div>
+            <p className="text-sm font-black text-white">Lernmodule werden erstellt…</p>
+            <p className="text-xs text-white/40 mt-0.5 leading-relaxed">
+              Deine 5 personalisierten Lerneinheiten werden vorbereitet. Das dauert in der Regel 1–2 Minuten.
+            </p>
+          </div>
+        </div>
+      )}
+
+      {/* Module cards */}
+      {!isGenerating && (
+        <div className="space-y-3">
+          <p className="text-[10px] font-black uppercase tracking-widest text-white/25 px-1">
+            5 Lerneinheiten — ARCS / DSR Methodik
+          </p>
+          {Array.from({ length: TOTAL }, (_, i) => {
+            const idx = i + 1;
+            const done = completedUnits.has(idx);
+            const score = unitScores.get(idx);
+            const phase = ARCS_PHASES[i];
+            const isNext = !done && (i === 0 || completedUnits.has(i));
+            const locked = !done && !isNext && i > 0 && !completedUnits.has(i);
+
+            return (
+              <button
+                key={idx}
+                onClick={() => !locked && onOpenUnit(idx)}
+                disabled={locked}
+                className="w-full text-left rounded-2xl overflow-hidden transition-all hover:scale-[1.01] active:scale-[0.99] disabled:opacity-40 disabled:cursor-not-allowed"
+                style={{
+                  background: done
+                    ? 'linear-gradient(135deg,rgba(34,197,94,0.07) 0%,rgba(6,7,15,0.98) 60%)'
+                    : isNext
+                      ? 'linear-gradient(135deg,rgba(48,227,202,0.07) 0%,rgba(6,7,15,0.98) 60%)'
+                      : 'rgba(255,255,255,0.025)',
+                  border: done
+                    ? '1px solid rgba(34,197,94,0.22)'
+                    : isNext
+                      ? '1px solid rgba(48,227,202,0.2)'
+                      : '1px solid rgba(255,255,255,0.07)',
+                }}
+              >
+                <div className="p-4 flex items-center gap-4">
+                  {/* Phase badge */}
+                  <div className="w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0 text-xs font-black"
+                    style={{
+                      background: done ? 'rgba(34,197,94,0.12)' : isNext ? 'rgba(48,227,202,0.1)' : 'rgba(255,255,255,0.05)',
+                      border: done ? '1px solid rgba(34,197,94,0.3)' : isNext ? '1px solid rgba(48,227,202,0.25)' : '1px solid rgba(255,255,255,0.08)',
+                      color: done ? '#4ade80' : isNext ? '#30E3CA' : 'rgba(255,255,255,0.3)',
+                    }}>
+                    {done
+                      ? <svg width="14" height="14" viewBox="0 0 14 14"><polyline points="3,7 6,10 11,4" fill="none" stroke="#4ade80" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/></svg>
+                      : phase.icon
+                    }
+                  </div>
+
+                  {/* Info */}
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-2">
+                      <p className="text-[10px] font-black uppercase tracking-widest"
+                        style={{ color: done ? 'rgba(74,222,128,0.6)' : isNext ? 'rgba(48,227,202,0.6)' : 'rgba(255,255,255,0.25)' }}>
+                        Einheit {idx} · {phase.label}
+                      </p>
+                      {done && score !== undefined && (
+                        <span className="text-[9px] font-black px-1.5 py-0.5 rounded-full"
+                          style={{ background: 'rgba(34,197,94,0.1)', border: '1px solid rgba(34,197,94,0.2)', color: '#4ade80' }}>
+                          {score}%
+                        </span>
+                      )}
+                    </div>
+                    <p className="text-sm font-bold text-white/85 mt-0.5 leading-tight">{phase.sub}</p>
+                    <p className="text-[10px] text-white/30 mt-1">
+                      {done ? 'Abgeschlossen' : isNext ? 'Jetzt starten' : 'Nach vorheriger Einheit verfügbar'}
+                    </p>
+                  </div>
+
+                  {/* Arrow */}
+                  {!locked && (
+                    <ArrowRight size={15} style={{ color: done ? '#4ade80' : isNext ? '#30E3CA' : 'rgba(255,255,255,0.2)', flexShrink: 0 }} />
+                  )}
+                  {locked && (
+                    <svg width="14" height="14" viewBox="0 0 14 14" style={{ flexShrink: 0 }}>
+                      <rect x="3" y="6" width="8" height="6" rx="1.5" fill="none" stroke="rgba(255,255,255,0.15)" strokeWidth="1.2"/>
+                      <path d="M5,6 V4.5 a2.5,2.5 0 0,1 4,0 V6" fill="none" stroke="rgba(255,255,255,0.15)" strokeWidth="1.2"/>
+                    </svg>
+                  )}
+                </div>
+              </button>
+            );
+          })}
+        </div>
+      )}
+
+      {/* Final exam card */}
+      <div className={`rounded-2xl overflow-hidden transition-all ${allUnitsPassed ? '' : 'opacity-50'}`}
+        style={{
+          background: allUnitsPassed
+            ? 'linear-gradient(135deg,rgba(251,191,36,0.07) 0%,rgba(6,7,15,0.98) 60%)'
+            : 'rgba(255,255,255,0.02)',
+          border: allUnitsPassed ? '1px solid rgba(251,191,36,0.25)' : '1px solid rgba(255,255,255,0.07)',
+        }}>
+        {allUnitsPassed && <div className="h-px w-full" style={{ background: 'linear-gradient(90deg,transparent,rgba(251,191,36,0.4),transparent)' }} />}
+        <div className="p-5 flex items-center gap-4">
+          <div className="w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0"
+            style={{
+              background: allUnitsPassed ? 'rgba(251,191,36,0.12)' : 'rgba(255,255,255,0.04)',
+              border: allUnitsPassed ? '1px solid rgba(251,191,36,0.3)' : '1px solid rgba(255,255,255,0.08)',
+            }}>
+            <Award size={18} style={{ color: allUnitsPassed ? '#fbbf24' : 'rgba(255,255,255,0.2)' }} />
+          </div>
+          <div className="flex-1 min-w-0">
+            <p className="text-[10px] font-black uppercase tracking-widest"
+              style={{ color: allUnitsPassed ? 'rgba(251,191,36,0.7)' : 'rgba(255,255,255,0.2)' }}>
+              Abschlussprüfung · Zertifikat
+            </p>
+            <p className="text-sm font-bold text-white/85 mt-0.5">Alle 5 Einheiten bestehen, dann freischalten</p>
+            <p className="text-[10px] mt-1" style={{ color: allUnitsPassed ? 'rgba(251,191,36,0.6)' : 'rgba(255,255,255,0.2)' }}>
+              {allUnitsPassed ? '100% erforderlich für Zertifikat' : `Noch ${TOTAL - doneCount} Einheit(en) offen`}
+            </p>
+          </div>
+          {allUnitsPassed && (
+            <button
+              onClick={onStartFinalExam}
+              className="flex-shrink-0 flex items-center gap-1.5 px-4 py-2.5 rounded-xl text-xs font-black transition-all hover:scale-105 active:scale-95"
+              style={{ background: 'rgba(251,191,36,0.12)', border: '1px solid rgba(251,191,36,0.3)', color: '#fbbf24' }}>
+              <Sparkles size={13} />
+              Starten
+            </button>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
+
 // ── Main page ──────────────────────────────────────────────────────────────────
 
 type PagePhase = 'loading' | 'result' | 'generating' | 'revealing' | 'done' | 'error' | 'redirect_waiting';
@@ -1177,7 +1382,7 @@ export default function LearningPathPage() {
   // Unit tracking: which of the 5 units are done, and which unit is currently open
   const [completedUnits, setCompletedUnits] = useState<Set<number>>(new Set());
   const [unitScores, setUnitScores] = useState<Map<number, number>>(new Map());
-  const [activeUnitIndex, setActiveUnitIndex] = useState(1); // 1–5
+  const [activeUnitIndex, setActiveUnitIndex] = useState(0); // 0 = overview, 1–5 = unit
   const TOTAL_UNITS = 5;
   // Rows loaded from learning_results — 10 rows total (5 units × 2 variants)
   const [unitRows, setUnitRows] = useState<LearningResultRow[]>([]);
@@ -1298,25 +1503,10 @@ export default function LearningPathPage() {
       if (pollCountRef.current >= POLL_MAX) return;
       pollCountRef.current += 1;
       try {
-        // Primary: check learning_results — ready when any unit row exists
-        const { data: unitRow } = await supabase
-          .from('learning_results')
-          .select('id')
-          .eq('learning_path_id', id)
-          .limit(1)
-          .maybeSingle();
-        if (unitRow) {
-          const { data: lp } = await supabase.from('learning_paths').select('*').eq('id', id).maybeSingle();
-          if (lp) { handleCurriculumReady(lp as unknown as LearningPath); return; }
-        }
-        // Fallback: check learning_paths status
-        const { data } = await supabase
-          .from('learning_paths')
-          .select('*')
-          .eq('id', id)
-          .maybeSingle();
-        if (data && COMPLETE_STATUSES.has(data.status)) {
-          handleCurriculumReady(data as unknown as LearningPath);
+        const { data: lp } = await supabase
+          .from('learning_paths').select('*').eq('id', id).maybeSingle();
+        if (lp?.status === 'completed') {
+          handleCurriculumReady(lp as unknown as LearningPath);
           return;
         }
       } catch { /* */ }
@@ -1352,7 +1542,7 @@ export default function LearningPathPage() {
         { event: 'UPDATE', schema: 'public', table: 'learning_paths', filter: `id=eq.${path.id}` },
         (payload) => {
           const row = payload.new as any;
-          if (COMPLETE_STATUSES.has(row?.status)) {
+          if (row?.status === 'completed') {
             handleCurriculumReady(row as unknown as LearningPath);
           }
         })
@@ -1433,19 +1623,13 @@ export default function LearningPathPage() {
       if (!raw) { setError('Lernpfad nicht gefunden'); setPhase('error'); return; }
       const path = normalizePath(raw);
 
-      // Check if Make has written any unit rows (learning_results with learning_path_id)
-      const { data: anyUnitRow } = await supabase
-        .from('learning_results')
-        .select('id')
-        .eq('learning_path_id', pathId)
-        .limit(1)
-        .maybeSingle();
-      const hasResults = !!anyUnitRow;
+      // Ready when Make has set status = 'completed' on the learning_path
+      const hasResults = path.status === 'completed';
 
       setLearningPath(path);
       setAnalysisResult(resultFromPath(path));
 
-      // If any results exist and path is paid, go straight to learning content
+      // If completed and paid, go straight to learning dashboard
       if (hasResults && path.is_paid) {
         setShowDashboard(true);
         setPhase('done');
@@ -1494,10 +1678,10 @@ export default function LearningPathPage() {
     const id = learningPath.id;
 
     (async () => {
-      // Check if Make has already written unit rows — if so, go straight to done
-      const { data: existingRow } = await supabase
-        .from('learning_results').select('id').eq('learning_path_id', id).limit(1).maybeSingle();
-      if (existingRow) {
+      // Check if already completed
+      const { data: lpCheck } = await supabase
+        .from('learning_paths').select('status').eq('id', id).maybeSingle();
+      if (lpCheck?.status === 'completed') {
         handleCurriculumReady(learningPath);
         return;
       }
@@ -1529,7 +1713,7 @@ export default function LearningPathPage() {
           { event: 'UPDATE', schema: 'public', table: 'learning_paths', filter: `id=eq.${id}` },
           (payload) => {
             const row = payload.new as any;
-            if (COMPLETE_STATUSES.has(row?.status) || (row?.curriculum as any)?.modules?.length > 0) {
+            if (row?.status === 'completed') {
               handleCurriculumReady(row as unknown as LearningPath);
             }
           })
@@ -1732,40 +1916,33 @@ export default function LearningPathPage() {
         {/* Learning content — shown after user clicks "Zum Lernpfad" or after generation/payment */}
         {showDashboard && (
           <div className="space-y-6">
-            {/* Unit selector */}
-            {finalExamPhase === 'idle' && (
+            {/* Module overview — only shown when no unit is open and exam is idle */}
+            {finalExamPhase === 'idle' && activeUnitIndex === 0 && (
+              <ModuleOverview
+                learningPath={learningPath}
+                unitRows={unitRows}
+                completedUnits={completedUnits}
+                unitScores={unitScores}
+                allUnitsPassed={allUnitsPassed}
+                onOpenUnit={(idx) => setActiveUnitIndex(idx)}
+                onStartFinalExam={triggerFinalExam}
+              />
+            )}
+
+            {/* Active unit learning content */}
+            {finalExamPhase === 'idle' && activeUnitIndex > 0 && (
               <>
+                {/* Back to overview */}
                 <div className="max-w-2xl mx-auto">
-                  <p className="text-[10px] font-black uppercase tracking-widest text-white/25 mb-3">
-                    Lerneinheiten ({completedUnits.size}/{TOTAL_UNITS} abgeschlossen)
-                  </p>
-                  <div className="flex gap-2 overflow-x-auto pb-1">
-                    {Array.from({ length: TOTAL_UNITS }, (_, i) => {
-                      const idx = i + 1;
-                      const done = completedUnits.has(idx);
-                      const active = activeUnitIndex === idx;
-                      const score = unitScores.get(idx);
-                      return (
-                        <button
-                          key={idx}
-                          onClick={() => setActiveUnitIndex(idx)}
-                          className="flex-shrink-0 flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs font-black transition-all hover:scale-[1.03]"
-                          style={{
-                            background: active ? 'rgba(48,227,202,0.12)' : done ? 'rgba(34,197,94,0.08)' : 'rgba(255,255,255,0.04)',
-                            border: active ? '1px solid rgba(48,227,202,0.35)' : done ? '1px solid rgba(34,197,94,0.3)' : '1px solid rgba(255,255,255,0.09)',
-                            color: active ? '#30E3CA' : done ? '#4ade80' : 'rgba(255,255,255,0.45)',
-                          }}>
-                          {done && <svg width="10" height="10" viewBox="0 0 10 10"><polyline points="1.5,5 4,7.5 8.5,2.5" fill="none" stroke="#4ade80" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/></svg>}
-                          Einheit {idx}
-                          {done && score !== undefined && <span className="text-[9px] opacity-60">{score}%</span>}
-                          {!done && <span className="text-[9px] opacity-60">{idx % 2 === 0 ? 'B' : 'A'}</span>}
-                        </button>
-                      );
-                    })}
-                  </div>
+                  <button
+                    onClick={() => setActiveUnitIndex(0)}
+                    className="flex items-center gap-2 text-xs font-bold text-white/45 hover:text-white/70 transition-colors mb-1"
+                  >
+                    <ArrowLeft size={13} />
+                    Zurück zur Übersicht
+                  </button>
                 </div>
 
-                {/* Active unit content */}
                 {unitRows.length > 0 ? (
                   <LearningContent
                     key={activeUnitIndex}
@@ -1778,42 +1955,13 @@ export default function LearningPathPage() {
                     onUnitCompleted={(idx, score) => {
                       setCompletedUnits(prev => new Set([...prev, idx]));
                       setUnitScores(prev => new Map([...prev, [idx, score]]));
+                      setActiveUnitIndex(0); // return to overview after completing
                     }}
                   />
                 ) : (
                   <div className="max-w-2xl mx-auto flex items-center justify-center gap-3 py-16 text-white/35">
                     <Loader2 size={18} className="animate-spin" />
                     <span className="text-sm">Lerneinheiten werden geladen…</span>
-                  </div>
-                )}
-
-                {/* Final exam trigger — only shown after all 5 units ≥ 80% */}
-                {allUnitsPassed && (
-                  <div className="max-w-2xl mx-auto rounded-2xl overflow-hidden"
-                    style={{ background: 'linear-gradient(135deg,rgba(34,197,94,0.08) 0%,rgba(6,7,15,0.97) 60%)', border: '1px solid rgba(34,197,94,0.3)' }}>
-                    <div className="h-px w-full" style={{ background: 'linear-gradient(90deg,transparent,rgba(34,197,94,0.5),transparent)' }} />
-                    <div className="p-6 space-y-4">
-                      <div className="flex items-center gap-3">
-                        <div className="w-11 h-11 rounded-2xl flex items-center justify-center flex-shrink-0"
-                          style={{ background: 'rgba(34,197,94,0.12)', border: '1px solid rgba(34,197,94,0.3)' }}>
-                          <Award size={20} className="text-green-400" />
-                        </div>
-                        <div>
-                          <p className="text-[10px] font-black uppercase tracking-widest text-green-400/60">Alle Einheiten bestanden</p>
-                          <p className="text-base font-black text-white leading-tight">Bereit für die Abschlussprüfung</p>
-                        </div>
-                      </div>
-                      <p className="text-sm text-white/55 leading-relaxed">
-                        Du hast alle 5 Lerneinheiten mit mindestens 80% bestanden. Jetzt kannst du die Abschlussprüfung starten. Um das Zertifikat zu erhalten, musst du die Abschlussprüfung mit <span className="text-white font-bold">100%</span> abschließen.
-                      </p>
-                      <button
-                        onClick={triggerFinalExam}
-                        className="w-full py-4 rounded-2xl font-black text-[15px] text-black flex items-center justify-center gap-2 transition-all hover:scale-[1.02] active:scale-[0.98]"
-                        style={{ background: 'linear-gradient(135deg,#22c55e,#4ade80)', boxShadow: '0 4px 24px rgba(34,197,94,0.3)' }}>
-                        <Award size={18} />
-                        Abschlussprüfung starten
-                      </button>
-                    </div>
                   </div>
                 )}
               </>

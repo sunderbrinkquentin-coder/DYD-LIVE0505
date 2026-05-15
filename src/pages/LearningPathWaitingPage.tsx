@@ -313,20 +313,21 @@ export default function LearningPathWaitingPage() {
     doneRef.current = false;
     pollCountRef.current = 0;
 
+    // Mark done when learning_paths.status = 'completed'
     const ch = supabase
       .channel(`lpw2_${pathId}_${Date.now()}`)
-      // Only mark done when final_exam content is present
       .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'learning_results', filter: `learning_path_id=eq.${pathId}` },
-        (payload) => { if ((payload.new as any)?.final_exam) markDone(); })
-      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'learning_results', filter: `id=eq.${pathId}` },
-        (payload) => { if ((payload.new as any)?.final_exam) markDone(); })
-      .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'learning_results', filter: `id=eq.${pathId}` },
-        (payload) => { if ((payload.new as any)?.final_exam) markDone(); })
+        () => {
+          // Any new unit row → check if path is now completed
+          supabase.from('learning_paths').select('status').eq('id', pathId).maybeSingle().then(({ data }) => {
+            if (data?.status === 'completed') markDone();
+          });
+        })
       .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'learning_paths', filter: `id=eq.${pathId}` },
         (payload) => {
           const s = (payload.new as any)?.status as string;
-          if (DONE_STATUSES.has(s)) markDone();
-          if (s === 'failed') markError('Die KI-Analyse ist fehlgeschlagen. Bitte versuche es erneut.');
+          if (s === 'completed') markDone();
+          if (s === 'failed') markError('Die KI konnte deinen Lernpfad nicht erstellen. Bitte versuche es erneut.');
         })
       .subscribe();
     channelRef.current = ch;
@@ -334,31 +335,22 @@ export default function LearningPathWaitingPage() {
     const tick = async () => {
       if (doneRef.current) return;
       if (pollCountRef.current >= POLL_MAX) {
-        markError('Der Lernpfad konnte nicht in der erwarteten Zeit erstellt werden. Bitte versuche es erneut.');
+        markError('Keine Antwort von Make erhalten. Bitte prüfe deine Verbindung und versuche es erneut.');
         return;
       }
       pollCountRef.current += 1;
 
-      // Only mark done when actual final_exam content is present
-      const { data: finalResult } = await supabase
-        .from('learning_results').select('final_exam').eq('id', pathId).maybeSingle();
-      if (finalResult?.final_exam) { markDone(); return; }
-
-      const { data: partialResult } = await supabase
-        .from('learning_results').select('final_exam').eq('learning_path_id', pathId)
-        .not('final_exam', 'is', null).limit(1).maybeSingle();
-      if (partialResult?.final_exam) { markDone(); return; }
-
+      // Primary check: learning_paths.status = 'completed'
       const { data: lp } = await supabase
         .from('learning_paths').select('status').eq('id', pathId).maybeSingle();
       if (lp) {
-        if (DONE_STATUSES.has(lp.status)) { markDone(); return; }
-        if (lp.status === 'failed') { markError('Die KI-Analyse ist fehlgeschlagen.'); return; }
+        if (lp.status === 'completed') { markDone(); return; }
+        if (lp.status === 'failed') { markError('Die KI konnte deinen Lernpfad nicht erstellen.'); return; }
       }
 
       if (!doneRef.current) pollTimerRef.current = setTimeout(tick, POLL_INTERVAL_MS);
     };
-    pollTimerRef.current = setTimeout(tick, 1_500); // first check earlier
+    pollTimerRef.current = setTimeout(tick, 2_000);
   }, [pathId, markDone, markError]);
 
   // ── Trigger Make ───────────────────────────────────────────────────────────
@@ -437,15 +429,9 @@ export default function LearningPathWaitingPage() {
 
       pathDataRef.current = effectivePath;
 
-      // Check for result rows — only "ready" if final_exam is actually present
-      const { data: finalResult } = await supabase
-        .from('learning_results').select('final_exam').eq('id', pathId).maybeSingle();
-      const { data: partialResult } = await supabase
-        .from('learning_results').select('final_exam').eq('learning_path_id', pathId)
-        .not('final_exam', 'is', null).limit(1).maybeSingle();
-
-      if (finalResult?.final_exam || partialResult?.final_exam) {
-        console.log('[LPW2] Already has results — skipping trigger');
+      // Already completed? → navigate immediately
+      if (lp.status === 'completed') {
+        console.log('[LPW2] Already completed — navigating');
         markDone();
         return;
       }

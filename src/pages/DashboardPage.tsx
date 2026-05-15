@@ -41,6 +41,7 @@ export function DashboardPage() {
   const [showTicketSuccess, setShowTicketSuccess] = useState(false);
   const [learningPaths, setLearningPaths] = useState<LearningPath[]>([]);
   const [lpResults, setLpResults] = useState<Record<string, boolean>>({}); // pathId → has completed learning_results
+  const [lpUnitCounts, setLpUnitCounts] = useState<Record<string, number>>({}); // pathId → completed unit count
   const [userFirstName, setUserFirstName] = useState<string>('');
   const [festivalTickets, setFestivalTickets] = useState<any[]>([]);
   const [isCvChecksExpanded, setIsCvChecksExpanded] = useState(false);
@@ -267,23 +268,34 @@ export function DashboardPage() {
       console.log('[Dashboard] Loaded', paths.length, 'learning paths');
       setLearningPaths(paths);
 
-      // A path is "ready" only when final_exam content exists in learning_results
+      // Load ready state and unit completion counts for paid paths
       if (paths.length > 0) {
         const ids = paths.filter(p => p.is_paid).map(p => p.id);
         if (ids.length > 0) {
-          const [{ data: canonical }, { data: partial }] = await Promise.all([
-            supabase.from('learning_results').select('id, final_exam').in('id', ids),
-            supabase.from('learning_results').select('learning_path_id, final_exam')
-              .in('learning_path_id', ids).not('final_exam', 'is', null),
+          const [{ data: partial }, { data: unitRows }] = await Promise.all([
+            supabase.from('learning_results').select('learning_path_id')
+              .in('learning_path_id', ids),
+            supabase.from('unit_completions').select('learning_path_id')
+              .in('learning_path_id', ids),
           ]);
+
+          // A path is "ready" (has content) when learning_results rows exist
           const map: Record<string, boolean> = {};
-          (canonical ?? []).forEach((r: any) => {
-            if (r.final_exam) map[r.id] = true;
-          });
           (partial ?? []).forEach((r: any) => {
             if (r.learning_path_id) map[r.learning_path_id] = true;
           });
+          // Override with status === 'completed' from paths
+          paths.forEach(p => {
+            if (p.status === 'completed') map[p.id] = true;
+          });
           setLpResults(map);
+
+          // Count completed units per path
+          const unitMap: Record<string, number> = {};
+          (unitRows ?? []).forEach((r: any) => {
+            if (r.learning_path_id) unitMap[r.learning_path_id] = (unitMap[r.learning_path_id] ?? 0) + 1;
+          });
+          setLpUnitCounts(unitMap);
         }
       }
     } catch (error) {
@@ -1081,12 +1093,11 @@ export function DashboardPage() {
                       Meine Lernpfade
                     </p>
                     {paidPaths.map((path) => {
-                      // 3 clear states:
-                      // isReady      — final_exam exists → grün, direkt starten
-                      // isPending    — bezahlt aber noch kein Ergebnis → teal, wird erstellt
-                      // (else would be unpaid, but paidPaths already filtered to is_paid=true)
                       const isReady = lpResults[path.id] === true;
-                      const isPending = !isReady; // is_paid=true but no final_exam yet
+                      const unitsDone = lpUnitCounts[path.id] ?? 0;
+                      const allDone = unitsDone >= 5;
+                      const hasCert = !!(path as any).certificate_url;
+                      const TOTAL_U = 5;
 
                       const skillLabel = (() => {
                         const sel = (path as any).selected_skill;
@@ -1105,94 +1116,97 @@ export function DashboardPage() {
                         return null;
                       })();
 
+                      const accentColor = hasCert ? '#fbbf24' : allDone ? '#fbbf24' : isReady ? '#4ade80' : '#30E3CA';
+                      const bgColor = hasCert
+                        ? 'linear-gradient(135deg,rgba(251,191,36,0.07),rgba(8,13,24,0.98))'
+                        : allDone
+                          ? 'linear-gradient(135deg,rgba(251,191,36,0.06),rgba(8,13,24,0.98))'
+                          : isReady
+                            ? 'linear-gradient(135deg,rgba(34,197,94,0.07),rgba(8,13,24,0.98))'
+                            : 'linear-gradient(135deg,rgba(48,227,202,0.05),rgba(8,13,24,0.98))';
+                      const borderColor = hasCert ? 'rgba(251,191,36,0.22)' : allDone ? 'rgba(251,191,36,0.2)' : isReady ? 'rgba(34,197,94,0.22)' : 'rgba(48,227,202,0.18)';
+
                       return (
                         <div
                           key={path.id}
-                          className="flex items-center gap-3 px-4 py-3.5 rounded-2xl transition-all hover:scale-[1.005]"
-                          style={{
-                            background: isReady
-                              ? 'linear-gradient(135deg,rgba(34,197,94,0.07),rgba(8,13,24,0.98))'
-                              : 'linear-gradient(135deg,rgba(48,227,202,0.05),rgba(8,13,24,0.98))',
-                            border: isReady
-                              ? '1px solid rgba(34,197,94,0.22)'
-                              : '1px solid rgba(48,227,202,0.18)',
-                          }}
+                          className="rounded-2xl overflow-hidden transition-all hover:scale-[1.005] cursor-pointer"
+                          style={{ background: bgColor, border: `1px solid ${borderColor}` }}
+                          onClick={() => isReady ? navigate(`/learning-path/${path.id}`) : navigate(`/learning-path-waiting/${path.id}`)}
                         >
-                          {/* Status icon */}
-                          <div
-                            className="w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0"
-                            style={{
-                              background: isReady ? 'rgba(34,197,94,0.12)' : 'rgba(48,227,202,0.1)',
-                              border: isReady ? '1px solid rgba(34,197,94,0.3)' : '1px solid rgba(48,227,202,0.25)',
-                            }}
-                          >
-                            {isReady ? (
-                              <CheckCircle size={16} className="text-green-400" />
-                            ) : (
-                              <div className="w-3.5 h-3.5 rounded-full border-2 border-[#30E3CA]/40 border-t-[#30E3CA] animate-spin" />
-                            )}
-                          </div>
-
-                          {/* Info */}
-                          <div className="flex-1 min-w-0">
-                            <div className="flex items-center gap-2">
-                              <p className="text-sm font-black text-white leading-tight truncate">{path.target_job}</p>
-                              {/* Freigeschaltet badge — always shown for paid paths */}
-                              <span className="flex-shrink-0 text-[9px] font-black uppercase tracking-widest px-1.5 py-0.5 rounded-full"
-                                style={{
-                                  background: isReady ? 'rgba(34,197,94,0.12)' : 'rgba(48,227,202,0.1)',
-                                  color: isReady ? '#4ade80' : '#30E3CA',
-                                  border: isReady ? '1px solid rgba(34,197,94,0.25)' : '1px solid rgba(48,227,202,0.25)',
-                                }}>
-                                {isReady ? 'Bereit' : 'Freigeschaltet'}
-                              </span>
-                            </div>
-                            <div className="flex items-center gap-1.5 mt-0.5">
-                              {isReady ? (
-                                <span className="text-[10px] font-black uppercase tracking-wider text-green-400/70">
-                                  Bereit zum Starten
-                                </span>
+                          <div className="px-4 py-3.5 flex items-center gap-3">
+                            {/* Status icon */}
+                            <div
+                              className="w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0"
+                              style={{ background: `${accentColor}18`, border: `1px solid ${accentColor}40` }}
+                            >
+                              {hasCert ? (
+                                <Award size={16} style={{ color: accentColor }} />
+                              ) : isReady ? (
+                                <CheckCircle size={16} style={{ color: accentColor }} />
                               ) : (
-                                <span className="text-[10px] font-black uppercase tracking-wider text-[#30E3CA]/60">
-                                  Lernpfad wird erstellt…
-                                </span>
-                              )}
-                              {skillLabel && (
-                                <span className="text-[10px] text-white/25 truncate">· {skillLabel}</span>
+                                <div className="w-3.5 h-3.5 rounded-full border-2 border-[#30E3CA]/40 border-t-[#30E3CA] animate-spin" />
                               )}
                             </div>
-                          </div>
 
-                          {/* Action button */}
-                          <button
-                            onClick={() => {
-                              if (isReady) {
-                                navigate(`/learning-path/${path.id}`);
-                              } else {
-                                navigate(`/learning-path-waiting/${path.id}`);
-                              }
-                            }}
-                            className="flex-shrink-0 flex items-center gap-1.5 px-3 py-2 rounded-xl text-[11px] font-black transition-all hover:scale-105 active:scale-95"
-                            style={{
-                              background: isReady ? 'rgba(34,197,94,0.12)' : 'rgba(48,227,202,0.08)',
-                              border: isReady ? '1px solid rgba(34,197,94,0.3)' : '1px solid rgba(48,227,202,0.2)',
-                              color: isReady ? '#4ade80' : '#30E3CA',
-                            }}
-                          >
-                            {isReady ? (
-                              <>
-                                <svg width="11" height="11" viewBox="0 0 12 12" fill="currentColor">
-                                  <polygon points="2,1 10,6 2,11"/>
-                                </svg>
-                                Starten
-                              </>
-                            ) : (
-                              <>
-                                <div className="w-2.5 h-2.5 rounded-full border border-current border-t-transparent animate-spin" />
-                                Öffnen
-                              </>
-                            )}
-                          </button>
+                            {/* Info */}
+                            <div className="flex-1 min-w-0">
+                              <div className="flex items-center gap-2">
+                                <p className="text-sm font-black text-white leading-tight truncate">{path.target_job}</p>
+                                <span className="flex-shrink-0 text-[9px] font-black uppercase tracking-widest px-1.5 py-0.5 rounded-full"
+                                  style={{ background: `${accentColor}15`, color: accentColor, border: `1px solid ${accentColor}30` }}>
+                                  {hasCert ? 'Zertifikat' : allDone ? 'Abschluss' : isReady ? 'Aktiv' : 'Wird erstellt'}
+                                </span>
+                              </div>
+
+                              {/* Progress bar — shown when ready and has some progress */}
+                              {isReady && (
+                                <div className="flex items-center gap-2 mt-1.5">
+                                  <div className="flex gap-0.5">
+                                    {Array.from({ length: TOTAL_U }, (_, i) => (
+                                      <div key={i} className="w-4 h-1 rounded-full transition-all"
+                                        style={{ background: i < unitsDone ? accentColor : 'rgba(255,255,255,0.1)' }} />
+                                    ))}
+                                  </div>
+                                  <span className="text-[10px] font-black" style={{ color: `${accentColor}90` }}>
+                                    {unitsDone}/{TOTAL_U} Einheiten
+                                  </span>
+                                  {skillLabel && (
+                                    <span className="text-[10px] text-white/25 truncate">· {skillLabel}</span>
+                                  )}
+                                </div>
+                              )}
+
+                              {!isReady && (
+                                <span className="text-[10px] font-black uppercase tracking-wider text-[#30E3CA]/60 mt-0.5 block">
+                                  Lernpfad wird erstellt…{skillLabel ? ` · ${skillLabel}` : ''}
+                                </span>
+                              )}
+                            </div>
+
+                            {/* Action button */}
+                            <button
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                isReady ? navigate(`/learning-path/${path.id}`) : navigate(`/learning-path-waiting/${path.id}`);
+                              }}
+                              className="flex-shrink-0 flex items-center gap-1.5 px-3 py-2 rounded-xl text-[11px] font-black transition-all hover:scale-105 active:scale-95"
+                              style={{ background: `${accentColor}15`, border: `1px solid ${accentColor}35`, color: accentColor }}
+                            >
+                              {isReady ? (
+                                <>
+                                  <svg width="11" height="11" viewBox="0 0 12 12" fill="currentColor">
+                                    <polygon points="2,1 10,6 2,11"/>
+                                  </svg>
+                                  {allDone ? 'Öffnen' : 'Weiter'}
+                                </>
+                              ) : (
+                                <>
+                                  <div className="w-2.5 h-2.5 rounded-full border border-current border-t-transparent animate-spin" />
+                                  Öffnen
+                                </>
+                              )}
+                            </button>
+                          </div>
                         </div>
                       );
                     })}
