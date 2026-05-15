@@ -8,13 +8,14 @@ export class CertificateService {
     learningPath: LearningPath,
     recipientName: string
   ): Promise<string> {
-    // Guard: all 5 units must be completed before certificate can be issued
-    const { count } = await supabase
-      .from('unit_completions')
-      .select('id', { count: 'exact', head: true })
-      .eq('learning_path_id', learningPath.id);
-    if ((count ?? 0) < 5) {
-      throw new Error(`Noch nicht alle Lerneinheiten abgeschlossen (${count ?? 0}/5). Bitte schließe alle 5 Einheiten ab.`);
+    // Guard: final exam must be passed with 100% before certificate can be issued
+    const { data: lpCheck } = await supabase
+      .from('learning_paths')
+      .select('final_exam_score')
+      .eq('id', learningPath.id)
+      .maybeSingle();
+    if ((lpCheck?.final_exam_score ?? 0) !== 100) {
+      throw new Error('Die Abschlussprüfung muss mit 100% bestanden werden, um das Zertifikat zu erhalten.');
     }
 
     // Try to get the full display name from the profile
