@@ -699,9 +699,9 @@ export const ProfessionalCVTemplate: React.FC<ProfessionalCVTemplateProps> = ({
         </header>
 
         {/* Content */}
-        <main className="flex-1 px-8 py-4 grid grid-cols-1 md:grid-cols-12 gap-6 bg-white">
+        <main className="flex-1 px-8 py-4 grid grid-cols-12 gap-6 bg-white">
           {/* Linke Spalte */}
-          <section className="col-span-1 md:col-span-7 space-y-3">
+          <section className="col-span-7 space-y-3">
             {/* Summary / Profil */}
             <div>
               <SectionTitle>Profil & Mehrwert</SectionTitle>
@@ -730,7 +730,7 @@ export const ProfessionalCVTemplate: React.FC<ProfessionalCVTemplateProps> = ({
           </section>
 
           {/* Rechte Spalte */}
-          <aside className="col-span-1 md:col-span-5 space-y-3">
+          <aside className="col-span-5 space-y-3">
             {rightSections.map((section) => {
               const idx = sections.findIndex((s) => s === section);
               return renderSection(section, idx);

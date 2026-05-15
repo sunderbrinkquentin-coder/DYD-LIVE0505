@@ -712,8 +712,8 @@ export const CreativeCVTemplate: React.FC<CreativeCVTemplateProps> = ({
         </header>
 
         {/* Content */}
-        <main className="relative flex-1 px-6 py-3 grid grid-cols-1 md:grid-cols-12 gap-4 text-[#e5e7eb] bg-[#020314]/90">
-          <section className="col-span-1 md:col-span-7 space-y-3">
+        <main className="relative flex-1 px-6 py-3 grid grid-cols-12 gap-4 text-[#e5e7eb] bg-[#020314]/90">
+          <section className="col-span-7 space-y-3">
             <div>
               <SectionTitle>Profil & Story</SectionTitle>
               <textarea
@@ -741,7 +741,7 @@ export const CreativeCVTemplate: React.FC<CreativeCVTemplateProps> = ({
             })}
           </section>
 
-          <aside className="col-span-1 md:col-span-5 space-y-3">
+          <aside className="col-span-5 space-y-3">
             {rightSections.map((section) => {
               const sectionIndex = sections.findIndex((s) => s === section);
 
