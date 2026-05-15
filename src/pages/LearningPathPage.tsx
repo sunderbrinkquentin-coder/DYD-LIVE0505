@@ -1622,23 +1622,31 @@ export default function LearningPathPage() {
     try {
       const raw = await careerService.getLearningPath(pathId);
       if (!raw) { setError('Lernpfad nicht gefunden'); setPhase('error'); return; }
-      const path = normalizePath(raw);
+      let path = normalizePath(raw);
 
       // Ready as soon as at least 1 learning_results row exists (remaining rows load in background)
       const { data: rowCheck } = await supabase
         .from('learning_results').select('id').eq('learning_path_id', pathId).limit(1);
       const hasResults = (rowCheck?.length ?? 0) > 0 || path.status === 'completed';
 
+      // If rows exist but is_paid is missing (Stripe webhook race), fix it in DB and treat as paid
+      if (hasResults && !path.is_paid) {
+        await supabase.from('learning_paths')
+          .update({ is_paid: true, updated_at: new Date().toISOString() })
+          .eq('id', pathId);
+        path = { ...path, is_paid: true };
+      }
+
       setLearningPath(path);
       setAnalysisResult(resultFromPath(path));
 
-      // If completed and paid, go straight to learning dashboard
-      if (hasResults && path.is_paid) {
+      // If rows exist, go straight to dashboard — presence of rows proves payment
+      if (hasResults) {
         setShowDashboard(true);
         setPhase('done');
         loadCompletedUnits();
         loadUnitRows(path.id);
-        // Restore final exam state if already completed
+        // Restore final exam state if already started
         if ((path as any).final_exam_status === 'ready' || (path as any).final_exam_status === 'done') {
           setFinalExamPhase((path as any).final_exam_score === 100 ? 'done' : 'ready');
           if ((path as any).final_exam_questions) {
@@ -1650,20 +1658,20 @@ export default function LearningPathPage() {
         return;
       }
 
-      const resolvedPhase = resolvePhase(path, hasResults);
-
-      if (resolvedPhase === 'redirect_waiting') {
+      // No rows yet — check if paid (redirect to waiting page to trigger Make)
+      if (path.is_paid) {
         navigate(`/learning-path-waiting/${pathId}`, { replace: true });
         return;
       }
 
-      setPhase(resolvedPhase);
+      // Not paid → show result/analysis with paywall CTA
+      setPhase('result');
     } catch (err: any) {
       setError(err.message || 'Fehler beim Laden');
       setPhase('error');
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [pathId, resolvePhase, normalizePath, navigate]);
+  }, [pathId, normalizePath, navigate]);
 
   // ── Effects ───────────────────────────────────────────────────────────────────
 
