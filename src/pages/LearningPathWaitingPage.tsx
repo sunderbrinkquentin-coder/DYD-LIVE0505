@@ -398,8 +398,9 @@ export default function LearningPathWaitingPage() {
         return false;
       }
       console.log('[LPW2] Make webhook triggered OK');
+      const now = new Date().toISOString();
       await supabase.from('learning_paths')
-        .update({ status: 'in_progress', updated_at: new Date().toISOString() })
+        .update({ status: 'in_progress', updated_at: now, triggered_at: now })
         .eq('id', pathId);
       return true;
     } catch (e) {

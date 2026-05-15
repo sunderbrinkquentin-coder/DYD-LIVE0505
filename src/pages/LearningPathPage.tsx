@@ -1519,8 +1519,15 @@ export default function LearningPathPage() {
           timestamp: new Date().toISOString(),
         }),
       });
-      if (!res.ok) console.warn('[LearningPath] Webhook response:', res.status);
-      else console.log('[LearningPath] Webhook triggered successfully');
+      if (!res.ok) {
+        console.warn('[LearningPath] Webhook response:', res.status);
+      } else {
+        console.log('[LearningPath] Webhook triggered successfully');
+        const now = new Date().toISOString();
+        await supabase.from('learning_paths')
+          .update({ status: 'in_progress', updated_at: now, triggered_at: now })
+          .eq('id', path.id);
+      }
     } catch (e: any) {
       console.warn('[LearningPath] Curriculum webhook error (non-fatal):', e.message);
     }
