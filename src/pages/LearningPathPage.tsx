@@ -529,6 +529,7 @@ function ResultView({
           targetJob={targetJob}
           targetCompany={targetCompany}
           skillCount={visibleSkills.length}
+          selectedSkill={(learningPath as any).selected_skill || undefined}
         />
       )}
     </div>
@@ -1285,7 +1286,7 @@ export default function LearningPathPage() {
     // After generation completes, go straight to dashboard
     setShowDashboard(true);
     setPhase('done');
-    loadUnitRows(normalized);
+    loadUnitRows(normalized.id);
   }, [cleanupListeners, normalizePath]);
 
   // ── Polling for curriculum ────────────────────────────────────────────────────
@@ -1297,13 +1298,14 @@ export default function LearningPathPage() {
       if (pollCountRef.current >= POLL_MAX) return;
       pollCountRef.current += 1;
       try {
-        // Primary: check learning_results — ready when final_exam exists
-        const { data: result } = await supabase
+        // Primary: check learning_results — ready when any unit row exists
+        const { data: unitRow } = await supabase
           .from('learning_results')
-          .select('final_exam')
-          .eq('id', id)
+          .select('id')
+          .eq('learning_path_id', id)
+          .limit(1)
           .maybeSingle();
-        if (result?.final_exam) {
+        if (unitRow) {
           const { data: lp } = await supabase.from('learning_paths').select('*').eq('id', id).maybeSingle();
           if (lp) { handleCurriculumReady(lp as unknown as LearningPath); return; }
         }
@@ -1335,20 +1337,16 @@ export default function LearningPathPage() {
     const channel = supabase
       .channel(`lp_curriculum_${path.id}_${Date.now()}`)
       .on('postgres_changes',
-        { event: 'INSERT', schema: 'public', table: 'learning_results', filter: `id=eq.${path.id}` },
-        async (payload) => {
-          if ((payload.new as any)?.status === 'completed') {
-            const { data: lp } = await supabase.from('learning_paths').select('*').eq('id', path.id).maybeSingle();
-            if (lp) handleCurriculumReady(lp as unknown as LearningPath);
-          }
+        { event: 'INSERT', schema: 'public', table: 'learning_results', filter: `learning_path_id=eq.${path.id}` },
+        async () => {
+          const { data: lp } = await supabase.from('learning_paths').select('*').eq('id', path.id).maybeSingle();
+          if (lp) handleCurriculumReady(lp as unknown as LearningPath);
         })
       .on('postgres_changes',
-        { event: 'UPDATE', schema: 'public', table: 'learning_results', filter: `id=eq.${path.id}` },
-        async (payload) => {
-          if ((payload.new as any)?.status === 'completed') {
-            const { data: lp } = await supabase.from('learning_paths').select('*').eq('id', path.id).maybeSingle();
-            if (lp) handleCurriculumReady(lp as unknown as LearningPath);
-          }
+        { event: 'UPDATE', schema: 'public', table: 'learning_results', filter: `learning_path_id=eq.${path.id}` },
+        async () => {
+          const { data: lp } = await supabase.from('learning_paths').select('*').eq('id', path.id).maybeSingle();
+          if (lp) handleCurriculumReady(lp as unknown as LearningPath);
         })
       .on('postgres_changes',
         { event: 'UPDATE', schema: 'public', table: 'learning_paths', filter: `id=eq.${path.id}` },
@@ -1413,20 +1411,14 @@ export default function LearningPathPage() {
     }
   }, [pathId]);
 
-  const loadUnitRows = useCallback(async (path: LearningPath) => {
-    if (!path.id) return;
-    // Load rows created after triggered_at (or all rows for this path if no triggered_at)
-    let query = supabase
+  const loadUnitRows = useCallback(async (pathId_: string) => {
+    if (!pathId_) return;
+    const { data } = await supabase
       .from('learning_results')
       .select('id, final_exam, certificate_metadata')
-      .eq('learning_path_id', path.id)
+      .eq('learning_path_id', pathId_)
       .order('created_at', { ascending: true })
       .limit(10);
-
-    if ((path as any).triggered_at) {
-      query = query.gte('created_at', (path as any).triggered_at);
-    }
-    const { data } = await query;
     if (data && data.length > 0) {
       setUnitRows(data as LearningResultRow[]);
     }
@@ -1441,21 +1433,14 @@ export default function LearningPathPage() {
       if (!raw) { setError('Lernpfad nicht gefunden'); setPhase('error'); return; }
       const path = normalizePath(raw);
 
-      // Check learning_results — only count as "ready" when final_exam data actually exists
-      const { data: resultRow } = await supabase
+      // Check if Make has written any unit rows (learning_results with learning_path_id)
+      const { data: anyUnitRow } = await supabase
         .from('learning_results')
-        .select('status, final_exam')
-        .eq('id', pathId)
-        .maybeSingle();
-      // Also check partial rows written via learning_path_id (Make multi-run support)
-      const { data: partialRow } = await supabase
-        .from('learning_results')
-        .select('id, final_exam')
+        .select('id')
         .eq('learning_path_id', pathId)
-        .not('final_exam', 'is', null)
         .limit(1)
         .maybeSingle();
-      const hasResults = !!resultRow?.final_exam || !!partialRow?.final_exam;
+      const hasResults = !!anyUnitRow;
 
       setLearningPath(path);
       setAnalysisResult(resultFromPath(path));
@@ -1465,7 +1450,7 @@ export default function LearningPathPage() {
         setShowDashboard(true);
         setPhase('done');
         loadCompletedUnits();
-        loadUnitRows(path);
+        loadUnitRows(path.id);
         // Restore final exam state if already completed
         if ((path as any).final_exam_status === 'ready' || (path as any).final_exam_status === 'done') {
           setFinalExamPhase((path as any).final_exam_score === 100 ? 'done' : 'ready');
@@ -1509,10 +1494,10 @@ export default function LearningPathPage() {
     const id = learningPath.id;
 
     (async () => {
-      // Check if learning_results already has final_exam content — if so, go straight to done
-      const { data: result } = await supabase
-        .from('learning_results').select('final_exam').eq('id', id).maybeSingle();
-      if (result?.final_exam) {
+      // Check if Make has already written unit rows — if so, go straight to done
+      const { data: existingRow } = await supabase
+        .from('learning_results').select('id').eq('learning_path_id', id).limit(1).maybeSingle();
+      if (existingRow) {
         handleCurriculumReady(learningPath);
         return;
       }
@@ -1529,20 +1514,16 @@ export default function LearningPathPage() {
       const channel = supabase
         .channel(`lp_resume_${id}_${Date.now()}`)
         .on('postgres_changes',
-          { event: 'INSERT', schema: 'public', table: 'learning_results', filter: `id=eq.${id}` },
-          async (payload) => {
-            if ((payload.new as any)?.status === 'completed') {
-              const { data: lp } = await supabase.from('learning_paths').select('*').eq('id', id).maybeSingle();
-              if (lp) handleCurriculumReady(lp as unknown as LearningPath);
-            }
+          { event: 'INSERT', schema: 'public', table: 'learning_results', filter: `learning_path_id=eq.${id}` },
+          async () => {
+            const { data: lp } = await supabase.from('learning_paths').select('*').eq('id', id).maybeSingle();
+            if (lp) handleCurriculumReady(lp as unknown as LearningPath);
           })
         .on('postgres_changes',
-          { event: 'UPDATE', schema: 'public', table: 'learning_results', filter: `id=eq.${id}` },
-          async (payload) => {
-            if ((payload.new as any)?.status === 'completed') {
-              const { data: lp } = await supabase.from('learning_paths').select('*').eq('id', id).maybeSingle();
-              if (lp) handleCurriculumReady(lp as unknown as LearningPath);
-            }
+          { event: 'UPDATE', schema: 'public', table: 'learning_results', filter: `learning_path_id=eq.${id}` },
+          async () => {
+            const { data: lp } = await supabase.from('learning_paths').select('*').eq('id', id).maybeSingle();
+            if (lp) handleCurriculumReady(lp as unknown as LearningPath);
           })
         .on('postgres_changes',
           { event: 'UPDATE', schema: 'public', table: 'learning_paths', filter: `id=eq.${id}` },
