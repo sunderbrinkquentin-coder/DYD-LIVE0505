@@ -492,6 +492,7 @@ export const MinimalCVTemplate: React.FC<MinimalCVTemplateProps> = ({
           </div>
         );
 
+// ───────────────── Fallback ─────────────────
       default: {
         const TYPE_LABELS_MIN: Record<string, string> = {
           skills: 'Fähigkeiten', soft_skills: 'Soft Skills', hard_skills: 'Fachliche Skills',
@@ -504,10 +505,10 @@ export const MinimalCVTemplate: React.FC<MinimalCVTemplateProps> = ({
             <SectionTitle>{section.title || TYPE_LABELS_MIN[section.type] || section.type}</SectionTitle>
             <ul className="space-y-1 text-[10px] text-slate-800">
               {items.map((it: any, idx: number) => {
-                const value =
+                const displayValue =
                   typeof it === 'string'
                     ? it
-                    : it.name || it.title || it.label || JSON.stringify(it);
+                    : it.name || it.title || item.label || JSON.stringify(it);
                 return (
                   <li
                     key={idx}
@@ -516,20 +517,20 @@ export const MinimalCVTemplate: React.FC<MinimalCVTemplateProps> = ({
                   >
                     <input
                       className="w-full bg-transparent outline-none text-slate-800"
-                      value={value}
+                      value={displayValue}
                       onChange={(e) =>
                         onUpdateSectionItem(sectionIndex, idx, 'name', e.target.value)
                       }
                       placeholder="Eintrag"
                     />
-                  </td>
+                  {/* 💡 HIER KORRIGIERT: Sauberes </li> statt fehlerhaftem </td> */}
+                  </li>
                 );
               })}
             </ul>
           </div>
         );
       }
-
   const leftTypes = ['experience', 'projects', 'education'];
   const rightTypes = [
     'skills',
