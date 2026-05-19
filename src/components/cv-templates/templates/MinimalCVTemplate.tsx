@@ -330,19 +330,30 @@ export const MinimalCVTemplate: React.FC<MinimalCVTemplateProps> = ({
           </div>
         );
 
-      case 'languages':
-        if (items.length === 0) return null;
+case 'languages':
+        if (!items || items.length === 0) return null;
         return (
-          <div key={sectionIndex}>
+          <div key={sectionIndex} data-pdf-section>
             <SectionTitle>Sprachen</SectionTitle>
             <div className="space-y-1">
               {items.map((lang: any, idx: number) => {
+                if (!lang) return null;
                 const rawLanguage = typeof lang === 'string' ? lang : lang.language || lang.name || '';
-                const language = rawLanguage.replace(/^(programmiersprachen|technische\s*f[äa]higkeiten|fachkenntnisse|kenntnisse|sprachen|fähigkeiten|soft\s*skills|skills|languages|kompetenzen|tools?)[:\s\-–]+/i, '').trim();
+                
+                // ✂️ Clean Otherskill & prefixes
+                let language = rawLanguage
+                  .replace(/^(programmiersprachen|technische\s*f[äa]higkeiten|fachkenntnisse|kenntnisse|sprachen|fähigkeiten|soft\s*skills|skills|languages|kompetenzen|tools?)[:\s\-–]+/i, '')
+                  .replace(/\s*\(?Otherskill\)?/gi, '')
+                  .replace(/\s*\($/, '')
+                  .trim();
+
+                if (language === '') return null;
+
                 const level = typeof lang === 'object' && lang !== null ? lang.level || lang.niveau || lang.proficiency || '' : '';
                 return (
                   <div
                     key={idx}
+                    style={{ pageBreakInside: 'avoid', breakInside: 'avoid' }}
                     className="flex justify-between items-center gap-2 px-2 py-1 rounded-md bg-slate-50 border border-slate-200 text-[10px]"
                   >
                     <input
@@ -365,17 +376,25 @@ export const MinimalCVTemplate: React.FC<MinimalCVTemplateProps> = ({
         );
 
       case 'skills':
-        if (items.length === 0) return null;
+        if (!items || items.length === 0) return null;
         return (
-          <div key={sectionIndex}>
+          <div key={sectionIndex} data-pdf-section>
             <SectionTitle>{section.title || 'Fähigkeiten'}</SectionTitle>
             <div data-chip-row style={{ display: 'block', overflow: 'visible' }}>
               {items.map((skill: any, idx: number) => {
-                const val = typeof skill === 'string' ? skill : skill.skill || skill.name || '';
-                const level = typeof skill === 'object' && skill !== null ? skill.level || skill.niveau || '' : '';
-                const display = level ? `${val} (${level})` : val;
+                if (!skill) return null;
+                
+                // 🧠 Krisensicheres Auslesen
+                const val = typeof skill === 'string' ? skill : (skill.skill || skill.name || skill.label || '');
+                const level = typeof skill === 'object' && skill !== null ? (skill.level || skill.niveau || '') : '';
+                
+                // ✂️ Clean Otherskill
+                let cleanedVal = val.replace(/\s*\(?Otherskill\)?/gi, '').replace(/\s*\($/, '').trim();
+                if (cleanedVal === '') return null;
+
+                const display = level ? `${cleanedVal} (${level.trim()})` : cleanedVal;
                 return (
-                  <span key={idx} style={{ display: 'inline-flex', alignItems: 'center', marginRight: '6px', marginBottom: '6px', verticalAlign: 'middle', padding: '3px 10px', borderRadius: '9999px', border: '1px solid #cbd5e1', background: '#f1f5f9', whiteSpace: 'nowrap' }}>
+                  <span key={idx} style={{ display: 'inline-flex', alignItems: 'center', marginRight: '6px', marginBottom: '6px', verticalAlign: 'middle', padding: '3px 10px', borderRadius: '9999px', border: '1px solid #cbd5e1', background: '#f1f5f9', whiteSpace: 'nowrap', breakInside: 'avoid', pageBreakInside: 'avoid' }}>
                     <input
                       style={{ background: 'transparent', outline: 'none', fontSize: '9.5px', fontWeight: 600, color: '#1e293b', minWidth: '20px', border: 'none', width: `${Math.max(20, display.length * 6.5)}px` }}
                       value={display}
@@ -390,17 +409,24 @@ export const MinimalCVTemplate: React.FC<MinimalCVTemplateProps> = ({
         );
 
       case 'soft_skills':
-        if (items.length === 0) return null;
+        if (!items || items.length === 0) return null;
         return (
-          <div key={sectionIndex}>
+          <div key={sectionIndex} data-pdf-section>
             <SectionTitle>{section.title || 'Soft Skills'}</SectionTitle>
             <div data-chip-row style={{ display: 'block', overflow: 'visible' }}>
               {items.map((skill: any, idx: number) => {
-                const val = typeof skill === 'string' ? skill : skill.skill || skill.name || '';
-                const level = typeof skill === 'object' && skill !== null ? skill.level || skill.niveau || '' : '';
-                const display = level ? `${val} (${level})` : val;
+                if (!skill) return null;
+                
+                const val = typeof skill === 'string' ? skill : (skill.skill || skill.name || skill.label || '');
+                const level = typeof skill === 'object' && skill !== null ? (skill.level || skill.niveau || '') : '';
+                
+                // ✂️ Clean Otherskill
+                let cleanedVal = val.replace(/\s*\(?Otherskill\)?/gi, '').replace(/\s*\($/, '').trim();
+                if (cleanedVal === '') return null;
+
+                const display = level ? `${cleanedVal} (${level.trim()})` : cleanedVal;
                 return (
-                  <span key={idx} style={{ display: 'inline-flex', alignItems: 'center', marginRight: '6px', marginBottom: '6px', verticalAlign: 'middle', padding: '3px 10px', borderRadius: '9999px', border: '1px solid #e2e8f0', background: '#ffffff', whiteSpace: 'nowrap' }}>
+                  <span key={idx} style={{ display: 'inline-flex', alignItems: 'center', marginRight: '6px', marginBottom: '6px', verticalAlign: 'middle', padding: '3px 10px', borderRadius: '9999px', border: '1px solid #e2e8f0', background: '#ffffff', whiteSpace: 'nowrap', breakInside: 'avoid', pageBreakInside: 'avoid' }}>
                     <input
                       style={{ background: 'transparent', outline: 'none', fontSize: '9.5px', fontWeight: 500, color: '#334155', minWidth: '20px', border: 'none', width: `${Math.max(20, display.length * 6.5)}px` }}
                       value={display}
@@ -416,18 +442,24 @@ export const MinimalCVTemplate: React.FC<MinimalCVTemplateProps> = ({
 
       case 'work_values':
       case 'values':
-        if (items.length === 0) return null;
+        if (!items || items.length === 0) return null;
         return (
-          <div key={sectionIndex}>
+          <div key={sectionIndex} data-pdf-section>
             <SectionTitle>Arbeitsweise & Werte</SectionTitle>
             <div data-chip-row style={{ display: 'block', overflow: 'visible' }}>
               {items.map((val: any, idx: number) => {
-                const v = typeof val === 'string' ? val : val.label || '';
+                if (!val) return null;
+                const v = typeof val === 'string' ? val : (val.label || val.name || '');
+                
+                // ✂️ Clean Otherskill
+                let cleanedV = v.replace(/\s*\(?Otherskill\)?/gi, '').replace(/\s*\($/, '').trim();
+                if (cleanedV === '') return null;
+
                 return (
-                  <span key={idx} style={{ display: 'inline-flex', alignItems: 'center', marginRight: '4px', marginBottom: '4px', verticalAlign: 'middle', padding: '2px 8px', borderRadius: '6px', border: '1px solid #cbd5e1', background: '#f8fafc', whiteSpace: 'nowrap' }}>
+                  <span key={idx} style={{ display: 'inline-flex', alignItems: 'center', marginRight: '4px', marginBottom: '4px', verticalAlign: 'middle', padding: '2px 8px', borderRadius: '6px', border: '1px solid #cbd5e1', background: '#f8fafc', whiteSpace: 'nowrap', breakInside: 'avoid', pageBreakInside: 'avoid' }}>
                     <input
-                      style={{ background: 'transparent', outline: 'none', fontSize: '9px', color: '#0f172a', border: 'none', minWidth: '20px', width: `${Math.max(20, v.length * 6)}px` }}
-                      value={v}
+                      style={{ background: 'transparent', outline: 'none', fontSize: '9px', color: '#0f172a', border: 'none', minWidth: '20px', width: `${Math.max(20, cleanedV.length * 6)}px` }}
+                      value={cleanedV}
                       onChange={(e) => onUpdateSectionItem(sectionIndex, idx, 'label', e.target.value)}
                       placeholder="Wert"
                     />
@@ -440,18 +472,24 @@ export const MinimalCVTemplate: React.FC<MinimalCVTemplateProps> = ({
 
       case 'hobbies':
       case 'interests':
-        if (items.length === 0) return null;
+        if (!items || items.length === 0) return null;
         return (
-          <div key={sectionIndex}>
+          <div key={sectionIndex} data-pdf-section>
             <SectionTitle>Hobbys & Interessen</SectionTitle>
             <div data-chip-row style={{ display: 'block', overflow: 'visible' }}>
               {items.map((hob: any, idx: number) => {
-                const v = typeof hob === 'string' ? hob : hob.label || '';
+                if (!hob) return null;
+                const v = typeof hob === 'string' ? hob : (hob.label || hob.name || '');
+                
+                // ✂️ Clean Otherskill
+                let cleanedV = v.replace(/\s*\(?Otherskill\)?/gi, '').replace(/\s*\($/, '').trim();
+                if (cleanedV === '') return null;
+
                 return (
-                  <span key={idx} style={{ display: 'inline-flex', alignItems: 'center', marginRight: '4px', marginBottom: '4px', verticalAlign: 'middle', padding: '2px 8px', borderRadius: '6px', border: '1px solid #cbd5e1', background: '#f8fafc', whiteSpace: 'nowrap' }}>
+                  <span key={idx} style={{ display: 'inline-flex', alignItems: 'center', marginRight: '4px', marginBottom: '4px', verticalAlign: 'middle', padding: '2px 8px', borderRadius: '6px', border: '1px solid #cbd5e1', background: '#f8fafc', whiteSpace: 'nowrap', breakInside: 'avoid', pageBreakInside: 'avoid' }}>
                     <input
-                      style={{ background: 'transparent', outline: 'none', fontSize: '9px', color: '#0f172a', border: 'none', minWidth: '20px', width: `${Math.max(20, v.length * 6)}px` }}
-                      value={v}
+                      style={{ background: 'transparent', outline: 'none', fontSize: '9px', color: '#0f172a', border: 'none', minWidth: '20px', width: `${Math.max(20, cleanedV.length * 6)}px` }}
+                      value={cleanedV}
                       onChange={(e) => onUpdateSectionItem(sectionIndex, idx, 'label', e.target.value)}
                       placeholder="Hobby"
                     />
