@@ -1,5 +1,3 @@
-// src/components/cv-templates/templates/MinimalCVTemplate.tsx
-
 import React, { useEffect, useRef } from 'react';
 
 type EditorSection = {
@@ -50,7 +48,6 @@ const stripLeadingBullet = (s: string) =>
 const getBullets = (item: any): string[] => {
   if (!item) return [];
 
-  // 1. Suche nach bekannten Array-Feldern (bulletPoints, bullet_points, tasks, highlights etc.)
   const possibleArrays = [
     item.bulletPoints, 
     item.bullet_points, 
@@ -68,7 +65,6 @@ const getBullets = (item: any): string[] => {
       .filter((s: string) => s.length > 0);
   }
 
-  // 2. Suche nach bekannten Text-Feldern (description, beschreibung, aufgaben etc.)
   const possibleTexts = [
     item.description, 
     item.beschreibung, 
@@ -130,7 +126,9 @@ export const MinimalCVTemplate: React.FC<MinimalCVTemplateProps> = ({
             return (
               <div
                 key={idx}
-                data-avoid-break
+                /* 💡 HIER KORRIGIERT: data-pdf-section schützt jeden einzelnen Inhaltsblock */
+                data-pdf-section
+                style={{ display: 'block', width: '100%' }}
                 className="px-2.5 py-1.5 rounded-lg border border-slate-200 bg-white/90"
               >
                 <div className="flex justify-between gap-2 items-start">
@@ -195,46 +193,44 @@ export const MinimalCVTemplate: React.FC<MinimalCVTemplateProps> = ({
                     />
                   </div>
                 </div>
-{/* Nur EINE Darstellung: Bullets ODER Plain-Text, jetzt mit Zeilenumbrüchen */}
-{bullets.length > 0 ? (
-  <ul className="mt-1 space-y-[2px] text-[10px] text-slate-800">
-    {bullets.map((bp: string, bIdx: number) => (
-      <li key={bIdx} className="flex items-start gap-1.5">
-        
-        {/* 💡 HIER KORRIGIERT: Echtes Text-Bullet statt leerer 3x3px Tailwind-Box */}
-        <span 
-          style={{ 
-            flexShrink: 0, 
-            color: '#64748b', /* Entspricht text-slate-500 */
-            fontSize: '12px', 
-            lineHeight: '10px', 
-            marginTop: '1px', 
-            userSelect: 'none' 
-          }}
-        >
-          •
-        </span>
-        
-        <textarea
-          className="flex-1 bg-transparent outline-none text-slate-800 text-[10px] leading-tight resize-none"
-          value={bp}
-          onChange={(e) => {
-            autoResize(e.target);
-            const newBullets = [...bullets];
-            newBullets[bIdx] = e.target.value;
-            onUpdateSectionItem(
-              sectionIndex,
-              idx,
-              'bulletPoints',
-              newBullets
-            );
-          }}
-          onFocus={(e) => autoResize(e.target)}
-          ref={(el) => { if (el) autoResize(el); }}
-          placeholder="Aufgabe / Ergebnis"
-          style={{ overflow: 'hidden', minHeight: '20px' }}
-        />
-      </li>
+
+                {bullets.length > 0 ? (
+                  <ul className="mt-1 space-y-[2px] text-[10px] text-slate-800">
+                    {bullets.map((bp: string, bIdx: number) => (
+                      <li key={bIdx} style={{ breakInside: 'avoid', pageBreakInside: 'avoid' }} className="flex items-start gap-1.5">
+                        <span 
+                          style={{ 
+                            flexShrink: 0, 
+                            color: '#64748b', 
+                            fontSize: '12px', 
+                            lineHeight: '10px', 
+                            marginTop: '1px', 
+                            userSelect: 'none' 
+                          }}
+                        >
+                          •
+                        </span>
+                        
+                        <textarea
+                          className="flex-1 bg-transparent outline-none text-slate-800 text-[10px] leading-tight resize-none"
+                          value={bp}
+                          onChange={(e) => {
+                            autoResize(e.target);
+                            const newBullets = [...bullets];
+                            newBullets[bIdx] = e.target.value;
+                            onUpdateSectionItem(
+                              sectionIndex,
+                              idx,
+                              'bulletPoints',
+                              newBullets
+                            );
+                          }}
+                          onFocus={(e) => autoResize(e.target)}
+                          ref={(el) => { if (el) autoResize(el); }}
+                          placeholder="Aufgabe / Ergebnis"
+                          style={{ overflow: 'hidden', minHeight: '20px' }}
+                        />
+                      </li>
                     ))}
                   </ul>
                 ) : (
@@ -277,7 +273,9 @@ export const MinimalCVTemplate: React.FC<MinimalCVTemplateProps> = ({
               {items.map((edu: any, idx: number) => (
                 <div
                   key={idx}
-                  data-avoid-break
+                  /* 💡 HIER KORRIGIERT: data-pdf-section schützt auch die Ausbildung */
+                  data-pdf-section
+                  style={{ display: 'block', width: '100%' }}
                   className="px-2.5 py-1.5 rounded-lg border border-slate-200 bg-white/90"
                 >
                   <div className="flex justify-between gap-2 items-start">
@@ -330,7 +328,7 @@ export const MinimalCVTemplate: React.FC<MinimalCVTemplateProps> = ({
           </div>
         );
 
-case 'languages':
+      case 'languages':
         if (!items || items.length === 0) return null;
         return (
           <div key={sectionIndex} data-pdf-section>
@@ -340,7 +338,6 @@ case 'languages':
                 if (!lang) return null;
                 const rawLanguage = typeof lang === 'string' ? lang : lang.language || lang.name || '';
                 
-                // ✂️ Clean Otherskill & prefixes
                 let language = rawLanguage
                   .replace(/^(programmiersprachen|technische\s*f[äa]higkeiten|fachkenntnisse|kenntnisse|sprachen|fähigkeiten|soft\s*skills|skills|languages|kompetenzen|tools?)[:\s\-–]+/i, '')
                   .replace(/\s*\(?Otherskill\)?/gi, '')
@@ -384,11 +381,9 @@ case 'languages':
               {items.map((skill: any, idx: number) => {
                 if (!skill) return null;
                 
-                // 🧠 Krisensicheres Auslesen
                 const val = typeof skill === 'string' ? skill : (skill.skill || skill.name || skill.label || '');
                 const level = typeof skill === 'object' && skill !== null ? (skill.level || skill.niveau || '') : '';
                 
-                // ✂️ Clean Otherskill
                 let cleanedVal = val.replace(/\s*\(?Otherskill\)?/gi, '').replace(/\s*\($/, '').trim();
                 if (cleanedVal === '') return null;
 
@@ -420,7 +415,6 @@ case 'languages':
                 const val = typeof skill === 'string' ? skill : (skill.skill || skill.name || skill.label || '');
                 const level = typeof skill === 'object' && skill !== null ? (skill.level || skill.niveau || '') : '';
                 
-                // ✂️ Clean Otherskill
                 let cleanedVal = val.replace(/\s*\(?Otherskill\)?/gi, '').replace(/\s*\($/, '').trim();
                 if (cleanedVal === '') return null;
 
@@ -451,7 +445,6 @@ case 'languages':
                 if (!val) return null;
                 const v = typeof val === 'string' ? val : (val.label || val.name || '');
                 
-                // ✂️ Clean Otherskill
                 let cleanedV = v.replace(/\s*\(?Otherskill\)?/gi, '').replace(/\s*\($/, '').trim();
                 if (cleanedV === '') return null;
 
@@ -481,7 +474,6 @@ case 'languages':
                 if (!hob) return null;
                 const v = typeof hob === 'string' ? hob : (hob.label || hob.name || '');
                 
-                // ✂️ Clean Otherskill
                 let cleanedV = v.replace(/\s*\(?Otherskill\)?/gi, '').replace(/\s*\($/, '').trim();
                 if (cleanedV === '') return null;
 
@@ -508,7 +500,7 @@ case 'languages':
         };
         if (items.length === 0) return null;
         return (
-          <div key={sectionIndex}>
+          <div key={sectionIndex} data-pdf-section>
             <SectionTitle>{section.title || TYPE_LABELS_MIN[section.type] || section.type}</SectionTitle>
             <ul className="space-y-1 text-[10px] text-slate-800">
               {items.map((it: any, idx: number) => {
@@ -520,6 +512,7 @@ case 'languages':
                   <li
                     key={idx}
                     className="border-b border-slate-100 last:border-b-0 py-0.5"
+                    style={{ breakInside: 'avoid', pageBreakInside: 'avoid' }}
                   >
                     <input
                       className="w-full bg-transparent outline-none text-slate-800"
@@ -529,7 +522,7 @@ case 'languages':
                       }
                       placeholder="Eintrag"
                     />
-                  </li>
+                  </td>
                 );
               })}
             </ul>
@@ -613,7 +606,6 @@ case 'languages':
                 />
               </div>
 
-              {/* LinkedIn – Icon nur bei Inhalt */}
               <div className="flex items-center gap-1.5">
                 {personalInfo.linkedin ? (
                   <span className="text-[11px] font-semibold text-slate-700">
@@ -648,9 +640,11 @@ case 'languages':
           )}
         </header>
 
-        {/* Content */}
-        <main className="flex-1 px-8 py-4 grid grid-cols-1 md:grid-cols-12 gap-6">
-          <section className="col-span-1 md:col-span-7 space-y-3">
+        {/* 🛠️ FIX FÜR DEN SEITENUMBRUCH: Flexbox-Spaltensystem statt starrem CSS-Grid */}
+        <div style={{ display: 'flex', width: '100%', backgroundColor: '#ffffff', flex: 1, padding: '16px 0' }}>
+          
+          {/* Linke Spalte (58% Breite) */}
+          <section style={{ flex: '0 0 58%', minWidth: 0, paddingLeft: '32px', paddingRight: '12px', display: 'flex', flexDirection: 'column', gap: '12px' }}>
             <div>
               <SectionTitle>Profil</SectionTitle>
               <textarea
@@ -661,8 +655,7 @@ case 'languages':
                 onChange={(e) => {
                   if (summaryRef.current) {
                     summaryRef.current.style.height = 'auto';
-                    summaryRef.current.style.height =
-                      summaryRef.current.scrollHeight + 'px';
+                    summaryRef.current.style.height = summaryRef.current.scrollHeight + 'px';
                   }
                   onUpdateSummary(e.target.value);
                 }}
@@ -676,22 +669,25 @@ case 'languages':
             })}
           </section>
 
-          <aside className="col-span-1 md:col-span-5 space-y-3">
+          {/* Rechte Spalte (42% Breite) */}
+          <aside style={{ flex: '0 0 42%', minWidth: 0, paddingLeft: '12px', paddingRight: '32px', display: 'flex', flexDirection: 'column', gap: '12px' }}>
             {rightSections.map((section) => {
               const index = sections.findIndex((s) => s === section);
               return renderSection(section, index);
             })}
           </aside>
-        </main>
+        </div>
 
+        {/* Weitere Sections */}
         {otherSections.length > 0 && (
-          <div className="px-8 pb-4 space-y-3">
+          <div className="px-8 pb-4 space-y-3 bg-white" data-pdf-section>
             {otherSections.map((section) => {
               const index = sections.findIndex((s) => s === section);
               return renderSection(section, index);
             })}
           </div>
         )}
+
       <footer
         data-pdf-footer
         style={{
@@ -718,7 +714,7 @@ case 'languages':
             onChange={(e) => onUpdatePersonalInfo('location', e.target.value)}
             placeholder="Ort"
           />
-        </div> {/* 💡 HIER KORRIGIERT: Das fehlende schließende div-Tag hinzugefügt! */}
+        </div>
         
         <span style={{ fontWeight: 600, whiteSpace: 'nowrap' }}>
           {new Date().toLocaleDateString('de-DE')}
