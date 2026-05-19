@@ -365,7 +365,6 @@ export const MinimalCVTemplate: React.FC<MinimalCVTemplateProps> = ({
         );
 
 case 'skills':
-case 'soft_skills':
 case 'languages':
   if (!items || items.length === 0) return null;
   
