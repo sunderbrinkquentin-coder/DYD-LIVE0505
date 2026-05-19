@@ -613,85 +613,67 @@ const renderBulletPoints = (bullets: any[] | undefined) => {
             )} */}
           </aside>
 
-          {/* Rechte Spalte */}
+{/* Rechte Spalte */}
           <main className="flex-1 flex flex-col">
-            {/* Profil / Summary */}
-            <section className="mb-4">
-              <h2 className="text-[11px] font-semibold tracking-[0.16em] uppercase text-gray-700 border-b border-gray-300 pb-1 mb-2">
-                Profil
-              </h2>
-              <EditableText
-                value={summary}
-                onChange={onUpdateSummary}
-                className="text-[11px] text-gray-800 leading-snug"
-                placeholder="Kurzprofil / Zusammenfassung"
-                multiline
-              />
-            </section>
+            {/* Profil / Summary – In eine Schutzhülle gepackt */}
+            <div data-pdf-section className="mb-4">
+              <section>
+                <h2 className="text-[11px] font-semibold tracking-[0.16em] uppercase text-gray-700 border-b border-gray-300 pb-1 mb-2">
+                  Profil
+                </h2>
+                <EditableText
+                  value={summary}
+                  onChange={onUpdateSummary}
+                  className="text-[11px] text-gray-800 leading-snug"
+                  placeholder="Kurzprofil / Zusammenfassung"
+                  multiline
+                />
+              </section>
+            </div>
 
-            {renderExperience()}
-            {renderEducation()}
-            {renderProjects()}
-            {renderWorkValues()}
+            {/* Jede Hauptsektion bekommt eine eigene 'data-pdf-section' Schutzhülle */}
+            <div data-pdf-section>{renderExperience()}</div>
+            <div data-pdf-section className="mt-2">{renderEducation()}</div>
+            <div data-pdf-section className="mt-2">{renderProjects()}</div>
+            <div data-pdf-section className="mt-2">{renderWorkValues()}</div>
 
-            {/* Sonstige unbekannte Sections generisch rendern (falls vorhanden) */}
+            {/* Generische Sektionen – Auch hier bekommt jede dynamische Sektion eine Schutzhülle */}
             {sections.map((section, index) => {
               const knownTypes = [
-                'experience',
-                'education',
-                'projects',
-                'skills',
-                'soft_skills',
-                'languages',
-                'work_values',
-                'values',
-                'hobbies',
-                'interests',
-                'certifications',
-                'courses',
-                'awards',
-                'volunteering',
+                'experience', 'education', 'projects', 'skills', 'soft_skills',
+                'languages', 'work_values', 'values', 'hobbies', 'interests',
+                'certifications', 'courses', 'awards', 'volunteering',
               ];
               if (knownTypes.includes(section.type)) return null;
 
               const items = Array.isArray(section.items) ? section.items : [];
               if (!items.length) return null;
 
-              const title =
-                section.title ||
-                section.type.charAt(0).toUpperCase() + section.type.slice(1);
+              const title = section.title || section.type.charAt(0).toUpperCase() + section.type.slice(1);
 
               return (
-                <section key={section.type} className="mt-4">
-                  <h2 className="text-[11px] font-semibold tracking-[0.16em] uppercase text-gray-700 border-b border-gray-300 pb-1 mb-2">
-                    {title}
-                  </h2>
-                  <div className="space-y-2 text-[11px] text-gray-800">
-                    {items.map((item: any, idx: number) => {
-                      const text =
-                        typeof item === 'string'
-                          ? item
-                          : item.description ||
-                            item.text ||
-                            item.label ||
-                            item.name ||
-                            String(item);
-
-                      return (
-                        <EditableText
-                          key={idx}
-                          value={text}
-                          onChange={(val) =>
-                            onUpdateSectionItem(index, idx, 'text', val)
-                          }
-                          className="leading-snug"
-                          multiline
-                          placeholder="Eintrag"
-                        />
-                      );
-                    })}
-                  </div>
-                </section>
+                <div key={section.type} data-pdf-section className="mt-4">
+                  <section>
+                    <h2 className="text-[11px] font-semibold tracking-[0.16em] uppercase text-gray-700 border-b border-gray-300 pb-1 mb-2">
+                      {title}
+                    </h2>
+                    <div className="space-y-2 text-[11px] text-gray-800">
+                      {items.map((item: any, idx: number) => {
+                        const text = typeof item === 'string' ? item : item.description || item.text || item.label || item.name || String(item);
+                        return (
+                          <EditableText
+                            key={idx}
+                            value={text}
+                            onChange={(val) => onUpdateSectionItem(index, idx, 'text', val)}
+                            className="leading-snug"
+                            multiline
+                            placeholder="Eintrag"
+                          />
+                        );
+                      })}
+                    </div>
+                  </section>
+                </div>
               );
             })}
           </main>
