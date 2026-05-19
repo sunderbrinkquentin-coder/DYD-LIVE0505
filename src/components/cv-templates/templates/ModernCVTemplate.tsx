@@ -62,12 +62,6 @@ const SECTION_ORDER_RIGHT = [
   'volunteering',
 ];
 
-/**
- * An always-visible, contentEditable span that:
- * - shows text inline without any box/border in read mode
- * - is directly editable on click
- * - fires onChange with the current text content
- */
 interface EditableProps {
   value: string;
   onChange: (v: string) => void;
@@ -249,7 +243,6 @@ const Chip: React.FC<{
   </span>
 );
 
-// Inline SVG icons — never rely on emoji rendering (platform-dependent) or icon fonts
 const IconLocation: React.FC = () => (
   <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="#64748b" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0, display: 'inline-block', verticalAlign: 'middle' }}>
     <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/>
@@ -303,28 +296,24 @@ const splitToBullets = (text: string): string[] =>
     .filter((l) => l.length > 0);
 
 const getBullets = (item: any): string[] => {
-  // Priority 1: explicit bulletPoints array (Make.com generated)
   if (Array.isArray(item?.bulletPoints) && item.bulletPoints.length > 0) {
     const cleaned = item.bulletPoints
       .map((b: any) => normalizeBullet(String(b ?? '')))
       .filter((b: string) => b.trim());
     if (cleaned.length > 0) return cleaned;
   }
-  // Priority 2: highlights array (ATS / optimization output)
   if (Array.isArray(item?.highlights) && item.highlights.length > 0) {
     const cleaned = item.highlights
       .map((b: any) => normalizeBullet(String(b ?? '')))
       .filter((b: string) => b.trim());
     if (cleaned.length > 0) return cleaned;
   }
-  // Priority 3: description as array
   if (Array.isArray(item?.description)) {
     const cleaned = (item.description as any[])
       .map((b: any) => normalizeBullet(String(b ?? '')))
       .filter((b: string) => b.trim());
     if (cleaned.length > 0) return cleaned;
   }
-  // Priority 4: description as multiline string → split into bullets
   if (typeof item?.description === 'string' && item.description.trim()) {
     return splitToBullets(item.description);
   }
@@ -364,7 +353,8 @@ export const ModernCVTemplate: React.FC<ModernCVTemplateProps> = ({
             return (
               <div
                 key={idx}
-                data-avoid-break
+                /* 💡 HIER KORRIGIERT: data-pdf-section schützt jeden einzelnen Job */
+                data-pdf-section
                 style={{
                   border: `1px solid ${CI.border}`,
                   borderRadius: '12px',
@@ -374,6 +364,8 @@ export const ModernCVTemplate: React.FC<ModernCVTemplateProps> = ({
                   breakInside: 'avoid',
                   pageBreakInside: 'avoid',
                   fontFamily: FONT,
+                  display: 'block',
+                  width: '100%',
                 }}
               >
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '10px' }}>
@@ -401,29 +393,25 @@ export const ModernCVTemplate: React.FC<ModernCVTemplateProps> = ({
                   />
                 </div>
 
-{bullets.length > 0 ? (
-  <ul style={{ margin: '8px 0 0', padding: 0, listStyle: 'none', display: 'block' }}>
-    {bullets.map((bp: string, bIdx: number) => (
-      <li key={bIdx} data-pdf-bullet-row style={{ display: 'flex', alignItems: 'flex-start', gap: '7px', marginBottom: '5px' }}>
-        
-        {/* 💡 HIER KORRIGIERT: Echtes Text-Zeichen mit der dynamischen Template-Farbe */}
-        <span
-          aria-hidden="true"
-          data-pdf-bullet-dot
-          style={{
-            display: 'inline-block',
-            flexShrink: 0,
-            color: CI.primaryDark, // Behält die originale Farbe des Templates bei
-            fontSize: '14px',      // Perfekte Größe für das Standard-Bulletzeichen
-            lineHeight: '10px',
-            marginTop: '2px',
-            userSelect: 'none',
-          }}
-        >
-          •
-        </span>
-
-        {/* Hier geht dein <textarea>-Block ganz normal weiter... */}
+                {bullets.length > 0 ? (
+                  <ul style={{ margin: '8px 0 0', padding: 0, listStyle: 'none', display: 'block' }}>
+                    {bullets.map((bp: string, bIdx: number) => (
+                      <li key={bIdx} data-pdf-bullet-row style={{ display: 'flex', alignItems: 'flex-start', gap: '7px', marginBottom: '5px' }}>
+                        <span
+                          aria-hidden="true"
+                          data-pdf-bullet-dot
+                          style={{
+                            display: 'inline-block',
+                            flexShrink: 0,
+                            color: CI.primaryDark,
+                            fontSize: '14px',
+                            lineHeight: '10px',
+                            marginTop: '2px',
+                            userSelect: 'none',
+                          }}
+                        >
+                          •
+                        </span>
                         <Editable
                           tag="div"
                           multiline
@@ -510,7 +498,8 @@ export const ModernCVTemplate: React.FC<ModernCVTemplateProps> = ({
               {items.map((edu: any, idx: number) => (
                 <div
                   key={idx}
-                  data-avoid-break
+                  /* 💡 HIER KORRIGIERT: data-pdf-section schützt jede Ausbildungsstation */
+                  data-pdf-section
                   style={{
                     border: `1px solid ${CI.border}`,
                     borderRadius: '12px',
@@ -520,6 +509,8 @@ export const ModernCVTemplate: React.FC<ModernCVTemplateProps> = ({
                     breakInside: 'avoid',
                     pageBreakInside: 'avoid',
                     fontFamily: FONT,
+                    display: 'block',
+                    width: '100%',
                   }}
                 >
                   <Editable
@@ -571,9 +562,7 @@ export const ModernCVTemplate: React.FC<ModernCVTemplateProps> = ({
           } else if (typeof lang === 'object' && lang !== null) {
             language = lang.language || lang.name || lang.sprache || '';
             level = lang.level || lang.niveau || lang.proficiency || '';
-            // Strip section label prefix if accidentally embedded in the language name
             language = language.replace(/^(programmiersprachen|technische\s*f[äa]higkeiten|fachkenntnisse|kenntnisse|sprachen|fähigkeiten|soft\s*skills|skills|languages|kompetenzen|tools?)[:\s\-–]+/i, '').trim();
-            // Strip level from language name if it was accidentally concatenated
             if (level && language.toLowerCase().endsWith(level.toLowerCase())) {
               language = language.slice(0, language.length - level.length).replace(/[-–:,\s]+$/, '').trim();
             }
@@ -585,7 +574,7 @@ export const ModernCVTemplate: React.FC<ModernCVTemplateProps> = ({
 
         if (langItems.length === 0) return null;
         return (
-          <div key={`languages-${sectionIndex}`}>
+          <div key={`languages-${sectionIndex}`} data-pdf-section>
             <SectionTitle>{section.title || 'Sprachen'}</SectionTitle>
             <div style={{ display: 'flex', flexDirection: 'column', gap: '5px' }}>
               {langItems.map((lang: { language: string; level: string }, idx: number) => (
@@ -601,6 +590,8 @@ export const ModernCVTemplate: React.FC<ModernCVTemplateProps> = ({
                     fontFamily: FONT,
                     backgroundColor: CI.tint,
                     border: `1px solid ${CI.border}`,
+                    breakInside: 'avoid',
+                    pageBreakInside: 'avoid',
                   }}
                 >
                   <Editable
@@ -630,7 +621,7 @@ export const ModernCVTemplate: React.FC<ModernCVTemplateProps> = ({
         if (items.length === 0) return null;
         const hasLevels = items.some((s: any) => typeof s === 'object' && s !== null && (s.level || s.niveau));
         return (
-          <div key={`skills-${sectionIndex}`}>
+          <div key={`skills-${sectionIndex}`} data-pdf-section>
             <SectionTitle>{section.title || 'Fähigkeiten'}</SectionTitle>
             {hasLevels ? (
               <div style={{ display: 'flex', flexDirection: 'column', gap: '5px' }}>
@@ -639,7 +630,7 @@ export const ModernCVTemplate: React.FC<ModernCVTemplateProps> = ({
                   const level = typeof skill === 'object' ? skill.level || skill.niveau || '' : '';
                   const stars = skillLevelToStars(level);
                   return (
-                    <div key={idx} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', borderRadius: '8px', padding: '5px 12px', fontSize: '10px', backgroundColor: CI.tint, border: `1px solid ${CI.border}` }}>
+                    <div key={idx} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', borderRadius: '8px', padding: '5px 12px', fontSize: '10px', backgroundColor: CI.tint, border: `1px solid ${CI.border}`, breakInside: 'avoid', pageBreakInside: 'avoid' }}>
                       <Editable value={name} onChange={(v) => onUpdateSectionItem(sectionIndex, idx, 'skill', v)} style={{ fontSize: '10px', fontWeight: 600, color: '#0f172a' }} />
                       {stars > 0 ? <StarRating stars={stars} /> : (
                         <span style={{ fontSize: '9px', color: '#64748b' }}>{level}</span>
@@ -649,10 +640,9 @@ export const ModernCVTemplate: React.FC<ModernCVTemplateProps> = ({
                 })}
               </div>
             ) : (
-              // Use block + inline-flex per chip instead of flex+gap (html2canvas gap fix)
               <div data-chip-row style={{ display: 'block', overflow: 'hidden' }}>
                 {items.map((skill: any, idx: number) => (
-                  <span key={idx} style={{ display: 'inline-flex', marginRight: '5px', marginBottom: '5px', verticalAlign: 'middle' }}>
+                  <span key={idx} style={{ display: 'inline-flex', marginRight: '5px', marginBottom: '5px', verticalAlign: 'middle', breakInside: 'avoid', pageBreakInside: 'avoid' }}>
                     <Chip
                       value={typeof skill === 'string' ? skill : skill.skill || skill.name || ''}
                       onChange={(v) => onUpdateSectionItem(sectionIndex, idx, 'skill', v)}
@@ -672,11 +662,11 @@ export const ModernCVTemplate: React.FC<ModernCVTemplateProps> = ({
       case 'soft_skills':
         if (items.length === 0) return null;
         return (
-          <div key={`soft-${sectionIndex}`}>
+          <div key={`soft-${sectionIndex}`} data-pdf-section>
             <SectionTitle>{section.title || 'Soft Skills'}</SectionTitle>
             <div data-chip-row style={{ display: 'block', overflow: 'hidden' }}>
               {items.map((skill: any, idx: number) => (
-                <span key={idx} style={{ display: 'inline-flex', marginRight: '5px', marginBottom: '5px', verticalAlign: 'middle' }}>
+                <span key={idx} style={{ display: 'inline-flex', marginRight: '5px', marginBottom: '5px', verticalAlign: 'middle', breakInside: 'avoid', pageBreakInside: 'avoid' }}>
                   <Chip
                     value={typeof skill === 'string' ? skill : skill.skill || skill.name || ''}
                     onChange={(v) => onUpdateSectionItem(sectionIndex, idx, 'skill', v)}
@@ -694,11 +684,11 @@ export const ModernCVTemplate: React.FC<ModernCVTemplateProps> = ({
       case 'values':
         if (items.length === 0) return null;
         return (
-          <div key={`values-${sectionIndex}`}>
+          <div key={`values-${sectionIndex}`} data-pdf-section>
             <SectionTitle>Arbeitsweise & Werte</SectionTitle>
             <div data-chip-row style={{ display: 'block', overflow: 'hidden' }}>
               {items.map((val: any, idx: number) => (
-                <span key={idx} style={{ display: 'inline-flex', marginRight: '6px', marginBottom: '6px', verticalAlign: 'middle' }}>
+                <span key={idx} style={{ display: 'inline-flex', marginRight: '6px', marginBottom: '6px', verticalAlign: 'middle', breakInside: 'avoid', pageBreakInside: 'avoid' }}>
                   <Chip
                     value={typeof val === 'string' ? val : val.label || val.value || val.name || ''}
                     onChange={(v) => onUpdateSectionItem(sectionIndex, idx, 'label', v)}
@@ -713,11 +703,11 @@ export const ModernCVTemplate: React.FC<ModernCVTemplateProps> = ({
       case 'interests':
         if (items.length === 0) return null;
         return (
-          <div key={`hobbies-${sectionIndex}`}>
+          <div key={`hobbies-${sectionIndex}`} data-pdf-section>
             <SectionTitle>Hobbys & Interessen</SectionTitle>
             <div data-chip-row style={{ display: 'block', overflow: 'hidden' }}>
               {items.map((hob: any, idx: number) => (
-                <span key={idx} style={{ display: 'inline-flex', marginRight: '6px', marginBottom: '6px', verticalAlign: 'middle' }}>
+                <span key={idx} style={{ display: 'inline-flex', marginRight: '6px', marginBottom: '6px', verticalAlign: 'middle', breakInside: 'avoid', pageBreakInside: 'avoid' }}>
                   <Chip
                     value={typeof hob === 'string' ? hob : hob.label || hob.name || ''}
                     onChange={(v) => onUpdateSectionItem(sectionIndex, idx, 'label', v)}
@@ -734,7 +724,7 @@ export const ModernCVTemplate: React.FC<ModernCVTemplateProps> = ({
       case 'volunteering':
         if (items.length === 0) return null;
         return (
-          <div key={`${section.type}-${sectionIndex}`}>
+          <div key={`${section.type}-${sectionIndex}`} data-pdf-section>
             <SectionTitle>{section.title || { awards: 'Auszeichnungen', volunteering: 'Ehrenamt' }[section.type] || section.type}</SectionTitle>
             <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
               {items.map((it: any, idx: number) => (
@@ -771,7 +761,7 @@ export const ModernCVTemplate: React.FC<ModernCVTemplateProps> = ({
         };
         if (items.length === 0) return null;
         return (
-          <div key={`${section.type}-${sectionIndex}`}>
+          <div key={`${section.type}-${sectionIndex}`} data-pdf-section>
             <SectionTitle>{section.title || TYPE_LABELS_DEFAULT[section.type] || section.type}</SectionTitle>
             <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
               {items.map((it: any, idx: number) => (
@@ -872,7 +862,6 @@ export const ModernCVTemplate: React.FC<ModernCVTemplateProps> = ({
             />
           )}
 
-          {/* Contact info row — block layout to avoid flex+gap pdf rendering bugs */}
           <div
             style={{
               display: 'block',
@@ -926,7 +915,6 @@ export const ModernCVTemplate: React.FC<ModernCVTemplateProps> = ({
                 />
               </span>
             )}
-            {/* Editable placeholders for empty fields (editor only, hidden in PDF) */}
             {!personalInfo.location?.trim() && (
               <span data-pdf-hidden className="pdf-hidden" style={{ display: 'inline-flex', alignItems: 'center', marginRight: '20px', marginBottom: '4px', verticalAlign: 'middle', opacity: 0.4 }}>
                 <IconLocation />
@@ -972,20 +960,19 @@ export const ModernCVTemplate: React.FC<ModernCVTemplateProps> = ({
       </header>
 
       {/* ── CONTENT ────────────────────────────────────────────────────── */}
+      {/* 💡 HIER KORRIGIERT: Flexbox-Spaltensystem statt starrem CSS-Grid für fließende Seitenübergänge */}
       <main
         style={{
           padding: '4px 32px 16px',
-          display: 'grid',
-          gridTemplateColumns: '7fr 5fr',
-          gap: '0 28px',
-          alignItems: 'start',
+          display: 'flex',
+          width: '100%',
           flex: 1,
         }}
       >
-        {/* LEFT: Profil + Erfahrung + Projekte */}
-        <section>
+        {/* LEFT COLUMN (58% Breite) */}
+        <section style={{ flex: '0 0 58%', minWidth: 0, paddingRight: '14px', display: 'flex', flexDirection: 'column' }}>
           {summary?.trim() && (
-            <div>
+            <div data-pdf-section style={{ display: 'block', width: '100%' }}>
               <SectionTitle>Profil</SectionTitle>
               <Editable
                 tag="p"
@@ -993,7 +980,6 @@ export const ModernCVTemplate: React.FC<ModernCVTemplateProps> = ({
                 value={summary}
                 onChange={onUpdateSummary}
                 placeholder="Kurzprofil: Wichtige Erfahrungen, Stärken und dein Mehrwert für die Rolle."
-                // data-pdf-summary: targeted by pdfExportClient CSS for overflow:hidden containment
                 {...{ 'data-pdf-summary': '1' } as any}
                 style={{
                   fontSize: '11px',
@@ -1017,8 +1003,8 @@ export const ModernCVTemplate: React.FC<ModernCVTemplateProps> = ({
           })}
         </section>
 
-        {/* RIGHT: Ausbildung + Skills + Sprachen + … */}
-        <aside>
+        {/* RIGHT COLUMN (42% Breite) */}
+        <aside style={{ flex: '0 0 42%', minWidth: 0, paddingLeft: '14px', display: 'flex', flexDirection: 'column' }}>
           {rightSections.map((section) => {
             const index = sections.findIndex((s) => s === section);
             return renderSection(section, index);
@@ -1027,7 +1013,7 @@ export const ModernCVTemplate: React.FC<ModernCVTemplateProps> = ({
       </main>
 
       {otherSections.length > 0 && (
-        <div style={{ padding: '0 32px 16px', flex: 'none' }}>
+        <div style={{ padding: '0 32px 16px', flex: 'none' }} data-pdf-section>
           {otherSections.map((section) => {
             const index = sections.findIndex((s) => s === section);
             return renderSection(section, index);
@@ -1043,7 +1029,8 @@ export const ModernCVTemplate: React.FC<ModernCVTemplateProps> = ({
           padding: '10px 32px',
           display: 'flex',
           alignItems: 'center',
-          justifyContent: 'space-between',
+          /* 💡 HIER KORRIGIERT: CamelCase statt Bindestrich verhindert den Babel-Parser-Fehler */
+          justifyContent: 'space-between', 
           fontSize: '10px',
           color: '#64748b',
           fontFamily: FONT,
