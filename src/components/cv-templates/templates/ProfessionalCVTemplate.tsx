@@ -772,7 +772,6 @@ export const ProfessionalCVTemplate: React.FC<ProfessionalCVTemplateProps> = ({
             onChange={(e) => onUpdatePersonalInfo('location', e.target.value)}
             placeholder="Ort"
           />
-        </div>
         <span style={{ fontWeight: 600, whiteSpace: 'nowrap' }}>
           {new Date().toLocaleDateString('de-DE')} {/* Generiert das heutige Datum dynamisch */}
         </span>
