@@ -676,6 +676,3 @@ export const MinimalCVTemplate: React.FC<MinimalCVTemplateProps> = ({
     </div>
   );
 };
-    </div>
-  );
-};
