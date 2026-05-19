@@ -126,7 +126,6 @@ export const MinimalCVTemplate: React.FC<MinimalCVTemplateProps> = ({
             return (
               <div
                 key={idx}
-                /* 💡 HIER KORRIGIERT: data-pdf-section schützt jeden einzelnen Inhaltsblock */
                 data-pdf-section
                 style={{ display: 'block', width: '100%' }}
                 className="px-2.5 py-1.5 rounded-lg border border-slate-200 bg-white/90"
@@ -273,7 +272,6 @@ export const MinimalCVTemplate: React.FC<MinimalCVTemplateProps> = ({
               {items.map((edu: any, idx: number) => (
                 <div
                   key={idx}
-                  /* 💡 HIER KORRIGIERT: data-pdf-section schützt auch die Ausbildung */
                   data-pdf-section
                   style={{ display: 'block', width: '100%' }}
                   className="px-2.5 py-1.5 rounded-lg border border-slate-200 bg-white/90"
@@ -492,7 +490,7 @@ export const MinimalCVTemplate: React.FC<MinimalCVTemplateProps> = ({
           </div>
         );
 
-// ───────────────── Fallback ─────────────────
+      // ───────────────── Fallback ─────────────────
       default: {
         const TYPE_LABELS_MIN: Record<string, string> = {
           skills: 'Fähigkeiten', soft_skills: 'Soft Skills', hard_skills: 'Fachliche Skills',
@@ -508,7 +506,7 @@ export const MinimalCVTemplate: React.FC<MinimalCVTemplateProps> = ({
                 const displayValue =
                   typeof it === 'string'
                     ? it
-                    : it.name || it.title || item.label || JSON.stringify(it);
+                    : it.name || it.title || it.label || JSON.stringify(it);
                 return (
                   <li
                     key={idx}
@@ -523,17 +521,16 @@ export const MinimalCVTemplate: React.FC<MinimalCVTemplateProps> = ({
                       }
                       placeholder="Eintrag"
                     />
-                  {/* 💡 HIER KORRIGIERT: Sauberes </li> statt fehlerhaftem </td> */}
                   </li>
                 );
               })}
             </ul>
           </div>
         );
+      }
     }
   };
 
-  const leftTypes = ['experience', 'projects', 'education'];
   const leftTypes = ['experience', 'projects', 'education'];
   const rightTypes = [
     'skills',
@@ -642,7 +639,7 @@ export const MinimalCVTemplate: React.FC<MinimalCVTemplateProps> = ({
           )}
         </header>
 
-        {/* 🛠️ FIX FÜR DEN SEITENUMBRUCH: Flexbox-Spaltensystem statt starrem CSS-Grid */}
+        {/* Flexbox-Spaltensystem statt starrem CSS-Grid */}
         <div style={{ display: 'flex', width: '100%', backgroundColor: '#ffffff', flex: 1, padding: '16px 0' }}>
           
           {/* Linke Spalte (58% Breite) */}
