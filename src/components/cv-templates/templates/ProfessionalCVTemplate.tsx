@@ -746,14 +746,14 @@ export const ProfessionalCVTemplate: React.FC<ProfessionalCVTemplateProps> = ({
             })}
           </div>
         )}
-      <footer
+<footer
         data-pdf-footer
         style={{
           borderTop: '1px solid #cbd5e1',
           padding: '10px 32px',
           display: 'flex',
           alignItems: 'center',
-          justify-content:`space-between', 
+          justifyContent: 'space-between', // 💡 HIER KORRIGIERT: CamelCase und String-Anführungszeichen!
           fontSize: '10px',
           color: '#64748b',
           fontFamily: 'sans-serif',
@@ -762,6 +762,7 @@ export const ProfessionalCVTemplate: React.FC<ProfessionalCVTemplateProps> = ({
           backgroundColor: '#ffffff',
           height: '40px'
         }}
+      >
       >
         <div style={{ display: 'flex', alignItems: 'center', gap: '6px', minWidth: 0 }}>
           <span style={{ fontWeight: 600, flexShrink: 0 }}>Ort:</span>
