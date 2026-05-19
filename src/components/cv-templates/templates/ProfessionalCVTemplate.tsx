@@ -163,7 +163,8 @@ export const ProfessionalCVTemplate: React.FC<ProfessionalCVTemplateProps> = ({
 
     switch (section.type) {
       // ───────────────── Berufserfahrung ─────────────────
-      case 'experience':
+case 'experience':
+        if (!items || items.length === 0) return null;
         return (
           <div key={sectionIndex}>
             <SectionTitle>{sectionTitle}</SectionTitle>
@@ -173,7 +174,9 @@ export const ProfessionalCVTemplate: React.FC<ProfessionalCVTemplateProps> = ({
                 return (
                   <div
                     key={idx}
-                    data-avoid-break
+                    /* 💡 HIER KORRIGIERT: Richtiger Marker für den Exporter + Layout-Stabilität */
+                    data-pdf-section
+                    style={{ display: 'block', width: '100%' }}
                     className="px-3 py-2 rounded-lg border border-slate-200 bg-white/95"
                   >
                     <div className="flex justify-between gap-2 items-start">
@@ -182,12 +185,7 @@ export const ProfessionalCVTemplate: React.FC<ProfessionalCVTemplateProps> = ({
                           className="w-full text-[11px] font-semibold text-slate-900 bg-transparent outline-none"
                           value={exp.title || exp.position || ''}
                           onChange={(e) =>
-                            onUpdateSectionItem(
-                              sectionIndex,
-                              idx,
-                              'title',
-                              e.target.value
-                            )
+                            onUpdateSectionItem(sectionIndex, idx, 'title', e.target.value)
                           }
                           placeholder="Position"
                         />
@@ -195,12 +193,7 @@ export const ProfessionalCVTemplate: React.FC<ProfessionalCVTemplateProps> = ({
                           className="mt-0.5 w-full text-[10px] text-slate-500 bg-transparent outline-none"
                           value={exp.company || ''}
                           onChange={(e) =>
-                            onUpdateSectionItem(
-                              sectionIndex,
-                              idx,
-                              'company',
-                              e.target.value
-                            )
+                            onUpdateSectionItem(sectionIndex, idx, 'company', e.target.value)
                           }
                           placeholder="Unternehmen"
                         />
@@ -221,12 +214,7 @@ export const ProfessionalCVTemplate: React.FC<ProfessionalCVTemplateProps> = ({
                             className="bg-transparent outline-none w-20 text-right"
                             value={exp.date_from || ''}
                             onChange={(e) =>
-                              onUpdateSectionItem(
-                                sectionIndex,
-                                idx,
-                                'date_from',
-                                e.target.value
-                              )
+                              onUpdateSectionItem(sectionIndex, idx, 'date_from', e.target.value)
                             }
                             placeholder="Von"
                           />
@@ -234,20 +222,32 @@ export const ProfessionalCVTemplate: React.FC<ProfessionalCVTemplateProps> = ({
                             className="bg-transparent outline-none w-20 text-right"
                             value={exp.date_to || ''}
                             onChange={(e) =>
-                              onUpdateSectionItem(
-                                sectionIndex,
-                                idx,
-                                'date_to',
-                                e.target.value
-                              )
+                              onUpdateSectionItem(sectionIndex, idx, 'date_to', e.target.value)
                             }
                             placeholder="Bis"
                           />
                         </div>
                       )}
                     </div>
+                    {/* 💡 Hier ging dein Ausschnitt vorhin verloren: Beschreibung & Bullets werden hier gerendert */}
+                    {exp.description && (
+                      <textarea
+                        className="mt-1.5 w-full text-[10px] text-slate-700 bg-transparent outline-none resize-none leading-tight"
+                        style={{ height: 'auto', minHeight: '16px' }}
+                        value={exp.description}
+                        onChange={(e) =>
+                          onUpdateSectionItem(sectionIndex, idx, 'description', e.target.value)
+                        }
+                        placeholder="Beschreibung"
+                      />
+                    )}
+                    {renderBulletPoints(bullets)}
                   </div>
                 );
+              })}
+            </div>
+          </div>
+        );
 {/* Nur eine Darstellung: Liste ODER Textfield – mit Zeilenumbruch */}
 {bullets.length > 0 ? (
   <ul className="mt-1 space-y-[2px] text-[10px] text-slate-800" style={{ listStyle: 'none', padding: 0, margin: '4px 0 0' }}>
