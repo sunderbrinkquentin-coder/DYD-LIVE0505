@@ -163,7 +163,8 @@ export const ProfessionalCVTemplate: React.FC<ProfessionalCVTemplateProps> = ({
 
     switch (section.type) {
       // ───────────────── Berufserfahrung ─────────────────
-case 'experience':
+// ───────────────── Berufserfahrung ─────────────────
+      case 'experience':
         if (!items || items.length === 0) return null;
         return (
           <div key={sectionIndex}>
@@ -174,7 +175,6 @@ case 'experience':
                 return (
                   <div
                     key={idx}
-                    /* 💡 HIER KORRIGIERT: Richtiger Marker für den Exporter + Layout-Stabilität */
                     data-pdf-section
                     style={{ display: 'block', width: '100%' }}
                     className="px-3 py-2 rounded-lg border border-slate-200 bg-white/95"
@@ -229,7 +229,6 @@ case 'experience':
                         </div>
                       )}
                     </div>
-                    {/* 💡 Hier ging dein Ausschnitt vorhin verloren: Beschreibung & Bullets werden hier gerendert */}
                     {exp.description && (
                       <textarea
                         className="mt-1.5 w-full text-[10px] text-slate-700 bg-transparent outline-none resize-none leading-tight"
