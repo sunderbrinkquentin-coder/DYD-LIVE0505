@@ -640,7 +640,41 @@ export const MinimalCVTemplate: React.FC<MinimalCVTemplateProps> = ({
               return renderSection(section, index);
             })}
           </div>
-        )}
+        )}<footer
+        data-pdf-footer
+        style={{
+          borderTop: '1px solid #cbd5e1',
+          padding: '10px 32px',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          fontSize: '10px',
+          color: '#64748b',
+          fontFamily: 'sans-serif',
+          marginTop: 'auto',
+          flexShrink: 0,
+          backgroundColor: '#ffffff',
+          height: '40px'
+        }}
+      >
+        <div style={{ display: 'flex', alignItems: 'center', gap: '6px', minWidth: 0 }}>
+          <span style={{ fontWeight: 600, flexShrink: 0 }}>Ort:</span>
+          <input
+            className="bg-transparent outline-none text-slate-500"
+            style={{ fontSize: '10px', width: '120px' }}
+            value={personalInfo.location || ''}
+            onChange={(e) => onUpdatePersonalInfo('location', e.target.value)}
+            placeholder="Ort"
+          />
+        </div> {/* 💡 HIER KORRIGIERT: Das fehlende schließende div-Tag hinzugefügt! */}
+        
+        <span style={{ fontWeight: 600, whiteSpace: 'nowrap' }}>
+          {new Date().toLocaleDateString('de-DE')}
+        </span>
+      </footer>
+    </div>
+  );
+};
     </div>
   );
 };
