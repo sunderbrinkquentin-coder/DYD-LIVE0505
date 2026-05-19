@@ -246,7 +246,7 @@ case 'experience':
                 );
               })}
             </div>
-</div>
+          </div>
         );
       } // 💡 DIESE KLAMMER FEHLT HIER, um den Case-Block sauber zu schließen!
 {/* Nur eine Darstellung: Liste ODER Textfield – mit Zeilenumbruch */}
