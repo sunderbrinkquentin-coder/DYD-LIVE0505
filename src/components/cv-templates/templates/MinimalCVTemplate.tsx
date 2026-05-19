@@ -640,7 +640,8 @@ export const MinimalCVTemplate: React.FC<MinimalCVTemplateProps> = ({
               return renderSection(section, index);
             })}
           </div>
-        )}<footer
+        )}
+      <footer
         data-pdf-footer
         style={{
           borderTop: '1px solid #cbd5e1',
