@@ -745,7 +745,7 @@ export const ProfessionalCVTemplate: React.FC<ProfessionalCVTemplateProps> = ({
               return renderSection(section, idx);
             })}
           </div>
-        )}{/* Kopiere diesen Block ganz unten vor das letzte schließende </div> */}
+        )}
       <footer
         data-pdf-footer
         style={{
