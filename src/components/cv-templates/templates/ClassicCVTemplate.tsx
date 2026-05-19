@@ -155,7 +155,7 @@ const renderBulletPoints = (bullets: any[] | undefined) => {
     );
 };
 
-  const renderExperience = () => {
+const renderExperience = () => {
     if (experienceIndex === -1) return null;
     const section = sections[experienceIndex];
     const items = Array.isArray(section.items) ? section.items : [];
@@ -167,22 +167,17 @@ const renderBulletPoints = (bullets: any[] | undefined) => {
         </h2>
         <div className="space-y-3">
           {items.map((item: any, idx: number) => (
-            <div key={idx} data-avoid-break>
+            /* 💡 HIER KORRIGIERT: Jeder Job-Block wird einzeln vor dem Umbruch geschützt! */
+            <div key={idx} data-pdf-section style={{ display: 'block', width: '100%' }}>
               <div className="flex items-baseline justify-between gap-2">
                 <EditableText
                   value={item.title}
-                  onChange={(val) =>
-                    onUpdateSectionItem(experienceIndex, idx, 'title', val)
-                  }
+                  onChange={(val) => onUpdateSectionItem(experienceIndex, idx, 'title', val)}
                   className="font-semibold text-[12px] text-gray-900 leading-snug"
                   placeholder="Position / Rolle"
                 />
                 <EditableText
-                  value={
-                    [item.date_from, item.date_to]
-                      .filter(Boolean)
-                      .join(' – ') || ''
-                  }
+                  value={[item.date_from, item.date_to].filter(Boolean).join(' – ') || ''}
                   onChange={(val) => {
                     const [from, to] = val.split('–').map((v) => v.trim());
                     onUpdateSectionItem(experienceIndex, idx, 'date_from', from);
@@ -194,18 +189,14 @@ const renderBulletPoints = (bullets: any[] | undefined) => {
               </div>
               <EditableText
                 value={item.company}
-                onChange={(val) =>
-                  onUpdateSectionItem(experienceIndex, idx, 'company', val)
-                }
+                onChange={(val) => onUpdateSectionItem(experienceIndex, idx, 'company', val)}
                 className="text-[11px] text-gray-700 mt-0.5 leading-snug"
                 placeholder="Unternehmen / Ort"
               />
               {(item.location || item.ort) && (
                 <EditableText
                   value={item.location || item.ort || ''}
-                  onChange={(val) =>
-                    onUpdateSectionItem(experienceIndex, idx, 'location', val)
-                  }
+                  onChange={(val) => onUpdateSectionItem(experienceIndex, idx, 'location', val)}
                   className="text-[10px] text-gray-500 leading-snug"
                   placeholder="Ort"
                 />
@@ -213,14 +204,7 @@ const renderBulletPoints = (bullets: any[] | undefined) => {
               {item.description && (
                 <EditableText
                   value={item.description}
-                  onChange={(val) =>
-                    onUpdateSectionItem(
-                      experienceIndex,
-                      idx,
-                      'description',
-                      val
-                    )
-                  }
+                  onChange={(val) => onUpdateSectionItem(experienceIndex, idx, 'description', val)}
                   className="text-[11px] text-gray-800 mt-1 leading-snug"
                   multiline
                   placeholder="Beschreibung / Aufgaben"
@@ -234,7 +218,7 @@ const renderBulletPoints = (bullets: any[] | undefined) => {
     );
   };
 
-  const renderEducation = () => {
+ const renderEducation = () => {
     if (educationIndex === -1) return null;
     const section = sections[educationIndex];
     const items = Array.isArray(section.items) ? section.items : [];
@@ -246,35 +230,23 @@ const renderBulletPoints = (bullets: any[] | undefined) => {
         </h2>
         <div className="space-y-3">
           {items.map((item: any, idx: number) => (
-            <div key={idx} data-avoid-break>
+            /* 💡 HIER KORRIGIERT: Jede Station wird einzeln vor dem Zerschneiden geschützt! */
+            <div key={idx} data-pdf-section style={{ display: 'block', width: '100%' }}>
               <EditableText
                 value={item.degree}
-                onChange={(val) =>
-                  onUpdateSectionItem(educationIndex, idx, 'degree', val)
-                }
+                onChange={(val) => onUpdateSectionItem(educationIndex, idx, 'degree', val)}
                 className="font-semibold text-[12px] text-gray-900 leading-snug"
                 placeholder="Abschluss / Studiengang"
               />
               <div className="flex items-baseline justify-between gap-2 mt-0.5">
                 <EditableText
                   value={item.institution}
-                  onChange={(val) =>
-                    onUpdateSectionItem(
-                      educationIndex,
-                      idx,
-                      'institution',
-                      val
-                    )
-                  }
+                  onChange={(val) => onUpdateSectionItem(educationIndex, idx, 'institution', val)}
                   className="text-[11px] text-gray-700 leading-snug"
                   placeholder="Institution / Ort"
                 />
                 <EditableText
-                  value={
-                    [item.date_from, item.date_to]
-                      .filter(Boolean)
-                      .join(' – ') || ''
-                  }
+                  value={[item.date_from, item.date_to].filter(Boolean).join(' – ') || ''}
                   onChange={(val) => {
                     const [from, to] = val.split('–').map((v) => v.trim());
                     onUpdateSectionItem(educationIndex, idx, 'date_from', from);
@@ -287,14 +259,7 @@ const renderBulletPoints = (bullets: any[] | undefined) => {
               {item.description && (
                 <EditableText
                   value={item.description}
-                  onChange={(val) =>
-                    onUpdateSectionItem(
-                      educationIndex,
-                      idx,
-                      'description',
-                      val
-                    )
-                  }
+                  onChange={(val) => onUpdateSectionItem(educationIndex, idx, 'description', val)}
                   className="text-[11px] text-gray-800 mt-1 leading-snug"
                   multiline
                   placeholder="Schwerpunkte / Noten / Themen"
