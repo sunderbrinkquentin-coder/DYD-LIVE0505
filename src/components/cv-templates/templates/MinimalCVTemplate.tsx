@@ -195,33 +195,46 @@ export const MinimalCVTemplate: React.FC<MinimalCVTemplateProps> = ({
                     />
                   </div>
                 </div>
-
-                {/* Nur EINE Darstellung: Bullets ODER Plain-Text, jetzt mit Zeilenumbrüchen */}
-                {bullets.length > 0 ? (
-                  <ul className="mt-1 space-y-[2px] text-[10px] text-slate-800">
-                    {bullets.map((bp: string, bIdx: number) => (
-                      <li key={bIdx} className="flex items-start gap-1.5">
-                        <span className="mt-[4px] h-[3px] w-[3px] rounded-full bg-slate-500" />
-                        <textarea
-                          className="flex-1 bg-transparent outline-none text-slate-800 text-[10px] leading-tight resize-none"
-                          value={bp}
-                          onChange={(e) => {
-                            autoResize(e.target);
-                            const newBullets = [...bullets];
-                            newBullets[bIdx] = e.target.value;
-                            onUpdateSectionItem(
-                              sectionIndex,
-                              idx,
-                              'bulletPoints',
-                              newBullets
-                            );
-                          }}
-                          onFocus={(e) => autoResize(e.target)}
-                          ref={(el) => { if (el) autoResize(el); }}
-                          placeholder="Aufgabe / Ergebnis"
-                          style={{ overflow: 'hidden', minHeight: '20px' }}
-                        />
-                      </li>
+{/* Nur EINE Darstellung: Bullets ODER Plain-Text, jetzt mit Zeilenumbrüchen */}
+{bullets.length > 0 ? (
+  <ul className="mt-1 space-y-[2px] text-[10px] text-slate-800">
+    {bullets.map((bp: string, bIdx: number) => (
+      <li key={bIdx} className="flex items-start gap-1.5">
+        
+        {/* 💡 HIER KORRIGIERT: Echtes Text-Bullet statt leerer 3x3px Tailwind-Box */}
+        <span 
+          style={{ 
+            flexShrink: 0, 
+            color: '#64748b', /* Entspricht text-slate-500 */
+            fontSize: '12px', 
+            lineHeight: '10px', 
+            marginTop: '1px', 
+            userSelect: 'none' 
+          }}
+        >
+          •
+        </span>
+        
+        <textarea
+          className="flex-1 bg-transparent outline-none text-slate-800 text-[10px] leading-tight resize-none"
+          value={bp}
+          onChange={(e) => {
+            autoResize(e.target);
+            const newBullets = [...bullets];
+            newBullets[bIdx] = e.target.value;
+            onUpdateSectionItem(
+              sectionIndex,
+              idx,
+              'bulletPoints',
+              newBullets
+            );
+          }}
+          onFocus={(e) => autoResize(e.target)}
+          ref={(el) => { if (el) autoResize(el); }}
+          placeholder="Aufgabe / Ergebnis"
+          style={{ overflow: 'hidden', minHeight: '20px' }}
+        />
+      </li>
                     ))}
                   </ul>
                 ) : (
