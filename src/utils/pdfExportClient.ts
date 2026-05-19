@@ -291,12 +291,17 @@ function prepareClone(clone: HTMLElement, liveRoot: HTMLElement): void {
     ci.parentNode?.replaceChild(div, ci);
   }
 
-  // Replace <textarea> → <div>
+// Replace <textarea> → <div>
   for (let i = 0; i < cloneTAs.length; i++) {
     const ct = cloneTAs[i];
-    const val = (liveTAs[i]?.value ?? ct.value ?? '').trim();
+    const lt = liveTAs[i];
+    
+    // Zieht den Wert direkt aus der echten Textarea des Editors
+    const val = (lt?.value || lt?.textContent || ct.value || '').trim();
 
-    if (isPlaceholder(val)) {
+    // 🛠️ WICHTIG: Wir deaktivieren das Löschen von "Platzhaltern" für den Export, 
+    // damit KI-generierte Bullets nicht versehentlich gelöscht werden.
+    if (val === '') {
       const row = ct.closest('[data-pdf-field-wrap]') ?? ct.closest('li');
       (row ?? ct).remove();
       continue;
