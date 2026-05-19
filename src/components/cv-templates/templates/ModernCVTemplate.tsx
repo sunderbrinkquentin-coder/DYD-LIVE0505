@@ -401,26 +401,29 @@ export const ModernCVTemplate: React.FC<ModernCVTemplateProps> = ({
                   />
                 </div>
 
-                {bullets.length > 0 ? (
-                  <ul style={{ margin: '8px 0 0', padding: 0, listStyle: 'none', display: 'block' }}>
-                    {bullets.map((bp: string, bIdx: number) => (
-                      <li key={bIdx} data-pdf-bullet-row style={{ display: 'flex', alignItems: 'flex-start', gap: '7px', marginBottom: '5px' }}>
-                        <span
-                          aria-hidden="true"
-                          data-pdf-bullet-dot
-                          style={{
-                            display: 'inline-block',
-                            width: '5px',
-                            height: '5px',
-                            minWidth: '5px',
-                            minHeight: '5px',
-                            borderRadius: '50%',
-                            backgroundColor: CI.primaryDark,
-                            flexShrink: 0,
-                            marginTop: '5px',
-                            position: 'static',
-                          }}
-                        />
+{bullets.length > 0 ? (
+  <ul style={{ margin: '8px 0 0', padding: 0, listStyle: 'none', display: 'block' }}>
+    {bullets.map((bp: string, bIdx: number) => (
+      <li key={bIdx} data-pdf-bullet-row style={{ display: 'flex', alignItems: 'flex-start', gap: '7px', marginBottom: '5px' }}>
+        
+        {/* 💡 HIER KORRIGIERT: Echtes Text-Zeichen mit der dynamischen Template-Farbe */}
+        <span
+          aria-hidden="true"
+          data-pdf-bullet-dot
+          style={{
+            display: 'inline-block',
+            flexShrink: 0,
+            color: CI.primaryDark, // Behält die originale Farbe des Templates bei
+            fontSize: '14px',      // Perfekte Größe für das Standard-Bulletzeichen
+            lineHeight: '10px',
+            marginTop: '2px',
+            userSelect: 'none',
+          }}
+        >
+          •
+        </span>
+
+        {/* Hier geht dein <textarea>-Block ganz normal weiter... */}
                         <Editable
                           tag="div"
                           multiline
