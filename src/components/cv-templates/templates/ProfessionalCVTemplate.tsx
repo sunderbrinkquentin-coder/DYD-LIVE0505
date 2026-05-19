@@ -1,73 +1,3 @@
-import React, { useEffect, useRef } from 'react';
-
-type EditorSection = {
-  type: string;
-  title?: string;
-  items?: any[];
-  [key: string]: any;
-};
-
-interface PersonalInfo {
-  name?: string;
-  title?: string;
-  email?: string;
-  phone?: string;
-  location?: string;
-  linkedin?: string;
-  [key: string]: any;
-}
-
-interface ProfessionalCVTemplateProps {
-  personalInfo: PersonalInfo;
-  summary?: string;
-  sections: EditorSection[];
-  photoUrl?: string;
-  photoPosition?: { x: number; y: number };
-  onUpdatePersonalInfo: (field: string, value: string) => void;
-  onUpdateSummary: (value: string) => void;
-  onUpdateSection: (sectionIndex: number, updates: Partial<EditorSection>) => void;
-  onUpdateSectionItem: (
-    sectionIndex: number,
-    itemIndex: number,
-    field: string,
-    value: any
-  ) => void;
-}
-
-const autoResize = (el: HTMLTextAreaElement) => {
-  el.style.height = 'auto';
-  el.style.height = el.scrollHeight + 'px';
-};
-
-// Einheitlicher Section-Titel
-const SectionTitle: React.FC<{ children: React.ReactNode }> = ({ children }) => (
-  <h2 className="mt-4 mb-2 text-[10px] font-semibold tracking-[0.16em] text-slate-700 uppercase flex items-center gap-1.5">
-    <span className="w-1 h-1 rounded-full bg-slate-400" />
-    {children}
-  </h2>
-);
-
-// Hilfsfunktion: führende Bullets entfernen („- …“, „• …“)
-const stripLeadingBullet = (s: string) =>
-  s.replace(/^[-•\u2022]\s*/, '');
-
-// Bullet-Hilfsfunktion – verhindert doppelte Darstellung
-const getBullets = (item: any): string[] => {
-  if (Array.isArray(item?.bulletPoints) && item.bulletPoints.length > 0) {
-    return item.bulletPoints
-      .map((s: any) => stripLeadingBullet(String(s).trim()))
-      .filter((s: string) => s.length > 0);
-  }
-
-  if (typeof item?.description === 'string' && item.description.trim().length > 0) {
-    return item.description
-      .split('\n')
-      .map((s: string) => stripLeadingBullet(s.trim()))
-      .filter((s: string) => s.length > 0);
-  }
-  return [];
-};
-
 export const ProfessionalCVTemplate: React.FC<ProfessionalCVTemplateProps> = ({
   personalInfo,
   summary,
@@ -157,13 +87,12 @@ export const ProfessionalCVTemplate: React.FC<ProfessionalCVTemplateProps> = ({
     };
     const sectionTitle = section.title || TYPE_LABELS[section.type] || section.type;
 
-    // Berufserfahrung & Projekte werden gezeigt, wenn Items existieren – sonst Fallback
     const mustShow = section.type === 'experience' || section.type === 'projects';
     if (items.length === 0 && !mustShow) return null;
 
     switch (section.type) {
       // ───────────────── Berufserfahrung ─────────────────
-case 'experience':
+      case 'experience':
         if (!items || items.length === 0) return null;
         return (
           <div key={sectionIndex}>
@@ -289,6 +218,8 @@ case 'experience':
                 return (
                   <div
                     key={idx}
+                    data-pdf-section
+                    style={{ display: 'block', width: '100%' }}
                     className="px-3 py-2 rounded-lg border border-slate-200 bg-white/95"
                   >
                     <div className="flex justify-between gap-2 items-start">
@@ -297,12 +228,7 @@ case 'experience':
                           className="w-full text-[11px] font-semibold text-slate-900 bg-transparent outline-none"
                           value={proj.title || proj.name || ''}
                           onChange={(e) =>
-                            onUpdateSectionItem(
-                              sectionIndex,
-                              idx,
-                              'title',
-                              e.target.value
-                            )
+                            onUpdateSectionItem(sectionIndex, idx, 'title', e.target.value)
                           }
                           placeholder="Projekt"
                         />
@@ -310,12 +236,7 @@ case 'experience':
                           className="mt-0.5 w-full text-[10px] text-slate-500 bg-transparent outline-none"
                           value={proj.role || ''}
                           onChange={(e) =>
-                            onUpdateSectionItem(
-                              sectionIndex,
-                              idx,
-                              'role',
-                              e.target.value
-                            )
+                            onUpdateSectionItem(sectionIndex, idx, 'role', e.target.value)
                           }
                           placeholder="Rolle"
                         />
@@ -323,9 +244,10 @@ case 'experience':
                     </div>
 
                     {bullets.length > 0 ? (
-                      <ul className="mt-1 ml-4 space-y-[2px] list-disc list-outside text-[10px] text-slate-800">
+                      <ul className="mt-1 space-y-[2px] text-[10px] text-slate-800" style={{ listStyle: 'none', padding: 0, margin: '4px 0 0' }}>
                         {bullets.map((bp: string, bIdx: number) => (
-                          <li key={bIdx}>
+                          <li key={bIdx} style={{ display: 'flex', alignItems: 'flex-start', gap: '6px', breakInside: 'avoid', pageBreakInside: 'avoid' }}>
+                            <span style={{ flexShrink: 0, color: '#334155', fontSize: '13px', lineHeight: '10px', marginTop: '1px', userSelect: 'none' }}>•</span>
                             <textarea
                               className="w-full bg-transparent outline-none text-slate-800 text-[10px] leading-tight resize-none"
                               style={{ overflow: 'hidden', minHeight: '20px' }}
@@ -342,18 +264,20 @@ case 'experience':
                         ))}
                       </ul>
                     ) : (
-                      <textarea
-                        className="mt-0.5 w-full text-[10px] text-slate-800 bg-transparent outline-none resize-none leading-tight"
-                        style={{ overflow: 'hidden', minHeight: '40px' }}
-                        value={proj.description || ''}
-                        onChange={(e) => {
-                          autoResize(e.target);
-                          onUpdateSectionItem(sectionIndex, idx, 'description', e.target.value);
-                        }}
-                        onFocus={(e) => autoResize(e.target)}
-                        ref={(el) => { if (el) autoResize(el); }}
-                        placeholder="Kurzbeschreibung"
-                      />
+                      proj.description && (
+                        <textarea
+                          className="mt-0.5 w-full text-[10px] text-slate-800 bg-transparent outline-none resize-none leading-tight"
+                          style={{ overflow: 'hidden', minHeight: '40px' }}
+                          value={proj.description || ''}
+                          onChange={(e) => {
+                            autoResize(e.target);
+                            onUpdateSectionItem(sectionIndex, idx, 'description', e.target.value);
+                          }}
+                          onFocus={(e) => autoResize(e.target)}
+                          ref={(el) => { if (el) autoResize(el); }}
+                          placeholder="Kurzbeschreibung"
+                        />
+                      )
                     )}
 
                     <button
@@ -377,7 +301,7 @@ case 'experience':
             <SectionTitle>Ausbildung & Studium</SectionTitle>
             <div className="space-y-1.5">
               {items.map((edu: any, idx: number) => (
-                <div key={idx} data-avoid-break className="px-2 py-1 rounded-md">
+                <div key={idx} data-pdf-section style={{ display: 'block', width: '100%' }} className="px-2 py-1 rounded-md">
                   <input
                     className="w-full text-[11px] font-semibold text-slate-900 bg-transparent outline-none"
                     value={edu.degree || ''}
@@ -390,12 +314,7 @@ case 'experience':
                     className="mt-0.5 w-full text-[10px] text-slate-500 bg-transparent outline-none"
                     value={edu.institution || ''}
                     onChange={(e) =>
-                      onUpdateSectionItem(
-                        sectionIndex,
-                        idx,
-                        'institution',
-                        e.target.value
-                      )
+                      onUpdateSectionItem(sectionIndex, idx, 'institution', e.target.value)
                     }
                     placeholder="Institution"
                   />
@@ -405,12 +324,7 @@ case 'experience':
                         className="bg-transparent outline-none w-16"
                         value={edu.date_from || ''}
                         onChange={(e) =>
-                          onUpdateSectionItem(
-                            sectionIndex,
-                            idx,
-                            'date_from',
-                            e.target.value
-                          )
+                          onUpdateSectionItem(sectionIndex, idx, 'date_from', e.target.value)
                         }
                         placeholder="Von"
                       />
@@ -435,15 +349,17 @@ case 'experience':
       case 'languages':
         if (items.length === 0) return null;
         return (
-          <div key={sectionIndex}>
+          <div key={sectionIndex} data-pdf-section>
             <SectionTitle>Sprachen</SectionTitle>
             <div className="space-y-1">
               {items.map((lang: any, idx: number) => {
                 const rawLangVal = typeof lang === 'string' ? lang : (lang.language || lang.name || lang.sprache || '');
-                const langVal = rawLangVal.replace(/^(programmiersprachen|technische\s*f[äa]higkeiten|fachkenntnisse|kenntnisse|sprachen|fähigkeiten|soft\s*skills|skills|languages|kompetenzen|tools?)[:\s\-–]+/i, '').trim();
+                const langVal = rawLangVal.replace(/^(programmiersprachen|technische\s*f[äa]higkeiten|fachkenntnisse|kenntnisse|sprachen|fähigkeiten|soft\s*skills|skills|languages|kompetenzen|tools?)[:\s\-–]+/i, '').replace(/\s*\(?Otherskill\)?/gi, '').replace(/\s*\($/, '').trim();
+                if (!langVal) return null;
+
                 const levelVal = typeof lang === 'object' && lang !== null ? (lang.level || lang.niveau || lang.proficiency || '') : '';
                 return (
-                  <div key={idx} className="flex items-center justify-between gap-2 text-[10px] text-slate-800">
+                  <div key={idx} style={{ breakInside: 'avoid', pageBreakInside: 'avoid' }} className="flex items-center justify-between gap-2 text-[10px] text-slate-800">
                     <input
                       className="bg-transparent outline-none flex-1"
                       value={langVal}
@@ -469,17 +385,22 @@ case 'experience':
       case 'skills':
         if (items.length === 0) return null;
         return (
-          <div key={sectionIndex}>
+          <div key={sectionIndex} data-pdf-section>
             <SectionTitle>Fachliche Skills</SectionTitle>
             <div data-chip-row style={{ display: 'block', overflow: 'visible' }}>
               {items.map((skill: any, idx: number) => {
-                const val = typeof skill === 'string' ? skill : skill.skill || skill.name || '';
-                const level = typeof skill === 'object' && skill !== null ? skill.level || skill.niveau || '' : '';
-                const display = level ? `${val} (${level})` : val;
+                if (!skill) return null;
+                const val = typeof skill === 'string' ? skill : (skill.skill || skill.name || skill.label || '');
+                const level = typeof skill === 'object' && skill !== null ? (skill.level || skill.niveau || '') : '';
+                
+                let cleanedVal = val.replace(/\s*\(?Otherskill\)?/gi, '').replace(/\s*\($/, '').trim();
+                if (cleanedVal === '') return null;
+
+                const display = level ? `${cleanedVal} (${level.trim()})` : cleanedVal;
                 return (
-                  <span key={idx} style={{ display: 'inline-flex', alignItems: 'center', marginRight: '5px', marginBottom: '5px', verticalAlign: 'middle', padding: '2px 8px', borderRadius: '9999px', border: '1px solid #cbd5e1', background: '#f1f5f9', whiteSpace: 'nowrap' }}>
+                  <span key={idx} style={{ display: 'inline-flex', alignItems: 'center', marginRight: '5px', marginBottom: '5px', verticalAlign: 'middle', padding: '2px 8px', borderRadius: '9999px', border: '1px solid #cbd5e1', background: '#f1f5f9', whiteSpace: 'nowrap', breakInside: 'avoid', pageBreakInside: 'avoid' }}>
                     <input
-                      style={{ background: 'transparent', outline: 'none', fontSize: '9px', color: '#1e293b', minWidth: '20px', border: 'none', width: `${Math.max(20, display.length * 6)}px` }}
+                      style={{ background: 'transparent', outline: 'none', fontSize: '9px', color: '#1e293b', minWidth: '20px', border: 'none', width: `${Math.max(20, display.length * 6.5)}px` }}
                       value={display}
                       onChange={(e) => onUpdateSectionItem(sectionIndex, idx, 'skill', e.target.value)}
                       placeholder="Skill"
@@ -495,17 +416,22 @@ case 'experience':
       case 'soft_skills':
         if (items.length === 0) return null;
         return (
-          <div key={sectionIndex}>
+          <div key={sectionIndex} data-pdf-section>
             <SectionTitle>Persönliche Stärken</SectionTitle>
             <div data-chip-row style={{ display: 'block', overflow: 'visible' }}>
               {items.map((skill: any, idx: number) => {
-                const val = typeof skill === 'string' ? skill : skill.skill || skill.name || '';
-                const level = typeof skill === 'object' && skill !== null ? skill.level || skill.niveau || '' : '';
-                const display = level ? `${val} (${level})` : val;
+                if (!skill) return null;
+                const val = typeof skill === 'string' ? skill : (skill.skill || skill.name || skill.label || '');
+                const level = typeof skill === 'object' && skill !== null ? (skill.level || skill.niveau || '') : '';
+                
+                let cleanedVal = val.replace(/\s*\(?Otherskill\)?/gi, '').replace(/\s*\($/, '').trim();
+                if (cleanedVal === '') return null;
+
+                const display = level ? `${cleanedVal} (${level.trim()})` : cleanedVal;
                 return (
-                  <span key={idx} style={{ display: 'inline-flex', alignItems: 'center', marginRight: '5px', marginBottom: '5px', verticalAlign: 'middle', padding: '2px 8px', borderRadius: '9999px', border: '1px solid #cbd5e1', background: '#f1f5f9', whiteSpace: 'nowrap' }}>
+                  <span key={idx} style={{ display: 'inline-flex', alignItems: 'center', marginRight: '5px', marginBottom: '5px', verticalAlign: 'middle', padding: '2px 8px', borderRadius: '9999px', border: '1px solid #cbd5e1', background: '#f1f5f9', whiteSpace: 'nowrap', breakInside: 'avoid', pageBreakInside: 'avoid' }}>
                     <input
-                      style={{ background: 'transparent', outline: 'none', fontSize: '9px', color: '#1e293b', minWidth: '20px', border: 'none', width: `${Math.max(20, display.length * 6)}px` }}
+                      style={{ background: 'transparent', outline: 'none', fontSize: '9px', color: '#1e293b', minWidth: '20px', border: 'none', width: `${Math.max(20, display.length * 6.5)}px` }}
                       value={display}
                       onChange={(e) => onUpdateSectionItem(sectionIndex, idx, 'skill', e.target.value)}
                       placeholder="Stärke"
@@ -522,16 +448,21 @@ case 'experience':
       case 'values':
         if (items.length === 0) return null;
         return (
-          <div key={sectionIndex}>
+          <div key={sectionIndex} data-pdf-section>
             <SectionTitle>Arbeitsweise & Werte</SectionTitle>
             <div data-chip-row style={{ display: 'block', overflow: 'visible' }}>
               {items.map((val: any, idx: number) => {
-                const v = typeof val === 'string' ? val : val.label || '';
+                if (!val) return null;
+                const v = typeof val === 'string' ? val : (val.label || val.name || '');
+                
+                let cleanedV = v.replace(/\s*\(?Otherskill\)?/gi, '').replace(/\s*\($/, '').trim();
+                if (cleanedV === '') return null;
+
                 return (
-                  <span key={idx} style={{ display: 'inline-flex', alignItems: 'center', marginRight: '5px', marginBottom: '5px', verticalAlign: 'middle', padding: '2px 8px', borderRadius: '9999px', border: '1px solid #cbd5e1', background: '#f1f5f9', whiteSpace: 'nowrap' }}>
+                  <span key={idx} style={{ display: 'inline-flex', alignItems: 'center', marginRight: '5px', marginBottom: '5px', verticalAlign: 'middle', padding: '2px 8px', borderRadius: '9999px', border: '1px solid #cbd5e1', background: '#f1f5f9', whiteSpace: 'nowrap', breakInside: 'avoid', pageBreakInside: 'avoid' }}>
                     <input
-                      style={{ background: 'transparent', outline: 'none', fontSize: '9px', color: '#1e293b', border: 'none', minWidth: '20px', width: `${Math.max(20, v.length * 6)}px` }}
-                      value={v}
+                      style={{ background: 'transparent', outline: 'none', fontSize: '9px', color: '#1e293b', border: 'none', minWidth: '20px', width: `${Math.max(20, cleanedV.length * 6)}px` }}
+                      value={cleanedV}
                       onChange={(e) => onUpdateSectionItem(sectionIndex, idx, 'label', e.target.value)}
                       placeholder="Wert"
                     />
@@ -547,16 +478,21 @@ case 'experience':
       case 'interests':
         if (items.length === 0) return null;
         return (
-          <div key={sectionIndex}>
+          <div key={sectionIndex} data-pdf-section>
             <SectionTitle>Hobbys & Interessen</SectionTitle>
             <div data-chip-row style={{ display: 'block', overflow: 'visible' }}>
               {items.map((hob: any, idx: number) => {
-                const v = typeof hob === 'string' ? hob : hob.label || '';
+                if (!hob) return null;
+                const v = typeof hob === 'string' ? hob : (hob.label || hob.name || '');
+                
+                let cleanedV = v.replace(/\s*\(?Otherskill\)?/gi, '').replace(/\s*\($/, '').trim();
+                if (cleanedV === '') return null;
+
                 return (
-                  <span key={idx} style={{ display: 'inline-flex', alignItems: 'center', marginRight: '5px', marginBottom: '5px', verticalAlign: 'middle', padding: '2px 8px', borderRadius: '9999px', border: '1px solid #cbd5e1', background: '#f1f5f9', whiteSpace: 'nowrap' }}>
+                  <span key={idx} style={{ display: 'inline-flex', alignItems: 'center', marginRight: '5px', marginBottom: '5px', verticalAlign: 'middle', padding: '2px 8px', borderRadius: '9999px', border: '1px solid #cbd5e1', background: '#f1f5f9', whiteSpace: 'nowrap', breakInside: 'avoid', pageBreakInside: 'avoid' }}>
                     <input
-                      style={{ background: 'transparent', outline: 'none', fontSize: '9px', color: '#1e293b', border: 'none', minWidth: '20px', width: `${Math.max(20, v.length * 6)}px` }}
-                      value={v}
+                      style={{ background: 'transparent', outline: 'none', fontSize: '9px', color: '#1e293b', border: 'none', minWidth: '20px', width: `${Math.max(20, cleanedV.length * 6)}px` }}
+                      value={cleanedV}
                       onChange={(e) => onUpdateSectionItem(sectionIndex, idx, 'label', e.target.value)}
                       placeholder="Hobby"
                     />
@@ -571,7 +507,7 @@ case 'experience':
       default:
         if (items.length === 0) return null;
         return (
-          <div key={sectionIndex}>
+          <div key={sectionIndex} data-pdf-section>
             <SectionTitle>{sectionTitle}</SectionTitle>
             <ul className="space-y-0.5 text-[10px] text-slate-800">
               {items.map((item: any, idx: number) => {
@@ -583,6 +519,7 @@ case 'experience':
                   <li
                     key={idx}
                     className="py-0.5 border-b border-slate-200 last:border-b-0"
+                    style={{ breakInside: 'avoid', pageBreakInside: 'avoid' }}
                   >
                     <input
                       className="w-full bg-transparent outline-none"
@@ -603,7 +540,7 @@ case 'experience':
 
   return (
     <div className="relative bg-slate-100 font-sans flex flex-col w-full" style={{ wordBreak: 'break-word', overflowWrap: 'anywhere', minHeight: '1122px' }}>
-        {/* Dunkler Professional-Header mit DYD-Akzent */}
+        {/* Dunkler Professional-Header */}
         <header className="px-8 pt-7 pb-5 bg-slate-900 text-white flex justify-between gap-6 items-start border-b-4 border-[#30E3CA]">
           <div className="flex-1 min-w-0">
             <input
@@ -677,11 +614,11 @@ case 'experience':
           )}
         </header>
 
-        {/* Content */}
-        <main className="flex-1 px-8 py-4 grid grid-cols-1 md:grid-cols-12 gap-6 bg-white">
+        {/* 🛠️ FIX FÜR DEN SEITENUMBRICH: Stabiles Flexbox-Layout statt CSS-Grid */}
+        <div style={{ display: 'flex', width: '100%', backgroundColor: '#ffffff', flex: 1, padding: '16px 0' }}>
+          
           {/* Linke Spalte */}
-          <section className="col-span-1 md:col-span-7 space-y-3">
-            {/* Summary / Profil */}
+          <section style={{ flex: '0 0 58%', minWidth: 0, paddingLeft: '32px', paddingRight: '12px', display: 'flex', flexDirection: 'column', gap: '12px' }}>
             <div>
               <SectionTitle>Profil & Mehrwert</SectionTitle>
               <textarea
@@ -693,15 +630,13 @@ case 'experience':
                   onUpdateSummary(e.target.value);
                   if (summaryRef.current) {
                     summaryRef.current.style.height = 'auto';
-                    summaryRef.current.style.height =
-                      summaryRef.current.scrollHeight + 'px';
+                    summaryRef.current.style.height = summaryRef.current.scrollHeight + 'px';
                   }
                 }}
                 placeholder="Beschreibe kurz dein Profil, deinen Mehrwert und deine Ziele."
               />
             </div>
 
-            {/* Experience + Projekte */}
             {leftSections.map((section) => {
               const idx = sections.findIndex((s) => s === section);
               return renderSection(section, idx);
@@ -709,31 +644,32 @@ case 'experience':
           </section>
 
           {/* Rechte Spalte */}
-          <aside className="col-span-1 md:col-span-5 space-y-3">
+          <aside style={{ flex: '0 0 42%', minWidth: 0, paddingLeft: '12px', paddingRight: '32px', display: 'flex', flexDirection: 'column', gap: '12px' }}>
             {rightSections.map((section) => {
               const idx = sections.findIndex((s) => s === section);
               return renderSection(section, idx);
             })}
           </aside>
-        </main>
+        </div>
 
-        {/* Weitere Sections (z.B. Zertifikate etc.) */}
+        {/* Weitere Sections */}
         {otherSections.length > 0 && (
-          <div className="px-8 pb-4 space-y-3 bg-white">
+          <div className="px-8 pb-4 space-y-3 bg-white" data-pdf-section>
             {otherSections.map((section) => {
               const idx = sections.findIndex((s) => s === section);
               return renderSection(section, idx);
             })}
           </div>
         )}
-<footer
+
+      <footer
         data-pdf-footer
         style={{
           borderTop: '1px solid #cbd5e1',
           padding: '10px 32px',
           display: 'flex',
           alignItems: 'center',
-          justifyContent: 'space-between',
+          justify-content: 'space-between',
           fontSize: '10px',
           color: '#64748b',
           fontFamily: 'sans-serif',
@@ -752,7 +688,7 @@ case 'experience':
             onChange={(e) => onUpdatePersonalInfo('location', e.target.value)}
             placeholder="Ort"
           />
-        </div> {/* 💡 HIER KORRIGIERT: Das fehlende schließende div-Tag hinzugefügt! */}
+        </div>
         
         <span style={{ fontWeight: 600, whiteSpace: 'nowrap' }}>
           {new Date().toLocaleDateString('de-DE')}
