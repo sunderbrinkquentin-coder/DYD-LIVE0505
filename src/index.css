@@ -318,6 +318,8 @@
     body {
       margin: 0;
       padding: 0;
+      background: #ffffff !important;
+      color: #000000 !important;
     }
 
     .cv-template-container {
@@ -326,23 +328,44 @@
       margin: 0 !important;
       padding: 0 !important;
     }
-
-    /* Remove responsive spacing for print */
-    .cv-template-container * {
-      page-break-inside: avoid;
+[data-pdf-section] {
+      page-break-inside: avoid !important;
+      break-inside: avoid !important;
+      position: relative !important;
+      display: block !important;
+      float: none !important;
+      clear: both !important;
     }
 
-    .cv-template-container section {
-      page-break-inside: avoid;
+    /* 🛠️ FIX 3: Verhindert verwaiste Überschriften am Seitenende */
+    h1, h2, h3, h4, h5, h6 {
+      page-break-after: avoid !important;
+      break-after: avoid !important;
+      position: relative !important;
     }
 
-    /* Ensure proper page breaks */
+    /* 🛠️ FIX 4: Listenpunkte sauber zusammenhalten */
+    li {
+      page-break-inside: avoid !important;
+      break-inside: avoid !important;
+    }
+
+    /* 🛠️ FIX 5: Fester Footer-Druckschutz */
+    [data-pdf-footer] {
+      position: fixed !important;
+      bottom: 0 !important;
+      left: 0 !important;
+      width: 100% !important;
+      page-break-inside: avoid !important;
+      break-inside: avoid !important;
+    }
+
     .cv-template-header {
-      page-break-after: avoid;
+      page-break-after: avoid !important;
     }
 
     .cv-template-section {
-      page-break-inside: avoid;
+      page-break-inside: auto !important; /* Erlaubt normalen Sektionen das Umbrechen */
     }
   }
 
