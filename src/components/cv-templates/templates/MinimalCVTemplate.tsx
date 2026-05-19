@@ -530,7 +530,6 @@ export const MinimalCVTemplate: React.FC<MinimalCVTemplateProps> = ({
         );
       }
     }
-  };
 
   const leftTypes = ['experience', 'projects', 'education'];
   const rightTypes = [
