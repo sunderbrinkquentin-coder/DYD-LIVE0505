@@ -1,3 +1,73 @@
+import React, { useEffect, useRef } from 'react';
+
+type EditorSection = {
+  type: string;
+  title?: string;
+  items?: any[];
+  [key: string]: any;
+};
+
+interface PersonalInfo {
+  name?: string;
+  title?: string;
+  email?: string;
+  phone?: string;
+  location?: string;
+  linkedin?: string;
+  [key: string]: any;
+}
+
+interface ProfessionalCVTemplateProps {
+  personalInfo: PersonalInfo;
+  summary?: string;
+  sections: EditorSection[];
+  photoUrl?: string;
+  photoPosition?: { x: number; y: number };
+  onUpdatePersonalInfo: (field: string, value: string) => void;
+  onUpdateSummary: (value: string) => void;
+  onUpdateSection: (sectionIndex: number, updates: Partial<EditorSection>) => void;
+  onUpdateSectionItem: (
+    sectionIndex: number,
+    itemIndex: number,
+    field: string,
+    value: any
+  ) => void;
+}
+
+const autoResize = (el: HTMLTextAreaElement) => {
+  el.style.height = 'auto';
+  el.style.height = el.scrollHeight + 'px';
+};
+
+// Einheitlicher Section-Titel
+const SectionTitle: React.FC<{ children: React.ReactNode }> = ({ children }) => (
+  <h2 className="mt-4 mb-2 text-[10px] font-semibold tracking-[0.16em] text-slate-700 uppercase flex items-center gap-1.5">
+    <span className="w-1 h-1 rounded-full bg-slate-400" />
+    {children}
+  </h2>
+);
+
+// Hilfsfunktion: führende Bullets entfernen („- …“, „• …“)
+const stripLeadingBullet = (s: string) =>
+  s.replace(/^[-•\u2022]\s*/, '');
+
+// Bullet-Hilfsfunktion – verhindert doppelte Darstellung
+const getBullets = (item: any): string[] => {
+  if (Array.isArray(item?.bulletPoints) && item.bulletPoints.length > 0) {
+    return item.bulletPoints
+      .map((s: any) => stripLeadingBullet(String(s).trim()))
+      .filter((s: string) => s.length > 0);
+  }
+
+  if (typeof item?.description === 'string' && item.description.trim().length > 0) {
+    return item.description
+      .split('\n')
+      .map((s: string) => stripLeadingBullet(s.trim()))
+      .filter((s: string) => s.length > 0);
+  }
+  return [];
+};
+
 export const ProfessionalCVTemplate: React.FC<ProfessionalCVTemplateProps> = ({
   personalInfo,
   summary,
@@ -614,7 +684,7 @@ export const ProfessionalCVTemplate: React.FC<ProfessionalCVTemplateProps> = ({
           )}
         </header>
 
-        {/* 🛠️ FIX FÜR DEN SEITENUMBRICH: Stabiles Flexbox-Layout statt CSS-Grid */}
+        {/* Flexbox-Layout statt altem Grid */}
         <div style={{ display: 'flex', width: '100%', backgroundColor: '#ffffff', flex: 1, padding: '16px 0' }}>
           
           {/* Linke Spalte */}
