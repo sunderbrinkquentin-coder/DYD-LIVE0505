@@ -732,14 +732,15 @@ export const ProfessionalCVTemplate: React.FC<ProfessionalCVTemplateProps> = ({
           </div>
         )}
 
-      <footer
+<footer
         data-pdf-footer
         style={{
           borderTop: '1px solid #cbd5e1',
           padding: '10px 32px',
           display: 'flex',
           alignItems: 'center',
-          justify-content: 'space-between',
+          /* 💡 HIER KORRIGIERT: CamelCase statt Bindestrich */
+          justifyContent: 'space-between', 
           fontSize: '10px',
           color: '#64748b',
           fontFamily: 'sans-serif',
