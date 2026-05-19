@@ -155,8 +155,22 @@ function bakeComputedStyles(liveEl: HTMLElement, cloneEl: HTMLElement): void {
   cloneEl.style.marginLeft = cs.marginLeft;
 
   // Position — convert fixed/sticky to relative so off-screen layout works
-  const pos = cs.position;
+const pos = cs.position;
   cloneEl.style.position = (pos === 'fixed' || pos === 'sticky') ? 'relative' : pos;
+
+  // ── 🔥 FIX FÜR DIE EBENEN (Hier integriert) ──────────────────────────────
+  // Kopiere den echten z-index aus dem Live-Editor
+  cloneEl.style.zIndex = cs.zIndex;
+
+  // Wenn es ein Textelement ist, zwingen wir es nach ganz oben.
+  // Damit z-index wirkt, darf die Position nicht 'static' sein.
+  if (INLINE_TAGS.has(tag) || ['h1', 'h2', 'h3', 'h4', 'h5', 'h6', 'p', 'li'].includes(tag)) {
+    cloneEl.style.zIndex = '999';
+    if (pos === 'static') {
+      cloneEl.style.position = 'relative';
+    }
+  }
+  // ─────────────────────────────────────────────────────────────────────────
 
   // Display
   cloneEl.style.display = cs.display;
