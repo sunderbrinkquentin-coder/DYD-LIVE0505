@@ -753,7 +753,7 @@ export const ProfessionalCVTemplate: React.FC<ProfessionalCVTemplateProps> = ({
           padding: '10px 32px',
           display: 'flex',
           alignItems: 'center',
-          justify-content:'space-between', 
+          justify-content:`space-between', 
           fontSize: '10px',
           color: '#64748b',
           fontFamily: 'sans-serif',
