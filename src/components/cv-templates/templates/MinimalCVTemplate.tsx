@@ -538,9 +538,15 @@ export const MinimalCVTemplate: React.FC<MinimalCVTemplateProps> = ({
                 />
               </div>
 
-              {/* LinkedIn */}
+              {/* LinkedIn – Icon nur bei Inhalt */}
               <div className="flex items-center gap-1.5">
-                <span className="text-[11px] font-semibold text-slate-700 w-3 flex-shrink-0 text-center leading-none">in</span>
+                {personalInfo.linkedin ? (
+                  <span className="text-[11px] font-semibold text-slate-700">
+                    in
+                  </span>
+                ) : (
+                  <span className="w-3" />
+                )}
                 <input
                   className="bg-transparent outline-none flex-1"
                   value={personalInfo.linkedin || ''}
@@ -568,8 +574,8 @@ export const MinimalCVTemplate: React.FC<MinimalCVTemplateProps> = ({
         </header>
 
         {/* Content */}
-        <main className="flex-1 px-8 py-4 grid grid-cols-12 gap-6">
-          <section className="col-span-7 space-y-3">
+        <main className="flex-1 px-8 py-4 grid grid-cols-1 md:grid-cols-12 gap-6">
+          <section className="col-span-1 md:col-span-7 space-y-3">
             <div>
               <SectionTitle>Profil</SectionTitle>
               <textarea
@@ -595,7 +601,7 @@ export const MinimalCVTemplate: React.FC<MinimalCVTemplateProps> = ({
             })}
           </section>
 
-          <aside className="col-span-5 space-y-3">
+          <aside className="col-span-1 md:col-span-5 space-y-3">
             {rightSections.map((section) => {
               const index = sections.findIndex((s) => s === section);
               return renderSection(section, index);

@@ -34,102 +34,65 @@ interface ClassicCVTemplateProps {
   ) => void;
 }
 
-const ACCENT = '#1a2e44';
-const ACCENT_LIGHT = '#243d59';
-const GOLD = '#c9a84c';
+const skillLevelToStars = (level: string | undefined): number => {
+  if (!level) return 0;
+  const l = level.toLowerCase();
+  if (l === 'expert' || l === 'experte' || l === 'native' || l === 'muttersprache' || l === 'c2') return 5;
+  if (l === 'advanced' || l === 'sehr gut' || l === 'c1' || l === 'verhandlungssicher') return 4;
+  if (l === 'intermediate' || l === 'fortgeschritten' || l === 'b2' || l === 'b1' || l === 'gute kenntnisse') return 3;
+  if (l === 'basic' || l === 'basiswissen' || l === 'a2' || l === 'a1' || l === 'grundkenntnisse') return 2;
+  if (l === 'beginner' || l === 'anfänger') return 1;
+  return 0;
+};
+
+const StarRating: React.FC<{ stars: number; total?: number }> = ({ stars, total = 5 }) => (
+  <span className="inline-flex items-center gap-px flex-shrink-0">
+    {Array.from({ length: total }).map((_, i) => (
+      <svg key={i} width="7" height="7" viewBox="0 0 12 12" fill={i < stars ? '#6b7280' : '#d1d5db'}>
+        <polygon points="6,1 7.5,4.5 11,5 8.5,7.5 9,11 6,9.5 3,11 3.5,7.5 1,5 4.5,4.5" />
+      </svg>
+    ))}
+  </span>
+);
 
 const autoResize = (el: HTMLTextAreaElement) => {
   el.style.height = 'auto';
   el.style.height = el.scrollHeight + 'px';
 };
 
-// ── Icon helpers ──────────────────────────────────────────────────────────────
-const IconMail = () => (
-  <svg width="10" height="10" viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0 }}>
-    <rect x="2" y="4" width="16" height="12" rx="2" /><polyline points="2,4 10,13 18,4" />
-  </svg>
-);
-const IconPhone = () => (
-  <svg width="10" height="10" viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0 }}>
-    <path d="M3 4a1 1 0 011-1h2.5a1 1 0 011 1l1 4a1 1 0 01-.29.71l-1.5 1.5a11 11 0 004.58 4.58l1.5-1.5a1 1 0 01.71-.29l4 1A1 1 0 0117 15v2.5a1 1 0 01-1 1A14 14 0 013 4z" />
-  </svg>
-);
-const IconLocation = () => (
-  <svg width="10" height="10" viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0 }}>
-    <path d="M10 2a6 6 0 016 6c0 5-6 10-6 10S4 13 4 8a6 6 0 016-6z" /><circle cx="10" cy="8" r="2" />
-  </svg>
-);
-const IconLinkedIn = () => (
-  <svg width="10" height="10" viewBox="0 0 20 20" fill="currentColor" style={{ flexShrink: 0 }}>
-    <rect x="2" y="2" width="16" height="16" rx="3" fill="none" stroke="currentColor" strokeWidth="1.8" />
-    <rect x="5" y="8" width="2" height="7" /><circle cx="6" cy="5.5" r="1" />
-    <path d="M9 8h2v1.3a3 3 0 015 2.7V15h-2v-2.8A1.5 1.5 0 0011.5 10.5v-.5H9V8z" />
-  </svg>
-);
-
-// ── Sidebar section title ─────────────────────────────────────────────────────
-const SidebarTitle: React.FC<{ children: React.ReactNode }> = ({ children }) => (
-  <h3 style={{ fontSize: '8.5px', fontWeight: 700, letterSpacing: '0.18em', textTransform: 'uppercase', color: GOLD, marginBottom: '8px', marginTop: '16px', borderBottom: `1px solid rgba(201,168,76,0.35)`, paddingBottom: '4px' }}>
-    {children}
-  </h3>
-);
-
-// ── Main section title ────────────────────────────────────────────────────────
-const MainTitle: React.FC<{ children: React.ReactNode }> = ({ children }) => (
-  <h2 style={{ fontSize: '9px', fontWeight: 700, letterSpacing: '0.16em', textTransform: 'uppercase', color: ACCENT, borderBottom: `2px solid ${GOLD}`, paddingBottom: '4px', marginBottom: '10px', marginTop: '16px' }}>
-    {children}
-  </h2>
-);
-
-const EditableInput: React.FC<{
+const EditableText: React.FC<{
   value?: string;
-  onChange: (v: string) => void;
-  placeholder?: string;
-  style?: React.CSSProperties;
+  onChange: (value: string) => void;
   className?: string;
-}> = ({ value, onChange, placeholder, style, className }) => (
-  <input
-    className={`bg-transparent outline-none border-none focus:ring-0 w-full ${className ?? ''}`}
-    style={style}
-    value={value ?? ''}
-    placeholder={placeholder}
-    onChange={(e) => onChange(e.target.value)}
-  />
-);
-
-const EditableArea: React.FC<{
-  value?: string;
-  onChange: (v: string) => void;
   placeholder?: string;
+  multiline?: boolean;
   style?: React.CSSProperties;
-  className?: string;
-}> = ({ value, onChange, placeholder, style, className }) => (
-  <textarea
-    className={`bg-transparent outline-none border-none focus:ring-0 w-full resize-none ${className ?? ''}`}
-    style={{ overflow: 'hidden', minHeight: '40px', ...style }}
-    value={value ?? ''}
-    placeholder={placeholder}
-    onChange={(e) => { autoResize(e.target); onChange(e.target.value); }}
-    onFocus={(e) => autoResize(e.target)}
-    ref={(el) => { if (el) autoResize(el); }}
-  />
-);
+}> = ({ value, onChange, className = '', placeholder = '', multiline = false, style }) => {
+  if (multiline) {
+    return (
+      <textarea
+        className={`w-full resize-none bg-transparent outline-none border-none focus:ring-0 ${className}`}
+        style={{ ...style, overflow: 'hidden', minHeight: '40px' }}
+        value={value ?? ''}
+        placeholder={placeholder}
+        onChange={(e) => {
+          autoResize(e.target);
+          onChange(e.target.value);
+        }}
+        onFocus={(e) => autoResize(e.target)}
+        ref={(el) => { if (el) autoResize(el); }}
+      />
+    );
+  }
 
-const BulletList: React.FC<{ bullets: any[] }> = ({ bullets }) => {
-  if (!bullets?.length) return null;
   return (
-    <ul style={{ paddingLeft: 0, listStyle: 'none', marginTop: '4px' }}>
-      {bullets.map((bp, idx) => {
-        const text = typeof bp === 'string' ? bp : bp?.text ?? String(bp);
-        if (!text) return null;
-        return (
-          <li key={idx} style={{ display: 'flex', alignItems: 'flex-start', gap: '5px', marginBottom: '2px' }}>
-            <span style={{ flexShrink: 0, marginTop: '5px', width: '4px', height: '4px', background: GOLD, display: 'inline-block', borderRadius: '1px' }} />
-            <span style={{ flex: 1, fontSize: '10px', color: '#374151', lineHeight: 1.45 }}>{text}</span>
-          </li>
-        );
-      })}
-    </ul>
+    <input
+      className={`bg-transparent outline-none border-none focus:ring-0 ${className}`}
+      style={style}
+      value={value ?? ''}
+      placeholder={placeholder}
+      onChange={(e) => onChange(e.target.value)}
+    />
   );
 };
 
@@ -144,121 +107,112 @@ export const ClassicCVTemplate: React.FC<ClassicCVTemplateProps> = ({
   onUpdateSection,
   onUpdateSectionItem,
 }) => {
-  const findIdx = (type: string) => sections.findIndex((s) => s.type === type);
+  // Hilfsfunktionen, um bestimmte Section-Typen zu finden
+  const findSectionIndex = (type: string) =>
+    sections.findIndex((s) => s.type === type);
 
-  const experienceIndex = findIdx('experience');
-  const educationIndex = findIdx('education');
-  const projectsIndex = findIdx('projects');
-  const skillsIndex = findIdx('skills');
-  const softSkillsIndex = findIdx('soft_skills');
-  const languagesIndex = findIdx('languages');
-  const workValuesIndex = findIdx('work_values');
+  const experienceIndex = findSectionIndex('experience');
+  const educationIndex = findSectionIndex('education');
+  const projectsIndex = findSectionIndex('projects');
+  const skillsIndex = findSectionIndex('skills');
+  const softSkillsIndex = findSectionIndex('soft_skills');
+  const languagesIndex = findSectionIndex('languages');
+  const workValuesIndex = findSectionIndex('work_values');
 
-  const stripPrefix = (val: string) =>
+  const stripSectionLabel = (val: string) =>
     val.replace(/^(programmiersprachen|technische\s*f[äa]higkeiten|fachkenntnisse|kenntnisse|sprachen|fähigkeiten|soft\s*skills|skills|languages|kompetenzen|tools?)[:\s\-–]+/i, '').trim();
 
-  // ── Sidebar chip list ───────────────────────────────────────────────────────
-  const renderChips = (index: number, fieldKey = 'skill') => {
-    if (index === -1) return null;
-    const items = Array.isArray(sections[index]?.items) ? sections[index].items : [];
-    if (!items.length) return null;
+  const renderBulletPoints = (bullets: any[] | undefined) => {
+    if (!bullets || !Array.isArray(bullets) || bullets.length === 0) return null;
+
     return (
-      <div style={{ display: 'block', overflow: 'visible' }}>
-        {items.map((item: any, idx: number) => {
-          const raw = typeof item === 'string' ? item : item[fieldKey] || item.label || item.name || item.skill || '';
-          const text = stripPrefix(raw);
+      <ul className="space-y-0.5 mt-1" style={{ paddingLeft: 0, listStyle: 'none' }}>
+        {bullets.map((bp, idx) => {
+          const text = typeof bp === 'string' ? bp : bp?.text ?? String(bp);
+          if (!text) return null;
           return (
-            <span key={idx} style={{ display: 'inline-flex', alignItems: 'center', marginRight: '4px', marginBottom: '4px', padding: '2px 8px', borderRadius: '3px', background: 'rgba(201,168,76,0.15)', border: `1px solid rgba(201,168,76,0.5)`, whiteSpace: 'nowrap' }}>
-              <input
-                style={{ background: 'transparent', outline: 'none', fontSize: '9px', fontWeight: 600, color: '#f9f5eb', minWidth: '20px', border: 'none', width: `${Math.max(20, text.length * 5.8)}px` }}
-                value={text}
-                onChange={(e) => onUpdateSectionItem(index, idx, fieldKey, e.target.value)}
-                placeholder="..."
-              />
-            </span>
+            <li key={idx} className="leading-snug" style={{ display: 'flex', alignItems: 'flex-start', gap: '6px' }}>
+              <span style={{ flexShrink: 0, marginTop: '3px', width: '5px', height: '5px', borderRadius: '50%', background: '#6b7280', display: 'inline-block' }} />
+              <span style={{ flex: 1 }}>{text}</span>
+            </li>
           );
         })}
-      </div>
+      </ul>
     );
   };
 
-  // ── Languages ───────────────────────────────────────────────────────────────
-  const renderLanguages = () => {
-    if (languagesIndex === -1) return null;
-    const items = Array.isArray(sections[languagesIndex]?.items) ? sections[languagesIndex].items : [];
-    if (!items.length) return null;
-    return (
-      <>
-        {items.map((item: any, idx: number) => {
-          const lang = stripPrefix(item.language || item.name || item.sprache || '');
-          const level = item.level || item.niveau || item.proficiency || '';
-          return (
-            <div key={idx} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '4px' }}>
-              <input
-                style={{ background: 'transparent', outline: 'none', fontSize: '9.5px', color: '#e8e0d0', fontWeight: 500, border: 'none', flex: 1 }}
-                value={lang}
-                onChange={(e) => onUpdateSectionItem(languagesIndex, idx, 'language', e.target.value)}
-                placeholder="Sprache"
-              />
-              <input
-                style={{ background: 'transparent', outline: 'none', fontSize: '8.5px', color: 'rgba(201,168,76,0.9)', border: 'none', textAlign: 'right', width: '70px', flexShrink: 0 }}
-                value={level}
-                onChange={(e) => onUpdateSectionItem(languagesIndex, idx, 'level', e.target.value)}
-                placeholder="Niveau"
-              />
-            </div>
-          );
-        })}
-      </>
-    );
-  };
-
-  // ── Experience ──────────────────────────────────────────────────────────────
   const renderExperience = () => {
     if (experienceIndex === -1) return null;
-    const items = Array.isArray(sections[experienceIndex]?.items) ? sections[experienceIndex].items : [];
+    const section = sections[experienceIndex];
+    const items = Array.isArray(section.items) ? section.items : [];
+
     return (
       <div>
-        <MainTitle>Berufserfahrung</MainTitle>
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+        <h2 className="text-[11px] font-semibold tracking-[0.16em] uppercase text-gray-700 border-b border-gray-300 pb-1 mb-2">
+          Berufserfahrung
+        </h2>
+        <div className="space-y-3">
           {items.map((item: any, idx: number) => (
-            <div key={idx} data-avoid-break style={{ borderLeft: `3px solid ${GOLD}`, paddingLeft: '10px' }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: '8px' }}>
-                <EditableInput
+            <div key={idx} data-avoid-break>
+              <div className="flex items-baseline justify-between gap-2">
+                <EditableText
                   value={item.title}
-                  onChange={(v) => onUpdateSectionItem(experienceIndex, idx, 'title', v)}
-                  placeholder="Position"
-                  style={{ fontSize: '11.5px', fontWeight: 700, color: ACCENT, flex: 1 }}
+                  onChange={(val) =>
+                    onUpdateSectionItem(experienceIndex, idx, 'title', val)
+                  }
+                  className="font-semibold text-[12px] text-gray-900 leading-snug"
+                  placeholder="Position / Rolle"
                 />
-                <span style={{ fontSize: '9px', color: '#6b7280', whiteSpace: 'nowrap', flexShrink: 0, paddingTop: '1px' }}>
-                  {[item.date_from, item.date_to].filter(Boolean).join(' – ')}
-                </span>
+                <EditableText
+                  value={
+                    [item.date_from, item.date_to]
+                      .filter(Boolean)
+                      .join(' – ') || ''
+                  }
+                  onChange={(val) => {
+                    const [from, to] = val.split('–').map((v) => v.trim());
+                    onUpdateSectionItem(experienceIndex, idx, 'date_from', from);
+                    onUpdateSectionItem(experienceIndex, idx, 'date_to', to);
+                  }}
+                  className="text-[10px] text-gray-500 text-right min-w-[80px] flex-shrink-0 leading-snug"
+                  placeholder="Zeitraum"
+                />
               </div>
-              <EditableInput
-                value={item.company || item.employer || ''}
-                onChange={(v) => onUpdateSectionItem(experienceIndex, idx, 'company', v)}
-                placeholder="Unternehmen"
-                style={{ fontSize: '10px', color: '#4b5563', marginTop: '1px' }}
+              <EditableText
+                value={item.company}
+                onChange={(val) =>
+                  onUpdateSectionItem(experienceIndex, idx, 'company', val)
+                }
+                className="text-[11px] text-gray-700 mt-0.5 leading-snug"
+                placeholder="Unternehmen / Ort"
               />
               {(item.location || item.ort) && (
-                <EditableInput
+                <EditableText
                   value={item.location || item.ort || ''}
-                  onChange={(v) => onUpdateSectionItem(experienceIndex, idx, 'location', v)}
+                  onChange={(val) =>
+                    onUpdateSectionItem(experienceIndex, idx, 'location', val)
+                  }
+                  className="text-[10px] text-gray-500 leading-snug"
                   placeholder="Ort"
-                  style={{ fontSize: '9px', color: '#9ca3af' }}
                 />
               )}
               {item.description && (
-                <EditableArea
+                <EditableText
                   value={item.description}
-                  onChange={(v) => onUpdateSectionItem(experienceIndex, idx, 'description', v)}
-                  placeholder="Beschreibung"
-                  style={{ fontSize: '10px', color: '#374151', marginTop: '3px' }}
+                  onChange={(val) =>
+                    onUpdateSectionItem(
+                      experienceIndex,
+                      idx,
+                      'description',
+                      val
+                    )
+                  }
+                  className="text-[11px] text-gray-800 mt-1 leading-snug"
+                  multiline
+                  placeholder="Beschreibung / Aufgaben"
                 />
               )}
-              {Array.isArray(item.bulletPoints) && item.bulletPoints.length > 0 && (
-                <BulletList bullets={item.bulletPoints} />
-              )}
+              {renderBulletPoints(item.bulletPoints)}
             </div>
           ))}
         </div>
@@ -266,39 +220,70 @@ export const ClassicCVTemplate: React.FC<ClassicCVTemplateProps> = ({
     );
   };
 
-  // ── Education ───────────────────────────────────────────────────────────────
   const renderEducation = () => {
     if (educationIndex === -1) return null;
-    const items = Array.isArray(sections[educationIndex]?.items) ? sections[educationIndex].items : [];
+    const section = sections[educationIndex];
+    const items = Array.isArray(section.items) ? section.items : [];
+
     return (
       <div>
-        <MainTitle>Ausbildung / Studium</MainTitle>
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+        <h2 className="text-[11px] font-semibold tracking-[0.16em] uppercase text-gray-700 border-b border-gray-300 pb-1 mb-2 mt-4">
+          Ausbildung / Studium
+        </h2>
+        <div className="space-y-3">
           {items.map((item: any, idx: number) => (
-            <div key={idx} data-avoid-break style={{ borderLeft: `3px solid #d1d5db`, paddingLeft: '10px' }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: '8px' }}>
-                <EditableInput
-                  value={item.degree}
-                  onChange={(v) => onUpdateSectionItem(educationIndex, idx, 'degree', v)}
-                  placeholder="Abschluss / Studiengang"
-                  style={{ fontSize: '11px', fontWeight: 700, color: ACCENT, flex: 1 }}
-                />
-                <span style={{ fontSize: '9px', color: '#6b7280', whiteSpace: 'nowrap', flexShrink: 0 }}>
-                  {[item.date_from, item.date_to].filter(Boolean).join(' – ')}
-                </span>
-              </div>
-              <EditableInput
-                value={item.institution}
-                onChange={(v) => onUpdateSectionItem(educationIndex, idx, 'institution', v)}
-                placeholder="Institution"
-                style={{ fontSize: '10px', color: '#4b5563' }}
+            <div key={idx} data-avoid-break>
+              <EditableText
+                value={item.degree}
+                onChange={(val) =>
+                  onUpdateSectionItem(educationIndex, idx, 'degree', val)
+                }
+                className="font-semibold text-[12px] text-gray-900 leading-snug"
+                placeholder="Abschluss / Studiengang"
               />
+              <div className="flex items-baseline justify-between gap-2 mt-0.5">
+                <EditableText
+                  value={item.institution}
+                  onChange={(val) =>
+                    onUpdateSectionItem(
+                      educationIndex,
+                      idx,
+                      'institution',
+                      val
+                    )
+                  }
+                  className="text-[11px] text-gray-700 leading-snug"
+                  placeholder="Institution / Ort"
+                />
+                <EditableText
+                  value={
+                    [item.date_from, item.date_to]
+                      .filter(Boolean)
+                      .join(' – ') || ''
+                  }
+                  onChange={(val) => {
+                    const [from, to] = val.split('–').map((v) => v.trim());
+                    onUpdateSectionItem(educationIndex, idx, 'date_from', from);
+                    onUpdateSectionItem(educationIndex, idx, 'date_to', to);
+                  }}
+                  className="text-[10px] text-gray-500 text-right min-w-[80px] flex-shrink-0 leading-snug"
+                  placeholder="Zeitraum"
+                />
+              </div>
               {item.description && (
-                <EditableArea
+                <EditableText
                   value={item.description}
-                  onChange={(v) => onUpdateSectionItem(educationIndex, idx, 'description', v)}
-                  placeholder="Schwerpunkte / Details"
-                  style={{ fontSize: '10px', color: '#374151', marginTop: '2px' }}
+                  onChange={(val) =>
+                    onUpdateSectionItem(
+                      educationIndex,
+                      idx,
+                      'description',
+                      val
+                    )
+                  }
+                  className="text-[11px] text-gray-800 mt-1 leading-snug"
+                  multiline
+                  placeholder="Schwerpunkte / Noten / Themen"
                 />
               )}
             </div>
@@ -308,42 +293,54 @@ export const ClassicCVTemplate: React.FC<ClassicCVTemplateProps> = ({
     );
   };
 
-  // ── Projects ────────────────────────────────────────────────────────────────
   const renderProjects = () => {
     if (projectsIndex === -1) return null;
-    const items = Array.isArray(sections[projectsIndex]?.items) ? sections[projectsIndex].items : [];
-    if (!items.length) return null;
+    const section = sections[projectsIndex];
+    const items = Array.isArray(section.items) ? section.items : [];
+
     return (
       <div>
-        <MainTitle>Projekte</MainTitle>
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+        <h2 className="text-[11px] font-semibold tracking-[0.16em] uppercase text-gray-700 border-b border-gray-300 pb-1 mb-2 mt-4">
+          Projekte
+        </h2>
+        <div className="space-y-3">
           {items.map((item: any, idx: number) => (
-            <div key={idx} style={{ borderLeft: `3px solid #d1d5db`, paddingLeft: '10px' }}>
-              <EditableInput
-                value={item.title || item.name || ''}
-                onChange={(v) => onUpdateSectionItem(projectsIndex, idx, 'title', v)}
+            <div key={idx} className="leading-tight">
+              <EditableText
+                value={item.title}
+                onChange={(val) =>
+                  onUpdateSectionItem(projectsIndex, idx, 'title', val)
+                }
+                className="font-semibold text-[12px] text-gray-900"
                 placeholder="Projektname"
-                style={{ fontSize: '11px', fontWeight: 700, color: ACCENT }}
               />
               {item.role && (
-                <EditableInput
+                <EditableText
                   value={item.role}
-                  onChange={(v) => onUpdateSectionItem(projectsIndex, idx, 'role', v)}
-                  placeholder="Rolle"
-                  style={{ fontSize: '10px', color: '#4b5563' }}
+                  onChange={(val) =>
+                    onUpdateSectionItem(projectsIndex, idx, 'role', val)
+                  }
+                  className="text-[11px] text-gray-700"
+                  placeholder="Rolle / Verantwortung"
                 />
               )}
               {item.description && (
-                <EditableArea
+                <EditableText
                   value={item.description}
-                  onChange={(v) => onUpdateSectionItem(projectsIndex, idx, 'description', v)}
-                  placeholder="Projektbeschreibung"
-                  style={{ fontSize: '10px', color: '#374151', marginTop: '2px' }}
+                  onChange={(val) =>
+                    onUpdateSectionItem(
+                      projectsIndex,
+                      idx,
+                      'description',
+                      val
+                    )
+                  }
+                  className="text-[11px] text-gray-800 mt-1"
+                  multiline
+                  placeholder="Projektbeschreibung / Ergebnisse"
                 />
               )}
-              {Array.isArray(item.bulletPoints) && item.bulletPoints.length > 0 && (
-                <BulletList bullets={item.bulletPoints} />
-              )}
+              {renderBulletPoints(item.bulletPoints)}
             </div>
           ))}
         </div>
@@ -351,204 +348,340 @@ export const ClassicCVTemplate: React.FC<ClassicCVTemplateProps> = ({
     );
   };
 
-  // ── Work Values ─────────────────────────────────────────────────────────────
-  const renderWorkValues = () => {
-    if (workValuesIndex === -1) return null;
-    const items = Array.isArray(sections[workValuesIndex]?.items) ? sections[workValuesIndex].items : [];
+  const renderListSection = (
+    label: string,
+    index: number,
+    options?: { showLevelsForLanguages?: boolean }
+  ) => {
+    if (index === -1) return null;
+    const section = sections[index];
+    const items = Array.isArray(section.items) ? section.items : [];
+
     if (!items.length) return null;
+
     return (
-      <div>
-        <MainTitle>Arbeitsweise & Werte</MainTitle>
-        <div style={{ display: 'block', overflow: 'visible' }}>
+      <div className="mb-4">
+        <h3 className="text-[10px] font-semibold tracking-[0.16em] uppercase text-gray-700 mb-1">
+          {label}
+        </h3>
+        <ul
+          className={options?.showLevelsForLanguages ? "space-y-1" : ""}
+          {...(!options?.showLevelsForLanguages ? { 'data-chip-row': '' } : {})}
+          style={options?.showLevelsForLanguages ? {} : { display: 'block', overflow: 'hidden' }}
+        >
           {items.map((item: any, idx: number) => {
-            const text = typeof item === 'string' ? item : item.label || item.name || item.value || '';
+            if (options?.showLevelsForLanguages) {
+              const rawLang = item.language || item.name || item.sprache || '';
+              const language = stripSectionLabel(rawLang);
+              const level = item.level || item.niveau || item.proficiency || '';
+              const stars = skillLevelToStars(level);
+              return (
+                <li key={idx} className="flex justify-between items-center gap-2 text-[10px]">
+                  <EditableText
+                    value={language}
+                    onChange={(val) =>
+                      onUpdateSectionItem(index, idx, 'language', val)
+                    }
+                    className="text-gray-800"
+                    placeholder="Sprache"
+                  />
+                  {stars > 0 ? (
+                    <StarRating stars={stars} />
+                  ) : (
+                    <EditableText
+                      value={level}
+                      onChange={(val) =>
+                        onUpdateSectionItem(index, idx, 'level', val)
+                      }
+                      className="text-gray-600 text-right min-w-[60px]"
+                      placeholder="Niveau"
+                    />
+                  )}
+                </li>
+              );
+            }
+
+            const rawText =
+              typeof item === 'string'
+                ? item
+                : item.skill || item.label || item.name || item.title || String(item);
+            const text = stripSectionLabel(rawText);
+
             return (
-              <span key={idx} style={{ display: 'inline-flex', alignItems: 'center', marginRight: '5px', marginBottom: '5px', padding: '2px 8px', borderRadius: '3px', background: '#f3f4f6', border: '1px solid #e5e7eb' }}>
-                <input
-                  style={{ background: 'transparent', outline: 'none', fontSize: '9.5px', color: '#374151', border: 'none', minWidth: '20px', width: `${Math.max(20, text.length * 6)}px` }}
-                  value={text}
-                  onChange={(e) => onUpdateSectionItem(workValuesIndex, idx, 'value', e.target.value)}
-                  placeholder="Wert"
-                />
-              </span>
+              <li key={idx} style={{ display: 'inline-flex', marginRight: '4px', marginBottom: '4px', verticalAlign: 'middle', listStyle: 'none' }}>
+                <span className="inline-flex items-center px-2 py-0.5 rounded-full bg-gray-100 border border-gray-300 text-[9.5px] font-semibold text-gray-800 leading-snug whitespace-nowrap">
+                  <EditableText
+                    value={text}
+                    onChange={(val) =>
+                      onUpdateSectionItem(index, idx, 'value', val)
+                    }
+                    className="text-gray-800"
+                    style={{ width: `${Math.max(20, text.length * 6.5)}px` }}
+                    placeholder="Eintrag"
+                  />
+                </span>
+              </li>
             );
           })}
-        </div>
+        </ul>
+      </div>
+    );
+  };
+
+  const renderWorkValues = () => {
+    if (workValuesIndex === -1) return null;
+    const section = sections[workValuesIndex];
+    const items = Array.isArray(section.items) ? section.items : [];
+    if (!items.length) return null;
+
+    return (
+      <div>
+        <h2 className="text-[11px] font-semibold tracking-[0.16em] uppercase text-gray-700 border-b border-gray-300 pb-1 mb-2 mt-4">
+          Arbeitsweise & Werte
+        </h2>
+        <ul className="list-disc list-inside space-y-1 text-[11px] text-gray-800">
+          {items.map((item: any, idx: number) => {
+            const text =
+              typeof item === 'string'
+                ? item
+                : item.label || item.name || item.value || String(item);
+            return (
+              <li key={idx} className="leading-snug">
+                <EditableText
+                  value={text}
+                  onChange={(val) =>
+                    onUpdateSectionItem(workValuesIndex, idx, 'value', val)
+                  }
+                  className="text-gray-800"
+                  placeholder="Wert / Arbeitsstil"
+                />
+              </li>
+            );
+          })}
+        </ul>
       </div>
     );
   };
 
   return (
     <div
+      className="w-full text-[13px] text-gray-900 font-serif"
       style={{
-        fontFamily: '"Inter", "Helvetica Neue", Arial, sans-serif',
+        fontFamily: 'Georgia, "Times New Roman", serif',
         minHeight: '1122px',
         width: '100%',
         boxSizing: 'border-box',
         wordBreak: 'break-word',
         overflowWrap: 'anywhere',
-        display: 'flex',
-        flexDirection: 'column',
-        background: '#ffffff',
+        border: '1px solid #d1d5db',
       }}
     >
-      {/* ── Dark accent header strip ─────────────────────────────────────── */}
-      <div style={{ background: ACCENT, padding: '28px 32px 24px', display: 'flex', alignItems: 'center', gap: '20px' }}>
-        {photoUrl && (
-          <div style={{ width: '72px', height: '72px', borderRadius: '4px', overflow: 'hidden', border: `2px solid ${GOLD}`, flexShrink: 0 }}>
-            <img
-              src={photoUrl}
-              alt="Profilfoto"
-              style={{ objectFit: 'cover', objectPosition: `${photoPosition.x}% ${photoPosition.y}%`, width: '72px', height: '72px', display: 'block' }}
-            />
-          </div>
-        )}
-        <div style={{ flex: 1, minWidth: 0 }}>
-          <EditableInput
-            value={personalInfo.name}
-            onChange={(v) => onUpdatePersonalInfo('name', v)}
-            placeholder="Vollständiger Name"
-            style={{ fontSize: '24px', fontWeight: 800, color: '#ffffff', letterSpacing: '-0.02em', lineHeight: 1.1 }}
-          />
-          <EditableInput
-            value={personalInfo.title}
-            onChange={(v) => onUpdatePersonalInfo('title', v)}
-            placeholder="Berufsbezeichnung"
-            style={{ fontSize: '12px', color: GOLD, fontWeight: 500, marginTop: '4px', letterSpacing: '0.04em' }}
-          />
-        </div>
-        {/* Contact row in header */}
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', flexShrink: 0 }}>
-          {[
-            { icon: <IconMail />, field: 'email', placeholder: 'E-Mail' },
-            { icon: <IconPhone />, field: 'phone', placeholder: 'Telefon' },
-            { icon: <IconLocation />, field: 'location', placeholder: 'Ort' },
-            { icon: <IconLinkedIn />, field: 'linkedin', placeholder: 'LinkedIn' },
-          ].map(({ icon, field, placeholder }) => (
-            <div key={field} style={{ display: 'flex', alignItems: 'center', gap: '5px', color: 'rgba(255,255,255,0.75)' }}>
-              {icon}
-              <EditableInput
-                value={personalInfo[field]}
-                onChange={(v) => onUpdatePersonalInfo(field, v)}
-                placeholder={placeholder}
-                style={{ fontSize: '9.5px', color: 'rgba(255,255,255,0.85)', width: '140px' }}
-              />
+      {/* Außenrand für klassischen Look */}
+      <div className="w-full p-6" style={{ minHeight: '1122px' }}>
+        <div className="flex gap-6" style={{ minHeight: '1080px' }}>
+          {/* Linke Spalte */}
+          <aside className="w-2/5 max-w-[32%] pr-4 border-r border-gray-200 flex flex-col">
+            {/* Foto + Name */}
+            <div className="mb-4">
+              {photoUrl && (
+                <div className="w-24 h-24 rounded-full overflow-hidden border border-gray-300 mb-3 mx-auto">
+                  <img
+                    src={photoUrl}
+                    alt="Profilfoto"
+                    className="w-full h-full"
+                    style={{ objectFit: 'cover', objectPosition: `${photoPosition.x}% ${photoPosition.y}%`, width: '96px', height: '96px', display: 'block' }}
+                  />
+                </div>
+              )}
+              <div className="text-center">
+                <EditableText
+                  value={personalInfo.name}
+                  onChange={(val) => onUpdatePersonalInfo('name', val)}
+                  className="text-[18px] font-bold tracking-wide text-gray-900"
+                  placeholder="Dein Name"
+                />
+                <EditableText
+                  value={personalInfo.title}
+                  onChange={(val) => onUpdatePersonalInfo('title', val)}
+                  className="text-[11px] text-gray-600 mt-1"
+                  placeholder="Berufsbezeichnung"
+                />
+              </div>
             </div>
-          ))}
-        </div>
-      </div>
 
-      {/* ── Body: sidebar + main ─────────────────────────────────────────── */}
-      <div style={{ display: 'flex', flex: 1 }}>
-        {/* Sidebar */}
-        <aside style={{ width: '220px', minWidth: '220px', background: ACCENT_LIGHT, padding: '20px 16px', color: '#e8e0d0', flexShrink: 0 }}>
+            {/* Kontakt */}
+            <div className="mb-4">
+              <h3 className="text-[10px] font-semibold tracking-[0.16em] uppercase text-gray-700 mb-1">
+                Kontakt
+              </h3>
+              <div className="space-y-1 text-[10px]">
+                <EditableText
+                  value={personalInfo.email}
+                  onChange={(val) => onUpdatePersonalInfo('email', val)}
+                  className="text-gray-800"
+                  placeholder="E-Mail"
+                />
+                <EditableText
+                  value={personalInfo.phone}
+                  onChange={(val) => onUpdatePersonalInfo('phone', val)}
+                  className="text-gray-800"
+                  placeholder="Telefon"
+                />
+                <EditableText
+                  value={personalInfo.location}
+                  onChange={(val) => onUpdatePersonalInfo('location', val)}
+                  className="text-gray-800"
+                  placeholder="Ort"
+                />
+                <EditableText
+                  value={personalInfo.linkedin}
+                  onChange={(val) => onUpdatePersonalInfo('linkedin', val)}
+                  className="text-gray-800"
+                  placeholder="LinkedIn"
+                />
+              </div>
+            </div>
 
-          {/* Summary */}
-          <SidebarTitle>Profil</SidebarTitle>
-          <textarea
-            style={{ background: 'transparent', outline: 'none', border: 'none', width: '100%', resize: 'none', fontSize: '9.5px', color: 'rgba(232,224,208,0.9)', lineHeight: 1.55, overflow: 'hidden', minHeight: '40px' }}
-            value={summary || ''}
-            placeholder="Kurzprofil"
-            onChange={(e) => { autoResize(e.target); onUpdateSummary(e.target.value); }}
-            onFocus={(e) => autoResize(e.target)}
-            ref={(el) => { if (el) autoResize(el); }}
-          />
+            {/* Skills / Soft Skills / Sprachen in der Sidebar */}
+            {renderListSection('Fähigkeiten', skillsIndex)}
+            {renderListSection('Soft Skills', softSkillsIndex)}
+            {renderListSection('Sprachen', languagesIndex, {
+              showLevelsForLanguages: true,
+            })}
+            {/* Werte, Hobbys und sonstige Sections in der Sidebar */}
+            {sections.map((section, index) => {
+              const sidebarTypes = ['values', 'hobbies', 'interests', 'certifications', 'courses', 'awards', 'volunteering'];
+              if (!sidebarTypes.includes(section.type)) return null;
+              const items = Array.isArray(section.items) ? section.items : [];
+              if (!items.length) return null;
+              const labelMap: Record<string, string> = {
+                values: 'Werte',
+                hobbies: 'Hobbys & Interessen',
+                interests: 'Interessen',
+                certifications: 'Zertifikate',
+                courses: 'Kurse',
+                awards: 'Auszeichnungen',
+                volunteering: 'Ehrenamt',
+              };
+              const label = section.title || labelMap[section.type] || section.type;
+              return (
+                <div key={index} className="mb-4">
+                  <h3 className="text-[10px] font-semibold tracking-[0.16em] uppercase text-gray-700 mb-1">
+                    {label}
+                  </h3>
+                  <ul style={{ display: 'block', overflow: 'hidden' }}>
+                    {items.map((item: any, idx: number) => {
+                      const rawText = typeof item === 'string' ? item : item.label || item.name || item.title || item.skill || '';
+                      return (
+                        <li key={idx} style={{ display: 'inline-flex', marginRight: '4px', marginBottom: '4px', verticalAlign: 'middle', listStyle: 'none' }}>
+                          <span className="inline-flex items-center px-2 py-0.5 rounded-full bg-gray-100 border border-gray-300 text-[9.5px] font-medium text-gray-800 whitespace-nowrap">
+                            <EditableText
+                              value={rawText}
+                              onChange={(val) => onUpdateSectionItem(index, idx, 'label', val)}
+                              className="text-gray-800"
+                              style={{ width: `${Math.max(20, rawText.length * 6.5)}px` }}
+                              placeholder="Eintrag"
+                            />
+                          </span>
+                        </li>
+                      );
+                    })}
+                  </ul>
+                </div>
+              );
+            })}
 
-          {/* Skills */}
-          {skillsIndex !== -1 && (
-            <>
-              <SidebarTitle>Fähigkeiten</SidebarTitle>
-              {renderChips(skillsIndex)}
-            </>
-          )}
+            {/* Optional: Work Values auch links anzeigen, falls du sie lieber dort hast
+            {workValuesIndex !== -1 && (
+              <div className="mt-2">
+                {renderWorkValues()}
+              </div>
+            )} */}
+          </aside>
 
-          {/* Soft Skills */}
-          {softSkillsIndex !== -1 && (
-            <>
-              <SidebarTitle>Soft Skills</SidebarTitle>
-              {renderChips(softSkillsIndex)}
-            </>
-          )}
+          {/* Rechte Spalte */}
+          <main className="flex-1 flex flex-col">
+            {/* Profil / Summary */}
+            <section className="mb-4">
+              <h2 className="text-[11px] font-semibold tracking-[0.16em] uppercase text-gray-700 border-b border-gray-300 pb-1 mb-2">
+                Profil
+              </h2>
+              <EditableText
+                value={summary}
+                onChange={onUpdateSummary}
+                className="text-[11px] text-gray-800 leading-snug"
+                placeholder="Kurzprofil / Zusammenfassung"
+                multiline
+              />
+            </section>
 
-          {/* Languages */}
-          {languagesIndex !== -1 && (
-            <>
-              <SidebarTitle>Sprachen</SidebarTitle>
-              {renderLanguages()}
-            </>
-          )}
+            {renderExperience()}
+            {renderEducation()}
+            {renderProjects()}
+            {renderWorkValues()}
 
-          {/* Other sidebar sections */}
-          {sections.map((section, index) => {
-            const sidebarTypes = ['values', 'hobbies', 'interests', 'certifications', 'courses', 'awards', 'volunteering'];
-            if (!sidebarTypes.includes(section.type)) return null;
-            const items = Array.isArray(section.items) ? section.items : [];
-            if (!items.length) return null;
-            const labelMap: Record<string, string> = {
-              values: 'Werte', hobbies: 'Hobbys & Interessen', interests: 'Interessen',
-              certifications: 'Zertifikate', courses: 'Kurse', awards: 'Auszeichnungen', volunteering: 'Ehrenamt',
-            };
-            const label = section.title || labelMap[section.type] || section.type;
-            return (
-              <div key={index}>
-                <SidebarTitle>{label}</SidebarTitle>
-                <div style={{ display: 'block', overflow: 'visible' }}>
-                  {items.map((item: any, idx: number) => {
-                    const raw = typeof item === 'string' ? item : item.label || item.name || item.title || item.skill || '';
-                    return (
-                      <span key={idx} style={{ display: 'inline-flex', alignItems: 'center', marginRight: '4px', marginBottom: '4px', padding: '2px 7px', borderRadius: '3px', background: 'rgba(201,168,76,0.15)', border: '1px solid rgba(201,168,76,0.4)', whiteSpace: 'nowrap' }}>
-                        <input
-                          style={{ background: 'transparent', outline: 'none', fontSize: '9px', color: '#f9f5eb', border: 'none', minWidth: '20px', width: `${Math.max(20, raw.length * 5.8)}px` }}
-                          value={raw}
-                          onChange={(e) => onUpdateSectionItem(index, idx, 'label', e.target.value)}
+            {/* Sonstige unbekannte Sections generisch rendern (falls vorhanden) */}
+            {sections.map((section, index) => {
+              const knownTypes = [
+                'experience',
+                'education',
+                'projects',
+                'skills',
+                'soft_skills',
+                'languages',
+                'work_values',
+                'values',
+                'hobbies',
+                'interests',
+                'certifications',
+                'courses',
+                'awards',
+                'volunteering',
+              ];
+              if (knownTypes.includes(section.type)) return null;
+
+              const items = Array.isArray(section.items) ? section.items : [];
+              if (!items.length) return null;
+
+              const title =
+                section.title ||
+                section.type.charAt(0).toUpperCase() + section.type.slice(1);
+
+              return (
+                <section key={section.type} className="mt-4">
+                  <h2 className="text-[11px] font-semibold tracking-[0.16em] uppercase text-gray-700 border-b border-gray-300 pb-1 mb-2">
+                    {title}
+                  </h2>
+                  <div className="space-y-2 text-[11px] text-gray-800">
+                    {items.map((item: any, idx: number) => {
+                      const text =
+                        typeof item === 'string'
+                          ? item
+                          : item.description ||
+                            item.text ||
+                            item.label ||
+                            item.name ||
+                            String(item);
+
+                      return (
+                        <EditableText
+                          key={idx}
+                          value={text}
+                          onChange={(val) =>
+                            onUpdateSectionItem(index, idx, 'text', val)
+                          }
+                          className="leading-snug"
+                          multiline
                           placeholder="Eintrag"
                         />
-                      </span>
-                    );
-                  })}
-                </div>
-              </div>
-            );
-          })}
-        </aside>
-
-        {/* Main content */}
-        <main style={{ flex: 1, padding: '20px 24px', minWidth: 0 }}>
-          {renderExperience()}
-          {renderEducation()}
-          {renderProjects()}
-          {renderWorkValues()}
-
-          {/* Unknown sections fallback */}
-          {sections.map((section, index) => {
-            const knownTypes = ['experience', 'education', 'projects', 'skills', 'soft_skills',
-              'languages', 'work_values', 'values', 'hobbies', 'interests',
-              'certifications', 'courses', 'awards', 'volunteering'];
-            if (knownTypes.includes(section.type)) return null;
-            const items = Array.isArray(section.items) ? section.items : [];
-            if (!items.length) return null;
-            const title = section.title || section.type.charAt(0).toUpperCase() + section.type.slice(1);
-            return (
-              <div key={section.type}>
-                <MainTitle>{title}</MainTitle>
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
-                  {items.map((item: any, idx: number) => {
-                    const text = typeof item === 'string' ? item : item.description || item.text || item.label || item.name || String(item);
-                    return (
-                      <EditableArea
-                        key={idx}
-                        value={text}
-                        onChange={(v) => onUpdateSectionItem(index, idx, 'text', v)}
-                        placeholder="Eintrag"
-                        style={{ fontSize: '10.5px', color: '#374151' }}
-                      />
-                    );
-                  })}
-                </div>
-              </div>
-            );
-          })}
-        </main>
+                      );
+                    })}
+                  </div>
+                </section>
+              );
+            })}
+          </main>
+        </div>
       </div>
     </div>
   );
