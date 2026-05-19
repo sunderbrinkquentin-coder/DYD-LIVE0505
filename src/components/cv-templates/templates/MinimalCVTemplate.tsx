@@ -434,7 +434,6 @@ case 'languages':
       </div>
     </div>
   );
-        );
 
       case 'soft_skills':
         if (items.length === 0) return null;
