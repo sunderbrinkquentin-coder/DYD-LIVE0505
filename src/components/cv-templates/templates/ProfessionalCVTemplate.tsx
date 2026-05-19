@@ -763,7 +763,6 @@ export const ProfessionalCVTemplate: React.FC<ProfessionalCVTemplateProps> = ({
           height: '40px'
         }}
       >
-      >
         <div style={{ display: 'flex', alignItems: 'center', gap: '6px', minWidth: 0 }}>
           <span style={{ fontWeight: 600, flexShrink: 0 }}>Ort:</span>
           <input
