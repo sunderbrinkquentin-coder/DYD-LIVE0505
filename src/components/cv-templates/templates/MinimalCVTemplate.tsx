@@ -364,75 +364,30 @@ export const MinimalCVTemplate: React.FC<MinimalCVTemplateProps> = ({
           </div>
         );
 
-case 'skills':
-case 'languages':
-  if (!items || items.length === 0) return null;
-  
-  const sectionTitle = section.type === 'languages' ? 'Sprachen' 
-                     : section.type === 'soft_skills' ? 'Soft Skills' 
-                     : 'Fachliche Skills';
-
-  return (
-    <div key={sectionIndex} className="w-full" data-pdf-section>
-      <SectionTitle>{sectionTitle}</SectionTitle>
-      
-      <div className="flex flex-wrap gap-2 mt-2 overflow-visible">
-        {items.map((skillItem: any, idx: number) => {
-          if (!skillItem) return null;
-
-          let skillName = '';
-          let skillLevel = '';
-
-          // 1. Daten auslesen
-          if (typeof skillItem === 'string') {
-            skillName = skillItem;
-          } else if (typeof skillItem === 'object') {
-            skillName = skillItem.skill || skillItem.name || skillItem.label || skillItem.language || '';
-            skillLevel = skillItem.level || skillItem.niveau || '';
-          }
-
-          if (!skillName || skillName.trim() === '') return null;
-
-          // 2. ✂️ SAUBER ABSCHNEIDEN: Entfernt "(Otherskill", "Otherskill" und überflüssige Klammern
-          // Das bereinigt z.B. "Ernährungsberatung (Otherskill" zu "Ernährungsberatung"
-          let cleanedName = skillName
-            .replace(/\s*\(?Otherskill\)?/gi, '') // Schneidet das Wort und die Klammer weg
-            .replace(/\s*\($/, '')               // Falls eine geöffnete Klammer am Ende übrig bleibt
-            .trim();
-
-          // Falls nach dem Filtern nichts mehr übrig sein sollte, überspringen
-          if (cleanedName === '') return null;
-
-          // 3. Text und Level kompakt formatieren
-          const finalDisplayText = skillLevel ? `${cleanedName} (${skillLevel.trim()})` : cleanedName;
-
-          return (
-            <div 
-              key={idx} 
-              className="inline-flex items-center px-2.5 py-1 rounded-md border border-slate-200 bg-slate-50 text-[10px] font-medium text-slate-700 whitespace-nowrap"
-              style={{ 
-                breakInside: 'avoid', 
-                pageBreakInside: 'avoid', 
-                display: 'inline-block' 
-              }}
-            >
-              <input
-                className="bg-transparent outline-none border-none text-slate-700 p-0 m-0 w-full"
-                style={{ 
-                  fontSize: '10px', 
-                  width: `${Math.max(40, finalDisplayText.length * 6.5)}px`,
-                  minWidth: '40px'
-                }}
-                value={finalDisplayText}
-                onChange={(e) => onUpdateSectionItem(sectionIndex, idx, typeof skillItem === 'string' ? 'skill' : 'name', e.target.value)}
-                placeholder="Skill"
-              />
+      case 'skills':
+        if (items.length === 0) return null;
+        return (
+          <div key={sectionIndex}>
+            <SectionTitle>{section.title || 'Fähigkeiten'}</SectionTitle>
+            <div data-chip-row style={{ display: 'block', overflow: 'visible' }}>
+              {items.map((skill: any, idx: number) => {
+                const val = typeof skill === 'string' ? skill : skill.skill || skill.name || '';
+                const level = typeof skill === 'object' && skill !== null ? skill.level || skill.niveau || '' : '';
+                const display = level ? `${val} (${level})` : val;
+                return (
+                  <span key={idx} style={{ display: 'inline-flex', alignItems: 'center', marginRight: '6px', marginBottom: '6px', verticalAlign: 'middle', padding: '3px 10px', borderRadius: '9999px', border: '1px solid #cbd5e1', background: '#f1f5f9', whiteSpace: 'nowrap' }}>
+                    <input
+                      style={{ background: 'transparent', outline: 'none', fontSize: '9.5px', fontWeight: 600, color: '#1e293b', minWidth: '20px', border: 'none', width: `${Math.max(20, display.length * 6.5)}px` }}
+                      value={display}
+                      onChange={(e) => onUpdateSectionItem(sectionIndex, idx, 'skill', e.target.value)}
+                      placeholder="Skill"
+                    />
+                  </span>
+                );
+              })}
             </div>
-          );
-        })}
-      </div>
-    </div>
-  );
+          </div>
+        );
 
       case 'soft_skills':
         if (items.length === 0) return null;
