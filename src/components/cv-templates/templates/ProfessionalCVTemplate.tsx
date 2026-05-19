@@ -753,7 +753,7 @@ export const ProfessionalCVTemplate: React.FC<ProfessionalCVTemplateProps> = ({
           padding: '10px 32px',
           display: 'flex',
           alignItems: 'center',
-          justifyContent: 'space-between', // 💡 HIER KORRIGIERT: CamelCase und String-Anführungszeichen!
+          justifyContent: 'space-between',
           fontSize: '10px',
           color: '#64748b',
           fontFamily: 'sans-serif',
@@ -768,12 +768,14 @@ export const ProfessionalCVTemplate: React.FC<ProfessionalCVTemplateProps> = ({
           <input
             className="bg-transparent outline-none text-slate-500"
             style={{ fontSize: '10px', width: '120px' }}
-            value={personalInfo.location || ''} // Nutzt das Standard-Location-Feld
+            value={personalInfo.location || ''}
             onChange={(e) => onUpdatePersonalInfo('location', e.target.value)}
             placeholder="Ort"
           />
+        </div> {/* 💡 HIER KORRIGIERT: Das fehlende schließende div-Tag hinzugefügt! */}
+        
         <span style={{ fontWeight: 600, whiteSpace: 'nowrap' }}>
-          {new Date().toLocaleDateString('de-DE')} {/* Generiert das heutige Datum dynamisch */}
+          {new Date().toLocaleDateString('de-DE')}
         </span>
       </footer>
     </div>
