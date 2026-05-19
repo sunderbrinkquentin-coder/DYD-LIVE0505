@@ -1009,13 +1009,18 @@ export function CVLiveEditorPage() {
 
         // Disable cv-scale-wrapper CSS transform before capture so html2canvas
         // sees the element at its natural 794px width (transform is visual-only).
+        const liveTextareas = cvPreviewRef.current?.querySelectorAll('textarea');
+        liveTextareas?.forEach((ta: any) => {
+          ta.setAttribute('defaultValue', ta.value);
+        });
         const scaleWrapper = cvPreviewRef.current?.closest<HTMLElement>('.cv-scale-wrapper');
         const savedTransform = scaleWrapper?.style.transform ?? '';
         if (scaleWrapper) scaleWrapper.style.transform = 'none';
-
+        
+        await new Promise((resolve) => setTimeout(resolve, 300));
         let pdfBlob: Blob;
         try {
-          pdfBlob = await exportCVToPDFBlob(cvPreviewRef, editorData.personalInfo, { quality: 0.95, scale: 2 });
+          pdfBlob = await exportCVToPDFBlob(cvPreviewRef, editorData, { quality: 0.95, scale: 2 });
         } finally {
           if (scaleWrapper) scaleWrapper.style.transform = savedTransform;
         }
