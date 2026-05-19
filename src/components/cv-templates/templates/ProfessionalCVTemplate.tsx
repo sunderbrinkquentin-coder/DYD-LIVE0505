@@ -163,8 +163,7 @@ export const ProfessionalCVTemplate: React.FC<ProfessionalCVTemplateProps> = ({
 
     switch (section.type) {
       // ───────────────── Berufserfahrung ─────────────────
-// ───────────────── Berufserfahrung ─────────────────
-      case 'experience':
+case 'experience':
         if (!items || items.length === 0) return null;
         return (
           <div key={sectionIndex}>
@@ -229,66 +228,44 @@ export const ProfessionalCVTemplate: React.FC<ProfessionalCVTemplateProps> = ({
                         </div>
                       )}
                     </div>
-                    {exp.description && (
-                      <textarea
-                        className="mt-1.5 w-full text-[10px] text-slate-700 bg-transparent outline-none resize-none leading-tight"
-                        style={{ height: 'auto', minHeight: '16px' }}
-                        value={exp.description}
-                        onChange={(e) =>
-                          onUpdateSectionItem(sectionIndex, idx, 'description', e.target.value)
-                        }
-                        placeholder="Beschreibung"
-                      />
-                    )}
-                    {renderBulletPoints(bullets)}
-                  </div>
-                );
-              })}
-            </div>
-          </div>
-        );
-{/* Nur eine Darstellung: Liste ODER Textfield – mit Zeilenumbruch */}
-{bullets.length > 0 ? (
-  <ul className="mt-1 space-y-[2px] text-[10px] text-slate-800" style={{ listStyle: 'none', padding: 0, margin: '4px 0 0' }}>
-    {bullets.map((bp: string, bIdx: number) => (
-      <li key={bIdx} style={{ display: 'flex', alignItems: 'flex-start', gap: '6px' }}>
-        
-        {/* 💡 HIER KORRIGIERT: Echtes Textzeichen statt leerer CSS-Box */}
-        <span style={{ flexShrink: 0, color: '#334155', fontSize: '13px', lineHeight: '10px', marginTop: '1px', userSelect: 'none' }}>•</span>
-        
-        <textarea
-          className="w-full bg-transparent outline-none text-slate-800 text-[10px] leading-tight resize-none"
-          style={{ flex: 1, overflow: 'hidden', minHeight: '20px' }}
-          value={bp}
-          onChange={(e) => {
-            autoResize(e.target);
-            handleBulletChange(sectionIndex, idx, bIdx, e.target.value, exp);
-          }}
-          onFocus={(e) => autoResize(e.target)}
-          ref={(el) => { if (el) autoResize(el); }}
-          placeholder="Aufgabe / Erfolg"
-        />
-      </li>
+
+                    {bullets.length > 0 ? (
+                      <ul className="mt-1 space-y-[2px] text-[10px] text-slate-800" style={{ listStyle: 'none', padding: 0, margin: '4px 0 0' }}>
+                        {bullets.map((bp: string, bIdx: number) => (
+                          <li key={bIdx} style={{ display: 'flex', alignItems: 'flex-start', gap: '6px', breakInside: 'avoid', pageBreakInside: 'avoid' }}>
+                            <span style={{ flexShrink: 0, color: '#334155', fontSize: '13px', lineHeight: '10px', marginTop: '1px', userSelect: 'none' }}>•</span>
+                            <textarea
+                              className="w-full bg-transparent outline-none text-slate-800 text-[10px] leading-tight resize-none"
+                              style={{ flex: 1, overflow: 'hidden', minHeight: '20px' }}
+                              value={bp}
+                              onChange={(e) => {
+                                autoResize(e.target);
+                                handleBulletChange(sectionIndex, idx, bIdx, e.target.value, exp);
+                              }}
+                              onFocus={(e) => autoResize(e.target)}
+                              ref={(el) => { if (el) autoResize(el); }}
+                              placeholder="Aufgabe / Erfolg"
+                            />
+                          </li>
                         ))}
                       </ul>
                     ) : (
-                      <textarea
-                        className="mt-0.5 w-full text-[10px] text-slate-800 bg-transparent outline-none resize-none leading-tight"
-                        style={{ overflow: 'hidden', minHeight: '40px' }}
-                        value={exp.description || ''}
-                        onChange={(e) => {
-                          autoResize(e.target);
-                          onUpdateSectionItem(sectionIndex, idx, 'description', e.target.value);
-                        }}
-                        onFocus={(e) => autoResize(e.target)}
-                        ref={(el) => { if (el) autoResize(el); }}
-                        placeholder="Aufgaben / Erfolge"
-                      />
+                      exp.description && (
+                        <textarea
+                          className="mt-1.5 w-full text-[10px] text-slate-700 bg-transparent outline-none resize-none leading-tight"
+                          style={{ height: 'auto', minHeight: '16px' }}
+                          value={exp.description}
+                          onChange={(e) =>
+                            onUpdateSectionItem(sectionIndex, idx, 'description', e.target.value)
+                          }
+                          placeholder="Beschreibung"
+                        />
+                      )
                     )}
 
                     <button
                       type="button"
-                      className="mt-0.5 text-[9px] text-sky-600 hover:underline"
+                      className="mt-1 text-[9px] text-sky-600 hover:underline"
                       onClick={() => handleAddBullet(sectionIndex, idx, exp)}
                     >
                       + Punkt hinzufügen
