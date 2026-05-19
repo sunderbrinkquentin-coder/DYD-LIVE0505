@@ -248,6 +248,7 @@ case 'experience':
             </div>
           </div>
         );
+    } 
 {/* Nur eine Darstellung: Liste ODER Textfield – mit Zeilenumbruch */}
 {bullets.length > 0 ? (
   <ul className="mt-1 space-y-[2px] text-[10px] text-slate-800" style={{ listStyle: 'none', padding: 0, margin: '4px 0 0' }}>
