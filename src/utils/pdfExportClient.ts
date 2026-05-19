@@ -70,7 +70,18 @@ const INLINE_TAGS = new Set(['span', 'a', 'strong', 'em', 'b', 'i', 'label', 'sm
 function bakeComputedStyles(liveEl: HTMLElement, cloneEl: HTMLElement): void {
   const tag = liveEl.tagName.toLowerCase();
   const cs = window.getComputedStyle(liveEl);
+// Position — convert fixed/sticky to relative so off-screen layout works
+  const pos = cs.position;
+  cloneEl.style.position = (pos === 'fixed' || pos === 'sticky') ? 'relative' : pos;
+  
+  // 🔥 NEU: z-index sichern, damit Ebenen nicht kollabieren
+  cloneEl.style.zIndex = cs.zIndex;
 
+  // 🔥 NEU: Wenn es ein reines Textelement ist, radikal in den Vordergrund zwingen
+  if (INLINE_TAGS.has(tag) || ['h1', 'h2', 'h3', 'h4', 'h5', 'h6', 'p', 'li'].includes(tag)) {
+    cloneEl.style.zIndex = '999';
+    cloneEl.style.position = pos === 'static' ? 'relative' : pos; // relative benötigt für z-index
+  }
   // ── SVG root ──────────────────────────────────────────────────────────────
   if (tag === 'svg') {
     const r = liveEl.getBoundingClientRect();
@@ -210,9 +221,13 @@ function bakeComputedStyles(liveEl: HTMLElement, cloneEl: HTMLElement): void {
   cloneEl.style.gridRow = cs.gridRow;
 
   // Misc
+// Misc
   cloneEl.style.opacity = cs.opacity;
   cloneEl.style.visibility = cs.visibility;
-  cloneEl.style.transform = 'none';
+  
+  // 🛠️ Geändert: Erlaubt dem PDF-Klon, CSS-Transformationen der Boxen zu behalten
+  cloneEl.style.transform = cs.transform !== 'none' ? cs.transform : 'none'; 
+  
   cloneEl.style.transition = 'none';
   cloneEl.style.animation = 'none';
   cloneEl.style.caretColor = 'transparent';
