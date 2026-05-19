@@ -154,10 +154,6 @@ function bakeComputedStyles(liveEl: HTMLElement, cloneEl: HTMLElement): void {
   cloneEl.style.marginBottom = cs.marginBottom;
   cloneEl.style.marginLeft = cs.marginLeft;
 
-  // Position — convert fixed/sticky to relative so off-screen layout works
-  const pos = cs.position;
-  cloneEl.style.position = (pos === 'fixed' || pos === 'sticky') ? 'relative' : pos;
-
   // ── 🔥 FIX FÜR DIE EBENEN (Nutzt das bereits deklarierte "pos" und "tag") ──
   // Kopiere den echten z-index aus dem Live-Editor
   cloneEl.style.zIndex = cs.zIndex;
