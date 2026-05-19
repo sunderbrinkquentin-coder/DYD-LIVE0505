@@ -48,14 +48,38 @@ const stripLeadingBullet = (s: string) =>
   s.replace(/^[-•\u2022]\s*/, '');
 
 const getBullets = (item: any): string[] => {
-  if (Array.isArray(item?.bulletPoints) && item.bulletPoints.length > 0) {
-    return item.bulletPoints
-      .map((s: string) => stripLeadingBullet(s.trim()))
+  if (!item) return [];
+
+  // 1. Suche nach bekannten Array-Feldern (bulletPoints, bullet_points, tasks, highlights etc.)
+  const possibleArrays = [
+    item.bulletPoints, 
+    item.bullet_points, 
+    item.bulletpoints, 
+    item.tasks, 
+    item.highlights,
+    item.erfolge
+  ];
+  
+  const foundArray = possibleArrays.find(arr => Array.isArray(arr) && arr.length > 0);
+  
+  if (foundArray) {
+    return foundArray
+      .map((s: any) => stripLeadingBullet(String(s).trim()))
       .filter((s: string) => s.length > 0);
   }
 
-  if (typeof item?.description === 'string' && item.description.trim().length > 0) {
-    return item.description
+  // 2. Suche nach bekannten Text-Feldern (description, beschreibung, aufgaben etc.)
+  const possibleTexts = [
+    item.description, 
+    item.beschreibung, 
+    item.text,
+    item.aufgaben
+  ];
+  
+  const foundText = possibleTexts.find(txt => typeof txt === 'string' && txt.trim().length > 0);
+
+  if (foundText) {
+    return foundText
       .split('\n')
       .map((s: string) => stripLeadingBullet(s.trim()))
       .filter((s: string) => s.length > 0);
