@@ -122,7 +122,7 @@ export const ClassicCVTemplate: React.FC<ClassicCVTemplateProps> = ({
   const stripSectionLabel = (val: string) =>
     val.replace(/^(programmiersprachen|technische\s*f[äa]higkeiten|fachkenntnisse|kenntnisse|sprachen|fähigkeiten|soft\s*skills|skills|languages|kompetenzen|tools?)[:\s\-–]+/i, '').trim();
 
-  const renderBulletPoints = (bullets: any[] | undefined) => {
+const renderBulletPoints = (bullets: any[] | undefined) => {
     if (!bullets || !Array.isArray(bullets) || bullets.length === 0) return null;
 
     return (
@@ -132,14 +132,28 @@ export const ClassicCVTemplate: React.FC<ClassicCVTemplateProps> = ({
           if (!text) return null;
           return (
             <li key={idx} className="leading-snug" style={{ display: 'flex', alignItems: 'flex-start', gap: '6px' }}>
-              <span style={{ flexShrink: 0, marginTop: '3px', width: '5px', height: '5px', borderRadius: '50%', background: '#6b7280', display: 'inline-block' }} />
+              
+              {/* 💡 HIER KORRIGIERT: Echtes Textzeichen statt leerer 5x5px CSS-Box */}
+              <span 
+                style={{ 
+                  flexShrink: 0, 
+                  color: '#6b7280', 
+                  fontSize: '14px', 
+                  lineHeight: '10px', 
+                  marginTop: '1px', 
+                  userSelect: 'none' 
+                }}
+              >
+                •
+              </span>
+              
               <span style={{ flex: 1 }}>{text}</span>
             </li>
           );
         })}
       </ul>
     );
-  };
+};
 
   const renderExperience = () => {
     if (experienceIndex === -1) return null;
