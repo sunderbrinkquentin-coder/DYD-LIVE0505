@@ -180,6 +180,7 @@ export const CreativeCVTemplate: React.FC<CreativeCVTemplateProps> = ({
                 <div
                   key={idx}
                   className="mb-2.5 rounded-xl bg-[#020617] border border-white/35 px-3 py-2 shadow-sm"
+                  style={{ breakInside: 'avoid', pageBreakInside: 'avoid' }}
                 >
                   <div className="flex justify-between items-start gap-2">
                     <div className="flex-1 min-w-0">
@@ -308,6 +309,7 @@ export const CreativeCVTemplate: React.FC<CreativeCVTemplateProps> = ({
                 <div
                   key={idx}
                   className="mb-2 rounded-xl bg-[#020617] border border-white/35 px-3 py-2 shadow-sm"
+                  style={{ breakInside: 'avoid', pageBreakInside: 'avoid' }}
                 >
                   <input
                     className="font-semibold text-[11px] outline-none w-full bg-transparent text-[#f9fafb]"
@@ -393,6 +395,7 @@ export const CreativeCVTemplate: React.FC<CreativeCVTemplateProps> = ({
               <div
                 key={idx}
                 className="mb-2 rounded-xl bg-[#020617] border border-white/35 px-3 py-2 shadow-sm"
+                style={{ breakInside: 'avoid', pageBreakInside: 'avoid' }}
               >
                 <div className="flex justify-between items-start gap-2">
                   <div className="flex-1 min-w-0">
@@ -453,6 +456,7 @@ export const CreativeCVTemplate: React.FC<CreativeCVTemplateProps> = ({
                 <div
                   key={idx}
                   className="flex justify-between items-center text-[10px] text-[#f9fafb]"
+                  style={{ breakInside: 'avoid', pageBreakInside: 'avoid' }}
                 >
                   <input
                     className="outline-none bg-transparent font-medium w-1/2"
@@ -497,7 +501,7 @@ export const CreativeCVTemplate: React.FC<CreativeCVTemplateProps> = ({
                 const level = typeof skill === 'object' && skill !== null ? skill.level || skill.niveau || '' : '';
                 const display = level ? `${val} (${level})` : val;
                 return (
-                  <span key={idx} style={{ display: 'inline-flex', alignItems: 'center', marginRight: '4px', marginBottom: '4px', verticalAlign: 'middle', padding: '2px 6px', borderRadius: '9999px', background: '#020617', border: '1px solid #38bdf8', whiteSpace: 'nowrap' }}>
+                  <span key={idx} style={{ display: 'inline-flex', alignItems: 'center', marginRight: '4px', marginBottom: '4px', verticalAlign: 'middle', padding: '2px 6px', borderRadius: '9999px', background: '#020617', border: '1px solid #38bdf8', whiteSpace: 'nowrap', breakInside: 'avoid', pageBreakInside: 'avoid' }}>
                     <input
                       style={{ background: 'transparent', outline: 'none', fontSize: '9px', color: '#f9fafb', minWidth: '20px', border: 'none', width: `${Math.max(20, display.length * 5.5)}px` }}
                       value={display}
@@ -524,7 +528,7 @@ export const CreativeCVTemplate: React.FC<CreativeCVTemplateProps> = ({
                 const level = typeof skill === 'object' && skill !== null ? skill.level || skill.niveau || '' : '';
                 const display = level ? `${val} (${level})` : val;
                 return (
-                  <span key={idx} style={{ display: 'inline-flex', alignItems: 'center', marginRight: '4px', marginBottom: '4px', verticalAlign: 'middle', padding: '2px 6px', borderRadius: '9999px', background: '#020617', border: '1px solid #a855f7', whiteSpace: 'nowrap' }}>
+                  <span key={idx} style={{ display: 'inline-flex', alignItems: 'center', marginRight: '4px', marginBottom: '4px', verticalAlign: 'middle', padding: '2px 6px', borderRadius: '9999px', background: '#020617', border: '1px solid #a855f7', whiteSpace: 'nowrap', breakInside: 'avoid', pageBreakInside: 'avoid' }}>
                     <input
                       style={{ background: 'transparent', outline: 'none', fontSize: '9px', color: '#f9fafb', minWidth: '20px', border: 'none', width: `${Math.max(20, display.length * 5.5)}px` }}
                       value={display}
@@ -548,7 +552,7 @@ export const CreativeCVTemplate: React.FC<CreativeCVTemplateProps> = ({
               {items.map((val: any, idx: number) => {
                 const v = typeof val === 'string' ? val : val.label || '';
                 return (
-                  <span key={idx} style={{ display: 'inline-flex', alignItems: 'center', marginRight: '4px', marginBottom: '4px', verticalAlign: 'middle', padding: '2px 6px', borderRadius: '9999px', background: '#020617', border: '1px solid #22c1c3', whiteSpace: 'nowrap' }}>
+                  <span key={idx} style={{ display: 'inline-flex', alignItems: 'center', marginRight: '4px', marginBottom: '4px', verticalAlign: 'middle', padding: '2px 6px', borderRadius: '9999px', background: '#020617', border: '1px solid #22c1c3', whiteSpace: 'nowrap', breakInside: 'avoid', pageBreakInside: 'avoid' }}>
                     <input
                       style={{ background: 'transparent', outline: 'none', fontSize: '9px', color: '#f9fafb', border: 'none', minWidth: '20px', width: `${Math.max(20, v.length * 5.5)}px` }}
                       value={v}
@@ -572,7 +576,7 @@ export const CreativeCVTemplate: React.FC<CreativeCVTemplateProps> = ({
               {items.map((hob: any, idx: number) => {
                 const v = typeof hob === 'string' ? hob : hob.label || '';
                 return (
-                  <span key={idx} style={{ display: 'inline-flex', alignItems: 'center', marginRight: '4px', marginBottom: '4px', verticalAlign: 'middle', padding: '2px 6px', borderRadius: '9999px', background: '#020617', border: '1px solid #f97316', whiteSpace: 'nowrap' }}>
+                  <span key={idx} style={{ display: 'inline-flex', alignItems: 'center', marginRight: '4px', marginBottom: '4px', verticalAlign: 'middle', padding: '2px 6px', borderRadius: '9999px', background: '#020617', border: '1px solid #f97316', whiteSpace: 'nowrap', breakInside: 'avoid', pageBreakInside: 'avoid' }}>
                     <input
                       style={{ background: 'transparent', outline: 'none', fontSize: '9px', color: '#f9fafb', border: 'none', minWidth: '20px', width: `${Math.max(20, v.length * 5.5)}px` }}
                       value={v}
@@ -601,6 +605,7 @@ export const CreativeCVTemplate: React.FC<CreativeCVTemplateProps> = ({
                   <li
                     key={idx}
                     className="py-0.5 border-b border-white/15 last:border-b-0"
+                    style={{ breakInside: 'avoid', pageBreakInside: 'avoid' }}
                   >
                     <input
                       className="w-full outline-none bg-transparent text-[#f9fafb]"
@@ -623,7 +628,14 @@ export const CreativeCVTemplate: React.FC<CreativeCVTemplateProps> = ({
     <div
       ref={containerRef}
       className="relative bg-[#020314] text-white font-sans flex flex-col w-full"
-      style={{ wordBreak: 'break-word', overflowWrap: 'anywhere', minHeight: '1122px', boxSizing: 'border-box' }}
+      style={{ 
+        wordBreak: 'break-word', 
+        overflowWrap: 'anywhere', 
+        minHeight: '1122px', 
+        boxSizing: 'border-box',
+        WebkitPrintColorAdjust: 'exact',
+        printColorAdjust: 'exact'
+      }}
     >
       {/* A4-Guides (gestrichelte Trennlinien) – nur im Editor sichtbar */}
       {pageCount > 1 &&
