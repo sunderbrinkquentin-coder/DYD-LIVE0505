@@ -235,10 +235,9 @@ export const CreativeCVTemplate: React.FC<CreativeCVTemplateProps> = ({
                     </div>
                   </div>
 
-                  {bullets.length > 0 ? (
+{bullets.length > 0 ? (
                     <ul className="mt-1 space-y-0.5 text-[10px] text-[#e5e7eb]">
                       {bullets.map((bp: string, bIdx: number) => (
-                        {/* JEDER EINZELNE BULLET DARF NICHT DURCHGESCHNITTEN WERDEN */}
                         <li key={bIdx} className="flex items-start gap-1" style={{ breakInside: 'avoid', pageBreakInside: 'avoid' }}>
                           <span className="text-[#22c1c3] mt-0.5 text-[11px]">▸</span>
                           <textarea
