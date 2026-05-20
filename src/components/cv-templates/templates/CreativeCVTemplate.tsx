@@ -182,7 +182,7 @@ export const CreativeCVTemplate: React.FC<CreativeCVTemplateProps> = ({
                   className="mb-2.5 rounded-xl bg-[#020617] border border-white/35 px-3 py-2 shadow-sm"
                 >
                   <div className="flex justify-between items-start gap-2">
-                    <div className="flex-1">
+                    <div className="flex-1 min-w-0">
                       <input
                         className="font-semibold text-[11px] outline-none w-full bg-transparent text-[#f9fafb]"
                         value={exp.title || exp.position || ''}
@@ -395,7 +395,7 @@ export const CreativeCVTemplate: React.FC<CreativeCVTemplateProps> = ({
                 className="mb-2 rounded-xl bg-[#020617] border border-white/35 px-3 py-2 shadow-sm"
               >
                 <div className="flex justify-between items-start gap-2">
-                  <div className="flex-1">
+                  <div className="flex-1 min-w-0">
                     <input
                       className="font-semibold text-[11px] outline-none w-full bg-transparent text-[#f9fafb]"
                       value={edu.degree || ''}
@@ -620,202 +620,201 @@ export const CreativeCVTemplate: React.FC<CreativeCVTemplateProps> = ({
   };
 
   return (
-<div
-  ref={containerRef}
-  className="relative bg-[#020314] text-white font-sans flex flex-col w-full"
-  style={{ wordBreak: 'break-word', overflowWrap: 'anywhere', minHeight: '1122px', boxSizing: 'border-box' }}
->
-      >
-        {/* A4-Guides (gestrichelte Trennlinien) – nur im Editor sichtbar */}
-        {pageCount > 1 &&
-          Array.from({ length: pageCount - 1 }).map((_, i) => (
-            <div
-              key={i}
-              data-pdf-hidden
-              className="pdf-hidden pointer-events-none absolute left-4 right-4 border-t border-dashed border-white/20"
-              style={{ top: (i + 1) * PAGE_HEIGHT_PX }}
-            />
-          ))}
+    <div
+      ref={containerRef}
+      className="relative bg-[#020314] text-white font-sans flex flex-col w-full"
+      style={{ wordBreak: 'break-word', overflowWrap: 'anywhere', minHeight: '1122px', boxSizing: 'border-box' }}
+    >
+      {/* A4-Guides (gestrichelte Trennlinien) – nur im Editor sichtbar */}
+      {pageCount > 1 &&
+        Array.from({ length: pageCount - 1 }).map((_, i) => (
+          <div
+            key={i}
+            data-pdf-hidden
+            className="pdf-hidden pointer-events-none absolute left-4 right-4 border-t border-dashed border-white/20"
+            style={{ top: (i + 1) * PAGE_HEIGHT_PX }}
+          />
+        ))}
 
-        {/* Glow-Hintergrund */}
-        <div className="pointer-events-none absolute inset-0 opacity-40">
-          <div className="absolute -top-10 -left-16 w-52 h-52 bg-[#22c1c3] blur-3xl rounded-full" />
-          <div className="absolute -bottom-20 right-0 w-64 h-64 bg-[#66c0b6] blur-3xl rounded-full" />
-        </div>
+      {/* Glow-Hintergrund */}
+      <div className="pointer-events-none absolute inset-0 opacity-40">
+        <div className="absolute -top-10 -left-16 w-52 h-52 bg-[#22c1c3] blur-3xl rounded-full" />
+        <div className="absolute -bottom-20 right-0 w-64 h-64 bg-[#66c0b6] blur-3xl rounded-full" />
+      </div>
 
-        {/* Header */}
-        <header className="relative px-6 pt-4 pb-2.5 flex items-center justify-between border-b border-white/15 bg-[#020617]/90 gap-3 flex-shrink-0"</header>
-          <div className="relative flex-1">
-            <input
-              className="block w-full text-2xl font-bold tracking-[0.12em] uppercase outline-none bg-transparent text-[#f9fafb]"
-              value={personalInfo.name || ''}
-              onChange={(e) => onUpdatePersonalInfo('name', e.target.value)}
-              placeholder="Name"
-            />
-            <input
-              className="mt-0.5 block w-full text-sm font-medium text-[#e5e7eb] outline-none bg-transparent"
-              value={personalInfo.title || ''}
-              onChange={(e) => onUpdatePersonalInfo('title', e.target.value)}
-              placeholder="Titel"
-            />
-            <div className="mt-2 grid grid-cols-2 gap-x-3 gap-y-0.5 text-[11px] text-[#f9fafb]">
-              <div className="flex items-center gap-1.5">
-                <span>📍</span>
-                <input
-                  className="w-full bg-transparent outline-none"
-                  value={personalInfo.location || ''}
-                  onChange={(e) => onUpdatePersonalInfo('location', e.target.value)}
-                  placeholder="Ort"
-                />
-              </div>
-              <div className="flex items-center gap-1.5">
-                <span>☎</span>
-                <input
-                  className="w-full bg-transparent outline-none"
-                  value={personalInfo.phone || ''}
-                  onChange={(e) => onUpdatePersonalInfo('phone', e.target.value)}
-                  placeholder="Telefon"
-                />
-              </div>
-              <div className="flex items-center gap-1.5">
-                <span>✉</span>
-                <input
-                  className="w-full bg-transparent outline-none"
-                  value={personalInfo.email || ''}
-                  onChange={(e) => onUpdatePersonalInfo('email', e.target.value)}
-                  placeholder="E-Mail"
-                />
-              </div>
-              <div className="flex items-center gap-1.5">
-                <span>in</span>
-                <input
-                  className="w-full bg-transparent outline-none"
-                  value={personalInfo.linkedin || ''}
-                  onChange={(e) => onUpdatePersonalInfo('linkedin', e.target.value)}
-                  placeholder="LinkedIn"
-                />
-              </div>
-            </div>
-          </div>
-
-          {photoUrl && (
-            <div className="relative flex-shrink-0">
-              <div className="w-20 h-20 rounded-3xl overflow-hidden border-2 border-white bg-[#020617] shadow-md">
-                <img
-                  src={photoUrl}
-                  alt="Foto"
-                  className="w-full h-full"
-                  style={{ objectFit: 'cover', objectPosition: `${photoPosition.x}% ${photoPosition.y}%`, width: '80px', height: '80px', display: 'block' }}
-                />
-              </div>
-            </div>
-          )}
-        </header>
-
-        {/* Content */}
-          <main className="relative flex-grow px-6 py-3 grid grid-cols-1 md:grid-cols-12 gap-4 text-[#e5e7eb] bg-[#020314]/90">
-          <section className="col-span-1 md:col-span-7 space-y-3">
-            <div>
-              <SectionTitle>Profil & Story</SectionTitle>
-              <textarea
-                ref={summaryRef}
-                className="w-full mt-0.5 text-[11px] leading-relaxed text-[#f9fafb] bg-white/10 rounded-lg border border:white/25 border-white/25 outline-none resize-none px-2 py-1.5 backdrop-blur-sm overflow-hidden"
-                style={{ minHeight: '60px', height: 'auto' }}
-                value={summary || ''}
-                onChange={(e) => {
-                  e.target.style.height = 'auto';
-                  e.target.style.height = e.target.scrollHeight + 'px';
-                  onUpdateSummary(e.target.value);
-                }}
-                onInput={(e) => {
-                  const target = e.target as HTMLTextAreaElement;
-                  target.style.height = 'auto';
-                  target.style.height = target.scrollHeight + 'px';
-                }}
-                placeholder="Beschreibe kurz deinen Werdegang, dein Profil und was dich ausmacht."
+      {/* Header */}
+      <header className="relative px-6 pt-4 pb-2.5 flex items-center justify-between border-b border-white/15 bg-[#020617]/90 gap-3 flex-shrink-0">
+        <div className="relative flex-1 min-w-0">
+          <input
+            className="block w-full text-2xl font-bold tracking-[0.12em] uppercase outline-none bg-transparent text-[#f9fafb]"
+            value={personalInfo.name || ''}
+            onChange={(e) => onUpdatePersonalInfo('name', e.target.value)}
+            placeholder="Name"
+          />
+          <input
+            className="mt-0.5 block w-full text-sm font-medium text-[#e5e7eb] outline-none bg-transparent"
+            value={personalInfo.title || ''}
+            onChange={(e) => onUpdatePersonalInfo('title', e.target.value)}
+            placeholder="Titel"
+          />
+          <div className="mt-2 grid grid-cols-2 gap-x-3 gap-y-0.5 text-[11px] text-[#f9fafb]">
+            <div className="flex items-center gap-1.5">
+              <span>📍</span>
+              <input
+                className="w-full bg-transparent outline-none"
+                value={personalInfo.location || ''}
+                onChange={(e) => onUpdatePersonalInfo('location', e.target.value)}
+                placeholder="Ort"
               />
             </div>
+            <div className="flex items-center gap-1.5">
+              <span>☎</span>
+              <input
+                className="w-full bg-transparent outline-none"
+                value={personalInfo.phone || ''}
+                onChange={(e) => onUpdatePersonalInfo('phone', e.target.value)}
+                placeholder="Telefon"
+              />
+            </div>
+            <div className="flex items-center gap-1.5">
+              <span>✉</span>
+              <input
+                className="w-full bg-transparent outline-none"
+                value={personalInfo.email || ''}
+                onChange={(e) => onUpdatePersonalInfo('email', e.target.value)}
+                placeholder="E-Mail"
+              />
+            </div>
+            <div className="flex items-center gap-1.5">
+              <span>in</span>
+              <input
+                className="w-full bg-transparent outline-none"
+                value={personalInfo.linkedin || ''}
+                onChange={(e) => onUpdatePersonalInfo('linkedin', e.target.value)}
+                placeholder="LinkedIn"
+              />
+            </div>
+          </div>
+        </div>
 
-            {leftSections.map((section) => {
-              const sectionIndex = sections.findIndex((s) => s === section);
-              return renderSection(section, sectionIndex);
-            })}
-          </section>
-
-          <aside className="col-span-1 md:col-span-5 space-y-3">
-            {rightSections.map((section) => {
-              const sectionIndex = sections.findIndex((s) => s === section);
-
-              // Skills + Soft Skills zusammen als Block "Skills & Tools"
-              if (section.type === 'skills' || section.type === 'soft_skills') {
-                const skillsSection = rightSections.find((s) => s.type === 'skills');
-                const softSkillsSection = rightSections.find(
-                  (s) => s.type === 'soft_skills'
-                );
-
-                if (section.type === 'skills' && (skillsSection || softSkillsSection)) {
-                  return (
-                    <div key="skills-tools-block">
-                      <SectionTitle>Skills & Tools</SectionTitle>
-                      {skillsSection &&
-                        renderSection(
-                          skillsSection,
-                          sections.findIndex((s) => s === skillsSection)
-                        )}
-                      {softSkillsSection &&
-                        renderSection(
-                          softSkillsSection,
-                          sections.findIndex((s) => s === softSkillsSection)
-                        )}
-                    </div>
-                  );
-                }
-
-                if (section.type === 'soft_skills') {
-                  // Wird bereits im kombinierten Block gerendert
-                  return null;
-                }
-              }
-
-              return renderSection(section, sectionIndex);
-            })}
-          </aside>
-        </main>
-
-        {otherSections.length > 0 && (
-          <div className="relative px-6 pb-3 space-y-3 bg-[#020314]/90">
-            {otherSections.map((section) => {
-              const sectionIndex = sections.findIndex((s) => s === section);
-              return renderSection(section, sectionIndex);
-            })}
+        {photoUrl && (
+          <div className="relative flex-shrink-0">
+            <div className="w-20 h-20 rounded-3xl overflow-hidden border-2 border-white bg-[#020617] shadow-md">
+              <img
+                src={photoUrl}
+                alt="Foto"
+                className="w-full h-full"
+                style={{ objectFit: 'cover', objectPosition: `${photoPosition.x}% ${photoPosition.y}%`, width: '80px', height: '80px', display: 'block' }}
+              />
+            </div>
           </div>
         )}
+      </header>
 
-        {/* Footer */}
-        <footer data-pdf-footer className="relative px-6 py-3 border-t border-white/15 text-[10px] text-white/80 flex flex-col sm:flex-row justify-between gap-2 bg-[#020617] flex-shrink-0">
-          <div className="flex items-center gap-2">
-            <span>Ort:</span>
-            <input
-              className="bg-transparent outline-none border-b border-dashed border-white/40 px-1 flex-1 sm:w-32 text-white"
-              placeholder="Stadt"
-              defaultValue=""
+      {/* Content */}
+      <main className="relative flex-grow px-6 py-3 grid grid-cols-1 md:grid-cols-12 gap-4 text-[#e5e7eb] bg-[#020314]/90">
+        <section className="col-span-1 md:col-span-7 space-y-3">
+          <div>
+            <SectionTitle>Profil & Story</SectionTitle>
+            <textarea
+              ref={summaryRef}
+              className="w-full mt-0.5 text-[11px] leading-relaxed text-[#f9fafb] bg-white/10 rounded-lg border border:white/25 border-white/25 outline-none resize-none px-2 py-1.5 backdrop-blur-sm overflow-hidden"
+              style={{ minHeight: '60px', height: 'auto' }}
+              value={summary || ''}
+              onChange={(e) => {
+                e.target.style.height = 'auto';
+                e.target.style.height = e.target.scrollHeight + 'px';
+                onUpdateSummary(e.target.value);
+              }}
+              onInput={(e) => {
+                const target = e.target as HTMLTextAreaElement;
+                target.style.height = 'auto';
+                target.style.height = target.scrollHeight + 'px';
+              }}
+              placeholder="Beschreibe kurz deinen Werdegang, dein Profil und was dich ausmacht."
             />
           </div>
-          <div className="flex items-center gap-2">
-            <span>Datum:</span>
-            <input
-              className="bg-transparent outline-none border-b border-dashed border-white/40 px-1 flex-1 sm:w-32 text-white"
-              placeholder="TT.MM.JJJJ"
-              defaultValue={new Date().toLocaleDateString('de-DE')}
-            />
+
+          {leftSections.map((section) => {
+            const sectionIndex = sections.findIndex((s) => s === section);
+            return renderSection(section, sectionIndex);
+          })}
+        </section>
+
+        <aside className="col-span-1 md:col-span-5 space-y-3">
+          {rightSections.map((section) => {
+            const sectionIndex = sections.findIndex((s) => s === section);
+
+            // Skills + Soft Skills zusammen als Block "Skills & Tools"
+            if (section.type === 'skills' || section.type === 'soft_skills') {
+              const skillsSection = rightSections.find((s) => s.type === 'skills');
+              const softSkillsSection = rightSections.find(
+                (s) => s.type === 'soft_skills'
+              );
+
+              if (section.type === 'skills' && (skillsSection || softSkillsSection)) {
+                return (
+                  <div key="skills-tools-block">
+                    <SectionTitle>Skills & Tools</SectionTitle>
+                    {skillsSection &&
+                      renderSection(
+                        skillsSection,
+                        sections.findIndex((s) => s === skillsSection)
+                      )}
+                    {softSkillsSection &&
+                      renderSection(
+                        softSkillsSection,
+                        sections.findIndex((s) => s === softSkillsSection)
+                      )}
+                  </div>
+                );
+              }
+
+              if (section.type === 'soft_skills') {
+                // Wird bereits im kombinierten Block gerendert
+                return null;
+              }
+            }
+
+            return renderSection(section, sectionIndex);
+          })}
+        </aside>
+      </main>
+
+      {otherSections.length > 0 && (
+        <div className="relative px-6 pb-3 space-y-3 bg-[#020314]/90">
+          {otherSections.map((section) => {
+            const sectionIndex = sections.findIndex((s) => s === section);
+            return renderSection(section, sectionIndex);
+          })}
+        </div>
+      )}
+
+      {/* Footer */}
+      <footer data-pdf-footer className="relative mt-auto px-6 py-3 border-t border-white/15 text-[10px] text-white/80 flex flex-col sm:flex-row justify-between gap-2 bg-[#020617] flex-shrink-0">
+        <div className="flex items-center gap-2">
+          <span>Ort:</span>
+          <input
+            className="bg-transparent outline-none border-b border-dashed border-white/40 px-1 flex-1 sm:w-32 text-white"
+            placeholder="Stadt"
+            defaultValue=""
+          />
+        </div>
+        <div className="flex items-center gap-2">
+          <span>Datum:</span>
+          <input
+            className="bg-transparent outline-none border-b border-dashed border-white/40 px-1 flex-1 sm:w-32 text-white"
+            placeholder="TT.MM.JJJJ"
+            defaultValue={new Date().toLocaleDateString('de-DE')}
+          />
+        </div>
+        {pageCount > 1 && (
+          <div className="flex items-center gap-1 sm:ml-auto">
+            <span>Voraussichtliche Seiten:</span>
+            <span className="font-semibold text-white">{pageCount}</span>
           </div>
-          {pageCount > 1 && (
-            <div className="flex items-center gap-1 sm:ml-auto">
-              <span>Voraussichtliche Seiten:</span>
-              <span className="font-semibold text-white">{pageCount}</span>
-            </div>
-          )}
-        </footer>
-      </div>
+        )}
+      </footer>
+    </div>
   );
 };
