@@ -620,10 +620,11 @@ export const CreativeCVTemplate: React.FC<CreativeCVTemplateProps> = ({
   };
 
   return (
-      <div
-        ref={containerRef}
-        className="relative bg-[#020314] text-white font-sans flex flex-col w-full"
-        style={{ wordBreak: 'break-word', overflowWrap: 'anywhere', minHeight: '1122px' }}
+<div
+  ref={containerRef}
+  className="relative bg-[#020314] text-white font-sans flex flex-col w-full"
+  style={{ wordBreak: 'break-word', overflowWrap: 'anywhere', minHeight: '1122px', boxSizing: 'border-box' }}
+>
       >
         {/* A4-Guides (gestrichelte Trennlinien) – nur im Editor sichtbar */}
         {pageCount > 1 &&
@@ -712,7 +713,7 @@ export const CreativeCVTemplate: React.FC<CreativeCVTemplateProps> = ({
         </header>
 
         {/* Content */}
-        <main className="relative flex-1 px-6 py-3 grid grid-cols-1 md:grid-cols-12 gap-4 text-[#e5e7eb] bg-[#020314]/90">
+          <main className="relative flex-grow px-6 py-3 grid grid-cols-1 md:grid-cols-12 gap-4 text-[#e5e7eb] bg-[#020314]/90">
           <section className="col-span-1 md:col-span-7 space-y-3">
             <div>
               <SectionTitle>Profil & Story</SectionTitle>
