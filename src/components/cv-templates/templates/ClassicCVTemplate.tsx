@@ -48,7 +48,7 @@ const skillLevelToStars = (level: string | undefined): number => {
 const StarRating: React.FC<{ stars: number; total?: number }> = ({ stars, total = 5 }) => (
   <span className="inline-flex items-center gap-px flex-shrink-0">
     {Array.from({ length: total }).map((_, i) => (
-      <svg key={i} width="7" height="7" viewBox="0 0 12 12" fill={i < stars ? '#6b7280' : '#d1d5db'}>
+      <svg key={i} width="7" height="7" viewBox="0 0 12 12" fill={i < stars ? '#1e3a8a' : '#d1d5db'}>
         <polygon points="6,1 7.5,4.5 11,5 8.5,7.5 9,11 6,9.5 3,11 3.5,7.5 1,5 4.5,4.5" />
       </svg>
     ))}
@@ -60,7 +60,7 @@ const autoResize = (el: HTMLTextAreaElement) => {
   el.style.height = el.scrollHeight + 'px';
 };
 
-// 💡 DER WICHTIGSTE FIX: Jedes Feld ist nun ein Textarea! Nichts wird mehr abgeschnitten.
+// Zurück zum Original: Stabile Inputs für einzeilige Texte, Textarea nur für lange Beschreibungen
 const EditableText: React.FC<{
   value?: string;
   onChange: (value: string) => void;
@@ -69,25 +69,30 @@ const EditableText: React.FC<{
   multiline?: boolean;
   style?: React.CSSProperties;
 }> = ({ value, onChange, className = '', placeholder = '', multiline = false, style }) => {
+  if (multiline) {
+    return (
+      <textarea
+        className={`w-full resize-none bg-transparent outline-none border-none focus:ring-0 ${className}`}
+        style={{ ...style, overflow: 'hidden', minHeight: '40px' }}
+        value={value ?? ''}
+        placeholder={placeholder}
+        onChange={(e) => {
+          autoResize(e.target);
+          onChange(e.target.value);
+        }}
+        onFocus={(e) => autoResize(e.target)}
+        ref={(el) => { if (el) autoResize(el); }}
+      />
+    );
+  }
+
   return (
-    <textarea
-      className={`w-full resize-none bg-transparent outline-none border-none focus:ring-0 ${className}`}
-      style={{ ...style, overflow: 'hidden', display: 'block', padding: 0 }}
-      rows={1}
+    <input
+      className={`bg-transparent outline-none border-none focus:ring-0 w-full ${className}`}
+      style={style}
       value={value ?? ''}
       placeholder={placeholder}
-      onChange={(e) => {
-        autoResize(e.target);
-        onChange(e.target.value);
-      }}
-      onFocus={(e) => autoResize(e.target)}
-      ref={(el) => { if (el) autoResize(el); }}
-      onKeyDown={(e) => {
-        // Verhindert, dass man bei "Name" oder "Ort" versehentlich Enter drückt
-        if (!multiline && e.key === 'Enter') {
-          e.preventDefault(); 
-        }
-      }}
+      onChange={(e) => onChange(e.target.value)}
     />
   );
 };
@@ -117,30 +122,39 @@ export const ClassicCVTemplate: React.FC<ClassicCVTemplateProps> = ({
   const stripSectionLabel = (val: string) =>
     val.replace(/^(programmiersprachen|technische\s*f[äa]higkeiten|fachkenntnisse|kenntnisse|sprachen|fähigkeiten|soft\s*skills|skills|languages|kompetenzen|tools?)[:\s\-–]+/i, '').trim();
 
-  // Reine Bulletpoint-Logik (greift, falls das Array existiert)
-  const renderBulletPoints = (bullets: any[] | undefined) => {
-    if (!bullets || !Array.isArray(bullets) || bullets.length === 0) return null;
+  // 💡 Die kugelsichere Bulletpoint-Logik
+  const getBullets = (item: any): string[] => {
+    if (!item) return [];
+    
+    // Arrays prüfen (z.B. aus der Datenbank)
+    const arr = item.bulletPoints || item.bullet_points;
+    if (Array.isArray(arr) && arr.length > 0) {
+      return arr.map(b => (typeof b === 'string' ? b : b.text || String(b))).filter(b => b.trim().length > 0);
+    }
+    
+    // Freitext prüfen (z.B. mit Sternchen oder Zeilenumbrüchen im Editor getippt)
+    if (typeof item.description === 'string' && item.description.includes('\n')) {
+      return item.description.split('\n').filter((s: string) => s.trim().length > 0);
+    }
+    
+    return [];
+  };
+
+  const renderBulletPoints = (item: any) => {
+    const bullets = getBullets(item);
+    if (!bullets || bullets.length === 0) return null;
 
     return (
-      <ul className="space-y-0.5 mt-1" style={{ paddingLeft: 0, listStyle: 'none' }}>
-        {bullets.map((bp, idx) => {
-          const text = typeof bp === 'string' ? bp : bp?.text ?? String(bp);
-          if (!text) return null;
+      <ul className="space-y-1 mt-1.5" style={{ paddingLeft: 0, listStyle: 'none' }}>
+        {bullets.map((text, idx) => {
+          // Entfernt händisch getippte Sternchen oder Bindestriche am Anfang
+          const cleanText = text.replace(/^[-•*]\s*/, '');
           return (
-            <li key={idx} className="leading-snug" style={{ display: 'flex', alignItems: 'flex-start', gap: '6px', breakInside: 'avoid', pageBreakInside: 'avoid' }}>
-              <span 
-                style={{ 
-                  flexShrink: 0, 
-                  color: '#6b7280', 
-                  fontSize: '14px', 
-                  lineHeight: '10px', 
-                  marginTop: '1px', 
-                  userSelect: 'none' 
-                }}
-              >
+            <li key={idx} className="leading-snug" style={{ display: 'flex', alignItems: 'flex-start', gap: '8px' }}>
+              <span style={{ flexShrink: 0, color: '#1e3a8a', fontSize: '14px', lineHeight: '12px', marginTop: '1px', userSelect: 'none' }}>
                 •
               </span>
-              <span style={{ flex: 1 }}>{text}</span>
+              <span style={{ flex: 1, color: '#374151' }}>{cleanText}</span>
             </li>
           );
         })}
@@ -155,17 +169,17 @@ export const ClassicCVTemplate: React.FC<ClassicCVTemplateProps> = ({
 
     return (
       <div>
-        <h2 className="text-[11px] font-semibold tracking-[0.16em] uppercase text-gray-700 border-b border-gray-300 pb-1 mb-2">
+        <h2 className="text-[12px] font-bold tracking-[0.15em] uppercase text-[#1e3a8a] border-b-2 border-[#1e3a8a]/20 pb-1 mb-3">
           Berufserfahrung
         </h2>
-        <div className="space-y-3">
+        <div className="space-y-4">
           {items.map((item: any, idx: number) => (
-            <div key={idx} data-pdf-section style={{ display: 'block', width: '100%', breakInside: 'avoid', pageBreakInside: 'avoid' }}>
-              <div className="flex items-baseline justify-between gap-2">
+            <div key={idx} data-pdf-section style={{ breakInside: 'avoid', pageBreakInside: 'avoid' }}>
+              <div className="flex items-baseline justify-between gap-3">
                 <EditableText
                   value={item.title}
                   onChange={(val) => onUpdateSectionItem(experienceIndex, idx, 'title', val)}
-                  className="font-semibold text-[12px] text-gray-900 leading-snug flex-1"
+                  className="font-bold text-[13px] text-gray-900 leading-snug flex-1"
                   placeholder="Position / Rolle"
                 />
                 <EditableText
@@ -175,36 +189,35 @@ export const ClassicCVTemplate: React.FC<ClassicCVTemplateProps> = ({
                     onUpdateSectionItem(experienceIndex, idx, 'date_from', from);
                     onUpdateSectionItem(experienceIndex, idx, 'date_to', to);
                   }}
-                  className="text-[10px] text-gray-500 text-right min-w-[80px] flex-shrink-0 leading-snug"
+                  className="text-[11px] font-semibold text-[#1e3a8a]/80 text-right w-32 flex-shrink-0 leading-snug"
                   placeholder="Zeitraum"
                 />
               </div>
               <EditableText
                 value={item.company}
                 onChange={(val) => onUpdateSectionItem(experienceIndex, idx, 'company', val)}
-                className="text-[11px] text-gray-700 mt-0.5 leading-snug"
+                className="text-[12px] font-semibold text-gray-700 mt-0.5 leading-snug"
                 placeholder="Unternehmen / Ort"
-                multiline
               />
               {(item.location || item.ort) && (
                 <EditableText
                   value={item.location || item.ort || ''}
                   onChange={(val) => onUpdateSectionItem(experienceIndex, idx, 'location', val)}
-                  className="text-[10px] text-gray-500 leading-snug"
+                  className="text-[11px] text-gray-500 leading-snug"
                   placeholder="Ort"
-                  multiline
                 />
               )}
-              {item.description && (
+              {/* Zeigt die Description nur an, wenn sie keine reinen Bulletpoints enthält */}
+              {item.description && !item.description.includes('\n') && (
                 <EditableText
                   value={item.description}
                   onChange={(val) => onUpdateSectionItem(experienceIndex, idx, 'description', val)}
-                  className="text-[11px] text-gray-800 mt-1 leading-snug"
+                  className="text-[12px] text-gray-800 mt-1.5 leading-snug"
                   multiline
                   placeholder="Beschreibung / Aufgaben"
                 />
               )}
-              {renderBulletPoints(item.bulletPoints)}
+              {renderBulletPoints(item)}
             </div>
           ))}
         </div>
@@ -219,26 +232,18 @@ export const ClassicCVTemplate: React.FC<ClassicCVTemplateProps> = ({
 
     return (
       <div>
-        <h2 className="text-[11px] font-semibold tracking-[0.16em] uppercase text-gray-700 border-b border-gray-300 pb-1 mb-2 mt-4">
+        <h2 className="text-[12px] font-bold tracking-[0.15em] uppercase text-[#1e3a8a] border-b-2 border-[#1e3a8a]/20 pb-1 mb-3 mt-5">
           Ausbildung / Studium
         </h2>
-        <div className="space-y-3">
+        <div className="space-y-4">
           {items.map((item: any, idx: number) => (
-            <div key={idx} data-pdf-section style={{ display: 'block', width: '100%', breakInside: 'avoid', pageBreakInside: 'avoid' }}>
-              <EditableText
-                value={item.degree}
-                onChange={(val) => onUpdateSectionItem(educationIndex, idx, 'degree', val)}
-                className="font-semibold text-[12px] text-gray-900 leading-snug"
-                placeholder="Abschluss / Studiengang"
-                multiline
-              />
-              <div className="flex items-baseline justify-between gap-2 mt-0.5">
+            <div key={idx} data-pdf-section style={{ breakInside: 'avoid', pageBreakInside: 'avoid' }}>
+              <div className="flex items-baseline justify-between gap-3">
                 <EditableText
-                  value={item.institution}
-                  onChange={(val) => onUpdateSectionItem(educationIndex, idx, 'institution', val)}
-                  className="text-[11px] text-gray-700 leading-snug flex-1"
-                  placeholder="Institution / Ort"
-                  multiline
+                  value={item.degree}
+                  onChange={(val) => onUpdateSectionItem(educationIndex, idx, 'degree', val)}
+                  className="font-bold text-[13px] text-gray-900 leading-snug flex-1"
+                  placeholder="Abschluss / Studiengang"
                 />
                 <EditableText
                   value={[item.date_from, item.date_to].filter(Boolean).join(' – ') || ''}
@@ -247,19 +252,26 @@ export const ClassicCVTemplate: React.FC<ClassicCVTemplateProps> = ({
                     onUpdateSectionItem(educationIndex, idx, 'date_from', from);
                     onUpdateSectionItem(educationIndex, idx, 'date_to', to);
                   }}
-                  className="text-[10px] text-gray-500 text-right min-w-[80px] flex-shrink-0 leading-snug"
+                  className="text-[11px] font-semibold text-[#1e3a8a]/80 text-right w-32 flex-shrink-0 leading-snug"
                   placeholder="Zeitraum"
                 />
               </div>
-              {item.description && (
+              <EditableText
+                value={item.institution}
+                onChange={(val) => onUpdateSectionItem(educationIndex, idx, 'institution', val)}
+                className="text-[12px] font-semibold text-gray-700 leading-snug mt-0.5"
+                placeholder="Institution / Ort"
+              />
+              {item.description && !item.description.includes('\n') && (
                 <EditableText
                   value={item.description}
                   onChange={(val) => onUpdateSectionItem(educationIndex, idx, 'description', val)}
-                  className="text-[11px] text-gray-800 mt-1 leading-snug"
+                  className="text-[12px] text-gray-800 mt-1.5 leading-snug"
                   multiline
                   placeholder="Schwerpunkte / Noten / Themen"
                 />
               )}
+              {renderBulletPoints(item)}
             </div>
           ))}
         </div>
@@ -274,20 +286,19 @@ export const ClassicCVTemplate: React.FC<ClassicCVTemplateProps> = ({
 
     return (
       <div>
-        <h2 className="text-[11px] font-semibold tracking-[0.16em] uppercase text-gray-700 border-b border-gray-300 pb-1 mb-2 mt-4">
+        <h2 className="text-[12px] font-bold tracking-[0.15em] uppercase text-[#1e3a8a] border-b-2 border-[#1e3a8a]/20 pb-1 mb-3 mt-5">
           Projekte
         </h2>
-        <div className="space-y-3">
+        <div className="space-y-4">
           {items.map((item: any, idx: number) => (
-            <div key={idx} className="leading-tight" style={{ display: 'block', width: '100%', breakInside: 'avoid', pageBreakInside: 'avoid' }}>
+            <div key={idx} className="leading-tight" style={{ breakInside: 'avoid', pageBreakInside: 'avoid' }}>
               <EditableText
                 value={item.title}
                 onChange={(val) =>
                   onUpdateSectionItem(projectsIndex, idx, 'title', val)
                 }
-                className="font-semibold text-[12px] text-gray-900"
+                className="font-bold text-[13px] text-gray-900"
                 placeholder="Projektname"
-                multiline
               />
               {item.role && (
                 <EditableText
@@ -295,12 +306,11 @@ export const ClassicCVTemplate: React.FC<ClassicCVTemplateProps> = ({
                   onChange={(val) =>
                     onUpdateSectionItem(projectsIndex, idx, 'role', val)
                   }
-                  className="text-[11px] text-gray-700"
+                  className="text-[12px] font-semibold text-gray-700 mt-0.5"
                   placeholder="Rolle / Verantwortung"
-                  multiline
                 />
               )}
-              {item.description && (
+              {item.description && !item.description.includes('\n') && (
                 <EditableText
                   value={item.description}
                   onChange={(val) =>
@@ -311,12 +321,12 @@ export const ClassicCVTemplate: React.FC<ClassicCVTemplateProps> = ({
                       val
                     )
                   }
-                  className="text-[11px] text-gray-800 mt-1"
+                  className="text-[12px] text-gray-800 mt-1.5"
                   multiline
                   placeholder="Projektbeschreibung / Ergebnisse"
                 />
               )}
-              {renderBulletPoints(item.bulletPoints)}
+              {renderBulletPoints(item)}
             </div>
           ))}
         </div>
@@ -336,14 +346,13 @@ export const ClassicCVTemplate: React.FC<ClassicCVTemplateProps> = ({
     if (!items.length) return null;
 
     return (
-      <div className="mb-4" style={{ breakInside: 'avoid', pageBreakInside: 'avoid' }}>
-        <h3 className="text-[10px] font-semibold tracking-[0.16em] uppercase text-gray-700 mb-1">
+      <div className="mb-5" style={{ breakInside: 'avoid', pageBreakInside: 'avoid' }}>
+        <h3 className="text-[11px] font-bold tracking-[0.15em] uppercase text-[#1e3a8a] mb-2">
           {label}
         </h3>
         <ul
-          className={options?.showLevelsForLanguages ? "space-y-1" : ""}
-          {...(!options?.showLevelsForLanguages ? { 'data-chip-row': '' } : {})}
-          style={options?.showLevelsForLanguages ? {} : { display: 'block', overflow: 'hidden' }}
+          className={options?.showLevelsForLanguages ? "space-y-1.5" : ""}
+          style={options?.showLevelsForLanguages ? {} : { display: 'block' }}
         >
           {items.map((item: any, idx: number) => {
             if (options?.showLevelsForLanguages) {
@@ -352,13 +361,13 @@ export const ClassicCVTemplate: React.FC<ClassicCVTemplateProps> = ({
               const level = item.level || item.niveau || item.proficiency || '';
               const stars = skillLevelToStars(level);
               return (
-                <li key={idx} className="flex justify-between items-center gap-2 text-[10px]">
+                <li key={idx} className="flex flex-nowrap justify-between items-center gap-2 text-[11px]">
                   <EditableText
                     value={language}
                     onChange={(val) =>
                       onUpdateSectionItem(index, idx, 'language', val)
                     }
-                    className="text-gray-800 flex-1"
+                    className="text-gray-800 font-medium flex-1 min-w-0"
                     placeholder="Sprache"
                   />
                   {stars > 0 ? (
@@ -369,7 +378,7 @@ export const ClassicCVTemplate: React.FC<ClassicCVTemplateProps> = ({
                       onChange={(val) =>
                         onUpdateSectionItem(index, idx, 'level', val)
                       }
-                      className="text-gray-600 text-right min-w-[60px] flex-shrink-0"
+                      className="text-[#1e3a8a] font-medium text-right w-16 flex-shrink-0"
                       placeholder="Niveau"
                     />
                   )}
@@ -384,16 +393,15 @@ export const ClassicCVTemplate: React.FC<ClassicCVTemplateProps> = ({
             const text = stripSectionLabel(rawText);
 
             return (
-              <li key={idx} style={{ display: 'inline-flex', marginRight: '4px', marginBottom: '4px', verticalAlign: 'middle', listStyle: 'none' }}>
-                <span className="inline-flex items-center px-2 py-0.5 rounded-full bg-gray-100 border border-gray-300 text-[9.5px] font-semibold text-gray-800 leading-snug whitespace-nowrap">
+              <li key={idx} style={{ display: 'inline-flex', marginRight: '5px', marginBottom: '5px', verticalAlign: 'middle', listStyle: 'none' }}>
+                <span className="inline-flex items-center px-2.5 py-1 rounded-sm bg-[#f8fafc] border border-[#e2e8f0] text-[10.5px] font-medium text-gray-700 whitespace-nowrap">
                   <EditableText
                     value={text}
                     onChange={(val) =>
                       onUpdateSectionItem(index, idx, 'value', val)
                     }
-                    className="text-gray-800"
-                    // 💡 FIX 2: Breite wird über ch (Characters) gesteuert. Passt sich immer der Länge an!
-                    style={{ width: `${Math.max(2, text.length + 1.5)}ch`, textAlign: 'center' }}
+                    className="text-gray-700"
+                    style={{ width: `${Math.max(2, text.length + 1)}ch` }}
                     placeholder="Eintrag"
                   />
                 </span>
@@ -413,10 +421,10 @@ export const ClassicCVTemplate: React.FC<ClassicCVTemplateProps> = ({
 
     return (
       <div style={{ breakInside: 'avoid', pageBreakInside: 'avoid' }}>
-        <h2 className="text-[11px] font-semibold tracking-[0.16em] uppercase text-gray-700 border-b border-gray-300 pb-1 mb-2 mt-4">
+        <h2 className="text-[12px] font-bold tracking-[0.15em] uppercase text-[#1e3a8a] border-b-2 border-[#1e3a8a]/20 pb-1 mb-3 mt-5">
           Arbeitsweise & Werte
         </h2>
-        <ul className="list-disc list-inside space-y-1 text-[11px] text-gray-800">
+        <ul className="list-disc list-inside space-y-1.5 text-[12px] text-gray-800">
           {items.map((item: any, idx: number) => {
             const text =
               typeof item === 'string'
@@ -431,7 +439,6 @@ export const ClassicCVTemplate: React.FC<ClassicCVTemplateProps> = ({
                   }
                   className="text-gray-800"
                   placeholder="Wert / Arbeitsstil"
-                  multiline
                 />
               </li>
             );
@@ -452,20 +459,22 @@ export const ClassicCVTemplate: React.FC<ClassicCVTemplateProps> = ({
         wordBreak: 'break-word',
         overflowWrap: 'anywhere',
         border: '1px solid #d1d5db',
+        backgroundColor: '#ffffff'
       }}
     >
-      <div className="w-full p-6" style={{ minHeight: '1122px' }}>
-        <div className="flex gap-6" style={{ minHeight: '1080px' }}>
+      <div className="w-full p-8" style={{ minHeight: '1122px' }}>
+        <div className="flex gap-8" style={{ minHeight: '1080px' }}>
+          
           {/* Linke Spalte */}
-          <aside className="w-2/5 max-w-[32%] pr-4 border-r border-gray-200 flex flex-col">
-            <div className="mb-4">
+          <aside className="w-1/3 max-w-[33%] pr-6 border-r border-gray-200 flex flex-col">
+            <div className="mb-6">
               {photoUrl && (
-                <div className="w-24 h-24 rounded-full overflow-hidden border border-gray-300 mb-3 mx-auto">
+                <div className="w-28 h-28 rounded-full overflow-hidden border-2 border-gray-100 mb-4 mx-auto shadow-sm">
                   <img
                     src={photoUrl}
                     alt="Profilfoto"
                     className="w-full h-full"
-                    style={{ objectFit: 'cover', objectPosition: `${photoPosition.x}% ${photoPosition.y}%`, width: '96px', height: '96px', display: 'block' }}
+                    style={{ objectFit: 'cover', objectPosition: `${photoPosition.x}% ${photoPosition.y}%`, display: 'block' }}
                   />
                 </div>
               )}
@@ -473,52 +482,48 @@ export const ClassicCVTemplate: React.FC<ClassicCVTemplateProps> = ({
                 <EditableText
                   value={personalInfo.name}
                   onChange={(val) => onUpdatePersonalInfo('name', val)}
-                  className="text-[18px] font-bold tracking-wide text-gray-900"
+                  className="text-[20px] font-bold tracking-wide text-[#1e3a8a] text-center"
                   placeholder="Dein Name"
                   multiline
                 />
                 <EditableText
                   value={personalInfo.title}
                   onChange={(val) => onUpdatePersonalInfo('title', val)}
-                  className="text-[11px] text-gray-600 mt-1"
+                  className="text-[12px] font-semibold text-gray-500 mt-1.5 text-center uppercase tracking-widest"
                   placeholder="Berufsbezeichnung"
                   multiline
                 />
               </div>
             </div>
 
-            <div className="mb-4">
-              <h3 className="text-[10px] font-semibold tracking-[0.16em] uppercase text-gray-700 mb-1">
+            <div className="mb-6">
+              <h3 className="text-[11px] font-bold tracking-[0.15em] uppercase text-[#1e3a8a] mb-2">
                 Kontakt
               </h3>
-              <div className="space-y-1 text-[10px]">
+              <div className="space-y-2 text-[11px]">
                 <EditableText
                   value={personalInfo.email}
                   onChange={(val) => onUpdatePersonalInfo('email', val)}
-                  className="text-gray-800"
+                  className="text-gray-700"
                   placeholder="E-Mail"
-                  multiline
                 />
                 <EditableText
                   value={personalInfo.phone}
                   onChange={(val) => onUpdatePersonalInfo('phone', val)}
-                  className="text-gray-800"
+                  className="text-gray-700"
                   placeholder="Telefon"
-                  multiline
                 />
                 <EditableText
                   value={personalInfo.location}
                   onChange={(val) => onUpdatePersonalInfo('location', val)}
-                  className="text-gray-800"
+                  className="text-gray-700"
                   placeholder="Ort"
-                  multiline
                 />
                 <EditableText
                   value={personalInfo.linkedin}
                   onChange={(val) => onUpdatePersonalInfo('linkedin', val)}
-                  className="text-gray-800"
+                  className="text-gray-700"
                   placeholder="LinkedIn"
-                  multiline
                 />
               </div>
             </div>
@@ -545,21 +550,21 @@ export const ClassicCVTemplate: React.FC<ClassicCVTemplateProps> = ({
               };
               const label = section.title || labelMap[section.type] || section.type;
               return (
-                <div key={index} className="mb-4" style={{ breakInside: 'avoid', pageBreakInside: 'avoid' }}>
-                  <h3 className="text-[10px] font-semibold tracking-[0.16em] uppercase text-gray-700 mb-1">
+                <div key={index} className="mb-5" style={{ breakInside: 'avoid', pageBreakInside: 'avoid' }}>
+                  <h3 className="text-[11px] font-bold tracking-[0.15em] uppercase text-[#1e3a8a] mb-2">
                     {label}
                   </h3>
-                  <ul style={{ display: 'block', overflow: 'hidden' }}>
+                  <ul style={{ display: 'block' }}>
                     {items.map((item: any, idx: number) => {
                       const rawText = typeof item === 'string' ? item : item.label || item.name || item.title || item.skill || '';
                       return (
-                        <li key={idx} style={{ display: 'inline-flex', marginRight: '4px', marginBottom: '4px', verticalAlign: 'middle', listStyle: 'none' }}>
-                          <span className="inline-flex items-center px-2 py-0.5 rounded-full bg-gray-100 border border-gray-300 text-[9.5px] font-medium text-gray-800 whitespace-nowrap">
+                        <li key={idx} style={{ display: 'inline-flex', marginRight: '5px', marginBottom: '5px', listStyle: 'none' }}>
+                          <span className="inline-flex items-center px-2.5 py-1 rounded-sm bg-[#f8fafc] border border-[#e2e8f0] text-[10.5px] font-medium text-gray-700 whitespace-nowrap">
                             <EditableText
                               value={rawText}
                               onChange={(val) => onUpdateSectionItem(index, idx, 'label', val)}
-                              className="text-gray-800"
-                              style={{ width: `${Math.max(20, rawText.length * 6.5)}px` }}
+                              className="text-gray-700"
+                              style={{ width: `${Math.max(2, rawText.length + 1)}ch` }}
                               placeholder="Eintrag"
                             />
                           </span>
@@ -574,15 +579,15 @@ export const ClassicCVTemplate: React.FC<ClassicCVTemplateProps> = ({
 
           {/* Rechte Spalte */}
           <main className="flex-1 flex flex-col">
-            <div data-pdf-section className="mb-4" style={{ breakInside: 'avoid', pageBreakInside: 'avoid' }}>
+            <div data-pdf-section className="mb-5" style={{ breakInside: 'avoid', pageBreakInside: 'avoid' }}>
               <section>
-                <h2 className="text-[11px] font-semibold tracking-[0.16em] uppercase text-gray-700 border-b border-gray-300 pb-1 mb-2">
+                <h2 className="text-[12px] font-bold tracking-[0.15em] uppercase text-[#1e3a8a] border-b-2 border-[#1e3a8a]/20 pb-1 mb-3">
                   Profil
                 </h2>
                 <EditableText
                   value={summary}
                   onChange={onUpdateSummary}
-                  className="text-[11px] text-gray-800 leading-snug"
+                  className="text-[12px] text-gray-800 leading-relaxed"
                   placeholder="Kurzprofil / Zusammenfassung"
                   multiline
                 />
@@ -590,9 +595,9 @@ export const ClassicCVTemplate: React.FC<ClassicCVTemplateProps> = ({
             </div>
 
             <div data-pdf-section>{renderExperience()}</div>
-            <div data-pdf-section className="mt-2">{renderEducation()}</div>
-            <div data-pdf-section className="mt-2">{renderProjects()}</div>
-            <div data-pdf-section className="mt-2">{renderWorkValues()}</div>
+            <div data-pdf-section>{renderEducation()}</div>
+            <div data-pdf-section>{renderProjects()}</div>
+            <div data-pdf-section>{renderWorkValues()}</div>
 
             {sections.map((section, index) => {
               const knownTypes = [
@@ -608,12 +613,12 @@ export const ClassicCVTemplate: React.FC<ClassicCVTemplateProps> = ({
               const title = section.title || section.type.charAt(0).toUpperCase() + section.type.slice(1);
 
               return (
-                <div key={section.type} data-pdf-section className="mt-4" style={{ breakInside: 'avoid', pageBreakInside: 'avoid' }}>
+                <div key={section.type} data-pdf-section className="mt-5" style={{ breakInside: 'avoid', pageBreakInside: 'avoid' }}>
                   <section>
-                    <h2 className="text-[11px] font-semibold tracking-[0.16em] uppercase text-gray-700 border-b border-gray-300 pb-1 mb-2">
+                    <h2 className="text-[12px] font-bold tracking-[0.15em] uppercase text-[#1e3a8a] border-b-2 border-[#1e3a8a]/20 pb-1 mb-3">
                       {title}
                     </h2>
-                    <div className="space-y-2 text-[11px] text-gray-800">
+                    <div className="space-y-3 text-[12px] text-gray-800">
                       {items.map((item: any, idx: number) => {
                         const text = typeof item === 'string' ? item : item.description || item.text || item.label || item.name || String(item);
                         return (
@@ -621,7 +626,7 @@ export const ClassicCVTemplate: React.FC<ClassicCVTemplateProps> = ({
                             key={idx}
                             value={text}
                             onChange={(val) => onUpdateSectionItem(index, idx, 'text', val)}
-                            className="leading-snug"
+                            className="leading-relaxed"
                             multiline
                             placeholder="Eintrag"
                           />
@@ -635,35 +640,34 @@ export const ClassicCVTemplate: React.FC<ClassicCVTemplateProps> = ({
           </main>
         </div>
       </div>
+      
+      {/* Footer */}
       <footer
         data-pdf-footer
         style={{
-          borderTop: '1px solid #cbd5e1',
-          padding: '10px 32px',
+          borderTop: '1px solid #e5e7eb',
+          padding: '12px 32px',
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'space-between',
-          fontSize: '10px',
-          color: '#64748b',
-          fontFamily: 'sans-serif',
-          marginTop: 'auto',
-          flexShrink: 0,
-          backgroundColor: '#ffffff',
-          height: '40px'
+          fontSize: '11px',
+          color: '#6b7280',
+          backgroundColor: '#f9fafb',
+          height: '45px'
         }}
       >
-        <div style={{ display: 'flex', alignItems: 'center', gap: '6px', minWidth: 0 }}>
-          <span style={{ fontWeight: 600, flexShrink: 0 }}>Ort:</span>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+          <span style={{ fontWeight: 600 }}>Ort:</span>
           <EditableText
-            className="text-slate-500"
-            style={{ fontSize: '10px', width: '120px' }}
+            className="text-gray-500 font-medium"
+            style={{ fontSize: '11px', width: '120px' }}
             value={personalInfo.location || ''}
             onChange={(val) => onUpdatePersonalInfo('location', val)}
             placeholder="Ort"
           />
         </div> 
         
-        <span style={{ fontWeight: 600, whiteSpace: 'nowrap' }}>
+        <span style={{ fontWeight: 600, letterSpacing: '0.05em' }}>
           {new Date().toLocaleDateString('de-DE')}
         </span>
       </footer>
