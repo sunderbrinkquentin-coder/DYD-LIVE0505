@@ -121,7 +121,6 @@ export const ClassicCVTemplate: React.FC<ClassicCVTemplateProps> = ({
   const stripSectionLabel = (val: string) =>
     val.replace(/^(programmiersprachen|technische\s*f[äa]higkeiten|fachkenntnisse|kenntnisse|sprachen|fähigkeiten|soft\s*skills|skills|languages|kompetenzen|tools?)[:\s\-–]+/i, '').trim();
 
-  // DEINE ORIGINALE BULLETPOINT-LOGIK (nur um Seitenumbruch-Schutz erweitert)
   const renderBulletPoints = (bullets: any[] | undefined) => {
     if (!bullets || !Array.isArray(bullets) || bullets.length === 0) return null;
 
@@ -131,6 +130,7 @@ export const ClassicCVTemplate: React.FC<ClassicCVTemplateProps> = ({
           const text = typeof bp === 'string' ? bp : bp?.text ?? String(bp);
           if (!text) return null;
           return (
+            // FIX: pageBreakInside verhindert halbe Sätze im PDF
             <li key={idx} className="leading-snug" style={{ display: 'flex', alignItems: 'flex-start', gap: '6px', breakInside: 'avoid', pageBreakInside: 'avoid' }}>
               <span 
                 style={{ 
@@ -164,12 +164,13 @@ export const ClassicCVTemplate: React.FC<ClassicCVTemplateProps> = ({
         </h2>
         <div className="space-y-3">
           {items.map((item: any, idx: number) => (
+            // FIX: breakInside schützt den gesamten Job-Block vor Zerschneiden
             <div key={idx} data-pdf-section style={{ display: 'block', width: '100%', breakInside: 'avoid', pageBreakInside: 'avoid' }}>
               <div className="flex items-baseline justify-between gap-2">
                 <EditableText
                   value={item.title}
                   onChange={(val) => onUpdateSectionItem(experienceIndex, idx, 'title', val)}
-                  className="font-semibold text-[12px] text-gray-900 leading-snug flex-1"
+                  className="font-semibold text-[12px] text-gray-900 leading-snug"
                   placeholder="Position / Rolle"
                 />
                 <EditableText
@@ -226,6 +227,7 @@ export const ClassicCVTemplate: React.FC<ClassicCVTemplateProps> = ({
         </h2>
         <div className="space-y-3">
           {items.map((item: any, idx: number) => (
+            // FIX: breakInside schützt
             <div key={idx} data-pdf-section style={{ display: 'block', width: '100%', breakInside: 'avoid', pageBreakInside: 'avoid' }}>
               <EditableText
                 value={item.degree}
@@ -237,7 +239,7 @@ export const ClassicCVTemplate: React.FC<ClassicCVTemplateProps> = ({
                 <EditableText
                   value={item.institution}
                   onChange={(val) => onUpdateSectionItem(educationIndex, idx, 'institution', val)}
-                  className="text-[11px] text-gray-700 leading-snug flex-1"
+                  className="text-[11px] text-gray-700 leading-snug"
                   placeholder="Institution / Ort"
                 />
                 <EditableText
@@ -279,7 +281,8 @@ export const ClassicCVTemplate: React.FC<ClassicCVTemplateProps> = ({
         </h2>
         <div className="space-y-3">
           {items.map((item: any, idx: number) => (
-            <div key={idx} className="leading-tight" style={{ display: 'block', width: '100%', breakInside: 'avoid', pageBreakInside: 'avoid' }}>
+            // FIX: breakInside schützt
+            <div key={idx} className="leading-tight" style={{ breakInside: 'avoid', pageBreakInside: 'avoid' }}>
               <EditableText
                 value={item.title}
                 onChange={(val) =>
@@ -350,8 +353,8 @@ export const ClassicCVTemplate: React.FC<ClassicCVTemplateProps> = ({
               const level = item.level || item.niveau || item.proficiency || '';
               const stars = skillLevelToStars(level);
               return (
-                // HIER IST DER FIX FÜR DAS UMBRECHENDES NIVEAU (flex-nowrap, min-w-0, flex-shrink-0)
-                <li key={idx} className="flex flex-nowrap justify-between items-center gap-2 text-[10px]" style={{ breakInside: 'avoid', pageBreakInside: 'avoid' }}>
+                // FIX: flex-nowrap und min-w-0 / flex-shrink-0 verhindern den Umbruch beim Level!
+                <li key={idx} className="flex flex-nowrap justify-between items-center gap-2 text-[10px]">
                   <EditableText
                     value={language}
                     onChange={(val) =>
@@ -383,7 +386,7 @@ export const ClassicCVTemplate: React.FC<ClassicCVTemplateProps> = ({
             const text = stripSectionLabel(rawText);
 
             return (
-              <li key={idx} style={{ display: 'inline-flex', marginRight: '4px', marginBottom: '4px', verticalAlign: 'middle', listStyle: 'none', breakInside: 'avoid', pageBreakInside: 'avoid' }}>
+              <li key={idx} style={{ display: 'inline-flex', marginRight: '4px', marginBottom: '4px', verticalAlign: 'middle', listStyle: 'none' }}>
                 <span className="inline-flex items-center px-2 py-0.5 rounded-full bg-gray-100 border border-gray-300 text-[9.5px] font-semibold text-gray-800 leading-snug whitespace-nowrap">
                   <EditableText
                     value={text}
@@ -452,7 +455,9 @@ export const ClassicCVTemplate: React.FC<ClassicCVTemplateProps> = ({
       }}
     >
       <div className="w-full p-6" style={{ minHeight: '1122px' }}>
-        <div className="flex gap-6" style={{ minHeight: '1080px' }}>
+        {/* FIX: flex-nowrap verhindert, dass die rechte Spalte im PDF nach unten rutscht */}
+        <div className="flex flex-nowrap gap-6" style={{ minHeight: '1080px' }}>
+          
           {/* Linke Spalte */}
           <aside className="w-2/5 max-w-[32%] pr-4 border-r border-gray-200 flex flex-col">
             <div className="mb-4">
@@ -544,7 +549,7 @@ export const ClassicCVTemplate: React.FC<ClassicCVTemplateProps> = ({
                     {items.map((item: any, idx: number) => {
                       const rawText = typeof item === 'string' ? item : item.label || item.name || item.title || item.skill || '';
                       return (
-                        <li key={idx} style={{ display: 'inline-flex', marginRight: '4px', marginBottom: '4px', verticalAlign: 'middle', listStyle: 'none', breakInside: 'avoid', pageBreakInside: 'avoid' }}>
+                        <li key={idx} style={{ display: 'inline-flex', marginRight: '4px', marginBottom: '4px', verticalAlign: 'middle', listStyle: 'none' }}>
                           <span className="inline-flex items-center px-2 py-0.5 rounded-full bg-gray-100 border border-gray-300 text-[9.5px] font-medium text-gray-800 whitespace-nowrap">
                             <EditableText
                               value={rawText}
@@ -564,7 +569,7 @@ export const ClassicCVTemplate: React.FC<ClassicCVTemplateProps> = ({
           </aside>
 
           {/* Rechte Spalte */}
-          <main className="flex-1 flex flex-col">
+          <main className="flex-1 flex flex-col min-w-0">
             <div data-pdf-section className="mb-4" style={{ breakInside: 'avoid', pageBreakInside: 'avoid' }}>
               <section>
                 <h2 className="text-[11px] font-semibold tracking-[0.16em] uppercase text-gray-700 border-b border-gray-300 pb-1 mb-2">
@@ -626,6 +631,8 @@ export const ClassicCVTemplate: React.FC<ClassicCVTemplateProps> = ({
           </main>
         </div>
       </div>
+      
+      {/* DEIN ORIGINALER FOOTER IST HIER 1:1 ENTHALTEN */}
       <footer
         data-pdf-footer
         style={{
