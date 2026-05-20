@@ -179,10 +179,13 @@ export const CreativeCVTemplate: React.FC<CreativeCVTemplateProps> = ({
               return (
                 <div
                   key={idx}
-                  className="mb-2.5 rounded-xl bg-[#020617] border border-white/35 px-3 py-2 shadow-sm"
-                  style={{ breakInside: 'avoid', pageBreakInside: 'avoid' }}
+                  data-pdf-section
+                  className="mb-2.5 rounded-xl bg-[#020617] border border-white/35 px-3 py-2 shadow-sm w-full split-box-fix"
+                  // HIER ERLAUBEN WIR DEN UMBRUCH (auto), falls die Box riesig ist
+                  style={{ display: 'block', breakInside: 'auto', pageBreakInside: 'auto' }}
                 >
-                  <div className="flex justify-between items-start gap-2">
+                  {/* DIE KOPFZEILE DARF NICHT DURCHGESCHNITTEN WERDEN */}
+                  <div className="flex justify-between items-start gap-2" style={{ breakInside: 'avoid', pageBreakInside: 'avoid' }}>
                     <div className="flex-1 min-w-0">
                       <input
                         className="font-semibold text-[11px] outline-none w-full bg-transparent text-[#f9fafb]"
@@ -235,7 +238,8 @@ export const CreativeCVTemplate: React.FC<CreativeCVTemplateProps> = ({
                   {bullets.length > 0 ? (
                     <ul className="mt-1 space-y-0.5 text-[10px] text-[#e5e7eb]">
                       {bullets.map((bp: string, bIdx: number) => (
-                        <li key={bIdx} className="flex items-start gap-1">
+                        {/* JEDER EINZELNE BULLET DARF NICHT DURCHGESCHNITTEN WERDEN */}
+                        <li key={bIdx} className="flex items-start gap-1" style={{ breakInside: 'avoid', pageBreakInside: 'avoid' }}>
                           <span className="text-[#22c1c3] mt-0.5 text-[11px]">▸</span>
                           <textarea
                             className="flex-1 bg-transparent outline-none resize-none overflow-hidden leading-snug text-[#e5e7eb]"
@@ -267,31 +271,35 @@ export const CreativeCVTemplate: React.FC<CreativeCVTemplateProps> = ({
                       ))}
                     </ul>
                   ) : (
-                    <textarea
-                      className="mt-0.5 w-full text-[10px] text-[#e5e7eb] outline-none resize-none overflow-hidden bg-transparent leading-snug"
-                      style={{ minHeight: '40px', height: 'auto' }}
-                      value={exp.description || ''}
-                      onChange={(e) => {
-                        e.target.style.height = 'auto';
-                        e.target.style.height = e.target.scrollHeight + 'px';
-                        onUpdateSectionItem(sectionIndex, idx, 'description', e.target.value);
-                      }}
-                      onInput={(e) => {
-                        const target = e.target as HTMLTextAreaElement;
-                        target.style.height = 'auto';
-                        target.style.height = target.scrollHeight + 'px';
-                      }}
-                      placeholder="Aufgaben und Erfolge (jede Zeile = eigener Punkt)"
-                    />
+                    <div style={{ breakInside: 'avoid', pageBreakInside: 'avoid' }}>
+                      <textarea
+                        className="mt-0.5 w-full text-[10px] text-[#e5e7eb] outline-none resize-none overflow-hidden bg-transparent leading-snug"
+                        style={{ minHeight: '40px', height: 'auto' }}
+                        value={exp.description || ''}
+                        onChange={(e) => {
+                          e.target.style.height = 'auto';
+                          e.target.style.height = e.target.scrollHeight + 'px';
+                          onUpdateSectionItem(sectionIndex, idx, 'description', e.target.value);
+                        }}
+                        onInput={(e) => {
+                          const target = e.target as HTMLTextAreaElement;
+                          target.style.height = 'auto';
+                          target.style.height = target.scrollHeight + 'px';
+                        }}
+                        placeholder="Aufgaben und Erfolge (jede Zeile = eigener Punkt)"
+                      />
+                    </div>
                   )}
 
-                  <button
-                    type="button"
-                    className="mt-0.5 text-[9px] text-[#38bdf8] hover:underline"
-                    onClick={() => handleAddBullet(sectionIndex, idx, exp)}
-                  >
-                    + Punkt
-                  </button>
+                  <div style={{ breakInside: 'avoid', pageBreakInside: 'avoid' }}>
+                    <button
+                      type="button"
+                      className="mt-0.5 text-[9px] text-[#38bdf8] hover:underline"
+                      onClick={() => handleAddBullet(sectionIndex, idx, exp)}
+                    >
+                      + Punkt
+                    </button>
+                  </div>
                 </div>
               );
             })}
@@ -308,22 +316,25 @@ export const CreativeCVTemplate: React.FC<CreativeCVTemplateProps> = ({
               return (
                 <div
                   key={idx}
-                  className="mb-2 rounded-xl bg-[#020617] border border-white/35 px-3 py-2 shadow-sm"
-                  style={{ breakInside: 'avoid', pageBreakInside: 'avoid' }}
+                  data-pdf-section
+                  className="mb-2 rounded-xl bg-[#020617] border border-white/35 px-3 py-2 shadow-sm w-full split-box-fix"
+                  style={{ display: 'block', breakInside: 'auto', pageBreakInside: 'auto' }}
                 >
-                  <input
-                    className="font-semibold text-[11px] outline-none w-full bg-transparent text-[#f9fafb]"
-                    value={proj.title || proj.name || ''}
-                    onChange={(e) =>
-                      onUpdateSectionItem(sectionIndex, idx, 'title', e.target.value)
-                    }
-                    placeholder="Projekt"
-                  />
+                  <div style={{ breakInside: 'avoid', pageBreakInside: 'avoid' }}>
+                    <input
+                      className="font-semibold text-[11px] outline-none w-full bg-transparent text-[#f9fafb]"
+                      value={proj.title || proj.name || ''}
+                      onChange={(e) =>
+                        onUpdateSectionItem(sectionIndex, idx, 'title', e.target.value)
+                      }
+                      placeholder="Projekt"
+                    />
+                  </div>
 
                   {bullets.length > 0 ? (
                     <ul className="mt-1 space-y-0.5 text-[10px] text-[#e5e7eb]">
                       {bullets.map((bp: string, bIdx: number) => (
-                        <li key={bIdx} className="flex items-start gap-1">
+                        <li key={bIdx} className="flex items-start gap-1" style={{ breakInside: 'avoid', pageBreakInside: 'avoid' }}>
                           <span className="text-[#22c1c3] mt-0.5 text-[11px]">▸</span>
                           <textarea
                             className="flex-1 bg-transparent outline-none resize-none overflow-hidden leading-snug text-[#e5e7eb]"
@@ -355,31 +366,35 @@ export const CreativeCVTemplate: React.FC<CreativeCVTemplateProps> = ({
                       ))}
                     </ul>
                   ) : (
-                    <textarea
-                      className="mt-0.5 w-full text-[10px] text-[#e5e7eb] outline-none resize-none overflow-hidden bg-transparent leading-snug"
-                      style={{ minHeight: '25px', height: 'auto' }}
-                      value={proj.description || ''}
-                      onChange={(e) => {
-                        e.target.style.height = 'auto';
-                        e.target.style.height = e.target.scrollHeight + 'px';
-                        onUpdateSectionItem(sectionIndex, idx, 'description', e.target.value);
-                      }}
-                      onInput={(e) => {
-                        const target = e.target as HTMLTextAreaElement;
-                        target.style.height = 'auto';
-                        target.style.height = target.scrollHeight + 'px';
-                      }}
-                      placeholder="Kurzbeschreibung des Projekts"
-                    />
+                    <div style={{ breakInside: 'avoid', pageBreakInside: 'avoid' }}>
+                      <textarea
+                        className="mt-0.5 w-full text-[10px] text-[#e5e7eb] outline-none resize-none overflow-hidden bg-transparent leading-snug"
+                        style={{ minHeight: '25px', height: 'auto' }}
+                        value={proj.description || ''}
+                        onChange={(e) => {
+                          e.target.style.height = 'auto';
+                          e.target.style.height = e.target.scrollHeight + 'px';
+                          onUpdateSectionItem(sectionIndex, idx, 'description', e.target.value);
+                        }}
+                        onInput={(e) => {
+                          const target = e.target as HTMLTextAreaElement;
+                          target.style.height = 'auto';
+                          target.style.height = target.scrollHeight + 'px';
+                        }}
+                        placeholder="Kurzbeschreibung des Projekts"
+                      />
+                    </div>
                   )}
 
-                  <button
-                    type="button"
-                    className="mt-0.5 text-[9px] text-[#38bdf8] hover:underline"
-                    onClick={() => handleAddBullet(sectionIndex, idx, proj)}
-                  >
-                    + Punkt
-                  </button>
+                  <div style={{ breakInside: 'avoid', pageBreakInside: 'avoid' }}>
+                    <button
+                      type="button"
+                      className="mt-0.5 text-[9px] text-[#38bdf8] hover:underline"
+                      onClick={() => handleAddBullet(sectionIndex, idx, proj)}
+                    >
+                      + Punkt
+                    </button>
+                  </div>
                 </div>
               );
             })}
@@ -394,8 +409,9 @@ export const CreativeCVTemplate: React.FC<CreativeCVTemplateProps> = ({
             {items.map((edu: any, idx: number) => (
               <div
                 key={idx}
-                className="mb-2 rounded-xl bg-[#020617] border border-white/35 px-3 py-2 shadow-sm"
-                style={{ breakInside: 'avoid', pageBreakInside: 'avoid' }}
+                data-pdf-section
+                className="mb-2 rounded-xl bg-[#020617] border border-white/35 px-3 py-2 shadow-sm w-full split-box-fix"
+                style={{ display: 'block', breakInside: 'avoid', pageBreakInside: 'avoid' }}
               >
                 <div className="flex justify-between items-start gap-2">
                   <div className="flex-1 min-w-0">
@@ -637,6 +653,22 @@ export const CreativeCVTemplate: React.FC<CreativeCVTemplateProps> = ({
         printColorAdjust: 'exact'
       }}
     >
+      {/* GLOBALER PRINT-STYLE GEGEN WEISSE BALKEN UND FÜR SAUBERE TRENNUNGEN */}
+      <style>{`
+        @media print {
+          body, html, #root {
+            background-color: #020314 !important;
+            -webkit-print-color-adjust: exact !important;
+            print-color-adjust: exact !important;
+          }
+          /* Sorgt dafür, dass zerschnittene Boxen ihre abgerundeten Ecken und Ränder behalten */
+          .split-box-fix {
+            box-decoration-break: clone;
+            -webkit-box-decoration-break: clone;
+          }
+        }
+      `}</style>
+
       {/* A4-Guides (gestrichelte Trennlinien) – nur im Editor sichtbar */}
       {pageCount > 1 &&
         Array.from({ length: pageCount - 1 }).map((_, i) => (
