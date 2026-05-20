@@ -653,17 +653,24 @@ export const CreativeCVTemplate: React.FC<CreativeCVTemplateProps> = ({
       }}
     >
       {/* GLOBALER PRINT-STYLE GEGEN WEISSE BALKEN UND FÜR SAUBERE TRENNUNGEN */}
-      <style>{`
+<style>{`
         @media print {
-          body, html, #root {
+          @page {
+            margin: 0 !important; /* Entfernt die weißen Standard-Ränder des Browsers */
+          }
+          body, html, #root, [data-pdf-wrapper] {
             background-color: #020314 !important;
+          }
+          /* Zwingt JEDES Element dazu, seine Hintergrundfarbe zu behalten */
+          * {
             -webkit-print-color-adjust: exact !important;
             print-color-adjust: exact !important;
+            color-adjust: exact !important;
           }
           /* Sorgt dafür, dass zerschnittene Boxen ihre abgerundeten Ecken und Ränder behalten */
           .split-box-fix {
-            box-decoration-break: clone;
-            -webkit-box-decoration-break: clone;
+            box-decoration-break: clone !important;
+            -webkit-box-decoration-break: clone !important;
           }
         }
       `}</style>
