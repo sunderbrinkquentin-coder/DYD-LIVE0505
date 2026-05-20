@@ -644,7 +644,7 @@ export const CreativeCVTemplate: React.FC<CreativeCVTemplateProps> = ({
         </div>
 
         {/* Header */}
-        <header className="relative px-6 pt-4 pb-2.5 flex items-center justify-between border-b border-white/15 bg-[#020617]/90 gap-3 flex-shrink-0">
+        <header className="relative px-6 pt-4 pb-2.5 flex items-center justify-between border-b border-white/15 bg-[#020617]/90 gap-3 flex-shrink-0"
           <div className="relative flex-1">
             <input
               className="block w-full text-2xl font-bold tracking-[0.12em] uppercase outline-none bg-transparent text-[#f9fafb]"
