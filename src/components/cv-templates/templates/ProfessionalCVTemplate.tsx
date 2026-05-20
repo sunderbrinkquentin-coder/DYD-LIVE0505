@@ -609,7 +609,7 @@ export const ProfessionalCVTemplate: React.FC<ProfessionalCVTemplateProps> = ({
   };
 
   return (
-    <div className="relative bg-slate-100 font-sans flex flex-col w-full" style={{ wordBreak: 'break-word', overflowWrap: 'anywhere', minHeight: '1122px' }}>
+    <div className="relative bg-white font-sans flex flex-col w-full min-h-[1122px]" style={{ wordBreak: 'break-word', overflowWrap: 'anywhere', boxSizing: 'border-box' }}>
         {/* Dunkler Professional-Header */}
         <header className="px-8 pt-7 pb-5 bg-slate-900 text-white flex justify-between gap-6 items-start border-b-4 border-[#30E3CA]">
           <div className="flex-1 min-w-0">
@@ -685,7 +685,7 @@ export const ProfessionalCVTemplate: React.FC<ProfessionalCVTemplateProps> = ({
         </header>
 
         {/* Flexbox-Layout statt altem Grid */}
-        <div style={{ display: 'flex', width: '100%', backgroundColor: '#ffffff', flex: 1, padding: '16px 0' }}>
+        <div style={{ display: 'flex', width: '100%', backgroundColor: '#ffffff', flex: '1 0 auto', padding: '16px 0' }}>
           
           {/* Linke Spalte */}
           <section style={{ flex: '0 0 58%', minWidth: 0, paddingLeft: '32px', paddingRight: '12px', display: 'flex', flexDirection: 'column', gap: '12px' }}>
