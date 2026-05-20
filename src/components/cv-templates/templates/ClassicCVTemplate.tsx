@@ -46,7 +46,7 @@ const skillLevelToStars = (level: string | undefined): number => {
 };
 
 const StarRating: React.FC<{ stars: number; total?: number }> = ({ stars, total = 5 }) => (
-  <span className="inline-flex items-center gap-px flex-shrink-0">
+  <span className="inline-flex items-center gap-px flex-shrink-0 flex-nowrap whitespace-nowrap">
     {Array.from({ length: total }).map((_, i) => (
       <svg key={i} width="7" height="7" viewBox="0 0 12 12" fill={i < stars ? '#6b7280' : '#d1d5db'}>
         <polygon points="6,1 7.5,4.5 11,5 8.5,7.5 9,11 6,9.5 3,11 3.5,7.5 1,5 4.5,4.5" />
@@ -107,7 +107,6 @@ export const ClassicCVTemplate: React.FC<ClassicCVTemplateProps> = ({
   onUpdateSection,
   onUpdateSectionItem,
 }) => {
-  // Hilfsfunktionen, um bestimmte Section-Typen zu finden
   const findSectionIndex = (type: string) =>
     sections.findIndex((s) => s.type === type);
 
@@ -131,9 +130,7 @@ const renderBulletPoints = (bullets: any[] | undefined) => {
           const text = typeof bp === 'string' ? bp : bp?.text ?? String(bp);
           if (!text) return null;
           return (
-            <li key={idx} className="leading-snug" style={{ display: 'flex', alignItems: 'flex-start', gap: '6px' }}>
-              
-              {/* 💡 HIER KORRIGIERT: Echtes Textzeichen statt leerer 5x5px CSS-Box */}
+            <li key={idx} className="leading-snug" style={{ display: 'flex', alignItems: 'flex-start', gap: '6px', breakInside: 'avoid', pageBreakInside: 'avoid' }}>
               <span 
                 style={{ 
                   flexShrink: 0, 
@@ -146,7 +143,6 @@ const renderBulletPoints = (bullets: any[] | undefined) => {
               >
                 •
               </span>
-              
               <span style={{ flex: 1 }}>{text}</span>
             </li>
           );
@@ -167,13 +163,12 @@ const renderExperience = () => {
         </h2>
         <div className="space-y-3">
           {items.map((item: any, idx: number) => (
-            /* 💡 HIER KORRIGIERT: Jeder Job-Block wird einzeln vor dem Umbruch geschützt! */
-            <div key={idx} data-pdf-section style={{ display: 'block', width: '100%' }}>
-              <div className="flex items-baseline justify-between gap-2">
+            <div key={idx} data-pdf-section style={{ display: 'block', width: '100%', breakInside: 'avoid', pageBreakInside: 'avoid' }}>
+              <div className="flex flex-nowrap items-baseline justify-between gap-2">
                 <EditableText
                   value={item.title}
                   onChange={(val) => onUpdateSectionItem(experienceIndex, idx, 'title', val)}
-                  className="font-semibold text-[12px] text-gray-900 leading-snug"
+                  className="font-semibold text-[12px] text-gray-900 leading-snug flex-1 min-w-0"
                   placeholder="Position / Rolle"
                 />
                 <EditableText
@@ -190,14 +185,14 @@ const renderExperience = () => {
               <EditableText
                 value={item.company}
                 onChange={(val) => onUpdateSectionItem(experienceIndex, idx, 'company', val)}
-                className="text-[11px] text-gray-700 mt-0.5 leading-snug"
+                className="text-[11px] text-gray-700 mt-0.5 leading-snug w-full"
                 placeholder="Unternehmen / Ort"
               />
               {(item.location || item.ort) && (
                 <EditableText
                   value={item.location || item.ort || ''}
                   onChange={(val) => onUpdateSectionItem(experienceIndex, idx, 'location', val)}
-                  className="text-[10px] text-gray-500 leading-snug"
+                  className="text-[10px] text-gray-500 leading-snug w-full"
                   placeholder="Ort"
                 />
               )}
@@ -205,7 +200,7 @@ const renderExperience = () => {
                 <EditableText
                   value={item.description}
                   onChange={(val) => onUpdateSectionItem(experienceIndex, idx, 'description', val)}
-                  className="text-[11px] text-gray-800 mt-1 leading-snug"
+                  className="text-[11px] text-gray-800 mt-1 leading-snug w-full"
                   multiline
                   placeholder="Beschreibung / Aufgaben"
                 />
@@ -230,19 +225,18 @@ const renderExperience = () => {
         </h2>
         <div className="space-y-3">
           {items.map((item: any, idx: number) => (
-            /* 💡 HIER KORRIGIERT: Jede Station wird einzeln vor dem Zerschneiden geschützt! */
-            <div key={idx} data-pdf-section style={{ display: 'block', width: '100%' }}>
+            <div key={idx} data-pdf-section style={{ display: 'block', width: '100%', breakInside: 'avoid', pageBreakInside: 'avoid' }}>
               <EditableText
                 value={item.degree}
                 onChange={(val) => onUpdateSectionItem(educationIndex, idx, 'degree', val)}
-                className="font-semibold text-[12px] text-gray-900 leading-snug"
+                className="font-semibold text-[12px] text-gray-900 leading-snug w-full"
                 placeholder="Abschluss / Studiengang"
               />
-              <div className="flex items-baseline justify-between gap-2 mt-0.5">
+              <div className="flex flex-nowrap items-baseline justify-between gap-2 mt-0.5">
                 <EditableText
                   value={item.institution}
                   onChange={(val) => onUpdateSectionItem(educationIndex, idx, 'institution', val)}
-                  className="text-[11px] text-gray-700 leading-snug"
+                  className="text-[11px] text-gray-700 leading-snug flex-1 min-w-0"
                   placeholder="Institution / Ort"
                 />
                 <EditableText
@@ -260,7 +254,7 @@ const renderExperience = () => {
                 <EditableText
                   value={item.description}
                   onChange={(val) => onUpdateSectionItem(educationIndex, idx, 'description', val)}
-                  className="text-[11px] text-gray-800 mt-1 leading-snug"
+                  className="text-[11px] text-gray-800 mt-1 leading-snug w-full"
                   multiline
                   placeholder="Schwerpunkte / Noten / Themen"
                 />
@@ -284,13 +278,13 @@ const renderExperience = () => {
         </h2>
         <div className="space-y-3">
           {items.map((item: any, idx: number) => (
-            <div key={idx} className="leading-tight">
+            <div key={idx} data-pdf-section className="leading-tight" style={{ display: 'block', width: '100%', breakInside: 'avoid', pageBreakInside: 'avoid' }}>
               <EditableText
                 value={item.title}
                 onChange={(val) =>
                   onUpdateSectionItem(projectsIndex, idx, 'title', val)
                 }
-                className="font-semibold text-[12px] text-gray-900"
+                className="font-semibold text-[12px] text-gray-900 w-full"
                 placeholder="Projektname"
               />
               {item.role && (
@@ -299,7 +293,7 @@ const renderExperience = () => {
                   onChange={(val) =>
                     onUpdateSectionItem(projectsIndex, idx, 'role', val)
                   }
-                  className="text-[11px] text-gray-700"
+                  className="text-[11px] text-gray-700 w-full"
                   placeholder="Rolle / Verantwortung"
                 />
               )}
@@ -314,7 +308,7 @@ const renderExperience = () => {
                       val
                     )
                   }
-                  className="text-[11px] text-gray-800 mt-1"
+                  className="text-[11px] text-gray-800 mt-1 w-full"
                   multiline
                   placeholder="Projektbeschreibung / Ergebnisse"
                 />
@@ -339,14 +333,14 @@ const renderExperience = () => {
     if (!items.length) return null;
 
     return (
-      <div className="mb-4">
+      <div className="mb-4" data-pdf-section style={{ breakInside: 'avoid', pageBreakInside: 'avoid' }}>
         <h3 className="text-[10px] font-semibold tracking-[0.16em] uppercase text-gray-700 mb-1">
           {label}
         </h3>
         <ul
           className={options?.showLevelsForLanguages ? "space-y-1" : ""}
           {...(!options?.showLevelsForLanguages ? { 'data-chip-row': '' } : {})}
-          style={options?.showLevelsForLanguages ? {} : { display: 'block', overflow: 'hidden' }}
+          style={options?.showLevelsForLanguages ? {} : { display: 'block', overflow: 'visible' }}
         >
           {items.map((item: any, idx: number) => {
             if (options?.showLevelsForLanguages) {
@@ -355,13 +349,13 @@ const renderExperience = () => {
               const level = item.level || item.niveau || item.proficiency || '';
               const stars = skillLevelToStars(level);
               return (
-                <li key={idx} className="flex justify-between items-center gap-2 text-[10px]">
+                <li key={idx} className="flex flex-nowrap justify-between items-center gap-2 text-[10px]" style={{ breakInside: 'avoid', pageBreakInside: 'avoid' }}>
                   <EditableText
                     value={language}
                     onChange={(val) =>
                       onUpdateSectionItem(index, idx, 'language', val)
                     }
-                    className="text-gray-800"
+                    className="text-gray-800 flex-1 min-w-0"
                     placeholder="Sprache"
                   />
                   {stars > 0 ? (
@@ -372,7 +366,7 @@ const renderExperience = () => {
                       onChange={(val) =>
                         onUpdateSectionItem(index, idx, 'level', val)
                       }
-                      className="text-gray-600 text-right min-w-[60px]"
+                      className="text-gray-600 text-right min-w-[60px] flex-shrink-0"
                       placeholder="Niveau"
                     />
                   )}
@@ -387,7 +381,7 @@ const renderExperience = () => {
             const text = stripSectionLabel(rawText);
 
             return (
-              <li key={idx} style={{ display: 'inline-flex', marginRight: '4px', marginBottom: '4px', verticalAlign: 'middle', listStyle: 'none' }}>
+              <li key={idx} style={{ display: 'inline-flex', marginRight: '4px', marginBottom: '4px', verticalAlign: 'middle', listStyle: 'none', breakInside: 'avoid', pageBreakInside: 'avoid' }}>
                 <span className="inline-flex items-center px-2 py-0.5 rounded-full bg-gray-100 border border-gray-300 text-[9.5px] font-semibold text-gray-800 leading-snug whitespace-nowrap">
                   <EditableText
                     value={text}
@@ -414,7 +408,7 @@ const renderExperience = () => {
     if (!items.length) return null;
 
     return (
-      <div>
+      <div data-pdf-section style={{ breakInside: 'avoid', pageBreakInside: 'avoid' }}>
         <h2 className="text-[11px] font-semibold tracking-[0.16em] uppercase text-gray-700 border-b border-gray-300 pb-1 mb-2 mt-4">
           Arbeitsweise & Werte
         </h2>
@@ -425,7 +419,7 @@ const renderExperience = () => {
                 ? item
                 : item.label || item.name || item.value || String(item);
             return (
-              <li key={idx} className="leading-snug">
+              <li key={idx} className="leading-snug" style={{ breakInside: 'avoid', pageBreakInside: 'avoid' }}>
                 <EditableText
                   value={text}
                   onChange={(val) =>
@@ -455,13 +449,12 @@ const renderExperience = () => {
         border: '1px solid #d1d5db',
       }}
     >
-      {/* Außenrand für klassischen Look */}
       <div className="w-full p-6" style={{ minHeight: '1122px' }}>
-        <div className="flex gap-6" style={{ minHeight: '1080px' }}>
-          {/* Linke Spalte */}
+        {/* 💡 HIER KORRIGIERT: flex-nowrap schützt die Spalten vor dem Untereinander-Rollen im PDF */}
+        <div className="flex flex-nowrap gap-6" style={{ minHeight: '1080px' }}>
+          
           <aside className="w-2/5 max-w-[32%] pr-4 border-r border-gray-200 flex flex-col">
-            {/* Foto + Name */}
-            <div className="mb-4">
+            <div className="mb-4" style={{ breakInside: 'avoid', pageBreakInside: 'avoid' }}>
               {photoUrl && (
                 <div className="w-24 h-24 rounded-full overflow-hidden border border-gray-300 mb-3 mx-auto">
                   <img
@@ -476,20 +469,19 @@ const renderExperience = () => {
                 <EditableText
                   value={personalInfo.name}
                   onChange={(val) => onUpdatePersonalInfo('name', val)}
-                  className="text-[18px] font-bold tracking-wide text-gray-900"
+                  className="text-[18px] font-bold tracking-wide text-gray-900 w-full text-center"
                   placeholder="Dein Name"
                 />
                 <EditableText
                   value={personalInfo.title}
                   onChange={(val) => onUpdatePersonalInfo('title', val)}
-                  className="text-[11px] text-gray-600 mt-1"
+                  className="text-[11px] text-gray-600 mt-1 w-full text-center"
                   placeholder="Berufsbezeichnung"
                 />
               </div>
             </div>
 
-            {/* Kontakt */}
-            <div className="mb-4">
+            <div className="mb-4" style={{ breakInside: 'avoid', pageBreakInside: 'avoid' }}>
               <h3 className="text-[10px] font-semibold tracking-[0.16em] uppercase text-gray-700 mb-1">
                 Kontakt
               </h3>
@@ -497,37 +489,36 @@ const renderExperience = () => {
                 <EditableText
                   value={personalInfo.email}
                   onChange={(val) => onUpdatePersonalInfo('email', val)}
-                  className="text-gray-800"
+                  className="text-gray-800 w-full"
                   placeholder="E-Mail"
                 />
                 <EditableText
                   value={personalInfo.phone}
                   onChange={(val) => onUpdatePersonalInfo('phone', val)}
-                  className="text-gray-800"
+                  className="text-gray-800 w-full"
                   placeholder="Telefon"
                 />
                 <EditableText
                   value={personalInfo.location}
                   onChange={(val) => onUpdatePersonalInfo('location', val)}
-                  className="text-gray-800"
+                  className="text-gray-800 w-full"
                   placeholder="Ort"
                 />
                 <EditableText
                   value={personalInfo.linkedin}
                   onChange={(val) => onUpdatePersonalInfo('linkedin', val)}
-                  className="text-gray-800"
+                  className="text-gray-800 w-full"
                   placeholder="LinkedIn"
                 />
               </div>
             </div>
 
-            {/* Skills / Soft Skills / Sprachen in der Sidebar */}
             {renderListSection('Fähigkeiten', skillsIndex)}
             {renderListSection('Soft Skills', softSkillsIndex)}
             {renderListSection('Sprachen', languagesIndex, {
               showLevelsForLanguages: true,
             })}
-            {/* Werte, Hobbys und sonstige Sections in der Sidebar */}
+            
             {sections.map((section, index) => {
               const sidebarTypes = ['values', 'hobbies', 'interests', 'certifications', 'courses', 'awards', 'volunteering'];
               if (!sidebarTypes.includes(section.type)) return null;
@@ -544,15 +535,15 @@ const renderExperience = () => {
               };
               const label = section.title || labelMap[section.type] || section.type;
               return (
-                <div key={index} className="mb-4">
+                <div key={index} className="mb-4" data-pdf-section style={{ breakInside: 'avoid', pageBreakInside: 'avoid' }}>
                   <h3 className="text-[10px] font-semibold tracking-[0.16em] uppercase text-gray-700 mb-1">
                     {label}
                   </h3>
-                  <ul style={{ display: 'block', overflow: 'hidden' }}>
+                  <ul style={{ display: 'block', overflow: 'visible' }}>
                     {items.map((item: any, idx: number) => {
                       const rawText = typeof item === 'string' ? item : item.label || item.name || item.title || item.skill || '';
                       return (
-                        <li key={idx} style={{ display: 'inline-flex', marginRight: '4px', marginBottom: '4px', verticalAlign: 'middle', listStyle: 'none' }}>
+                        <li key={idx} style={{ display: 'inline-flex', marginRight: '4px', marginBottom: '4px', verticalAlign: 'middle', listStyle: 'none', breakInside: 'avoid', pageBreakInside: 'avoid' }}>
                           <span className="inline-flex items-center px-2 py-0.5 rounded-full bg-gray-100 border border-gray-300 text-[9.5px] font-medium text-gray-800 whitespace-nowrap">
                             <EditableText
                               value={rawText}
@@ -569,19 +560,10 @@ const renderExperience = () => {
                 </div>
               );
             })}
-
-            {/* Optional: Work Values auch links anzeigen, falls du sie lieber dort hast
-            {workValuesIndex !== -1 && (
-              <div className="mt-2">
-                {renderWorkValues()}
-              </div>
-            )} */}
           </aside>
 
-{/* Rechte Spalte */}
-          <main className="flex-1 flex flex-col">
-            {/* Profil / Summary – In eine Schutzhülle gepackt */}
-            <div data-pdf-section className="mb-4">
+          <main className="flex-1 flex flex-col min-w-0">
+            <div data-pdf-section className="mb-4" style={{ breakInside: 'avoid', pageBreakInside: 'avoid' }}>
               <section>
                 <h2 className="text-[11px] font-semibold tracking-[0.16em] uppercase text-gray-700 border-b border-gray-300 pb-1 mb-2">
                   Profil
@@ -589,20 +571,18 @@ const renderExperience = () => {
                 <EditableText
                   value={summary}
                   onChange={onUpdateSummary}
-                  className="text-[11px] text-gray-800 leading-snug"
+                  className="text-[11px] text-gray-800 leading-snug w-full"
                   placeholder="Kurzprofil / Zusammenfassung"
                   multiline
                 />
               </section>
             </div>
 
-            {/* Jede Hauptsektion bekommt eine eigene 'data-pdf-section' Schutzhülle */}
             <div data-pdf-section>{renderExperience()}</div>
             <div data-pdf-section className="mt-2">{renderEducation()}</div>
             <div data-pdf-section className="mt-2">{renderProjects()}</div>
             <div data-pdf-section className="mt-2">{renderWorkValues()}</div>
 
-            {/* Generische Sektionen – Auch hier bekommt jede dynamische Sektion eine Schutzhülle */}
             {sections.map((section, index) => {
               const knownTypes = [
                 'experience', 'education', 'projects', 'skills', 'soft_skills',
@@ -617,7 +597,7 @@ const renderExperience = () => {
               const title = section.title || section.type.charAt(0).toUpperCase() + section.type.slice(1);
 
               return (
-                <div key={section.type} data-pdf-section className="mt-4">
+                <div key={section.type} data-pdf-section className="mt-4" style={{ breakInside: 'avoid', pageBreakInside: 'avoid' }}>
                   <section>
                     <h2 className="text-[11px] font-semibold tracking-[0.16em] uppercase text-gray-700 border-b border-gray-300 pb-1 mb-2">
                       {title}
@@ -630,7 +610,7 @@ const renderExperience = () => {
                             key={idx}
                             value={text}
                             onChange={(val) => onUpdateSectionItem(index, idx, 'text', val)}
-                            className="leading-snug"
+                            className="leading-snug w-full"
                             multiline
                             placeholder="Eintrag"
                           />
@@ -670,7 +650,7 @@ const renderExperience = () => {
             onChange={(e) => onUpdatePersonalInfo('location', e.target.value)}
             placeholder="Ort"
           />
-        </div> {/* 💡 HIER KORRIGIERT: Das fehlende schließende div-Tag hinzugefügt! */}
+        </div>
         
         <span style={{ fontWeight: 600, whiteSpace: 'nowrap' }}>
           {new Date().toLocaleDateString('de-DE')}
