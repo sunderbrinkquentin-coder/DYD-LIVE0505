@@ -653,27 +653,46 @@ export const CreativeCVTemplate: React.FC<CreativeCVTemplateProps> = ({
       }}
     >
       {/* GLOBALER PRINT-STYLE GEGEN WEISSE BALKEN UND FÜR SAUBERE TRENNUNGEN */}
-<style>{`
+      <style>{`
         @media print {
           @page {
-            margin: 0 !important; /* Entfernt die weißen Standard-Ränder des Browsers */
+            margin: 0 !important; /* Entfernt die weißen Ränder komplett */
           }
-          body, html, #root, [data-pdf-wrapper] {
+          body, html, #root {
             background-color: #020314 !important;
+            -webkit-print-color-adjust: exact !important;
+            print-color-adjust: exact !important;
           }
-          /* Zwingt JEDES Element dazu, seine Hintergrundfarbe zu behalten */
+          /* Zwingt JEDES Element, seine Farbe zu behalten */
           * {
             -webkit-print-color-adjust: exact !important;
             print-color-adjust: exact !important;
             color-adjust: exact !important;
           }
-          /* Sorgt dafür, dass zerschnittene Boxen ihre abgerundeten Ecken und Ränder behalten */
           .split-box-fix {
             box-decoration-break: clone !important;
             -webkit-box-decoration-break: clone !important;
           }
         }
       `}</style>
+
+      {/* 🔥 DER ULTIMATIVE PDF-HINTERGRUND-FIX 🔥
+         Dieses Element ist "fixed". Im Druck bedeutet das: Es wiederholt sich automatisch 
+         im Hintergrund auf JEDER Seite. Das übermalt das "weiße Papier" des Browsers 
+         am Ende von Seite 2 (und allen folgenden Seiten).
+      */}
+      <div 
+        className="pointer-events-none"
+        style={{ 
+          position: 'fixed', 
+          top: 0, 
+          left: 0, 
+          right: 0, 
+          bottom: 0, 
+          backgroundColor: '#020314', 
+          zIndex: -9999 
+        }} 
+      />
 
       {/* A4-Guides (gestrichelte Trennlinien) – nur im Editor sichtbar */}
       {pageCount > 1 &&
@@ -691,7 +710,8 @@ export const CreativeCVTemplate: React.FC<CreativeCVTemplateProps> = ({
         <div className="absolute -top-10 -left-16 w-52 h-52 bg-[#22c1c3] blur-3xl rounded-full" />
         <div className="absolute -bottom-20 right-0 w-64 h-64 bg-[#66c0b6] blur-3xl rounded-full" />
       </div>
-
+        
+      {/* ... AB HIER GEHT DEIN NORMALER CODE WEITER (Header, Main, Footer etc.) ... */}
       {/* Header */}
       <header className="relative px-6 pt-4 pb-2.5 flex items-center justify-between border-b border-white/15 bg-[#020617]/90 gap-3 flex-shrink-0">
         <div className="relative flex-1 min-w-0">
