@@ -67,18 +67,26 @@ export const CreativeCVTemplate: React.FC<CreativeCVTemplateProps> = ({
     }
   }, [summary]);
 
-  // Seitenhöhe grob messen für A4-Guides
+  // Seitenhöhe exakt messen und volle Seiten erzwingen
   useEffect(() => {
     const measure = () => {
       if (!containerRef.current) return;
-      const scrollHeight = containerRef.current.scrollHeight;
-      const pages = Math.max(1, Math.ceil(scrollHeight / PAGE_HEIGHT_PX));
+      
+      containerRef.current.style.minHeight = 'auto';
+      const contentHeight = containerRef.current.scrollHeight;
+      const pages = Math.max(1, Math.ceil(contentHeight / PAGE_HEIGHT_PX));
+      
       setPageCount(pages);
     };
 
     measure();
+    const timer = setTimeout(measure, 300);
+
     window.addEventListener('resize', measure);
-    return () => window.removeEventListener('resize', measure);
+    return () => {
+      window.removeEventListener('resize', measure);
+      clearTimeout(timer);
+    };
   }, [sections, summary, personalInfo]);
 
   // ─────────── Bullet-Helper ───────────
@@ -181,10 +189,8 @@ export const CreativeCVTemplate: React.FC<CreativeCVTemplateProps> = ({
                   key={idx}
                   data-pdf-section
                   className="mb-2.5 rounded-xl bg-[#020617] border border-white/35 px-3 py-2 shadow-sm w-full split-box-fix"
-                  // HIER ERLAUBEN WIR DEN UMBRUCH (auto), falls die Box riesig ist
                   style={{ display: 'block', breakInside: 'auto', pageBreakInside: 'auto' }}
                 >
-                  {/* DIE KOPFZEILE DARF NICHT DURCHGESCHNITTEN WERDEN */}
                   <div className="flex justify-between items-start gap-2" style={{ breakInside: 'avoid', pageBreakInside: 'avoid' }}>
                     <div className="flex-1 min-w-0">
                       <input
@@ -235,7 +241,7 @@ export const CreativeCVTemplate: React.FC<CreativeCVTemplateProps> = ({
                     </div>
                   </div>
 
-{bullets.length > 0 ? (
+                  {bullets.length > 0 ? (
                     <ul className="mt-1 space-y-0.5 text-[10px] text-[#e5e7eb]">
                       {bullets.map((bp: string, bIdx: number) => (
                         <li key={bIdx} className="flex items-start gap-1" style={{ breakInside: 'avoid', pageBreakInside: 'avoid' }}>
@@ -646,7 +652,7 @@ export const CreativeCVTemplate: React.FC<CreativeCVTemplateProps> = ({
       style={{ 
         wordBreak: 'break-word', 
         overflowWrap: 'anywhere', 
-        minHeight: '1122px', 
+        minHeight: `${pageCount * PAGE_HEIGHT_PX}px`, 
         boxSizing: 'border-box',
         WebkitPrintColorAdjust: 'exact',
         printColorAdjust: 'exact'
@@ -656,14 +662,13 @@ export const CreativeCVTemplate: React.FC<CreativeCVTemplateProps> = ({
       <style>{`
         @media print {
           @page {
-            margin: 0 !important; /* Entfernt die weißen Ränder komplett */
+            margin: 0 !important;
           }
           body, html, #root {
             background-color: #020314 !important;
             -webkit-print-color-adjust: exact !important;
             print-color-adjust: exact !important;
           }
-          /* Zwingt JEDES Element, seine Farbe zu behalten */
           * {
             -webkit-print-color-adjust: exact !important;
             print-color-adjust: exact !important;
@@ -675,24 +680,6 @@ export const CreativeCVTemplate: React.FC<CreativeCVTemplateProps> = ({
           }
         }
       `}</style>
-
-      {/* 🔥 DER ULTIMATIVE PDF-HINTERGRUND-FIX 🔥
-         Dieses Element ist "fixed". Im Druck bedeutet das: Es wiederholt sich automatisch 
-         im Hintergrund auf JEDER Seite. Das übermalt das "weiße Papier" des Browsers 
-         am Ende von Seite 2 (und allen folgenden Seiten).
-      */}
-      <div 
-        className="pointer-events-none"
-        style={{ 
-          position: 'fixed', 
-          top: 0, 
-          left: 0, 
-          right: 0, 
-          bottom: 0, 
-          backgroundColor: '#020314', 
-          zIndex: -9999 
-        }} 
-      />
 
       {/* A4-Guides (gestrichelte Trennlinien) – nur im Editor sichtbar */}
       {pageCount > 1 &&
@@ -710,8 +697,7 @@ export const CreativeCVTemplate: React.FC<CreativeCVTemplateProps> = ({
         <div className="absolute -top-10 -left-16 w-52 h-52 bg-[#22c1c3] blur-3xl rounded-full" />
         <div className="absolute -bottom-20 right-0 w-64 h-64 bg-[#66c0b6] blur-3xl rounded-full" />
       </div>
-        
-      {/* ... AB HIER GEHT DEIN NORMALER CODE WEITER (Header, Main, Footer etc.) ... */}
+
       {/* Header */}
       <header className="relative px-6 pt-4 pb-2.5 flex items-center justify-between border-b border-white/15 bg-[#020617]/90 gap-3 flex-shrink-0">
         <div className="relative flex-1 min-w-0">
@@ -788,7 +774,7 @@ export const CreativeCVTemplate: React.FC<CreativeCVTemplateProps> = ({
             <SectionTitle>Profil & Story</SectionTitle>
             <textarea
               ref={summaryRef}
-              className="w-full mt-0.5 text-[11px] leading-relaxed text-[#f9fafb] bg-white/10 rounded-lg border border:white/25 border-white/25 outline-none resize-none px-2 py-1.5 backdrop-blur-sm overflow-hidden"
+              className="w-full mt-0.5 text-[11px] leading-relaxed text-[#f9fafb] bg-white/10 rounded-lg border border-white/25 outline-none resize-none px-2 py-1.5 backdrop-blur-sm overflow-hidden"
               style={{ minHeight: '60px', height: 'auto' }}
               value={summary || ''}
               onChange={(e) => {
@@ -879,7 +865,7 @@ export const CreativeCVTemplate: React.FC<CreativeCVTemplateProps> = ({
           />
         </div>
         {pageCount > 1 && (
-          <div className="flex items-center gap-1 sm:ml-auto">
+          <div data-pdf-hidden className="pdf-hidden print:hidden flex items-center gap-1 sm:ml-auto">
             <span>Voraussichtliche Seiten:</span>
             <span className="font-semibold text-white">{pageCount}</span>
           </div>
