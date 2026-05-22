@@ -193,48 +193,38 @@ export const MinimalCVTemplate: React.FC<MinimalCVTemplateProps> = ({
                   </div>
                 </div>
 
-                {bullets.length > 0 ? (
-                  <ul className="mt-1 space-y-[2px] text-[9px] text-slate-800">
+{bullets.length > 0 ? (
+                  <ul className="mt-1 space-y-[2px] text-[9.5px] text-slate-700">
                     {bullets.map((bp: string, bIdx: number) => (
                       <li key={bIdx} style={{ breakInside: 'avoid', pageBreakInside: 'avoid' }} className="flex items-start gap-1.5">
                         <span 
                           style={{ 
-                            flexShrink: 0, 
-                            color: '#64748b', 
-                            fontSize: '12px', 
-                            lineHeight: '10px', 
-                            marginTop: '1px', 
-                            userSelect: 'none' 
+                            flexShrink: 0, color: '#64748b', fontSize: '10px', lineHeight: '10px', marginTop: '1px', userSelect: 'none' 
                           }}
                         >
                           •
                         </span>
                         
                         <textarea
-                          className="flex-1 bg-transparent outline-none text-slate-800 text-[9px] leading-tight resize-none"
+                          className="flex-1 bg-transparent outline-none text-slate-800 text-[9.5px] leading-snug resize-none"
                           value={bp}
                           onChange={(e) => {
                             autoResize(e.target);
                             const newBullets = [...bullets];
                             newBullets[bIdx] = e.target.value;
-                            onUpdateSectionItem(
-                              sectionIndex,
-                              idx,
-                              'bulletPoints',
-                              newBullets
-                            );
+                            onUpdateSectionItem(sectionIndex, idx, 'bulletPoints', newBullets);
                           }}
                           onFocus={(e) => autoResize(e.target)}
                           ref={(el) => { if (el) autoResize(el); }}
                           placeholder="Aufgabe / Ergebnis"
-                          style={{ overflow: 'hidden', minHeight: '20px' }}
+                          style={{ overflow: 'hidden', minHeight: '16px' }}
                         />
                       </li>
                     ))}
                   </ul>
                 ) : (
                   <textarea
-                    className="mt-1 w-full text-[9px] text-slate-800 bg-transparent outline-none resize-none leading-tight"
+                    className="mt-1 w-full text-[9.5px] text-slate-800 bg-transparent outline-none resize-none leading-snug"
                     value={item.description || ''}
                     onChange={(e) => {
                       autoResize(e.target);
@@ -243,7 +233,7 @@ export const MinimalCVTemplate: React.FC<MinimalCVTemplateProps> = ({
                     onFocus={(e) => autoResize(e.target)}
                     ref={(el) => { if (el) autoResize(el); }}
                     placeholder="Kurz Aufgaben und Erfolge beschreiben"
-                    style={{ overflow: 'hidden', minHeight: '40px' }}
+                    style={{ overflow: 'hidden', minHeight: '32px' }}
                   />
                 )}
               </div>
