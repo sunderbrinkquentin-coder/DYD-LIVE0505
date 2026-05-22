@@ -218,7 +218,7 @@ export const ClassicCVTemplate: React.FC<ClassicCVTemplateProps> = ({
                   <EditableText
                     value={item.description.replace(/^[-•*]\s*/, '')}
                     onChange={(val) => onUpdateSectionItem(experienceIndex, idx, 'description', val)}
-                    className="text-[12px] text-slate-700 leading-snug flex-1"
+                    className="text-[9.5px] text-slate-700 leading-snug flex-1"
                     multiline
                     placeholder="Beschreibung / Aufgaben"
                   />
