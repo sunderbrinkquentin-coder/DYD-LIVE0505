@@ -1419,7 +1419,6 @@ export function CVLiveEditorPage() {
               }}
             >
               <div
-<div
             ref={cvPreviewRef}
             data-pdf-root
             className="bg-white shadow-2xl border border-slate-200 w-full"
