@@ -1407,7 +1407,6 @@ const updateSectionItem = (sectionIndex: number, itemIndex: number, field: strin
     boxShadow: '0 8px 48px 0 rgba(0,0,0,0.45)',
     borderRadius: '4px',
   }}
->
               >
                 <div className="w-full">
                   {selectedTemplate === 'modern' && editorData.personalInfo && editorData.sections && (
