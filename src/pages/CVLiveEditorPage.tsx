@@ -229,41 +229,7 @@ export function CVLiveEditorPage() {
   const cvPreviewRef = useRef<HTMLDivElement | null>(null);
   const [isExportingPDF, setIsExportingPDF] = useState(false);
   const autoDownloadTriggeredRef = useRef(false);
-  
-  // Ref und States für Mobile-Fixes
   const previewContainerRef = useRef<HTMLDivElement | null>(null);
-  const [cvScale, setCvScale] = useState(1);
-  const [cvHeight, setCvHeight] = useState(1123);
-
-  // 1. SCALING LOGIK FÜR MOBILE UND DESKTOP
-  useEffect(() => {
-    const CV_WIDTH = 794;
-    const recalc = () => {
-      // Nutzt die sichere Fensterbreite auf dem Smartphone
-      const screenWidth = window.innerWidth;
-      const padding = screenWidth < 640 ? 16 : 32; 
-      const available = screenWidth - padding;
-      
-      const scale = available < CV_WIDTH ? available / CV_WIDTH : 1;
-      setCvScale(scale);
-    };
-    
-    recalc();
-    window.addEventListener('resize', recalc);
-    return () => window.removeEventListener('resize', recalc);
-  }, []);
-
-  // 2. HEIGHT LOGIK FÜR DEN WRAPPER (Verhindert riesigen Abstand unten auf Mobile)
-  useEffect(() => {
-    if (!cvPreviewRef.current) return;
-    const resizeObserver = new ResizeObserver((entries) => {
-      for (const entry of entries) {
-        setCvHeight(entry.target.scrollHeight);
-      }
-    });
-    resizeObserver.observe(cvPreviewRef.current);
-    return () => resizeObserver.disconnect();
-  }, [editorData, selectedTemplate]);
 
   useEffect(() => {
     (window as any).__debugPdfHtml = () => debugLogPDFHtml(cvPreviewRef);
@@ -851,33 +817,12 @@ export function CVLiveEditorPage() {
           ta.setAttribute('defaultValue', ta.value);
         });
         
-        // CSS Reset vor Export für echtes A4-Format
-        const scaleWrapper = cvPreviewRef.current?.closest<HTMLElement>('.cv-scale-wrapper');
-        const parentWrapper = scaleWrapper?.parentElement;
-        
-        const savedTransform = scaleWrapper?.style.transform ?? '';
-        const savedPosition = scaleWrapper?.style.position ?? '';
-        const savedWidth = parentWrapper?.style.width ?? '';
-        const savedHeight = parentWrapper?.style.height ?? '';
-
-        if (scaleWrapper && parentWrapper) {
-          scaleWrapper.style.transform = 'none';
-          scaleWrapper.style.position = 'relative';
-          parentWrapper.style.width = '794px';
-          parentWrapper.style.height = 'auto';
-        }
-        
         await new Promise((resolve) => setTimeout(resolve, 300));
         let pdfBlob: Blob;
         try {
           pdfBlob = await exportCVToPDFBlob(cvPreviewRef, editorData, { quality: 0.95, scale: 2 });
         } finally {
-          if (scaleWrapper && parentWrapper) {
-            scaleWrapper.style.transform = savedTransform;
-            scaleWrapper.style.position = savedPosition;
-            parentWrapper.style.width = savedWidth;
-            parentWrapper.style.height = savedHeight;
-          }
+          // Export cleanup if needed
         }
 
         const blobUrl = URL.createObjectURL(pdfBlob);
@@ -984,7 +929,7 @@ export function CVLiveEditorPage() {
   const handlePhotoChange = (base64: string | null) => {
     if (base64) {
       setPhotoUrl(base64);
-      setEditorData((prev) => {
+      setEditorData((prev: any) => {
         if (!prev) return prev;
         return {
           ...prev,
@@ -995,7 +940,7 @@ export function CVLiveEditorPage() {
       setShowPhotoUpload(false);
     } else {
       setPhotoUrl('');
-      setEditorData((prev) => {
+      setEditorData((prev: any) => {
         if (!prev) return prev;
         const { photoUrl: _p, ...restPersonal } = prev.personalInfo || {};
         return {
@@ -1021,7 +966,7 @@ export function CVLiveEditorPage() {
 
   const updatePersonalInfo = (field: string, value: string) => {
     setHasEditorChanges(true);
-    setEditorData((prev) => {
+    setEditorData((prev: any) => {
       if (!prev) return prev;
       return {
         ...prev,
@@ -1035,7 +980,7 @@ export function CVLiveEditorPage() {
     updates: Partial<EditorSection>
   ) => {
     setHasEditorChanges(true);
-    setEditorData((prev) => {
+    setEditorData((prev: any) => {
       if (!prev?.sections) return prev;
       const newSections = [...prev.sections];
       newSections[sectionIndex] = {
@@ -1048,7 +993,7 @@ export function CVLiveEditorPage() {
 
   const deleteSectionItem = (sectionIndex: number, itemIndex: number) => {
     setHasEditorChanges(true);
-    setEditorData((prev) => {
+    setEditorData((prev: any) => {
       if (!prev?.sections?.[sectionIndex]) return prev;
 
       try {
@@ -1058,13 +1003,8 @@ export function CVLiveEditorPage() {
         if (!section.items || !Array.isArray(section.items)) return prev;
         if (itemIndex < 0 || itemIndex >= section.items.length) return prev;
 
-const newItems = [...section.items];
-const currentItem = newItems[itemIndex];
-
-// FIX: Prüfe, ob es ein String ist. Wenn ja, erst in Objekt umwandeln.
-newItems[itemIndex] = typeof currentItem === 'string' 
-  ? { name: currentItem, [field]: value } 
-  : { ...currentItem, [field]: value };
+        const newItems = section.items.filter((_: any, idx: number) => idx !== itemIndex);
+        section.items = newItems;
 
         newSections[sectionIndex] = section;
         return { ...prev, sections: newSections };
@@ -1081,7 +1021,7 @@ newItems[itemIndex] = typeof currentItem === 'string'
     value: any
   ) => {
     setHasEditorChanges(true);
-    setEditorData((prev) => {
+    setEditorData((prev: any) => {
       if (!prev?.sections?.[sectionIndex]) return prev;
 
       try {
@@ -1094,13 +1034,10 @@ newItems[itemIndex] = typeof currentItem === 'string'
         const newItems = [...section.items];
         const currentItem = newItems[itemIndex];
         
-        if (typeof currentItem === 'string' || typeof currentItem === 'number') {
-          newItems[itemIndex] = { name: String(currentItem), [field]: value };
-        } else if (typeof currentItem === 'object' && currentItem !== null) {
-          newItems[itemIndex] = { ...currentItem, [field]: value };
-        } else {
-          newItems[itemIndex] = { [field]: value };
-        }
+        // HIER IST DER FIX: Sichere Konvertierung von String zu Objekt
+        newItems[itemIndex] = typeof currentItem === 'string' || typeof currentItem === 'number'
+          ? { name: String(currentItem), [field]: value }
+          : { ...currentItem, [field]: value };
 
         section.items = newItems;
         newSections[sectionIndex] = section;
@@ -1260,7 +1197,7 @@ newItems[itemIndex] = typeof currentItem === 'string'
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-[#050507] via-[#0a0a0f] to-[#050507] flex flex-col">
+    <div className="h-screen bg-[#050507] flex flex-col overflow-hidden font-sans w-full">
       {isPostPaymentFlow && templateConfirmed && (
         <div style={{
           position: 'fixed', inset: 0, zIndex: 9999,
@@ -1289,12 +1226,11 @@ newItems[itemIndex] = typeof currentItem === 'string'
         </div>
       )}
 
-      {/* --- KOMPAKTER HEADER FÜR MOBILE --- */}
+      {/* HEADER */}
       <header className="bg-black/30 backdrop-blur-md border-b border-white/10 flex-shrink-0 z-50 sticky top-0 w-full">
         <div className="max-w-7xl mx-auto px-3 sm:px-4 py-2 sm:py-3">
           <div className="flex flex-col sm:flex-row gap-2 sm:items-center sm:justify-between">
             
-            {/* Reihe 1 auf Mobile: Zurück & Actions */}
             <div className="flex items-center justify-between w-full sm:w-auto">
               <button
                 onClick={() => navigate('/dashboard')}
@@ -1305,7 +1241,6 @@ newItems[itemIndex] = typeof currentItem === 'string'
                 <span className="hidden sm:inline text-sm">Dashboard</span>
               </button>
 
-              {/* Mobile Actions: Nur Icons */}
               <div className="flex sm:hidden items-center gap-2">
                 <button
                   onClick={() => setShowPhotoUpload(!showPhotoUpload)}
@@ -1323,7 +1258,6 @@ newItems[itemIndex] = typeof currentItem === 'string'
               </div>
             </div>
 
-            {/* Reihe 2 auf Mobile: Horizontal scrollbare Templates */}
             <div className="flex items-center gap-2 overflow-x-auto w-full sm:w-auto hide-scrollbar pb-1 sm:pb-0">
               <span className="text-sm text-white/60 hidden sm:inline flex-shrink-0">Design:</span>
               {templates.map((template) => (
@@ -1342,7 +1276,6 @@ newItems[itemIndex] = typeof currentItem === 'string'
               ))}
             </div>
 
-            {/* Desktop Actions */}
             <div className="hidden sm:flex items-center gap-3">
               <button
                 onClick={() => setShowPhotoUpload(!showPhotoUpload)}
@@ -1377,7 +1310,6 @@ newItems[itemIndex] = typeof currentItem === 'string'
             </div>
           </div>
 
-          {/* Upload & Range-Slider */}
           {showPhotoUpload && (
             <div className="mt-4 p-4 bg-white/5 rounded-lg border border-white/10">
               <PhotoUpload currentPhoto={photoUrl} onPhotoChange={handlePhotoChange} />
@@ -1399,165 +1331,142 @@ newItems[itemIndex] = typeof currentItem === 'string'
         </div>
       </header>
 
-      {/* --- CV PREVIEW MIT FIX FÜR MOBILE --- */}
-      <div ref={previewContainerRef} className="flex-1 flex flex-col items-center py-4 sm:py-8 px-0 sm:px-4 overflow-x-hidden overflow-y-auto bg-zinc-800/40 w-full">
-        <div className="flex flex-col items-center w-full">
-          {/* 🔥 HIER IST DER FIX FÜR DEN ABSTAND 🔥
-            Wir skalieren nicht nur die visuelle Breite (transform), 
-            sondern passen auch die tatsächliche Box-Größe (width/height) an die Skalierung an. 
-          */}
-<div 
-  className="bg-white shadow-2xl border border-slate-200"
-  style={{
-    width: '794px',         // Feste Breite für PC und Handy
-    minWidth: '794px',      // Handy scrollt horizontal statt zu stauchen
-    minHeight: '1122px',
-    margin: '0 auto',       // Zentriert auf dem Desktop
-    boxShadow: '0 8px 48px 0 rgba(0,0,0,0.45)',
-  }}
-          >
-            <div
-              className="cv-scale-wrapper"
-              style={{
-                position: cvScale < 1 ? 'absolute' : 'relative',
-                top: 0, left: 0,
-                width: '794px',
-                transformOrigin: 'top left',
-                transform: cvScale < 1 ? `scale(${cvScale})` : undefined,
-              }}
-            >
-              <div
-            ref={cvPreviewRef}
-            data-pdf-root
-            className="bg-white shadow-2xl border border-slate-200 w-full"
-            style={{
-              // Mobile: Nutze 100% Breite, Desktop: Begrenze auf 794px
-              width: '100%',
-              maxWidth: '794px',
-              minHeight: '1122px', // Sorgt für A4-Höhe
-              boxShadow: '0 8px 48px 0 rgba(0,0,0,0.45)',
-              borderRadius: '4px',
-            }}
-              >
-                <div className="w-full">
-                  {selectedTemplate === 'modern' && editorData.personalInfo && editorData.sections && (
-                    <ModernCVTemplate
-                      personalInfo={editorData.personalInfo}
-                      summary={editorData.summary}
-                      sections={editorData.sections}
-                      photoUrl={photoUrl}
-                      photoPosition={photoPosition}
-                      onUpdatePersonalInfo={updatePersonalInfo}
-                      onUpdateSummary={(value) => setEditorData((prev) => prev ? { ...prev, summary: value } : prev)}
-                      onUpdateSection={updateSection}
-                      onUpdateSectionItem={updateSectionItem}
-                      onDeleteSectionItem={deleteSectionItem}
-                    />
-                  )}
+      {/* MAIN CONTENT AREA */}
+      <main className="flex-1 overflow-auto flex flex-col items-center bg-zinc-800/40 w-full py-4 sm:py-8 px-0 sm:px-4">
+        
+        {/* DOKUMENT CONTAINER (Ohne cvScale) */}
+        <div 
+          ref={cvPreviewRef}
+          data-pdf-root
+          className="bg-white shadow-2xl border border-slate-200"
+          style={{
+            width: '794px',       
+            minWidth: '794px',    
+            minHeight: '1122px',  
+            margin: '0 auto',     
+            boxShadow: '0 8px 48px 0 rgba(0,0,0,0.45)',
+          }}
+        >
+          <div className="w-full">
+            {selectedTemplate === 'modern' && editorData.personalInfo && editorData.sections && (
+              <ModernCVTemplate
+                personalInfo={editorData.personalInfo}
+                summary={editorData.summary}
+                sections={editorData.sections}
+                photoUrl={photoUrl}
+                photoPosition={photoPosition}
+                onUpdatePersonalInfo={updatePersonalInfo}
+                onUpdateSummary={(value) => setEditorData((prev: any) => prev ? { ...prev, summary: value } : prev)}
+                onUpdateSection={updateSection}
+                onUpdateSectionItem={updateSectionItem}
+                onDeleteSectionItem={deleteSectionItem}
+              />
+            )}
 
-                  {selectedTemplate === 'classic' && editorData.personalInfo && editorData.sections && (
-                    <ClassicCVTemplate
-                      personalInfo={editorData.personalInfo}
-                      summary={editorData.summary}
-                      sections={editorData.sections}
-                      photoUrl={photoUrl}
-                      photoPosition={photoPosition}
-                      onUpdatePersonalInfo={updatePersonalInfo}
-                      onUpdateSummary={(value) => setEditorData((prev) => prev ? { ...prev, summary: value } : prev)}
-                      onUpdateSection={updateSection}
-                      onUpdateSectionItem={updateSectionItem}
-                    />
-                  )}
+            {selectedTemplate === 'classic' && editorData.personalInfo && editorData.sections && (
+              <ClassicCVTemplate
+                personalInfo={editorData.personalInfo}
+                summary={editorData.summary}
+                sections={editorData.sections}
+                photoUrl={photoUrl}
+                photoPosition={photoPosition}
+                onUpdatePersonalInfo={updatePersonalInfo}
+                onUpdateSummary={(value) => setEditorData((prev: any) => prev ? { ...prev, summary: value } : prev)}
+                onUpdateSection={updateSection}
+                onUpdateSectionItem={updateSectionItem}
+                onDeleteSectionItem={deleteSectionItem}
+              />
+            )}
 
-                  {selectedTemplate === 'minimal' && editorData.personalInfo && editorData.sections && (
-                    <MinimalCVTemplate
-                      personalInfo={editorData.personalInfo}
-                      summary={editorData.summary}
-                      sections={editorData.sections}
-                      photoUrl={photoUrl}
-                      photoPosition={photoPosition}
-                      onUpdatePersonalInfo={updatePersonalInfo}
-                      onUpdateSummary={(value) => setEditorData((prev) => prev ? { ...prev, summary: value } : prev)}
-                      onUpdateSection={updateSection}
-                      onUpdateSectionItem={updateSectionItem}
-                    />
-                  )}
+            {selectedTemplate === 'minimal' && editorData.personalInfo && editorData.sections && (
+              <MinimalCVTemplate
+                personalInfo={editorData.personalInfo}
+                summary={editorData.summary}
+                sections={editorData.sections}
+                photoUrl={photoUrl}
+                photoPosition={photoPosition}
+                onUpdatePersonalInfo={updatePersonalInfo}
+                onUpdateSummary={(value) => setEditorData((prev: any) => prev ? { ...prev, summary: value } : prev)}
+                onUpdateSection={updateSection}
+                onUpdateSectionItem={updateSectionItem}
+                onDeleteSectionItem={deleteSectionItem}
+              />
+            )}
 
-                  {selectedTemplate === 'creative' && editorData.personalInfo && editorData.sections && (
-                    <CreativeCVTemplate
-                      personalInfo={editorData.personalInfo}
-                      summary={editorData.summary}
-                      sections={editorData.sections}
-                      photoUrl={photoUrl}
-                      photoPosition={photoPosition}
-                      onUpdatePersonalInfo={updatePersonalInfo}
-                      onUpdateSummary={(value) => setEditorData((prev) => prev ? { ...prev, summary: value } : prev)}
-                      onUpdateSection={updateSection}
-                      onUpdateSectionItem={updateSectionItem}
-                    />
-                  )}
+            {selectedTemplate === 'creative' && editorData.personalInfo && editorData.sections && (
+              <CreativeCVTemplate
+                personalInfo={editorData.personalInfo}
+                summary={editorData.summary}
+                sections={editorData.sections}
+                photoUrl={photoUrl}
+                photoPosition={photoPosition}
+                onUpdatePersonalInfo={updatePersonalInfo}
+                onUpdateSummary={(value) => setEditorData((prev: any) => prev ? { ...prev, summary: value } : prev)}
+                onUpdateSection={updateSection}
+                onUpdateSectionItem={updateSectionItem}
+                onDeleteSectionItem={deleteSectionItem}
+              />
+            )}
 
-                  {selectedTemplate === 'professional' && editorData.personalInfo && editorData.sections && (
-                    <ProfessionalCVTemplate
-                      personalInfo={editorData.personalInfo}
-                      summary={editorData.summary}
-                      sections={editorData.sections}
-                      photoUrl={photoUrl}
-                      photoPosition={photoPosition}
-                      onUpdatePersonalInfo={updatePersonalInfo}
-                      onUpdateSummary={(value) => setEditorData((prev) => prev ? { ...prev, summary: value } : prev)}
-                      onUpdateSection={updateSection}
-                      onUpdateSectionItem={updateSectionItem}
-                    />
-                  )}
-                </div>
-              </div>
-            </div>
+            {selectedTemplate === 'professional' && editorData.personalInfo && editorData.sections && (
+              <ProfessionalCVTemplate
+                personalInfo={editorData.personalInfo}
+                summary={editorData.summary}
+                sections={editorData.sections}
+                photoUrl={photoUrl}
+                photoPosition={photoPosition}
+                onUpdatePersonalInfo={updatePersonalInfo}
+                onUpdateSummary={(value) => setEditorData((prev: any) => prev ? { ...prev, summary: value } : prev)}
+                onUpdateSection={updateSection}
+                onUpdateSectionItem={updateSectionItem}
+                onDeleteSectionItem={deleteSectionItem}
+              />
+            )}
           </div>
-
-          {/* Job Description etc. */}
-          {jobData && (jobData.jobTitle || jobData.company) && (
-            <div className="mt-4" style={{ width: cvScale < 1 ? `${794 * cvScale}px` : '794px', maxWidth: '794px' }}>
-              <button
-                onClick={() => setShowJobDescription(!showJobDescription)}
-                className="w-full flex items-center justify-between gap-3 px-4 py-3 bg-white/5 border border-white/10 rounded-xl hover:bg-white/[0.08]"
-              >
-                <div className="flex items-center gap-2 text-sm">
-                  <Briefcase size={16} className="text-[#66c0b6] flex-shrink-0" />
-                  <span className="text-white/70">Stellenbeschreibung:</span>
-                  {jobData.jobTitle && <span className="text-[#66c0b6] font-medium truncate">{String(jobData.jobTitle)}</span>}
-                </div>
-                <ChevronDown size={16} className={`text-white/40 flex-shrink-0 transition-transform ${showJobDescription ? 'rotate-180' : ''}`} />
-              </button>
-
-              {showJobDescription && (
-                <div className="mt-1 bg-white/5 border border-white/10 border-t-0 rounded-b-xl overflow-hidden">
-                  <div className="p-4 space-y-3">
-                    {jobData.jobDescription && (
-                      <div className="bg-black/20 rounded-lg p-3 max-h-64 overflow-y-auto text-sm text-white/80 whitespace-pre-wrap">
-                        {String(jobData.jobDescription)}
-                      </div>
-                    )}
-                  </div>
-                </div>
-              )}
-            </div>
-          )}
-
-          {editorData.matching_text && (
-            <div className="mt-6 bg-[#0f1729] border border-[#66c0b6]/20 rounded-2xl p-4 sm:p-6" style={{ width: cvScale < 1 ? `${794 * cvScale}px` : '794px' }}>
-              <div className="flex items-center gap-2 mb-3">
-                <Sparkles size={18} className="text-[#66c0b6]" />
-                <h3 className="text-white font-semibold text-sm">Generierter Matching-Text</h3>
-              </div>
-              <p className="text-white/80 text-xs sm:text-sm leading-relaxed whitespace-pre-wrap">
-                {editorData.matching_text}
-              </p>
-            </div>
-          )}
-
         </div>
-      </div>
+
+        {/* METADATA SECTION */}
+        {jobData && (jobData.jobTitle || jobData.company) && (
+          <div className="mt-4 w-full" style={{ maxWidth: '794px' }}>
+            <button
+              onClick={() => setShowJobDescription(!showJobDescription)}
+              className="w-full flex items-center justify-between gap-3 px-4 py-3 bg-white/5 border border-white/10 rounded-xl hover:bg-white/[0.08]"
+            >
+              <div className="flex items-center gap-2 text-sm">
+                <Briefcase size={16} className="text-[#66c0b6] flex-shrink-0" />
+                <span className="text-white/70">Stellenbeschreibung:</span>
+                {jobData.jobTitle && <span className="text-[#66c0b6] font-medium truncate">{String(jobData.jobTitle)}</span>}
+              </div>
+              <ChevronDown size={16} className={`text-white/40 flex-shrink-0 transition-transform ${showJobDescription ? 'rotate-180' : ''}`} />
+            </button>
+
+            {showJobDescription && (
+              <div className="mt-1 bg-white/5 border border-white/10 border-t-0 rounded-b-xl overflow-hidden">
+                <div className="p-4 space-y-3">
+                  {jobData.jobDescription && (
+                    <div className="bg-black/20 rounded-lg p-3 max-h-64 overflow-y-auto text-sm text-white/80 whitespace-pre-wrap">
+                      {String(jobData.jobDescription)}
+                    </div>
+                  )}
+                </div>
+              </div>
+            )}
+          </div>
+        )}
+
+        {editorData.matching_text && (
+          <div className="mt-6 bg-[#0f1729] border border-[#66c0b6]/20 rounded-2xl p-4 sm:p-6 w-full" style={{ maxWidth: '794px' }}>
+            <div className="flex items-center gap-2 mb-3">
+              <Sparkles size={18} className="text-[#66c0b6]" />
+              <h3 className="text-white font-semibold text-sm">Generierter Matching-Text</h3>
+            </div>
+            <p className="text-white/80 text-xs sm:text-sm leading-relaxed whitespace-pre-wrap">
+              {editorData.matching_text}
+            </p>
+          </div>
+        )}
+
+      </main>
 
       {showTips && (
         <div className="fixed top-20 right-4 max-w-md bg-[#1a1a1a] border border-[#66c0b6]/30 rounded-xl p-4 shadow-2xl z-50">
