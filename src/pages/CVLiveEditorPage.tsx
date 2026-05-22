@@ -1395,7 +1395,7 @@ const updateSectionItem = (sectionIndex: number, itemIndex: number, field: strin
       </header>
 
       {/* --- CV PREVIEW MIT FIX FÜR MOBILE --- */}
- <div 
+<div 
   ref={cvPreviewRef}
   data-pdf-root
   className="bg-white shadow-2xl border border-slate-200"
@@ -1408,12 +1408,6 @@ const updateSectionItem = (sectionIndex: number, itemIndex: number, field: strin
     borderRadius: '4px',
   }}
 >
-  <div className="w-full">
-    {/* Hier kommen deine Template-Komponenten rein */}
-    {selectedTemplate === 'modern' && <ModernCVTemplate {...editorData} />}
-    {/* ... etc ... */}
-  </div>
-</div>
               >
                 <div className="w-full">
                   {selectedTemplate === 'modern' && editorData.personalInfo && editorData.sections && (
