@@ -223,43 +223,44 @@ export function CVLiveEditorPage() {
   const [showTips, setShowTips] = useState(false);
   const [showPaymentSuccessBanner, setShowPaymentSuccessBanner] = useState(false);
   const [showJobDescription, setShowJobDescription] = useState(false);
+
   const [templateConfirmed, setTemplateConfirmed] = useState(false);
 
   const cvPreviewRef = useRef<HTMLDivElement | null>(null);
-  const mainContainerRef = useRef<HTMLElement>(null);
   const [isExportingPDF, setIsExportingPDF] = useState(false);
   const autoDownloadTriggeredRef = useRef(false);
 
-  // --- 🔥 PERFEKTE MOBILE SCALING LOGIK 🔥 ---
+  // ==========================================
+  // 🔥 NEUE PERFEKTE MOBILE-SCALING LOGIK 🔥
+  // ==========================================
   const [scale, setScale] = useState(1);
-  const [docHeight, setDocHeight] = useState(1122);
+  const [cvHeight, setCvHeight] = useState(1122);
 
-  // 1. Berechne den Skalierungsfaktor basierend auf der Bildschirmbreite
+  // 1. Zoom-Faktor ausrechnen
   useEffect(() => {
     const recalc = () => {
-      if (!mainContainerRef.current) return;
-      const padding = window.innerWidth < 640 ? 32 : 64; // Platz am Rand
-      const availableWidth = mainContainerRef.current.clientWidth - padding;
-      const newScale = availableWidth < 794 ? availableWidth / 794 : 1;
-      setScale(newScale);
+      const screenWidth = window.innerWidth;
+      const padding = screenWidth < 640 ? 32 : 64; // Etwas Rand lassen
+      const available = screenWidth - padding;
+      setScale(available < 794 ? available / 794 : 1);
     };
     recalc();
     window.addEventListener('resize', recalc);
     return () => window.removeEventListener('resize', recalc);
   }, []);
 
-  // 2. Messe die tatsächliche Höhe des Lebenslaufs für den Wrapper
+  // 2. Dokumenten-Höhe für den Container ausrechnen
   useEffect(() => {
     if (!cvPreviewRef.current) return;
     const observer = new ResizeObserver((entries) => {
       for (const entry of entries) {
-        setDocHeight(entry.target.scrollHeight);
+        setCvHeight(Math.max(1122, entry.target.scrollHeight));
       }
     });
     observer.observe(cvPreviewRef.current);
     return () => observer.disconnect();
   }, [editorData, selectedTemplate]);
-  // ------------------------------------------
+  // ==========================================
 
   useEffect(() => {
     (window as any).__debugPdfHtml = () => debugLogPDFHtml(cvPreviewRef);
@@ -1068,7 +1069,7 @@ export function CVLiveEditorPage() {
         const newItems = [...section.items];
         const currentItem = newItems[itemIndex];
         
-        // HIER IST DER FIX: Sichere Konvertierung von String zu Objekt
+        // HIER IST DER FIX: Sichere Konvertierung von String zu Objekt (Löst [object Object])
         newItems[itemIndex] = typeof currentItem === 'object' && currentItem !== null
           ? { ...currentItem, [field]: value }
           : { name: String(currentItem), [field]: value };
@@ -1366,13 +1367,13 @@ export function CVLiveEditorPage() {
       </header>
 
       {/* MAIN CONTENT AREA MIT VERBESSERTEM MOBILE-SCALING */}
-      <main ref={mainContainerRef} className="flex-1 overflow-y-auto overflow-x-hidden flex flex-col items-center bg-zinc-800/40 w-full py-4 sm:py-8 px-0 sm:px-4">
+      <main className="flex-1 overflow-y-auto overflow-x-hidden flex flex-col items-center bg-zinc-800/40 w-full py-4 sm:py-8 px-0 sm:px-4">
         
         {/* DER SCALING-WRAPPER: Sichert exakt den Platz, den das verkleinerte Dokument braucht */}
         <div 
           style={{
             width: `${794 * scale}px`,
-            height: `${docHeight * scale}px`,
+            height: `${cvHeight * scale}px`,
             position: 'relative',
             margin: '0 auto',
             transition: 'width 0.2s ease, height 0.2s ease'
