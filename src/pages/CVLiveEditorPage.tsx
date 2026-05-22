@@ -1488,7 +1488,7 @@ const updateSectionItem = (sectionIndex: number, itemIndex: number, field: strin
             </div>
           </div>
 
-          {/* Job Description etc. */}
+          /* Job Description etc. */
           {jobData && (jobData.jobTitle || jobData.company) && (
             <div className="mt-4" style={{ width: cvScale < 1 ? `${794 * cvScale}px` : '794px', maxWidth: '794px' }}>
               <button
