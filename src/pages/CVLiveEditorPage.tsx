@@ -223,13 +223,43 @@ export function CVLiveEditorPage() {
   const [showTips, setShowTips] = useState(false);
   const [showPaymentSuccessBanner, setShowPaymentSuccessBanner] = useState(false);
   const [showJobDescription, setShowJobDescription] = useState(false);
-
   const [templateConfirmed, setTemplateConfirmed] = useState(false);
 
   const cvPreviewRef = useRef<HTMLDivElement | null>(null);
+  const mainContainerRef = useRef<HTMLElement>(null);
   const [isExportingPDF, setIsExportingPDF] = useState(false);
   const autoDownloadTriggeredRef = useRef(false);
-  const previewContainerRef = useRef<HTMLDivElement | null>(null);
+
+  // --- 🔥 PERFEKTE MOBILE SCALING LOGIK 🔥 ---
+  const [scale, setScale] = useState(1);
+  const [docHeight, setDocHeight] = useState(1122);
+
+  // 1. Berechne den Skalierungsfaktor basierend auf der Bildschirmbreite
+  useEffect(() => {
+    const recalc = () => {
+      if (!mainContainerRef.current) return;
+      const padding = window.innerWidth < 640 ? 32 : 64; // Platz am Rand
+      const availableWidth = mainContainerRef.current.clientWidth - padding;
+      const newScale = availableWidth < 794 ? availableWidth / 794 : 1;
+      setScale(newScale);
+    };
+    recalc();
+    window.addEventListener('resize', recalc);
+    return () => window.removeEventListener('resize', recalc);
+  }, []);
+
+  // 2. Messe die tatsächliche Höhe des Lebenslaufs für den Wrapper
+  useEffect(() => {
+    if (!cvPreviewRef.current) return;
+    const observer = new ResizeObserver((entries) => {
+      for (const entry of entries) {
+        setDocHeight(entry.target.scrollHeight);
+      }
+    });
+    observer.observe(cvPreviewRef.current);
+    return () => observer.disconnect();
+  }, [editorData, selectedTemplate]);
+  // ------------------------------------------
 
   useEffect(() => {
     (window as any).__debugPdfHtml = () => debugLogPDFHtml(cvPreviewRef);
@@ -817,12 +847,16 @@ export function CVLiveEditorPage() {
           ta.setAttribute('defaultValue', ta.value);
         });
         
+        // PDF Export Sicherheit: Skalierung für Export kurzzeitig zurücksetzen
+        const savedTransform = el.style.transform;
+        el.style.transform = 'none';
+
         await new Promise((resolve) => setTimeout(resolve, 300));
         let pdfBlob: Blob;
         try {
           pdfBlob = await exportCVToPDFBlob(cvPreviewRef, editorData, { quality: 0.95, scale: 2 });
         } finally {
-          // Export cleanup if needed
+          el.style.transform = savedTransform;
         }
 
         const blobUrl = URL.createObjectURL(pdfBlob);
@@ -1035,9 +1069,9 @@ export function CVLiveEditorPage() {
         const currentItem = newItems[itemIndex];
         
         // HIER IST DER FIX: Sichere Konvertierung von String zu Objekt
-        newItems[itemIndex] = typeof currentItem === 'string' || typeof currentItem === 'number'
-          ? { name: String(currentItem), [field]: value }
-          : { ...currentItem, [field]: value };
+        newItems[itemIndex] = typeof currentItem === 'object' && currentItem !== null
+          ? { ...currentItem, [field]: value }
+          : { name: String(currentItem), [field]: value };
 
         section.items = newItems;
         newSections[sectionIndex] = section;
@@ -1331,103 +1365,117 @@ export function CVLiveEditorPage() {
         </div>
       </header>
 
-      {/* MAIN CONTENT AREA */}
-      <main className="flex-1 overflow-auto flex flex-col items-center bg-zinc-800/40 w-full py-4 sm:py-8 px-0 sm:px-4">
+      {/* MAIN CONTENT AREA MIT VERBESSERTEM MOBILE-SCALING */}
+      <main ref={mainContainerRef} className="flex-1 overflow-y-auto overflow-x-hidden flex flex-col items-center bg-zinc-800/40 w-full py-4 sm:py-8 px-0 sm:px-4">
         
-        {/* DOKUMENT CONTAINER (Ohne cvScale) */}
+        {/* DER SCALING-WRAPPER: Sichert exakt den Platz, den das verkleinerte Dokument braucht */}
         <div 
-          ref={cvPreviewRef}
-          data-pdf-root
-          className="bg-white shadow-2xl border border-slate-200"
           style={{
-            width: '794px',       
-            minWidth: '794px',    
-            minHeight: '1122px',  
-            margin: '0 auto',     
-            boxShadow: '0 8px 48px 0 rgba(0,0,0,0.45)',
+            width: `${794 * scale}px`,
+            height: `${docHeight * scale}px`,
+            position: 'relative',
+            margin: '0 auto',
+            transition: 'width 0.2s ease, height 0.2s ease'
           }}
         >
-          <div className="w-full">
-            {selectedTemplate === 'modern' && editorData.personalInfo && editorData.sections && (
-              <ModernCVTemplate
-                personalInfo={editorData.personalInfo}
-                summary={editorData.summary}
-                sections={editorData.sections}
-                photoUrl={photoUrl}
-                photoPosition={photoPosition}
-                onUpdatePersonalInfo={updatePersonalInfo}
-                onUpdateSummary={(value) => setEditorData((prev: any) => prev ? { ...prev, summary: value } : prev)}
-                onUpdateSection={updateSection}
-                onUpdateSectionItem={updateSectionItem}
-                onDeleteSectionItem={deleteSectionItem}
-              />
-            )}
+          {/* DOKUMENT: Wird optisch verkleinert (transform: scale) aber verliert keine Auflösung */}
+          <div 
+            ref={cvPreviewRef}
+            data-pdf-root
+            className="bg-white shadow-2xl border border-slate-200"
+            style={{
+              width: '794px',       
+              minHeight: '1122px',  
+              position: 'absolute',
+              top: 0,
+              left: 0,
+              transform: `scale(${scale})`,
+              transformOrigin: 'top left',
+              boxShadow: '0 8px 48px 0 rgba(0,0,0,0.45)',
+            }}
+          >
+            <div className="w-full">
+              {selectedTemplate === 'modern' && editorData.personalInfo && editorData.sections && (
+                <ModernCVTemplate
+                  personalInfo={editorData.personalInfo}
+                  summary={editorData.summary}
+                  sections={editorData.sections}
+                  photoUrl={photoUrl}
+                  photoPosition={photoPosition}
+                  onUpdatePersonalInfo={updatePersonalInfo}
+                  onUpdateSummary={(value) => setEditorData((prev: any) => prev ? { ...prev, summary: value } : prev)}
+                  onUpdateSection={updateSection}
+                  onUpdateSectionItem={updateSectionItem}
+                  onDeleteSectionItem={deleteSectionItem}
+                />
+              )}
 
-            {selectedTemplate === 'classic' && editorData.personalInfo && editorData.sections && (
-              <ClassicCVTemplate
-                personalInfo={editorData.personalInfo}
-                summary={editorData.summary}
-                sections={editorData.sections}
-                photoUrl={photoUrl}
-                photoPosition={photoPosition}
-                onUpdatePersonalInfo={updatePersonalInfo}
-                onUpdateSummary={(value) => setEditorData((prev: any) => prev ? { ...prev, summary: value } : prev)}
-                onUpdateSection={updateSection}
-                onUpdateSectionItem={updateSectionItem}
-                onDeleteSectionItem={deleteSectionItem}
-              />
-            )}
+              {selectedTemplate === 'classic' && editorData.personalInfo && editorData.sections && (
+                <ClassicCVTemplate
+                  personalInfo={editorData.personalInfo}
+                  summary={editorData.summary}
+                  sections={editorData.sections}
+                  photoUrl={photoUrl}
+                  photoPosition={photoPosition}
+                  onUpdatePersonalInfo={updatePersonalInfo}
+                  onUpdateSummary={(value) => setEditorData((prev: any) => prev ? { ...prev, summary: value } : prev)}
+                  onUpdateSection={updateSection}
+                  onUpdateSectionItem={updateSectionItem}
+                  onDeleteSectionItem={deleteSectionItem}
+                />
+              )}
 
-            {selectedTemplate === 'minimal' && editorData.personalInfo && editorData.sections && (
-              <MinimalCVTemplate
-                personalInfo={editorData.personalInfo}
-                summary={editorData.summary}
-                sections={editorData.sections}
-                photoUrl={photoUrl}
-                photoPosition={photoPosition}
-                onUpdatePersonalInfo={updatePersonalInfo}
-                onUpdateSummary={(value) => setEditorData((prev: any) => prev ? { ...prev, summary: value } : prev)}
-                onUpdateSection={updateSection}
-                onUpdateSectionItem={updateSectionItem}
-                onDeleteSectionItem={deleteSectionItem}
-              />
-            )}
+              {selectedTemplate === 'minimal' && editorData.personalInfo && editorData.sections && (
+                <MinimalCVTemplate
+                  personalInfo={editorData.personalInfo}
+                  summary={editorData.summary}
+                  sections={editorData.sections}
+                  photoUrl={photoUrl}
+                  photoPosition={photoPosition}
+                  onUpdatePersonalInfo={updatePersonalInfo}
+                  onUpdateSummary={(value) => setEditorData((prev: any) => prev ? { ...prev, summary: value } : prev)}
+                  onUpdateSection={updateSection}
+                  onUpdateSectionItem={updateSectionItem}
+                  onDeleteSectionItem={deleteSectionItem}
+                />
+              )}
 
-            {selectedTemplate === 'creative' && editorData.personalInfo && editorData.sections && (
-              <CreativeCVTemplate
-                personalInfo={editorData.personalInfo}
-                summary={editorData.summary}
-                sections={editorData.sections}
-                photoUrl={photoUrl}
-                photoPosition={photoPosition}
-                onUpdatePersonalInfo={updatePersonalInfo}
-                onUpdateSummary={(value) => setEditorData((prev: any) => prev ? { ...prev, summary: value } : prev)}
-                onUpdateSection={updateSection}
-                onUpdateSectionItem={updateSectionItem}
-                onDeleteSectionItem={deleteSectionItem}
-              />
-            )}
+              {selectedTemplate === 'creative' && editorData.personalInfo && editorData.sections && (
+                <CreativeCVTemplate
+                  personalInfo={editorData.personalInfo}
+                  summary={editorData.summary}
+                  sections={editorData.sections}
+                  photoUrl={photoUrl}
+                  photoPosition={photoPosition}
+                  onUpdatePersonalInfo={updatePersonalInfo}
+                  onUpdateSummary={(value) => setEditorData((prev: any) => prev ? { ...prev, summary: value } : prev)}
+                  onUpdateSection={updateSection}
+                  onUpdateSectionItem={updateSectionItem}
+                  onDeleteSectionItem={deleteSectionItem}
+                />
+              )}
 
-            {selectedTemplate === 'professional' && editorData.personalInfo && editorData.sections && (
-              <ProfessionalCVTemplate
-                personalInfo={editorData.personalInfo}
-                summary={editorData.summary}
-                sections={editorData.sections}
-                photoUrl={photoUrl}
-                photoPosition={photoPosition}
-                onUpdatePersonalInfo={updatePersonalInfo}
-                onUpdateSummary={(value) => setEditorData((prev: any) => prev ? { ...prev, summary: value } : prev)}
-                onUpdateSection={updateSection}
-                onUpdateSectionItem={updateSectionItem}
-                onDeleteSectionItem={deleteSectionItem}
-              />
-            )}
+              {selectedTemplate === 'professional' && editorData.personalInfo && editorData.sections && (
+                <ProfessionalCVTemplate
+                  personalInfo={editorData.personalInfo}
+                  summary={editorData.summary}
+                  sections={editorData.sections}
+                  photoUrl={photoUrl}
+                  photoPosition={photoPosition}
+                  onUpdatePersonalInfo={updatePersonalInfo}
+                  onUpdateSummary={(value) => setEditorData((prev: any) => prev ? { ...prev, summary: value } : prev)}
+                  onUpdateSection={updateSection}
+                  onUpdateSectionItem={updateSectionItem}
+                  onDeleteSectionItem={deleteSectionItem}
+                />
+              )}
+            </div>
           </div>
         </div>
 
         {/* METADATA SECTION */}
         {jobData && (jobData.jobTitle || jobData.company) && (
-          <div className="mt-4 w-full" style={{ maxWidth: '794px' }}>
+          <div className="mt-8 px-4 w-full" style={{ width: `${794 * scale}px` }}>
             <button
               onClick={() => setShowJobDescription(!showJobDescription)}
               className="w-full flex items-center justify-between gap-3 px-4 py-3 bg-white/5 border border-white/10 rounded-xl hover:bg-white/[0.08]"
@@ -1455,7 +1503,7 @@ export function CVLiveEditorPage() {
         )}
 
         {editorData.matching_text && (
-          <div className="mt-6 bg-[#0f1729] border border-[#66c0b6]/20 rounded-2xl p-4 sm:p-6 w-full" style={{ maxWidth: '794px' }}>
+          <div className="mt-6 mb-12 bg-[#0f1729] border border-[#66c0b6]/20 rounded-2xl p-4 sm:p-6 w-full" style={{ width: `${794 * scale}px` }}>
             <div className="flex items-center gap-2 mb-3">
               <Sparkles size={18} className="text-[#66c0b6]" />
               <h3 className="text-white font-semibold text-sm">Generierter Matching-Text</h3>
