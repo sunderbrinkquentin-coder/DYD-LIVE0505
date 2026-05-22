@@ -1058,8 +1058,13 @@ export function CVLiveEditorPage() {
         if (!section.items || !Array.isArray(section.items)) return prev;
         if (itemIndex < 0 || itemIndex >= section.items.length) return prev;
 
-        const newItems = section.items.filter((_: any, idx: number) => idx !== itemIndex);
-        section.items = newItems;
+const newItems = [...section.items];
+const currentItem = newItems[itemIndex];
+
+// FIX: Prüfe, ob es ein String ist. Wenn ja, erst in Objekt umwandeln.
+newItems[itemIndex] = typeof currentItem === 'string' 
+  ? { name: currentItem, [field]: value } 
+  : { ...currentItem, [field]: value };
 
         newSections[sectionIndex] = section;
         return { ...prev, sections: newSections };
