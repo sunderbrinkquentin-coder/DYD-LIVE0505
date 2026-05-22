@@ -194,7 +194,7 @@ export const MinimalCVTemplate: React.FC<MinimalCVTemplateProps> = ({
                 </div>
 
                 {bullets.length > 0 ? (
-                  <ul className="mt-1 space-y-[2px] text-[10px] text-slate-800">
+                  <ul className="mt-1 space-y-[2px] text-[9px] text-slate-800">
                     {bullets.map((bp: string, bIdx: number) => (
                       <li key={bIdx} style={{ breakInside: 'avoid', pageBreakInside: 'avoid' }} className="flex items-start gap-1.5">
                         <span 
@@ -211,7 +211,7 @@ export const MinimalCVTemplate: React.FC<MinimalCVTemplateProps> = ({
                         </span>
                         
                         <textarea
-                          className="flex-1 bg-transparent outline-none text-slate-800 text-[10px] leading-tight resize-none"
+                          className="flex-1 bg-transparent outline-none text-slate-800 text-[9px] leading-tight resize-none"
                           value={bp}
                           onChange={(e) => {
                             autoResize(e.target);
@@ -234,7 +234,7 @@ export const MinimalCVTemplate: React.FC<MinimalCVTemplateProps> = ({
                   </ul>
                 ) : (
                   <textarea
-                    className="mt-1 w-full text-[10px] text-slate-800 bg-transparent outline-none resize-none leading-tight"
+                    className="mt-1 w-full text-[9px] text-slate-800 bg-transparent outline-none resize-none leading-tight"
                     value={item.description || ''}
                     onChange={(e) => {
                       autoResize(e.target);
