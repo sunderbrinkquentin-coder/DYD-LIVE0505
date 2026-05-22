@@ -265,18 +265,14 @@ export function CVLiveEditorPage() {
     return () => observer.disconnect();
   }, []);
 
-  // Expose debug helper on window so it can be triggered from DevTools console:
-  //   window.__debugPdfHtml()
   useEffect(() => {
     (window as any).__debugPdfHtml = () => debugLogPDFHtml(cvPreviewRef);
     return () => { delete (window as any).__debugPdfHtml; };
   }, []);
 
-  // Auto-Save Refs
   const isInitialLoadRef = useRef(true);
   const saveTimeoutRef = useRef<number | null>(null);
 
-  // Fetch selected_template from DB on mount (especially needed for post-payment PDF render)
   useEffect(() => {
     if (!cvId) {
       setIsTemplateReady(true);
@@ -294,10 +290,8 @@ export function CVLiveEditorPage() {
         }
         setIsTemplateReady(true);
       });
-  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [cvId]);
 
-  // 🔁 Datenverarbeitung wenn useCvOptimizationStatus fertig ist
   useEffect(() => {
     if (!cvId) {
       setError('Keine CV-ID gefunden.');
@@ -314,7 +308,6 @@ export function CVLiveEditorPage() {
 
     if (!cvData || !cvData.id) return;
 
-    // Don't overwrite user edits with Make.com optimized data
     if (hasEditorChanges && isCompleted && !isReady) return;
 
     const processData = async () => {
@@ -329,7 +322,7 @@ export function CVLiveEditorPage() {
         Object.keys(rawHookCvData).length > 0;
 
       if (!hookHasCvData) {
-        console.log('[CV EDITOR] 🔄 Hook cv_data empty – fetching fresh from Supabase (with retries)...');
+        console.log('[CV EDITOR] 🔄 Hook cv_data empty – fetching fresh from Supabase...');
 
         const fetchWithRetry = async (attemptsLeft: number): Promise<any> => {
           const { data: freshData, error: fetchErr } = await supabase
@@ -361,7 +354,7 @@ export function CVLiveEditorPage() {
             return freshData;
           }
 
-          console.log(`[CV EDITOR] 🔄 cv_data still empty (status=${freshData.status}), retrying in 2s (${attemptsLeft} left)...`);
+          console.log(`[CV EDITOR] 🔄 cv_data still empty, retrying... (${attemptsLeft} left)`);
           await new Promise(resolve => setTimeout(resolve, 2000));
           return fetchWithRetry(attemptsLeft - 1);
         };
@@ -369,15 +362,12 @@ export function CVLiveEditorPage() {
         const freshData = await fetchWithRetry(5);
 
         if (!freshData) {
-          console.warn('[CV EDITOR] ⚠️ Kein Datensatz für id', cvId);
           setError('Kein CV-Datensatz gefunden. Bitte starte den Prozess erneut.');
           setCvStatus('failed');
           return;
         }
 
         data = freshData;
-      } else {
-        console.log('[CV EDITOR] ✅ Using cv_data from hook (no second fetch needed)');
       }
 
       if (user && !data.user_id) {
@@ -392,25 +382,21 @@ export function CVLiveEditorPage() {
       setCvStatus(rawStatus);
       setIsDownloadUnlocked(!!data.download_unlocked);
 
-      // --- Robust JSON parsing (handles single & double-encoded strings) ---
       const parseJsonRobust = (source: any): any => {
         if (!source) return null;
         if (typeof source !== 'string') return source;
         try {
           let parsed = JSON.parse(source);
           if (typeof parsed === 'string') {
-            try { parsed = JSON.parse(parsed); } catch { /* keep first parse */ }
+            try { parsed = JSON.parse(parsed); } catch { }
           }
           return parsed;
         } catch (e) {
-          console.error('[CV EDITOR] ⚠️ JSON.parse failed:', e);
           return null;
         }
       };
 
-      // --- cv_data aus Supabase holen/parsen (no deepSanitize – trust DB data) ---
       let rawCvData: any = null;
-
       const cvFields = ['cv_data', 'ats_json'];
       let cvField = '';
       for (const field of cvFields) {
@@ -420,12 +406,6 @@ export function CVLiveEditorPage() {
         }
       }
 
-      console.log('[CV EDITOR] 🔍 Available data fields:', {
-        has_cv_data: !!(data as any)?.cv_data,
-        has_ats_json: !!(data as any)?.ats_json,
-        using: cvField || 'none',
-      });
-
       if (cvField) {
         rawCvData = parseJsonRobust((data as any)[cvField]);
       }
@@ -433,17 +413,13 @@ export function CVLiveEditorPage() {
       if (!rawCvData || (typeof rawCvData === 'object' && !Array.isArray(rawCvData) && Object.keys(rawCvData).length === 0)) {
         const currentStatus = ((data.status as string) || '').toLowerCase().trim();
         if (currentStatus === 'processing' || currentStatus === 'pending') {
-          console.log('[CV EDITOR] ⏳ cv_data empty and status=processing – keeping loading screen');
           setCvStatus(currentStatus);
           return;
         }
-        console.warn('[CV EDITOR] ⚠️ cv_data is empty after Make processing');
         setError('Die Optimierung ist abgeschlossen, aber es wurden keine CV-Daten zurückgegeben. Bitte versuche es erneut.');
         setCvStatus('failed');
         return;
       }
-
-      console.log('[CV EDITOR] 🔍 rawCvData Inhalt:', rawCvData);
 
       if (data.job_data) {
         try {
@@ -453,22 +429,17 @@ export function CVLiveEditorPage() {
         }
       }
 
-      // Helper: returns arr only if it's a non-empty array
       const nonEmpty = (arr: any): any[] | null =>
         Array.isArray(arr) && arr.length > 0 ? arr : null;
 
-      // Helper: formats a date value to MM/YYYY or 'Heute'
       const formatDate = (raw: any): string => {
         if (!raw) return '';
         const str = String(raw).trim();
         if (!str) return '';
         const lower = str.toLowerCase();
         if (lower === 'present' || lower === 'heute' || lower === 'aktuell' || lower === 'current' || lower === 'now') return 'Heute';
-        // Already in MM/YYYY format
         if (/^\d{2}\/\d{4}$/.test(str)) return str;
-        // Only a year: YYYY
         if (/^\d{4}$/.test(str)) return `01/${str}`;
-        // ISO date: YYYY-MM-DD or YYYY-MM
         const iso = str.match(/^(\d{4})-(\d{2})/);
         if (iso) {
           const y = iso[1];
@@ -479,7 +450,6 @@ export function CVLiveEditorPage() {
             return `${m}/${y}`;
           }
         }
-        // DD.MM.YYYY or MM.YYYY
         const dotDMY = str.match(/^(\d{1,2})\.(\d{1,2})\.(\d{4})$/);
         if (dotDMY) return `${dotDMY[2].padStart(2, '0')}/${dotDMY[3]}`;
         const dotMY = str.match(/^(\d{1,2})\.(\d{4})$/);
@@ -487,7 +457,6 @@ export function CVLiveEditorPage() {
         return str;
       };
 
-      // Helper: fallback search across nesting levels for a non-empty array
       const findArray = (fieldNames: string[]): any[] => {
         const sources = [
           rawCvData,
@@ -508,8 +477,6 @@ export function CVLiveEditorPage() {
         return [];
       };
 
-      // 1) editorPayload: PRIORITIZE flat root fields, fall back to nested keys
-      // If rawCvData itself has personalInfo/summary/sections directly, use it as-is
       const hasRootPersonalInfo = !!rawCvData?.personalInfo;
       const hasRootSections = Array.isArray(rawCvData?.sections) && rawCvData.sections.length > 0;
       const hasRootSummary = typeof rawCvData?.summary === 'string';
@@ -524,9 +491,6 @@ export function CVLiveEditorPage() {
            rawCvData ||
            {});
 
-      console.log('[CV EDITOR] 📦 Using editorPayload (root fields present:', hasRootPersonalInfo || hasRootSections, ')');
-
-      // 2) Foto extrahieren
       const photoFromPayload =
         editorPayload.photoUrl ||
         editorPayload.photo_url ||
@@ -545,7 +509,6 @@ export function CVLiveEditorPage() {
         setPhotoPosition(editorPayload.photoPosition);
       }
 
-      // 3) Personal Info mappen
       const rawPersonal =
         editorPayload.personalInfo ||
         editorPayload.personal_data ||
@@ -577,24 +540,33 @@ export function CVLiveEditorPage() {
         industryType: editorPayload.targetIndustry || '',
       };
 
-      // 4) Sections: 1:1 passthrough if present, manual mapping ONLY as fallback
       let sections: EditorSection[] = [];
 
       const CATEGORY_PREFIX_RE = /^(Programmiersprachen|Technische\s*F[äa]higkeiten|Fachkenntnisse|Kenntnisse|Fachliche\s*Skills|Technische\s*Skills|Tools?|SoftSkills|Soft\s*Skills|HardSkills|Hard\s*Skills|Skills|F[äa]higkeiten|Sprachen|Languages|Kompetenzen)[:\s\-–]+/i;
 
-      const cleanSkillText = (raw: any): string => {
-        if (typeof raw !== 'string') return typeof raw === 'object' && raw !== null ? (raw.name || raw.skill || raw.text || String(raw)) : String(raw ?? '');
-        return raw.replace(CATEGORY_PREFIX_RE, '').trim();
-      };
-
+      // 🔥 FIX FÜR SKILLS & LEVEL: Verhindert, dass Level in Strings umgewandelt und gelöscht werden!
       const expandSkillItems = (items: any[]): any[] => {
         const result: any[] = [];
         for (const item of items) {
-          const text = cleanSkillText(item);
-          if (text.includes(',')) {
-            text.split(',').map((s: string) => s.trim()).filter(Boolean).forEach((s: string) => result.push(s));
-          } else if (text) {
-            result.push(text);
+          let name = '';
+          let level = '';
+
+          if (typeof item === 'object' && item !== null) {
+            name = item.name || item.skill || item.label || item.text || '';
+            level = item.level || item.niveau || item.proficiency || '';
+          } else {
+            name = String(item ?? '');
+          }
+
+          name = name.replace(CATEGORY_PREFIX_RE, '').trim();
+
+          if (name.includes(',')) {
+            name.split(',')
+              .map((s: string) => s.trim())
+              .filter(Boolean)
+              .forEach((s: string) => result.push({ name: s, level }));
+          } else if (name) {
+            result.push({ name, level });
           }
         }
         return result;
@@ -644,24 +616,19 @@ export function CVLiveEditorPage() {
 
       if (Array.isArray(editorPayload.sections) && editorPayload.sections.length > 0) {
         sections = (editorPayload.sections as EditorSection[]).map(normalizeSkillSection).map(normalizeDateSection).map(sortSectionNewestFirst);
-        // Deduplicate: keep only the first occurrence of each section type
         const seenTypes = new Set<string>();
         sections = sections.filter((s) => {
           if (seenTypes.has(s.type)) return false;
           seenTypes.add(s.type);
           return true;
         });
-        console.log('[CV EDITOR] 📚 1:1 sections from editorPayload:', sections.map((s) => s.type));
 
         const personalSection = sections.find((s) => s.type === 'personal' || s.type === 'personalInfo');
         if (personalSection && (personalSection as any).data) {
           Object.assign(personalInfo, (personalSection as any).data);
         }
       } else {
-        // Fallback: manual mapping from individual arrays
-        console.log('[CV EDITOR] 🔧 No sections array found – building from individual fields (fallback)');
-
-        // Experience
+        // Fallback: manual mapping
         const experienceItems = findArray(['experiences', 'workExperiences', 'workExperience', 'work_experience', 'cv_experience', 'experience']);
         if (experienceItems.length > 0) {
           const mappedExpItems = experienceItems.map((exp: any) => ({
@@ -678,7 +645,6 @@ export function CVLiveEditorPage() {
           sections.push({ type: 'experience', title: 'Berufserfahrung', items: [] });
         }
 
-        // Education
         const schoolEduItems = nonEmpty(editorPayload.schoolEducation) || [];
         const professionalEduItems = nonEmpty(editorPayload.professionalEducation) || [];
         const wizardCombinedEdu = [...professionalEduItems, ...schoolEduItems];
@@ -700,7 +666,6 @@ export function CVLiveEditorPage() {
           });
         }
 
-        // Projects
         const projectItems = findArray(['projects', 'project', 'cv_projects']);
         if (projectItems.length > 0) {
           sections.push({
@@ -715,7 +680,6 @@ export function CVLiveEditorPage() {
           });
         }
 
-        // Skills
         const isLanguageItem = (item: any): boolean => {
           const langs = ['deutsch', 'englisch', 'französisch', 'spanisch', 'italienisch', 'portugiesisch', 'russisch', 'chinesisch', 'japanisch', 'arabisch', 'türkisch', 'polnisch', 'niederländisch', 'schwedisch', 'norwegian', 'dänisch', 'finnisch', 'griechisch', 'german', 'english', 'french', 'spanish', 'italian', 'portuguese', 'russian', 'chinese', 'japanese', 'arabic', 'turkish', 'polish', 'dutch', 'swedish', 'danish', 'finnish', 'greek'];
           if (typeof item === 'string') return langs.some(l => item.toLowerCase().includes(l));
@@ -758,7 +722,6 @@ export function CVLiveEditorPage() {
           if (softItems.length > 0) sections.push({ type: 'soft_skills', title: 'Soft Skills', items: expandSkillItems(softItems) });
         }
 
-        // Languages (fallback path) — only add if no languages section exists yet
         if (!sections.some((s) => s.type === 'languages')) {
           const langRaw = rawCvData?.languages || editorPayload.languages || editorPayload.language || editorPayload.languageSkills || editorPayload.language_skills || editorPayload.cv_languages || editorPayload.sprachkenntnisse || [];
           const allLangs = [...(Array.isArray(langRaw) ? langRaw : []), ...collectedLanguagesFallback];
@@ -774,7 +737,6 @@ export function CVLiveEditorPage() {
           }
         }
 
-        // Optional sections
         [
           { key: ['workValues', 'work_values', 'values'], subKey: 'values', type: 'work_values', title: 'Arbeitsweise & Werte' },
           { key: ['certifications', 'certificates', 'cv_certifications'], type: 'certifications', title: 'Zertifikate' },
@@ -796,9 +758,7 @@ export function CVLiveEditorPage() {
 
       if (!Array.isArray(sections)) sections = [];
 
-      // Final deduplication across all paths
       {
-        // 1) Deduplicate by type (keep first occurrence)
         const seenFinal = new Set<string>();
         sections = sections.filter((s) => {
           if (seenFinal.has(s.type)) return false;
@@ -806,7 +766,6 @@ export function CVLiveEditorPage() {
           return true;
         });
 
-        // 2) Merge sections that share an identical normalized title
         const normalize = (t: string) => (t || '').toLowerCase().replace(/[^a-z0-9äöüß]/g, '');
         const titleMap = new Map<string, number>();
         const merged: typeof sections = [];
@@ -828,13 +787,6 @@ export function CVLiveEditorPage() {
         sections = merged;
       }
 
-      console.log('[CV EDITOR] 🎯 FINALE MAPPED SECTIONS:', sections.map(s => ({ type: s.type, items: Array.isArray(s.items) ? s.items.length : 'n/a' })));
-
-      // 5) Languages: only keep top-level languages if NO languages section exists (avoid duplicates)
-      const languagesSection = sections.find((s) => s.type === 'languages');
-      const normalizedLanguages: any[] = languagesSection ? [] : [];
-
-      // 6) Projects: extract from sections for top-level sync
       const projectsSection = sections.find((s) => s.type === 'projects');
 
       const resolvedSummary: string | undefined =
@@ -875,10 +827,6 @@ export function CVLiveEditorPage() {
         languages: [],
       };
 
-      console.log('[CV EDITOR] 🎯 Top-level projects:', mappedEditor.projects?.length || 0);
-      console.log('[CV EDITOR] 🎯 Top-level languages:', mappedEditor.languages?.length || 0);
-
-      // Restore saved template selection if present
       const savedTemplate = (data as any)?.selected_template || (rawCvData as any)?._selectedTemplate;
       if (savedTemplate && ['modern','classic','minimal','creative','professional'].includes(savedTemplate)) {
         setSelectedTemplate(savedTemplate as CVTemplateType);
@@ -890,7 +838,6 @@ export function CVLiveEditorPage() {
     processData();
   }, [cvId, isCompleted, isReady, isFailed, cvData, statusError, user]);
 
-  // ------- Supabase Realtime: sofort aktualisieren wenn Make.com schreibt -------
   useEffect(() => {
     if (!cvId || hasEditorChanges) return;
 
@@ -908,7 +855,6 @@ export function CVLiveEditorPage() {
           const newRow = payload.new as any;
           if (!newRow) return;
           const newStatus = (newRow.status || '').toLowerCase().trim();
-          console.log('[CVLiveEditor] 🔄 Realtime update received. Status:', newStatus);
           setCvStatus(newStatus);
           if (newRow.download_unlocked !== undefined) {
             setIsDownloadUnlocked(!!newRow.download_unlocked);
@@ -922,31 +868,25 @@ export function CVLiveEditorPage() {
     };
   }, [cvId, hasEditorChanges]);
 
-  // ------- Unlock-Status nach Zahlung setzen -------
   useEffect(() => {
     const paymentSuccess = searchParams.get('payment') === 'success';
     if (paymentSuccess) {
       setIsDownloadUnlocked(true);
       setShowPaymentSuccessBanner(true);
     }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [searchParams]);
 
-  // ------- Auto-Download nach erfolgreicher Zahlung -------
-  // Runs once after templateConfirmed becomes true + editorData + cvPreviewRef are ready
   useEffect(() => {
     const paymentSuccess = searchParams.get('payment') === 'success';
     if (!paymentSuccess || !editorData || !user || !cvId) return;
     if (!isTemplateReady || !templateConfirmed) return;
 
-    // Guard against double-fire
     if (autoDownloadTriggeredRef.current) return;
     autoDownloadTriggeredRef.current = true;
 
     const toSlug = (s: string) => s.replace(/[^a-zA-Z0-9äöüÄÖÜß]/g, '_').replace(/_+/g, '_').replace(/^_|_$/g, '');
 
     const doExportAndNavigate = async () => {
-      // Poll until cvPreviewRef has real content or timeout after 5s
       const waitForElement = async (ref: { current: HTMLDivElement | null }, maxMs = 5000): Promise<HTMLDivElement | null> => {
         const start = Date.now();
         while (Date.now() - start < maxMs) {
@@ -959,10 +899,8 @@ export function CVLiveEditorPage() {
 
       const el = await waitForElement(cvPreviewRef, 5000);
 
-      // Regardless of whether PDF succeeds, always navigate to dashboard
       const navigateToDashboard = () => navigate(`/dashboard?payment=success&highlightCv=${cvId}`);
 
-      // Build job_data with all field name conventions for Kanban
       const existingJobData = jobData || {};
       const normalizedJobData = {
         ...existingJobData,
@@ -972,7 +910,6 @@ export function CVLiveEditorPage() {
         companyName: existingJobData.companyName || existingJobData.company || '',
       };
 
-      // Always save the current state to DB before navigating
       const saveToDb = async (pdfPublicUrl?: string) => {
         try {
           const finalData = prepareCvDataForSave(editorData);
@@ -985,13 +922,10 @@ export function CVLiveEditorPage() {
             ...(pdfPublicUrl ? { pdf_url: pdfPublicUrl } : {}),
             updated_at: new Date().toISOString(),
           }).eq('id', cvId);
-        } catch (e) {
-          console.warn('[CVLiveEditor] DB save failed:', e);
-        }
+        } catch (e) {}
       };
 
       if (!el || el.scrollHeight < 50) {
-        // Template not rendered — save + navigate without PDF
         await saveToDb();
         navigateToDashboard();
         return;
@@ -1007,8 +941,6 @@ export function CVLiveEditorPage() {
           ? `Lebenslauf_${toSlug(lastName)}_${toSlug(co)}`
           : lastName ? `Lebenslauf_${toSlug(lastName)}` : 'Lebenslauf_Optimiert';
 
-        // Disable cv-scale-wrapper CSS transform before capture so html2canvas
-        // sees the element at its natural 794px width (transform is visual-only).
         const liveTextareas = cvPreviewRef.current?.querySelectorAll('textarea');
         liveTextareas?.forEach((ta: any) => {
           ta.setAttribute('defaultValue', ta.value);
@@ -1025,7 +957,6 @@ export function CVLiveEditorPage() {
           if (scaleWrapper) scaleWrapper.style.transform = savedTransform;
         }
 
-        // Trigger browser download
         const blobUrl = URL.createObjectURL(pdfBlob);
         const a = document.createElement('a');
         a.href = blobUrl;
@@ -1035,7 +966,6 @@ export function CVLiveEditorPage() {
         a.remove();
         setTimeout(() => URL.revokeObjectURL(blobUrl), 10000);
 
-        // Upload to Supabase storage
         let pdfPublicUrl: string | undefined;
         try {
           const filePath = `${user.id}/${cvId}.pdf`;
@@ -1047,26 +977,19 @@ export function CVLiveEditorPage() {
             const { data: urlData } = supabase.storage.from('cv-pdfs').getPublicUrl(filePath);
             pdfPublicUrl = urlData.publicUrl;
           }
-        } catch (e) {
-          console.warn('[CVLiveEditor] PDF storage upload failed:', e);
-        }
+        } catch (e) {}
 
         await saveToDb(pdfPublicUrl);
       } catch (err) {
-        console.error('[CVLiveEditor] PDF export error:', err);
-        // Save without PDF url
         await saveToDb();
       }
 
-      // Always navigate regardless of success/failure
       navigateToDashboard();
     };
 
     doExportAndNavigate();
-  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [templateConfirmed, editorData, user, cvId, isTemplateReady]);
 
-  // ------- Auto-Save (cv_data) -------
   useEffect(() => {
     if (isInitialLoadRef.current) {
       isInitialLoadRef.current = false;
@@ -1081,8 +1004,6 @@ export function CVLiveEditorPage() {
 
     saveTimeoutRef.current = window.setTimeout(async () => {
       try {
-        console.log('[CVLiveEditor] 💾 Auto-saving changes...');
-
         const projectsSection = editorData.sections?.find(
           (s) => s.type === 'projects'
         );
@@ -1092,30 +1013,20 @@ export function CVLiveEditorPage() {
 
         const dataToSave = {
           ...editorData,
-          // Sync projects and languages from sections to top-level
           projects: projectsSection?.items || editorData.projects || [],
           languages: languagesSection?.items || editorData.languages || [],
-          // Persist photo so it survives page reloads
           photoUrl: photoUrl || editorData.personalInfo?.photoUrl || undefined,
           photoPosition,
         };
 
-        const { error } = await supabase
+        await supabase
           .from('stored_cvs')
           .update({
             cv_data: dataToSave,
             updated_at: new Date().toISOString(),
           })
           .eq('id', cvId);
-
-        if (error) {
-          console.error('[CVLiveEditor] ❌ Auto-save error:', error);
-        } else {
-          console.log('[CVLiveEditor] ✅ Auto-saved');
-        }
-      } catch (error) {
-        console.error('[CVLiveEditor] ❌ Auto-save failed:', error);
-      }
+      } catch (error) {}
     }, 2000);
 
     return () => {
@@ -1125,7 +1036,6 @@ export function CVLiveEditorPage() {
     };
   }, [editorData, cvId, user]);
 
-  // Helper function to ensure projects and languages are synced between sections and top-level
   const prepareCvDataForSave = (data: EditorData) => {
     const projectsSection = data.sections?.find((s) => s.type === 'projects');
     const languagesSection = data.sections?.find((s) => s.type === 'languages');
@@ -1138,7 +1048,6 @@ export function CVLiveEditorPage() {
     };
   };
 
-  // ------- Download button: redirect to paywall (post-payment handled via useEffect above) -------
   const handleDownloadClick = () => {
     if (!cvId) return;
     if (!user) {
@@ -1152,7 +1061,6 @@ export function CVLiveEditorPage() {
   const handlePhotoChange = (base64: string | null) => {
     if (base64) {
       setPhotoUrl(base64);
-      // Also embed photo in editorData so it persists across template switches and page reloads
       setEditorData((prev) => {
         if (!prev) return prev;
         return {
@@ -1224,41 +1132,21 @@ export function CVLiveEditorPage() {
         const newSections = [...prev.sections];
         const section = { ...newSections[sectionIndex] };
 
-        if (!section.items || !Array.isArray(section.items)) {
-          console.warn(
-            '[CVLiveEditor] ⚠️ Section has no items array:',
-            section
-          );
-          return prev;
-        }
-
-        if (itemIndex < 0 || itemIndex >= section.items.length) {
-          console.warn(
-            '[CVLiveEditor] ⚠️ Invalid item index:',
-            itemIndex
-          );
-          return prev;
-        }
+        if (!section.items || !Array.isArray(section.items)) return prev;
+        if (itemIndex < 0 || itemIndex >= section.items.length) return prev;
 
         const newItems = section.items.filter((_: any, idx: number) => idx !== itemIndex);
         section.items = newItems;
 
         newSections[sectionIndex] = section;
-
-        console.log(
-          '[CVLiveEditor] ✅ Deleted item:',
-          itemIndex,
-          'from section:',
-          sectionIndex
-        );
         return { ...prev, sections: newSections };
       } catch (error) {
-        console.error('[CVLiveEditor] ❌ Delete error:', error);
         return prev;
       }
     });
   };
 
+  // 🔥 HIER IST DER FIX FÜR DEN [object Object] BUG 🔥
   const updateSectionItem = (
     sectionIndex: number,
     itemIndex: number,
@@ -1273,30 +1161,26 @@ export function CVLiveEditorPage() {
         const newSections = [...prev.sections];
         const section = { ...newSections[sectionIndex] };
 
-        if (!section.items || !Array.isArray(section.items)) {
-          console.warn(
-            '[CVLiveEditor] ⚠️ Section has no items array:',
-            section
-          );
-          return prev;
-        }
-
-        if (itemIndex < 0 || itemIndex >= section.items.length) {
-          console.warn(
-            '[CVLiveEditor] ⚠️ Invalid item index:',
-            itemIndex
-          );
-          return prev;
-        }
+        if (!section.items || !Array.isArray(section.items)) return prev;
+        if (itemIndex < 0 || itemIndex >= section.items.length) return prev;
 
         const newItems = [...section.items];
-        newItems[itemIndex] = { ...newItems[itemIndex], [field]: value };
+        const currentItem = newItems[itemIndex];
+        
+        // Verhindern, dass Strings in React per Spread (...) zu komischen Objekten werden
+        if (typeof currentItem === 'string' || typeof currentItem === 'number') {
+          newItems[itemIndex] = { name: String(currentItem), [field]: value };
+        } else if (typeof currentItem === 'object' && currentItem !== null) {
+          newItems[itemIndex] = { ...currentItem, [field]: value };
+        } else {
+          newItems[itemIndex] = { [field]: value };
+        }
+
         section.items = newItems;
         newSections[sectionIndex] = section;
 
         return { ...prev, sections: newSections };
       } catch (error) {
-        console.error('[CVLiveEditor] ❌ Update error:', error);
         return prev;
       }
     });
@@ -1395,7 +1279,6 @@ export function CVLiveEditorPage() {
 
   const isPostPaymentFlow = searchParams.get('payment') === 'success';
 
-  // Step 1 of post-payment flow: template selection screen (returned early)
   if (isPostPaymentFlow && editorData && !templateConfirmed) {
     return (
       <div className="min-h-screen bg-[#06060e] text-white flex flex-col items-center justify-center px-4 py-12">
@@ -1449,13 +1332,9 @@ export function CVLiveEditorPage() {
       </div>
     );
   }
-  // Step 2: templateConfirmed — fall through to main editor return below.
-  // The spinner overlay is rendered inside the main return via isPostPaymentFlow && templateConfirmed.
-  // cvPreviewRef (in the main editor) is what html2canvas will capture.
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-[#050507] via-[#0a0a0f] to-[#050507] flex flex-col">
-      {/* PDF export spinner — shown in post-payment step 2 while html2canvas captures cvPreviewRef */}
       {isPostPaymentFlow && templateConfirmed && (
         <div style={{
           position: 'fixed', inset: 0, zIndex: 9999,
@@ -1482,7 +1361,6 @@ export function CVLiveEditorPage() {
           </button>
         </div>
       )}
-      {/* Header / Controls */}
       <div className="bg-black/30 backdrop-blur-md border-b border-white/10 flex-shrink-0 z-50 sticky top-0">
         <div className="max-w-7xl mx-auto px-4 py-3">
           <div className="flex items-center justify-between gap-3 flex-wrap">
@@ -1546,7 +1424,6 @@ export function CVLiveEditorPage() {
                 )}
               </button>
 
-              {/* Tipps Button - Info only */}
               <button
                 onClick={() => setShowTips(!showTips)}
                 className="px-4 py-2 rounded-lg bg-white/10 hover:bg-white/20 transition-all flex items-center gap-2"
@@ -1599,10 +1476,8 @@ export function CVLiveEditorPage() {
         </div>
       </div>
 
-      {/* A4-Vorschau – feste 210mm Breite, WYSIWYG-Blatt-Optik */}
       <div ref={previewContainerRef} className="flex-1 flex flex-col items-center py-4 sm:py-8 px-2 sm:px-4 overflow-auto bg-zinc-800/40">
         <div className="flex flex-col items-center w-full">
-          {/* Mobile scale wrapper: on small screens, scale the 794px CV to fit the viewport */}
           <div style={{ width: cvScale < 1 ? `${794 * cvScale}px` : '794px' }}>
           <div
             className="cv-scale-wrapper"
@@ -1729,8 +1604,8 @@ export function CVLiveEditorPage() {
                 )}
             </div>
           </div>
-          </div>{/* end cv-scale-wrapper */}
-          </div>{/* end scale outer wrapper */}
+          </div>
+          </div>
 
           {jobData && (jobData.jobTitle || jobData.company) && (
             <div className="mt-4" style={{ width: cvScale < 1 ? `${794 * cvScale}px` : '794px', maxWidth: '794px' }}>
@@ -1797,7 +1672,6 @@ export function CVLiveEditorPage() {
             </div>
           )}
 
-          {/* ── NÄCHSTER SCHRITT CTA ─────────────────────────────────── */}
           <div className="mt-8 mb-6" style={{ width: '794px', maxWidth: '794px' }}>
             <div
               className="relative overflow-hidden rounded-2xl border border-[#66c0b6]/30"
@@ -1806,7 +1680,6 @@ export function CVLiveEditorPage() {
                 boxShadow: '0 0 60px rgba(102,192,182,0.08), 0 4px 24px rgba(0,0,0,0.4)',
               }}
             >
-              {/* Decorative glow blobs */}
               <div
                 className="absolute -top-16 -right-16 w-64 h-64 rounded-full pointer-events-none"
                 style={{ background: 'radial-gradient(circle, rgba(102,192,182,0.12) 0%, transparent 70%)' }}
@@ -1817,7 +1690,6 @@ export function CVLiveEditorPage() {
               />
 
               <div className="relative z-10 p-8">
-                {/* Step indicator */}
                 <div className="flex items-center gap-3 mb-5">
                   <div
                     className="flex items-center justify-center w-8 h-8 rounded-full text-black font-bold text-sm"
@@ -1895,7 +1767,6 @@ export function CVLiveEditorPage() {
         </div>
       </div>
 
-      {/* Tipps Banner */}
       {showTips && (
         <div className="fixed top-20 right-4 max-w-md bg-[#1a1a1a] border border-[#66c0b6]/30 rounded-xl p-4 shadow-2xl z-50">
           <div className="flex items-start gap-3">
