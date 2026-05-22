@@ -1394,20 +1394,22 @@ const updateSectionItem = (sectionIndex: number, itemIndex: number, field: strin
         </div>
       </header>
 
-      {/* --- CV PREVIEW MIT FIX FÜR MOBILE --- */}
 <div 
-  ref={cvPreviewRef}
-  data-pdf-root
-  className="bg-white shadow-2xl border border-slate-200"
-  style={{
-    width: '794px',       // Feste Breite = PDF-Qualität
-    minWidth: '794px',    // Verhindert Stauchung auf Mobile
-    minHeight: '1122px',  // A4-Format
-    margin: '20px auto',  // Zentriert auf dem Desktop
-    boxShadow: '0 8px 48px 0 rgba(0,0,0,0.45)',
-    borderRadius: '4px',
-  }}
-              >
+  ref={previewContainerRef} 
+  className="flex-1 overflow-auto bg-zinc-900/40 w-full flex justify-center py-8"
+>
+  <div
+    ref={cvPreviewRef}
+    data-pdf-root
+    className="bg-white shadow-2xl border border-slate-200"
+    style={{
+      width: '794px',        // Feste A4-Breite
+      minWidth: '794px',     // Verhindert das Stauchen auf Handy
+      minHeight: '1122px',   // Feste A4-Höhe
+      margin: '0 auto',      // Zentriert auf dem Desktop
+      boxShadow: '0 8px 48px 0 rgba(0,0,0,0.45)',
+    }}
+  >
                 <div className="w-full">
                   {selectedTemplate === 'modern' && editorData.personalInfo && editorData.sections && (
                     <ModernCVTemplate
