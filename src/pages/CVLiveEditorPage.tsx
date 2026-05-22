@@ -1074,14 +1074,9 @@ newItems[itemIndex] = typeof currentItem === 'string'
     });
   };
 
-  const updateSectionItem = (
-    sectionIndex: number,
-    itemIndex: number,
-    field: string,
-    value: any
-  ) => {
+const updateSectionItem = (sectionIndex: number, itemIndex: number, field: string, value: any) => {
     setHasEditorChanges(true);
-    setEditorData((prev) => {
+    setEditorData((prev: any) => {
       if (!prev?.sections?.[sectionIndex]) return prev;
 
       try {
@@ -1094,19 +1089,19 @@ newItems[itemIndex] = typeof currentItem === 'string'
         const newItems = [...section.items];
         const currentItem = newItems[itemIndex];
         
-        if (typeof currentItem === 'string' || typeof currentItem === 'number') {
-          newItems[itemIndex] = { name: String(currentItem), [field]: value };
-        } else if (typeof currentItem === 'object' && currentItem !== null) {
-          newItems[itemIndex] = { ...currentItem, [field]: value };
-        } else {
-          newItems[itemIndex] = { [field]: value };
-        }
+        // --- HIER IST DER FIX ---
+        // Wenn es ein einfacher Text ist, wandle ihn in ein Objekt um.
+        // Wenn es bereits ein Objekt ist, update es einfach.
+        newItems[itemIndex] = typeof currentItem === 'string' || typeof currentItem === 'number'
+          ? { name: String(currentItem), [field]: value }
+          : { ...currentItem, [field]: value };
 
         section.items = newItems;
         newSections[sectionIndex] = section;
 
         return { ...prev, sections: newSections };
       } catch (error) {
+        console.error("Update Fehler:", error);
         return prev;
       }
     });
