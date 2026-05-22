@@ -1074,9 +1074,14 @@ newItems[itemIndex] = typeof currentItem === 'string'
     });
   };
 
-const updateSectionItem = (sectionIndex: number, itemIndex: number, field: string, value: any) => {
+  const updateSectionItem = (
+    sectionIndex: number,
+    itemIndex: number,
+    field: string,
+    value: any
+  ) => {
     setHasEditorChanges(true);
-    setEditorData((prev: any) => {
+    setEditorData((prev) => {
       if (!prev?.sections?.[sectionIndex]) return prev;
 
       try {
@@ -1089,19 +1094,19 @@ const updateSectionItem = (sectionIndex: number, itemIndex: number, field: strin
         const newItems = [...section.items];
         const currentItem = newItems[itemIndex];
         
-        // --- HIER IST DER FIX ---
-        // Wenn es ein einfacher Text ist, wandle ihn in ein Objekt um.
-        // Wenn es bereits ein Objekt ist, update es einfach.
-        newItems[itemIndex] = typeof currentItem === 'string' || typeof currentItem === 'number'
-          ? { name: String(currentItem), [field]: value }
-          : { ...currentItem, [field]: value };
+        if (typeof currentItem === 'string' || typeof currentItem === 'number') {
+          newItems[itemIndex] = { name: String(currentItem), [field]: value };
+        } else if (typeof currentItem === 'object' && currentItem !== null) {
+          newItems[itemIndex] = { ...currentItem, [field]: value };
+        } else {
+          newItems[itemIndex] = { [field]: value };
+        }
 
         section.items = newItems;
         newSections[sectionIndex] = section;
 
         return { ...prev, sections: newSections };
       } catch (error) {
-        console.error("Update Fehler:", error);
         return prev;
       }
     });
@@ -1395,23 +1400,45 @@ const updateSectionItem = (sectionIndex: number, itemIndex: number, field: strin
       </header>
 
       {/* --- CV PREVIEW MIT FIX FÜR MOBILE --- */}
-    <div 
-  ref={previewContainerRef} 
-  className="flex-1 overflow-auto py-8 px-4 flex justify-center bg-zinc-900/50 w-full"
->
-  <div
-    ref={cvPreviewRef}
-    data-pdf-root
-    className="bg-white shadow-2xl border border-slate-200"
-    style={{
-      width: '794px',       // Feste A4-Breite
-      minWidth: '794px',    // Verhindert das Zusammenquetschen auf Mobile
-      minHeight: '1122px',  // Feste A4-Höhe
-      margin: '0 auto',     // Zentriert auf dem Desktop
-      boxShadow: '0 8px 48px 0 rgba(0,0,0,0.45)',
-      borderRadius: '4px',
-    }}
-  >
+      <div ref={previewContainerRef} className="flex-1 flex flex-col items-center py-4 sm:py-8 px-0 sm:px-4 overflow-x-hidden overflow-y-auto bg-zinc-800/40 w-full">
+        <div className="flex flex-col items-center w-full">
+          {/* 🔥 HIER IST DER FIX FÜR DEN ABSTAND 🔥
+            Wir skalieren nicht nur die visuelle Breite (transform), 
+            sondern passen auch die tatsächliche Box-Größe (width/height) an die Skalierung an. 
+          */}
+<div 
+  className="bg-white shadow-2xl border border-slate-200"
+  style={{
+    width: '794px',         // Feste Breite für PC und Handy
+    minWidth: '794px',      // Handy scrollt horizontal statt zu stauchen
+    minHeight: '1122px',
+    margin: '0 auto',       // Zentriert auf dem Desktop
+    boxShadow: '0 8px 48px 0 rgba(0,0,0,0.45)',
+  }}
+          >
+            <div
+              className="cv-scale-wrapper"
+              style={{
+                position: cvScale < 1 ? 'absolute' : 'relative',
+                top: 0, left: 0,
+                width: '794px',
+                transformOrigin: 'top left',
+                transform: cvScale < 1 ? `scale(${cvScale})` : undefined,
+              }}
+            >
+              <div
+            ref={cvPreviewRef}
+            data-pdf-root
+            className="bg-white shadow-2xl border border-slate-200 w-full"
+            style={{
+              // Mobile: Nutze 100% Breite, Desktop: Begrenze auf 794px
+              width: '100%',
+              maxWidth: '794px',
+              minHeight: '1122px', // Sorgt für A4-Höhe
+              boxShadow: '0 8px 48px 0 rgba(0,0,0,0.45)',
+              borderRadius: '4px',
+            }}
+              >
                 <div className="w-full">
                   {selectedTemplate === 'modern' && editorData.personalInfo && editorData.sections && (
                     <ModernCVTemplate
@@ -1488,7 +1515,7 @@ const updateSectionItem = (sectionIndex: number, itemIndex: number, field: strin
             </div>
           </div>
 
-          /* Job Description etc. */
+          {/* Job Description etc. */}
           {jobData && (jobData.jobTitle || jobData.company) && (
             <div className="mt-4" style={{ width: cvScale < 1 ? `${794 * cvScale}px` : '794px', maxWidth: '794px' }}>
               <button
