@@ -1406,12 +1406,15 @@ newItems[itemIndex] = typeof currentItem === 'string'
             Wir skalieren nicht nur die visuelle Breite (transform), 
             sondern passen auch die tatsächliche Box-Größe (width/height) an die Skalierung an. 
           */}
-          <div 
-            style={{ 
-              width: cvScale < 1 ? `${794 * cvScale}px` : '794px', 
-              height: cvScale < 1 ? `${cvHeight * cvScale}px` : 'auto',
-              position: 'relative'
-            }}
+<div 
+  className="bg-white shadow-2xl border border-slate-200"
+  style={{
+    width: '794px',         // Feste Breite für PC und Handy
+    minWidth: '794px',      // Handy scrollt horizontal statt zu stauchen
+    minHeight: '1122px',
+    margin: '0 auto',       // Zentriert auf dem Desktop
+    boxShadow: '0 8px 48px 0 rgba(0,0,0,0.45)',
+  }}
           >
             <div
               className="cv-scale-wrapper"
