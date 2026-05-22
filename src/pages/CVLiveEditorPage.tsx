@@ -1419,17 +1419,18 @@ export function CVLiveEditorPage() {
               }}
             >
               <div
-                ref={cvPreviewRef}
-                data-pdf-root
-                className="bg-white shadow-2xl border border-slate-200"
-                style={{
-                  width: '794px',
-                  minWidth: '794px',
-                  maxWidth: '794px',
-                  height: 'auto',
-                  minHeight: 'auto',
-                  boxShadow: '0 8px 48px 0 rgba(0,0,0,0.45), 0 2px 8px 0 rgba(0,0,0,0.25)',
-                }}
+<div
+            ref={cvPreviewRef}
+            data-pdf-root
+            className="bg-white shadow-2xl border border-slate-200 w-full"
+            style={{
+              // Mobile: Nutze 100% Breite, Desktop: Begrenze auf 794px
+              width: '100%',
+              maxWidth: '794px',
+              minHeight: '1122px', // Sorgt für A4-Höhe
+              boxShadow: '0 8px 48px 0 rgba(0,0,0,0.45)',
+              borderRadius: '4px',
+            }}
               >
                 <div className="w-full">
                   {selectedTemplate === 'modern' && editorData.personalInfo && editorData.sections && (
