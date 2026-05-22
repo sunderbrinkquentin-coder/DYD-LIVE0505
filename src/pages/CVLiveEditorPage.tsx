@@ -1395,44 +1395,20 @@ const updateSectionItem = (sectionIndex: number, itemIndex: number, field: strin
       </header>
 
       {/* --- CV PREVIEW MIT FIX FÜR MOBILE --- */}
-      <div ref={previewContainerRef} className="flex-1 flex flex-col items-center py-4 sm:py-8 px-0 sm:px-4 overflow-x-hidden overflow-y-auto bg-zinc-800/40 w-full">
-        <div className="flex flex-col items-center w-full">
-          {/* 🔥 HIER IST DER FIX FÜR DEN ABSTAND 🔥
-            Wir skalieren nicht nur die visuelle Breite (transform), 
-            sondern passen auch die tatsächliche Box-Größe (width/height) an die Skalierung an. 
-          */}
-<div 
+ <div 
+  ref={cvPreviewRef}
+  data-pdf-root
   className="bg-white shadow-2xl border border-slate-200"
   style={{
-    width: '794px',         // Feste Breite für PC und Handy
-    minWidth: '794px',      // Handy scrollt horizontal statt zu stauchen
-    minHeight: '1122px',
-    margin: '0 auto',       // Zentriert auf dem Desktop
+    width: '794px',       // Feste Breite = PDF-Qualität
+    minWidth: '794px',    // Verhindert Stauchung auf Mobile
+    minHeight: '1122px',  // A4-Format
+    margin: '20px auto',  // Zentriert auf dem Desktop
     boxShadow: '0 8px 48px 0 rgba(0,0,0,0.45)',
+    borderRadius: '4px',
   }}
-          >
-            <div
-              className="cv-scale-wrapper"
-              style={{
-                position: cvScale < 1 ? 'absolute' : 'relative',
-                top: 0, left: 0,
-                width: '794px',
-                transformOrigin: 'top left',
-                transform: cvScale < 1 ? `scale(${cvScale})` : undefined,
-              }}
-            >
-              <div
-            ref={cvPreviewRef}
-            data-pdf-root
-            className="bg-white shadow-2xl border border-slate-200 w-full"
-            style={{
-              // Mobile: Nutze 100% Breite, Desktop: Begrenze auf 794px
-              width: '100%',
-              maxWidth: '794px',
-              minHeight: '1122px', // Sorgt für A4-Höhe
-              boxShadow: '0 8px 48px 0 rgba(0,0,0,0.45)',
-              borderRadius: '4px',
-            }}
+
+</div>
               >
                 <div className="w-full">
                   {selectedTemplate === 'modern' && editorData.personalInfo && editorData.sections && (
