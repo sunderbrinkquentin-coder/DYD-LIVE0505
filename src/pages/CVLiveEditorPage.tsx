@@ -227,6 +227,8 @@ export function CVLiveEditorPage() {
   const [templateConfirmed, setTemplateConfirmed] = useState(false);
 
   const cvPreviewRef = useRef<HTMLDivElement | null>(null);
+  const mainAreaRef = useRef<HTMLDivElement | null>(null);
+  const scaleObserverRef = useRef<ResizeObserver | null>(null);
   const [isExportingPDF, setIsExportingPDF] = useState(false);
   const autoDownloadTriggeredRef = useRef(false);
 
@@ -236,20 +238,23 @@ export function CVLiveEditorPage() {
   const [scale, setScale] = useState(1);
   const [cvHeight, setCvHeight] = useState(1122);
 
-  // 1. Zoom-Faktor ausrechnen
-  useEffect(() => {
+  // 1. Zoom-Faktor: Container-Breite direkt messen via Callback-Ref
+  const mainRefCallback = (el: HTMLDivElement | null) => {
+    mainAreaRef.current = el;
+    if (scaleObserverRef.current) {
+      scaleObserverRef.current.disconnect();
+      scaleObserverRef.current = null;
+    }
+    if (!el) return;
     const recalc = () => {
-      const screenWidth = window.innerWidth;
-      const padding = screenWidth < 640 ? 8 : 64;
-      const available = screenWidth - padding;
-      // Minimum scale of 0.65 so the CV stays readable on small screens
-      const raw = available < 794 ? available / 794 : 1;
-      setScale(Math.max(raw, 0.65));
+      const available = el.clientWidth;
+      if (available > 0) setScale(available < 794 ? available / 794 : 1);
     };
     recalc();
-    window.addEventListener('resize', recalc);
-    return () => window.removeEventListener('resize', recalc);
-  }, []);
+    const obs = new ResizeObserver(recalc);
+    obs.observe(el);
+    scaleObserverRef.current = obs;
+  };
 
   // 2. Dokumenten-Höhe für den Container ausrechnen
   useEffect(() => {
@@ -1372,12 +1377,13 @@ export function CVLiveEditorPage() {
       </header>
 
       {/* MAIN CONTENT AREA MIT VERBESSERTEM MOBILE-SCALING */}
-      <main className="flex-1 overflow-y-auto overflow-x-auto flex flex-col items-center bg-zinc-800/40 w-full py-4 sm:py-8 px-0 sm:px-4">
+      <main ref={mainRefCallback} className="flex-1 overflow-y-auto overflow-x-hidden flex flex-col items-center bg-zinc-800/40 w-full py-4 sm:py-8 px-0 sm:px-4">
         
         {/* DER SCALING-WRAPPER: Sichert exakt den Platz, den das verkleinerte Dokument braucht */}
         <div
           style={{
             width: `${794 * scale}px`,
+            maxWidth: '100%',
             height: `${cvHeight * scale}px`,
             position: 'relative',
             margin: '0 auto',
