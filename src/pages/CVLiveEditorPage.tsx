@@ -1392,16 +1392,16 @@ export function CVLiveEditorPage() {
             className="shadow-2xl"
             style={{
               width: '794px',
-              minHeight: '1122px',
               position: 'absolute',
               top: 0,
               left: 0,
               transform: `scale(${scale})`,
               transformOrigin: 'top left',
               boxShadow: '0 8px 48px 0 rgba(0,0,0,0.45)',
+              backgroundColor: selectedTemplate === 'creative' ? '#020314' : '#ffffff',
             }}
           >
-            <div style={{ width: '100%', display: 'flex', flexDirection: 'column', minHeight: '1122px' }}>
+            <div style={{ width: '100%' }}>
               {selectedTemplate === 'modern' && editorData.personalInfo && editorData.sections && (
                 <ModernCVTemplate
                   personalInfo={editorData.personalInfo}

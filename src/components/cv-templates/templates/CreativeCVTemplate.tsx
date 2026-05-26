@@ -518,13 +518,16 @@ export const CreativeCVTemplate: React.FC<CreativeCVTemplateProps> = ({
             </div>
             <div data-chip-row style={{ display: 'block', overflow: 'visible' }}>
               {items.map((skill: any, idx: number) => {
-                const val = typeof skill === 'string' ? skill : skill.skill || skill.name || '';
+                if (!skill) return null;
+                const raw = typeof skill === 'string' ? skill : skill.skill || skill.name || '';
+                const cleanedVal = raw.replace(/\s*\(?Otherskill\)?/gi, '').replace(/\s*\($/, '').trim();
+                if (!cleanedVal) return null;
                 const level = typeof skill === 'object' && skill !== null ? skill.level || skill.niveau || '' : '';
-                const display = level ? `${val} (${level})` : val;
+                const display = level ? `${cleanedVal} (${level.trim()})` : cleanedVal;
                 return (
                   <span key={idx} style={{ display: 'inline-flex', alignItems: 'center', marginRight: '4px', marginBottom: '4px', verticalAlign: 'middle', padding: '2px 6px', borderRadius: '9999px', background: '#020617', border: '1px solid #38bdf8', whiteSpace: 'nowrap', breakInside: 'avoid', pageBreakInside: 'avoid' }}>
                     <input
-                      style={{ background: 'transparent', outline: 'none', fontSize: '9px', color: '#f9fafb', minWidth: '20px', border: 'none', width: `${Math.max(20, display.length * 5.5)}px` }}
+                      style={{ background: 'transparent', outline: 'none', fontSize: '9px', color: '#f9fafb', minWidth: '20px', border: 'none', width: `${Math.max(20, display.length * 6.2)}px` }}
                       value={display}
                       onChange={(e) => onUpdateSectionItem(sectionIndex, idx, 'skill', e.target.value)}
                       placeholder="Skill"
@@ -545,13 +548,16 @@ export const CreativeCVTemplate: React.FC<CreativeCVTemplateProps> = ({
             </div>
             <div data-chip-row style={{ display: 'block', overflow: 'visible' }}>
               {items.map((skill: any, idx: number) => {
-                const val = typeof skill === 'string' ? skill : skill.skill || skill.name || '';
+                if (!skill) return null;
+                const raw = typeof skill === 'string' ? skill : skill.skill || skill.name || '';
+                const cleanedVal = raw.replace(/\s*\(?Otherskill\)?/gi, '').replace(/\s*\($/, '').trim();
+                if (!cleanedVal) return null;
                 const level = typeof skill === 'object' && skill !== null ? skill.level || skill.niveau || '' : '';
-                const display = level ? `${val} (${level})` : val;
+                const display = level ? `${cleanedVal} (${level.trim()})` : cleanedVal;
                 return (
                   <span key={idx} style={{ display: 'inline-flex', alignItems: 'center', marginRight: '4px', marginBottom: '4px', verticalAlign: 'middle', padding: '2px 6px', borderRadius: '9999px', background: '#020617', border: '1px solid #a855f7', whiteSpace: 'nowrap', breakInside: 'avoid', pageBreakInside: 'avoid' }}>
                     <input
-                      style={{ background: 'transparent', outline: 'none', fontSize: '9px', color: '#f9fafb', minWidth: '20px', border: 'none', width: `${Math.max(20, display.length * 5.5)}px` }}
+                      style={{ background: 'transparent', outline: 'none', fontSize: '9px', color: '#f9fafb', minWidth: '20px', border: 'none', width: `${Math.max(20, display.length * 6.2)}px` }}
                       value={display}
                       onChange={(e) => onUpdateSectionItem(sectionIndex, idx, 'skill', e.target.value)}
                       placeholder="Stärke"
