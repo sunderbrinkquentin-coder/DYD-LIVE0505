@@ -1216,7 +1216,7 @@ export default function HarmonyFestivalPage() {
                 <div>
                   <div className="tag-label mb-3">Community</div>
                   <h2 className="graffiti" style={{ fontSize: 'clamp(32px, 5vw, 54px)', color: '#fff' }}>Crew-Deal</h2>
-                  <p style={{ fontFamily: "'Inter', sans-serif", fontSize: '15px', color: 'rgba(160,230,230,0.55)', marginTop: '8px' }}>Ticket gegen Hilfe — Budget ist knapp? Werde Teil meiner Crew!</p>
+                  <p style={{ fontFamily: "'Inter', sans-serif", fontSize: '15px', color: 'rgba(160,230,230,0.55)', marginTop: '8px' }}>Einfach anmelden — der Prozess dauert maximal 1 Minute!</p>
                 </div>
                 <span style={{ fontFamily: "'Barlow Condensed', sans-serif", fontSize: '10px', fontWeight: 700, letterSpacing: '0.26em', textTransform: 'uppercase', color: C.cyan, padding: '5px 12px', border: `1px solid rgba(0,212,212,0.28)`, borderRadius: '6px', alignSelf: 'flex-start', whiteSpace: 'nowrap' }}>Spots limitiert</span>
               </div>
