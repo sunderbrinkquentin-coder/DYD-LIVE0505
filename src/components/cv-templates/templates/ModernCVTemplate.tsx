@@ -1037,7 +1037,7 @@ export const ModernCVTemplate: React.FC<ModernCVTemplateProps> = ({
           fontFamily: FONT,
           marginTop: 'auto',
           flexShrink: 0,
-          background: `linear-gradient(180deg, ${CI.bg} 0%, #ffffff 40%, ${CI.bg} 100%)`,
+          backgroundColor: CI.bg,
         }}
       >
         <div style={{ display: 'flex', alignItems: 'center', gap: '6px', minWidth: 0 }}>

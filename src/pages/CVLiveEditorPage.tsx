@@ -252,13 +252,16 @@ export function CVLiveEditorPage() {
 
   // 2. Dokumenten-Höhe für den Container ausrechnen
   useEffect(() => {
-    if (!cvPreviewRef.current) return;
-    const observer = new ResizeObserver((entries) => {
-      for (const entry of entries) {
-        setCvHeight(Math.max(1122, entry.target.scrollHeight));
-      }
-    });
-    observer.observe(cvPreviewRef.current);
+    const el = cvPreviewRef.current;
+    if (!el) return;
+    const measure = () => {
+      // offsetHeight reflects the true rendered height; fallback to scrollHeight
+      const h = Math.max(el.offsetHeight, el.scrollHeight, 1122);
+      setCvHeight(h);
+    };
+    measure();
+    const observer = new ResizeObserver(measure);
+    observer.observe(el);
     return () => observer.disconnect();
   }, [editorData, selectedTemplate]);
   // ==========================================
@@ -1386,7 +1389,7 @@ export function CVLiveEditorPage() {
           <div
             ref={cvPreviewRef}
             data-pdf-root
-            className="bg-white shadow-2xl border border-slate-200"
+            className="shadow-2xl"
             style={{
               width: '794px',
               minHeight: '1122px',
@@ -1398,7 +1401,7 @@ export function CVLiveEditorPage() {
               boxShadow: '0 8px 48px 0 rgba(0,0,0,0.45)',
             }}
           >
-            <div className="w-full">
+            <div style={{ width: '100%', display: 'flex', flexDirection: 'column', minHeight: '1122px' }}>
               {selectedTemplate === 'modern' && editorData.personalInfo && editorData.sections && (
                 <ModernCVTemplate
                   personalInfo={editorData.personalInfo}

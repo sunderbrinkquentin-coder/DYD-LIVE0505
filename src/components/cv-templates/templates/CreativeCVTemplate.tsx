@@ -653,7 +653,6 @@ export const CreativeCVTemplate: React.FC<CreativeCVTemplateProps> = ({
         wordBreak: 'break-word',
         overflowWrap: 'anywhere',
         minHeight: `${pageCount * PAGE_HEIGHT_PX}px`,
-        height: '100%',
         boxSizing: 'border-box',
         WebkitPrintColorAdjust: 'exact',
         printColorAdjust: 'exact'
@@ -700,7 +699,7 @@ export const CreativeCVTemplate: React.FC<CreativeCVTemplateProps> = ({
       </div>
 
       {/* Header */}
-      <header className="relative px-6 pt-4 pb-2.5 flex items-center justify-between border-b border-white/15 bg-[#020617]/90 gap-3 flex-shrink-0">
+      <header className="relative px-6 pt-4 pb-2.5 flex items-center justify-between border-b border-white/15 bg-[#020617] gap-3 flex-shrink-0">
         <div className="relative flex-1 min-w-0">
           <input
             className="block w-full text-2xl font-bold tracking-[0.12em] uppercase outline-none bg-transparent text-[#f9fafb]"
@@ -769,7 +768,7 @@ export const CreativeCVTemplate: React.FC<CreativeCVTemplateProps> = ({
       </header>
 
       {/* Content */}
-      <main className="relative flex-grow px-6 py-3 grid grid-cols-1 md:grid-cols-12 gap-4 text-[#e5e7eb] bg-[#020314]/90">
+      <main className="relative flex-grow px-6 py-3 grid grid-cols-1 md:grid-cols-12 gap-4 text-[#e5e7eb] bg-[#020314]">
         <section className="col-span-1 md:col-span-7 space-y-3">
           <div>
             <SectionTitle>Profil & Story</SectionTitle>
@@ -839,7 +838,7 @@ export const CreativeCVTemplate: React.FC<CreativeCVTemplateProps> = ({
       </main>
 
       {otherSections.length > 0 && (
-        <div className="relative px-6 pb-3 space-y-3 bg-[#020314]/90">
+        <div className="relative px-6 pb-3 space-y-3 bg-[#020314]">
           {otherSections.map((section) => {
             const sectionIndex = sections.findIndex((s) => s === section);
             return renderSection(section, sectionIndex);
