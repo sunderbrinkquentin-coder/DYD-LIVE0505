@@ -1236,7 +1236,8 @@ export default function HarmonyFestivalPage() {
                   className="flex items-center gap-2" style={{ fontFamily: "'Inter', sans-serif", fontSize: '13px', fontWeight: 600, color: C.cyan }}>
                   <Clock className="w-3.5 h-3.5" /> Deadline: 15.07.2026
                 </motion.div>
-                <motion.a whileHover={{ scale: 1.02 }} href="mailto:kontakt.dyd@googlemail.com?subject=Crew"
+                <motion.a whileHover={{ scale: 1.02 }} href="https://forms.gle/iX7CoWsBXTrausYM7"
+                  target="_blank" rel="noopener noreferrer"
                   className="flex items-center gap-2 px-5 py-2.5 rounded-lg"
                   style={{ background: `rgba(0,212,212,0.08)`, border: `1px solid rgba(0,212,212,0.22)`, color: C.cyan, fontFamily: "'Inter', sans-serif", fontSize: '14px', fontWeight: 600 }}>
                   <Mail className="w-4 h-4" /> Betreff „Crew" schreiben
