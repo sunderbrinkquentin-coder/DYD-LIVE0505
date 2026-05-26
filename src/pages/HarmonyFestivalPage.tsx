@@ -1212,15 +1212,16 @@ export default function HarmonyFestivalPage() {
           {/* ── CREW-DEAL ────────────────────────────────────────── */}
           <motion.section {...fadeUp}>
             <div className="glass rounded-2xl px-8 sm:px-12 py-10">
-              <div className="flex items-start justify-between flex-wrap gap-5 mb-8">
+              <div className="flex items-start justify-between flex-wrap gap-5 mb-6">
                 <div>
                   <div className="tag-label mb-3">Community</div>
                   <h2 className="graffiti" style={{ fontSize: 'clamp(32px, 5vw, 54px)', color: '#fff' }}>Crew-Deal</h2>
-                  <p style={{ fontFamily: "'Inter', sans-serif", fontSize: '15px', color: 'rgba(160,230,230,0.55)', marginTop: '8px' }}>Einfach anmelden — der Prozess dauert maximal 1 Minute!</p>
+                  <p style={{ fontFamily: "'Inter', sans-serif", fontSize: '15px', color: 'rgba(160,230,230,0.55)', marginTop: '8px' }}>Kein Budget? Kein Problem. Hilf mit — und komm gratis rein.</p>
                 </div>
-                <span style={{ fontFamily: "'Barlow Condensed', sans-serif", fontSize: '10px', fontWeight: 700, letterSpacing: '0.26em', textTransform: 'uppercase', color: C.cyan, padding: '5px 12px', border: `1px solid rgba(0,212,212,0.28)`, borderRadius: '6px', alignSelf: 'flex-start', whiteSpace: 'nowrap' }}>Spots limitiert</span>
+                <motion.span animate={{ opacity: [1, 0.5, 1] }} transition={{ repeat: Infinity, duration: 2.5 }}
+                  style={{ fontFamily: "'Barlow Condensed', sans-serif", fontSize: '10px', fontWeight: 700, letterSpacing: '0.26em', textTransform: 'uppercase', color: C.cyan, padding: '5px 12px', border: `1px solid rgba(0,212,212,0.28)`, borderRadius: '6px', alignSelf: 'flex-start', whiteSpace: 'nowrap' }}>Spots limitiert</motion.span>
               </div>
-              <div className="grid sm:grid-cols-2 gap-3 mb-8">
+              <div className="grid sm:grid-cols-2 gap-3 mb-6">
                 {[
                   { label: 'Dein Einsatz', value: '2,5 h Theke oder Service' },
                   { label: 'Dein Benefit', value: 'Freies Ticket für den restlichen Abend' },
@@ -1231,16 +1232,23 @@ export default function HarmonyFestivalPage() {
                   </div>
                 ))}
               </div>
+              {/* motivational micro-copy */}
+              <p style={{ fontFamily: "'Inter', sans-serif", fontSize: '13px', color: 'rgba(160,230,230,0.45)', marginBottom: '20px' }}>
+                Anmeldung dauert unter 1 Minute — nur ein kurzes Formular, kein Account nötig.
+              </p>
               <div className="flex flex-wrap items-center gap-4">
                 <motion.div animate={{ opacity: [1, 0.3, 1] }} transition={{ repeat: Infinity, duration: 2.2 }}
                   className="flex items-center gap-2" style={{ fontFamily: "'Inter', sans-serif", fontSize: '13px', fontWeight: 600, color: C.cyan }}>
                   <Clock className="w-3.5 h-3.5" /> Deadline: 15.07.2026
                 </motion.div>
-                <motion.a whileHover={{ scale: 1.02 }} href="https://forms.gle/iX7CoWsBXTrausYM7"
+                <motion.a
+                  whileHover={{ scale: 1.04 }}
+                  whileTap={{ scale: 0.97 }}
+                  href="https://forms.gle/iX7CoWsBXTrausYM7"
                   target="_blank" rel="noopener noreferrer"
-                  className="flex items-center gap-2 px-5 py-2.5 rounded-lg"
-                  style={{ background: `rgba(0,212,212,0.08)`, border: `1px solid rgba(0,212,212,0.22)`, color: C.cyan, fontFamily: "'Inter', sans-serif", fontSize: '14px', fontWeight: 600 }}>
-                  <Mail className="w-4 h-4" /> Betreff „Crew" schreiben
+                  className="flex items-center gap-2 px-6 py-3 rounded-lg"
+                  style={{ background: `rgba(0,212,212,0.15)`, border: `1px solid rgba(0,212,212,0.5)`, color: C.cyan, fontFamily: "'Inter', sans-serif", fontSize: '14px', fontWeight: 700, letterSpacing: '0.03em', boxShadow: '0 0 18px rgba(0,212,212,0.12)' }}>
+                  <ArrowRight className="w-4 h-4" /> Jetzt als Crew bewerben
                 </motion.a>
               </div>
             </div>
