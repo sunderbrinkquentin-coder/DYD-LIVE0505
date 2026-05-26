@@ -640,7 +640,7 @@ export const ModernCVTemplate: React.FC<ModernCVTemplateProps> = ({
                 })}
               </div>
             ) : (
-              <div data-chip-row style={{ display: 'block', overflow: 'hidden' }}>
+              <div data-chip-row style={{ display: 'block', overflow: 'visible' }}>
                 {items.map((skill: any, idx: number) => (
                   <span key={idx} style={{ display: 'inline-flex', marginRight: '5px', marginBottom: '5px', verticalAlign: 'middle', breakInside: 'avoid', pageBreakInside: 'avoid' }}>
                     <Chip
@@ -664,7 +664,7 @@ export const ModernCVTemplate: React.FC<ModernCVTemplateProps> = ({
         return (
           <div key={`soft-${sectionIndex}`} data-pdf-section>
             <SectionTitle>{section.title || 'Soft Skills'}</SectionTitle>
-            <div data-chip-row style={{ display: 'block', overflow: 'hidden' }}>
+            <div data-chip-row style={{ display: 'block', overflow: 'visible' }}>
               {items.map((skill: any, idx: number) => (
                 <span key={idx} style={{ display: 'inline-flex', marginRight: '5px', marginBottom: '5px', verticalAlign: 'middle', breakInside: 'avoid', pageBreakInside: 'avoid' }}>
                   <Chip
@@ -686,7 +686,7 @@ export const ModernCVTemplate: React.FC<ModernCVTemplateProps> = ({
         return (
           <div key={`values-${sectionIndex}`} data-pdf-section>
             <SectionTitle>Arbeitsweise & Werte</SectionTitle>
-            <div data-chip-row style={{ display: 'block', overflow: 'hidden' }}>
+            <div data-chip-row style={{ display: 'block', overflow: 'visible' }}>
               {items.map((val: any, idx: number) => (
                 <span key={idx} style={{ display: 'inline-flex', marginRight: '6px', marginBottom: '6px', verticalAlign: 'middle', breakInside: 'avoid', pageBreakInside: 'avoid' }}>
                   <Chip
@@ -705,7 +705,7 @@ export const ModernCVTemplate: React.FC<ModernCVTemplateProps> = ({
         return (
           <div key={`hobbies-${sectionIndex}`} data-pdf-section>
             <SectionTitle>Hobbys & Interessen</SectionTitle>
-            <div data-chip-row style={{ display: 'block', overflow: 'hidden' }}>
+            <div data-chip-row style={{ display: 'block', overflow: 'visible' }}>
               {items.map((hob: any, idx: number) => (
                 <span key={idx} style={{ display: 'inline-flex', marginRight: '6px', marginBottom: '6px', verticalAlign: 'middle', breakInside: 'avoid', pageBreakInside: 'avoid' }}>
                   <Chip
@@ -838,7 +838,7 @@ export const ModernCVTemplate: React.FC<ModernCVTemplateProps> = ({
             onChange={(v) => onUpdatePersonalInfo('name', v)}
             placeholder="Vollständiger Name"
             style={{
-              fontSize: '26px',
+              fontSize: '22px',
               fontWeight: 800,
               color: '#0f172a',
               letterSpacing: '-0.01em',

@@ -527,7 +527,8 @@ export const CreativeCVTemplate: React.FC<CreativeCVTemplateProps> = ({
                 return (
                   <span key={idx} style={{ display: 'inline-flex', alignItems: 'center', marginRight: '4px', marginBottom: '4px', verticalAlign: 'middle', padding: '2px 6px', borderRadius: '9999px', background: '#f0fdfe', border: '1px solid #38bdf8', whiteSpace: 'nowrap', breakInside: 'avoid', pageBreakInside: 'avoid' }}>
                     <input
-                      style={{ background: 'transparent', outline: 'none', fontSize: '9px', color: '#1e293b', minWidth: '20px', border: 'none', width: `${Math.max(20, display.length * 6.2)}px` }}
+                      size={Math.max(3, display.length)}
+                      style={{ background: 'transparent', outline: 'none', fontSize: '9px', color: '#1e293b', minWidth: 'unset', border: 'none', width: 'auto' }}
                       value={display}
                       onChange={(e) => onUpdateSectionItem(sectionIndex, idx, 'skill', e.target.value)}
                       placeholder="Skill"
@@ -557,7 +558,8 @@ export const CreativeCVTemplate: React.FC<CreativeCVTemplateProps> = ({
                 return (
                   <span key={idx} style={{ display: 'inline-flex', alignItems: 'center', marginRight: '4px', marginBottom: '4px', verticalAlign: 'middle', padding: '2px 6px', borderRadius: '9999px', background: '#f5f3ff', border: '1px solid #a855f7', whiteSpace: 'nowrap', breakInside: 'avoid', pageBreakInside: 'avoid' }}>
                     <input
-                      style={{ background: 'transparent', outline: 'none', fontSize: '9px', color: '#1e293b', minWidth: '20px', border: 'none', width: `${Math.max(20, display.length * 6.2)}px` }}
+                      size={Math.max(3, display.length)}
+                      style={{ background: 'transparent', outline: 'none', fontSize: '9px', color: '#1e293b', minWidth: 'unset', border: 'none', width: 'auto' }}
                       value={display}
                       onChange={(e) => onUpdateSectionItem(sectionIndex, idx, 'skill', e.target.value)}
                       placeholder="Stärke"
@@ -581,7 +583,8 @@ export const CreativeCVTemplate: React.FC<CreativeCVTemplateProps> = ({
                 return (
                   <span key={idx} style={{ display: 'inline-flex', alignItems: 'center', marginRight: '4px', marginBottom: '4px', verticalAlign: 'middle', padding: '2px 6px', borderRadius: '9999px', background: '#f0fdfe', border: '1px solid #22c1c3', whiteSpace: 'nowrap', breakInside: 'avoid', pageBreakInside: 'avoid' }}>
                     <input
-                      style={{ background: 'transparent', outline: 'none', fontSize: '9px', color: '#1e293b', border: 'none', minWidth: '20px', width: `${Math.max(20, v.length * 5.5)}px` }}
+                      size={Math.max(3, v.length)}
+                      style={{ background: 'transparent', outline: 'none', fontSize: '9px', color: '#1e293b', border: 'none', minWidth: 'unset', width: 'auto' }}
                       value={v}
                       onChange={(e) => onUpdateSectionItem(sectionIndex, idx, 'label', e.target.value)}
                       placeholder="Wert"
@@ -605,7 +608,8 @@ export const CreativeCVTemplate: React.FC<CreativeCVTemplateProps> = ({
                 return (
                   <span key={idx} style={{ display: 'inline-flex', alignItems: 'center', marginRight: '4px', marginBottom: '4px', verticalAlign: 'middle', padding: '2px 6px', borderRadius: '9999px', background: '#fff7ed', border: '1px solid #f97316', whiteSpace: 'nowrap', breakInside: 'avoid', pageBreakInside: 'avoid' }}>
                     <input
-                      style={{ background: 'transparent', outline: 'none', fontSize: '9px', color: '#1e293b', border: 'none', minWidth: '20px', width: `${Math.max(20, v.length * 5.5)}px` }}
+                      size={Math.max(3, v.length)}
+                      style={{ background: 'transparent', outline: 'none', fontSize: '9px', color: '#1e293b', border: 'none', minWidth: 'unset', width: 'auto' }}
                       value={v}
                       onChange={(e) => onUpdateSectionItem(sectionIndex, idx, 'label', e.target.value)}
                       placeholder="Hobby"

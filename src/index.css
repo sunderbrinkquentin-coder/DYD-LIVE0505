@@ -211,17 +211,25 @@
   }
 
   /* Prevent zoom on input focus (iOS) - Must be 16px minimum */
-  /* Exclude CV template containers to preserve template font sizes */
+  /* Prevent zoom on input focus (iOS) - Must be 16px minimum */
+  /* CV template inputs are excluded by the override block below */
   @media screen and (max-width: 767px) {
-    input[type="text"]:not([data-cv-field]),
-    input[type="email"]:not([data-cv-field]),
-    input[type="tel"]:not([data-cv-field]),
-    input[type="url"]:not([data-cv-field]),
-    input[type="password"]:not([data-cv-field]),
-    textarea:not([data-cv-field]),
-    select:not([data-cv-field]) {
+    input[type="text"],
+    input[type="email"],
+    input[type="tel"],
+    input[type="url"],
+    input[type="password"],
+    textarea,
+    select {
       font-size: 16px !important;
     }
+    /* Higher-specificity override: CV template inputs keep their template size */
+    [data-pdf-root] input[type="text"],
+    [data-pdf-root] input[type="email"],
+    [data-pdf-root] input[type="tel"],
+    [data-pdf-root] input[type="url"],
+    [data-pdf-root] input[type="password"],
+    [data-pdf-root] input:not([type]),
     [data-pdf-root] input,
     [data-pdf-root] textarea,
     [data-pdf-root] select {
