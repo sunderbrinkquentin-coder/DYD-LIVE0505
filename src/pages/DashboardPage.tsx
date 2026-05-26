@@ -1621,21 +1621,24 @@ export function DashboardPage() {
             );
           })()}
 
-          <div id="kanban-section" className="flex items-center gap-2 mb-2">
-            <Briefcase size={20} className="text-white/50" />
-            <h2 className="text-base sm:text-lg font-bold text-white">Bewerbungs-Kanban</h2>
-          </div>
-          <p className="text-xs sm:text-sm text-white/60 mb-3">Verschiebe deine Bewerbungen zwischen den Spalten um den Status zu aktualisieren</p>
-
-          {isLoading ? (
-            <div className="text-center py-12">
-              <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#66c0b6] mx-auto"></div>
-              <p className="mt-4 text-white/60">Lade Bewerbungen...</p>
-            </div>
-          ) : (
-            <KanbanBoard cvs={userCVs} onCVUpdate={loadCVs} highlightedCvId={highlightedCvId} />
-          )}
         </div>
+      </div>
+
+      <div className="container mx-auto px-3 sm:px-4 pb-6">
+        <div id="kanban-section" className="flex items-center gap-2 mb-2">
+          <Briefcase size={20} className="text-white/50" />
+          <h2 className="text-base sm:text-lg font-bold text-white">Bewerbungs-Kanban</h2>
+        </div>
+        <p className="text-xs sm:text-sm text-white/60 mb-3">Verschiebe deine Bewerbungen zwischen den Spalten um den Status zu aktualisieren</p>
+
+        {isLoading ? (
+          <div className="text-center py-12">
+            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#66c0b6] mx-auto"></div>
+            <p className="mt-4 text-white/60">Lade Bewerbungen...</p>
+          </div>
+        ) : (
+          <KanbanBoard cvs={userCVs} onCVUpdate={loadCVs} highlightedCvId={highlightedCvId} />
+        )}
       </div>
 
       {showWizardOverview && (
