@@ -220,7 +220,7 @@ export const CreativeCVTemplate: React.FC<CreativeCVTemplateProps> = ({
                         />
                       )}
                     </div>
-                    <div className="text-[9.5px] text-slate-500 whitespace-nowrap flex-shrink-0 flex items-center gap-0.5">
+                    <div className="text-[9px] text-slate-500 whitespace-nowrap flex-shrink-0 flex items-center gap-0.5">
                       <input
                         className="outline-none bg-transparent w-14 text-right"
                         value={exp.date_from || ''}

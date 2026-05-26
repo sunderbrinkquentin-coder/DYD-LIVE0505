@@ -173,7 +173,7 @@ export const MinimalCVTemplate: React.FC<MinimalCVTemplateProps> = ({
                     )}
                   </div>
 
-                  <div className="text-[9.5px] text-slate-500 text-right whitespace-nowrap flex flex-col items-end gap-0.5 flex-shrink-0">
+                  <div className="text-[9px] text-slate-500 text-right whitespace-nowrap flex flex-col items-end gap-0.5 flex-shrink-0">
                     <input
                       className="bg-transparent outline-none w-20 text-right"
                       value={item.date_from || ''}
@@ -291,7 +291,7 @@ export const MinimalCVTemplate: React.FC<MinimalCVTemplateProps> = ({
                       />
                     </div>
 
-                    <div className="text-[9.5px] text-slate-500 text-right whitespace-nowrap flex flex-col items-end gap-0.5 flex-shrink-0">
+                    <div className="text-[9px] text-slate-500 text-right whitespace-nowrap flex flex-col items-end gap-0.5 flex-shrink-0">
                       <input
                         className="bg-transparent outline-none w-20 text-right"
                         value={edu.date_from || ''}
@@ -380,7 +380,7 @@ export const MinimalCVTemplate: React.FC<MinimalCVTemplateProps> = ({
                   <span key={idx} style={{ display: 'inline-flex', alignItems: 'center', marginRight: '6px', marginBottom: '6px', verticalAlign: 'middle', padding: '3px 10px', borderRadius: '9999px', border: '1px solid #cbd5e1', background: '#f1f5f9', whiteSpace: 'nowrap', breakInside: 'avoid', pageBreakInside: 'avoid' }}>
                     <input
                       size={Math.max(3, display.length)}
-                      style={{ background: 'transparent', outline: 'none', fontSize: '9.5px', fontWeight: 600, color: '#1e293b', minWidth: 'unset', border: 'none', width: 'auto' }}
+                      style={{ background: 'transparent', outline: 'none', fontSize: '9px', fontWeight: 600, color: '#1e293b', minWidth: 'unset', border: 'none', width: 'auto' }}
                       value={display}
                       onChange={(e) => onUpdateSectionItem(sectionIndex, idx, 'skill', e.target.value)}
                       placeholder="Skill"
@@ -412,7 +412,7 @@ export const MinimalCVTemplate: React.FC<MinimalCVTemplateProps> = ({
                   <span key={idx} style={{ display: 'inline-flex', alignItems: 'center', marginRight: '6px', marginBottom: '6px', verticalAlign: 'middle', padding: '3px 10px', borderRadius: '9999px', border: '1px solid #e2e8f0', background: '#ffffff', whiteSpace: 'nowrap', breakInside: 'avoid', pageBreakInside: 'avoid' }}>
                     <input
                       size={Math.max(3, display.length)}
-                      style={{ background: 'transparent', outline: 'none', fontSize: '9.5px', fontWeight: 500, color: '#334155', minWidth: 'unset', border: 'none', width: 'auto' }}
+                      style={{ background: 'transparent', outline: 'none', fontSize: '9px', fontWeight: 500, color: '#334155', minWidth: 'unset', border: 'none', width: 'auto' }}
                       value={display}
                       onChange={(e) => onUpdateSectionItem(sectionIndex, idx, 'skill', e.target.value)}
                       placeholder="Stärke"

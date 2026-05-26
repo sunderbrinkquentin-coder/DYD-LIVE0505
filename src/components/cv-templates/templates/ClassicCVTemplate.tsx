@@ -190,11 +190,11 @@ export const ClassicCVTemplate: React.FC<ClassicCVTemplateProps> = ({
                     onUpdateSectionItem(experienceIndex, idx, 'date_from', from);
                     onUpdateSectionItem(experienceIndex, idx, 'date_to', to);
                   }}
-                  className="text-[9.5px] font-semibold text-[#1e3a8a]/80 text-right w-32 flex-shrink-0 leading-tight"
+                  className="text-[9px] font-semibold text-[#1e3a8a]/80 text-right w-32 flex-shrink-0 leading-tight"
                   placeholder="Zeitraum"
                 />
               </div>
-              
+
               <EditableText
                 value={item.company}
                 onChange={(val) => onUpdateSectionItem(experienceIndex, idx, 'company', val)}
@@ -261,7 +261,7 @@ export const ClassicCVTemplate: React.FC<ClassicCVTemplateProps> = ({
                     onUpdateSectionItem(educationIndex, idx, 'date_from', from);
                     onUpdateSectionItem(educationIndex, idx, 'date_to', to);
                   }}
-                  className="text-[9.5px] font-semibold text-[#1e3a8a]/80 text-right w-32 flex-shrink-0 leading-tight"
+                  className="text-[9px] font-semibold text-[#1e3a8a]/80 text-right w-32 flex-shrink-0 leading-tight"
                   placeholder="Zeitraum"
                 />
               </div>
@@ -367,7 +367,7 @@ export const ClassicCVTemplate: React.FC<ClassicCVTemplateProps> = ({
               const stars = skillLevelToStars(level);
               return (
                 // 💡 FIX: min-w-0 und flex-shrink-0 verhindern den Zeilenumbruch!
-                <li key={idx} className="flex flex-nowrap justify-between items-center gap-2 text-[9.5px]">
+                <li key={idx} className="flex flex-nowrap justify-between items-center gap-2 text-[9px]">
                   <EditableText
                     value={language}
                     onChange={(val) => onUpdateSectionItem(index, idx, 'language', val)}

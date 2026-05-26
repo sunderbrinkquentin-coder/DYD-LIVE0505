@@ -207,7 +207,7 @@ export const ProfessionalCVTemplate: React.FC<ProfessionalCVTemplateProps> = ({
                         )}
                       </div>
                       {(exp.date_from || exp.date_to) && (
-                        <div className="text-[9.5px] text-slate-500 text-right whitespace-nowrap flex flex-col items-end gap-0.5 flex-shrink-0">
+                        <div className="text-[9px] text-slate-500 text-right whitespace-nowrap flex flex-col items-end gap-0.5 flex-shrink-0">
                           <input
                             className="bg-transparent outline-none w-20 text-right"
                             value={exp.date_from || ''}
@@ -389,7 +389,7 @@ export const ProfessionalCVTemplate: React.FC<ProfessionalCVTemplateProps> = ({
                     placeholder="Institution"
                   />
                   {(edu.date_from || edu.date_to) && (
-                    <div className="mt-0.5 text-[9.5px] text-slate-500 flex gap-1">
+                    <div className="mt-0.5 text-[9px] text-slate-500 flex gap-1">
                       <input
                         className="bg-transparent outline-none w-16"
                         value={edu.date_from || ''}
