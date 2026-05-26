@@ -372,7 +372,7 @@ export default function HarmonyFestivalPage() {
   }, []);
 
   useEffect(() => {
-    const target = new Date('2026-08-22T17:00:00').getTime();
+    const target = new Date('2026-08-22T16:00:00').getTime();
     const tick = () => {
       const diff = target - Date.now();
       if (diff <= 0) return;

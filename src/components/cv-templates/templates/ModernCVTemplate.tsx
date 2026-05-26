@@ -138,7 +138,7 @@ const SectionTitle: React.FC<{ children: React.ReactNode }> = ({ children }) => 
   <h2
     style={{
       fontFamily: FONT,
-      fontSize: '9.5px',
+      fontSize: '9px',
       fontWeight: 700,
       letterSpacing: '0.13em',
       textTransform: 'uppercase',
@@ -428,7 +428,7 @@ export const ModernCVTemplate: React.FC<ModernCVTemplateProps> = ({
                             }
                           }}
                           placeholder="Aufgabe / Ergebnis"
-                          style={{ fontSize: '10.5px', color: '#1e293b', lineHeight: 1.55, flex: 1, display: 'block', whiteSpace: 'pre-wrap', wordBreak: 'break-word' }}
+                          style={{ fontSize: '9.5px', color: '#1e293b', lineHeight: 1.55, flex: 1, display: 'block', whiteSpace: 'pre-wrap', wordBreak: 'break-word' }}
                         />
                       </li>
                     ))}
@@ -440,7 +440,7 @@ export const ModernCVTemplate: React.FC<ModernCVTemplateProps> = ({
                     value={item.description || ''}
                     onChange={(v) => onUpdateSectionItem(sectionIndex, idx, 'description', v)}
                     placeholder="Aufgaben und wichtigste Erfolge"
-                    style={{ fontSize: '10.5px', color: '#1e293b', lineHeight: 1.55, marginTop: '8px' }}
+                    style={{ fontSize: '9.5px', color: '#1e293b', lineHeight: 1.55, marginTop: '8px' }}
                   />
                 )}
 

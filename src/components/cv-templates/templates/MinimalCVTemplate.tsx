@@ -35,7 +35,7 @@ interface MinimalCVTemplateProps {
 }
 
 const SectionTitle: React.FC<{ children: React.ReactNode }> = ({ children }) => (
-  <h2 className="mt-4 mb-1.5 text-[10px] font-semibold tracking-[0.16em] text-slate-700 uppercase flex items-center gap-1.5">
+  <h2 className="mt-4 mb-1.5 !text-[9px] font-semibold tracking-[0.16em] text-slate-700 uppercase flex items-center gap-1.5">
     <span className="w-1 h-1 rounded-full bg-slate-400" />
     {children}
   </h2>

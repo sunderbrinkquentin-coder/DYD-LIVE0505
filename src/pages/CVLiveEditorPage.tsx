@@ -256,7 +256,7 @@ export function CVLiveEditorPage() {
     if (!el) return;
     const measure = () => {
       // offsetHeight reflects the true rendered height; fallback to scrollHeight
-      const h = Math.max(el.offsetHeight, el.scrollHeight, 1122);
+      const h = Math.max(el.offsetHeight, el.scrollHeight, 0);
       setCvHeight(h);
     };
     measure();

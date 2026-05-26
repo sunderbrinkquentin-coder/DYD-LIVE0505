@@ -168,7 +168,7 @@ export const ClassicCVTemplate: React.FC<ClassicCVTemplateProps> = ({
 
     return (
       <div>
-        <h2 className="text-[12px] font-bold tracking-[0.15em] uppercase text-[#1e3a8a] border-b-2 border-[#1e3a8a]/20 pb-1 mb-3">
+        <h2 className="!text-[9px] font-bold tracking-[0.15em] uppercase text-[#1e3a8a] border-b-2 border-[#1e3a8a]/20 pb-1 mb-3">
           Berufserfahrung
         </h2>
         <div className="space-y-5">
@@ -241,7 +241,7 @@ export const ClassicCVTemplate: React.FC<ClassicCVTemplateProps> = ({
 
     return (
       <div>
-        <h2 className="text-[12px] font-bold tracking-[0.15em] uppercase text-[#1e3a8a] border-b-2 border-[#1e3a8a]/20 pb-1 mb-3 mt-6">
+        <h2 className="!text-[9px] font-bold tracking-[0.15em] uppercase text-[#1e3a8a] border-b-2 border-[#1e3a8a]/20 pb-1 mb-3 mt-6">
           Ausbildung / Studium
         </h2>
         <div className="space-y-5">
@@ -299,7 +299,7 @@ export const ClassicCVTemplate: React.FC<ClassicCVTemplateProps> = ({
 
     return (
       <div>
-        <h2 className="text-[12px] font-bold tracking-[0.15em] uppercase text-[#1e3a8a] border-b-2 border-[#1e3a8a]/20 pb-1 mb-3 mt-6">
+        <h2 className="!text-[9px] font-bold tracking-[0.15em] uppercase text-[#1e3a8a] border-b-2 border-[#1e3a8a]/20 pb-1 mb-3 mt-6">
           Projekte
         </h2>
         <div className="space-y-5">
@@ -418,7 +418,7 @@ export const ClassicCVTemplate: React.FC<ClassicCVTemplateProps> = ({
 
     return (
       <div style={{ breakInside: 'avoid', pageBreakInside: 'avoid' }}>
-        <h2 className="text-[12px] font-bold tracking-[0.15em] uppercase text-[#1e3a8a] border-b-2 border-[#1e3a8a]/20 pb-1 mb-3 mt-6">
+        <h2 className="!text-[9px] font-bold tracking-[0.15em] uppercase text-[#1e3a8a] border-b-2 border-[#1e3a8a]/20 pb-1 mb-3 mt-6">
           Arbeitsweise & Werte
         </h2>
         <ul className="list-disc list-inside space-y-1.5 text-[12px] text-slate-700">
@@ -453,8 +453,8 @@ export const ClassicCVTemplate: React.FC<ClassicCVTemplateProps> = ({
         border: '1px solid #e2e8f0',
       }}
     >
-      <div className="w-full p-8" style={{ minHeight: '1122px', height: '100%', flex: 1 }}>
-        <div className="flex gap-8" style={{ minHeight: '1080px', flex: 1 }}>
+      <div className="w-full p-8" style={{ height: '100%', flex: 1 }}>
+        <div className="flex gap-8" style={{ flex: 1 }}>
           
           {/* Linke Spalte */}
           <aside className="w-1/3 max-w-[33%] pr-6 border-r border-slate-200 flex flex-col">
@@ -570,7 +570,7 @@ export const ClassicCVTemplate: React.FC<ClassicCVTemplateProps> = ({
           <main className="flex-1 flex flex-col min-w-0">
             <div data-pdf-section className="mb-6" style={{ breakInside: 'avoid', pageBreakInside: 'avoid' }}>
               <section>
-                <h2 className="text-[12px] font-bold tracking-[0.15em] uppercase text-[#1e3a8a] border-b-2 border-[#1e3a8a]/20 pb-1 mb-3">
+                <h2 className="!text-[9px] font-bold tracking-[0.15em] uppercase text-[#1e3a8a] border-b-2 border-[#1e3a8a]/20 pb-1 mb-3">
                   Profil
                 </h2>
                 <EditableText
@@ -604,7 +604,7 @@ export const ClassicCVTemplate: React.FC<ClassicCVTemplateProps> = ({
               return (
                 <div key={section.type} data-pdf-section className="mt-6" style={{ breakInside: 'avoid', pageBreakInside: 'avoid' }}>
                   <section>
-                    <h2 className="text-[12px] font-bold tracking-[0.15em] uppercase text-[#1e3a8a] border-b-2 border-[#1e3a8a]/20 pb-1 mb-3">
+                    <h2 className="!text-[9px] font-bold tracking-[0.15em] uppercase text-[#1e3a8a] border-b-2 border-[#1e3a8a]/20 pb-1 mb-3">
                       {title}
                     </h2>
                     <div className="space-y-3 text-[12px] text-slate-700">

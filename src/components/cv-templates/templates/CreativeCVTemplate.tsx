@@ -36,7 +36,7 @@ interface CreativeCVTemplateProps {
 }
 
 const SectionTitle: React.FC<{ children: React.ReactNode }> = ({ children }) => (
-  <h2 className="mt-3 mb-1.5 text-xs font-semibold tracking-[0.16em] text-[#f9fafb] uppercase flex items-center gap-1.5">
+  <h2 className="mt-3 mb-1.5 !text-[9px] font-semibold tracking-[0.16em] text-[#f9fafb] uppercase flex items-center gap-1.5">
     <span className="w-1.5 h-1.5 rounded-full bg-gradient-to-r from-[#22c1c3] to-[#66c0b6]" />
     {children}
   </h2>
@@ -242,12 +242,12 @@ export const CreativeCVTemplate: React.FC<CreativeCVTemplateProps> = ({
                   </div>
 
                   {bullets.length > 0 ? (
-                    <ul className="mt-1 space-y-0.5 text-[10px] text-[#e5e7eb]">
+                    <ul className="mt-1 space-y-0.5 !text-[9.5px] text-[#e5e7eb]">
                       {bullets.map((bp: string, bIdx: number) => (
                         <li key={bIdx} className="flex items-start gap-1" style={{ breakInside: 'avoid', pageBreakInside: 'avoid' }}>
                           <span className="text-[#22c1c3] mt-0.5 text-[11px]">▸</span>
                           <textarea
-                            className="flex-1 bg-transparent outline-none resize-none overflow-hidden leading-snug text-[#e5e7eb]"
+                            className="flex-1 bg-transparent outline-none resize-none overflow-hidden leading-snug text-[#e5e7eb] !text-[9.5px]"
                             style={{ minHeight: '20px', height: 'auto' }}
                             value={bp}
                             onChange={(e) => {
@@ -337,12 +337,12 @@ export const CreativeCVTemplate: React.FC<CreativeCVTemplateProps> = ({
                   </div>
 
                   {bullets.length > 0 ? (
-                    <ul className="mt-1 space-y-0.5 text-[10px] text-[#e5e7eb]">
+                    <ul className="mt-1 space-y-0.5 !text-[9.5px] text-[#e5e7eb]">
                       {bullets.map((bp: string, bIdx: number) => (
                         <li key={bIdx} className="flex items-start gap-1" style={{ breakInside: 'avoid', pageBreakInside: 'avoid' }}>
                           <span className="text-[#22c1c3] mt-0.5 text-[11px]">▸</span>
                           <textarea
-                            className="flex-1 bg-transparent outline-none resize-none overflow-hidden leading-snug text-[#e5e7eb]"
+                            className="flex-1 bg-transparent outline-none resize-none overflow-hidden leading-snug text-[#e5e7eb] !text-[9.5px]"
                             style={{ minHeight: '20px', height: 'auto' }}
                             value={bp}
                             onChange={(e) => {

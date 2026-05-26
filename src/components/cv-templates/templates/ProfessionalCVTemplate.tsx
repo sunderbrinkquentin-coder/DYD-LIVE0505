@@ -41,7 +41,7 @@ const autoResize = (el: HTMLTextAreaElement) => {
 
 // Einheitlicher Section-Titel
 const SectionTitle: React.FC<{ children: React.ReactNode }> = ({ children }) => (
-  <h2 className="mt-4 mb-2 text-[10px] font-semibold tracking-[0.16em] text-slate-700 uppercase flex items-center gap-1.5">
+  <h2 className="mt-4 mb-2 !text-[9px] font-semibold tracking-[0.16em] text-slate-700 uppercase flex items-center gap-1.5">
     <span className="w-1 h-1 rounded-full bg-slate-400" />
     {children}
   </h2>
@@ -229,12 +229,12 @@ export const ProfessionalCVTemplate: React.FC<ProfessionalCVTemplateProps> = ({
                     </div>
 
                     {bullets.length > 0 ? (
-                      <ul className="mt-1 space-y-[2px] text-[10px] text-slate-800" style={{ listStyle: 'none', padding: 0, margin: '4px 0 0' }}>
+                      <ul className="mt-1 space-y-[2px] !text-[9.5px] text-slate-800" style={{ listStyle: 'none', padding: 0, margin: '4px 0 0' }}>
                         {bullets.map((bp: string, bIdx: number) => (
                           <li key={bIdx} style={{ display: 'flex', alignItems: 'flex-start', gap: '6px', breakInside: 'avoid', pageBreakInside: 'avoid' }}>
                             <span style={{ flexShrink: 0, color: '#334155', fontSize: '13px', lineHeight: '10px', marginTop: '1px', userSelect: 'none' }}>•</span>
                             <textarea
-                              className="w-full bg-transparent outline-none text-slate-800 text-[10px] leading-tight resize-none"
+                              className="w-full bg-transparent outline-none text-slate-800 !text-[9.5px] leading-tight resize-none"
                               style={{ flex: 1, overflow: 'hidden', minHeight: '20px' }}
                               value={bp}
                               onChange={(e) => {
@@ -314,12 +314,12 @@ export const ProfessionalCVTemplate: React.FC<ProfessionalCVTemplateProps> = ({
                     </div>
 
                     {bullets.length > 0 ? (
-                      <ul className="mt-1 space-y-[2px] text-[10px] text-slate-800" style={{ listStyle: 'none', padding: 0, margin: '4px 0 0' }}>
+                      <ul className="mt-1 space-y-[2px] !text-[9.5px] text-slate-800" style={{ listStyle: 'none', padding: 0, margin: '4px 0 0' }}>
                         {bullets.map((bp: string, bIdx: number) => (
                           <li key={bIdx} style={{ display: 'flex', alignItems: 'flex-start', gap: '6px', breakInside: 'avoid', pageBreakInside: 'avoid' }}>
                             <span style={{ flexShrink: 0, color: '#334155', fontSize: '13px', lineHeight: '10px', marginTop: '1px', userSelect: 'none' }}>•</span>
                             <textarea
-                              className="w-full bg-transparent outline-none text-slate-800 text-[10px] leading-tight resize-none"
+                              className="w-full bg-transparent outline-none text-slate-800 !text-[9.5px] leading-tight resize-none"
                               style={{ overflow: 'hidden', minHeight: '20px' }}
                               value={bp}
                               onChange={(e) => {
