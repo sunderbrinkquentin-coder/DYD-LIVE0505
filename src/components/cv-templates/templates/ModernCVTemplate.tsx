@@ -229,7 +229,7 @@ const Chip: React.FC<{
       justifyContent: 'center',
       borderRadius: '999px',
       padding: '4px 12px',
-      fontSize: '10px',
+      fontSize: '9px',
       fontFamily: FONT,
       fontWeight,
       color,
@@ -239,7 +239,7 @@ const Chip: React.FC<{
       whiteSpace: 'nowrap',
     }}
   >
-    <Editable value={value} onChange={onChange} style={{ fontSize: '10px', color, fontWeight, lineHeight: 1.4, display: 'inline-block', verticalAlign: 'middle', textAlign: 'center', whiteSpace: 'nowrap' }} />
+    <Editable value={value} onChange={onChange} style={{ fontSize: '9px', color, fontWeight, lineHeight: 1.4, display: 'inline-block', verticalAlign: 'middle', textAlign: 'center', whiteSpace: 'nowrap' }} />
   </span>
 );
 
@@ -404,7 +404,7 @@ export const ModernCVTemplate: React.FC<ModernCVTemplateProps> = ({
                             display: 'inline-block',
                             flexShrink: 0,
                             color: CI.primaryDark,
-                            fontSize: '14px',
+                            fontSize: '11px',
                             lineHeight: '10px',
                             marginTop: '2px',
                             userSelect: 'none',
@@ -534,7 +534,7 @@ export const ModernCVTemplate: React.FC<ModernCVTemplateProps> = ({
                       value={edu.description}
                       onChange={(v) => onUpdateSectionItem(sectionIndex, idx, 'description', v)}
                       placeholder=""
-                      style={{ fontSize: '10px', color: '#64748b', marginTop: '4px', lineHeight: 1.5 }}
+                      style={{ fontSize: '9.5px', color: '#64748b', marginTop: '4px', lineHeight: 1.5 }}
                     />
                   ) : null}
                   <div style={{ marginTop: '6px', display: 'flex', justifyContent: 'flex-end' }}>
@@ -586,7 +586,7 @@ export const ModernCVTemplate: React.FC<ModernCVTemplateProps> = ({
                     justifyContent: 'space-between',
                     borderRadius: '8px',
                     padding: '5px 12px',
-                    fontSize: '10px',
+                    fontSize: '9px',
                     fontFamily: FONT,
                     backgroundColor: CI.tint,
                     border: `1px solid ${CI.border}`,
@@ -598,7 +598,7 @@ export const ModernCVTemplate: React.FC<ModernCVTemplateProps> = ({
                     value={lang.language}
                     onChange={(v) => onUpdateSectionItem(sectionIndex, idx, 'language', v)}
                     placeholder="Sprache"
-                    style={{ fontSize: '10px', fontWeight: 600, color: '#0f172a' }}
+                    style={{ fontSize: '9px', fontWeight: 600, color: '#0f172a' }}
                   />
                   {skillLevelToStars(lang.level) > 0 ? (
                     <StarRating stars={skillLevelToStars(lang.level)} />
@@ -630,8 +630,8 @@ export const ModernCVTemplate: React.FC<ModernCVTemplateProps> = ({
                   const level = typeof skill === 'object' ? skill.level || skill.niveau || '' : '';
                   const stars = skillLevelToStars(level);
                   return (
-                    <div key={idx} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', borderRadius: '8px', padding: '5px 12px', fontSize: '10px', backgroundColor: CI.tint, border: `1px solid ${CI.border}`, breakInside: 'avoid', pageBreakInside: 'avoid' }}>
-                      <Editable value={name} onChange={(v) => onUpdateSectionItem(sectionIndex, idx, 'skill', v)} style={{ fontSize: '10px', fontWeight: 600, color: '#0f172a' }} />
+                    <div key={idx} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', borderRadius: '8px', padding: '5px 12px', fontSize: '9px', backgroundColor: CI.tint, border: `1px solid ${CI.border}`, breakInside: 'avoid', pageBreakInside: 'avoid' }}>
+                      <Editable value={name} onChange={(v) => onUpdateSectionItem(sectionIndex, idx, 'skill', v)} style={{ fontSize: '9px', fontWeight: 600, color: '#0f172a' }} />
                       {stars > 0 ? <StarRating stars={stars} /> : (
                         <span style={{ fontSize: '9px', color: '#64748b' }}>{level}</span>
                       )}
@@ -745,7 +745,7 @@ export const ModernCVTemplate: React.FC<ModernCVTemplateProps> = ({
                     value={typeof it === 'string' ? it : it.name || it.title || it.label || ''}
                     onChange={(v) => onUpdateSectionItem(sectionIndex, idx, 'name', v)}
                     placeholder="Eintrag"
-                    style={{ fontSize: '10.5px', color: '#1e293b', lineHeight: 1.5 }}
+                    style={{ fontSize: '9.5px', color: '#1e293b', lineHeight: 1.5 }}
                   />
                 </div>
               ))}
@@ -782,7 +782,7 @@ export const ModernCVTemplate: React.FC<ModernCVTemplateProps> = ({
                     value={typeof it === 'string' ? it : it.name || it.title || it.label || ''}
                     onChange={(v) => onUpdateSectionItem(sectionIndex, idx, 'name', v)}
                     placeholder="Eintrag"
-                    style={{ fontSize: '10.5px', color: '#1e293b', lineHeight: 1.5 }}
+                    style={{ fontSize: '9.5px', color: '#1e293b', lineHeight: 1.5 }}
                   />
                 </div>
               ))}
@@ -854,7 +854,7 @@ export const ModernCVTemplate: React.FC<ModernCVTemplateProps> = ({
               onChange={(v) => onUpdatePersonalInfo('title', v)}
               placeholder="Zielposition / Profil"
               style={{
-                fontSize: '13px',
+                fontSize: '12px',
                 fontWeight: 700,
                 color: CI.primaryDark,
                 marginBottom: '14px',
@@ -866,7 +866,7 @@ export const ModernCVTemplate: React.FC<ModernCVTemplateProps> = ({
           <div
             style={{
               display: 'block',
-              fontSize: '11px',
+              fontSize: '9.5px',
               color: '#334155',
               marginTop: personalInfo.title?.trim() ? 0 : '10px',
               overflow: 'hidden',
@@ -879,7 +879,7 @@ export const ModernCVTemplate: React.FC<ModernCVTemplateProps> = ({
                   value={personalInfo.location}
                   onChange={(v) => onUpdatePersonalInfo('location', v)}
                   placeholder="Ort"
-                  style={{ fontSize: '11px', color: '#334155', marginLeft: '4px' }}
+                  style={{ fontSize: '9.5px', color: '#334155', marginLeft: '4px' }}
                 />
               </span>
             )}
@@ -890,7 +890,7 @@ export const ModernCVTemplate: React.FC<ModernCVTemplateProps> = ({
                   value={personalInfo.phone}
                   onChange={(v) => onUpdatePersonalInfo('phone', v)}
                   placeholder="Telefon"
-                  style={{ fontSize: '11px', color: '#334155', marginLeft: '4px' }}
+                  style={{ fontSize: '9.5px', color: '#334155', marginLeft: '4px' }}
                 />
               </span>
             )}
@@ -901,7 +901,7 @@ export const ModernCVTemplate: React.FC<ModernCVTemplateProps> = ({
                   value={personalInfo.email}
                   onChange={(v) => onUpdatePersonalInfo('email', v)}
                   placeholder="E-Mail"
-                  style={{ fontSize: '11px', color: '#334155', marginLeft: '4px' }}
+                  style={{ fontSize: '9.5px', color: '#334155', marginLeft: '4px' }}
                 />
               </span>
             )}
@@ -912,7 +912,7 @@ export const ModernCVTemplate: React.FC<ModernCVTemplateProps> = ({
                   value={personalInfo.linkedin}
                   onChange={(v) => onUpdatePersonalInfo('linkedin', v)}
                   placeholder="LinkedIn"
-                  style={{ fontSize: '11px', color: '#334155', marginLeft: '4px' }}
+                  style={{ fontSize: '9.5px', color: '#334155', marginLeft: '4px' }}
                 />
               </span>
             )}
@@ -923,7 +923,7 @@ export const ModernCVTemplate: React.FC<ModernCVTemplateProps> = ({
                   value=""
                   onChange={(v) => onUpdatePersonalInfo('location', v)}
                   placeholder="Ort"
-                  style={{ fontSize: '11px', color: '#94a3b8', marginLeft: '4px' }}
+                  style={{ fontSize: '9.5px', color: '#94a3b8', marginLeft: '4px' }}
                 />
               </span>
             )}
@@ -934,7 +934,7 @@ export const ModernCVTemplate: React.FC<ModernCVTemplateProps> = ({
                   value=""
                   onChange={(v) => onUpdatePersonalInfo('email', v)}
                   placeholder="E-Mail"
-                  style={{ fontSize: '11px', color: '#94a3b8', marginLeft: '4px' }}
+                  style={{ fontSize: '9.5px', color: '#94a3b8', marginLeft: '4px' }}
                 />
               </span>
             )}
@@ -983,7 +983,7 @@ export const ModernCVTemplate: React.FC<ModernCVTemplateProps> = ({
                 placeholder="Kurzprofil: Wichtige Erfahrungen, Stärken und dein Mehrwert für die Rolle."
                 {...{ 'data-pdf-summary': '1' } as any}
                 style={{
-                  fontSize: '11px',
+                  fontSize: '9.5px',
                   lineHeight: 1.65,
                   color: '#1e293b',
                   backgroundColor: CI.tint,
@@ -1032,7 +1032,7 @@ export const ModernCVTemplate: React.FC<ModernCVTemplateProps> = ({
           alignItems: 'center',
           /* 💡 HIER KORRIGIERT: CamelCase statt Bindestrich verhindert den Babel-Parser-Fehler */
           justifyContent: 'space-between', 
-          fontSize: '10px',
+          fontSize: '9px',
           color: '#64748b',
           fontFamily: FONT,
           marginTop: 'auto',
@@ -1046,7 +1046,7 @@ export const ModernCVTemplate: React.FC<ModernCVTemplateProps> = ({
             value={footerLocation}
             onChange={(v) => onUpdatePersonalInfo('footerLocation', v)}
             placeholder="Ort"
-            style={{ fontSize: '10px', color: '#64748b' }}
+            style={{ fontSize: '9px', color: '#64748b' }}
           />
         </div>
         <span style={{ fontWeight: 600, whiteSpace: 'nowrap' }}>{today}</span>

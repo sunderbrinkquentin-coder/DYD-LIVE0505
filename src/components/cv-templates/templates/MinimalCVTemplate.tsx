@@ -173,7 +173,7 @@ export const MinimalCVTemplate: React.FC<MinimalCVTemplateProps> = ({
                     )}
                   </div>
 
-                  <div className="text-[10px] text-slate-500 text-right whitespace-nowrap flex flex-col items-end gap-0.5 flex-shrink-0">
+                  <div className="text-[9.5px] text-slate-500 text-right whitespace-nowrap flex flex-col items-end gap-0.5 flex-shrink-0">
                     <input
                       className="bg-transparent outline-none w-20 text-right"
                       value={item.date_from || ''}
@@ -199,7 +199,7 @@ export const MinimalCVTemplate: React.FC<MinimalCVTemplateProps> = ({
                       <li key={bIdx} style={{ breakInside: 'avoid', pageBreakInside: 'avoid' }} className="flex items-start gap-1.5">
                         <span 
                           style={{ 
-                            flexShrink: 0, color: '#64748b', fontSize: '10px', lineHeight: '10px', marginTop: '1px', userSelect: 'none' 
+                            flexShrink: 0, color: '#64748b', fontSize: '11px', lineHeight: '10px', marginTop: '1px', userSelect: 'none' 
                           }}
                         >
                           •
@@ -291,7 +291,7 @@ export const MinimalCVTemplate: React.FC<MinimalCVTemplateProps> = ({
                       />
                     </div>
 
-                    <div className="text-[10px] text-slate-500 text-right whitespace-nowrap flex flex-col items-end gap-0.5 flex-shrink-0">
+                    <div className="text-[9.5px] text-slate-500 text-right whitespace-nowrap flex flex-col items-end gap-0.5 flex-shrink-0">
                       <input
                         className="bg-transparent outline-none w-20 text-right"
                         value={edu.date_from || ''}
@@ -339,7 +339,7 @@ export const MinimalCVTemplate: React.FC<MinimalCVTemplateProps> = ({
                   <div
                     key={idx}
                     style={{ pageBreakInside: 'avoid', breakInside: 'avoid' }}
-                    className="flex justify-between items-center gap-2 px-2 py-1 rounded-md bg-slate-50 border border-slate-200 text-[10px]"
+                    className="flex justify-between items-center gap-2 px-2 py-1 rounded-md bg-slate-50 border border-slate-200 text-[9.5px]"
                   >
                     <input
                       className="bg-transparent outline-none flex-1 font-medium text-slate-900"
@@ -491,7 +491,7 @@ export const MinimalCVTemplate: React.FC<MinimalCVTemplateProps> = ({
         return (
           <div key={sectionIndex} data-pdf-section>
             <SectionTitle>{section.title || TYPE_LABELS_MIN[section.type] || section.type}</SectionTitle>
-            <ul className="space-y-1 text-[10px] text-slate-800">
+            <ul className="space-y-1 text-[9.5px] text-slate-800">
               {items.map((it: any, idx: number) => {
                 const displayValue =
                   typeof it === 'string'
@@ -554,13 +554,13 @@ export const MinimalCVTemplate: React.FC<MinimalCVTemplateProps> = ({
               placeholder="Name"
             />
             <input
-              className="mt-1 w-full text-sm text-slate-600 bg-transparent outline-none"
+              className="mt-1 w-full text-[12px] text-slate-600 bg-transparent outline-none"
               value={personalInfo.title || ''}
               onChange={(e) => onUpdatePersonalInfo('title', e.target.value)}
               placeholder="Zielposition / Profil"
             />
 
-            <div className="mt-3 grid grid-cols-2 gap-x-4 gap-y-1 text-[11px] text-slate-700">
+            <div className="mt-3 grid grid-cols-2 gap-x-4 gap-y-1 text-[9.5px] text-slate-700">
               <div className="flex items-center gap-1.5">
                 <span>📍</span>
                 <input
@@ -597,7 +597,7 @@ export const MinimalCVTemplate: React.FC<MinimalCVTemplateProps> = ({
 
               <div className="flex items-center gap-1.5">
                 {personalInfo.linkedin ? (
-                  <span className="text-[11px] font-semibold text-slate-700">
+                  <span className="text-[9.5px] font-semibold text-slate-700">
                     in
                   </span>
                 ) : (
@@ -638,7 +638,7 @@ export const MinimalCVTemplate: React.FC<MinimalCVTemplateProps> = ({
               <SectionTitle>Profil</SectionTitle>
               <textarea
                 ref={summaryRef}
-                className="w-full text-[11px] leading-relaxed text-slate-800 bg-slate-50 border border-slate-200 rounded-lg px-3 py-2 outline-none resize-none"
+                className="w-full text-[9.5px] leading-relaxed text-slate-800 bg-slate-50 border border-slate-200 rounded-lg px-3 py-2 outline-none resize-none"
                 style={{ minHeight: '60px', overflow: 'hidden' }}
                 value={summary || ''}
                 onChange={(e) => {
@@ -685,7 +685,7 @@ export const MinimalCVTemplate: React.FC<MinimalCVTemplateProps> = ({
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'space-between',
-          fontSize: '10px',
+          fontSize: '9px',
           color: '#64748b',
           fontFamily: 'sans-serif',
           marginTop: 'auto',
@@ -698,7 +698,7 @@ export const MinimalCVTemplate: React.FC<MinimalCVTemplateProps> = ({
           <span style={{ fontWeight: 600, flexShrink: 0 }}>Ort:</span>
           <input
             className="bg-transparent outline-none text-slate-500"
-            style={{ fontSize: '10px', width: '120px' }}
+            style={{ fontSize: '9px', width: '120px' }}
             value={personalInfo.location || ''}
             onChange={(e) => onUpdatePersonalInfo('location', e.target.value)}
             placeholder="Ort"

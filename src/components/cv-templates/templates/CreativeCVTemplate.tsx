@@ -36,8 +36,8 @@ interface CreativeCVTemplateProps {
 }
 
 const SectionTitle: React.FC<{ children: React.ReactNode }> = ({ children }) => (
-  <h2 className="mt-3 mb-1.5 !text-[9px] font-semibold tracking-[0.16em] text-[#f9fafb] uppercase flex items-center gap-1.5">
-    <span className="w-1.5 h-1.5 rounded-full bg-gradient-to-r from-[#22c1c3] to-[#66c0b6]" />
+  <h2 className="mt-3 mb-1.5 !text-[9px] font-semibold tracking-[0.16em] text-slate-600 uppercase flex items-center gap-1.5">
+    <span className="w-1.5 h-1.5 rounded-full bg-[#22c1c3]" />
     {children}
   </h2>
 );
@@ -188,13 +188,13 @@ export const CreativeCVTemplate: React.FC<CreativeCVTemplateProps> = ({
                 <div
                   key={idx}
                   data-pdf-section
-                  className="mb-2.5 rounded-xl bg-[#020617] border border-white/35 px-3 py-2 shadow-sm w-full split-box-fix"
+                  className="mb-2.5 rounded-xl bg-white border border-slate-200 px-3 py-2 shadow-sm w-full split-box-fix"
                   style={{ display: 'block', breakInside: 'auto', pageBreakInside: 'auto' }}
                 >
                   <div className="flex justify-between items-start gap-2" style={{ breakInside: 'avoid', pageBreakInside: 'avoid' }}>
                     <div className="flex-1 min-w-0">
                       <input
-                        className="font-semibold text-[11px] outline-none w-full bg-transparent text-[#f9fafb]"
+                        className="font-semibold text-[11px] outline-none w-full bg-transparent text-slate-900"
                         value={exp.title || exp.position || ''}
                         onChange={(e) =>
                           onUpdateSectionItem(sectionIndex, idx, 'title', e.target.value)
@@ -202,7 +202,7 @@ export const CreativeCVTemplate: React.FC<CreativeCVTemplateProps> = ({
                         placeholder="Position"
                       />
                       <input
-                        className="outline-none bg-transparent w-full text-[10px] text-[#cbd5f5] mt-0.5"
+                        className="outline-none bg-transparent w-full text-[10px] text-slate-500 mt-0.5"
                         value={exp.company || ''}
                         onChange={(e) =>
                           onUpdateSectionItem(sectionIndex, idx, 'company', e.target.value)
@@ -211,7 +211,7 @@ export const CreativeCVTemplate: React.FC<CreativeCVTemplateProps> = ({
                       />
                       {(exp.location || exp.ort) && (
                         <input
-                          className="outline-none bg-transparent w-full text-[9px] text-[#94a3b8] mt-0.5"
+                          className="outline-none bg-transparent w-full text-[9.5px] text-slate-400 mt-0.5"
                           value={exp.location || exp.ort || ''}
                           onChange={(e) =>
                             onUpdateSectionItem(sectionIndex, idx, 'location', e.target.value)
@@ -220,7 +220,7 @@ export const CreativeCVTemplate: React.FC<CreativeCVTemplateProps> = ({
                         />
                       )}
                     </div>
-                    <div className="text-[10px] text-[#e5e7eb] whitespace-nowrap flex-shrink-0 flex items-center gap-0.5">
+                    <div className="text-[9.5px] text-slate-500 whitespace-nowrap flex-shrink-0 flex items-center gap-0.5">
                       <input
                         className="outline-none bg-transparent w-14 text-right"
                         value={exp.date_from || ''}
@@ -242,12 +242,12 @@ export const CreativeCVTemplate: React.FC<CreativeCVTemplateProps> = ({
                   </div>
 
                   {bullets.length > 0 ? (
-                    <ul className="mt-1 space-y-0.5 !text-[9.5px] text-[#e5e7eb]">
+                    <ul className="mt-1 space-y-0.5 !text-[9.5px] text-slate-700">
                       {bullets.map((bp: string, bIdx: number) => (
                         <li key={bIdx} className="flex items-start gap-1" style={{ breakInside: 'avoid', pageBreakInside: 'avoid' }}>
                           <span className="text-[#22c1c3] mt-0.5 text-[11px]">▸</span>
                           <textarea
-                            className="flex-1 bg-transparent outline-none resize-none overflow-hidden leading-snug text-[#e5e7eb] !text-[9.5px]"
+                            className="flex-1 bg-transparent outline-none resize-none overflow-hidden leading-snug text-slate-700 !text-[9.5px]"
                             style={{ minHeight: '20px', height: 'auto' }}
                             value={bp}
                             onChange={(e) => {
@@ -278,7 +278,7 @@ export const CreativeCVTemplate: React.FC<CreativeCVTemplateProps> = ({
                   ) : (
                     <div style={{ breakInside: 'avoid', pageBreakInside: 'avoid' }}>
                       <textarea
-                        className="mt-0.5 w-full text-[10px] text-[#e5e7eb] outline-none resize-none overflow-hidden bg-transparent leading-snug"
+                        className="mt-0.5 w-full text-[9.5px] text-slate-700 outline-none resize-none overflow-hidden bg-transparent leading-snug"
                         style={{ minHeight: '40px', height: 'auto' }}
                         value={exp.description || ''}
                         onChange={(e) => {
@@ -299,7 +299,7 @@ export const CreativeCVTemplate: React.FC<CreativeCVTemplateProps> = ({
                   <div style={{ breakInside: 'avoid', pageBreakInside: 'avoid' }}>
                     <button
                       type="button"
-                      className="mt-0.5 text-[9px] text-[#38bdf8] hover:underline"
+                      className="mt-0.5 text-[9px] text-[#22c1c3] hover:underline"
                       onClick={() => handleAddBullet(sectionIndex, idx, exp)}
                     >
                       + Punkt
@@ -322,12 +322,12 @@ export const CreativeCVTemplate: React.FC<CreativeCVTemplateProps> = ({
                 <div
                   key={idx}
                   data-pdf-section
-                  className="mb-2 rounded-xl bg-[#020617] border border-white/35 px-3 py-2 shadow-sm w-full split-box-fix"
+                  className="mb-2 rounded-xl bg-white border border-slate-200 px-3 py-2 shadow-sm w-full split-box-fix"
                   style={{ display: 'block', breakInside: 'auto', pageBreakInside: 'auto' }}
                 >
                   <div style={{ breakInside: 'avoid', pageBreakInside: 'avoid' }}>
                     <input
-                      className="font-semibold text-[11px] outline-none w-full bg-transparent text-[#f9fafb]"
+                      className="font-semibold text-[11px] outline-none w-full bg-transparent text-slate-900"
                       value={proj.title || proj.name || ''}
                       onChange={(e) =>
                         onUpdateSectionItem(sectionIndex, idx, 'title', e.target.value)
@@ -337,12 +337,12 @@ export const CreativeCVTemplate: React.FC<CreativeCVTemplateProps> = ({
                   </div>
 
                   {bullets.length > 0 ? (
-                    <ul className="mt-1 space-y-0.5 !text-[9.5px] text-[#e5e7eb]">
+                    <ul className="mt-1 space-y-0.5 !text-[9.5px] text-slate-700">
                       {bullets.map((bp: string, bIdx: number) => (
                         <li key={bIdx} className="flex items-start gap-1" style={{ breakInside: 'avoid', pageBreakInside: 'avoid' }}>
                           <span className="text-[#22c1c3] mt-0.5 text-[11px]">▸</span>
                           <textarea
-                            className="flex-1 bg-transparent outline-none resize-none overflow-hidden leading-snug text-[#e5e7eb] !text-[9.5px]"
+                            className="flex-1 bg-transparent outline-none resize-none overflow-hidden leading-snug text-slate-700 !text-[9.5px]"
                             style={{ minHeight: '20px', height: 'auto' }}
                             value={bp}
                             onChange={(e) => {
@@ -373,7 +373,7 @@ export const CreativeCVTemplate: React.FC<CreativeCVTemplateProps> = ({
                   ) : (
                     <div style={{ breakInside: 'avoid', pageBreakInside: 'avoid' }}>
                       <textarea
-                        className="mt-0.5 w-full text-[10px] text-[#e5e7eb] outline-none resize-none overflow-hidden bg-transparent leading-snug"
+                        className="mt-0.5 w-full text-[9.5px] text-slate-700 outline-none resize-none overflow-hidden bg-transparent leading-snug"
                         style={{ minHeight: '25px', height: 'auto' }}
                         value={proj.description || ''}
                         onChange={(e) => {
@@ -394,7 +394,7 @@ export const CreativeCVTemplate: React.FC<CreativeCVTemplateProps> = ({
                   <div style={{ breakInside: 'avoid', pageBreakInside: 'avoid' }}>
                     <button
                       type="button"
-                      className="mt-0.5 text-[9px] text-[#38bdf8] hover:underline"
+                      className="mt-0.5 text-[9px] text-[#22c1c3] hover:underline"
                       onClick={() => handleAddBullet(sectionIndex, idx, proj)}
                     >
                       + Punkt
@@ -415,13 +415,13 @@ export const CreativeCVTemplate: React.FC<CreativeCVTemplateProps> = ({
               <div
                 key={idx}
                 data-pdf-section
-                className="mb-2 rounded-xl bg-[#020617] border border-white/35 px-3 py-2 shadow-sm w-full split-box-fix"
+                className="mb-2 rounded-xl bg-white border border-slate-200 px-3 py-2 shadow-sm w-full split-box-fix"
                 style={{ display: 'block', breakInside: 'avoid', pageBreakInside: 'avoid' }}
               >
                 <div className="flex justify-between items-start gap-2">
                   <div className="flex-1 min-w-0">
                     <input
-                      className="font-semibold text-[11px] outline-none w-full bg-transparent text-[#f9fafb]"
+                      className="font-semibold text-[11px] outline-none w-full bg-transparent text-slate-900"
                       value={edu.degree || ''}
                       onChange={(e) =>
                         onUpdateSectionItem(sectionIndex, idx, 'degree', e.target.value)
@@ -429,7 +429,7 @@ export const CreativeCVTemplate: React.FC<CreativeCVTemplateProps> = ({
                       placeholder="Abschluss"
                     />
                     <input
-                      className="outline-none bg-transparent w-full text-[10px] text-[#cbd5f5] mt-0.5"
+                      className="outline-none bg-transparent w-full text-[10px] text-slate-500 mt-0.5"
                       value={edu.institution || ''}
                       onChange={(e) =>
                         onUpdateSectionItem(
@@ -442,7 +442,7 @@ export const CreativeCVTemplate: React.FC<CreativeCVTemplateProps> = ({
                       placeholder="Institution"
                     />
                   </div>
-                  <div className="text-[10px] text-[#e5e7eb] whitespace-nowrap flex-shrink-0 flex items-center gap-0.5">
+                  <div className="text-[9.5px] text-slate-500 whitespace-nowrap flex-shrink-0 flex items-center gap-0.5">
                     <input
                       className="outline-none bg-transparent w-14 text-right"
                       value={edu.date_from || ''}
@@ -476,7 +476,7 @@ export const CreativeCVTemplate: React.FC<CreativeCVTemplateProps> = ({
               {items.map((lang: any, idx: number) => (
                 <div
                   key={idx}
-                  className="flex justify-between items-center text-[10px] text-[#f9fafb]"
+                  className="flex justify-between items-center text-[9.5px] text-slate-700"
                   style={{ breakInside: 'avoid', pageBreakInside: 'avoid' }}
                 >
                   <input
@@ -492,7 +492,7 @@ export const CreativeCVTemplate: React.FC<CreativeCVTemplateProps> = ({
                     placeholder="Sprache"
                   />
                   <input
-                    className="outline-none bg-transparent text-white/70 w-1/2 text-right text-[9px]"
+                    className="outline-none bg-transparent text-slate-500 w-1/2 text-right text-[9px]"
                     value={
                       typeof lang === 'object'
                         ? lang.level || lang.proficiency || ''
@@ -513,7 +513,7 @@ export const CreativeCVTemplate: React.FC<CreativeCVTemplateProps> = ({
       case 'skills':
         return (
           <div key={sectionIndex}>
-            <div style={{ marginBottom: '2px', fontSize: '9px', fontWeight: 600, letterSpacing: '0.05em', color: '#cbd5f5', textTransform: 'uppercase' }}>
+            <div style={{ marginBottom: '2px', fontSize: '9px', fontWeight: 600, letterSpacing: '0.05em', color: '#64748b', textTransform: 'uppercase' }}>
               Fachlich
             </div>
             <div data-chip-row style={{ display: 'block', overflow: 'visible' }}>
@@ -525,9 +525,9 @@ export const CreativeCVTemplate: React.FC<CreativeCVTemplateProps> = ({
                 const level = typeof skill === 'object' && skill !== null ? skill.level || skill.niveau || '' : '';
                 const display = level ? `${cleanedVal} (${level.trim()})` : cleanedVal;
                 return (
-                  <span key={idx} style={{ display: 'inline-flex', alignItems: 'center', marginRight: '4px', marginBottom: '4px', verticalAlign: 'middle', padding: '2px 6px', borderRadius: '9999px', background: '#020617', border: '1px solid #38bdf8', whiteSpace: 'nowrap', breakInside: 'avoid', pageBreakInside: 'avoid' }}>
+                  <span key={idx} style={{ display: 'inline-flex', alignItems: 'center', marginRight: '4px', marginBottom: '4px', verticalAlign: 'middle', padding: '2px 6px', borderRadius: '9999px', background: '#f0fdfe', border: '1px solid #38bdf8', whiteSpace: 'nowrap', breakInside: 'avoid', pageBreakInside: 'avoid' }}>
                     <input
-                      style={{ background: 'transparent', outline: 'none', fontSize: '9px', color: '#f9fafb', minWidth: '20px', border: 'none', width: `${Math.max(20, display.length * 6.2)}px` }}
+                      style={{ background: 'transparent', outline: 'none', fontSize: '9px', color: '#1e293b', minWidth: '20px', border: 'none', width: `${Math.max(20, display.length * 6.2)}px` }}
                       value={display}
                       onChange={(e) => onUpdateSectionItem(sectionIndex, idx, 'skill', e.target.value)}
                       placeholder="Skill"
@@ -543,7 +543,7 @@ export const CreativeCVTemplate: React.FC<CreativeCVTemplateProps> = ({
       case 'soft_skills':
         return (
           <div key={sectionIndex}>
-            <div style={{ marginBottom: '2px', fontSize: '9px', fontWeight: 600, letterSpacing: '0.05em', color: '#cbd5f5', textTransform: 'uppercase' }}>
+            <div style={{ marginBottom: '2px', fontSize: '9px', fontWeight: 600, letterSpacing: '0.05em', color: '#64748b', textTransform: 'uppercase' }}>
               Persönlich
             </div>
             <div data-chip-row style={{ display: 'block', overflow: 'visible' }}>
@@ -555,9 +555,9 @@ export const CreativeCVTemplate: React.FC<CreativeCVTemplateProps> = ({
                 const level = typeof skill === 'object' && skill !== null ? skill.level || skill.niveau || '' : '';
                 const display = level ? `${cleanedVal} (${level.trim()})` : cleanedVal;
                 return (
-                  <span key={idx} style={{ display: 'inline-flex', alignItems: 'center', marginRight: '4px', marginBottom: '4px', verticalAlign: 'middle', padding: '2px 6px', borderRadius: '9999px', background: '#020617', border: '1px solid #a855f7', whiteSpace: 'nowrap', breakInside: 'avoid', pageBreakInside: 'avoid' }}>
+                  <span key={idx} style={{ display: 'inline-flex', alignItems: 'center', marginRight: '4px', marginBottom: '4px', verticalAlign: 'middle', padding: '2px 6px', borderRadius: '9999px', background: '#f5f3ff', border: '1px solid #a855f7', whiteSpace: 'nowrap', breakInside: 'avoid', pageBreakInside: 'avoid' }}>
                     <input
-                      style={{ background: 'transparent', outline: 'none', fontSize: '9px', color: '#f9fafb', minWidth: '20px', border: 'none', width: `${Math.max(20, display.length * 6.2)}px` }}
+                      style={{ background: 'transparent', outline: 'none', fontSize: '9px', color: '#1e293b', minWidth: '20px', border: 'none', width: `${Math.max(20, display.length * 6.2)}px` }}
                       value={display}
                       onChange={(e) => onUpdateSectionItem(sectionIndex, idx, 'skill', e.target.value)}
                       placeholder="Stärke"
@@ -579,9 +579,9 @@ export const CreativeCVTemplate: React.FC<CreativeCVTemplateProps> = ({
               {items.map((val: any, idx: number) => {
                 const v = typeof val === 'string' ? val : val.label || '';
                 return (
-                  <span key={idx} style={{ display: 'inline-flex', alignItems: 'center', marginRight: '4px', marginBottom: '4px', verticalAlign: 'middle', padding: '2px 6px', borderRadius: '9999px', background: '#020617', border: '1px solid #22c1c3', whiteSpace: 'nowrap', breakInside: 'avoid', pageBreakInside: 'avoid' }}>
+                  <span key={idx} style={{ display: 'inline-flex', alignItems: 'center', marginRight: '4px', marginBottom: '4px', verticalAlign: 'middle', padding: '2px 6px', borderRadius: '9999px', background: '#f0fdfe', border: '1px solid #22c1c3', whiteSpace: 'nowrap', breakInside: 'avoid', pageBreakInside: 'avoid' }}>
                     <input
-                      style={{ background: 'transparent', outline: 'none', fontSize: '9px', color: '#f9fafb', border: 'none', minWidth: '20px', width: `${Math.max(20, v.length * 5.5)}px` }}
+                      style={{ background: 'transparent', outline: 'none', fontSize: '9px', color: '#1e293b', border: 'none', minWidth: '20px', width: `${Math.max(20, v.length * 5.5)}px` }}
                       value={v}
                       onChange={(e) => onUpdateSectionItem(sectionIndex, idx, 'label', e.target.value)}
                       placeholder="Wert"
@@ -603,9 +603,9 @@ export const CreativeCVTemplate: React.FC<CreativeCVTemplateProps> = ({
               {items.map((hob: any, idx: number) => {
                 const v = typeof hob === 'string' ? hob : hob.label || '';
                 return (
-                  <span key={idx} style={{ display: 'inline-flex', alignItems: 'center', marginRight: '4px', marginBottom: '4px', verticalAlign: 'middle', padding: '2px 6px', borderRadius: '9999px', background: '#020617', border: '1px solid #f97316', whiteSpace: 'nowrap', breakInside: 'avoid', pageBreakInside: 'avoid' }}>
+                  <span key={idx} style={{ display: 'inline-flex', alignItems: 'center', marginRight: '4px', marginBottom: '4px', verticalAlign: 'middle', padding: '2px 6px', borderRadius: '9999px', background: '#fff7ed', border: '1px solid #f97316', whiteSpace: 'nowrap', breakInside: 'avoid', pageBreakInside: 'avoid' }}>
                     <input
-                      style={{ background: 'transparent', outline: 'none', fontSize: '9px', color: '#f9fafb', border: 'none', minWidth: '20px', width: `${Math.max(20, v.length * 5.5)}px` }}
+                      style={{ background: 'transparent', outline: 'none', fontSize: '9px', color: '#1e293b', border: 'none', minWidth: '20px', width: `${Math.max(20, v.length * 5.5)}px` }}
                       value={v}
                       onChange={(e) => onUpdateSectionItem(sectionIndex, idx, 'label', e.target.value)}
                       placeholder="Hobby"
@@ -622,7 +622,7 @@ export const CreativeCVTemplate: React.FC<CreativeCVTemplateProps> = ({
         return (
           <div key={sectionIndex}>
             <SectionTitle>{sectionTitle}</SectionTitle>
-            <ul className="space-y-1 text-[10px] text-[#e5e7eb]">
+            <ul className="space-y-1 text-[9.5px] text-slate-700">
               {items.map((item: any, idx: number) => {
                 const displayValue =
                   typeof item === 'string'
@@ -654,7 +654,7 @@ export const CreativeCVTemplate: React.FC<CreativeCVTemplateProps> = ({
   return (
     <div
       ref={containerRef}
-      className="relative bg-[#020314] text-white font-sans flex flex-col w-full"
+      className="relative bg-white text-slate-900 font-sans flex flex-col w-full"
       style={{
         wordBreak: 'break-word',
         overflowWrap: 'anywhere',
@@ -672,7 +672,7 @@ export const CreativeCVTemplate: React.FC<CreativeCVTemplateProps> = ({
             margin: 0 !important;
           }
           body, html, #root {
-            background-color: #020314 !important;
+            background-color: #ffffff !important;
             -webkit-print-color-adjust: exact !important;
             print-color-adjust: exact !important;
           }
@@ -706,21 +706,21 @@ export const CreativeCVTemplate: React.FC<CreativeCVTemplateProps> = ({
       </div>
 
       {/* Header */}
-      <header className="relative px-6 pt-4 pb-2.5 flex items-center justify-between border-b border-white/15 bg-[#020617] gap-3 flex-shrink-0">
+      <header className="relative px-6 pt-4 pb-2.5 flex items-center justify-between border-b border-slate-200 bg-slate-50 gap-3 flex-shrink-0">
         <div className="relative flex-1 min-w-0">
           <input
-            className="block w-full text-2xl font-bold tracking-[0.12em] uppercase outline-none bg-transparent text-[#f9fafb]"
+            className="block w-full text-[22px] font-bold tracking-[0.12em] uppercase outline-none bg-transparent text-slate-900"
             value={personalInfo.name || ''}
             onChange={(e) => onUpdatePersonalInfo('name', e.target.value)}
             placeholder="Name"
           />
           <input
-            className="mt-0.5 block w-full text-sm font-medium text-[#e5e7eb] outline-none bg-transparent"
+            className="mt-0.5 block w-full text-[12px] font-medium text-slate-600 outline-none bg-transparent"
             value={personalInfo.title || ''}
             onChange={(e) => onUpdatePersonalInfo('title', e.target.value)}
             placeholder="Titel"
           />
-          <div className="mt-2 grid grid-cols-2 gap-x-3 gap-y-0.5 text-[11px] text-[#f9fafb]">
+          <div className="mt-2 grid grid-cols-2 gap-x-3 gap-y-0.5 text-[9.5px] text-slate-700">
             <div className="flex items-center gap-1.5">
               <span>📍</span>
               <input
@@ -762,7 +762,7 @@ export const CreativeCVTemplate: React.FC<CreativeCVTemplateProps> = ({
 
         {photoUrl && (
           <div className="relative flex-shrink-0">
-            <div className="w-20 h-20 rounded-3xl overflow-hidden border-2 border-white bg-[#020617] shadow-md">
+            <div className="w-20 h-20 rounded-3xl overflow-hidden border-2 border-slate-200 bg-slate-100 shadow-md">
               <img
                 src={photoUrl}
                 alt="Foto"
@@ -775,13 +775,13 @@ export const CreativeCVTemplate: React.FC<CreativeCVTemplateProps> = ({
       </header>
 
       {/* Content */}
-      <main className="relative px-6 py-3 grid grid-cols-1 md:grid-cols-12 gap-4 text-[#e5e7eb] bg-[#020314]" style={{ flex: '1 0 auto' }}>
+      <main className="relative px-6 py-3 grid grid-cols-1 md:grid-cols-12 gap-4 text-slate-800 bg-white" style={{ flex: '1 0 auto' }}>
         <section className="col-span-1 md:col-span-7 space-y-3">
           <div>
             <SectionTitle>Profil & Story</SectionTitle>
             <textarea
               ref={summaryRef}
-              className="w-full mt-0.5 text-[11px] leading-relaxed text-[#f9fafb] bg-white/10 rounded-lg border border-white/25 outline-none resize-none px-2 py-1.5 backdrop-blur-sm overflow-hidden"
+              className="w-full mt-0.5 text-[9.5px] leading-relaxed text-slate-800 bg-slate-50 rounded-lg border border-slate-200 outline-none resize-none px-2 py-1.5 overflow-hidden"
               style={{ minHeight: '60px', height: 'auto' }}
               value={summary || ''}
               onChange={(e) => {
@@ -845,7 +845,7 @@ export const CreativeCVTemplate: React.FC<CreativeCVTemplateProps> = ({
       </main>
 
       {otherSections.length > 0 && (
-        <div className="relative px-6 pb-3 space-y-3 bg-[#020314]">
+        <div className="relative px-6 pb-3 space-y-3 bg-white">
           {otherSections.map((section) => {
             const sectionIndex = sections.findIndex((s) => s === section);
             return renderSection(section, sectionIndex);
@@ -854,11 +854,11 @@ export const CreativeCVTemplate: React.FC<CreativeCVTemplateProps> = ({
       )}
 
       {/* Footer */}
-      <footer data-pdf-footer className="relative mt-auto px-6 py-3 border-t border-white/15 text-[10px] text-white/80 flex flex-col sm:flex-row justify-between gap-2 bg-[#020617] flex-shrink-0">
+      <footer data-pdf-footer className="relative mt-auto px-6 py-3 border-t border-slate-200 text-[9px] text-slate-500 flex flex-col sm:flex-row justify-between gap-2 bg-slate-50 flex-shrink-0">
         <div className="flex items-center gap-2">
           <span>Ort:</span>
           <input
-            className="bg-transparent outline-none border-b border-dashed border-white/40 px-1 flex-1 sm:w-32 text-white"
+            className="bg-transparent outline-none border-b border-dashed border-slate-300 px-1 flex-1 sm:w-32 text-slate-700"
             placeholder="Stadt"
             defaultValue=""
           />
@@ -866,7 +866,7 @@ export const CreativeCVTemplate: React.FC<CreativeCVTemplateProps> = ({
         <div className="flex items-center gap-2">
           <span>Datum:</span>
           <input
-            className="bg-transparent outline-none border-b border-dashed border-white/40 px-1 flex-1 sm:w-32 text-white"
+            className="bg-transparent outline-none border-b border-dashed border-slate-300 px-1 flex-1 sm:w-32 text-slate-700"
             placeholder="TT.MM.JJJJ"
             defaultValue={new Date().toLocaleDateString('de-DE')}
           />
@@ -874,7 +874,7 @@ export const CreativeCVTemplate: React.FC<CreativeCVTemplateProps> = ({
         {pageCount > 1 && (
           <div data-pdf-hidden className="pdf-hidden print:hidden flex items-center gap-1 sm:ml-auto">
             <span>Voraussichtliche Seiten:</span>
-            <span className="font-semibold text-white">{pageCount}</span>
+            <span className="font-semibold text-slate-700">{pageCount}</span>
           </div>
         )}
       </footer>

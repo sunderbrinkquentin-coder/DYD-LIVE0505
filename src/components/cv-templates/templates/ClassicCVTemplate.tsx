@@ -136,7 +136,7 @@ export const ClassicCVTemplate: React.FC<ClassicCVTemplateProps> = ({
           
           return (
             <div key={idx} className="flex items-start gap-2 leading-snug" style={{ breakInside: 'avoid', pageBreakInside: 'avoid' }}>
-              <span style={{ flexShrink: 0, color: '#1e3a8a', fontSize: '14px', lineHeight: '18px', userSelect: 'none' }}>
+              <span style={{ flexShrink: 0, color: '#1e3a8a', fontSize: '11px', lineHeight: '18px', userSelect: 'none' }}>
                 •
               </span>
               <EditableText
@@ -180,7 +180,7 @@ export const ClassicCVTemplate: React.FC<ClassicCVTemplateProps> = ({
                 <EditableText
                   value={item.title}
                   onChange={(val) => onUpdateSectionItem(experienceIndex, idx, 'title', val)}
-                  className="font-bold text-[14px] text-slate-900 leading-tight flex-1"
+                  className="font-bold text-[11px] text-slate-900 leading-tight flex-1"
                   placeholder="Position / Rolle"
                 />
                 <EditableText
@@ -190,7 +190,7 @@ export const ClassicCVTemplate: React.FC<ClassicCVTemplateProps> = ({
                     onUpdateSectionItem(experienceIndex, idx, 'date_from', from);
                     onUpdateSectionItem(experienceIndex, idx, 'date_to', to);
                   }}
-                  className="text-[11px] font-semibold text-[#1e3a8a]/80 text-right w-32 flex-shrink-0 leading-tight"
+                  className="text-[9.5px] font-semibold text-[#1e3a8a]/80 text-right w-32 flex-shrink-0 leading-tight"
                   placeholder="Zeitraum"
                 />
               </div>
@@ -198,7 +198,7 @@ export const ClassicCVTemplate: React.FC<ClassicCVTemplateProps> = ({
               <EditableText
                 value={item.company}
                 onChange={(val) => onUpdateSectionItem(experienceIndex, idx, 'company', val)}
-                className="text-[12px] font-semibold text-slate-700 mt-0.5 leading-snug"
+                className="text-[10px] font-semibold text-slate-700 mt-0.5 leading-snug"
                 placeholder="Unternehmen"
               />
               
@@ -206,7 +206,7 @@ export const ClassicCVTemplate: React.FC<ClassicCVTemplateProps> = ({
                 <EditableText
                   value={item.location || item.ort || ''}
                   onChange={(val) => onUpdateSectionItem(experienceIndex, idx, 'location', val)}
-                  className="text-[11px] text-slate-500 leading-snug mt-0.5"
+                  className="text-[9.5px] text-slate-500 leading-snug mt-0.5"
                   placeholder="Ort"
                 />
               )}
@@ -214,7 +214,7 @@ export const ClassicCVTemplate: React.FC<ClassicCVTemplateProps> = ({
               {/* 💡 FIX: Description rendert nun IMMER als Bulletpoint! Einheitlicher Look. */}
               {item.description && (
                 <div className="flex items-start gap-2 mt-2 leading-snug">
-                  <span style={{ flexShrink: 0, color: '#1e3a8a', fontSize: '14px', lineHeight: '18px', userSelect: 'none' }}>•</span>
+                  <span style={{ flexShrink: 0, color: '#1e3a8a', fontSize: '11px', lineHeight: '18px', userSelect: 'none' }}>•</span>
                   <EditableText
                     value={item.description.replace(/^[-•*]\s*/, '')}
                     onChange={(val) => onUpdateSectionItem(experienceIndex, idx, 'description', val)}
@@ -251,7 +251,7 @@ export const ClassicCVTemplate: React.FC<ClassicCVTemplateProps> = ({
                 <EditableText
                   value={item.degree}
                   onChange={(val) => onUpdateSectionItem(educationIndex, idx, 'degree', val)}
-                  className="font-bold text-[14px] text-slate-900 leading-tight flex-1"
+                  className="font-bold text-[11px] text-slate-900 leading-tight flex-1"
                   placeholder="Abschluss / Studiengang"
                 />
                 <EditableText
@@ -261,24 +261,24 @@ export const ClassicCVTemplate: React.FC<ClassicCVTemplateProps> = ({
                     onUpdateSectionItem(educationIndex, idx, 'date_from', from);
                     onUpdateSectionItem(educationIndex, idx, 'date_to', to);
                   }}
-                  className="text-[11px] font-semibold text-[#1e3a8a]/80 text-right w-32 flex-shrink-0 leading-tight"
+                  className="text-[9.5px] font-semibold text-[#1e3a8a]/80 text-right w-32 flex-shrink-0 leading-tight"
                   placeholder="Zeitraum"
                 />
               </div>
               <EditableText
                 value={item.institution}
                 onChange={(val) => onUpdateSectionItem(educationIndex, idx, 'institution', val)}
-                className="text-[12px] font-semibold text-slate-700 leading-snug mt-0.5"
+                className="text-[10px] font-semibold text-slate-700 leading-snug mt-0.5"
                 placeholder="Institution / Ort"
               />
               
               {item.description && (
                 <div className="flex items-start gap-2 mt-2 leading-snug">
-                  <span style={{ flexShrink: 0, color: '#1e3a8a', fontSize: '14px', lineHeight: '18px', userSelect: 'none' }}>•</span>
+                  <span style={{ flexShrink: 0, color: '#1e3a8a', fontSize: '11px', lineHeight: '18px', userSelect: 'none' }}>•</span>
                   <EditableText
                     value={item.description.replace(/^[-•*]\s*/, '')}
                     onChange={(val) => onUpdateSectionItem(educationIndex, idx, 'description', val)}
-                    className="text-[12px] text-slate-700 leading-snug flex-1"
+                    className="text-[9.5px] text-slate-700 leading-snug flex-1"
                     multiline
                     placeholder="Schwerpunkte / Noten / Themen"
                   />
@@ -308,24 +308,24 @@ export const ClassicCVTemplate: React.FC<ClassicCVTemplateProps> = ({
               <EditableText
                 value={item.title}
                 onChange={(val) => onUpdateSectionItem(projectsIndex, idx, 'title', val)}
-                className="font-bold text-[14px] text-slate-900 leading-tight"
+                className="font-bold text-[11px] text-slate-900 leading-tight"
                 placeholder="Projektname"
               />
               {item.role && (
                 <EditableText
                   value={item.role}
                   onChange={(val) => onUpdateSectionItem(projectsIndex, idx, 'role', val)}
-                  className="text-[12px] font-semibold text-slate-700 mt-0.5"
+                  className="text-[10px] font-semibold text-slate-700 mt-0.5"
                   placeholder="Rolle / Verantwortung"
                 />
               )}
               {item.description && (
                 <div className="flex items-start gap-2 mt-2 leading-snug">
-                  <span style={{ flexShrink: 0, color: '#1e3a8a', fontSize: '14px', lineHeight: '18px', userSelect: 'none' }}>•</span>
+                  <span style={{ flexShrink: 0, color: '#1e3a8a', fontSize: '11px', lineHeight: '18px', userSelect: 'none' }}>•</span>
                   <EditableText
                     value={item.description.replace(/^[-•*]\s*/, '')}
                     onChange={(val) => onUpdateSectionItem(projectsIndex, idx, 'description', val)}
-                    className="text-[12px] text-slate-700 leading-snug flex-1"
+                    className="text-[9.5px] text-slate-700 leading-snug flex-1"
                     multiline
                     placeholder="Projektbeschreibung / Ergebnisse"
                   />
@@ -352,7 +352,7 @@ export const ClassicCVTemplate: React.FC<ClassicCVTemplateProps> = ({
 
     return (
       <div className="mb-6" style={{ breakInside: 'avoid', pageBreakInside: 'avoid' }}>
-        <h3 className="text-[11px] font-bold tracking-[0.15em] uppercase text-[#1e3a8a] mb-3">
+        <h3 className="!text-[9px] font-bold tracking-[0.15em] uppercase text-[#1e3a8a] mb-3">
           {label}
         </h3>
         <ul
@@ -367,7 +367,7 @@ export const ClassicCVTemplate: React.FC<ClassicCVTemplateProps> = ({
               const stars = skillLevelToStars(level);
               return (
                 // 💡 FIX: min-w-0 und flex-shrink-0 verhindern den Zeilenumbruch!
-                <li key={idx} className="flex flex-nowrap justify-between items-center gap-2 text-[11px]">
+                <li key={idx} className="flex flex-nowrap justify-between items-center gap-2 text-[9.5px]">
                   <EditableText
                     value={language}
                     onChange={(val) => onUpdateSectionItem(index, idx, 'language', val)}
@@ -393,7 +393,7 @@ export const ClassicCVTemplate: React.FC<ClassicCVTemplateProps> = ({
 
             return (
               <li key={idx} style={{ display: 'inline-flex', marginRight: '5px', marginBottom: '5px', verticalAlign: 'middle', listStyle: 'none' }}>
-                <span className="inline-flex items-center px-2.5 py-1 rounded bg-[#f8fafc] border border-[#e2e8f0] text-[10.5px] font-medium text-slate-700 whitespace-nowrap">
+                <span className="inline-flex items-center px-2.5 py-1 rounded bg-[#f8fafc] border border-[#e2e8f0] text-[9px] font-medium text-slate-700 whitespace-nowrap">
                   <EditableText
                     value={text}
                     onChange={(val) => onUpdateSectionItem(index, idx, 'value', val)}
@@ -421,7 +421,7 @@ export const ClassicCVTemplate: React.FC<ClassicCVTemplateProps> = ({
         <h2 className="!text-[9px] font-bold tracking-[0.15em] uppercase text-[#1e3a8a] border-b-2 border-[#1e3a8a]/20 pb-1 mb-3 mt-6">
           Arbeitsweise & Werte
         </h2>
-        <ul className="list-disc list-inside space-y-1.5 text-[12px] text-slate-700">
+        <ul className="list-disc list-inside space-y-1.5 text-[9.5px] text-slate-700">
           {items.map((item: any, idx: number) => {
             const text = typeof item === 'string' ? item : item.label || item.name || item.value || String(item);
             return (
@@ -442,7 +442,7 @@ export const ClassicCVTemplate: React.FC<ClassicCVTemplateProps> = ({
 
   return (
     <div
-      className="w-full text-[13px] text-slate-800 bg-white"
+      className="w-full text-slate-800 bg-white"
       style={{
         fontFamily: 'Inter, system-ui, -apple-system, sans-serif',
         minHeight: '1122px',
@@ -474,7 +474,7 @@ export const ClassicCVTemplate: React.FC<ClassicCVTemplateProps> = ({
                 <EditableText
                   value={personalInfo.name}
                   onChange={(val) => onUpdatePersonalInfo('name', val)}
-                  className="text-[20px] font-bold tracking-wide text-[#1e3a8a] text-center"
+                  className="text-[22px] font-bold tracking-wide text-[#1e3a8a] text-center"
                   placeholder="Dein Name"
                   multiline
                 />
@@ -489,10 +489,10 @@ export const ClassicCVTemplate: React.FC<ClassicCVTemplateProps> = ({
             </div>
 
             <div className="mb-6">
-              <h3 className="text-[11px] font-bold tracking-[0.15em] uppercase text-[#1e3a8a] mb-3">
+              <h3 className="!text-[9px] font-bold tracking-[0.15em] uppercase text-[#1e3a8a] mb-3">
                 Kontakt
               </h3>
-              <div className="space-y-2.5 text-[11px]">
+              <div className="space-y-2.5 text-[9.5px]">
                 <EditableText
                   value={personalInfo.email}
                   onChange={(val) => onUpdatePersonalInfo('email', val)}
@@ -541,7 +541,7 @@ export const ClassicCVTemplate: React.FC<ClassicCVTemplateProps> = ({
               const label = section.title || labelMap[section.type] || section.type;
               return (
                 <div key={index} className="mb-6" style={{ breakInside: 'avoid', pageBreakInside: 'avoid' }}>
-                  <h3 className="text-[11px] font-bold tracking-[0.15em] uppercase text-[#1e3a8a] mb-3">
+                  <h3 className="!text-[9px] font-bold tracking-[0.15em] uppercase text-[#1e3a8a] mb-3">
                     {label}
                   </h3>
                   <ul style={{ display: 'block' }}>
@@ -549,7 +549,7 @@ export const ClassicCVTemplate: React.FC<ClassicCVTemplateProps> = ({
                       const rawText = typeof item === 'string' ? item : item.label || item.name || item.title || item.skill || '';
                       return (
                         <li key={idx} style={{ display: 'inline-flex', marginRight: '5px', marginBottom: '5px', listStyle: 'none' }}>
-                          <span className="inline-flex items-center px-2.5 py-1 rounded bg-[#f8fafc] border border-[#e2e8f0] text-[10.5px] font-medium text-slate-700 whitespace-nowrap">
+                          <span className="inline-flex items-center px-2.5 py-1 rounded bg-[#f8fafc] border border-[#e2e8f0] text-[9px] font-medium text-slate-700 whitespace-nowrap">
                             <EditableText
                               value={rawText}
                               onChange={(val) => onUpdateSectionItem(index, idx, 'label', val)}
@@ -577,7 +577,7 @@ export const ClassicCVTemplate: React.FC<ClassicCVTemplateProps> = ({
                 <EditableText
                   value={summary}
                   onChange={onUpdateSummary}
-                  className="text-[12px] text-slate-700 leading-relaxed w-full"
+                  className="text-[9.5px] text-slate-700 leading-relaxed w-full"
                   placeholder="Kurzprofil / Zusammenfassung"
                   multiline
                 />
@@ -608,12 +608,12 @@ export const ClassicCVTemplate: React.FC<ClassicCVTemplateProps> = ({
                     <h2 className="!text-[9px] font-bold tracking-[0.15em] uppercase text-[#1e3a8a] border-b-2 border-[#1e3a8a]/20 pb-1 mb-3">
                       {title}
                     </h2>
-                    <div className="space-y-3 text-[12px] text-slate-700">
+                    <div className="space-y-3 text-[9.5px] text-slate-700">
                       {items.map((item: any, idx: number) => {
                         const text = typeof item === 'string' ? item : item.description || item.text || item.label || item.name || String(item);
                         return (
                           <div key={idx} className="flex items-start gap-2 leading-snug">
-                            <span style={{ flexShrink: 0, color: '#1e3a8a', fontSize: '14px', lineHeight: '18px', userSelect: 'none' }}>•</span>
+                            <span style={{ flexShrink: 0, color: '#1e3a8a', fontSize: '11px', lineHeight: '18px', userSelect: 'none' }}>•</span>
                             <EditableText
                               value={text.replace(/^[-•*]\s*/, '')}
                               onChange={(val) => onUpdateSectionItem(index, idx, 'text', val)}
@@ -642,7 +642,7 @@ export const ClassicCVTemplate: React.FC<ClassicCVTemplateProps> = ({
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'space-between',
-          fontSize: '11px',
+          fontSize: '9px',
           color: '#64748b',
           backgroundColor: '#f8fafc',
           height: '45px'
@@ -652,7 +652,7 @@ export const ClassicCVTemplate: React.FC<ClassicCVTemplateProps> = ({
           <span style={{ fontWeight: 600 }}>Ort:</span>
           <EditableText
             className="text-slate-500 font-medium"
-            style={{ fontSize: '11px', width: '120px' }}
+            style={{ fontSize: '9px', width: '120px' }}
             value={personalInfo.location || ''}
             onChange={(val) => onUpdatePersonalInfo('location', val)}
             placeholder="Ort"

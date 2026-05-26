@@ -207,7 +207,7 @@ export const ProfessionalCVTemplate: React.FC<ProfessionalCVTemplateProps> = ({
                         )}
                       </div>
                       {(exp.date_from || exp.date_to) && (
-                        <div className="text-[10px] text-slate-500 text-right whitespace-nowrap flex flex-col items-end gap-0.5 flex-shrink-0">
+                        <div className="text-[9.5px] text-slate-500 text-right whitespace-nowrap flex flex-col items-end gap-0.5 flex-shrink-0">
                           <input
                             className="bg-transparent outline-none w-20 text-right"
                             value={exp.date_from || ''}
@@ -232,7 +232,7 @@ export const ProfessionalCVTemplate: React.FC<ProfessionalCVTemplateProps> = ({
                       <ul className="mt-1 space-y-[2px] !text-[9.5px] text-slate-800" style={{ listStyle: 'none', padding: 0, margin: '4px 0 0' }}>
                         {bullets.map((bp: string, bIdx: number) => (
                           <li key={bIdx} style={{ display: 'flex', alignItems: 'flex-start', gap: '6px', breakInside: 'avoid', pageBreakInside: 'avoid' }}>
-                            <span style={{ flexShrink: 0, color: '#334155', fontSize: '13px', lineHeight: '10px', marginTop: '1px', userSelect: 'none' }}>•</span>
+                            <span style={{ flexShrink: 0, color: '#334155', fontSize: '11px', lineHeight: '10px', marginTop: '1px', userSelect: 'none' }}>•</span>
                             <textarea
                               className="w-full bg-transparent outline-none text-slate-800 !text-[9.5px] leading-tight resize-none"
                               style={{ flex: 1, overflow: 'hidden', minHeight: '20px' }}
@@ -251,7 +251,7 @@ export const ProfessionalCVTemplate: React.FC<ProfessionalCVTemplateProps> = ({
                     ) : (
                       exp.description && (
                         <textarea
-                          className="mt-1.5 w-full text-[10px] text-slate-700 bg-transparent outline-none resize-none leading-tight"
+                          className="mt-1.5 w-full text-[9.5px] text-slate-700 bg-transparent outline-none resize-none leading-tight"
                           style={{ height: 'auto', minHeight: '16px' }}
                           value={exp.description}
                           onChange={(e) =>
@@ -317,7 +317,7 @@ export const ProfessionalCVTemplate: React.FC<ProfessionalCVTemplateProps> = ({
                       <ul className="mt-1 space-y-[2px] !text-[9.5px] text-slate-800" style={{ listStyle: 'none', padding: 0, margin: '4px 0 0' }}>
                         {bullets.map((bp: string, bIdx: number) => (
                           <li key={bIdx} style={{ display: 'flex', alignItems: 'flex-start', gap: '6px', breakInside: 'avoid', pageBreakInside: 'avoid' }}>
-                            <span style={{ flexShrink: 0, color: '#334155', fontSize: '13px', lineHeight: '10px', marginTop: '1px', userSelect: 'none' }}>•</span>
+                            <span style={{ flexShrink: 0, color: '#334155', fontSize: '11px', lineHeight: '10px', marginTop: '1px', userSelect: 'none' }}>•</span>
                             <textarea
                               className="w-full bg-transparent outline-none text-slate-800 !text-[9.5px] leading-tight resize-none"
                               style={{ overflow: 'hidden', minHeight: '20px' }}
@@ -336,7 +336,7 @@ export const ProfessionalCVTemplate: React.FC<ProfessionalCVTemplateProps> = ({
                     ) : (
                       proj.description && (
                         <textarea
-                          className="mt-0.5 w-full text-[10px] text-slate-800 bg-transparent outline-none resize-none leading-tight"
+                          className="mt-0.5 w-full text-[9.5px] text-slate-800 bg-transparent outline-none resize-none leading-tight"
                           style={{ overflow: 'hidden', minHeight: '40px' }}
                           value={proj.description || ''}
                           onChange={(e) => {
@@ -389,7 +389,7 @@ export const ProfessionalCVTemplate: React.FC<ProfessionalCVTemplateProps> = ({
                     placeholder="Institution"
                   />
                   {(edu.date_from || edu.date_to) && (
-                    <div className="mt-0.5 text-[10px] text-slate-500 flex gap-1">
+                    <div className="mt-0.5 text-[9.5px] text-slate-500 flex gap-1">
                       <input
                         className="bg-transparent outline-none w-16"
                         value={edu.date_from || ''}
@@ -429,7 +429,7 @@ export const ProfessionalCVTemplate: React.FC<ProfessionalCVTemplateProps> = ({
 
                 const levelVal = typeof lang === 'object' && lang !== null ? (lang.level || lang.niveau || lang.proficiency || '') : '';
                 return (
-                  <div key={idx} style={{ breakInside: 'avoid', pageBreakInside: 'avoid' }} className="flex items-center justify-between gap-2 text-[10px] text-slate-800">
+                  <div key={idx} style={{ breakInside: 'avoid', pageBreakInside: 'avoid' }} className="flex items-center justify-between gap-2 text-[9.5px] text-slate-800">
                     <input
                       className="bg-transparent outline-none flex-1"
                       value={langVal}
@@ -579,7 +579,7 @@ export const ProfessionalCVTemplate: React.FC<ProfessionalCVTemplateProps> = ({
         return (
           <div key={sectionIndex} data-pdf-section>
             <SectionTitle>{sectionTitle}</SectionTitle>
-            <ul className="space-y-0.5 text-[10px] text-slate-800">
+            <ul className="space-y-0.5 text-[9.5px] text-slate-800">
               {items.map((item: any, idx: number) => {
                 const displayValue =
                   typeof item === 'string'
@@ -614,19 +614,19 @@ export const ProfessionalCVTemplate: React.FC<ProfessionalCVTemplateProps> = ({
         <header className="px-8 pt-7 pb-5 bg-slate-900 text-white flex justify-between gap-6 items-start border-b-4 border-[#30E3CA]">
           <div className="flex-1 min-w-0">
             <input
-              className="block w-full text-2xl font-bold tracking-tight outline-none bg-transparent text-white"
+              className="block w-full text-[22px] font-bold tracking-tight outline-none bg-transparent text-white"
               value={personalInfo.name || ''}
               onChange={(e) => onUpdatePersonalInfo('name', e.target.value)}
               placeholder="Name"
             />
             <input
-              className="mt-1 block w-full text-sm font-medium text-slate-200 outline-none bg-transparent"
+              className="mt-1 block w-full text-[12px] font-medium text-slate-200 outline-none bg-transparent"
               value={personalInfo.title || ''}
               onChange={(e) => onUpdatePersonalInfo('title', e.target.value)}
               placeholder="Berufsbezeichnung"
             />
 
-            <div className="mt-3 grid grid-cols-2 gap-x-4 gap-y-1 text-[10px] text-slate-100">
+            <div className="mt-3 grid grid-cols-2 gap-x-4 gap-y-1 text-[9.5px] text-slate-100">
               <div className="flex items-center gap-1.5">
                 <span>📍</span>
                 <input
@@ -693,7 +693,7 @@ export const ProfessionalCVTemplate: React.FC<ProfessionalCVTemplateProps> = ({
               <SectionTitle>Profil & Mehrwert</SectionTitle>
               <textarea
                 ref={summaryRef}
-                className="w-full mt-1 text-[11px] leading-relaxed text-slate-800 bg-slate-50 rounded-md border border-slate-200 outline-none resize-none px-3 py-2"
+                className="w-full mt-1 text-[9.5px] leading-relaxed text-slate-800 bg-slate-50 rounded-md border border-slate-200 outline-none resize-none px-3 py-2"
                 style={{ minHeight: '60px' }}
                 value={summary || ''}
                 onChange={(e) => {
@@ -740,8 +740,8 @@ export const ProfessionalCVTemplate: React.FC<ProfessionalCVTemplateProps> = ({
           display: 'flex',
           alignItems: 'center',
           /* 💡 HIER KORRIGIERT: CamelCase statt Bindestrich */
-          justifyContent: 'space-between', 
-          fontSize: '10px',
+          justifyContent: 'space-between',
+          fontSize: '9px',
           color: '#64748b',
           fontFamily: 'sans-serif',
           marginTop: 'auto',
@@ -754,7 +754,7 @@ export const ProfessionalCVTemplate: React.FC<ProfessionalCVTemplateProps> = ({
           <span style={{ fontWeight: 600, flexShrink: 0 }}>Ort:</span>
           <input
             className="bg-transparent outline-none text-slate-500"
-            style={{ fontSize: '10px', width: '120px' }}
+            style={{ fontSize: '9px', width: '120px' }}
             value={personalInfo.location || ''}
             onChange={(e) => onUpdatePersonalInfo('location', e.target.value)}
             placeholder="Ort"
