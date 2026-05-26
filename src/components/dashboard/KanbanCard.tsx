@@ -326,7 +326,7 @@ export function KanbanCard({ cv, status, onDragStart, onUpdate, onStatusChange, 
                         setStatusMenuOpen(false);
                         if (s !== status) onStatusChange?.(s);
                       }}
-                      className={`w-full text-left px-3 py-2 text-xs font-medium transition-colors hover:bg-gray-50 flex items-center gap-2 ${
+                      className={`w-full text-left px-3 py-2 text-xs font-medium text-gray-800 transition-colors hover:bg-gray-50 flex items-center gap-2 ${
                         s === status ? 'opacity-40 cursor-default' : ''
                       }`}
                     >
