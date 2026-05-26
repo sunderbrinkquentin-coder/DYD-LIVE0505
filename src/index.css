@@ -211,15 +211,21 @@
   }
 
   /* Prevent zoom on input focus (iOS) - Must be 16px minimum */
+  /* Exclude CV template containers to preserve template font sizes */
   @media screen and (max-width: 767px) {
-    input[type="text"],
-    input[type="email"],
-    input[type="tel"],
-    input[type="url"],
-    input[type="password"],
-    textarea,
-    select {
+    input[type="text"]:not([data-cv-field]),
+    input[type="email"]:not([data-cv-field]),
+    input[type="tel"]:not([data-cv-field]),
+    input[type="url"]:not([data-cv-field]),
+    input[type="password"]:not([data-cv-field]),
+    textarea:not([data-cv-field]),
+    select:not([data-cv-field]) {
       font-size: 16px !important;
+    }
+    [data-pdf-root] input,
+    [data-pdf-root] textarea,
+    [data-pdf-root] select {
+      font-size: inherit !important;
     }
   }
 
@@ -318,8 +324,7 @@
     body {
       margin: 0;
       padding: 0;
-      background: #ffffff !important;
-      color: #000000 !important;
+      background: transparent !important;
     }
 
     .cv-template-container {

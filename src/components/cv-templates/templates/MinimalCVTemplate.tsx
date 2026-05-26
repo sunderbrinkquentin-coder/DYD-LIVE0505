@@ -543,7 +543,7 @@ export const MinimalCVTemplate: React.FC<MinimalCVTemplateProps> = ({
   );
 
   return (
-    <div className="bg-white text-slate-900 font-sans w-full flex flex-col border border-slate-200" style={{ wordBreak: 'break-word', overflowWrap: 'anywhere', minHeight: '1122px' }}>
+    <div className="bg-white text-slate-900 font-sans w-full flex flex-col border border-slate-200" style={{ wordBreak: 'break-word', overflowWrap: 'anywhere', minHeight: '1122px', flex: 1 }}>
         {/* Header */}
         <header className="px-8 pt-6 pb-4 border-b border-slate-200 flex justify-between gap-6 bg-slate-50/70">
           <div className="flex-1 min-w-0">

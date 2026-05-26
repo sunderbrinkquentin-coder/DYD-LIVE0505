@@ -815,6 +815,7 @@ export const ModernCVTemplate: React.FC<ModernCVTemplateProps> = ({
         boxShadow: '0 2px 12px rgba(0,0,0,0.08)',
         wordBreak: 'break-word',
         overflowWrap: 'anywhere',
+        flex: 1,
       }}
     >
       {/* ── HEADER ─────────────────────────────────────────────────────── */}

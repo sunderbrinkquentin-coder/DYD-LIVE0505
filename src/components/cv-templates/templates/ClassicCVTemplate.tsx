@@ -451,6 +451,7 @@ export const ClassicCVTemplate: React.FC<ClassicCVTemplateProps> = ({
         wordBreak: 'break-word',
         overflowWrap: 'anywhere',
         border: '1px solid #e2e8f0',
+        flex: 1,
       }}
     >
       <div className="w-full p-8" style={{ height: '100%', flex: 1 }}>

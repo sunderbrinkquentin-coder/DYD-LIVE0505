@@ -661,7 +661,8 @@ export const CreativeCVTemplate: React.FC<CreativeCVTemplateProps> = ({
         minHeight: `${pageCount * PAGE_HEIGHT_PX}px`,
         boxSizing: 'border-box',
         WebkitPrintColorAdjust: 'exact',
-        printColorAdjust: 'exact'
+        printColorAdjust: 'exact',
+        flex: 1,
       }}
     >
       {/* GLOBALER PRINT-STYLE GEGEN WEISSE BALKEN UND FÜR SAUBERE TRENNUNGEN */}
