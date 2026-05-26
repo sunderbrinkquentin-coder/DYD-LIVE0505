@@ -275,7 +275,7 @@ export function KanbanBoard({ cvs, onCVUpdate, highlightedCvId }: KanbanBoardPro
       </div>
 
       {/* Desktop: horizontal scroll view */}
-      <div className="hidden md:flex gap-5 overflow-x-auto pb-6">
+      <div className="hidden md:flex gap-5 overflow-x-auto pb-6" style={{ alignItems: 'flex-start' }}>
         {COLUMNS.map((column) => {
           const columnCards = groupedCVs[column.id];
           const showExample = column.id === 'draft' && kanbanCvs.length === 0;

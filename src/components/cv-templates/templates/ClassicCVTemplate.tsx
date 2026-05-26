@@ -446,6 +446,7 @@ export const ClassicCVTemplate: React.FC<ClassicCVTemplateProps> = ({
       style={{
         fontFamily: 'Inter, system-ui, -apple-system, sans-serif',
         minHeight: '1122px',
+        height: '100%',
         width: '100%',
         boxSizing: 'border-box',
         wordBreak: 'break-word',
@@ -453,8 +454,8 @@ export const ClassicCVTemplate: React.FC<ClassicCVTemplateProps> = ({
         border: '1px solid #e2e8f0',
       }}
     >
-      <div className="w-full p-8" style={{ minHeight: '1122px' }}>
-        <div className="flex gap-8" style={{ minHeight: '1080px' }}>
+      <div className="w-full p-8" style={{ minHeight: '1122px', height: '100%', flex: 1 }}>
+        <div className="flex gap-8" style={{ minHeight: '1080px', flex: 1 }}>
           
           {/* Linke Spalte */}
           <aside className="w-1/3 max-w-[33%] pr-6 border-r border-slate-200 flex flex-col">

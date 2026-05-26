@@ -34,7 +34,7 @@ export function KanbanColumn({
   const colors = STATUS_COLORS[column.id];
 
   return (
-    <div className="flex flex-col w-full md:w-72 md:flex-shrink-0">
+    <div className="flex flex-col w-full md:flex-shrink-0" style={{ minWidth: '280px', width: '288px', maxWidth: '100%' }}>
       <div className={`${colors.header} px-3 py-2.5 rounded-lg mb-3 flex items-center justify-between`}>
         <div className="flex items-center gap-2">
           <span className={`w-2 h-2 rounded-full ${colors.dot} flex-shrink-0`} />

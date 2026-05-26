@@ -609,7 +609,7 @@ export const ProfessionalCVTemplate: React.FC<ProfessionalCVTemplateProps> = ({
   };
 
   return (
-    <div className="relative bg-white font-sans flex flex-col w-full min-h-[1122px]" style={{ wordBreak: 'break-word', overflowWrap: 'anywhere', boxSizing: 'border-box' }}>
+    <div className="relative bg-white font-sans flex flex-col w-full min-h-[1122px]" style={{ wordBreak: 'break-word', overflowWrap: 'anywhere', boxSizing: 'border-box', height: '100%' }}>
         {/* Dunkler Professional-Header */}
         <header className="px-8 pt-7 pb-5 bg-slate-900 text-white flex justify-between gap-6 items-start border-b-4 border-[#30E3CA]">
           <div className="flex-1 min-w-0">

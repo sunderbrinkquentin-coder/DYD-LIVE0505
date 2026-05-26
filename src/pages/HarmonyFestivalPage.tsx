@@ -970,7 +970,7 @@ export default function HarmonyFestivalPage() {
               </div>
               <div className="flex items-center gap-2">
                 <Clock className="w-4 h-4 flex-shrink-0" style={{ color: C.sky }} />
-                <span style={{ fontFamily: "'Inter', sans-serif", fontWeight: 500, fontSize: '15px', color: 'rgba(180,240,240,0.8)' }}>16:30 – 02:00 Uhr</span>
+                <span style={{ fontFamily: "'Inter', sans-serif", fontWeight: 500, fontSize: '15px', color: 'rgba(180,240,240,0.8)' }}>Einlass 16:00 · Start 16:30 – 02:00 Uhr</span>
               </div>
             </div>
 
@@ -1849,8 +1849,8 @@ export default function HarmonyFestivalPage() {
             <div className="grid sm:grid-cols-3 gap-4 mb-10">
               {[
                 { icon: MapPin, label: 'Location', value: 'Klub Kulb\nBurgplatz 11 · 40213 Düsseldorf', color: C.cyan   },
-                { icon: Clock,  label: 'Zeit',     value: '22.08.2026\n16:30 – 02:00 Uhr',   color: C.sky    },
-                { icon: Users,  label: 'Einlass',  value: 'Ab 18 Jahren\nAwareness-Team',    color: C.lime   },
+                { icon: Clock,  label: 'Zeit',     value: '22.08.2026\nStart 16:30 – 02:00',  color: C.sky    },
+                { icon: Users,  label: 'Einlass',  value: 'Ab 16:00 Uhr\nAb 18 Jahren',       color: C.lime   },
               ].map((item, i) => (
                 <motion.div key={i} whileHover={{ y: -3 }} className="glass rounded-2xl p-7 transition-all duration-200">
                   <div className="w-10 h-10 rounded-xl flex items-center justify-center mb-5"

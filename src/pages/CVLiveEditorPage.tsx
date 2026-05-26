@@ -240,7 +240,8 @@ export function CVLiveEditorPage() {
   useEffect(() => {
     const recalc = () => {
       const screenWidth = window.innerWidth;
-      const padding = screenWidth < 640 ? 32 : 64; // Etwas Rand lassen
+      // On mobile use full width minus minimal safe margin; on desktop give comfortable padding
+      const padding = screenWidth < 640 ? 8 : 64;
       const available = screenWidth - padding;
       setScale(available < 794 ? available / 794 : 1);
     };
@@ -1370,23 +1371,25 @@ export function CVLiveEditorPage() {
       <main className="flex-1 overflow-y-auto overflow-x-hidden flex flex-col items-center bg-zinc-800/40 w-full py-4 sm:py-8 px-0 sm:px-4">
         
         {/* DER SCALING-WRAPPER: Sichert exakt den Platz, den das verkleinerte Dokument braucht */}
-        <div 
+        <div
           style={{
             width: `${794 * scale}px`,
+            maxWidth: '100%',
             height: `${cvHeight * scale}px`,
             position: 'relative',
             margin: '0 auto',
+            flexShrink: 0,
             transition: 'width 0.2s ease, height 0.2s ease'
           }}
         >
           {/* DOKUMENT: Wird optisch verkleinert (transform: scale) aber verliert keine Auflösung */}
-          <div 
+          <div
             ref={cvPreviewRef}
             data-pdf-root
             className="bg-white shadow-2xl border border-slate-200"
             style={{
-              width: '794px',       
-              minHeight: '1122px',  
+              width: '794px',
+              minHeight: '1122px',
               position: 'absolute',
               top: 0,
               left: 0,

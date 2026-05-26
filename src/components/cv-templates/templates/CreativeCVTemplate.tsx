@@ -649,10 +649,11 @@ export const CreativeCVTemplate: React.FC<CreativeCVTemplateProps> = ({
     <div
       ref={containerRef}
       className="relative bg-[#020314] text-white font-sans flex flex-col w-full"
-      style={{ 
-        wordBreak: 'break-word', 
-        overflowWrap: 'anywhere', 
-        minHeight: `${pageCount * PAGE_HEIGHT_PX}px`, 
+      style={{
+        wordBreak: 'break-word',
+        overflowWrap: 'anywhere',
+        minHeight: `${pageCount * PAGE_HEIGHT_PX}px`,
+        height: '100%',
         boxSizing: 'border-box',
         WebkitPrintColorAdjust: 'exact',
         printColorAdjust: 'exact'

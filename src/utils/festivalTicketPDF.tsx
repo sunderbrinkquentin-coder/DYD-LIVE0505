@@ -463,7 +463,7 @@ function TicketPDFDocument({ ticket }: { ticket: FestivalTicketPDFProps }) {
               <Text style={s.hinweisTitle}>WICHTIGE HINWEISE</Text>
               <View style={s.hinweisRow}>
                 <Text style={s.hinweisDot}>›</Text>
-                <Text style={s.hinweisText}>Einlass ab 17:00 · Kein Zutritt unter 18 Jahren</Text>
+                <Text style={s.hinweisText}>Einlass ab 16:00 · Kein Zutritt unter 18 Jahren</Text>
               </View>
               <View style={s.hinweisRow}>
                 <Text style={s.hinweisDot}>›</Text>
@@ -489,7 +489,7 @@ function TicketPDFDocument({ ticket }: { ticket: FestivalTicketPDFProps }) {
 
         <View style={s.footer}>
           <View>
-            <Text style={s.footerLine}>Einlass ab 17:00 Uhr · Burgplatz 11, 40213 Düsseldorf</Text>
+            <Text style={s.footerLine}>Einlass ab 16:00 Uhr · Burgplatz 11, 40213 Düsseldorf</Text>
             <Text style={s.footerLine}>Veranstaltet durch DYD – Decide Your Dream</Text>
             <Text style={s.footerWebsite}>www.decide-your-dream.de</Text>
           </View>
