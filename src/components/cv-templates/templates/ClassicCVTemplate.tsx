@@ -446,7 +446,6 @@ export const ClassicCVTemplate: React.FC<ClassicCVTemplateProps> = ({
       style={{
         fontFamily: 'Inter, system-ui, -apple-system, sans-serif',
         minHeight: '1122px',
-        height: '100%',
         width: '100%',
         boxSizing: 'border-box',
         wordBreak: 'break-word',

@@ -774,7 +774,7 @@ export const CreativeCVTemplate: React.FC<CreativeCVTemplateProps> = ({
       </header>
 
       {/* Content */}
-      <main className="relative flex-grow px-6 py-3 grid grid-cols-1 md:grid-cols-12 gap-4 text-[#e5e7eb] bg-[#020314]">
+      <main className="relative px-6 py-3 grid grid-cols-1 md:grid-cols-12 gap-4 text-[#e5e7eb] bg-[#020314]" style={{ flex: '1 0 auto' }}>
         <section className="col-span-1 md:col-span-7 space-y-3">
           <div>
             <SectionTitle>Profil & Story</SectionTitle>

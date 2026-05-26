@@ -1398,7 +1398,7 @@ export function CVLiveEditorPage() {
               transform: `scale(${scale})`,
               transformOrigin: 'top left',
               boxShadow: '0 8px 48px 0 rgba(0,0,0,0.45)',
-              backgroundColor: selectedTemplate === 'creative' ? '#020314' : '#ffffff',
+              backgroundColor: selectedTemplate === 'creative' ? '#020314' : selectedTemplate === 'modern' ? '#f0faf8' : '#ffffff',
             }}
           >
             <div style={{ width: '100%' }}>

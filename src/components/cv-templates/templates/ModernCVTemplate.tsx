@@ -806,7 +806,6 @@ export const ModernCVTemplate: React.FC<ModernCVTemplateProps> = ({
         color: '#1e293b',
         width: '100%',
         minHeight: '1122px',
-        height: '100%',
         display: 'flex',
         flexDirection: 'column',
         backgroundColor: CI.bg,
