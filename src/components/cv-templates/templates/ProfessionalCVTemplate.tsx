@@ -41,7 +41,7 @@ const autoResize = (el: HTMLTextAreaElement) => {
 
 // Einheitlicher Section-Titel
 const SectionTitle: React.FC<{ children: React.ReactNode }> = ({ children }) => (
-  <h2 className="mt-4 mb-2 !text-[9px] font-semibold tracking-[0.16em] text-slate-700 uppercase flex items-center gap-1.5">
+  <h2 className="mt-4 mb-2 !text-[9px] font-bold tracking-[0.16em] text-slate-700 uppercase flex items-center gap-1.5">
     <span className="w-1 h-1 rounded-full bg-slate-400" />
     {children}
   </h2>
@@ -180,7 +180,7 @@ export const ProfessionalCVTemplate: React.FC<ProfessionalCVTemplateProps> = ({
                     <div className="flex justify-between gap-2 items-start">
                       <div className="flex-1 min-w-0">
                         <input
-                          className="w-full text-[11px] font-semibold text-slate-900 bg-transparent outline-none"
+                          className="w-full text-[11px] font-bold text-slate-900 bg-transparent outline-none"
                           value={exp.title || exp.position || ''}
                           onChange={(e) =>
                             onUpdateSectionItem(sectionIndex, idx, 'title', e.target.value)
@@ -295,7 +295,7 @@ export const ProfessionalCVTemplate: React.FC<ProfessionalCVTemplateProps> = ({
                     <div className="flex justify-between gap-2 items-start">
                       <div className="flex-1 min-w-0">
                         <input
-                          className="w-full text-[11px] font-semibold text-slate-900 bg-transparent outline-none"
+                          className="w-full text-[11px] font-bold text-slate-900 bg-transparent outline-none"
                           value={proj.title || proj.name || ''}
                           onChange={(e) =>
                             onUpdateSectionItem(sectionIndex, idx, 'title', e.target.value)
@@ -373,7 +373,7 @@ export const ProfessionalCVTemplate: React.FC<ProfessionalCVTemplateProps> = ({
               {items.map((edu: any, idx: number) => (
                 <div key={idx} data-pdf-section style={{ display: 'block', width: '100%' }} className="px-2 py-1 rounded-md">
                   <input
-                    className="w-full text-[11px] font-semibold text-slate-900 bg-transparent outline-none"
+                    className="w-full text-[11px] font-bold text-slate-900 bg-transparent outline-none"
                     value={edu.degree || ''}
                     onChange={(e) =>
                       onUpdateSectionItem(sectionIndex, idx, 'degree', e.target.value)
@@ -618,13 +618,13 @@ export const ProfessionalCVTemplate: React.FC<ProfessionalCVTemplateProps> = ({
         <header className="px-8 pt-7 pb-5 bg-slate-900 text-white flex justify-between gap-6 items-start border-b-4 border-[#30E3CA]">
           <div className="flex-1 min-w-0">
             <input
-              className="block w-full text-[22px] font-bold tracking-tight outline-none bg-transparent text-white"
+              className="block w-full text-[22px] font-extrabold tracking-tight outline-none bg-transparent text-white"
               value={personalInfo.name || ''}
               onChange={(e) => onUpdatePersonalInfo('name', e.target.value)}
               placeholder="Name"
             />
             <input
-              className="mt-1 block w-full text-[12px] font-medium text-slate-200 outline-none bg-transparent"
+              className="mt-1 block w-full text-[12px] font-bold text-slate-200 outline-none bg-transparent"
               value={personalInfo.title || ''}
               onChange={(e) => onUpdatePersonalInfo('title', e.target.value)}
               placeholder="Berufsbezeichnung"

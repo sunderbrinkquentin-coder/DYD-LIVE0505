@@ -36,7 +36,7 @@ interface CreativeCVTemplateProps {
 }
 
 const SectionTitle: React.FC<{ children: React.ReactNode }> = ({ children }) => (
-  <h2 className="mt-3 mb-1.5 !text-[9px] font-semibold tracking-[0.16em] text-slate-600 uppercase flex items-center gap-1.5">
+  <h2 className="mt-3 mb-1.5 !text-[9px] font-bold tracking-[0.16em] text-slate-600 uppercase flex items-center gap-1.5">
     <span className="w-1.5 h-1.5 rounded-full bg-[#22c1c3]" />
     {children}
   </h2>
@@ -194,7 +194,7 @@ export const CreativeCVTemplate: React.FC<CreativeCVTemplateProps> = ({
                   <div className="flex justify-between items-start gap-2" style={{ breakInside: 'avoid', pageBreakInside: 'avoid' }}>
                     <div className="flex-1 min-w-0">
                       <input
-                        className="font-semibold text-[11px] outline-none w-full bg-transparent text-slate-900"
+                        className="font-bold text-[11px] outline-none w-full bg-transparent text-slate-900"
                         value={exp.title || exp.position || ''}
                         onChange={(e) =>
                           onUpdateSectionItem(sectionIndex, idx, 'title', e.target.value)
@@ -327,7 +327,7 @@ export const CreativeCVTemplate: React.FC<CreativeCVTemplateProps> = ({
                 >
                   <div style={{ breakInside: 'avoid', pageBreakInside: 'avoid' }}>
                     <input
-                      className="font-semibold text-[11px] outline-none w-full bg-transparent text-slate-900"
+                      className="font-bold text-[11px] outline-none w-full bg-transparent text-slate-900"
                       value={proj.title || proj.name || ''}
                       onChange={(e) =>
                         onUpdateSectionItem(sectionIndex, idx, 'title', e.target.value)
@@ -421,7 +421,7 @@ export const CreativeCVTemplate: React.FC<CreativeCVTemplateProps> = ({
                 <div className="flex justify-between items-start gap-2">
                   <div className="flex-1 min-w-0">
                     <input
-                      className="font-semibold text-[11px] outline-none w-full bg-transparent text-slate-900"
+                      className="font-bold text-[11px] outline-none w-full bg-transparent text-slate-900"
                       value={edu.degree || ''}
                       onChange={(e) =>
                         onUpdateSectionItem(sectionIndex, idx, 'degree', e.target.value)
@@ -713,13 +713,13 @@ export const CreativeCVTemplate: React.FC<CreativeCVTemplateProps> = ({
       <header className="relative px-6 pt-4 pb-2.5 flex items-center justify-between border-b border-slate-200 bg-slate-50 gap-3 flex-shrink-0">
         <div className="relative flex-1 min-w-0">
           <input
-            className="block w-full text-[22px] font-bold tracking-[0.12em] uppercase outline-none bg-transparent text-slate-900"
+            className="block w-full text-[22px] font-extrabold tracking-[0.12em] uppercase outline-none bg-transparent text-slate-900"
             value={personalInfo.name || ''}
             onChange={(e) => onUpdatePersonalInfo('name', e.target.value)}
             placeholder="Name"
           />
           <input
-            className="mt-0.5 block w-full text-[12px] font-medium text-slate-600 outline-none bg-transparent"
+            className="mt-0.5 block w-full text-[12px] font-bold text-slate-600 outline-none bg-transparent"
             value={personalInfo.title || ''}
             onChange={(e) => onUpdatePersonalInfo('title', e.target.value)}
             placeholder="Titel"
@@ -779,8 +779,8 @@ export const CreativeCVTemplate: React.FC<CreativeCVTemplateProps> = ({
       </header>
 
       {/* Content */}
-      <main className="relative px-6 py-3 grid grid-cols-1 md:grid-cols-12 gap-4 text-slate-800 bg-white" style={{ flex: '1 0 auto' }}>
-        <section className="col-span-1 md:col-span-7 space-y-3">
+      <main className="relative px-6 py-3 grid grid-cols-12 gap-4 text-slate-800 bg-white" style={{ flex: '1 0 auto' }}>
+        <section className="col-span-7 space-y-3">
           <div>
             <SectionTitle>Profil & Story</SectionTitle>
             <textarea
@@ -808,7 +808,7 @@ export const CreativeCVTemplate: React.FC<CreativeCVTemplateProps> = ({
           })}
         </section>
 
-        <aside className="col-span-1 md:col-span-5 space-y-3">
+        <aside className="col-span-5 space-y-3">
           {rightSections.map((section) => {
             const sectionIndex = sections.findIndex((s) => s === section);
 
@@ -858,11 +858,11 @@ export const CreativeCVTemplate: React.FC<CreativeCVTemplateProps> = ({
       )}
 
       {/* Footer */}
-      <footer data-pdf-footer className="relative mt-auto px-6 py-3 border-t border-slate-200 text-[9px] text-slate-500 flex flex-col sm:flex-row justify-between gap-2 bg-slate-50 flex-shrink-0">
+      <footer data-pdf-footer className="relative mt-auto px-6 py-3 border-t border-slate-200 text-[9px] text-slate-500 flex flex-row justify-between gap-2 bg-slate-50 flex-shrink-0">
         <div className="flex items-center gap-2">
           <span>Ort:</span>
           <input
-            className="bg-transparent outline-none border-b border-dashed border-slate-300 px-1 flex-1 sm:w-32 text-slate-700"
+            className="bg-transparent outline-none border-b border-dashed border-slate-300 px-1 w-32 text-slate-700"
             placeholder="Stadt"
             defaultValue=""
           />
@@ -870,7 +870,7 @@ export const CreativeCVTemplate: React.FC<CreativeCVTemplateProps> = ({
         <div className="flex items-center gap-2">
           <span>Datum:</span>
           <input
-            className="bg-transparent outline-none border-b border-dashed border-slate-300 px-1 flex-1 sm:w-32 text-slate-700"
+            className="bg-transparent outline-none border-b border-dashed border-slate-300 px-1 w-32 text-slate-700"
             placeholder="TT.MM.JJJJ"
             defaultValue={new Date().toLocaleDateString('de-DE')}
           />

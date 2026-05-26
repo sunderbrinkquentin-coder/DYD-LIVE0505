@@ -35,7 +35,7 @@ interface MinimalCVTemplateProps {
 }
 
 const SectionTitle: React.FC<{ children: React.ReactNode }> = ({ children }) => (
-  <h2 className="mt-4 mb-1.5 !text-[9px] font-semibold tracking-[0.16em] text-slate-700 uppercase flex items-center gap-1.5">
+  <h2 className="mt-4 mb-1.5 !text-[9px] font-bold tracking-[0.16em] text-slate-700 uppercase flex items-center gap-1.5">
     <span className="w-1 h-1 rounded-full bg-slate-400" />
     {children}
   </h2>
@@ -133,7 +133,7 @@ export const MinimalCVTemplate: React.FC<MinimalCVTemplateProps> = ({
                 <div className="flex justify-between gap-2 items-start">
                   <div className="flex-1 min-w-0">
                     <input
-                      className="w-full text-[11px] font-semibold text-slate-900 bg-transparent outline-none"
+                      className="w-full text-[11px] font-bold text-slate-900 bg-transparent outline-none"
                       value={
                         isProject
                           ? item.title || item.name || ''
@@ -269,7 +269,7 @@ export const MinimalCVTemplate: React.FC<MinimalCVTemplateProps> = ({
                   <div className="flex justify-between gap-2 items-start">
                     <div className="flex-1 min-w-0">
                       <input
-                        className="w-full text-[11px] font-semibold text-slate-900 bg-transparent outline-none"
+                        className="w-full text-[11px] font-bold text-slate-900 bg-transparent outline-none"
                         value={edu.degree || ''}
                         onChange={(e) =>
                           onUpdateSectionItem(sectionIndex, idx, 'degree', e.target.value)
@@ -552,13 +552,13 @@ export const MinimalCVTemplate: React.FC<MinimalCVTemplateProps> = ({
         <header className="px-8 pt-6 pb-4 border-b border-slate-200 flex justify-between gap-6 bg-slate-50/70">
           <div className="flex-1 min-w-0">
             <input
-              className="w-full text-[22px] font-semibold tracking-wide text-slate-900 bg-transparent outline-none"
+              className="w-full text-[22px] font-extrabold tracking-wide text-slate-900 bg-transparent outline-none"
               value={personalInfo.name || ''}
               onChange={(e) => onUpdatePersonalInfo('name', e.target.value)}
               placeholder="Name"
             />
             <input
-              className="mt-1 w-full text-[12px] text-slate-600 bg-transparent outline-none"
+              className="mt-1 w-full text-[12px] font-bold text-slate-600 bg-transparent outline-none"
               value={personalInfo.title || ''}
               onChange={(e) => onUpdatePersonalInfo('title', e.target.value)}
               placeholder="Zielposition / Profil"

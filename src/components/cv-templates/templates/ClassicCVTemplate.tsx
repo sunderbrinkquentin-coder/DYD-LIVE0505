@@ -474,14 +474,14 @@ export const ClassicCVTemplate: React.FC<ClassicCVTemplateProps> = ({
                 <EditableText
                   value={personalInfo.name}
                   onChange={(val) => onUpdatePersonalInfo('name', val)}
-                  className="text-[22px] font-bold tracking-wide text-[#1e3a8a] text-center"
+                  className="text-[22px] font-extrabold tracking-wide text-[#1e3a8a] text-center"
                   placeholder="Dein Name"
                   multiline
                 />
                 <EditableText
                   value={personalInfo.title}
                   onChange={(val) => onUpdatePersonalInfo('title', val)}
-                  className="text-[12px] font-semibold text-slate-500 mt-1.5 text-center uppercase tracking-widest"
+                  className="text-[12px] font-bold text-slate-500 mt-1.5 text-center uppercase tracking-widest"
                   placeholder="Berufsbezeichnung"
                   multiline
                 />
