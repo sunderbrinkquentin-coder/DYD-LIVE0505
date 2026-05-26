@@ -166,6 +166,35 @@ export function KanbanBoard({ cvs, onCVUpdate, highlightedCvId }: KanbanBoardPro
     [draggedCard, getCardStatus, onCVUpdate]
   );
 
+  const handleStatusChange = useCallback(
+    async (cv: any, newStatus: KanbanStatus) => {
+      setLocalStatuses((prev) => ({ ...prev, [cv.id]: newStatus }));
+
+      if (newStatus === 'interview' || newStatus === 'offer' || newStatus === 'rejected') {
+        const jd = cv.job_data || {};
+        const cd = cv.cv_data || {};
+        const dj = cd.desired_job || {};
+        setCelebration({
+          status: newStatus,
+          jobTitle: jd.positionTitle || jd.jobTitle || dj.job_title || cd.targetJob || undefined,
+          company: jd.company || jd.companyName || dj.company || cd.targetCompany || undefined,
+        });
+      }
+
+      const { error } = await supabase.from('stored_cvs').update({ status: newStatus }).eq('id', cv.id);
+      if (error) {
+        setLocalStatuses((prev) => {
+          const next = { ...prev };
+          delete next[cv.id];
+          return next;
+        });
+      } else {
+        onCVUpdate();
+      }
+    },
+    [onCVUpdate]
+  );
+
   const handleAddCard = useCallback((status: KanbanStatus) => {
     setAddModalStatus(status);
   }, []);
@@ -265,6 +294,7 @@ export function KanbanBoard({ cvs, onCVUpdate, highlightedCvId }: KanbanBoardPro
                     status={getCardStatus(cv)}
                     onDragStart={() => handleDragStart(cv)}
                     onUpdate={onCVUpdate}
+                    onStatusChange={(s) => handleStatusChange(cv, s)}
                     isHighlighted={!!highlightedCvId && cv.id === highlightedCvId}
                   />
                 ))}

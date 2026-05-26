@@ -1,5 +1,5 @@
 import { useState, useRef } from 'react';
-import { Calendar, User, Briefcase, DollarSign, FileText, Download, Pencil, Sparkles, Bell } from 'lucide-react';
+import { Calendar, User, Briefcase, DollarSign, FileText, Download, Pencil, Sparkles, Bell, ChevronDown } from 'lucide-react';
 import { supabase } from '../../lib/supabase';
 import { KanbanStatus } from './KanbanBoard';
 
@@ -8,6 +8,7 @@ interface KanbanCardProps {
   status: KanbanStatus;
   onDragStart: () => void;
   onUpdate?: () => void;
+  onStatusChange?: (newStatus: KanbanStatus) => void;
   isExample?: boolean;
   isHighlighted?: boolean;
 }
@@ -128,7 +129,9 @@ function getDeadlineHighlight(deadlineStr: string): 'danger' | 'warning' | null 
   return null;
 }
 
-export function KanbanCard({ cv, status, onDragStart, onUpdate, isExample = false, isHighlighted = false }: KanbanCardProps) {
+const ALL_STATUSES: KanbanStatus[] = ['draft', 'applied', 'interview', 'offer', 'rejected'];
+
+export function KanbanCard({ cv, status, onDragStart, onUpdate, onStatusChange, isExample = false, isHighlighted = false }: KanbanCardProps) {
   const jobData = cv.job_data || {};
   const cvData = cv.cv_data || {};
 
@@ -157,6 +160,7 @@ export function KanbanCard({ cv, status, onDragStart, onUpdate, isExample = fals
     '';
   const notes = jobData.notes || null;
 
+  const [statusMenuOpen, setStatusMenuOpen] = useState(false);
   const [contactPerson, setContactPerson] = useState<string>(jobData.contactPerson || jobData.contact_name || '');
   const [applicationDate, setApplicationDate] = useState<string>(
     jobData.applicationDate ||
@@ -297,9 +301,48 @@ export function KanbanCard({ cv, status, onDragStart, onUpdate, isExample = fals
         )}
 
         <div className="flex items-center justify-between gap-2">
-          <span className={`inline-block px-2 py-0.5 rounded-md text-xs font-medium ${STATUS_ACCENT[status]}`}>
-            {STATUS_LABELS[status]}
-          </span>
+          {isExample ? (
+            <span className={`inline-block px-2 py-0.5 rounded-md text-xs font-medium ${STATUS_ACCENT[status]}`}>
+              {STATUS_LABELS[status]}
+            </span>
+          ) : (
+            <div className="relative">
+              <button
+                onClick={(e) => { e.stopPropagation(); setStatusMenuOpen((v) => !v); }}
+                className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-xs font-medium transition-all hover:opacity-80 ${STATUS_ACCENT[status]}`}
+              >
+                {STATUS_LABELS[status]}
+                <ChevronDown className="w-3 h-3 opacity-60" />
+              </button>
+              {statusMenuOpen && (
+                <div
+                  className="absolute left-0 bottom-full mb-1 z-50 bg-white border border-gray-200 rounded-xl shadow-xl overflow-hidden min-w-[130px]"
+                  onClick={(e) => e.stopPropagation()}
+                >
+                  {ALL_STATUSES.map((s) => (
+                    <button
+                      key={s}
+                      onClick={() => {
+                        setStatusMenuOpen(false);
+                        if (s !== status) onStatusChange?.(s);
+                      }}
+                      className={`w-full text-left px-3 py-2 text-xs font-medium transition-colors hover:bg-gray-50 flex items-center gap-2 ${
+                        s === status ? 'opacity-40 cursor-default' : ''
+                      }`}
+                    >
+                      <span className={`inline-block w-2 h-2 rounded-full ${
+                        s === 'draft' ? 'bg-gray-400' :
+                        s === 'applied' ? 'bg-blue-400' :
+                        s === 'interview' ? 'bg-sky-400' :
+                        s === 'offer' ? 'bg-green-400' : 'bg-red-400'
+                      }`} />
+                      {STATUS_LABELS[s]}
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
 
           {!isExample && cv.pdf_url && (
             <button
