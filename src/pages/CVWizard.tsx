@@ -563,23 +563,24 @@ export function CVWizard() {
       hobbies: cvData.hobbies || { hobbies: [], details: '' },
     };
 
-    try {
-      await supabase
-        .from('stored_cvs')
-        .update({
-          cv_data: finalData,
-          updated_at: new Date().toISOString(),
-        })
-        .eq('id', resolvedCvId);
-    } catch (saveErr) {
-      console.warn('[CVWizard] Final save before navigation failed:', saveErr);
-    }
+    // Best-effort save with timeout guard — navigation always proceeds regardless
+    const saveTimeout = new Promise<void>(resolve => setTimeout(resolve, 8000));
+    const saveAttempt = supabase
+      .from('stored_cvs')
+      .update({ cv_data: finalData, updated_at: new Date().toISOString() })
+      .eq('id', resolvedCvId)
+      .then(({ error }) => {
+        if (error) console.warn('[CVWizard] Final save before navigation failed:', error.message);
+      })
+      .catch(err => console.warn('[CVWizard] Final save exception:', err));
 
+    await Promise.race([saveAttempt, saveTimeout]);
+
+    setIsNavigating(false);
     console.log('[CVWizard] Navigating to job-targeting with cvId:', resolvedCvId);
     navigate(`/job-targeting?cvId=${resolvedCvId}`, {
       state: { cvId: resolvedCvId, cvData: finalData, tempId },
     });
-    setIsNavigating(false);
   };
 
   // ---- Step Configuration ----
