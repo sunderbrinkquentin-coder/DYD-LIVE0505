@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Plus, Trash2, Sparkles } from 'lucide-react';
+import { Plus, Trash2, Sparkles, X } from 'lucide-react';
 import { WizardStepLayout } from '../WizardStepLayout';
 import { Project } from '../../../types/cvBuilder';
 
@@ -66,6 +66,50 @@ const STUDENT_PRESETS: Project[] = [
   },
 ];
 
+const BULLET_PRESETS: Record<string, string[]> = {
+  Schulprojekt: [
+    'Eigenverantwortliche Planung und Organisation',
+    'Teamkoordination und Aufgabenverteilung',
+    'Präsentation der Ergebnisse vor der Klasse',
+    'Kommunikation mit Lehrkräften und Beteiligten',
+    'Einhaltung von Deadlines und Meilensteinen',
+  ],
+  Studienprojekt: [
+    'Konzeption und Umsetzung des Projekts',
+    'Recherche und wissenschaftliche Auswertung',
+    'Zusammenarbeit im Team (X Personen)',
+    'Dokumentation und Abschlussbericht',
+    'Präsentation vor Dozierenden / Jury',
+  ],
+  Freizeitprojekt: [
+    'Eigenständige Entwicklung und Umsetzung',
+    'Selbstständige Einarbeitung in neue Tools / Technologien',
+    'Kontinuierliche Verbesserung und Iteration',
+    'Kommunikation mit Nutzern / Community',
+  ],
+  'Ehrenamtliches Projekt': [
+    'Organisation und Durchführung von Veranstaltungen',
+    'Betreuung von Teilnehmer:innen',
+    'Koordination im Team und mit externen Partnern',
+    'Öffentlichkeitsarbeit und Social Media',
+    'Fundraising und Spendenakquise',
+  ],
+  'Nebenjob-Projekt': [
+    'Eigenverantwortliche Bearbeitung von Aufgabenpaketen',
+    'Abstimmung mit Vorgesetzten und Kolleg:innen',
+    'Dokumentation von Ergebnissen und Prozessen',
+    'Einbringen eigener Ideen und Verbesserungsvorschläge',
+  ],
+};
+
+const DEFAULT_BULLET_PRESETS = [
+  'Eigenverantwortliche Planung und Umsetzung',
+  'Teamkoordination und Zusammenarbeit',
+  'Kommunikation mit Beteiligten',
+  'Dokumentation und Ergebnissicherung',
+  'Einhaltung von Deadlines',
+];
+
 const selectBase =
   'w-full px-3 py-2 rounded-lg bg-white/10 border border-white/25 text-white text-sm md:text-base focus:outline-none focus:border-[#66c0b6]';
 
@@ -105,6 +149,33 @@ export function ProjectsStep({
       onChange(updated);
       return updated;
     });
+
+  const addBullet = (projectIndex: number) => {
+    const bullets = [...(projects[projectIndex].bulletPoints || []), ''];
+    update(projectIndex, 'bulletPoints', bullets);
+  };
+
+  const updateBullet = (projectIndex: number, bulletIndex: number, value: string) => {
+    const bullets = [...(projects[projectIndex].bulletPoints || [])];
+    bullets[bulletIndex] = value;
+    update(projectIndex, 'bulletPoints', bullets);
+  };
+
+  const removeBullet = (projectIndex: number, bulletIndex: number) => {
+    const bullets = (projects[projectIndex].bulletPoints || []).filter((_, i) => i !== bulletIndex);
+    update(projectIndex, 'bulletPoints', bullets);
+  };
+
+  const toggleBulletPreset = (projectIndex: number, preset: string) => {
+    const bullets = [...(projects[projectIndex].bulletPoints || [])];
+    const existing = bullets.indexOf(preset);
+    if (existing >= 0) {
+      bullets.splice(existing, 1);
+    } else {
+      bullets.push(preset);
+    }
+    update(projectIndex, 'bulletPoints', bullets);
+  };
 
   const handleNext = () => {
     onNext();
@@ -242,27 +313,64 @@ export function ProjectsStep({
             </div>
 
             {/* Bulletpoints */}
-            <div>
-              <label className="block text-white/80 text-xs font-medium mb-1">
-                Bulletpoints – was hast du konkret gemacht? (jede Zeile = 1 Punkt)
-              </label>
-              <textarea
-                value={(proj.bulletPoints || []).join('\n')}
-                onChange={(e) =>
-                  update(
-                    index,
-                    'bulletPoints',
-                    e.target.value
-                      .split('\n')
-                      .map((s) => s.trim())
-                      .filter(Boolean)
-                  )
-                }
-                placeholder="- Mitverantwortung für Budgetplanung
-- Koordination von Location und Dienstleistern
-- Kommunikation mit Team / Teilnehmer:innen"
-                className="w-full px-4 py-2.5 rounded-lg bg-white/10 text-white placeholder-white/40 border border-white/25 focus:outline-none focus:border-[#66c0b6] resize-none min-h-[80px]"
-              />
+            <div className="space-y-2">
+              <div className="flex items-center gap-2">
+                <Sparkles className="text-[#66c0b6] shrink-0" size={14} />
+                <label className="text-white/80 text-xs font-medium">
+                  Was hast du konkret gemacht? – Vorschläge anklicken oder selbst eintragen:
+                </label>
+              </div>
+
+              {/* Klick-Vorschläge */}
+              <div className="flex flex-wrap gap-1.5">
+                {(BULLET_PRESETS[proj.role || ''] || DEFAULT_BULLET_PRESETS).map((preset) => {
+                  const selected = (proj.bulletPoints || []).includes(preset);
+                  return (
+                    <button
+                      key={preset}
+                      type="button"
+                      onClick={() => toggleBulletPreset(index, preset)}
+                      className={`px-3 py-1 rounded-full text-xs border transition-all ${
+                        selected
+                          ? 'bg-[#66c0b6] text-black border-[#66c0b6] font-semibold'
+                          : 'bg-white/5 text-white/70 border-white/20 hover:bg-white/10'
+                      }`}
+                    >
+                      {selected ? '✓ ' : '+ '}{preset}
+                    </button>
+                  );
+                })}
+              </div>
+
+              {/* Einzelne Eingabefelder */}
+              <div className="space-y-2 pt-1">
+                {(proj.bulletPoints || []).map((bullet, bIdx) => (
+                  <div key={bIdx} className="flex items-center gap-2">
+                    <span className="text-[#66c0b6] text-sm shrink-0">–</span>
+                    <input
+                      type="text"
+                      value={bullet}
+                      onChange={(e) => updateBullet(index, bIdx, e.target.value)}
+                      placeholder="z. B. Budgetplanung und Kostencontrolling übernommen"
+                      className="flex-1 px-3 py-2 rounded-lg bg-white/10 text-white placeholder-white/30 border border-white/20 focus:outline-none focus:border-[#66c0b6] text-sm"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => removeBullet(index, bIdx)}
+                      className="text-white/30 hover:text-red-400 transition-colors shrink-0"
+                    >
+                      <X size={15} />
+                    </button>
+                  </div>
+                ))}
+                <button
+                  type="button"
+                  onClick={() => addBullet(index)}
+                  className="flex items-center gap-1.5 text-xs text-[#66c0b6] hover:text-white transition-colors"
+                >
+                  <Plus size={14} /> Eigenen Punkt hinzufügen
+                </button>
+              </div>
             </div>
           </div>
         ))}

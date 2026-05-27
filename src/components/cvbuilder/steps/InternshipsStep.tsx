@@ -134,6 +134,8 @@ export function InternshipsStep({ data, onChange, onNext, onBack }: InternshipsS
 
   const [activeIndex, setActiveIndex] = useState(0);
   const [toggledTasks, setToggledTasks] = useState<Set<string>>(new Set());
+  // Custom bullet inputs per entry index: index -> string[]
+  const [customBullets, setCustomBullets] = useState<Record<number, string[]>>({});
 
   const active = entries[activeIndex];
 
@@ -150,6 +152,11 @@ export function InternshipsStep({ data, onChange, onNext, onBack }: InternshipsS
     });
   };
 
+  const mergedBullets = (presetTasks: string[], idx: number) => [
+    ...presetTasks,
+    ...(customBullets[idx] || []).filter(Boolean),
+  ];
+
   const toggleTask = (index: number, task: string) => {
     const key = `${index}:${task}`;
     setToggledTasks((prev) => {
@@ -165,10 +172,53 @@ export function InternshipsStep({ data, onChange, onNext, onBack }: InternshipsS
       if (idx >= 0) tasks.splice(idx, 1);
       else tasks.push(task);
       e.tasks = tasks;
-      e.bullets = tasks;
+      e.bullets = mergedBullets(tasks, index);
       updated[index] = e;
       onChange(updated as WorkExperience[]);
       return updated;
+    });
+  };
+
+  const updateCustomBullet = (entryIndex: number, bulletIndex: number, value: string) => {
+    setCustomBullets((prev) => {
+      const current = [...(prev[entryIndex] || [])];
+      current[bulletIndex] = value;
+      const next = { ...prev, [entryIndex]: current };
+      setEntries((prevEntries) => {
+        const updated = [...prevEntries];
+        const e = { ...updated[entryIndex] };
+        e.bullets = mergedBullets(e.tasks || [], entryIndex);
+        // use updated custom list directly
+        e.bullets = [...(e.tasks || []), ...current.filter(Boolean)];
+        updated[entryIndex] = e;
+        onChange(updated as WorkExperience[]);
+        return updated;
+      });
+      return next;
+    });
+  };
+
+  const addCustomBullet = (entryIndex: number) => {
+    setCustomBullets((prev) => ({
+      ...prev,
+      [entryIndex]: [...(prev[entryIndex] || []), ''],
+    }));
+  };
+
+  const removeCustomBullet = (entryIndex: number, bulletIndex: number) => {
+    setCustomBullets((prev) => {
+      const current = [...(prev[entryIndex] || [])];
+      current.splice(bulletIndex, 1);
+      const next = { ...prev, [entryIndex]: current };
+      setEntries((prevEntries) => {
+        const updated = [...prevEntries];
+        const e = { ...updated[entryIndex] };
+        e.bullets = [...(e.tasks || []), ...current.filter(Boolean)];
+        updated[entryIndex] = e;
+        onChange(updated as WorkExperience[]);
+        return updated;
+      });
+      return next;
     });
   };
 
@@ -353,6 +403,39 @@ export function InternshipsStep({ data, onChange, onNext, onBack }: InternshipsS
               <p className="text-xs text-white/40 mt-2">
                 Tipp: Wähle 2–4 Punkte, die am besten zu deiner Erfahrung passen.
               </p>
+
+              {/* Eigene Bullet-Punkte */}
+              <div className="mt-4 space-y-2">
+                <p className="text-xs text-white/60 font-medium">
+                  Eigene Punkte hinzufügen (optional):
+                </p>
+                {(customBullets[activeIndex] || []).map((bullet, bIdx) => (
+                  <div key={bIdx} className="flex items-center gap-2">
+                    <span className="text-[#66c0b6] text-sm shrink-0">–</span>
+                    <input
+                      type="text"
+                      value={bullet}
+                      onChange={(e) => updateCustomBullet(activeIndex, bIdx, e.target.value)}
+                      placeholder="z. B. Eigenverantwortliche Bearbeitung von Bestellungen"
+                      className="flex-1 px-3 py-2 rounded-lg bg-white/10 text-white placeholder-white/30 border border-white/20 focus:outline-none focus:border-[#66c0b6] text-sm"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => removeCustomBullet(activeIndex, bIdx)}
+                      className="text-white/30 hover:text-red-400 transition-colors shrink-0"
+                    >
+                      <Trash2 size={15} />
+                    </button>
+                  </div>
+                ))}
+                <button
+                  type="button"
+                  onClick={() => addCustomBullet(activeIndex)}
+                  className="flex items-center gap-1.5 text-xs text-[#66c0b6] hover:text-white transition-colors mt-1"
+                >
+                  <Plus size={14} /> Eigenen Punkt hinzufügen
+                </button>
+              </div>
             </div>
           )}
 
