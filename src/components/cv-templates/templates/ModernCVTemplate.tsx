@@ -394,9 +394,9 @@ export const ModernCVTemplate: React.FC<ModernCVTemplateProps> = ({
                 </div>
 
                 {bullets.length > 0 ? (
-                  <ul style={{ margin: '8px 0 0', padding: 0, listStyle: 'none', display: 'block' }}>
+                  <ul style={{ margin: '8px 0 0', padding: 0, listStyle: 'none', display: 'flex', flexDirection: 'column', gap: '4px' }}>
                     {bullets.map((bp: string, bIdx: number) => (
-                      <li key={bIdx} data-pdf-bullet-row style={{ display: 'flex', alignItems: 'flex-start', gap: '7px', marginBottom: '5px' }}>
+                      <li key={bIdx} data-pdf-bullet-row style={{ display: 'flex', alignItems: 'flex-start', gap: '7px' }}>
                         <span
                           aria-hidden="true"
                           data-pdf-bullet-dot
@@ -404,9 +404,8 @@ export const ModernCVTemplate: React.FC<ModernCVTemplateProps> = ({
                             display: 'inline-block',
                             flexShrink: 0,
                             color: CI.primaryDark,
-                            fontSize: '11px',
-                            lineHeight: '10px',
-                            marginTop: '2px',
+                            fontSize: '9.5px',
+                            lineHeight: 1.55,
                             userSelect: 'none',
                           }}
                         >
@@ -628,31 +627,50 @@ export const ModernCVTemplate: React.FC<ModernCVTemplateProps> = ({
                 {items.map((skill: any, idx: number) => {
                   const name = typeof skill === 'string' ? skill : skill.skill || skill.name || '';
                   const level = typeof skill === 'object' ? skill.level || skill.niveau || '' : '';
-                  const stars = skillLevelToStars(level);
+                  const display = level ? `${name} (${level.trim()})` : name;
                   return (
                     <div key={idx} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', borderRadius: '8px', padding: '5px 12px', fontSize: '9px', backgroundColor: CI.tint, border: `1px solid ${CI.border}`, breakInside: 'avoid', pageBreakInside: 'avoid' }}>
-                      <Editable value={name} onChange={(v) => onUpdateSectionItem(sectionIndex, idx, 'skill', v)} style={{ fontSize: '9px', fontWeight: 600, color: '#0f172a' }} />
-                      {stars > 0 ? <StarRating stars={stars} /> : (
-                        <span style={{ fontSize: '9px', color: '#64748b' }}>{level}</span>
-                      )}
+                      <Editable value={display} onChange={(v) => onUpdateSectionItem(sectionIndex, idx, 'skill', v)} style={{ fontSize: '9px', fontWeight: 600, color: '#0f172a', flex: 1 }} />
+                      <button
+                        type="button"
+                        className="pdf-hidden"
+                        style={{ fontSize: '9px', color: '#dc2626', background: 'none', border: 'none', cursor: 'pointer', padding: '0 0 0 8px', flexShrink: 0 }}
+                        onClick={() => onDeleteSectionItem(sectionIndex, idx)}
+                      >
+                        ✕
+                      </button>
                     </div>
                   );
                 })}
               </div>
             ) : (
               <div data-chip-row style={{ display: 'block', overflow: 'visible' }}>
-                {items.map((skill: any, idx: number) => (
-                  <span key={idx} style={{ display: 'inline-flex', marginRight: '5px', marginBottom: '5px', verticalAlign: 'middle', breakInside: 'avoid', pageBreakInside: 'avoid' }}>
-                    <Chip
-                      value={typeof skill === 'string' ? skill : skill.skill || skill.name || ''}
-                      onChange={(v) => onUpdateSectionItem(sectionIndex, idx, 'skill', v)}
-                      bg={CI.tint}
-                      borderColor={CI.border}
-                      color="#0f172a"
-                      fontWeight={600}
-                    />
-                  </span>
-                ))}
+                {items.map((skill: any, idx: number) => {
+                  const name = typeof skill === 'string' ? skill : skill.skill || skill.name || '';
+                  const level = typeof skill === 'object' && skill !== null ? skill.level || skill.niveau || '' : '';
+                  const display = level ? `${name} (${level.trim()})` : name;
+                  return (
+                    <span key={idx} style={{ display: 'inline-flex', alignItems: 'center', marginRight: '5px', marginBottom: '5px', verticalAlign: 'middle', breakInside: 'avoid', pageBreakInside: 'avoid' }}>
+                      <span style={{ display: 'inline-flex', alignItems: 'center', backgroundColor: CI.tint, border: `1px solid ${CI.border}`, borderRadius: '9999px', padding: '2px 8px', gap: '4px' }}>
+                        <input
+                          size={Math.max(3, display.length)}
+                          style={{ background: 'transparent', outline: 'none', fontSize: '9px', fontWeight: 600, color: '#0f172a', minWidth: 'unset', border: 'none', width: 'auto' }}
+                          value={display}
+                          onChange={(e) => onUpdateSectionItem(sectionIndex, idx, 'skill', e.target.value)}
+                          placeholder="Skill"
+                        />
+                        <button
+                          type="button"
+                          className="pdf-hidden"
+                          style={{ fontSize: '8px', color: '#dc2626', background: 'none', border: 'none', cursor: 'pointer', padding: 0, lineHeight: 1, flexShrink: 0 }}
+                          onClick={() => onDeleteSectionItem(sectionIndex, idx)}
+                        >
+                          ✕
+                        </button>
+                      </span>
+                    </span>
+                  );
+                })}
               </div>
             )}
           </div>
@@ -665,17 +683,30 @@ export const ModernCVTemplate: React.FC<ModernCVTemplateProps> = ({
           <div key={`soft-${sectionIndex}`} data-pdf-section>
             <SectionTitle>{section.title || 'Soft Skills'}</SectionTitle>
             <div data-chip-row style={{ display: 'block', overflow: 'visible' }}>
-              {items.map((skill: any, idx: number) => (
-                <span key={idx} style={{ display: 'inline-flex', marginRight: '5px', marginBottom: '5px', verticalAlign: 'middle', breakInside: 'avoid', pageBreakInside: 'avoid' }}>
-                  <Chip
-                    value={typeof skill === 'string' ? skill : skill.skill || skill.name || ''}
-                    onChange={(v) => onUpdateSectionItem(sectionIndex, idx, 'skill', v)}
-                    bg="#f8fafc"
-                    borderColor="#cbd5e1"
-                    color="#334155"
-                  />
-                </span>
-              ))}
+              {items.map((skill: any, idx: number) => {
+                const val = typeof skill === 'string' ? skill : skill.skill || skill.name || '';
+                return (
+                  <span key={idx} style={{ display: 'inline-flex', alignItems: 'center', marginRight: '5px', marginBottom: '5px', verticalAlign: 'middle', breakInside: 'avoid', pageBreakInside: 'avoid' }}>
+                    <span style={{ display: 'inline-flex', alignItems: 'center', backgroundColor: '#f8fafc', border: '1px solid #cbd5e1', borderRadius: '9999px', padding: '2px 8px', gap: '4px' }}>
+                      <input
+                        size={Math.max(3, val.length)}
+                        style={{ background: 'transparent', outline: 'none', fontSize: '9px', color: '#334155', minWidth: 'unset', border: 'none', width: 'auto' }}
+                        value={val}
+                        onChange={(e) => onUpdateSectionItem(sectionIndex, idx, 'skill', e.target.value)}
+                        placeholder="Soft Skill"
+                      />
+                      <button
+                        type="button"
+                        className="pdf-hidden"
+                        style={{ fontSize: '8px', color: '#dc2626', background: 'none', border: 'none', cursor: 'pointer', padding: 0, lineHeight: 1, flexShrink: 0 }}
+                        onClick={() => onDeleteSectionItem(sectionIndex, idx)}
+                      >
+                        ✕
+                      </button>
+                    </span>
+                  </span>
+                );
+              })}
             </div>
           </div>
         );

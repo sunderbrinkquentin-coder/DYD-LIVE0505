@@ -229,10 +229,10 @@ export const ProfessionalCVTemplate: React.FC<ProfessionalCVTemplateProps> = ({
                     </div>
 
                     {bullets.length > 0 ? (
-                      <ul className="mt-1 space-y-[2px] !text-[9.5px] text-slate-800" style={{ listStyle: 'none', padding: 0, margin: '4px 0 0' }}>
+                      <ul className="mt-1 !text-[9.5px] text-slate-800" style={{ listStyle: 'none', padding: 0, margin: '4px 0 0', display: 'flex', flexDirection: 'column', gap: '4px' }}>
                         {bullets.map((bp: string, bIdx: number) => (
                           <li key={bIdx} style={{ display: 'flex', alignItems: 'flex-start', gap: '6px', breakInside: 'avoid', pageBreakInside: 'avoid' }}>
-                            <span style={{ flexShrink: 0, color: '#334155', fontSize: '11px', lineHeight: '10px', marginTop: '1px', userSelect: 'none' }}>•</span>
+                            <span style={{ flexShrink: 0, color: '#334155', fontSize: '9.5px', lineHeight: '1.375', userSelect: 'none' }}>•</span>
                             <textarea
                               className="w-full bg-transparent outline-none text-slate-800 !text-[9.5px] leading-tight resize-none"
                               style={{ flex: 1, overflow: 'hidden', minHeight: '20px' }}
@@ -314,10 +314,10 @@ export const ProfessionalCVTemplate: React.FC<ProfessionalCVTemplateProps> = ({
                     </div>
 
                     {bullets.length > 0 ? (
-                      <ul className="mt-1 space-y-[2px] !text-[9.5px] text-slate-800" style={{ listStyle: 'none', padding: 0, margin: '4px 0 0' }}>
+                      <ul className="mt-1 !text-[9.5px] text-slate-800" style={{ listStyle: 'none', padding: 0, margin: '4px 0 0', display: 'flex', flexDirection: 'column', gap: '4px' }}>
                         {bullets.map((bp: string, bIdx: number) => (
                           <li key={bIdx} style={{ display: 'flex', alignItems: 'flex-start', gap: '6px', breakInside: 'avoid', pageBreakInside: 'avoid' }}>
-                            <span style={{ flexShrink: 0, color: '#334155', fontSize: '11px', lineHeight: '10px', marginTop: '1px', userSelect: 'none' }}>•</span>
+                            <span style={{ flexShrink: 0, color: '#334155', fontSize: '9.5px', lineHeight: '1.375', userSelect: 'none' }}>•</span>
                             <textarea
                               className="w-full bg-transparent outline-none text-slate-800 !text-[9.5px] leading-tight resize-none"
                               style={{ overflow: 'hidden', minHeight: '20px' }}

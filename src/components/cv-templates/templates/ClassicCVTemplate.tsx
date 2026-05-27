@@ -32,6 +32,7 @@ interface ClassicCVTemplateProps {
     field: string,
     value: any
   ) => void;
+  onDeleteSectionItem?: (sectionIndex: number, itemIndex: number) => void;
 }
 
 const skillLevelToStars = (level: string | undefined): number => {
@@ -108,6 +109,7 @@ export const ClassicCVTemplate: React.FC<ClassicCVTemplateProps> = ({
   onUpdateSummary,
   onUpdateSection,
   onUpdateSectionItem,
+  onDeleteSectionItem = () => {},
 }) => {
   const findSectionIndex = (type: string) =>
     sections.findIndex((s) => s.type === type);
@@ -128,15 +130,15 @@ export const ClassicCVTemplate: React.FC<ClassicCVTemplateProps> = ({
     if (!bullets || !Array.isArray(bullets) || bullets.length === 0) return null;
 
     return (
-      <div className="space-y-1.5 mt-1.5">
+      <div className="mt-1.5" style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
         {bullets.map((bp, idx) => {
           const text = typeof bp === 'string' ? bp : bp?.text ?? String(bp);
           if (!text) return null;
           const cleanText = text.replace(/^[-•*]\s*/, ''); // Säubert manuell getippte Spiegelstriche
-          
+
           return (
-            <div key={idx} className="flex items-start gap-2 leading-snug" style={{ breakInside: 'avoid', pageBreakInside: 'avoid' }}>
-              <span style={{ flexShrink: 0, color: '#1e3a8a', fontSize: '11px', lineHeight: '18px', userSelect: 'none' }}>
+            <div key={idx} className="flex items-start gap-2" style={{ breakInside: 'avoid', pageBreakInside: 'avoid' }}>
+              <span style={{ flexShrink: 0, color: '#1e3a8a', fontSize: '9.5px', lineHeight: '1.375', userSelect: 'none' }}>
                 •
               </span>
               <EditableText
@@ -390,17 +392,27 @@ export const ClassicCVTemplate: React.FC<ClassicCVTemplateProps> = ({
 
             const rawText = typeof item === 'string' ? item : item.skill || item.label || item.name || item.title || String(item);
             const text = stripSectionLabel(rawText);
+            const level = typeof item === 'object' && item !== null ? item.level || item.niveau || '' : '';
+            const display = level ? `${text} (${level.trim()})` : text;
 
             return (
               <li key={idx} style={{ display: 'inline-flex', marginRight: '5px', marginBottom: '5px', verticalAlign: 'middle', listStyle: 'none' }}>
-                <span className="inline-flex items-center px-2.5 py-1 rounded bg-[#f8fafc] border border-[#e2e8f0] text-[9px] font-medium text-slate-700 whitespace-nowrap">
+                <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded bg-[#f8fafc] border border-[#e2e8f0] text-[9px] font-medium text-slate-700 whitespace-nowrap">
                   <EditableText
-                    value={text}
-                    onChange={(val) => onUpdateSectionItem(index, idx, 'value', val)}
+                    value={display}
+                    onChange={(val) => onUpdateSectionItem(index, idx, 'skill', val)}
                     className="text-slate-700 bg-transparent"
-                    style={{ width: `${Math.max(2, text.length + 1)}ch` }}
+                    style={{ width: `${Math.max(2, display.length + 1)}ch` }}
                     placeholder="Eintrag"
                   />
+                  <button
+                    type="button"
+                    className="pdf-hidden"
+                    style={{ fontSize: '8px', color: '#dc2626', background: 'none', border: 'none', cursor: 'pointer', padding: 0, lineHeight: 1, flexShrink: 0 }}
+                    onClick={() => onDeleteSectionItem(index, idx)}
+                  >
+                    ✕
+                  </button>
                 </span>
               </li>
             );

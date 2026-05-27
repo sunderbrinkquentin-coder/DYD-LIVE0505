@@ -194,12 +194,12 @@ export const MinimalCVTemplate: React.FC<MinimalCVTemplateProps> = ({
                 </div>
 
 {bullets.length > 0 ? (
-                  <ul className="mt-1 space-y-[2px] text-[9.5px] text-slate-700">
+                  <ul className="mt-1 text-[9.5px] text-slate-700" style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
                     {bullets.map((bp: string, bIdx: number) => (
-                      <li key={bIdx} style={{ breakInside: 'avoid', pageBreakInside: 'avoid' }} className="flex items-start gap-1.5">
-                        <span 
-                          style={{ 
-                            flexShrink: 0, color: '#64748b', fontSize: '11px', lineHeight: '10px', marginTop: '1px', userSelect: 'none' 
+                      <li key={bIdx} style={{ breakInside: 'avoid', pageBreakInside: 'avoid', display: 'flex', alignItems: 'flex-start', gap: '6px' }}>
+                        <span
+                          style={{
+                            flexShrink: 0, color: '#64748b', fontSize: '9.5px', lineHeight: '1.375', userSelect: 'none', paddingTop: '0px'
                           }}
                         >
                           •

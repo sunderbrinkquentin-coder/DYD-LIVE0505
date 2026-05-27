@@ -242,10 +242,10 @@ export const CreativeCVTemplate: React.FC<CreativeCVTemplateProps> = ({
                   </div>
 
                   {bullets.length > 0 ? (
-                    <ul className="mt-1 space-y-0.5 !text-[9.5px] text-slate-700">
+                    <ul className="mt-1 !text-[9.5px] text-slate-700" style={{ listStyle: 'none', padding: 0, display: 'flex', flexDirection: 'column', gap: '4px' }}>
                       {bullets.map((bp: string, bIdx: number) => (
-                        <li key={bIdx} className="flex items-start gap-1" style={{ breakInside: 'avoid', pageBreakInside: 'avoid' }}>
-                          <span className="text-[#22c1c3] mt-0.5 text-[11px]">▸</span>
+                        <li key={bIdx} style={{ display: 'flex', alignItems: 'flex-start', gap: '4px', breakInside: 'avoid', pageBreakInside: 'avoid' }}>
+                          <span style={{ flexShrink: 0, color: '#22c1c3', fontSize: '9.5px', lineHeight: '1.375', userSelect: 'none' }}>▸</span>
                           <textarea
                             className="flex-1 bg-transparent outline-none resize-none overflow-hidden leading-snug text-slate-700 !text-[9.5px]"
                             style={{ minHeight: '20px', height: 'auto' }}
@@ -337,10 +337,10 @@ export const CreativeCVTemplate: React.FC<CreativeCVTemplateProps> = ({
                   </div>
 
                   {bullets.length > 0 ? (
-                    <ul className="mt-1 space-y-0.5 !text-[9.5px] text-slate-700">
+                    <ul className="mt-1 !text-[9.5px] text-slate-700" style={{ listStyle: 'none', padding: 0, display: 'flex', flexDirection: 'column', gap: '4px' }}>
                       {bullets.map((bp: string, bIdx: number) => (
-                        <li key={bIdx} className="flex items-start gap-1" style={{ breakInside: 'avoid', pageBreakInside: 'avoid' }}>
-                          <span className="text-[#22c1c3] mt-0.5 text-[11px]">▸</span>
+                        <li key={bIdx} style={{ display: 'flex', alignItems: 'flex-start', gap: '4px', breakInside: 'avoid', pageBreakInside: 'avoid' }}>
+                          <span style={{ flexShrink: 0, color: '#22c1c3', fontSize: '9.5px', lineHeight: '1.375', userSelect: 'none' }}>▸</span>
                           <textarea
                             className="flex-1 bg-transparent outline-none resize-none overflow-hidden leading-snug text-slate-700 !text-[9.5px]"
                             style={{ minHeight: '20px', height: 'auto' }}
