@@ -35,6 +35,7 @@ interface CreativeCVTemplateProps {
   ) => void;
   onAddSectionItem?: (sectionIndex: number, defaultItem: any) => void;
   onDeleteSectionItem?: (sectionIndex: number, itemIndex: number) => void;
+  pageBreakItems?: Map<string, number>;
 }
 
 const SectionTitle: React.FC<{ children: React.ReactNode }> = ({ children }) => (
@@ -57,6 +58,7 @@ export const CreativeCVTemplate: React.FC<CreativeCVTemplateProps> = ({
   onUpdateSummary,
   onUpdateSectionItem,
   onDeleteSectionItem = () => {},
+  pageBreakItems,
 }) => {
   const summaryRef = useRef<HTMLTextAreaElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
@@ -186,13 +188,16 @@ export const CreativeCVTemplate: React.FC<CreativeCVTemplateProps> = ({
           <div key={sectionIndex}>
             <SectionTitle>{sectionTitle}</SectionTitle>
             {items.map((exp: any, idx: number) => {
+              const itemKey = `${sectionIndex}-${idx}`;
+              const spacer = pageBreakItems?.get(itemKey) ?? 0;
               const bullets = getBullets(exp);
               return (
                 <div
                   key={idx}
                   data-pdf-section
+                  data-spacer-id={itemKey}
                   className="mb-2.5 rounded-xl bg-white border border-slate-200 px-3 py-2 shadow-sm w-full split-box-fix"
-                  style={{ display: 'block', breakInside: 'auto', pageBreakInside: 'auto' }}
+                  style={{ display: 'block', breakInside: 'auto', pageBreakInside: 'auto', ...(spacer > 0 ? { marginTop: `${spacer}px` } : {}) }}
                 >
                   <div className="flex justify-between items-start gap-2" style={{ breakInside: 'avoid', pageBreakInside: 'avoid' }}>
                     <div className="flex-1 min-w-0">
@@ -329,13 +334,16 @@ export const CreativeCVTemplate: React.FC<CreativeCVTemplateProps> = ({
           <div key={sectionIndex}>
             <SectionTitle>{sectionTitle}</SectionTitle>
             {items.map((proj: any, idx: number) => {
+              const itemKey = `${sectionIndex}-${idx}`;
+              const spacer = pageBreakItems?.get(itemKey) ?? 0;
               const bullets = getBullets(proj);
               return (
                 <div
                   key={idx}
                   data-pdf-section
+                  data-spacer-id={itemKey}
                   className="mb-2 rounded-xl bg-white border border-slate-200 px-3 py-2 shadow-sm w-full split-box-fix"
-                  style={{ display: 'block', breakInside: 'auto', pageBreakInside: 'auto' }}
+                  style={{ display: 'block', breakInside: 'auto', pageBreakInside: 'auto', ...(spacer > 0 ? { marginTop: `${spacer}px` } : {}) }}
                 >
                   <div style={{ breakInside: 'avoid', pageBreakInside: 'avoid' }}>
                     <input
@@ -430,12 +438,16 @@ export const CreativeCVTemplate: React.FC<CreativeCVTemplateProps> = ({
         return (
           <div key={sectionIndex}>
             <SectionTitle>Ausbildung & Studium</SectionTitle>
-            {items.map((edu: any, idx: number) => (
+            {items.map((edu: any, idx: number) => {
+              const itemKey = `${sectionIndex}-${idx}`;
+              const spacer = pageBreakItems?.get(itemKey) ?? 0;
+              return (
               <div
                 key={idx}
                 data-pdf-section
+                data-spacer-id={itemKey}
                 className="mb-2 rounded-xl bg-white border border-slate-200 px-3 py-2 shadow-sm w-full split-box-fix"
-                style={{ display: 'block', breakInside: 'avoid', pageBreakInside: 'avoid' }}
+                style={{ display: 'block', breakInside: 'avoid', pageBreakInside: 'avoid', ...(spacer > 0 ? { marginTop: `${spacer}px` } : {}) }}
               >
                 <div className="flex justify-between items-start gap-2">
                   <div className="flex-1 min-w-0">
@@ -482,7 +494,8 @@ export const CreativeCVTemplate: React.FC<CreativeCVTemplateProps> = ({
                   </div>
                 </div>
               </div>
-            ))}
+              );
+            })}
           </div>
         );
 

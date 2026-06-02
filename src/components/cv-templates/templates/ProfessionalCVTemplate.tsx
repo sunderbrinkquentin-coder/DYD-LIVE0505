@@ -34,6 +34,7 @@ interface ProfessionalCVTemplateProps {
   ) => void;
   onAddSectionItem?: (sectionIndex: number, defaultItem: any) => void;
   onDeleteSectionItem?: (sectionIndex: number, itemIndex: number) => void;
+  pageBreakItems?: Map<string, number>;
 }
 
 const autoResize = (el: HTMLTextAreaElement) => {
@@ -80,6 +81,7 @@ export const ProfessionalCVTemplate: React.FC<ProfessionalCVTemplateProps> = ({
   onUpdateSummary,
   onUpdateSectionItem,
   onDeleteSectionItem = () => {},
+  pageBreakItems,
 }) => {
   const summaryRef = useRef<HTMLTextAreaElement | null>(null);
 
@@ -172,12 +174,15 @@ export const ProfessionalCVTemplate: React.FC<ProfessionalCVTemplateProps> = ({
             <SectionTitle>{sectionTitle}</SectionTitle>
             <div className="space-y-2">
               {items.map((exp: any, idx: number) => {
+                const itemKey = `${sectionIndex}-${idx}`;
+                const spacer = pageBreakItems?.get(itemKey) ?? 0;
                 const bullets = getBullets(exp);
                 return (
                   <div
                     key={idx}
                     data-pdf-section
-                    style={{ display: 'block', width: '100%' }}
+                    data-spacer-id={itemKey}
+                    style={{ display: 'block', width: '100%', ...(spacer > 0 ? { marginTop: `${spacer}px` } : {}) }}
                     className="px-3 py-2 rounded-lg border border-slate-200 bg-white/95"
                   >
                     <div className="flex justify-between gap-2 items-start">
@@ -296,12 +301,15 @@ export const ProfessionalCVTemplate: React.FC<ProfessionalCVTemplateProps> = ({
             <SectionTitle>{sectionTitle}</SectionTitle>
             <div className="space-y-2">
               {items.map((proj: any, idx: number) => {
+                const itemKey = `${sectionIndex}-${idx}`;
+                const spacer = pageBreakItems?.get(itemKey) ?? 0;
                 const bullets = getBullets(proj);
                 return (
                   <div
                     key={idx}
                     data-pdf-section
-                    style={{ display: 'block', width: '100%' }}
+                    data-spacer-id={itemKey}
+                    style={{ display: 'block', width: '100%', ...(spacer > 0 ? { marginTop: `${spacer}px` } : {}) }}
                     className="px-3 py-2 rounded-lg border border-slate-200 bg-white/95"
                   >
                     <div className="flex justify-between gap-2 items-start">
@@ -391,8 +399,11 @@ export const ProfessionalCVTemplate: React.FC<ProfessionalCVTemplateProps> = ({
           <div key={sectionIndex}>
             <SectionTitle>Ausbildung & Studium</SectionTitle>
             <div className="space-y-1.5">
-              {items.map((edu: any, idx: number) => (
-                <div key={idx} data-pdf-section style={{ display: 'block', width: '100%' }} className="px-2 py-1 rounded-md">
+              {items.map((edu: any, idx: number) => {
+                const itemKey = `${sectionIndex}-${idx}`;
+                const spacer = pageBreakItems?.get(itemKey) ?? 0;
+                return (
+                <div key={idx} data-pdf-section data-spacer-id={itemKey} style={{ display: 'block', width: '100%', ...(spacer > 0 ? { marginTop: `${spacer}px` } : {}) }} className="px-2 py-1 rounded-md">
                   <input
                     className="w-full text-[11px] font-bold text-slate-900 bg-transparent outline-none"
                     value={edu.degree || ''}
@@ -431,7 +442,8 @@ export const ProfessionalCVTemplate: React.FC<ProfessionalCVTemplateProps> = ({
                     </div>
                   )}
                 </div>
-              ))}
+                );
+              })}
             </div>
           </div>
         );

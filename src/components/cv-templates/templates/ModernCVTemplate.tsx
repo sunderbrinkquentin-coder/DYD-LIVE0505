@@ -335,7 +335,6 @@ export const ModernCVTemplate: React.FC<ModernCVTemplateProps> = ({
     isProject: boolean
   ) => {
     const items = Array.isArray(section.items) ? section.items : [];
-    if (items.length === 0) return null;
     const title = section.title || (isProject ? 'Projekte' : 'Berufserfahrung');
 
     return (
@@ -348,7 +347,6 @@ export const ModernCVTemplate: React.FC<ModernCVTemplateProps> = ({
             return (
               <div
                 key={idx}
-                /* 💡 HIER KORRIGIERT: data-pdf-section schützt jeden einzelnen Job */
                 data-pdf-section
                 style={{
                   border: `1px solid ${CI.border}`,
@@ -471,6 +469,15 @@ export const ModernCVTemplate: React.FC<ModernCVTemplateProps> = ({
               </div>
             );
           })}
+
+          <button
+            type="button"
+            className="pdf-hidden nonce-export"
+            style={{ fontSize: '9px', fontWeight: 600, color: CI.primaryDark, background: 'none', border: 'none', cursor: 'pointer', textAlign: 'left', marginTop: '4px', padding: '4px 0' }}
+            onClick={() => onAddSectionItem?.(sectionIndex, isProject ? { title: 'Neues Projekt', role: 'Deine Rolle' } : { title: 'Neue Position', company: 'Unternehmen', date_from: '01/2026', date_to: 'Heute' })}
+          >
+            + Eintrag hinzufügen
+          </button>
         </div>
       </div>
     );
@@ -486,7 +493,6 @@ export const ModernCVTemplate: React.FC<ModernCVTemplateProps> = ({
         return renderExperienceOrProjects(section, sectionIndex, true);
 
       case 'education':
-        if (items.length === 0) return null;
         return (
           <div key={`education-${sectionIndex}`}>
             <SectionTitle>{section.title || 'Ausbildung & Studium'}</SectionTitle>
@@ -494,7 +500,6 @@ export const ModernCVTemplate: React.FC<ModernCVTemplateProps> = ({
               {items.map((edu: any, idx: number) => (
                 <div
                   key={idx}
-                  /* 💡 HIER KORRIGIERT: data-pdf-section schützt jede Ausbildungsstation */
                   data-pdf-section
                   style={{
                     border: `1px solid ${CI.border}`,
@@ -533,7 +538,15 @@ export const ModernCVTemplate: React.FC<ModernCVTemplateProps> = ({
                       style={{ fontSize: '9.5px', color: '#64748b', marginTop: '4px', lineHeight: 1.5 }}
                     />
                   ) : null}
-                  <div style={{ marginTop: '6px', display: 'flex', justifyContent: 'flex-end' }}>
+                  <div style={{ marginTop: '6px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                    <button
+                      type="button"
+                      className="pdf-hidden"
+                      style={{ fontSize: '9px', color: '#dc2626', background: 'none', border: 'none', cursor: 'pointer', padding: 0 }}
+                      onClick={() => onDeleteSectionItem(sectionIndex, idx)}
+                    >
+                      Eintrag löschen
+                    </button>
                     <DateBadge
                       from={edu.date_from || ''}
                       to={edu.date_to || ''}
@@ -543,6 +556,15 @@ export const ModernCVTemplate: React.FC<ModernCVTemplateProps> = ({
                   </div>
                 </div>
               ))}
+              
+              <button
+                type="button"
+                className="pdf-hidden nonce-export"
+                style={{ fontSize: '9px', fontWeight: 600, color: CI.primaryDark, background: 'none', border: 'none', cursor: 'pointer', textAlign: 'left', marginTop: '4px', padding: '4px 0' }}
+                onClick={() => onAddSectionItem?.(sectionIndex, { degree: 'Neuer Abschluss', institution: 'Schule / Universität', date_from: '01/2026', date_to: 'Heute' })}
+              >
+                + Eintrag zu "Ausbildung" hinzufügen
+              </button>
             </div>
           </div>
         );
@@ -821,7 +843,6 @@ export const ModernCVTemplate: React.FC<ModernCVTemplateProps> = ({
     }
   };
 
- // ── AB HIER KORRIGIERT EINGEFÜGT ──
   const leftSections = sections.filter((s) => SECTION_ORDER_LEFT.includes(s.type));
   const rightSections = sections.filter(
     (s) => SECTION_ORDER_RIGHT.includes(s.type) || s.type === 'certificates' || s.type === 'stipends'
@@ -831,15 +852,39 @@ export const ModernCVTemplate: React.FC<ModernCVTemplateProps> = ({
   );
 
   return (
+    <>
+      <style>{`
+        @media screen {
+          .cv-render-root {
+            position: relative !important;
+            background-image: linear-gradient(
+              to bottom,
+              transparent 0px,
+              transparent 1121px,
+              #cbd5e1 1121px, 
+              #cbd5e1 1122px,
+              transparent 1122px
+            ) !important;
+            background-size: 100% 1122px !important;
+          }
+        }
+      `}</style>
+
       <div
+        className="cv-render-root"
+        data-pdf-root
         style={{
           fontFamily: FONT,
           color: '#1e293b',
+          width: '794px',
           minHeight: '1122px',
           display: 'flex',
           flexDirection: 'column',
-          backgroundColor: '#ffffff',
+          backgroundColor: CI.bg,
           borderLeft: `4px solid ${CI.primary}`,
+          border: `1px solid ${CI.border}`,
+          borderRadius: '16px',
+          boxShadow: '0 2px 12px rgba(0,0,0,0.08)',
           wordBreak: 'break-word',
           overflowWrap: 'anywhere',
           flex: 1,
@@ -848,8 +893,9 @@ export const ModernCVTemplate: React.FC<ModernCVTemplateProps> = ({
         {/* ── HEADER ─────────────────────────────────────────────────────── */}
         <header
           style={{
-            backgroundColor: CI.tint,
-            borderBottom: `2px solid ${CI.primary}`,
+            backgroundColor: CI.bg,
+            borderBottom: `1px solid ${CI.border}`,
+            borderRadius: '16px 16px 0 0',
             padding: '28px 32px 20px',
             display: 'flex',
             justifyContent: 'space-between',
@@ -1038,7 +1084,7 @@ export const ModernCVTemplate: React.FC<ModernCVTemplateProps> = ({
             fontFamily: FONT,
             marginTop: 'auto',
             flexShrink: 0,
-            backgroundColor: CI.tint,
+            backgroundColor: CI.bg,
           }}
         >
           <div style={{ display: 'flex', alignItems: 'center', gap: '6px', minWidth: 0 }}>
@@ -1053,5 +1099,6 @@ export const ModernCVTemplate: React.FC<ModernCVTemplateProps> = ({
           <span style={{ fontWeight: 600, whiteSpace: 'nowrap' }}>{today}</span>
         </footer>
       </div>
+    </>
   );
 };

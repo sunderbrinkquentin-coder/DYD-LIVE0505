@@ -34,6 +34,7 @@ interface MinimalCVTemplateProps {
   ) => void;
   onAddSectionItem?: (sectionIndex: number, defaultItem: any) => void;
   onDeleteSectionItem?: (sectionIndex: number, itemIndex: number) => void;
+  pageBreakItems?: Map<string, number>;
 }
 
 const SectionTitle: React.FC<{ children: React.ReactNode }> = ({ children }) => (
@@ -101,6 +102,7 @@ export const MinimalCVTemplate: React.FC<MinimalCVTemplateProps> = ({
   onUpdateSummary,
   onUpdateSectionItem,
   onDeleteSectionItem = () => {},
+  pageBreakItems,
 }) => {
   const summaryRef = useRef<HTMLTextAreaElement | null>(null);
 
@@ -124,13 +126,16 @@ export const MinimalCVTemplate: React.FC<MinimalCVTemplateProps> = ({
         <SectionTitle>{title}</SectionTitle>
         <div className="space-y-1.5">
           {items.map((item: any, idx: number) => {
+            const itemKey = `${sectionIndex}-${idx}`;
+            const spacer = pageBreakItems?.get(itemKey) ?? 0;
             const bullets = getBullets(item);
 
             return (
               <div
                 key={idx}
                 data-pdf-section
-                style={{ display: 'block', width: '100%' }}
+                data-spacer-id={itemKey}
+                style={{ display: 'block', width: '100%', ...(spacer > 0 ? { marginTop: `${spacer}px` } : {}) }}
                 className="px-2.5 py-1.5 rounded-lg border border-slate-200 bg-white/90"
               >
                 <div className="flex justify-between gap-2 items-start">
@@ -282,11 +287,15 @@ export const MinimalCVTemplate: React.FC<MinimalCVTemplateProps> = ({
           <div key={sectionIndex}>
             <SectionTitle>{section.title || 'Ausbildung / Studium'}</SectionTitle>
             <div className="space-y-1.5">
-              {items.map((edu: any, idx: number) => (
+              {items.map((edu: any, idx: number) => {
+                const itemKey = `${sectionIndex}-${idx}`;
+                const spacer = pageBreakItems?.get(itemKey) ?? 0;
+                return (
                 <div
                   key={idx}
                   data-pdf-section
-                  style={{ display: 'block', width: '100%' }}
+                  data-spacer-id={itemKey}
+                  style={{ display: 'block', width: '100%', ...(spacer > 0 ? { marginTop: `${spacer}px` } : {}) }}
                   className="px-2.5 py-1.5 rounded-lg border border-slate-200 bg-white/90"
                 >
                   <div className="flex justify-between gap-2 items-start">
@@ -334,7 +343,8 @@ export const MinimalCVTemplate: React.FC<MinimalCVTemplateProps> = ({
                     </div>
                   </div>
                 </div>
-              ))}
+                );
+              })}
             </div>
           </div>
         );

@@ -229,6 +229,9 @@ export function CVLiveEditorPage() {
 
   const [templateConfirmed, setTemplateConfirmed] = useState(false);
 
+  // Page-break engine: maps "sectionIndex-itemIndex" → spacer px to push station to next page
+  const [pageBreakItems, setPageBreakItems] = useState<Map<string, number>>(new Map());
+  const pageBreakScheduledRef = useRef(false);
 
   const cvPreviewRef = useRef<HTMLDivElement | null>(null);
   const mainAreaRef = useRef<HTMLDivElement | null>(null);
@@ -273,6 +276,67 @@ export function CVLiveEditorPage() {
     (window as any).__debugPdfHtml = () => debugLogPDFHtml(cvPreviewRef);
     return () => { delete (window as any).__debugPdfHtml; };
   }, []);
+
+  // Page-break engine: after render, measure [data-spacer-id] items in the hidden source
+  // and compute spacers needed to prevent stations from splitting across page boundaries.
+  const pageBreakItemsRef = useRef<Map<string, number>>(pageBreakItems);
+  pageBreakItemsRef.current = pageBreakItems;
+
+  useEffect(() => {
+    const PAGE_H = 1122;
+
+    const compute = () => {
+      const container = cvPreviewRef.current;
+      if (!container) return;
+
+      const sections = container.querySelectorAll<HTMLElement>('[data-spacer-id]');
+      if (sections.length === 0) {
+        if (pageBreakItemsRef.current.size > 0) setPageBreakItems(new Map());
+        pageBreakScheduledRef.current = false;
+        return;
+      }
+
+      const newMap = new Map<string, number>();
+
+      sections.forEach((el) => {
+        const key = el.getAttribute('data-spacer-id') ?? '';
+        if (!key) return;
+
+        // offsetTop is relative to the nearest positioned ancestor (container)
+        const existingSpacer = pageBreakItemsRef.current.get(key) ?? 0;
+        // Strip out the spacer that's already added to this item's marginTop
+        const itemTop = el.offsetTop - existingSpacer;
+        const itemHeight = el.offsetHeight;
+        const itemBottom = itemTop + itemHeight;
+
+        const pageStart = Math.floor(itemTop / PAGE_H);
+        const pageEnd = Math.floor((itemBottom - 1) / PAGE_H);
+
+        if (pageEnd > pageStart) {
+          const nextPageTop = (pageStart + 1) * PAGE_H;
+          const spacer = nextPageTop - itemTop;
+          if (spacer > 0 && spacer < PAGE_H) {
+            newMap.set(key, spacer);
+          }
+        }
+      });
+
+      const prev = pageBreakItemsRef.current;
+      const changed = newMap.size !== prev.size ||
+        [...newMap.entries()].some(([k, v]) => prev.get(k) !== v) ||
+        [...prev.entries()].some(([k]) => !newMap.has(k));
+
+      if (changed) {
+        setPageBreakItems(newMap);
+      }
+      pageBreakScheduledRef.current = false;
+    };
+
+    if (!pageBreakScheduledRef.current) {
+      pageBreakScheduledRef.current = true;
+      requestAnimationFrame(() => requestAnimationFrame(compute));
+    }
+  }, [editorData, selectedTemplate, cvHeight]);
 
   const isInitialLoadRef = useRef(true);
   const saveTimeoutRef = useRef<number | null>(null);
@@ -962,23 +1026,26 @@ export function CVLiveEditorPage() {
     };
   };
 
-const handleDownloadClick = () => {
+// ── HARTE FREISCHALT-LOGIK: DIREKTE PAYWALL-UMLEITUNG OHNE MODALS ──
+  const handleDownloadClick = () => {
     if (!cvId) return;
 
+    // 1. Nicht eingeloggt? Sofort zum Login schicken
     if (!user) {
       const redirectTo = encodeURIComponent(`/cv-live-editor/${cvId}`);
       navigate(`/login?redirect=${redirectTo}`);
       return;
     }
 
-    if (isDownloadUnlocked) {
-      // Already paid — show template selection before export
-      setShowTemplateSelectForExport(true);
+    // 2. Absolute Sperre: Wenn NICHT freigeschaltet, direkt zur Paywall-Preisseite umleiten!
+    // Keine Modals dazwischen. Hier wählt der User seine Credits (1x, 5x, 10x)
+    if (!isDownloadUnlocked) {
+      navigate(`/cv-paywall?cvId=${cvId}&source=cv_optimizer`);
       return;
     }
 
-    // Not yet unlocked — show PaywallModal (which offers token usage or Stripe purchase)
-    setShowPaywallModal(true);
+    // 3. Erst wenn der Status in der DB verifiziert "unlocked" ist, läuft der Export
+    triggerDirectExport();
   };
 
   const triggerDirectExport = async () => {
@@ -995,7 +1062,9 @@ const handleDownloadClick = () => {
 
       const savedTransform = cvPreviewRef.current.style.transform;
       cvPreviewRef.current.style.transform = 'none';
-      const blob = await exportCVToPDFBlob(cvPreviewRef as any);
+      
+      // Nutzt die exakte PDF-Export-Funktion auf dem Preview-Ref
+      const blob = await exportCVToPDFBlob(cvPreviewRef);
       cvPreviewRef.current.style.transform = savedTransform;
 
       const url = URL.createObjectURL(blob);
@@ -1007,7 +1076,7 @@ const handleDownloadClick = () => {
       a.remove();
       URL.revokeObjectURL(url);
     } catch (e) {
-      console.error('Export failed', e);
+      console.error('Export fehlgeschlagen:', e);
     } finally {
       setIsExportingPDF(false);
     }
@@ -1500,6 +1569,7 @@ const updateSectionItem = (
 
           // templateProps shared by source div and all page frame windows
           const templateProps = {
+            pageBreakItems,
             personalInfo: editorData.personalInfo!,
             summary: editorData.summary,
             sections: editorData.sections!,

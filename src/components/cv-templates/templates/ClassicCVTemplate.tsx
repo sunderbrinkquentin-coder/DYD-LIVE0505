@@ -33,6 +33,7 @@ interface ClassicCVTemplateProps {
     value: any
   ) => void;
   onDeleteSectionItem?: (sectionIndex: number, itemIndex: number) => void;
+  pageBreakItems?: Map<string, number>;
 }
 
 const skillLevelToStars = (level: string | undefined): number => {
@@ -110,6 +111,7 @@ export const ClassicCVTemplate: React.FC<ClassicCVTemplateProps> = ({
   onUpdateSection,
   onUpdateSectionItem,
   onDeleteSectionItem = () => {},
+  pageBreakItems,
 }) => {
   const findSectionIndex = (type: string) =>
     sections.findIndex((s) => s.type === type);
@@ -174,8 +176,11 @@ export const ClassicCVTemplate: React.FC<ClassicCVTemplateProps> = ({
           Berufserfahrung
         </h2>
         <div className="space-y-5">
-          {items.map((item: any, idx: number) => (
-            <div key={idx} className="relative" data-pdf-section style={{ breakInside: 'avoid', pageBreakInside: 'avoid' }}>
+          {items.map((item: any, idx: number) => {
+            const itemKey = `${experienceIndex}-${idx}`;
+            const spacer = pageBreakItems?.get(itemKey) ?? 0;
+            return (
+            <div key={idx} className="relative" data-pdf-section data-spacer-id={itemKey} style={{ breakInside: 'avoid', pageBreakInside: 'avoid', ...(spacer > 0 ? { marginTop: `${spacer}px` } : {}) }}>
               
               {/* STABIL: Title und Date als single-line Input, kein items-baseline Bug mehr! */}
               <div className="flex items-baseline justify-between gap-3">
@@ -250,7 +255,8 @@ export const ClassicCVTemplate: React.FC<ClassicCVTemplateProps> = ({
                 </button>
               </div>
             </div>
-          ))}
+            );
+          })}
         </div>
       </div>
     );
@@ -267,8 +273,11 @@ export const ClassicCVTemplate: React.FC<ClassicCVTemplateProps> = ({
           Ausbildung / Studium
         </h2>
         <div className="space-y-5">
-          {items.map((item: any, idx: number) => (
-            <div key={idx} className="relative" data-pdf-section style={{ breakInside: 'avoid', pageBreakInside: 'avoid' }}>
+          {items.map((item: any, idx: number) => {
+            const itemKey = `${educationIndex}-${idx}`;
+            const spacer = pageBreakItems?.get(itemKey) ?? 0;
+            return (
+            <div key={idx} className="relative" data-pdf-section data-spacer-id={itemKey} style={{ breakInside: 'avoid', pageBreakInside: 'avoid', ...(spacer > 0 ? { marginTop: `${spacer}px` } : {}) }}>
               <div className="flex items-baseline justify-between gap-3">
                 <EditableText
                   value={item.degree}
@@ -308,7 +317,8 @@ export const ClassicCVTemplate: React.FC<ClassicCVTemplateProps> = ({
               )}
               {renderBulletPoints(item.bulletPoints || item.bullet_points, educationIndex, idx)}
             </div>
-          ))}
+            );
+          })}
         </div>
       </div>
     );
