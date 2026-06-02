@@ -1412,6 +1412,7 @@ const handleDownloadClick = () => {
       <main ref={mainRefCallback} className="flex-1 overflow-y-auto overflow-x-hidden flex flex-col items-center bg-zinc-800/40 w-full py-4 sm:py-8 px-0 sm:px-4">
         
       {/* Perfekte A4-Druck-Vorschau ohne Inhaltsverschiebung */}
+       {/* Perfekte A4-Druck-Vorschau ohne Inhaltsverschiebung */}
         <style>{`
           /* WYSIWYG: Text bricht im Editor und PDF exakt identisch um */
           [data-pdf-root] textarea, 
@@ -1423,7 +1424,7 @@ const handleDownloadClick = () => {
             word-break: break-word !important;
           }
 
-          /* ECHTE SICHBARE A4-TRENNUNG IM LIVE-EDITOR */
+          /* ECHTE SICHTBARE A4-TRENNUNG IM LIVE-EDITOR */
           @media screen {
             [data-pdf-root] {
               position: relative !important;
@@ -1440,9 +1441,9 @@ const handleDownloadClick = () => {
               min-height: 1122px !important;
             }
 
-            /* 🔥 KORREKTUR: Zwingt jede Job-Box im Editor dazu, die A4-Kante zu beachten */
+            /* 🔥 BEHOBEN: Zwingt jede Job-Box im Editor dazu, die A4-Kante zu beachten und unzerteilt auf die nächste Seite zu rutschen */
             [data-pdf-root] [data-pdf-section] {
-              break-inside: avoid-page !important;
+              break-inside: avoid !important;
               page-break-inside: avoid !important;
               position: relative;
             }
