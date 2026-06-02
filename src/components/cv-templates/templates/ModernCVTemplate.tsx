@@ -33,6 +33,7 @@ interface ModernCVTemplateProps {
     field: string,
     value: any
   ) => void;
+  onAddSectionItem?: (sectionIndex: number, defaultItem: any) => void;
   onDeleteSectionItem: (sectionIndex: number, itemIndex: number) => void;
 }
 
@@ -321,6 +322,7 @@ export const ModernCVTemplate: React.FC<ModernCVTemplateProps> = ({
   onUpdatePersonalInfo,
   onUpdateSummary,
   onUpdateSectionItem,
+  onAddSectionItem,
   onDeleteSectionItem,
 }) => {
   const today = new Date().toLocaleDateString('de-DE', { day: '2-digit', month: '2-digit', year: 'numeric' });
@@ -852,11 +854,8 @@ export const ModernCVTemplate: React.FC<ModernCVTemplateProps> = ({
           minHeight: '1122px',
           display: 'flex',
           flexDirection: 'column',
-          backgroundColor: CI.bg,
+          backgroundColor: '#ffffff',
           borderLeft: `4px solid ${CI.primary}`,
-          border: `1px solid ${CI.border}`,
-          borderRadius: '16px',
-          boxShadow: '0 2px 12px rgba(0,0,0,0.08)',
           wordBreak: 'break-word',
           overflowWrap: 'anywhere',
           flex: 1,
@@ -865,9 +864,8 @@ export const ModernCVTemplate: React.FC<ModernCVTemplateProps> = ({
         {/* ── HEADER ─────────────────────────────────────────────────────── */}
         <header
           style={{
-            backgroundColor: CI.bg,
-            borderBottom: `1px solid ${CI.border}`,
-            borderRadius: '16px 16px 0 0',
+            backgroundColor: CI.tint,
+            borderBottom: `2px solid ${CI.primary}`,
             padding: '28px 32px 20px',
             display: 'flex',
             justifyContent: 'space-between',
@@ -1050,13 +1048,13 @@ export const ModernCVTemplate: React.FC<ModernCVTemplateProps> = ({
             padding: '10px 32px',
             display: 'flex',
             alignItems: 'center',
-            justifyContent: 'space-between', 
+            justifyContent: 'space-between',
             fontSize: '9px',
             color: '#64748b',
             fontFamily: FONT,
             marginTop: 'auto',
             flexShrink: 0,
-            backgroundColor: CI.bg,
+            backgroundColor: CI.tint,
           }}
         >
           <div style={{ display: 'flex', alignItems: 'center', gap: '6px', minWidth: 0 }}>

@@ -9,6 +9,7 @@ import { ClassicCVTemplate } from '../components/cv-templates/templates/ClassicC
 import { MinimalCVTemplate } from '../components/cv-templates/templates/MinimalCVTemplate';
 import { CreativeCVTemplate } from '../components/cv-templates/templates/CreativeCVTemplate';
 import { ProfessionalCVTemplate } from '../components/cv-templates/templates/ProfessionalCVTemplate';
+import { PaywallModal } from '../components/PaywallModal';
 import PhotoUpload from '../components/PhotoUpload';
 import { supabase } from '../lib/supabase';
 import { useCvOptimizationStatus } from '../hooks/useCvOptimizationStatus';
@@ -219,6 +220,7 @@ export function CVLiveEditorPage() {
   const templateSaveTimerRef = useRef<number | null>(null);
   const [showPhotoUpload, setShowPhotoUpload] = useState(false);
   const [isDownloadUnlocked, setIsDownloadUnlocked] = useState(false);
+  const [showPaywallModal, setShowPaywallModal] = useState(false);
 
   const [showTips, setShowTips] = useState(false);
   const [showPaymentSuccessBanner, setShowPaymentSuccessBanner] = useState(false);
@@ -960,17 +962,53 @@ export function CVLiveEditorPage() {
 
 const handleDownloadClick = () => {
     if (!cvId) return;
-    
-    // Wenn kein User eingeloggt ist, zum Login mit Redirect zur Paywall schicken
+
     if (!user) {
-      const redirectTo = encodeURIComponent(`/cv-paywall?cvId=${cvId}&source=cv_optimizer`);
+      const redirectTo = encodeURIComponent(`/cv-live-editor/${cvId}`);
       navigate(`/login?redirect=${redirectTo}`);
       return;
     }
-    
-    // Leitet JETZT in jedem Fall direkt zur Paywall weiter, unabhängig vom vorherigen Zahlungsstatus
-    console.log("[Editor] Navigation zur Paywall wird erzwungen für cvId:", cvId);
-    navigate(`/cv-paywall?cvId=${cvId}&source=cv_optimizer`);
+
+    if (isDownloadUnlocked) {
+      // Already paid — trigger direct export
+      triggerDirectExport();
+      return;
+    }
+
+    // Not yet unlocked — show paywall modal
+    setShowPaywallModal(true);
+  };
+
+  const triggerDirectExport = async () => {
+    if (!cvPreviewRef.current || !cvId || !user) return;
+    try {
+      setIsExportingPDF(true);
+      const toSlug = (s: string) => s.replace(/[^a-zA-Z0-9äöüÄÖÜß]/g, '_').replace(/_+/g, '_').replace(/^_|_$/g, '');
+      const fullName = editorData?.personalInfo?.name || '';
+      const lastName = fullName.trim().split(/\s+/).pop() || '';
+      const co = jobData?.company || jobData?.companyName || '';
+      const fileName = lastName && co
+        ? `Lebenslauf_${toSlug(lastName)}_${toSlug(co)}.pdf`
+        : lastName ? `Lebenslauf_${toSlug(lastName)}.pdf` : 'Lebenslauf.pdf';
+
+      const savedTransform = cvPreviewRef.current.style.transform;
+      cvPreviewRef.current.style.transform = 'none';
+      const blob = await exportCVToPDFBlob(cvPreviewRef as any);
+      cvPreviewRef.current.style.transform = savedTransform;
+
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = fileName;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      URL.revokeObjectURL(url);
+    } catch (e) {
+      console.error('Export failed', e);
+    } finally {
+      setIsExportingPDF(false);
+    }
   };
 
   const handlePhotoChange = (base64: string | null) => {
@@ -1433,46 +1471,36 @@ const updateSectionItem = (
       {/* MAIN CONTENT AREA MIT AUTOMATISCHEN HILFSLINIEN UND GERENDERTER WYSIWYG-KORREKTUR */}
       <main ref={mainRefCallback} className="flex-1 overflow-y-auto overflow-x-hidden flex flex-col items-center bg-zinc-800/40 w-full py-4 sm:py-8 px-0 sm:px-4">
         
-    {/* Intelligente CSS-Injektion für perfektes, seitenbasiertes A4-Rendering */}
+    {/* CSS für WYSIWYG-Editor */}
         <style>{`
           /* WYSIWYG: Text verhält sich im Editor exakt wie im PDF */
-          [data-pdf-root] textarea, 
-          [data-pdf-root] p, 
-          [data-pdf-root] span, 
+          [data-pdf-root] textarea,
+          [data-pdf-root] p,
+          [data-pdf-root] span,
           [data-pdf-root] div,
           [data-pdf-root] li {
             white-space: pre-wrap !important;
             word-break: break-word !important;
           }
 
-          /* ECHTES SEITENBASIERTES LAYOUT IM LIVE-EDITOR */
-          @media screen {
-            /* Macht den Hintergrund des Editors dunkel, damit sich die weißen A4-Seiten abheben */
-            main {
-              background-color: #1f2937 !important;
-              padding: 40px 0 !important;
-            }
-
-            /* Der Skalierungs-Wrapper darf keine feste Höhe erzwingen, da wir mehrere Seiten haben */
-            main > div {
-              height: auto !important;
-            }
-
-            /* JEDE EINZELNE SEITE WIRD EIN PHYSISCHES A4-BLATT MIT SPALT */
-            .cv-page {
-              width: 794px !important;
-              height: 1122px !important;
-              background-color: #ffffff !important;
-              margin: 0 auto 24px auto !important; /* Sichtbarer Spalt zwischen Seite 1 und Seite 2 */
-              box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.3), 0 8px 10px -6px rgba(0, 0, 0, 0.3) !important;
-              position: relative !important;
-              overflow: hidden !important;
-              border: none !important;
-            }
+          /* A4-Seitentrennlinie alle 1122px – sichtbar im Editor, nicht im PDF */
+          [data-pdf-root] {
+            background-image: repeating-linear-gradient(
+              to bottom,
+              transparent 0px,
+              transparent 1121px,
+              #94a3b8 1121px,
+              #94a3b8 1123px,
+              transparent 1123px
+            ) !important;
+            background-size: 100% 1122px !important;
           }
 
-          /* Verhindert Geisterbalken im PDF */
-          .pdf-hidden, .nonce-export {
+          /* pdf-hidden: im Editor anzeigen, im PDF unsichtbar */
+          .pdf-hidden {
+            display: block !important;
+          }
+          .nonce-export {
             display: none !important;
           }
         `}</style>
@@ -1501,7 +1529,7 @@ const updateSectionItem = (
               transform: `scale(${scale})`,
               transformOrigin: 'top left',
               boxShadow: '0 8px 48px 0 rgba(0,0,0,0.45)',
-              backgroundColor: selectedTemplate === 'modern' ? '#f0faf8' : '#ffffff',
+              backgroundColor: '#ffffff',
               minHeight: '1122px',
               display: 'flex',
               flexDirection: 'column',
@@ -1634,6 +1662,17 @@ const updateSectionItem = (
         )}
 
       </main>
+
+      <PaywallModal
+        isOpen={showPaywallModal}
+        onClose={() => setShowPaywallModal(false)}
+        context="download"
+        onConfirm={async () => {
+          if (cvId) {
+            navigate(`/cv-paywall?cvId=${cvId}&source=cv_optimizer`);
+          }
+        }}
+      />
 
       {showTips && (
         <div className="fixed top-20 right-4 max-w-md bg-[#1a1a1a] border border-[#66c0b6]/30 rounded-xl p-4 shadow-2xl z-50">
