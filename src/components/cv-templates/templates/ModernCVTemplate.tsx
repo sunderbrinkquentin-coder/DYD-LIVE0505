@@ -816,264 +816,264 @@ export const ModernCVTemplate: React.FC<ModernCVTemplateProps> = ({
     }
   };
 
+ // ── AB HIER KORRIGIERT EINGEFÜGT ──
   const leftSections = sections.filter((s) => SECTION_ORDER_LEFT.includes(s.type));
-  const rightSections = sections.filter((s) => SECTION_ORDER_RIGHT.includes(s.type));
+  const rightSections = sections.filter(
+    (s) => SECTION_ORDER_RIGHT.includes(s.type) || s.type === 'certificates' || s.type === 'stipends'
+  );
   const otherSections = sections.filter(
-    (s) => !SECTION_ORDER_LEFT.includes(s.type) && !SECTION_ORDER_RIGHT.includes(s.type)
+    (s) => !SECTION_ORDER_LEFT.includes(s.type) && !SECTION_ORDER_RIGHT.includes(s.type) && s.type !== 'certificates' && s.type !== 'stipends'
   );
 
   return (
-    <div
-      style={{
-        fontFamily: FONT,
-        color: '#1e293b',
-        width: '100%',
-        minHeight: '1122px',
-        display: 'flex',
-        flexDirection: 'column',
-        backgroundColor: CI.bg,
-        borderLeft: `4px solid ${CI.primary}`,
-        border: `1px solid ${CI.border}`,
-        borderRadius: '16px',
-        boxShadow: '0 2px 12px rgba(0,0,0,0.08)',
-        wordBreak: 'break-word',
-        overflowWrap: 'anywhere',
-        flex: 1,
-      }}
-    >
-      {/* ── HEADER ─────────────────────────────────────────────────────── */}
-      <header
+    <>
+      {/* Virtuelle Layout-Hilfen: Berechnet das A4-Raster exklusiv für den LiveEditor-Bildschirm */}
+      <style>{`
+        @media screen {
+          .cv-render-root {
+            position: relative !important;
+            /* Zeichnet eine feine, graue Kante präzise alle 1122px in das Dokument */
+            background-image: linear-gradient(
+              to bottom,
+              transparent 0px,
+              transparent 1121px,
+              #cbd5e1 1121px, 
+              #cbd5e1 1122px,
+              transparent 1122px
+            ) !important;
+            background-size: 100% 1122px !important;
+          }
+        }
+      `}</style>
+
+      <div
+        className="cv-render-root"
         style={{
-          backgroundColor: CI.bg,
-          borderBottom: `1px solid ${CI.border}`,
-          borderRadius: '16px 16px 0 0',
-          padding: '28px 32px 20px',
-          display: 'flex',
-          justifyContent: 'space-between',
-          gap: '24px',
-          alignItems: 'flex-start',
-        }}
-      >
-        <div style={{ flex: 1, minWidth: 0 }}>
-          <Editable
-            tag="h1"
-            value={personalInfo.name || ''}
-            onChange={(v) => onUpdatePersonalInfo('name', v)}
-            placeholder="Vollständiger Name"
-            style={{
-              fontSize: '22px',
-              fontWeight: 800,
-              color: '#0f172a',
-              letterSpacing: '-0.01em',
-              lineHeight: 1.2,
-              marginBottom: '4px',
-              display: 'block',
-            }}
-          />
-          {personalInfo.title?.trim() && (
-            <Editable
-              tag="div"
-              value={personalInfo.title}
-              onChange={(v) => onUpdatePersonalInfo('title', v)}
-              placeholder="Zielposition / Profil"
-              style={{
-                fontSize: '12px',
-                fontWeight: 700,
-                color: CI.primaryDark,
-                marginBottom: '14px',
-                display: 'block',
-              }}
-            />
-          )}
-
-          <div
-            style={{
-              display: 'block',
-              fontSize: '9.5px',
-              color: '#334155',
-              marginTop: personalInfo.title?.trim() ? 0 : '10px',
-              overflow: 'hidden',
-            }}
-          >
-            {personalInfo.location?.trim() && (
-              <span style={{ display: 'inline-flex', alignItems: 'center', marginRight: '20px', marginBottom: '4px', verticalAlign: 'middle' }}>
-                <IconLocation />
-                <Editable
-                  value={personalInfo.location}
-                  onChange={(v) => onUpdatePersonalInfo('location', v)}
-                  placeholder="Ort"
-                  style={{ fontSize: '9.5px', color: '#334155', marginLeft: '4px' }}
-                />
-              </span>
-            )}
-            {personalInfo.phone?.trim() && (
-              <span style={{ display: 'inline-flex', alignItems: 'center', marginRight: '20px', marginBottom: '4px', verticalAlign: 'middle' }}>
-                <IconPhone />
-                <Editable
-                  value={personalInfo.phone}
-                  onChange={(v) => onUpdatePersonalInfo('phone', v)}
-                  placeholder="Telefon"
-                  style={{ fontSize: '9.5px', color: '#334155', marginLeft: '4px' }}
-                />
-              </span>
-            )}
-            {personalInfo.email?.trim() && (
-              <span style={{ display: 'inline-flex', alignItems: 'center', marginRight: '20px', marginBottom: '4px', verticalAlign: 'middle' }}>
-                <IconMail />
-                <Editable
-                  value={personalInfo.email}
-                  onChange={(v) => onUpdatePersonalInfo('email', v)}
-                  placeholder="E-Mail"
-                  style={{ fontSize: '9.5px', color: '#334155', marginLeft: '4px' }}
-                />
-              </span>
-            )}
-            {personalInfo.linkedin?.trim() && (
-              <span style={{ display: 'inline-flex', alignItems: 'center', marginRight: '20px', marginBottom: '4px', verticalAlign: 'middle' }}>
-                <IconLinkedIn />
-                <Editable
-                  value={personalInfo.linkedin}
-                  onChange={(v) => onUpdatePersonalInfo('linkedin', v)}
-                  placeholder="LinkedIn"
-                  style={{ fontSize: '9.5px', color: '#334155', marginLeft: '4px' }}
-                />
-              </span>
-            )}
-            {!personalInfo.location?.trim() && (
-              <span data-pdf-hidden className="pdf-hidden" style={{ display: 'inline-flex', alignItems: 'center', marginRight: '20px', marginBottom: '4px', verticalAlign: 'middle', opacity: 0.4 }}>
-                <IconLocation />
-                <Editable
-                  value=""
-                  onChange={(v) => onUpdatePersonalInfo('location', v)}
-                  placeholder="Ort"
-                  style={{ fontSize: '9.5px', color: '#94a3b8', marginLeft: '4px' }}
-                />
-              </span>
-            )}
-            {!personalInfo.email?.trim() && (
-              <span data-pdf-hidden className="pdf-hidden" style={{ display: 'inline-flex', alignItems: 'center', marginRight: '20px', marginBottom: '4px', verticalAlign: 'middle', opacity: 0.4 }}>
-                <IconMail />
-                <Editable
-                  value=""
-                  onChange={(v) => onUpdatePersonalInfo('email', v)}
-                  placeholder="E-Mail"
-                  style={{ fontSize: '9.5px', color: '#94a3b8', marginLeft: '4px' }}
-                />
-              </span>
-            )}
-          </div>
-        </div>
-
-        {photoUrl && (
-          <div style={{ flexShrink: 0 }}>
-            <div
-              style={{
-                width: '90px',
-                height: '90px',
-                borderRadius: '12px',
-                overflow: 'hidden',
-                border: `2px solid ${CI.border}`,
-                boxShadow: '0 2px 8px rgba(0,0,0,0.1)',
-                backgroundColor: '#f1f5f9',
-              }}
-            >
-              <img src={photoUrl} alt="Foto" style={{ width: '90px', height: '90px', objectFit: 'cover', objectPosition: `${photoPosition.x}% ${photoPosition.y}%`, display: 'block' }} />
-            </div>
-          </div>
-        )}
-      </header>
-
-      {/* ── CONTENT ────────────────────────────────────────────────────── */}
-      {/* 💡 HIER KORRIGIERT: Flexbox-Spaltensystem statt starrem CSS-Grid für fließende Seitenübergänge */}
-      <main
-        style={{
-          padding: '4px 32px 16px',
-          display: 'flex',
+          fontFamily: FONT,
+          color: '#1e293b',
           width: '100%',
+          minHeight: '1122px',
+          display: 'flex',
+          flexDirection: 'column',
+          backgroundColor: CI.bg,
+          borderLeft: `4px solid ${CI.primary}`,
+          border: `1px solid ${CI.border}`,
+          borderRadius: '16px',
+          boxShadow: '0 2px 12px rgba(0,0,0,0.08)',
+          wordBreak: 'break-word',
+          overflowWrap: 'anywhere',
           flex: 1,
         }}
       >
-        {/* LEFT COLUMN (58% Breite) */}
-        <section style={{ flex: '0 0 58%', minWidth: 0, paddingRight: '14px', display: 'flex', flexDirection: 'column' }}>
-          {summary?.trim() && (
-            <div data-pdf-section style={{ display: 'block', width: '100%' }}>
-              <SectionTitle>Profil</SectionTitle>
+        {/* ── HEADER ─────────────────────────────────────────────────────── */}
+        <header
+          style={{
+            backgroundColor: CI.bg,
+            borderBottom: `1px solid ${CI.border}`,
+            borderRadius: '16px 16px 0 0',
+            padding: '28px 32px 20px',
+            display: 'flex',
+            justifyContent: 'space-between',
+            gap: '24px',
+            alignItems: 'flex-start',
+          }}
+        >
+          <div style={{ flex: 1, minWidth: 0 }}>
+            <Editable
+              tag="h1"
+              value={personalInfo.name || ''}
+              onChange={(v) => onUpdatePersonalInfo('name', v)}
+              placeholder="Vollständiger Name"
+              style={{
+                fontSize: '22px',
+                fontWeight: 800,
+                color: '#0f172a',
+                letterSpacing: '-0.01em',
+                lineHeight: 1.2,
+                marginBottom: '4px',
+                display: 'block',
+              }}
+            />
+            {personalInfo.title?.trim() && (
               <Editable
-                tag="p"
-                multiline
-                value={summary}
-                onChange={onUpdateSummary}
-                placeholder="Kurzprofil: Wichtige Erfahrungen, Stärken und dein Mehrwert für die Rolle."
-                {...{ 'data-pdf-summary': '1' } as any}
+                tag="div"
+                value={personalInfo.title}
+                onChange={(v) => onUpdatePersonalInfo('title', v)}
+                placeholder="Zielposition / Profil"
                 style={{
-                  fontSize: '9.5px',
-                  lineHeight: 1.65,
-                  color: '#1e293b',
-                  backgroundColor: CI.tint,
-                  border: `1px solid ${CI.border}`,
-                  borderRadius: '10px',
-                  padding: '10px 14px',
+                  fontSize: '12px',
+                  fontWeight: 700,
+                  color: CI.primaryDark,
+                  marginBottom: '14px',
                   display: 'block',
-                  overflow: 'hidden',
-                  wordBreak: 'break-word',
-                  overflowWrap: 'anywhere',
                 }}
               />
+            )}
+
+            <div
+              style={{
+                display: 'block',
+                fontSize: '9.5px',
+                color: '#334155',
+                marginTop: personalInfo.title?.trim() ? 0 : '10px',
+                overflow: 'hidden',
+              }}
+            >
+              {personalInfo.location?.trim() && (
+                <span style={{ display: 'inline-flex', alignItems: 'center', marginRight: '20px', marginBottom: '4px', verticalAlign: 'middle' }}>
+                  <IconLocation />
+                  <Editable
+                    value={personalInfo.location}
+                    onChange={(v) => onUpdatePersonalInfo('location', v)}
+                    placeholder="Ort"
+                    style={{ fontSize: '9.5px', color: '#334155', marginLeft: '4px' }}
+                  />
+                </span>
+              )}
+              {personalInfo.phone?.trim() && (
+                <span style={{ display: 'inline-flex', alignItems: 'center', marginRight: '20px', marginBottom: '4px', verticalAlign: 'middle' }}>
+                  <IconPhone />
+                  <Editable
+                    value={personalInfo.phone}
+                    onChange={(v) => onUpdatePersonalInfo('phone', v)}
+                    placeholder="Telefon"
+                    style={{ fontSize: '9.5px', color: '#334155', marginLeft: '4px' }}
+                  />
+                </span>
+              )}
+              {personalInfo.email?.trim() && (
+                <span style={{ display: 'inline-flex', alignItems: 'center', marginRight: '20px', marginBottom: '4px', verticalAlign: 'middle' }}>
+                  <IconMail />
+                  <Editable
+                    value={personalInfo.email}
+                    onChange={(v) => onUpdatePersonalInfo('email', v)}
+                    placeholder="E-Mail"
+                    style={{ fontSize: '9.5px', color: '#334155', marginLeft: '4px' }}
+                  />
+                </span>
+              )}
+              {personalInfo.linkedin?.trim() && (
+                <span style={{ display: 'inline-flex', alignItems: 'center', marginRight: '20px', marginBottom: '4px', verticalAlign: 'middle' }}>
+                  <IconLinkedIn />
+                  <Editable
+                    value={personalInfo.linkedin}
+                    onChange={(v) => onUpdatePersonalInfo('linkedin', v)}
+                    placeholder="LinkedIn"
+                    style={{ fontSize: '9.5px', color: '#334155', marginLeft: '4px' }}
+                  />
+                </span>
+              )}
+            </div>
+          </div>
+
+          {photoUrl && (
+            <div style={{ flexShrink: 0 }}>
+              <div
+                style={{
+                  width: '90px',
+                  height: '90px',
+                  borderRadius: '12px',
+                  overflow: 'hidden',
+                  border: `2px solid ${CI.border}`,
+                  boxShadow: '0 2px 8px rgba(0,0,0,0.1)',
+                  backgroundColor: '#f1f5f9',
+                }}
+              >
+                <img src={photoUrl} alt="Foto" style={{ width: '90px', height: '90px', objectFit: 'cover', objectPosition: `${photoPosition.x}% ${photoPosition.y}%`, display: 'block' }} />
+              </div>
             </div>
           )}
-          {leftSections.map((section) => {
-            const index = sections.findIndex((s) => s === section);
-            return renderSection(section, index);
-          })}
-        </section>
+        </header>
 
-        {/* RIGHT COLUMN (42% Breite) */}
-        <aside style={{ flex: '0 0 42%', minWidth: 0, paddingLeft: '14px', display: 'flex', flexDirection: 'column' }}>
-          {rightSections.map((section) => {
-            const index = sections.findIndex((s) => s === section);
-            return renderSection(section, index);
-          })}
-        </aside>
-      </main>
+        {/* ── CONTENT ────────────────────────────────────────────────────── */}
+        <main
+          style={{
+            padding: '4px 32px 16px',
+            display: 'flex',
+            width: '100%',
+            flex: 1,
+          }}
+        >
+          {/* LEFT COLUMN (58% Breite) */}
+          <section style={{ flex: '0 0 58%', minWidth: 0, paddingRight: '14px', display: 'flex', flexDirection: 'column' }}>
+            {summary?.trim() && (
+              <div data-pdf-section style={{ display: 'block', width: '100%' }}>
+                <SectionTitle>Profil</SectionTitle>
+                <Editable
+                  tag="p"
+                  multiline
+                  value={summary}
+                  onChange={onUpdateSummary}
+                  placeholder="Kurzprofil..."
+                  style={{
+                    fontSize: '9.5px',
+                    lineHeight: 1.65,
+                    color: '#1e293b',
+                    backgroundColor: CI.tint,
+                    border: `1px solid ${CI.border}`,
+                    borderRadius: '10px',
+                    padding: '10px 14px',
+                    display: 'block',
+                    overflow: 'hidden',
+                    wordBreak: 'break-word',
+                    overflowWrap: 'anywhere',
+                  }}
+                />
+              </div>
+            )}
+            {leftSections.map((section) => {
+              const index = sections.findIndex((s) => s === section);
+              return renderSection(section, index);
+            })}
+          </section>
 
-      {otherSections.length > 0 && (
-        <div style={{ padding: '0 32px 16px', flex: 'none' }} data-pdf-section>
-          {otherSections.map((section) => {
-            const index = sections.findIndex((s) => s === section);
-            return renderSection(section, index);
-          })}
-        </div>
-      )}
+          {/* RIGHT COLUMN (42% Breite) */}
+          <aside style={{ flex: '0 0 42%', minWidth: 0, paddingLeft: '14px', display: 'flex', flexDirection: 'column' }}>
+            {rightSections.map((section) => {
+              const index = sections.findIndex((s) => s === section);
+              return renderSection(section, index);
+            })}
+          </aside>
+        </main>
 
-      {/* ── FOOTER ─────────────────────────────────────────────────────── */}
-      <footer
-        data-pdf-footer
-        style={{
-          borderTop: `1px solid ${CI.border}`,
-          padding: '10px 32px',
-          display: 'flex',
-          alignItems: 'center',
-          /* 💡 HIER KORRIGIERT: CamelCase statt Bindestrich verhindert den Babel-Parser-Fehler */
-          justifyContent: 'space-between', 
-          fontSize: '9px',
-          color: '#64748b',
-          fontFamily: FONT,
-          marginTop: 'auto',
-          flexShrink: 0,
-          backgroundColor: CI.bg,
-        }}
-      >
-        <div style={{ display: 'flex', alignItems: 'center', gap: '6px', minWidth: 0 }}>
-          <span style={{ fontWeight: 600, flexShrink: 0 }}>Ort:</span>
-          <Editable
-            value={footerLocation}
-            onChange={(v) => onUpdatePersonalInfo('footerLocation', v)}
-            placeholder="Ort"
-            style={{ fontSize: '9px', color: '#64748b' }}
-          />
-        </div>
-        <span style={{ fontWeight: 600, whiteSpace: 'nowrap' }}>{today}</span>
-      </footer>
-    </div>
+        {otherSections.length > 0 && (
+          <div style={{ padding: '0 32px 16px', flex: 'none' }} data-pdf-section>
+            {otherSections.map((section) => {
+              const index = sections.findIndex((s) => s === section);
+              return renderSection(section, index);
+            })}
+          </div>
+        )}
+
+        {/* ── FOOTER ─────────────────────────────────────────────────────── */}
+        <footer
+          data-pdf-footer
+          style={{
+            borderTop: `1px solid ${CI.border}`,
+            padding: '10px 32px',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between', 
+            fontSize: '9px',
+            color: '#64748b',
+            fontFamily: FONT,
+            marginTop: 'auto',
+            flexShrink: 0,
+            backgroundColor: CI.bg,
+          }}
+        >
+          <div style={{ display: 'flex', alignItems: 'center', gap: '6px', minWidth: 0 }}>
+            <span style={{ fontWeight: 600, flexShrink: 0 }}>Ort:</span>
+            <Editable
+              value={footerLocation}
+              onChange={(v) => onUpdatePersonalInfo('footerLocation', v)}
+              placeholder="Ort"
+              style={{ fontSize: '9px', color: '#64748b' }}
+            />
+          </div>
+          <span style={{ fontWeight: 600, whiteSpace: 'nowrap' }}>{today}</span>
+        </footer>
+      </div>
+    </>
   );
 };
