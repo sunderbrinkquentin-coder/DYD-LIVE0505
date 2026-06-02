@@ -1061,47 +1061,69 @@ const handleDownloadClick = () => {
     });
   };
 
-  const updateSectionItem = (
+const updateSectionItem = (
     sectionIndex: number,
     itemIndex: number,
     field: string,
     value: any
   ) => {
+    // Verhindert unnötige State-Zyklen, wenn der Wert identisch ist
     setHasEditorChanges(true);
+
     setEditorData((prev: any) => {
-      if (!prev?.sections?.[sectionIndex]) return prev;
+      // 1. Defensive Guard-Clauses gegen Crashs
+      if (!prev?.sections?.[sectionIndex]?.items) return prev;
+      
+      const rawItems = prev.sections[sectionIndex].items;
+      if (itemIndex < 0 || itemIndex >= rawItems.length) return prev;
 
       try {
-        const newSections = [...prev.sections];
-        const section = { ...newSections[sectionIndex] };
+        // 2. Absolut sauberes Deep-Cloning der Sektions-Struktur (Keine Speicher-Referenzen zum alten State!)
+        const newSections = prev.sections.map((sec: any, sIdx: number) => {
+          if (sIdx !== sectionIndex) return sec;
 
-        if (!section.items || !Array.isArray(section.items)) return prev;
-        if (itemIndex < 0 || itemIndex >= section.items.length) return prev;
+          // Wir klonen das Items-Array für die Ziel-Sektion
+          const newItems = [...sec.items];
+          const currentItem = newItems[itemIndex];
 
-        const newItems = [...section.items];
-        const currentItem = newItems[itemIndex];
-        
-        // Garantiert, dass alle alten Felder (inkl. bestehender Bulletpoints) erhalten bleiben
-        if (typeof currentItem === 'object' && currentItem !== null) {
-          newItems[itemIndex] = {
-            ...currentItem,
-            [field]: value
-          };
-        } else {
-          // Falls es ein reiner String war, wandeln wir ihn sicher in ein Objekt um
-          newItems[itemIndex] = {
-            title: String(currentItem),
-            bulletPoints: field === 'bulletPoints' ? value : [],
-            [field]: value
-          };
-        }
+          let updatedItem: any = {};
 
-        section.items = newItems;
-        newSections[sectionIndex] = section;
+          // 3. Robuste Normalisierung des Datentyps
+          if (typeof currentItem === 'object' && currentItem !== null) {
+            // Wenn es ein Objekt ist, kopieren wir alle bestehenden Felder (z.B. Erhalt von bulletPoints beim Tippen von title)
+            updatedItem = { ...currentItem };
+          } else if (typeof currentItem === 'string' || typeof currentItem === 'number') {
+            // Konvertierung von Altdaten/Strings in ein strukturiertes Objekt
+            updatedItem = {
+              title: String(currentItem),
+              position: String(currentItem),
+              degree: String(currentItem),
+              description: String(currentItem),
+              bulletPoints: []
+            };
+          }
 
+          // 4. Präzises, isoliertes Werte-Update
+          if (field === 'bulletPoints') {
+            // Garantiert, dass Bulletpoints immer als sauberes Array übergeben werden
+            updatedItem.bulletPoints = Array.isArray(value) ? [...value] : [];
+          } else {
+            // Jedes andere Feld (title, company, date_from etc.) wird normal gepatcht
+            updatedItem[field] = value;
+          }
+
+          // Ersetze das geklonte Item im Array
+          newItems[itemIndex] = updatedItem;
+
+          // Gibt die vollständig isolierte Sektion zurück
+          return { ...sec, items: newItems };
+        });
+
+        // 5. Rückgabe des neuen Root-Objekts an React
         return { ...prev, sections: newSections };
+
       } catch (error) {
-        console.error("Fehler beim Update des Sektion-Items:", error);
+        console.error("🚨 Kritischer Fehler im perfektionierten updateSectionItem-Handler:", error);
         return prev;
       }
     });
