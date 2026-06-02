@@ -1248,7 +1248,7 @@ export function CVLiveEditorPage() {
 
   return (
     <div className="h-screen bg-[#050507] flex flex-col overflow-hidden font-sans w-full">
-      {isPostPaymentFlow && templateConfirmed && (
+{isPostPaymentFlow && templateConfirmed && (
         <div style={{
           position: 'fixed', inset: 0, zIndex: 9999,
           background: 'rgba(2,6,23,0.94)',
