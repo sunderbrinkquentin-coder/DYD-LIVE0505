@@ -1391,41 +1391,59 @@ export function CVLiveEditorPage() {
       <main ref={mainRefCallback} className="flex-1 overflow-y-auto overflow-x-hidden flex flex-col items-center bg-zinc-800/40 w-full py-4 sm:py-8 px-0 sm:px-4">
         
         {/* 🔥 FIX (Punkt 4, 5, 6): CSS Injektion für fehlerfreien Umbruch und Seitenumbruchhilfen im Editor */}
+{/* Intelligente CSS-Injektion für echtes A4-Seiten-Rendering im Editor */}
         <style>{`
-          /* WYSIWYG Synchronität: Erzwingt, dass Zeilenumbrüche im HTML exakt wie in Textareas dargestellt werden */
-          [data-pdf-root] textarea, 
+          /* WYSIWYG: Text verhält sich im Editor exakt wie im PDF */
+          [data-pdf-root] [contenteditable="true"],
           [data-pdf-root] p, 
           [data-pdf-root] span, 
-          [data-pdf-root] div {
+          [data-pdf-root] div,
+          [data-pdf-root] li {
             white-space: pre-wrap !important;
             word-break: break-word !important;
+            outline: none;
           }
 
-          /* Hilfslinien für Seitenumbrüche (Werden nur im Live-Editor angezeigt, nie im exportierten PDF) */
+          /* Aktiviert sanftes Aufleuchten bei Klick/Fokus im Editor */
+          [data-pdf-root] [contenteditable="true"]:focus {
+            background-color: rgba(102, 192, 182, 0.05);
+            box-shadow: 0 0 0 1px rgba(102, 192, 182, 0.3);
+            border-radius: 2px;
+          }
+
+          /* ECHTE SEITENTRENNUNG: Schneidet das Dokument optisch alle 1122px ab */
           @media screen {
             [data-pdf-root] {
               position: relative;
-              background-image: linear-gradient(to bottom, transparent 1120px, rgba(102,192,182,0.4) 1121px, rgba(102,192,182,0.4) 1122px, transparent 1123px) !important;
-              background-size: 100% 1122px !important;
+              background-color: transparent !important;
+              box-shadow: none !important;
             }
-            [data-pdf-root]::after {
-              content: "Seitenumbruch (DIN A4)";
-              position: absolute;
-              left: 15px;
-              top: 1098px;
-              font-size: 11px;
-              font-weight: 600;
-              color: rgba(102,192,182,0.65);
-              pointer-events: none;
-              font-family: sans-serif;
-              letter-spacing: 0.05em;
+            
+            /* Jede einzelne A4-Seite im Editor simulieren */
+            .modern-page-container {
+              width: 794px;
+              height: 1122px;
+              background-color: #ffffff;
+              margin-bottom: 20px; /* Sichtbarer Spalt zwischen den Seiten im Editor */
+              box-shadow: 0 8px 24px rgba(0,0,0,0.15);
+              position: relative;
+              overflow: hidden;
+            }
+
+            /* Die linke farbige Sidebar muss über die gesamte A4-Höhe gehen */
+            .modern-sidebar-fix {
+              height: 1122px !important;
             }
           }
 
-          /* Verhindert den verwaisten weißen Balken am Dokumentenende durch Layout-Kompression */
-          [data-pdf-root] {
-            margin-bottom: 0 !important;
-            padding-bottom: 0 !important;
+          /* Blendet Editor-Knöpfe beim echten PDF-Export komplett aus */
+          @media print {
+            .nonce-export {
+              display: none !important;
+            }
+          }
+          .nonce-export {
+            transition: all 0.2s ease;
           }
         `}</style>
 
