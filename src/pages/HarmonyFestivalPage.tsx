@@ -384,7 +384,7 @@ export default function HarmonyFestivalPage() {
   }, []);
 
   useEffect(() => {
-    const target = new Date('2026-04-30T23:59:59').getTime();
+    const target = new Date('2026-06-30T23:59:59').getTime();
     const tick = () => {
       const diff = target - Date.now();
       if (diff <= 0) { setEbCd({ d: 0, h: 0, m: 0, s: 0 }); return; }
@@ -1697,7 +1697,7 @@ export default function HarmonyFestivalPage() {
                     {/* Early Bird urgency bar */}
                     <div className="rounded-xl mb-4 overflow-hidden" style={{ border: '1px solid rgba(0,200,200,0.2)', background: 'rgba(0,18,22,0.7)' }}>
                       <div className="flex items-center gap-3 px-4 py-2.5" style={{ borderBottom: '1px solid rgba(0,200,200,0.1)', background: 'rgba(0,200,200,0.07)' }}>
-                        <span style={{ fontFamily: "'Bebas Neue', sans-serif", fontSize: '11px', letterSpacing: '0.22em', color: '#00c8c8' }}>EARLY BIRD ENDET AM 30.04.2026</span>
+                        <span style={{ fontFamily: "'Bebas Neue', sans-serif", fontSize: '11px', letterSpacing: '0.22em', color: '#00c8c8' }}>EARLY BIRD ENDET AM 30.06.2026</span>
                         <span className="ml-auto" style={{ fontFamily: "'Inter', sans-serif", fontSize: '11px', fontWeight: 700, color: 'rgba(255,120,80,0.9)', letterSpacing: '0.04em' }}>
                           Nur noch 120 Tickets
                         </span>
