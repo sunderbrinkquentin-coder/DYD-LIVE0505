@@ -1072,15 +1072,27 @@ export function CVLiveEditorPage() {
         const newItems = [...section.items];
         const currentItem = newItems[itemIndex];
         
-        newItems[itemIndex] = typeof currentItem === 'object' && currentItem !== null
-          ? { ...currentItem, [field]: value }
-          : { name: String(currentItem), [field]: value };
+        // Garantiert, dass alle alten Felder (inkl. bestehender Bulletpoints) erhalten bleiben
+        if (typeof currentItem === 'object' && currentItem !== null) {
+          newItems[itemIndex] = {
+            ...currentItem,
+            [field]: value
+          };
+        } else {
+          // Falls es ein reiner String war, wandeln wir ihn sicher in ein Objekt um
+          newItems[itemIndex] = {
+            title: String(currentItem),
+            bulletPoints: field === 'bulletPoints' ? value : [],
+            [field]: value
+          };
+        }
 
         section.items = newItems;
         newSections[sectionIndex] = section;
 
         return { ...prev, sections: newSections };
       } catch (error) {
+        console.error("Fehler beim Update des Sektion-Items:", error);
         return prev;
       }
     });
