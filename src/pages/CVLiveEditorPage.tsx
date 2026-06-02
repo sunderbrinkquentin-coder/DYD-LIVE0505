@@ -1250,9 +1250,15 @@ export function CVLiveEditorPage() {
     <div className="h-screen bg-[#050507] flex flex-col overflow-hidden font-sans w-full">
 {isPostPaymentFlow && templateConfirmed && (
         <div style={{
-          position: 'fixed', inset: 0, zIndex: 9999,
+          position: 'fixed',
+          inset: 0,
+          zIndex: 9999,
           background: 'rgba(2,6,23,0.94)',
-          display: 'flex', flexDirection: 'column', alignItems: 'center', justify-content: 'center', gap: '24px',
+          display: 'flex',
+          flexDirection: 'column',
+          alignItems: 'center',
+          justifyContent: 'center',
+          gap: '24px',
           pointerEvents: 'all',
         }}>
           <Loader2 className="w-14 h-14 text-[#66c0b6] animate-spin" />
