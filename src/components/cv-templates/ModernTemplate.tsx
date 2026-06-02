@@ -212,7 +212,7 @@ export function ModernCVTemplate({
                                 >
                                   ✕
                                 </button>
-                              </div>
+                              </li>
                             ))}
                             
                             <button
