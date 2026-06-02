@@ -178,6 +178,30 @@ export interface TargetJob {
   jobDescription?: string;
 }
 
+export interface Stipendium {
+  name: string;
+  organization: string;
+  year?: string;
+  description?: string;
+}
+
+export interface VolunteerWork {
+  role: string;
+  organization: string;
+  startDate?: string;
+  endDate?: string;
+  current?: boolean;
+  description?: string;
+  bulletPoints?: string[];
+}
+
+export interface Certificate {
+  name: string;
+  issuer: string;
+  year?: string;
+  description?: string;
+}
+
 export interface CVBuilderData {
   experienceLevel?: ExperienceLevel;
   targetRole?: RoleType;
@@ -195,6 +219,9 @@ export interface CVBuilderData {
   jobTarget?: JobTarget;
   targetJob?: TargetJob; // NEW: For TargetJobStep
   languages?: any[];
+  stipendien?: Stipendium[];
+  volunteerWork?: VolunteerWork[];
+  certificates?: Certificate[];
 
   summary?: {
     variant: 'professional' | 'confident' | 'friendly';

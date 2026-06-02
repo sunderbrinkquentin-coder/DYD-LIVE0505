@@ -47,6 +47,9 @@ import { SoftSkillsStep } from '../components/cvbuilder/SoftSkillsStep';
 import { WorkValuesStep } from '../components/cvbuilder/steps/WorkValuesStep';
 import { HobbiesStep } from '../components/cvbuilder/steps/HobbiesStep';
 import { CompletionStep } from '../components/cvbuilder/steps/CompletionStep';
+import { StipendienStep } from '../components/cvbuilder/steps/StipendienStep';
+import { VolunteerStep } from '../components/cvbuilder/steps/VolunteerStep';
+import { CertificatesStep } from '../components/cvbuilder/steps/CertificatesStep';
 
 import { CVBuilderData } from '../types/cvBuilder';
 import { mapEditorDataToWizard } from '../utils/cvDataMapper';
@@ -468,7 +471,7 @@ export function CVWizard() {
 
   // ---- Navigation Logic ----
   const nextStep = () => {
-    if ((currentStep + 1) % 3 === 0 && currentStep > 0 && currentStep < 10) {
+    if ((currentStep + 1) % 3 === 0 && currentStep > 0 && currentStep < 13) {
       setMotivationVariant((((currentStep + 1) / 3) % 3 + 1) as 1 | 2 | 3);
       setShowMotivation(true);
     } else {
@@ -584,7 +587,7 @@ export function CVWizard() {
   };
 
   // ---- Step Configuration ----
-  const totalSteps = 11;
+  const totalSteps = 14;
   const isBeginner = cvData.experienceLevel === 'beginner';
 
   const getStepInfo = (step: number) => {
@@ -596,6 +599,9 @@ export function CVWizard() {
         { title: 'Ausbildung / Studium', message: 'Machst du eine Ausbildung oder studierst du?' },
         { title: 'Praktika & Nebenjobs', message: 'Hast du erste praktische Erfahrungen gesammelt?' },
         { title: 'Projekte', message: 'Zeig, was du außerhalb der Schule geleistet hast' },
+        { title: 'Stipendien', message: 'Hast du ein Stipendium erhalten?' },
+        { title: 'Ehrenamtliche Arbeit', message: 'Bist du ehrenamtlich aktiv?' },
+        { title: 'Zertifikate & Auszeichnungen', message: 'Welche Zertifikate oder Preise hast du erhalten?' },
         { title: 'Fachliche Skills', message: 'Was kannst du – Tools, Software, Sprachen?' },
         { title: 'Soft Skills', message: 'Deine persönlichen Stärken' },
         { title: 'Werte & Arbeitsstil', message: 'Was ist dir bei der Arbeit wichtig?' },
@@ -611,6 +617,9 @@ export function CVWizard() {
       { title: 'Ausbildung/Studium', message: 'Deine berufliche Ausbildung' },
       { title: 'Berufserfahrung', message: 'Deine praktischen Erfahrungen' },
       { title: 'Projekte', message: 'Besondere Projekte, an denen du gearbeitet hast' },
+      { title: 'Stipendien', message: 'Hast du ein Stipendium erhalten?' },
+      { title: 'Ehrenamtliche Arbeit', message: 'Bist du ehrenamtlich aktiv?' },
+      { title: 'Zertifikate & Auszeichnungen', message: 'Welche Zertifikate oder Preise hast du erhalten?' },
       { title: 'Hard Skills', message: 'Deine technischen Fähigkeiten' },
       { title: 'Soft Skills', message: 'Deine persönlichen Stärken' },
       { title: 'Werte & Arbeitsstil', message: 'Was ist dir bei der Arbeit wichtig?' },
@@ -711,6 +720,36 @@ export function CVWizard() {
 
       case 6:
         return (
+          <StipendienStep
+            data={cvData.stipendien || []}
+            onChange={(data) => updateCVData('stipendien', data)}
+            onNext={nextStep}
+            onBack={prevStep}
+          />
+        );
+
+      case 7:
+        return (
+          <VolunteerStep
+            data={cvData.volunteerWork || []}
+            onChange={(data) => updateCVData('volunteerWork', data)}
+            onNext={nextStep}
+            onBack={prevStep}
+          />
+        );
+
+      case 8:
+        return (
+          <CertificatesStep
+            data={cvData.certificates || []}
+            onChange={(data) => updateCVData('certificates', data)}
+            onNext={nextStep}
+            onBack={prevStep}
+          />
+        );
+
+      case 9:
+        return (
           <HardSkillsStep
             skills={cvData.hardSkills || []}
             languages={cvData.languages || []}
@@ -721,7 +760,7 @@ export function CVWizard() {
           />
         );
 
-      case 7:
+      case 10:
         return (
           <SoftSkillsStep
             data={cvData.softSkills || []}
@@ -731,7 +770,7 @@ export function CVWizard() {
           />
         );
 
-      case 8:
+      case 11:
         return (
           <WorkValuesStep
             currentStep={currentStep}
@@ -745,7 +784,7 @@ export function CVWizard() {
           />
         );
 
-      case 9:
+      case 12:
         return (
           <HobbiesStep
             data={cvData.hobbies || { hobbies: [], details: '' }}
@@ -755,7 +794,7 @@ export function CVWizard() {
           />
         );
 
-      case 10:
+      case 13:
         return (
           <CompletionStep
             cvData={cvData}
@@ -853,7 +892,7 @@ export function CVWizard() {
       completedSteps.add(i);
     }
   }
-  const REQUIRED_STEP_INDICES = new Set([1, 4, 6, 7]);
+  const REQUIRED_STEP_INDICES = new Set([1, 4, 9, 10]);
   const liveIncompleteSteps = dataWasImported
     ? new Set(stepCompletenessData
         .filter(s => REQUIRED_STEP_INDICES.has(s.stepIndex) && s.stepIndex < currentStep && !s.isComplete)

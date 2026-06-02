@@ -36,6 +36,21 @@ export const WIZARD_STEPS: WizardStep[] = [
     shortLabel: 'Projekte'
   },
   {
+    id: 'stipendien',
+    label: 'Stipendien',
+    shortLabel: 'Stipendien'
+  },
+  {
+    id: 'volunteerWork',
+    label: 'Ehrenamt',
+    shortLabel: 'Ehrenamt'
+  },
+  {
+    id: 'certificates',
+    label: 'Zertifikate',
+    shortLabel: 'Zertifikate'
+  },
+  {
     id: 'hardSkills',
     label: 'Fachliche Skills',
     shortLabel: 'Skills'
