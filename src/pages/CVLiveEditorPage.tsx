@@ -954,13 +954,18 @@ export function CVLiveEditorPage() {
     };
   };
 
-  const handleDownloadClick = () => {
+const handleDownloadClick = () => {
     if (!cvId) return;
+    
+    // Wenn kein User eingeloggt ist, zum Login mit Redirect zur Paywall schicken
     if (!user) {
       const redirectTo = encodeURIComponent(`/cv-paywall?cvId=${cvId}&source=cv_optimizer`);
       navigate(`/login?redirect=${redirectTo}`);
       return;
     }
+    
+    // Leitet JETZT in jedem Fall direkt zur Paywall weiter, unabhängig vom vorherigen Zahlungsstatus
+    console.log("[Editor] Navigation zur Paywall wird erzwungen für cvId:", cvId);
     navigate(`/cv-paywall?cvId=${cvId}&source=cv_optimizer`);
   };
 
