@@ -133,8 +133,7 @@ export const ClassicCVTemplate: React.FC<ClassicCVTemplateProps> = ({
       <div className="mt-1.5" style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
         {bullets.map((bp, idx) => {
           const text = typeof bp === 'string' ? bp : bp?.text ?? String(bp);
-          if (!text) return null;
-          const cleanText = text.replace(/^[-•*]\s*/, ''); // Säubert manuell getippte Spiegelstriche
+          const cleanText = text.replace(/^[-•*]\s*/, '');
 
           return (
             <div key={idx} className="flex items-start gap-2" style={{ breakInside: 'avoid', pageBreakInside: 'avoid' }}>
@@ -246,7 +245,7 @@ export const ClassicCVTemplate: React.FC<ClassicCVTemplateProps> = ({
                   style={{ fontSize: '9px', color: '#dc2626', background: 'none', border: '1px solid #fecaca', borderRadius: '4px', cursor: 'pointer', padding: '2px 7px', lineHeight: '1.5' }}
                   onClick={() => onDeleteSectionItem(experienceIndex, idx)}
                 >
-                  Löschen
+                  Station löschen
                 </button>
               </div>
             </div>

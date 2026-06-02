@@ -9,7 +9,6 @@ import { ClassicCVTemplate } from '../components/cv-templates/templates/ClassicC
 import { MinimalCVTemplate } from '../components/cv-templates/templates/MinimalCVTemplate';
 import { CreativeCVTemplate } from '../components/cv-templates/templates/CreativeCVTemplate';
 import { ProfessionalCVTemplate } from '../components/cv-templates/templates/ProfessionalCVTemplate';
-import { PaywallModal } from '../components/PaywallModal';
 import PhotoUpload from '../components/PhotoUpload';
 import { supabase } from '../lib/supabase';
 import { useCvOptimizationStatus } from '../hooks/useCvOptimizationStatus';
@@ -220,13 +219,14 @@ export function CVLiveEditorPage() {
   const templateSaveTimerRef = useRef<number | null>(null);
   const [showPhotoUpload, setShowPhotoUpload] = useState(false);
   const [isDownloadUnlocked, setIsDownloadUnlocked] = useState(false);
-  const [showPaywallModal, setShowPaywallModal] = useState(false);
+  const [showTemplateSelectForExport, setShowTemplateSelectForExport] = useState(false);
 
   const [showTips, setShowTips] = useState(false);
   const [showPaymentSuccessBanner, setShowPaymentSuccessBanner] = useState(false);
   const [showJobDescription, setShowJobDescription] = useState(false);
 
   const [templateConfirmed, setTemplateConfirmed] = useState(false);
+
 
   const cvPreviewRef = useRef<HTMLDivElement | null>(null);
   const mainAreaRef = useRef<HTMLDivElement | null>(null);
@@ -970,13 +970,13 @@ const handleDownloadClick = () => {
     }
 
     if (isDownloadUnlocked) {
-      // Already paid — trigger direct export
-      triggerDirectExport();
+      // Already paid — show template selection before export
+      setShowTemplateSelectForExport(true);
       return;
     }
 
-    // Not yet unlocked — show paywall modal
-    setShowPaywallModal(true);
+    // Not yet unlocked — go directly to paywall (handles tokens + Stripe)
+    navigate(`/cv-paywall?cvId=${cvId}&source=cv_optimizer`);
   };
 
   const triggerDirectExport = async () => {
@@ -1468,12 +1468,11 @@ const updateSectionItem = (
         </div>
       </header>
 
-      {/* MAIN CONTENT AREA MIT AUTOMATISCHEN HILFSLINIEN UND GERENDERTER WYSIWYG-KORREKTUR */}
+      {/* MAIN CONTENT AREA */}
       <main ref={mainRefCallback} className="flex-1 overflow-y-auto overflow-x-hidden flex flex-col items-center bg-zinc-800/40 w-full py-4 sm:py-8 px-0 sm:px-4">
-        
-    {/* CSS für WYSIWYG-Editor */}
+
+        {/* CSS für WYSIWYG-Editor */}
         <style>{`
-          /* WYSIWYG: Text verhält sich im Editor exakt wie im PDF */
           [data-pdf-root] textarea,
           [data-pdf-root] p,
           [data-pdf-root] span,
@@ -1482,65 +1481,50 @@ const updateSectionItem = (
             white-space: pre-wrap !important;
             word-break: break-word !important;
           }
-
-          /* pdf-hidden: im Editor anzeigen, im PDF unsichtbar */
           .pdf-hidden {
             display: block !important;
           }
           .nonce-export {
             display: none !important;
           }
-
-          /* Page separator overlay */
-          .cv-page-break {
+          /* Page separator: gray bar between A4 pages */
+          .cv-page-gap {
             position: absolute;
             left: 0;
             right: 0;
-            height: 0;
+            height: 20px;
+            background: #3f3f46;
             pointer-events: none;
             z-index: 10;
-          }
-          .cv-page-break::before {
-            content: '';
-            position: absolute;
-            left: -24px;
-            right: -24px;
-            top: -8px;
-            height: 16px;
-            background: #3f3f46;
             display: flex;
             align-items: center;
             justify-content: center;
           }
-          .cv-page-break::after {
-            content: 'Seite 2';
-            position: absolute;
-            left: 50%;
-            top: -10px;
-            transform: translateX(-50%);
+          .cv-page-gap-label {
             background: #52525b;
             color: #a1a1aa;
             font-size: 9px;
             font-family: system-ui, sans-serif;
-            padding: 2px 8px;
-            border-radius: 4px;
+            padding: 1px 8px;
+            border-radius: 3px;
             white-space: nowrap;
-            line-height: 16px;
+            line-height: 1.5;
           }
         `}</style>
-        {/* DER SCALING-WRAPPER */}
+
+        {/* Scaling wrapper — height accounts for the page gaps */}
         <div
           style={{
             width: `${794 * scale}px`,
             maxWidth: '100%',
-            height: `${cvHeight * scale}px`,
+            height: `${(cvHeight + Math.floor(cvHeight / 1122) * 20) * scale}px`,
             position: 'relative',
             margin: '0 auto',
             flexShrink: 0,
-            transition: 'width 0.2s ease, height 0.2s ease'
+            transition: 'width 0.2s ease, height 0.2s ease',
           }}
         >
-          {/* DOKUMENT */}
+          {/* The actual CV content — positioned absolutely, scaled */}
           <div
             ref={cvPreviewRef}
             data-pdf-root
@@ -1560,7 +1544,7 @@ const updateSectionItem = (
             }}
           >
             <div style={{ width: '100%', flex: 1, display: 'flex', flexDirection: 'column' }}>
-              {/* 🔥 REICHT DIE NEUE FUNKTION `onAddSectionItem` NUN AN JEDES TEMPLATE WEITER */}
+
               {selectedTemplate === 'modern' && editorData.personalInfo && editorData.sections && (
                 <ModernCVTemplate
                   personalInfo={editorData.personalInfo}
@@ -1643,13 +1627,15 @@ const updateSectionItem = (
             </div>
           </div>
 
-          {/* Page break overlays — outside cv-preview so they don't appear in PDF */}
+          {/* Page gap overlays — outside cv-preview (not captured in PDF) */}
           {Array.from({ length: Math.floor(cvHeight / 1122) }, (_, i) => (
             <div
               key={i}
-              className="cv-page-break"
-              style={{ top: `${(i + 1) * 1122 * scale}px` }}
-            />
+              className="cv-page-gap"
+              style={{ top: `${((i + 1) * 1122 * scale) + i * 20 * scale}px`, height: `${20 * scale}px` }}
+            >
+              <span className="cv-page-gap-label">Seite {i + 2}</span>
+            </div>
           ))}
         </div>
 
@@ -1696,16 +1682,56 @@ const updateSectionItem = (
 
       </main>
 
-      <PaywallModal
-        isOpen={showPaywallModal}
-        onClose={() => setShowPaywallModal(false)}
-        context="download"
-        onConfirm={async () => {
-          if (cvId) {
-            navigate(`/cv-paywall?cvId=${cvId}&source=cv_optimizer`);
-          }
-        }}
-      />
+      {/* Template selection modal for already-unlocked download */}
+      {showTemplateSelectForExport && (
+        <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4">
+          <div className="bg-[#111] border border-white/10 rounded-2xl p-8 max-w-lg w-full shadow-2xl">
+            <div className="text-center mb-6">
+              <h2 className="text-2xl font-bold text-white mb-2">Design auswählen</h2>
+              <p className="text-white/50 text-sm">Wähle das Template für deinen PDF-Download.</p>
+            </div>
+            <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 mb-6">
+              {templates.map((t) => (
+                <button
+                  key={t.id}
+                  onClick={() => handleTemplateChange(t.id)}
+                  className={`relative flex flex-col items-center gap-3 p-4 rounded-2xl border-2 transition-all duration-200 ${
+                    selectedTemplate === t.id
+                      ? 'border-[#66c0b6] bg-[#66c0b6]/10'
+                      : 'border-white/10 bg-white/5 hover:border-white/25'
+                  }`}
+                >
+                  {selectedTemplate === t.id && (
+                    <div className="absolute top-2.5 right-2.5 w-5 h-5 rounded-full bg-[#66c0b6] flex items-center justify-center">
+                      <Check size={11} className="text-black" />
+                    </div>
+                  )}
+                  <span className="text-3xl">{t.icon}</span>
+                  <span className={`text-sm font-semibold ${selectedTemplate === t.id ? 'text-[#66c0b6]' : 'text-white/80'}`}>{t.name}</span>
+                </button>
+              ))}
+            </div>
+            <div className="flex gap-3">
+              <button
+                onClick={() => setShowTemplateSelectForExport(false)}
+                className="flex-1 py-3 rounded-xl bg-white/5 border border-white/10 text-white font-semibold hover:bg-white/10 transition-all"
+              >
+                Abbrechen
+              </button>
+              <button
+                onClick={() => {
+                  setShowTemplateSelectForExport(false);
+                  triggerDirectExport();
+                }}
+                className="flex-1 py-3 rounded-xl bg-gradient-to-r from-[#66c0b6] to-[#30E3CA] text-black font-bold hover:opacity-90 transition-all flex items-center justify-center gap-2"
+              >
+                <Download size={18} />
+                PDF erstellen
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {showTips && (
         <div className="fixed top-20 right-4 max-w-md bg-[#1a1a1a] border border-[#66c0b6]/30 rounded-xl p-4 shadow-2xl z-50">

@@ -314,7 +314,7 @@ export const CreativeCVTemplate: React.FC<CreativeCVTemplateProps> = ({
                       style={{ border: '1px solid #fecaca', borderRadius: '4px', padding: '2px 7px', background: 'none', cursor: 'pointer', lineHeight: '1.5' }}
                       onClick={() => onDeleteSectionItem(sectionIndex, idx)}
                     >
-                      Löschen
+                      Station löschen
                     </button>
                   </div>
                 </div>
@@ -416,7 +416,7 @@ export const CreativeCVTemplate: React.FC<CreativeCVTemplateProps> = ({
                       className="mt-0.5 ml-3 text-[9px] text-red-500 hover:underline"
                       onClick={() => onDeleteSectionItem(sectionIndex, idx)}
                     >
-                      Löschen
+                      Station löschen
                     </button>
                   </div>
                 </div>

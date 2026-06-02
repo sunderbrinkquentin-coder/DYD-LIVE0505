@@ -297,8 +297,7 @@ const splitToBullets = (text: string): string[] =>
     .filter((l) => l.length > 0);
 
 const getBullets = (item: any): string[] => {
-  // Wenn bereits ein echtes Bulletpoint-Array existiert, nutzen wir NUR dieses
-  if (Array.isArray(item?.bulletPoints)) {
+  if (Array.isArray(item?.bulletPoints) && item.bulletPoints.length > 0) {
     return item.bulletPoints.map((b: any) => normalizeBullet(String(b ?? '')));
   }
   if (Array.isArray(item?.highlights) && item.highlights.length > 0) {
@@ -446,13 +445,15 @@ export const ModernCVTemplate: React.FC<ModernCVTemplateProps> = ({
                     type="button"
                     style={{ fontSize: '9px', color: CI.primaryDark, background: 'none', border: `1px solid ${CI.border}`, borderRadius: '4px', cursor: 'pointer', padding: '2px 7px', lineHeight: '1.5' }}
                     onClick={() => {
-                      const base = Array.isArray(item?.bulletPoints)
-                        ? item.bulletPoints
-                        : typeof item?.description === 'string'
+                      const base = Array.isArray(item?.bulletPoints) && item.bulletPoints.length > 0
+                        ? [...item.bulletPoints]
+                        : typeof item?.description === 'string' && item.description.trim()
                           ? splitToBullets(item.description)
                           : [];
                       onUpdateSectionItem(sectionIndex, idx, 'bulletPoints', [...base, '']);
-                      onUpdateSectionItem(sectionIndex, idx, 'description', '');
+                      if (typeof item?.description === 'string' && item.description.trim()) {
+                        onUpdateSectionItem(sectionIndex, idx, 'description', '');
+                      }
                     }}
                   >
                     + Bullet
@@ -462,7 +463,7 @@ export const ModernCVTemplate: React.FC<ModernCVTemplateProps> = ({
                     style={{ fontSize: '9px', color: '#dc2626', background: 'none', border: '1px solid #fecaca', borderRadius: '4px', cursor: 'pointer', padding: '2px 7px', lineHeight: '1.5' }}
                     onClick={() => onDeleteSectionItem(sectionIndex, idx)}
                   >
-                    Löschen
+                    Station löschen
                   </button>
                 </div>
               </div>

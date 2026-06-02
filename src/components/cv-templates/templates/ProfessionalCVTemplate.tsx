@@ -56,9 +56,7 @@ const stripLeadingBullet = (s: string) =>
 // Bullet-Hilfsfunktion – verhindert doppelte Darstellung
 const getBullets = (item: any): string[] => {
   if (Array.isArray(item?.bulletPoints) && item.bulletPoints.length > 0) {
-    return item.bulletPoints
-      .map((s: any) => stripLeadingBullet(String(s).trim()))
-      .filter((s: string) => s.length > 0);
+    return item.bulletPoints.map((s: any) => stripLeadingBullet(String(s ?? '').trim()));
   }
 
   if (typeof item?.description === 'string' && item.description.trim().length > 0) {
@@ -279,7 +277,7 @@ export const ProfessionalCVTemplate: React.FC<ProfessionalCVTemplateProps> = ({
                       style={{ border: '1px solid #fecaca', borderRadius: '4px', padding: '2px 7px', background: 'none', cursor: 'pointer', lineHeight: '1.5' }}
                       onClick={() => onDeleteSectionItem(sectionIndex, idx)}
                     >
-                      Löschen
+                      Station löschen
                     </button>
                   </div>
                 );
@@ -376,7 +374,7 @@ export const ProfessionalCVTemplate: React.FC<ProfessionalCVTemplateProps> = ({
                       style={{ border: '1px solid #fecaca', borderRadius: '4px', padding: '2px 7px', background: 'none', cursor: 'pointer', lineHeight: '1.5' }}
                       onClick={() => onDeleteSectionItem(sectionIndex, idx)}
                     >
-                      Löschen
+                      Station löschen
                     </button>
                   </div>
                 );

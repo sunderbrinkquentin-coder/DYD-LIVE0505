@@ -51,29 +51,27 @@ const getBullets = (item: any): string[] => {
   if (!item) return [];
 
   const possibleArrays = [
-    item.bulletPoints, 
-    item.bullet_points, 
-    item.bulletpoints, 
-    item.tasks, 
+    item.bulletPoints,
+    item.bullet_points,
+    item.bulletpoints,
+    item.tasks,
     item.highlights,
     item.erfolge
   ];
-  
+
   const foundArray = possibleArrays.find(arr => Array.isArray(arr) && arr.length > 0);
-  
+
   if (foundArray) {
-    return foundArray
-      .map((s: any) => stripLeadingBullet(String(s).trim()))
-      .filter((s: string) => s.length > 0);
+    return foundArray.map((s: any) => stripLeadingBullet(String(s ?? '').trim()));
   }
 
   const possibleTexts = [
-    item.description, 
-    item.beschreibung, 
+    item.description,
+    item.beschreibung,
     item.text,
     item.aufgaben
   ];
-  
+
   const foundText = possibleTexts.find(txt => typeof txt === 'string' && txt.trim().length > 0);
 
   if (foundText) {
@@ -256,7 +254,7 @@ export const MinimalCVTemplate: React.FC<MinimalCVTemplateProps> = ({
                     style={{ fontSize: '9px', color: '#dc2626', background: 'none', border: '1px solid #fecaca', borderRadius: '4px', cursor: 'pointer', padding: '2px 7px', lineHeight: '1.5' }}
                     onClick={() => onDeleteSectionItem(sectionIndex, idx)}
                   >
-                    Löschen
+                    Station löschen
                   </button>
                 </div>
               </div>
