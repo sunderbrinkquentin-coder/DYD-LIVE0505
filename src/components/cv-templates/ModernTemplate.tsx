@@ -46,12 +46,11 @@ export function ModernCVTemplate({
     effSections.push({ type: 'certificates', title: 'Zertifikate & Stipendien', items: [] });
   }
 
-  // Trennung der Sektionen: Wir teilen sie logisch auf, um echtes A4-Rendering zu simulieren
   const sidebarSections = effSections.filter(s => s.type === 'skills' || s.type === 'soft_skills' || s.type === 'languages');
   const mainSections = effSections.filter(s => s.type !== 'skills' && s.type !== 'soft_skills' && s.type !== 'languages');
 
   return (
-    <> {/* 🔥 FIX: Dieses übergeordnete Fragment umschließt nun alle Elemente regelkonform */}
+    <>
       <div className="modern-page-container grid grid-cols-[260px_1fr]" data-pdf-root>
         
         {/* LINKE SPALTE */}
@@ -88,8 +87,8 @@ export function ModernCVTemplate({
             </div>
           </div>
 
-          {/* RENDERT FEEDBACK-SEKTIONEN IN DER SIDEBAR */}
-          {sidebarSections.map((section, sIdx) => (
+          {/* SIDEBAR SEKTIONEN */}
+          {sidebarSections.map((section) => (
             <div key={section.type} className="pt-4 border-t border-white/10 space-y-2">
               <h3 className="text-xs font-bold uppercase tracking-wider text-white/70">{section.title}</h3>
               <div className="space-y-1 text-xs">
@@ -119,7 +118,7 @@ export function ModernCVTemplate({
             </div>
           </div>
 
-          {/* RENDERT HAUPTSEKTIONEN */}
+          {/* HAUPTSEKTIONEN */}
           {mainSections.map((section) => {
             const sIdx = effSections.indexOf(section);
             const isCert = section.type === 'certificates';
@@ -249,3 +248,6 @@ export function ModernCVTemplate({
     </>
   );
 }
+
+// 🔥 DIESE ZEILE FÄNGT DEN IMPORT-FEHLER REGLOS AB!
+export { ModernCVTemplate as ModernTemplate };
