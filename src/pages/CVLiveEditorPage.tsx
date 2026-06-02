@@ -232,13 +232,9 @@ export function CVLiveEditorPage() {
   const [isExportingPDF, setIsExportingPDF] = useState(false);
   const autoDownloadTriggeredRef = useRef(false);
 
-  // ==========================================
-  // 🔥 NEUE PERFEKTE MOBILE-SCALING LOGIK 🔥
-  // ==========================================
   const [scale, setScale] = useState(1);
   const [cvHeight, setCvHeight] = useState(1122);
 
-  // 1. Zoom-Faktor: Container-Breite direkt messen via Callback-Ref
   const mainRefCallback = (el: HTMLDivElement | null) => {
     mainAreaRef.current = el;
     if (scaleObserverRef.current) {
@@ -256,12 +252,10 @@ export function CVLiveEditorPage() {
     scaleObserverRef.current = obs;
   };
 
-  // 2. Dokumenten-Höhe für den Container ausrechnen
   useEffect(() => {
     const el = cvPreviewRef.current;
     if (!el) return;
     const measure = () => {
-      // offsetHeight reflects the true rendered height; fallback to scrollHeight
       const h = Math.max(el.offsetHeight, el.scrollHeight, 0);
       setCvHeight(h);
     };
@@ -270,7 +264,6 @@ export function CVLiveEditorPage() {
     observer.observe(el);
     return () => observer.disconnect();
   }, [editorData, selectedTemplate]);
-  // ==========================================
 
   useEffect(() => {
     (window as any).__debugPdfHtml = () => debugLogPDFHtml(cvPreviewRef);
@@ -858,7 +851,6 @@ export function CVLiveEditorPage() {
           ta.setAttribute('defaultValue', ta.value);
         });
         
-        // PDF Export Sicherheit: Skalierung für Export kurzzeitig zurücksetzen
         const savedTransform = el.style.transform;
         el.style.transform = 'none';
 
@@ -903,6 +895,7 @@ export function CVLiveEditorPage() {
     doExportAndNavigate();
   }, [templateConfirmed, editorData, user, cvId, isTemplateReady]);
 
+  // 🔥 PERFORMANCE-FIX (Punkt 8): Erhöht auf 5s Debounce & senkt IO-Last bei 50+ parallelen Usern
   useEffect(() => {
     if (isInitialLoadRef.current) {
       isInitialLoadRef.current = false;
@@ -940,7 +933,7 @@ export function CVLiveEditorPage() {
           })
           .eq('id', cvId);
       } catch (error) {}
-    }, 2000);
+    }, 5000); // 5000ms statt 2000ms entzerrt die WebSocket-Schleife der Datenbank
 
     return () => {
       if (saveTimeoutRef.current) {
@@ -1079,7 +1072,6 @@ export function CVLiveEditorPage() {
         const newItems = [...section.items];
         const currentItem = newItems[itemIndex];
         
-        // HIER IST DER FIX: Sichere Konvertierung von String zu Objekt (Löst [object Object])
         newItems[itemIndex] = typeof currentItem === 'object' && currentItem !== null
           ? { ...currentItem, [field]: value }
           : { name: String(currentItem), [field]: value };
@@ -1093,7 +1085,8 @@ export function CVLiveEditorPage() {
       }
     });
   };
-// 🔥 NEU: Diese Funktion hängst du hier direkt unten an den Block an!
+
+  // 🔥 NEU: Saubere API für Sektionen, um Bulletpoints / Items hinzuzufügen (Löst Punkt 3)
   const addSectionItem = (sectionIndex: number, defaultItem: any) => {
     setHasEditorChanges(true);
     setEditorData((prev: any) => {
@@ -1105,6 +1098,7 @@ export function CVLiveEditorPage() {
       return { ...prev, sections: newSections };
     });
   };
+
   if (error) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-[#050507] via-[#0a0a0f] to-[#050507] text-white flex items-center justify-center">
@@ -1258,7 +1252,7 @@ export function CVLiveEditorPage() {
         <div style={{
           position: 'fixed', inset: 0, zIndex: 9999,
           background: 'rgba(2,6,23,0.94)',
-          display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: '24px',
+          display: 'flex', flexDirection: 'column', alignItems: 'center', justify-content: 'center', gap: '24px',
           pointerEvents: 'all',
         }}>
           <Loader2 className="w-14 h-14 text-[#66c0b6] animate-spin" />
@@ -1387,10 +1381,49 @@ export function CVLiveEditorPage() {
         </div>
       </header>
 
-      {/* MAIN CONTENT AREA MIT VERBESSERTEM MOBILE-SCALING */}
+      {/* MAIN CONTENT AREA MIT AUTOMATISCHEN HILFSLINIEN UND GERENDERTER WYSIWYG-KORREKTUR */}
       <main ref={mainRefCallback} className="flex-1 overflow-y-auto overflow-x-hidden flex flex-col items-center bg-zinc-800/40 w-full py-4 sm:py-8 px-0 sm:px-4">
         
-        {/* DER SCALING-WRAPPER: Sichert exakt den Platz, den das verkleinerte Dokument braucht */}
+        {/* 🔥 FIX (Punkt 4, 5, 6): CSS Injektion für fehlerfreien Umbruch und Seitenumbruchhilfen im Editor */}
+        <style>{`
+          /* WYSIWYG Synchronität: Erzwingt, dass Zeilenumbrüche im HTML exakt wie in Textareas dargestellt werden */
+          [data-pdf-root] textarea, 
+          [data-pdf-root] p, 
+          [data-pdf-root] span, 
+          [data-pdf-root] div {
+            white-space: pre-wrap !important;
+            word-break: break-word !important;
+          }
+
+          /* Hilfslinien für Seitenumbrüche (Werden nur im Live-Editor angezeigt, nie im exportierten PDF) */
+          @media screen {
+            [data-pdf-root] {
+              position: relative;
+              background-image: linear-gradient(to bottom, transparent 1120px, rgba(102,192,182,0.4) 1121px, rgba(102,192,182,0.4) 1122px, transparent 1123px) !important;
+              background-size: 100% 1122px !important;
+            }
+            [data-pdf-root]::after {
+              content: "Seitenumbruch (DIN A4)";
+              position: absolute;
+              left: 15px;
+              top: 1098px;
+              font-size: 11px;
+              font-weight: 600;
+              color: rgba(102,192,182,0.65);
+              pointer-events: none;
+              font-family: sans-serif;
+              letter-spacing: 0.05em;
+            }
+          }
+
+          /* Verhindert den verwaisten weißen Balken am Dokumentenende durch Layout-Kompression */
+          [data-pdf-root] {
+            margin-bottom: 0 !important;
+            padding-bottom: 0 !important;
+          }
+        `}</style>
+
+        {/* DER SCALING-WRAPPER */}
         <div
           style={{
             width: `${794 * scale}px`,
@@ -1402,7 +1435,7 @@ export function CVLiveEditorPage() {
             transition: 'width 0.2s ease, height 0.2s ease'
           }}
         >
-          {/* DOKUMENT: Wird optisch verkleinert (transform: scale) aber verliert keine Auflösung */}
+          {/* DOKUMENT */}
           <div
             ref={cvPreviewRef}
             data-pdf-root
@@ -1415,15 +1448,14 @@ export function CVLiveEditorPage() {
               transform: `scale(${scale})`,
               transformOrigin: 'top left',
               boxShadow: '0 8px 48px 0 rgba(0,0,0,0.45)',
-              backgroundColor:
-                selectedTemplate === 'modern' ? '#f0faf8' :
-                '#ffffff',
+              backgroundColor: selectedTemplate === 'modern' ? '#f0faf8' : '#ffffff',
               minHeight: '1122px',
               display: 'flex',
               flexDirection: 'column',
             }}
           >
             <div style={{ width: '100%', flex: 1, display: 'flex', flexDirection: 'column' }}>
+              {/* 🔥 REICHT DIE NEUE FUNKTION `onAddSectionItem` NUN AN JEDES TEMPLATE WEITER */}
               {selectedTemplate === 'modern' && editorData.personalInfo && editorData.sections && (
                 <ModernCVTemplate
                   personalInfo={editorData.personalInfo}
@@ -1435,6 +1467,7 @@ export function CVLiveEditorPage() {
                   onUpdateSummary={(value) => setEditorData((prev: any) => prev ? { ...prev, summary: value } : prev)}
                   onUpdateSection={updateSection}
                   onUpdateSectionItem={updateSectionItem}
+                  onAddSectionItem={addSectionItem}
                   onDeleteSectionItem={deleteSectionItem}
                 />
               )}
@@ -1450,6 +1483,7 @@ export function CVLiveEditorPage() {
                   onUpdateSummary={(value) => setEditorData((prev: any) => prev ? { ...prev, summary: value } : prev)}
                   onUpdateSection={updateSection}
                   onUpdateSectionItem={updateSectionItem}
+                  onAddSectionItem={addSectionItem}
                   onDeleteSectionItem={deleteSectionItem}
                 />
               )}
@@ -1465,6 +1499,7 @@ export function CVLiveEditorPage() {
                   onUpdateSummary={(value) => setEditorData((prev: any) => prev ? { ...prev, summary: value } : prev)}
                   onUpdateSection={updateSection}
                   onUpdateSectionItem={updateSectionItem}
+                  onAddSectionItem={addSectionItem}
                   onDeleteSectionItem={deleteSectionItem}
                 />
               )}
@@ -1480,6 +1515,7 @@ export function CVLiveEditorPage() {
                   onUpdateSummary={(value) => setEditorData((prev: any) => prev ? { ...prev, summary: value } : prev)}
                   onUpdateSection={updateSection}
                   onUpdateSectionItem={updateSectionItem}
+                  onAddSectionItem={addSectionItem}
                   onDeleteSectionItem={deleteSectionItem}
                 />
               )}
@@ -1495,6 +1531,7 @@ export function CVLiveEditorPage() {
                   onUpdateSummary={(value) => setEditorData((prev: any) => prev ? { ...prev, summary: value } : prev)}
                   onUpdateSection={updateSection}
                   onUpdateSectionItem={updateSectionItem}
+                  onAddSectionItem={addSectionItem}
                   onDeleteSectionItem={deleteSectionItem}
                 />
               )}
