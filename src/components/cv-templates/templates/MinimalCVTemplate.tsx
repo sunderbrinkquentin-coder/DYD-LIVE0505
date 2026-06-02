@@ -32,6 +32,8 @@ interface MinimalCVTemplateProps {
     field: string,
     value: any
   ) => void;
+  onAddSectionItem?: (sectionIndex: number, defaultItem: any) => void;
+  onDeleteSectionItem?: (sectionIndex: number, itemIndex: number) => void;
 }
 
 const SectionTitle: React.FC<{ children: React.ReactNode }> = ({ children }) => (
@@ -98,6 +100,7 @@ export const MinimalCVTemplate: React.FC<MinimalCVTemplateProps> = ({
   onUpdatePersonalInfo,
   onUpdateSummary,
   onUpdateSectionItem,
+  onDeleteSectionItem = () => {},
 }) => {
   const summaryRef = useRef<HTMLTextAreaElement | null>(null);
 
@@ -236,6 +239,26 @@ export const MinimalCVTemplate: React.FC<MinimalCVTemplateProps> = ({
                     style={{ overflow: 'hidden', minHeight: '32px' }}
                   />
                 )}
+
+                <div className="pdf-hidden" style={{ marginTop: '6px', display: 'flex', gap: '8px', alignItems: 'center' }}>
+                  <button
+                    type="button"
+                    style={{ fontSize: '9px', color: '#475569', background: 'none', border: '1px solid #cbd5e1', borderRadius: '4px', cursor: 'pointer', padding: '2px 7px', lineHeight: '1.5' }}
+                    onClick={() => {
+                      const current = getBullets(item);
+                      onUpdateSectionItem(sectionIndex, idx, 'bulletPoints', [...current, '']);
+                    }}
+                  >
+                    + Bullet
+                  </button>
+                  <button
+                    type="button"
+                    style={{ fontSize: '9px', color: '#dc2626', background: 'none', border: '1px solid #fecaca', borderRadius: '4px', cursor: 'pointer', padding: '2px 7px', lineHeight: '1.5' }}
+                    onClick={() => onDeleteSectionItem(sectionIndex, idx)}
+                  >
+                    Löschen
+                  </button>
+                </div>
               </div>
             );
           })}

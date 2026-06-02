@@ -32,6 +32,8 @@ interface ProfessionalCVTemplateProps {
     field: string,
     value: any
   ) => void;
+  onAddSectionItem?: (sectionIndex: number, defaultItem: any) => void;
+  onDeleteSectionItem?: (sectionIndex: number, itemIndex: number) => void;
 }
 
 const autoResize = (el: HTMLTextAreaElement) => {
@@ -77,6 +79,7 @@ export const ProfessionalCVTemplate: React.FC<ProfessionalCVTemplateProps> = ({
   onUpdatePersonalInfo,
   onUpdateSummary,
   onUpdateSectionItem,
+  onDeleteSectionItem = () => {},
 }) => {
   const summaryRef = useRef<HTMLTextAreaElement | null>(null);
 
@@ -264,10 +267,19 @@ export const ProfessionalCVTemplate: React.FC<ProfessionalCVTemplateProps> = ({
 
                     <button
                       type="button"
-                      className="mt-1 text-[9px] text-sky-600 hover:underline"
+                      className="mt-1 text-[9px] text-sky-600 hover:underline pdf-hidden"
+                      style={{ border: '1px solid #bae6fd', borderRadius: '4px', padding: '2px 7px', background: 'none', cursor: 'pointer', lineHeight: '1.5' }}
                       onClick={() => handleAddBullet(sectionIndex, idx, exp)}
                     >
-                      + Punkt hinzufügen
+                      + Bullet
+                    </button>
+                    <button
+                      type="button"
+                      className="mt-1 ml-3 text-[9px] text-red-500 hover:underline pdf-hidden"
+                      style={{ border: '1px solid #fecaca', borderRadius: '4px', padding: '2px 7px', background: 'none', cursor: 'pointer', lineHeight: '1.5' }}
+                      onClick={() => onDeleteSectionItem(sectionIndex, idx)}
+                    >
+                      Löschen
                     </button>
                   </div>
                 );
@@ -352,10 +364,19 @@ export const ProfessionalCVTemplate: React.FC<ProfessionalCVTemplateProps> = ({
 
                     <button
                       type="button"
-                      className="mt-0.5 text-[9px] text-sky-600 hover:underline"
+                      className="mt-0.5 text-[9px] text-sky-600 hover:underline pdf-hidden"
+                      style={{ border: '1px solid #bae6fd', borderRadius: '4px', padding: '2px 7px', background: 'none', cursor: 'pointer', lineHeight: '1.5' }}
                       onClick={() => handleAddBullet(sectionIndex, idx, proj)}
                     >
-                      + Punkt hinzufügen
+                      + Bullet
+                    </button>
+                    <button
+                      type="button"
+                      className="mt-0.5 ml-3 text-[9px] text-red-500 hover:underline pdf-hidden"
+                      style={{ border: '1px solid #fecaca', borderRadius: '4px', padding: '2px 7px', background: 'none', cursor: 'pointer', lineHeight: '1.5' }}
+                      onClick={() => onDeleteSectionItem(sectionIndex, idx)}
+                    >
+                      Löschen
                     </button>
                   </div>
                 );

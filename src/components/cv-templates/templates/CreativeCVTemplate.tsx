@@ -33,6 +33,8 @@ interface CreativeCVTemplateProps {
     field: string,
     value: any
   ) => void;
+  onAddSectionItem?: (sectionIndex: number, defaultItem: any) => void;
+  onDeleteSectionItem?: (sectionIndex: number, itemIndex: number) => void;
 }
 
 const SectionTitle: React.FC<{ children: React.ReactNode }> = ({ children }) => (
@@ -54,6 +56,7 @@ export const CreativeCVTemplate: React.FC<CreativeCVTemplateProps> = ({
   onUpdatePersonalInfo,
   onUpdateSummary,
   onUpdateSectionItem,
+  onDeleteSectionItem = () => {},
 }) => {
   const summaryRef = useRef<HTMLTextAreaElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
@@ -245,7 +248,7 @@ export const CreativeCVTemplate: React.FC<CreativeCVTemplateProps> = ({
                     <ul className="mt-1 !text-[9.5px] text-slate-700" style={{ listStyle: 'none', padding: 0, display: 'flex', flexDirection: 'column', gap: '4px' }}>
                       {bullets.map((bp: string, bIdx: number) => (
                         <li key={bIdx} style={{ display: 'flex', alignItems: 'flex-start', gap: '4px', breakInside: 'avoid', pageBreakInside: 'avoid' }}>
-                          <span style={{ flexShrink: 0, color: '#22c1c3', fontSize: '9.5px', lineHeight: '1.375', userSelect: 'none' }}>▸</span>
+                          <span style={{ flexShrink: 0, color: '#22c1c3', fontSize: '9.5px', lineHeight: '1.375', userSelect: 'none' }}>•</span>
                           <textarea
                             className="flex-1 bg-transparent outline-none resize-none overflow-hidden leading-snug text-slate-700 !text-[9.5px]"
                             style={{ minHeight: '20px', height: 'auto' }}
@@ -296,13 +299,22 @@ export const CreativeCVTemplate: React.FC<CreativeCVTemplateProps> = ({
                     </div>
                   )}
 
-                  <div style={{ breakInside: 'avoid', pageBreakInside: 'avoid' }}>
+                  <div style={{ breakInside: 'avoid', pageBreakInside: 'avoid' }} className="pdf-hidden">
                     <button
                       type="button"
-                      className="mt-0.5 text-[9px] text-[#22c1c3] hover:underline"
+                      className="mt-0.5 text-[9px] text-[#22c1c3]"
+                      style={{ border: '1px solid #a5f3fc', borderRadius: '4px', padding: '2px 7px', background: 'none', cursor: 'pointer', lineHeight: '1.5' }}
                       onClick={() => handleAddBullet(sectionIndex, idx, exp)}
                     >
-                      + Punkt
+                      + Bullet
+                    </button>
+                    <button
+                      type="button"
+                      className="mt-0.5 ml-3 text-[9px] text-red-500"
+                      style={{ border: '1px solid #fecaca', borderRadius: '4px', padding: '2px 7px', background: 'none', cursor: 'pointer', lineHeight: '1.5' }}
+                      onClick={() => onDeleteSectionItem(sectionIndex, idx)}
+                    >
+                      Löschen
                     </button>
                   </div>
                 </div>
@@ -340,7 +352,7 @@ export const CreativeCVTemplate: React.FC<CreativeCVTemplateProps> = ({
                     <ul className="mt-1 !text-[9.5px] text-slate-700" style={{ listStyle: 'none', padding: 0, display: 'flex', flexDirection: 'column', gap: '4px' }}>
                       {bullets.map((bp: string, bIdx: number) => (
                         <li key={bIdx} style={{ display: 'flex', alignItems: 'flex-start', gap: '4px', breakInside: 'avoid', pageBreakInside: 'avoid' }}>
-                          <span style={{ flexShrink: 0, color: '#22c1c3', fontSize: '9.5px', lineHeight: '1.375', userSelect: 'none' }}>▸</span>
+                          <span style={{ flexShrink: 0, color: '#22c1c3', fontSize: '9.5px', lineHeight: '1.375', userSelect: 'none' }}>•</span>
                           <textarea
                             className="flex-1 bg-transparent outline-none resize-none overflow-hidden leading-snug text-slate-700 !text-[9.5px]"
                             style={{ minHeight: '20px', height: 'auto' }}
@@ -391,13 +403,20 @@ export const CreativeCVTemplate: React.FC<CreativeCVTemplateProps> = ({
                     </div>
                   )}
 
-                  <div style={{ breakInside: 'avoid', pageBreakInside: 'avoid' }}>
+                  <div style={{ breakInside: 'avoid', pageBreakInside: 'avoid' }} className="pdf-hidden">
                     <button
                       type="button"
                       className="mt-0.5 text-[9px] text-[#22c1c3] hover:underline"
                       onClick={() => handleAddBullet(sectionIndex, idx, proj)}
                     >
-                      + Punkt
+                      + Bullet
+                    </button>
+                    <button
+                      type="button"
+                      className="mt-0.5 ml-3 text-[9px] text-red-500 hover:underline"
+                      onClick={() => onDeleteSectionItem(sectionIndex, idx)}
+                    >
+                      Löschen
                     </button>
                   </div>
                 </div>

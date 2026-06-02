@@ -440,11 +440,11 @@ export const ModernCVTemplate: React.FC<ModernCVTemplateProps> = ({
                 <div
                   className="pdf-hidden"
                   data-pdf-hidden
-                  style={{ marginTop: '8px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}
+                  style={{ marginTop: '8px', display: 'flex', gap: '8px', alignItems: 'center' }}
                 >
                   <button
                     type="button"
-                    style={{ fontSize: '9px', fontWeight: 600, color: CI.primaryDark, background: 'none', border: 'none', cursor: 'pointer', padding: 0 }}
+                    style={{ fontSize: '9px', color: CI.primaryDark, background: 'none', border: `1px solid ${CI.border}`, borderRadius: '4px', cursor: 'pointer', padding: '2px 7px', lineHeight: '1.5' }}
                     onClick={() => {
                       const base = Array.isArray(item?.bulletPoints)
                         ? item.bulletPoints
@@ -455,14 +455,14 @@ export const ModernCVTemplate: React.FC<ModernCVTemplateProps> = ({
                       onUpdateSectionItem(sectionIndex, idx, 'description', '');
                     }}
                   >
-                    + Bullet hinzufügen
+                    + Bullet
                   </button>
                   <button
                     type="button"
-                    style={{ fontSize: '9px', fontWeight: 600, color: '#dc2626', background: 'none', border: 'none', cursor: 'pointer', padding: 0 }}
+                    style={{ fontSize: '9px', color: '#dc2626', background: 'none', border: '1px solid #fecaca', borderRadius: '4px', cursor: 'pointer', padding: '2px 7px', lineHeight: '1.5' }}
                     onClick={() => onDeleteSectionItem(sectionIndex, idx)}
                   >
-                    Eintrag löschen
+                    Löschen
                   </button>
                 </div>
               </div>

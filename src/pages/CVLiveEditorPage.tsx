@@ -1483,25 +1483,49 @@ const updateSectionItem = (
             word-break: break-word !important;
           }
 
-          /* A4-Seitentrennlinie alle 1122px – sichtbar im Editor, nicht im PDF */
-          [data-pdf-root] {
-            background-image: repeating-linear-gradient(
-              to bottom,
-              transparent 0px,
-              transparent 1121px,
-              #94a3b8 1121px,
-              #94a3b8 1123px,
-              transparent 1123px
-            ) !important;
-            background-size: 100% 1122px !important;
-          }
-
           /* pdf-hidden: im Editor anzeigen, im PDF unsichtbar */
           .pdf-hidden {
             display: block !important;
           }
           .nonce-export {
             display: none !important;
+          }
+
+          /* Page separator overlay */
+          .cv-page-break {
+            position: absolute;
+            left: 0;
+            right: 0;
+            height: 0;
+            pointer-events: none;
+            z-index: 10;
+          }
+          .cv-page-break::before {
+            content: '';
+            position: absolute;
+            left: -24px;
+            right: -24px;
+            top: -8px;
+            height: 16px;
+            background: #3f3f46;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+          }
+          .cv-page-break::after {
+            content: 'Seite 2';
+            position: absolute;
+            left: 50%;
+            top: -10px;
+            transform: translateX(-50%);
+            background: #52525b;
+            color: #a1a1aa;
+            font-size: 9px;
+            font-family: system-ui, sans-serif;
+            padding: 2px 8px;
+            border-radius: 4px;
+            white-space: nowrap;
+            line-height: 16px;
           }
         `}</style>
         {/* DER SCALING-WRAPPER */}
@@ -1618,6 +1642,15 @@ const updateSectionItem = (
               )}
             </div>
           </div>
+
+          {/* Page break overlays — outside cv-preview so they don't appear in PDF */}
+          {Array.from({ length: Math.floor(cvHeight / 1122) }, (_, i) => (
+            <div
+              key={i}
+              className="cv-page-break"
+              style={{ top: `${(i + 1) * 1122 * scale}px` }}
+            />
+          ))}
         </div>
 
         {/* METADATA SECTION */}

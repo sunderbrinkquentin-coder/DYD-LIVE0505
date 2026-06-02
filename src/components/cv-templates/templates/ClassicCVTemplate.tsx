@@ -216,7 +216,7 @@ export const ClassicCVTemplate: React.FC<ClassicCVTemplateProps> = ({
               {/* 💡 FIX: Description rendert nun IMMER als Bulletpoint! Einheitlicher Look. */}
               {item.description && (
                 <div className="flex items-start gap-2 mt-2 leading-snug">
-                  <span style={{ flexShrink: 0, color: '#1e3a8a', fontSize: '11px', lineHeight: '18px', userSelect: 'none' }}>•</span>
+                <span style={{ flexShrink: 0, color: '#1e3a8a', fontSize: '9.5px', lineHeight: '1.375', userSelect: 'none' }}>•</span>
                   <EditableText
                     value={item.description.replace(/^[-•*]\s*/, '')}
                     onChange={(val) => onUpdateSectionItem(experienceIndex, idx, 'description', val)}
@@ -229,6 +229,26 @@ export const ClassicCVTemplate: React.FC<ClassicCVTemplateProps> = ({
               
               {/* Weitere Bulletpoints aus der Liste */}
               {renderBulletPoints(item.bulletPoints || item.bullet_points, experienceIndex, idx)}
+
+              <div className="pdf-hidden" style={{ marginTop: '6px', display: 'flex', gap: '8px', alignItems: 'center' }}>
+                <button
+                  type="button"
+                  style={{ fontSize: '9px', color: '#1e3a8a', background: 'none', border: '1px solid #c7d2fe', borderRadius: '4px', cursor: 'pointer', padding: '2px 7px', lineHeight: '1.5' }}
+                  onClick={() => {
+                    const current = item.bulletPoints || item.bullet_points || [];
+                    onUpdateSectionItem(experienceIndex, idx, 'bulletPoints', [...current, '']);
+                  }}
+                >
+                  + Bullet
+                </button>
+                <button
+                  type="button"
+                  style={{ fontSize: '9px', color: '#dc2626', background: 'none', border: '1px solid #fecaca', borderRadius: '4px', cursor: 'pointer', padding: '2px 7px', lineHeight: '1.5' }}
+                  onClick={() => onDeleteSectionItem(experienceIndex, idx)}
+                >
+                  Löschen
+                </button>
+              </div>
             </div>
           ))}
         </div>
@@ -276,7 +296,7 @@ export const ClassicCVTemplate: React.FC<ClassicCVTemplateProps> = ({
               
               {item.description && (
                 <div className="flex items-start gap-2 mt-2 leading-snug">
-                  <span style={{ flexShrink: 0, color: '#1e3a8a', fontSize: '11px', lineHeight: '18px', userSelect: 'none' }}>•</span>
+                <span style={{ flexShrink: 0, color: '#1e3a8a', fontSize: '9.5px', lineHeight: '1.375', userSelect: 'none' }}>•</span>
                   <EditableText
                     value={item.description.replace(/^[-•*]\s*/, '')}
                     onChange={(val) => onUpdateSectionItem(educationIndex, idx, 'description', val)}
@@ -323,7 +343,7 @@ export const ClassicCVTemplate: React.FC<ClassicCVTemplateProps> = ({
               )}
               {item.description && (
                 <div className="flex items-start gap-2 mt-2 leading-snug">
-                  <span style={{ flexShrink: 0, color: '#1e3a8a', fontSize: '11px', lineHeight: '18px', userSelect: 'none' }}>•</span>
+                <span style={{ flexShrink: 0, color: '#1e3a8a', fontSize: '9.5px', lineHeight: '1.375', userSelect: 'none' }}>•</span>
                   <EditableText
                     value={item.description.replace(/^[-•*]\s*/, '')}
                     onChange={(val) => onUpdateSectionItem(projectsIndex, idx, 'description', val)}
@@ -625,7 +645,7 @@ export const ClassicCVTemplate: React.FC<ClassicCVTemplateProps> = ({
                         const text = typeof item === 'string' ? item : item.description || item.text || item.label || item.name || String(item);
                         return (
                           <div key={idx} className="flex items-start gap-2 leading-snug">
-                            <span style={{ flexShrink: 0, color: '#1e3a8a', fontSize: '11px', lineHeight: '18px', userSelect: 'none' }}>•</span>
+                          <span style={{ flexShrink: 0, color: '#1e3a8a', fontSize: '9.5px', lineHeight: '1.375', userSelect: 'none' }}>•</span>
                             <EditableText
                               value={text.replace(/^[-•*]\s*/, '')}
                               onChange={(val) => onUpdateSectionItem(index, idx, 'text', val)}
