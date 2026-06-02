@@ -1433,10 +1433,9 @@ const updateSectionItem = (
       {/* MAIN CONTENT AREA MIT AUTOMATISCHEN HILFSLINIEN UND GERENDERTER WYSIWYG-KORREKTUR */}
       <main ref={mainRefCallback} className="flex-1 overflow-y-auto overflow-x-hidden flex flex-col items-center bg-zinc-800/40 w-full py-4 sm:py-8 px-0 sm:px-4">
         
-      {/* Perfekte A4-Druck-Vorschau ohne Inhaltsverschiebung */}
-       {/* Perfekte A4-Druck-Vorschau ohne Inhaltsverschiebung */}
+    {/* Intelligente CSS-Injektion für perfektes, seitenbasiertes A4-Rendering */}
         <style>{`
-          /* WYSIWYG: Text bricht im Editor und PDF exakt identisch um */
+          /* WYSIWYG: Text verhält sich im Editor exakt wie im PDF */
           [data-pdf-root] textarea, 
           [data-pdf-root] p, 
           [data-pdf-root] span, 
@@ -1446,55 +1445,35 @@ const updateSectionItem = (
             word-break: break-word !important;
           }
 
-          /* ECHTE SICHTBARE A4-TRENNUNG IM LIVE-EDITOR */
+          /* ECHTES SEITENBASIERTES LAYOUT IM LIVE-EDITOR */
           @media screen {
-            [data-pdf-root] {
+            /* Macht den Hintergrund des Editors dunkel, damit sich die weißen A4-Seiten abheben */
+            main {
+              background-color: #1f2937 !important;
+              padding: 40px 0 !important;
+            }
+
+            /* Der Skalierungs-Wrapper darf keine feste Höhe erzwingen, da wir mehrere Seiten haben */
+            main > div {
+              height: auto !important;
+            }
+
+            /* JEDE EINZELNE SEITE WIRD EIN PHYSISCHES A4-BLATT MIT SPALT */
+            .cv-page {
+              width: 794px !important;
+              height: 1122px !important;
+              background-color: #ffffff !important;
+              margin: 0 auto 24px auto !important; /* Sichtbarer Spalt zwischen Seite 1 und Seite 2 */
+              box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.3), 0 8px 10px -6px rgba(0, 0, 0, 0.3) !important;
               position: relative !important;
-              /* Erzeugt ein exaktes Raster aus 1122px hohen A4-Blättern im Hintergrund */
-              background-image: linear-gradient(
-                to bottom,
-                transparent 0px,
-                transparent 1121px,
-                #cbd5e1 1121px, /* Die sichtbare A4-Schnittlinie (grau) */
-                #cbd5e1 1122px,
-                transparent 1122px
-              ) !important;
-              background-size: 100% 1122px !important;
-              min-height: 1122px !important;
-            }
-
-            /* 🔥 BEHOBEN: Zwingt jede Job-Box im Editor dazu, die A4-Kante zu beachten und unzerteilt auf die nächste Seite zu rutschen */
-            [data-pdf-root] [data-pdf-section] {
-              break-inside: avoid !important;
-              page-break-inside: avoid !important;
-              position: relative;
-            }
-
-            /* Indikator-Linie, die an der echten A4-Schnittkante über dem Dokument liegt */
-            [data-pdf-root]::after {
-              content: "--- NÄCHSTE SEITE ---";
-              position: absolute;
-              left: 0;
-              right: 0;
-              top: 1112px; /* Perfekt kurz vor dem Seitenumbruch platziert */
-              text-align: right;
-              padding-right: 15px;
-              font-size: 10px;
-              font-weight: 700;
-              color: #94a3b8;
-              pointer-events: none;
-              letter-spacing: 0.1em;
-              border-bottom: 1px dashed #cbd5e1; /* Sichtbare gestrichelte Linie im Editor */
-              height: 10px;
-              z-index: 10;
+              overflow: hidden !important;
+              border: none !important;
             }
           }
 
-          /* Schützt den Export: Entfernt alle Bearbeitungshilfen im finalen PDF */
-          @media print {
-            .nonce-export {
-              display: none !important;
-            }
+          /* Verhindert Geisterbalken im PDF */
+          .pdf-hidden, .nonce-export {
+            display: none !important;
           }
         `}</style>
         {/* DER SCALING-WRAPPER */}
