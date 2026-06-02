@@ -1093,7 +1093,18 @@ export function CVLiveEditorPage() {
       }
     });
   };
-
+// 🔥 NEU: Diese Funktion hängst du hier direkt unten an den Block an!
+  const addSectionItem = (sectionIndex: number, defaultItem: any) => {
+    setHasEditorChanges(true);
+    setEditorData((prev: any) => {
+      if (!prev?.sections?.[sectionIndex]) return prev;
+      const newSections = [...prev.sections];
+      const section = { ...newSections[sectionIndex] };
+      section.items = [...(section.items || []), defaultItem];
+      newSections[sectionIndex] = section;
+      return { ...prev, sections: newSections };
+    });
+  };
   if (error) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-[#050507] via-[#0a0a0f] to-[#050507] text-white flex items-center justify-center">
