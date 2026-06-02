@@ -827,22 +827,20 @@ export const ModernCVTemplate: React.FC<ModernCVTemplateProps> = ({
 
   return (
     <>
-      {/* Virtuelle Layout-Hilfen: Berechnet das A4-Raster exklusiv für den LiveEditor-Bildschirm */}
       <style>{`
-        @media screen {
-          .cv-render-root {
-            position: relative !important;
-            /* Zeichnet eine feine, graue Kante präzise alle 1122px in das Dokument */
-            background-image: linear-gradient(
-              to bottom,
-              transparent 0px,
-              transparent 1121px,
-              #cbd5e1 1121px, 
-              #cbd5e1 1122px,
-              transparent 1122px
-            ) !important;
-            background-size: 100% 1122px !important;
-          }
+        .cv-render-root {
+          position: relative !important;
+          width: 794px !important;
+          min-height: 1122px !important;
+          background-image: linear-gradient(
+            to bottom,
+            transparent 0px,
+            transparent 1121px,
+            #cbd5e1 1121px,
+            #cbd5e1 1122px,
+            transparent 1122px
+          ) !important;
+          background-size: 100% 1122px !important;
         }
       `}</style>
 
@@ -851,7 +849,6 @@ export const ModernCVTemplate: React.FC<ModernCVTemplateProps> = ({
         style={{
           fontFamily: FONT,
           color: '#1e293b',
-          width: '100%',
           minHeight: '1122px',
           display: 'flex',
           flexDirection: 'column',
