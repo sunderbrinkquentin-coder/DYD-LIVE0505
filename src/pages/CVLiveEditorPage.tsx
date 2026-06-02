@@ -1407,56 +1407,56 @@ const handleDownloadClick = () => {
       {/* MAIN CONTENT AREA MIT AUTOMATISCHEN HILFSLINIEN UND GERENDERTER WYSIWYG-KORREKTUR */}
       <main ref={mainRefCallback} className="flex-1 overflow-y-auto overflow-x-hidden flex flex-col items-center bg-zinc-800/40 w-full py-4 sm:py-8 px-0 sm:px-4">
         
-       {/* Intelligente CSS-Injektion für unumstößliches A4-Seiten-Rendering */}
+       {/* Perfekte A4-Druck-Vorschau ohne Inhaltsverschiebung */}
         <style>{`
-          /* WYSIWYG Synchronität */
-          [data-pdf-root] [contenteditable="true"],
+          /* WYSIWYG: Text bricht im Editor und PDF exakt identisch um */
+          [data-pdf-root] textarea, 
           [data-pdf-root] p, 
           [data-pdf-root] span, 
           [data-pdf-root] div,
           [data-pdf-root] li {
             white-space: pre-wrap !important;
             word-break: break-word !important;
-            outline: none;
           }
 
-          [data-pdf-root] [contenteditable="true"]:focus {
-            background-color: rgba(102, 192, 182, 0.05);
-            box-shadow: 0 0 0 1px rgba(102, 192, 182, 0.3);
-            border-radius: 4px;
-          }
-
-          /* ECHTE VISUELLE SEITENTRENNUNG IM EDITOR */
+          /* ECHTE SICHBARE A4-TRENNUNG IM LIVE-EDITOR */
           @media screen {
-            /* Hebt die starre Begrenzung des Editors auf, damit Seiten fließen können */
-            main > div {
-              height: auto !important;
-              width: auto !important;
-            }
-
-            .modern-page-container {
-              width: 794px !important;
-              height: 1122px !important;
-              background-color: #ffffff !important;
-              margin: 0 auto 30px auto !important; /* Erzeugt einen unübersehbaren Spalt zwischen den Blättern */
-              box-shadow: 0 12px 36px rgba(0,0,0,0.25) !important;
+            [data-pdf-root] {
               position: relative !important;
-              overflow: hidden !important;
-              border: 1px solid rgba(0,0,0,0.1) !important;
+              /* Erzeugt ein endloses Raster aus exakt 1122px hohen A4-Blättern */
+              background-image: linear-gradient(
+                to bottom,
+                #ffffff 0px,
+                #ffffff 1121px,
+                #e2e8f0 1121px, /* Die sichtbare A4-Schnittlinie (grau) */
+                #e2e8f0 1122px,
+                #ffffff 1122px
+              ) !important;
+              background-size: 100% 1122px !important;
+              min-height: 1122px !important;
             }
 
-            .modern-sidebar-fix {
-              height: 1122px !important;
+            /* Indikator-Linie, die am rechten Rand des Editors den Umbruch anzeigt */
+            [data-pdf-root]::after {
+              content: "--- NÄCHSTE SEITE ---";
+              position: absolute;
+              right: 15px;
+              top: 1100px;
+              font-size: 10px;
+              font-weight: 700;
+              color: #94a3b8;
+              pointer-events: none;
+              letter-spacing: 0.1em;
             }
           }
 
+          /* Schützt den Export: Entfernt alle Bearbeitungshilfen im finalen PDF */
           @media print {
             .nonce-export {
               display: none !important;
             }
           }
         `}</style>
-
         {/* DER SCALING-WRAPPER */}
         <div
           style={{
