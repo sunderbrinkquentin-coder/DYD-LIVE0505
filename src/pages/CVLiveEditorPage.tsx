@@ -229,9 +229,8 @@ export function CVLiveEditorPage() {
 
   const [templateConfirmed, setTemplateConfirmed] = useState(false);
 
-  // Page-break engine: maps "sectionIndex-itemIndex" → spacer px to push station to next page
+  // 🔥 DIE ENGINE: Misst im Hintergrund und pusht die Boxen nach unten!
   const [pageBreakItems, setPageBreakItems] = useState<Map<string, number>>(new Map());
-  const pageBreakScheduledRef = useRef(false);
 
   const cvPreviewRef = useRef<HTMLDivElement | null>(null);
   const mainAreaRef = useRef<HTMLDivElement | null>(null);
@@ -270,73 +269,56 @@ export function CVLiveEditorPage() {
     const observer = new ResizeObserver(measure);
     observer.observe(el);
     return () => observer.disconnect();
-  }, [editorData, selectedTemplate]);
+  }, [editorData, selectedTemplate, pageBreakItems]);
 
   useEffect(() => {
     (window as any).__debugPdfHtml = () => debugLogPDFHtml(cvPreviewRef);
     return () => { delete (window as any).__debugPdfHtml; };
   }, []);
 
-  // Page-break engine: after render, measure [data-spacer-id] items in the hidden source
-  // and compute spacers needed to prevent stations from splitting across page boundaries.
-  const pageBreakItemsRef = useRef<Map<string, number>>(pageBreakItems);
-  pageBreakItemsRef.current = pageBreakItems;
-
+  // ── DIE UNZERSTÖRBARE SMART-BREAK ENGINE ──
   useEffect(() => {
+    const container = cvPreviewRef.current;
+    if (!container) return;
+
     const PAGE_H = 1122;
+    const newMap = new Map<string, number>();
 
-    const compute = () => {
-      const container = cvPreviewRef.current;
-      if (!container) return;
+    // Alle DOM-Elemente holen, die mit data-spacer-id markiert sind
+    const elements = Array.from(container.querySelectorAll<HTMLElement>('[data-spacer-id]'));
+    
+    // Zuerst alle Abstände Nullen, um die exakte rohe Höhe zu messen
+    elements.forEach(el => el.style.marginTop = '0px');
 
-      const sections = container.querySelectorAll<HTMLElement>('[data-spacer-id]');
-      if (sections.length === 0) {
-        if (pageBreakItemsRef.current.size > 0) setPageBreakItems(new Map());
-        pageBreakScheduledRef.current = false;
-        return;
+    // Force DOM Reflow
+    void container.offsetHeight;
+
+    elements.forEach(el => {
+      const box = el.getBoundingClientRect();
+      const parentBox = container.getBoundingClientRect();
+      // Die unskalierte Position im Editor berechnen
+      const top = (box.top - parentBox.top) / scale;
+      const height = box.height / scale;
+      const bottom = top + height;
+
+      const pageStart = Math.floor(top / PAGE_H);
+      const pageEnd = Math.floor((bottom - 0.1) / PAGE_H);
+
+      // Wenn das Element die Kante kreuzt, berechnen wir die Differenz bis zur nächsten Kante
+      if (pageEnd > pageStart && height < PAGE_H) {
+        const nextPageTop = (pageStart + 1) * PAGE_H;
+        const pushDown = nextPageTop - top + 2; // 2px Puffer
+        
+        newMap.set(el.getAttribute('data-spacer-id')!, pushDown);
+        
+        // Sofort anwenden, damit das Element physisch runterrutscht und das nächste Element richtig gemessen wird
+        el.style.marginTop = `${pushDown}px`;
       }
+    });
 
-      const newMap = new Map<string, number>();
-
-      sections.forEach((el) => {
-        const key = el.getAttribute('data-spacer-id') ?? '';
-        if (!key) return;
-
-        // offsetTop is relative to the nearest positioned ancestor (container)
-        const existingSpacer = pageBreakItemsRef.current.get(key) ?? 0;
-        // Strip out the spacer that's already added to this item's marginTop
-        const itemTop = el.offsetTop - existingSpacer;
-        const itemHeight = el.offsetHeight;
-        const itemBottom = itemTop + itemHeight;
-
-        const pageStart = Math.floor(itemTop / PAGE_H);
-        const pageEnd = Math.floor((itemBottom - 1) / PAGE_H);
-
-        if (pageEnd > pageStart) {
-          const nextPageTop = (pageStart + 1) * PAGE_H;
-          const spacer = nextPageTop - itemTop;
-          if (spacer > 0 && spacer < PAGE_H) {
-            newMap.set(key, spacer);
-          }
-        }
-      });
-
-      const prev = pageBreakItemsRef.current;
-      const changed = newMap.size !== prev.size ||
-        [...newMap.entries()].some(([k, v]) => prev.get(k) !== v) ||
-        [...prev.entries()].some(([k]) => !newMap.has(k));
-
-      if (changed) {
-        setPageBreakItems(newMap);
-      }
-      pageBreakScheduledRef.current = false;
-    };
-
-    if (!pageBreakScheduledRef.current) {
-      pageBreakScheduledRef.current = true;
-      requestAnimationFrame(() => requestAnimationFrame(compute));
-    }
-  }, [editorData, selectedTemplate, cvHeight]);
+    setPageBreakItems(newMap);
+    
+  }, [editorData, selectedTemplate, scale]);
 
   const isInitialLoadRef = useRef(true);
   const saveTimeoutRef = useRef<number | null>(null);
@@ -842,7 +824,6 @@ export function CVLiveEditorPage() {
     };
   }, [cvId, hasEditorChanges]);
 
-// Erzeugt eine feste Referenz im Speicher, um Mehrfach-Ausführungen zu blockieren
   const exportInProgressRef = useRef(false);
 
   useEffect(() => {
@@ -850,7 +831,6 @@ export function CVLiveEditorPage() {
     if (!paymentSuccess || !editorData || !user || !cvId) return;
     if (!isTemplateReady || !templateConfirmed) return;
 
-    // 🔥 FIX: Wenn der Export bereits läuft oder beendet wurde, brich sofort ab!
     if (autoDownloadTriggeredRef.current || exportInProgressRef.current) return;
     autoDownloadTriggeredRef.current = true;
     exportInProgressRef.current = true;
@@ -870,7 +850,6 @@ export function CVLiveEditorPage() {
 
       const el = await waitForElement(cvPreviewRef, 5000);
       const navigateToDashboard = () => {
-        // Bereinigt die URL beim Verlassen, damit beim Zurückgehen kein neuer Loop entsteht
         navigate(`/dashboard?highlightCv=${cvId}`, { replace: true });
       };
 
@@ -959,7 +938,6 @@ export function CVLiveEditorPage() {
         await saveToDb();
       }
 
-      // Setzt die Referenz zurück und leitet sauber weiter
       exportInProgressRef.current = false;
       navigateToDashboard();
     };
@@ -967,7 +945,6 @@ export function CVLiveEditorPage() {
     doExportAndNavigate();
   }, [templateConfirmed, editorData, user, cvId, isTemplateReady, searchParams]);
 
-  // 🔥 PERFORMANCE-FIX (Punkt 8): Erhöht auf 5s Debounce & senkt IO-Last bei 50+ parallelen Usern
   useEffect(() => {
     if (isInitialLoadRef.current) {
       isInitialLoadRef.current = false;
@@ -982,12 +959,8 @@ export function CVLiveEditorPage() {
 
     saveTimeoutRef.current = window.setTimeout(async () => {
       try {
-        const projectsSection = editorData.sections?.find(
-          (s) => s.type === 'projects'
-        );
-        const languagesSection = editorData.sections?.find(
-          (s) => s.type === 'languages'
-        );
+        const projectsSection = editorData.sections?.find((s) => s.type === 'projects');
+        const languagesSection = editorData.sections?.find((s) => s.type === 'languages');
 
         const dataToSave = {
           ...editorData,
@@ -1005,12 +978,10 @@ export function CVLiveEditorPage() {
           })
           .eq('id', cvId);
       } catch (error) {}
-    }, 5000); // 5000ms statt 2000ms entzerrt die WebSocket-Schleife der Datenbank
+    }, 5000);
 
     return () => {
-      if (saveTimeoutRef.current) {
-        window.clearTimeout(saveTimeoutRef.current);
-      }
+      if (saveTimeoutRef.current) window.clearTimeout(saveTimeoutRef.current);
     };
   }, [editorData, cvId, user, photoUrl, photoPosition]);
 
@@ -1026,26 +997,28 @@ export function CVLiveEditorPage() {
     };
   };
 
-// ── HARTE FREISCHALT-LOGIK: DIREKTE PAYWALL-UMLEITUNG OHNE MODALS ──
+  // 🔥 FREISCHALTFLOW-WEICHE: Token checken oder Paywall öffnen
   const handleDownloadClick = () => {
     if (!cvId) return;
 
-    // 1. Nicht eingeloggt? Sofort zum Login schicken
     if (!user) {
       const redirectTo = encodeURIComponent(`/cv-live-editor/${cvId}`);
       navigate(`/login?redirect=${redirectTo}`);
       return;
     }
 
-    // 2. Absolute Sperre: Wenn NICHT freigeschaltet, direkt zur Paywall-Preisseite umleiten!
-    // Keine Modals dazwischen. Hier wählt der User seine Credits (1x, 5x, 10x)
-    if (!isDownloadUnlocked) {
-      navigate(`/cv-paywall?cvId=${cvId}&source=cv_optimizer`);
+    if (isDownloadUnlocked) {
+      setShowTemplateSelectForExport(true);
       return;
     }
 
-    // 3. Erst wenn der Status in der DB verifiziert "unlocked" ist, läuft der Export
-    triggerDirectExport();
+    setShowPaywallModal(true);
+  };
+
+  const handlePaywallSuccess = () => {
+    setShowPaywallModal(false);
+    setIsDownloadUnlocked(true);
+    setShowTemplateSelectForExport(true); // Schaltet sofort das Layout-Modal frei
   };
 
   const triggerDirectExport = async () => {
@@ -1062,8 +1035,6 @@ export function CVLiveEditorPage() {
 
       const savedTransform = cvPreviewRef.current.style.transform;
       cvPreviewRef.current.style.transform = 'none';
-      
-      // Nutzt die exakte PDF-Export-Funktion auf dem Preview-Ref
       const blob = await exportCVToPDFBlob(cvPreviewRef);
       cvPreviewRef.current.style.transform = savedTransform;
 
@@ -1076,7 +1047,7 @@ export function CVLiveEditorPage() {
       a.remove();
       URL.revokeObjectURL(url);
     } catch (e) {
-      console.error('Export fehlgeschlagen:', e);
+      console.error('Export failed', e);
     } finally {
       setIsExportingPDF(false);
     }
@@ -1124,25 +1095,16 @@ export function CVLiveEditorPage() {
     setHasEditorChanges(true);
     setEditorData((prev: any) => {
       if (!prev) return prev;
-      return {
-        ...prev,
-        personalInfo: { ...(prev.personalInfo || {}), [field]: value },
-      };
+      return { ...prev, personalInfo: { ...(prev.personalInfo || {}), [field]: value } };
     });
   };
 
-  const updateSection = (
-    sectionIndex: number,
-    updates: Partial<EditorSection>
-  ) => {
+  const updateSection = (sectionIndex: number, updates: Partial<EditorSection>) => {
     setHasEditorChanges(true);
     setEditorData((prev: any) => {
       if (!prev?.sections) return prev;
       const newSections = [...prev.sections];
-      newSections[sectionIndex] = {
-        ...newSections[sectionIndex],
-        ...updates,
-      };
+      newSections[sectionIndex] = { ...newSections[sectionIndex], ...updates };
       return { ...prev, sections: newSections };
     });
   };
@@ -1151,17 +1113,11 @@ export function CVLiveEditorPage() {
     setHasEditorChanges(true);
     setEditorData((prev: any) => {
       if (!prev?.sections?.[sectionIndex]) return prev;
-
       try {
         const newSections = [...prev.sections];
         const section = { ...newSections[sectionIndex] };
-
         if (!section.items || !Array.isArray(section.items)) return prev;
-        if (itemIndex < 0 || itemIndex >= section.items.length) return prev;
-
-        const newItems = section.items.filter((_: any, idx: number) => idx !== itemIndex);
-        section.items = newItems;
-
+        section.items = section.items.filter((_: any, idx: number) => idx !== itemIndex);
         newSections[sectionIndex] = section;
         return { ...prev, sections: newSections };
       } catch (error) {
@@ -1170,75 +1126,42 @@ export function CVLiveEditorPage() {
     });
   };
 
-const updateSectionItem = (
-    sectionIndex: number,
-    itemIndex: number,
-    field: string,
-    value: any
-  ) => {
-    // Verhindert unnötige State-Zyklen, wenn der Wert identisch ist
+  const updateSectionItem = (sectionIndex: number, itemIndex: number, field: string, value: any) => {
     setHasEditorChanges(true);
-
     setEditorData((prev: any) => {
-      // 1. Defensive Guard-Clauses gegen Crashs
       if (!prev?.sections?.[sectionIndex]?.items) return prev;
-      
       const rawItems = prev.sections[sectionIndex].items;
       if (itemIndex < 0 || itemIndex >= rawItems.length) return prev;
 
       try {
-        // 2. Absolut sauberes Deep-Cloning der Sektions-Struktur (Keine Speicher-Referenzen zum alten State!)
         const newSections = prev.sections.map((sec: any, sIdx: number) => {
           if (sIdx !== sectionIndex) return sec;
-
-          // Wir klonen das Items-Array für die Ziel-Sektion
           const newItems = [...sec.items];
           const currentItem = newItems[itemIndex];
-
           let updatedItem: any = {};
 
-          // 3. Robuste Normalisierung des Datentyps
           if (typeof currentItem === 'object' && currentItem !== null) {
-            // Wenn es ein Objekt ist, kopieren wir alle bestehenden Felder (z.B. Erhalt von bulletPoints beim Tippen von title)
             updatedItem = { ...currentItem };
           } else if (typeof currentItem === 'string' || typeof currentItem === 'number') {
-            // Konvertierung von Altdaten/Strings in ein strukturiertes Objekt
-            updatedItem = {
-              title: String(currentItem),
-              position: String(currentItem),
-              degree: String(currentItem),
-              description: String(currentItem),
-              bulletPoints: []
-            };
+            updatedItem = { title: String(currentItem), position: String(currentItem), degree: String(currentItem), description: String(currentItem), bulletPoints: [] };
           }
 
-          // 4. Präzises, isoliertes Werte-Update
           if (field === 'bulletPoints') {
-            // Garantiert, dass Bulletpoints immer als sauberes Array übergeben werden
             updatedItem.bulletPoints = Array.isArray(value) ? [...value] : [];
           } else {
-            // Jedes andere Feld (title, company, date_from etc.) wird normal gepatcht
             updatedItem[field] = value;
           }
 
-          // Ersetze das geklonte Item im Array
           newItems[itemIndex] = updatedItem;
-
-          // Gibt die vollständig isolierte Sektion zurück
           return { ...sec, items: newItems };
         });
-
-        // 5. Rückgabe des neuen Root-Objekts an React
         return { ...prev, sections: newSections };
-
       } catch (error) {
-        console.error("🚨 Kritischer Fehler im perfektionierten updateSectionItem-Handler:", error);
         return prev;
       }
     });
   };
 
-  // 🔥 NEU: Saubere API für Sektionen, um Bulletpoints / Items hinzuzufügen (Löst Punkt 3)
   const addSectionItem = (sectionIndex: number, defaultItem: any) => {
     setHasEditorChanges(true);
     setEditorData((prev: any) => {
@@ -1260,12 +1183,7 @@ const updateSectionItem = (
             <h2 className="text-2xl font-bold mb-2">Fehler</h2>
             <p className="text-white/60">{error}</p>
           </div>
-          <button
-            onClick={() => window.history.back()}
-            className="px-6 py-3 bg-white/10 hover:bg-white/20 rounded-lg transition-all"
-          >
-            Zurück
-          </button>
+          <button onClick={() => window.history.back()} className="px-6 py-3 bg-white/10 hover:bg-white/20 rounded-lg transition-all">Zurück</button>
         </div>
       </div>
     );
@@ -1273,7 +1191,6 @@ const updateSectionItem = (
 
   if (!editorData) {
     const isPostPayment = searchParams.get('payment') === 'success';
-
     if (isPostPayment && isLoading) {
       return (
         <div className="min-h-screen bg-[#06060e] flex items-center justify-center">
@@ -1301,45 +1218,13 @@ const updateSectionItem = (
     ];
 
     const INFOS = [
-      {
-        tag: 'CV-Check',
-        title: 'Was ist der CV-Check?',
-        description: 'Der CV-Check analysiert deinen bestehenden Lebenslauf vollautomatisch: Er bewertet die ATS-Kompatibilität, erkennt inhaltliche Lücken und gibt dir konkrete Verbesserungsvorschläge — kostenlos und in Sekunden.',
-        icon: <FileSearch size={20} className="text-[#66c0b6]" />,
-        accent: '#66c0b6',
-      },
-      {
-        tag: 'CV-Erstellung',
-        title: 'Wie funktioniert die CV-Optimierung?',
-        description: 'Du gibst die Stellenanzeige ein — unsere KI liest deinen CV und passt jeden Abschnitt gezielt auf die Stelle an. Formulierungen werden jobspezifisch umgeschrieben, ATS-Keywords eingebaut und die Reihenfolge optimiert.',
-        icon: <Sparkles size={20} className="text-[#66c0b6]" />,
-        accent: '#66c0b6',
-      },
-      {
-        tag: 'Career Academy',
-        title: 'Was ist die Career Academy?',
-        description: 'Die Career Academy hilft dir, deinen persönlichen Karrierepfad zu entwickeln. Mit KI-gestützten Gap-Analysen siehst du, welche Skills du noch brauchst, und bekommst individuell zusammengestellte Lernpfade.',
-        icon: <GraduationCap size={20} className="text-[#66c0b6]" />,
-        accent: '#66c0b6',
-      },
-      {
-        tag: 'Harmony Festival',
-        title: 'Was ist das Harmony Festival?',
-        description: 'Ein Tag am Rhein — 22. August 2026. Live-Konzert, DJ-Sets, Stand-Up Comedy, Bierpong-Turnier und das beste Bier aus der Heimat. Kein Karriereevent — ein echtes Festival für echte Begegnung.',
-        icon: <Music2 size={20} className="text-amber-400" />,
-        accent: '#f59e0b',
-        amber: true,
-      },
+      { tag: 'CV-Check', title: 'Was ist der CV-Check?', description: 'Der CV-Check analysiert deinen bestehenden Lebenslauf vollautomatisch: Er bewertet die ATS-Kompatibilität, erkennt inhaltliche Lücken und gibt dir konkrete Verbesserungsvorschläge — kostenlos und in Sekunden.', icon: <FileSearch size={20} className="text-[#66c0b6]" />, accent: '#66c0b6' },
+      { tag: 'CV-Erstellung', title: 'Wie funktioniert die CV-Optimierung?', description: 'Du gibst die Stellenanzeige ein — unsere KI liest deinen CV und passt jeden Abschnitt gezielt auf die Stelle an. Formulierungen werden jobspezifisch umgeschrieben, ATS-Keywords eingebaut und die Reihenfolge optimiert.', icon: <Sparkles size={20} className="text-[#66c0b6]" />, accent: '#66c0b6' },
+      { tag: 'Career Academy', title: 'Was ist die Career Academy?', description: 'Die Career Academy hilft dir, deinen persönlichen Karrierepfad zu entwickeln. Mit KI-gestützten Gap-Analysen siehst du, welche Skills du noch brauchst, und bekommst individuell zusammengestellte Lernpfade.', icon: <GraduationCap size={20} className="text-[#66c0b6]" />, accent: '#66c0b6' },
+      { tag: 'Harmony Festival', title: 'Was ist das Harmony Festival?', description: 'Ein Tag am Rhein — 22. August 2026. Live-Konzert, DJ-Sets, Stand-Up Comedy, Bierpong-Turnier und das beste Bier aus der Heimat. Kein Karriereevent — ein echtes Festival für echte Begegnung.', icon: <Music2 size={20} className="text-amber-400" />, accent: '#f59e0b', amber: true },
     ];
 
-    return (
-      <LoadingPageContent
-        elapsedSeconds={elapsedSeconds}
-        activeStep={activeStep}
-        PROCESSING_STEPS={PROCESSING_STEPS}
-        INFOS={INFOS}
-      />
-    );
+    return <LoadingPageContent elapsedSeconds={elapsedSeconds} activeStep={activeStep} PROCESSING_STEPS={PROCESSING_STEPS} INFOS={INFOS} />;
   }
 
   const isPostPaymentFlow = searchParams.get('payment') === 'success';
@@ -1367,9 +1252,7 @@ const updateSectionItem = (
                 key={t.id}
                 onClick={() => { handleTemplateChange(t.id); }}
                 className={`relative flex flex-col items-center gap-3 p-4 rounded-2xl border-2 transition-all duration-200 ${
-                  selectedTemplate === t.id
-                    ? 'border-[#66c0b6] bg-[#66c0b6]/10 shadow-[0_0_20px_rgba(102,192,182,0.2)]'
-                    : 'border-white/10 bg-white/5 hover:border-white/25 hover:bg-white/8'
+                  selectedTemplate === t.id ? 'border-[#66c0b6] bg-[#66c0b6]/10 shadow-[0_0_20px_rgba(102,192,182,0.2)]' : 'border-white/10 bg-white/5 hover:border-white/25 hover:bg-white/8'
                 }`}
               >
                 {selectedTemplate === t.id && (
@@ -1400,19 +1283,8 @@ const updateSectionItem = (
 
   return (
     <div className="h-screen bg-[#050507] flex flex-col overflow-hidden font-sans w-full">
-{isPostPaymentFlow && templateConfirmed && (
-        <div style={{
-          position: 'fixed',
-          inset: 0,
-          zIndex: 9999,
-          background: 'rgba(2,6,23,0.94)',
-          display: 'flex',
-          flexDirection: 'column',
-          alignItems: 'center',
-          justifyContent: 'center',
-          gap: '24px',
-          pointerEvents: 'all',
-        }}>
+      {isPostPaymentFlow && templateConfirmed && (
+        <div style={{ position: 'fixed', inset: 0, zIndex: 9999, background: 'rgba(2,6,23,0.94)', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: '24px', pointerEvents: 'all' }}>
           <Loader2 className="w-14 h-14 text-[#66c0b6] animate-spin" />
           <h2 className="text-2xl font-bold text-white">PDF wird generiert...</h2>
           <p className="text-white/60 max-w-sm text-center">Bitte schließe dieses Fenster nicht.</p>
@@ -1425,12 +1297,7 @@ const updateSectionItem = (
             <span className="font-bold text-sm">Zahlung erfolgreich!</span>
             <span className="text-sm">Dein CV wird jetzt als PDF erstellt...</span>
           </div>
-          <button
-            onClick={() => setShowPaymentSuccessBanner(false)}
-            className="text-black/60 hover:text-black transition-colors text-lg font-bold leading-none"
-          >
-            &times;
-          </button>
+          <button onClick={() => setShowPaymentSuccessBanner(false)} className="text-black/60 hover:text-black transition-colors text-lg font-bold leading-none">&times;</button>
         </div>
       )}
 
@@ -1438,29 +1305,13 @@ const updateSectionItem = (
       <header className="bg-black/30 backdrop-blur-md border-b border-white/10 flex-shrink-0 z-50 sticky top-0 w-full">
         <div className="max-w-7xl mx-auto px-3 sm:px-4 py-2 sm:py-3">
           <div className="flex flex-col sm:flex-row gap-2 sm:items-center sm:justify-between">
-            
             <div className="flex items-center justify-between w-full sm:w-auto">
-              <button
-                onClick={() => navigate('/dashboard')}
-                className="px-3 py-2 rounded-lg bg-white/5 border border-white/10 hover:bg-white/10 transition-all flex items-center gap-2 text-white/70 hover:text-white"
-                title="Zum Dashboard"
-              >
-                <ArrowLeft size={16} />
-                <span className="hidden sm:inline text-sm">Dashboard</span>
+              <button onClick={() => navigate('/dashboard')} className="px-3 py-2 rounded-lg bg-white/5 border border-white/10 hover:bg-white/10 transition-all flex items-center gap-2 text-white/70 hover:text-white" title="Zum Dashboard">
+                <ArrowLeft size={16} /> <span className="hidden sm:inline text-sm">Dashboard</span>
               </button>
-
               <div className="flex sm:hidden items-center gap-2">
-                <button
-                  onClick={() => setShowPhotoUpload(!showPhotoUpload)}
-                  className="p-2.5 rounded-lg bg-[#66c0b6]/20 border border-[#66c0b6]/40 text-[#66c0b6]"
-                >
-                  <Camera size={18} />
-                </button>
-                <button
-                  onClick={handleDownloadClick}
-                  disabled={isExportingPDF}
-                  className={`p-2.5 rounded-lg bg-gradient-to-r from-[#66c0b6] to-[#30E3CA] text-black shadow-lg ${isExportingPDF ? 'opacity-50' : ''}`}
-                >
+                <button onClick={() => setShowPhotoUpload(!showPhotoUpload)} className="p-2.5 rounded-lg bg-[#66c0b6]/20 border border-[#66c0b6]/40 text-[#66c0b6]"><Camera size={18} /></button>
+                <button onClick={handleDownloadClick} disabled={isExportingPDF} className={`p-2.5 rounded-lg bg-gradient-to-r from-[#66c0b6] to-[#30E3CA] text-black shadow-lg ${isExportingPDF ? 'opacity-50' : ''}`}>
                   {isExportingPDF ? <Loader2 size={18} className="animate-spin" /> : <Download size={18} />}
                 </button>
               </div>
@@ -1469,52 +1320,18 @@ const updateSectionItem = (
             <div className="flex items-center gap-2 overflow-x-auto w-full sm:w-auto hide-scrollbar pb-1 sm:pb-0">
               <span className="text-sm text-white/60 hidden sm:inline flex-shrink-0">Design:</span>
               {templates.map((template) => (
-                <button
-                  key={template.id}
-                  onClick={() => handleTemplateChange(template.id)}
-                  className={`px-3 py-1.5 sm:py-2 rounded-lg text-xs sm:text-sm font-medium transition-all flex-shrink-0 flex items-center gap-1.5 ${
-                    selectedTemplate === template.id
-                      ? 'bg-[#66c0b6] text-black'
-                      : 'bg-white/5 text-white/70 hover:bg-white/10'
-                  }`}
-                >
-                  <span>{template.icon}</span>
-                  <span>{template.name}</span>
+                <button key={template.id} onClick={() => handleTemplateChange(template.id)} className={`px-3 py-1.5 sm:py-2 rounded-lg text-xs sm:text-sm font-medium transition-all flex-shrink-0 flex items-center gap-1.5 ${selectedTemplate === template.id ? 'bg-[#66c0b6] text-black' : 'bg-white/5 text-white/70'}`}>
+                  <span>{template.icon}</span> <span>{template.name}</span>
                 </button>
               ))}
             </div>
 
             <div className="hidden sm:flex items-center gap-3">
-              <button
-                onClick={() => setShowPhotoUpload(!showPhotoUpload)}
-                className="px-4 py-2 rounded-lg bg-[#66c0b6]/20 hover:bg-[#66c0b6]/30 transition-all border border-[#66c0b6]/40 flex items-center gap-2"
-                title="Foto hochladen"
-              >
-                <Camera size={18} className="text-[#66c0b6]" />
-                <span className="text-sm font-medium text-white/90">Foto</span>
+              <button onClick={() => setShowPhotoUpload(!showPhotoUpload)} className="px-4 py-2 rounded-lg bg-[#66c0b6]/20 hover:bg-[#66c0b6]/30 transition-all border border-[#66c0b6]/40 flex items-center gap-2"><Camera size={18} className="text-[#66c0b6]" /> <span className="text-sm font-medium text-white/90">Foto</span></button>
+              <button onClick={handleDownloadClick} disabled={isExportingPDF} className={`px-5 py-2 rounded-xl bg-gradient-to-r from-[#66c0b6] to-[#30E3CA] text-black font-bold text-sm hover:brightness-110 hover:shadow-lg hover:shadow-[#66c0b6]/30 transition-all flex items-center gap-2 ${isExportingPDF ? 'opacity-50 cursor-not-allowed' : 'animate-pulse-subtle'}`}>
+                {isExportingPDF ? <><Loader2 size={16} className="animate-spin" /> Generiere...</> : <><Download size={16} /> Herunterladen</>}
               </button>
-
-              <button
-                onClick={handleDownloadClick}
-                disabled={isExportingPDF}
-                className={`px-5 py-2 rounded-xl bg-gradient-to-r from-[#66c0b6] to-[#30E3CA] text-black font-bold text-sm hover:brightness-110 hover:shadow-lg hover:shadow-[#66c0b6]/30 transition-all flex items-center gap-2 ${
-                  isExportingPDF ? 'opacity-50 cursor-not-allowed' : 'animate-pulse-subtle'
-                }`}
-              >
-                {isExportingPDF ? (
-                  <><Loader2 size={16} className="animate-spin" /> Generiere...</>
-                ) : (
-                  <><Download size={16} /> Herunterladen</>
-                )}
-              </button>
-
-              <button
-                onClick={() => setShowTips(!showTips)}
-                className="px-3 py-2 rounded-lg bg-white/10 hover:bg-white/20 transition-all flex items-center gap-2"
-                title="Tipps anzeigen"
-              >
-                <Sparkles size={16} className="text-[#66c0b6]" />
-              </button>
+              <button onClick={() => setShowTips(!showTips)} className="px-3 py-2 rounded-lg bg-white/10 hover:bg-white/20 transition-all flex items-center gap-2"><Sparkles size={16} className="text-[#66c0b6]" /></button>
             </div>
           </div>
 
@@ -1526,57 +1343,69 @@ const updateSectionItem = (
           {photoUrl && (
             <div className="mt-3 p-3 bg-white/5 rounded-lg border border-white/10 space-y-2 max-w-sm">
               <p className="text-xs font-medium text-white/50">Bildausschnitt</p>
-              <div className="flex items-center gap-2">
-                <span className="text-xs text-white/40 w-14 flex-shrink-0">Horizontal</span>
-                <input type="range" min={0} max={100} value={photoPosition.x} onChange={(e) => setPhotoPosition((p) => ({ ...p, x: Number(e.target.value) }))} className="flex-1 accent-[#66c0b6]" />
-              </div>
-              <div className="flex items-center gap-2">
-                <span className="text-xs text-white/40 w-14 flex-shrink-0">Vertikal</span>
-                <input type="range" min={0} max={100} value={photoPosition.y} onChange={(e) => setPhotoPosition((p) => ({ ...p, y: Number(e.target.value) }))} className="flex-1 accent-[#66c0b6]" />
-              </div>
+              <div className="flex items-center gap-2"><span className="text-xs text-white/40 w-14 flex-shrink-0">Horizontal</span><input type="range" min={0} max={100} value={photoPosition.x} onChange={(e) => setPhotoPosition((p) => ({ ...p, x: Number(e.target.value) }))} className="flex-1 accent-[#66c0b6]" /></div>
+              <div className="flex items-center gap-2"><span className="text-xs text-white/40 w-14 flex-shrink-0">Vertikal</span><input type="range" min={0} max={100} value={photoPosition.y} onChange={(e) => setPhotoPosition((p) => ({ ...p, y: Number(e.target.value) }))} className="flex-1 accent-[#66c0b6]" /></div>
             </div>
           )}
         </div>
       </header>
 
-      {/* MAIN CONTENT AREA */}
-      <main ref={mainRefCallback} className="flex-1 overflow-y-auto overflow-x-hidden flex flex-col items-center bg-zinc-800/40 w-full py-4 sm:py-8 px-0 sm:px-4">
-
-        {/* CSS für WYSIWYG-Editor */}
+      {/* MAIN CONTENT AREA MIT PHYSISCHEN A4-BLÄTTERN */}
+      <main ref={mainRefCallback} className="flex-1 overflow-y-auto bg-zinc-900 w-full py-12 flex flex-col items-center gap-8">
+        
         <style>{`
-          [data-pdf-root] textarea,
-          [data-pdf-root] p,
-          [data-pdf-root] span,
-          [data-pdf-root] div,
-          [data-pdf-root] li {
+          [data-pdf-root] textarea, [data-pdf-root] p, [data-pdf-root] span, [data-pdf-root] div, [data-pdf-root] li {
             white-space: pre-wrap !important;
             word-break: break-word !important;
           }
-          .pdf-hidden {
-            display: block !important;
+          .pdf-hidden { display: block !important; }
+          .nonce-export { display: none !important; }
+
+          .a4-page-frame {
+            width: 794px !important;
+            height: 1122px !important;
+            background-color: #ffffff !important;
+            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5) !important;
+            position: relative !important;
+            overflow: hidden !important;
           }
-          .nonce-export {
-            display: none !important;
+          .a4-page-frame-inner {
+            width: 794px !important;
+            position: absolute !important;
+            left: 0 !important;
+            transform-origin: top left !important;
+          }
+          .page-badge {
+            position: absolute;
+            top: 12px;
+            right: 12px;
+            background: rgba(15, 23, 42, 0.06);
+            color: #64748b;
+            font-size: 9px;
+            font-weight: 700;
+            padding: 4px 10px;
+            border-radius: 6px;
+            z-index: 40;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
           }
         `}</style>
 
-        {/* ── Page-aware A4 layout ── */}
         {(() => {
-          const PAGE_H = 1122; // A4 height in CV units
-          const PAGE_W = 794;  // A4 width in CV units
-          const GAP = 24;      // px gap between pages in editor (unscaled)
+          const PAGE_H = 1122;
+          const GAP = 32;
           const pageCount = Math.max(1, Math.ceil(cvHeight / PAGE_H));
 
-          // templateProps shared by source div and all page frame windows
           const templateProps = {
-            pageBreakItems,
+            pageBreakItems, // Das ist wichtig, damit das Template weiß, wo geschoben werden muss!
+            pageCount,      // Wichtig für den Footer!
             personalInfo: editorData.personalInfo!,
             summary: editorData.summary,
             sections: editorData.sections!,
             photoUrl,
             photoPosition,
             onUpdatePersonalInfo: updatePersonalInfo,
-            onUpdateSummary: (value: string) => setEditorData((prev: any) => prev ? { ...prev, summary: value } : prev),
+            onUpdateSummary: (v: string) => setEditorData((p: any) => p ? { ...p, summary: v } : p),
             onUpdateSection: updateSection,
             onUpdateSectionItem: updateSectionItem,
             onAddSectionItem: addSectionItem,
@@ -1584,152 +1413,33 @@ const updateSectionItem = (
           };
 
           const renderTemplate = () => {
-            if (selectedTemplate === 'modern' && editorData.personalInfo && editorData.sections)
-              return <ModernCVTemplate {...templateProps} />;
-            if (selectedTemplate === 'classic' && editorData.personalInfo && editorData.sections)
-              return <ClassicCVTemplate {...templateProps} />;
-            if (selectedTemplate === 'minimal' && editorData.personalInfo && editorData.sections)
-              return <MinimalCVTemplate {...templateProps} />;
-            if (selectedTemplate === 'creative' && editorData.personalInfo && editorData.sections)
-              return <CreativeCVTemplate {...templateProps} />;
-            if (selectedTemplate === 'professional' && editorData.personalInfo && editorData.sections)
-              return <ProfessionalCVTemplate {...templateProps} />;
+            if (selectedTemplate === 'modern') return <ModernCVTemplate {...templateProps} />;
+            if (selectedTemplate === 'classic') return <ClassicCVTemplate {...templateProps} />;
+            if (selectedTemplate === 'minimal') return <MinimalCVTemplate {...templateProps} />;
+            if (selectedTemplate === 'creative') return <CreativeCVTemplate {...templateProps} />;
+            if (selectedTemplate === 'professional') return <ProfessionalCVTemplate {...templateProps} />;
             return null;
           };
 
-          const totalDisplayHeight = pageCount * PAGE_H * scale + (pageCount - 1) * GAP;
-
           return (
-            <div
-              style={{
-                width: `${PAGE_W * scale}px`,
-                maxWidth: '100%',
-                position: 'relative',
-                margin: '0 auto',
-                flexShrink: 0,
-                // Total height = all page frames + gaps between them
-                height: `${totalDisplayHeight}px`,
-              }}
-            >
-              {/* ── Hidden measurement source (PDF export target) ──
-                  Invisible to the user, used only for height measurement and PDF export.
-                  Positioned off-screen so it doesn't compete with page frames. */}
-              <div
-                ref={cvPreviewRef}
-                data-pdf-root
-                aria-hidden="true"
-                style={{
-                  width: `${PAGE_W}px`,
-                  position: 'absolute',
-                  top: 0,
-                  left: 0,
-                  transform: `scale(${scale})`,
-                  transformOrigin: 'top left',
-                  backgroundColor: '#ffffff',
-                  minHeight: `${PAGE_H}px`,
-                  // Place behind all page frames; pointer-events off so frames get all interactions
-                  zIndex: 0,
-                  pointerEvents: 'none',
-                  visibility: 'hidden',
-                }}
-              >
+            <div style={{ width: `${794 * scale}px`, position: 'relative', margin: '0 auto', flexShrink: 0, height: `${(pageCount * PAGE_H + (pageCount - 1) * GAP) * scale}px` }}>
+              
+              {/* Unsichtbarer Mess-Kanal für die Spacer Engine & PDF-Druck */}
+              <div ref={cvPreviewRef} data-pdf-root style={{ width: '794px', position: 'absolute', left: '-9999px', top: 0, backgroundColor: '#ffffff' }}>
                 {renderTemplate()}
               </div>
 
-              {/* ── Page frames — one per A4 page ──
-                  Each frame is a 794×1122 (scaled) viewport clipped with overflow:hidden.
-                  Inside, a duplicate render of the CV is shifted up by pageIndex * PAGE_H
-                  so only the correct page content is visible. */}
-              {Array.from({ length: pageCount }, (_, pageIndex) => {
-                const frameTop = pageIndex * (PAGE_H * scale + GAP);
-                const contentOffsetY = -(pageIndex * PAGE_H); // shift in unscaled CV units
+              {/* Physische getrennte Blätter im Live-Editor */}
+              {Array.from({ length: pageCount }).map((_, pageIdx) => {
+                const frameTop = pageIdx * (PAGE_H * scale + GAP * scale);
+                const contentOffsetY = -(pageIdx * PAGE_H);
 
                 return (
-                  <div
-                    key={pageIndex}
-                    style={{
-                      position: 'absolute',
-                      top: `${frameTop}px`,
-                      left: 0,
-                      width: `${PAGE_W * scale}px`,
-                      height: `${PAGE_H * scale}px`,
-                      overflow: 'hidden',
-                      backgroundColor: '#ffffff',
-                      boxShadow: '0 4px 24px rgba(0,0,0,0.35)',
-                      zIndex: 1,
-                    }}
-                  >
-                    {/* Page number badge — outside CV content flow */}
-                    {pageIndex > 0 && (
-                      <div
-                        style={{
-                          position: 'absolute',
-                          top: 6,
-                          right: 8,
-                          zIndex: 10,
-                          background: 'rgba(0,0,0,0.15)',
-                          color: 'rgba(0,0,0,0.4)',
-                          fontSize: '9px',
-                          fontFamily: 'system-ui, sans-serif',
-                          padding: '1px 6px',
-                          borderRadius: '3px',
-                          pointerEvents: 'none',
-                          userSelect: 'none',
-                        }}
-                      >
-                        Seite {pageIndex + 1}
-                      </div>
-                    )}
-
-                    {/* CV content shifted to show this page's slice */}
-                    <div
-                      style={{
-                        width: `${PAGE_W}px`,
-                        transform: `scale(${scale}) translateY(${contentOffsetY}px)`,
-                        transformOrigin: 'top left',
-                        position: 'absolute',
-                        top: 0,
-                        left: 0,
-                        minHeight: `${PAGE_H}px`,
-                        backgroundColor: '#ffffff',
-                      }}
-                    >
+                  <div key={pageIdx} className="a4-page-frame" style={{ position: 'absolute', top: `${frameTop}px`, left: 0, transform: `scale(${scale})`, transformOrigin: 'top left' }}>
+                    <div className="page-badge">Seite {pageIdx + 1}</div>
+                    <div className="a4-page-frame-inner" style={{ top: `${contentOffsetY}px` }}>
                       {renderTemplate()}
                     </div>
-                  </div>
-                );
-              })}
-
-              {/* ── Gap labels between pages ── */}
-              {Array.from({ length: pageCount - 1 }, (_, i) => {
-                const labelTop = (i + 1) * PAGE_H * scale + i * GAP;
-                return (
-                  <div
-                    key={i}
-                    style={{
-                      position: 'absolute',
-                      left: 0,
-                      right: 0,
-                      top: `${labelTop}px`,
-                      height: `${GAP}px`,
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      zIndex: 2,
-                      pointerEvents: 'none',
-                    }}
-                  >
-                    <span style={{
-                      background: '#3f3f46',
-                      color: '#a1a1aa',
-                      fontSize: '9px',
-                      fontFamily: 'system-ui, sans-serif',
-                      padding: '2px 10px',
-                      borderRadius: '4px',
-                      whiteSpace: 'nowrap',
-                    }}>
-                      Seite {i + 2}
-                    </span>
                   </div>
                 );
               })}
@@ -1766,7 +1476,7 @@ const updateSectionItem = (
           </div>
         )}
 
-        {editorData.matching_text && (
+        {editorData?.matching_text && (
           <div className="mt-6 mb-12 bg-[#0f1729] border border-[#66c0b6]/20 rounded-2xl p-4 sm:p-6 w-full" style={{ width: `${794 * scale}px` }}>
             <div className="flex items-center gap-2 mb-3">
               <Sparkles size={18} className="text-[#66c0b6]" />
@@ -1777,21 +1487,11 @@ const updateSectionItem = (
             </p>
           </div>
         )}
-
       </main>
 
-      <PaywallModal
-        isOpen={showPaywallModal}
-        onClose={() => setShowPaywallModal(false)}
-        context="download"
-        onConfirm={async () => {
-          if (cvId) {
-            navigate(`/cv-paywall?cvId=${cvId}&source=cv_optimizer`);
-          }
-        }}
-      />
+      {/* CONFIGURATION & PAYMENT OVERLAYS */}
+      <PaywallModal isOpen={showPaywallModal} onClose={() => setShowPaywallModal(false)} context="download" onConfirm={handlePaywallSuccess} />
 
-      {/* Template selection modal for already-unlocked download */}
       {showTemplateSelectForExport && (
         <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4">
           <div className="bg-[#111] border border-white/10 rounded-2xl p-8 max-w-lg w-full shadow-2xl">
@@ -1801,42 +1501,15 @@ const updateSectionItem = (
             </div>
             <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 mb-6">
               {templates.map((t) => (
-                <button
-                  key={t.id}
-                  onClick={() => handleTemplateChange(t.id)}
-                  className={`relative flex flex-col items-center gap-3 p-4 rounded-2xl border-2 transition-all duration-200 ${
-                    selectedTemplate === t.id
-                      ? 'border-[#66c0b6] bg-[#66c0b6]/10'
-                      : 'border-white/10 bg-white/5 hover:border-white/25'
-                  }`}
-                >
-                  {selectedTemplate === t.id && (
-                    <div className="absolute top-2.5 right-2.5 w-5 h-5 rounded-full bg-[#66c0b6] flex items-center justify-center">
-                      <Check size={11} className="text-black" />
-                    </div>
-                  )}
-                  <span className="text-3xl">{t.icon}</span>
-                  <span className={`text-sm font-semibold ${selectedTemplate === t.id ? 'text-[#66c0b6]' : 'text-white/80'}`}>{t.name}</span>
+                <button key={t.id} onClick={() => handleTemplateChange(t.id)} className={`relative flex flex-col items-center gap-3 p-4 rounded-2xl border-2 transition-all duration-200 ${selectedTemplate === t.id ? 'border-[#66c0b6] bg-[#66c0b6]/10' : 'border-white/10 bg-white/5 hover:border-white/25'}`}>
+                  {selectedTemplate === t.id && <div className="absolute top-2.5 right-2.5 w-5 h-5 rounded-full bg-[#66c0b6] flex items-center justify-center"><Check size={11} className="text-black" /></div>}
+                  <span className="text-3xl">{t.icon}</span> <span className={`text-sm font-semibold ${selectedTemplate === t.id ? 'text-[#66c0b6]' : 'text-white/80'}`}>{t.name}</span>
                 </button>
               ))}
             </div>
             <div className="flex gap-3">
-              <button
-                onClick={() => setShowTemplateSelectForExport(false)}
-                className="flex-1 py-3 rounded-xl bg-white/5 border border-white/10 text-white font-semibold hover:bg-white/10 transition-all"
-              >
-                Abbrechen
-              </button>
-              <button
-                onClick={() => {
-                  setShowTemplateSelectForExport(false);
-                  triggerDirectExport();
-                }}
-                className="flex-1 py-3 rounded-xl bg-gradient-to-r from-[#66c0b6] to-[#30E3CA] text-black font-bold hover:opacity-90 transition-all flex items-center justify-center gap-2"
-              >
-                <Download size={18} />
-                PDF erstellen
-              </button>
+              <button onClick={() => setShowTemplateSelectForExport(false)} className="flex-1 py-3 rounded-xl bg-white/5 border border-white/10 text-white font-semibold hover:bg-white/10 transition-all">Abbrechen</button>
+              <button onClick={() => { setShowTemplateSelectForExport(false); triggerDirectExport(); }} className="flex-1 py-3 rounded-xl bg-gradient-to-r from-[#66c0b6] to-[#30E3CA] text-black font-bold transition-all flex items-center justify-center gap-2"><Download size={18} /> PDF erstellen</button>
             </div>
           </div>
         </div>

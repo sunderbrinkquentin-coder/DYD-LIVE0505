@@ -35,6 +35,9 @@ interface ModernCVTemplateProps {
   ) => void;
   onAddSectionItem?: (sectionIndex: number, defaultItem: any) => void;
   onDeleteSectionItem: (sectionIndex: number, itemIndex: number) => void;
+  // 🔥 NEU: Die Spacer-Engine & Seitenanzahl
+  pageBreakItems?: Map<string, number>;
+  pageCount?: number;
 }
 
 const CI = {
@@ -325,6 +328,8 @@ export const ModernCVTemplate: React.FC<ModernCVTemplateProps> = ({
   onUpdateSectionItem,
   onAddSectionItem,
   onDeleteSectionItem,
+  pageBreakItems,
+  pageCount,
 }) => {
   const today = new Date().toLocaleDateString('de-DE', { day: '2-digit', month: '2-digit', year: 'numeric' });
   const footerLocation = (personalInfo.footerLocation ?? personalInfo.location ?? '').toString();
@@ -343,12 +348,18 @@ export const ModernCVTemplate: React.FC<ModernCVTemplateProps> = ({
         <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
           {items.map((item: any, idx: number) => {
             const bullets = getBullets(item);
+            
+            // 🔥 DER UMBRUCH-SCHUTZ: Holt sich den genauen Abstand aus dem Editor!
+            const spacerId = `${section.type}-${sectionIndex}-${idx}`;
+            const spacerHeight = pageBreakItems?.get(spacerId) || 0;
 
             return (
               <div
                 key={idx}
+                data-spacer-id={spacerId}
                 data-pdf-section
                 style={{
+                  marginTop: spacerHeight > 0 ? `${spacerHeight}px` : '0px',
                   border: `1px solid ${CI.border}`,
                   borderRadius: '12px',
                   padding: '10px 14px',
@@ -361,7 +372,7 @@ export const ModernCVTemplate: React.FC<ModernCVTemplateProps> = ({
                   width: '100%',
                 }}
               >
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '10px' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: '10px' }}>
                   <div style={{ flex: 1, minWidth: 0 }}>
                     <Editable
                       tag="div"
@@ -493,69 +504,80 @@ export const ModernCVTemplate: React.FC<ModernCVTemplateProps> = ({
         return renderExperienceOrProjects(section, sectionIndex, true);
 
       case 'education':
+        if (items.length === 0) return null;
         return (
           <div key={`education-${sectionIndex}`}>
             <SectionTitle>{section.title || 'Ausbildung & Studium'}</SectionTitle>
             <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
-              {items.map((edu: any, idx: number) => (
-                <div
-                  key={idx}
-                  data-pdf-section
-                  style={{
-                    border: `1px solid ${CI.border}`,
-                    borderRadius: '12px',
-                    padding: '10px 14px',
-                    backgroundColor: '#ffffff',
-                    boxShadow: '0 1px 3px rgba(0,0,0,0.06)',
-                    breakInside: 'avoid',
-                    pageBreakInside: 'avoid',
-                    fontFamily: FONT,
-                    display: 'block',
-                    width: '100%',
-                  }}
-                >
-                  <Editable
-                    tag="div"
-                    value={edu.degree || edu.title || ''}
-                    onChange={(v) => onUpdateSectionItem(sectionIndex, idx, 'degree', v)}
-                    placeholder="Abschluss"
-                    style={{ fontSize: '11px', fontWeight: 700, color: '#0f172a', lineHeight: 1.4 }}
-                  />
-                  <Editable
-                    tag="div"
-                    value={edu.institution || edu.school || edu.university || ''}
-                    onChange={(v) => onUpdateSectionItem(sectionIndex, idx, 'institution', v)}
-                    placeholder="Institution"
-                    style={{ fontSize: '10px', color: '#475569', marginTop: '2px', lineHeight: 1.4 }}
-                  />
-                  {edu.description ? (
-                    <Editable
-                      tag="div"
-                      multiline
-                      value={edu.description}
-                      onChange={(v) => onUpdateSectionItem(sectionIndex, idx, 'description', v)}
-                      placeholder=""
-                      style={{ fontSize: '9.5px', color: '#64748b', marginTop: '4px', lineHeight: 1.5 }}
-                    />
-                  ) : null}
-                  <div style={{ marginTop: '6px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                    <button
-                      type="button"
-                      className="pdf-hidden"
-                      style={{ fontSize: '9px', color: '#dc2626', background: 'none', border: 'none', cursor: 'pointer', padding: 0 }}
-                      onClick={() => onDeleteSectionItem(sectionIndex, idx)}
-                    >
-                      Eintrag löschen
-                    </button>
-                    <DateBadge
-                      from={edu.date_from || ''}
-                      to={edu.date_to || ''}
-                      onChangeFrom={(v) => onUpdateSectionItem(sectionIndex, idx, 'date_from', v)}
-                      onChangeTo={(v) => onUpdateSectionItem(sectionIndex, idx, 'date_to', v)}
-                    />
+              {items.map((edu: any, idx: number) => {
+                const spacerId = `education-${sectionIndex}-${idx}`;
+                const spacerHeight = pageBreakItems?.get(spacerId) || 0;
+
+                return (
+                  <div
+                    key={idx}
+                    data-spacer-id={spacerId}
+                    data-pdf-section
+                    style={{
+                      marginTop: spacerHeight > 0 ? `${spacerHeight}px` : '0px',
+                      border: `1px solid ${CI.border}`,
+                      borderRadius: '12px',
+                      padding: '10px 14px',
+                      backgroundColor: '#ffffff',
+                      boxShadow: '0 1px 3px rgba(0,0,0,0.06)',
+                      breakInside: 'avoid',
+                      pageBreakInside: 'avoid',
+                      fontFamily: FONT,
+                      display: 'block',
+                      width: '100%',
+                    }}
+                  >
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: '10px' }}>
+                      <div style={{ flex: 1, minWidth: 0 }}>
+                        <Editable
+                          tag="div"
+                          value={edu.degree || edu.title || ''}
+                          onChange={(v) => onUpdateSectionItem(sectionIndex, idx, 'degree', v)}
+                          placeholder="Abschluss"
+                          style={{ fontSize: '11px', fontWeight: 700, color: '#0f172a', lineHeight: 1.4 }}
+                        />
+                        <Editable
+                          tag="div"
+                          value={edu.institution || edu.school || edu.university || ''}
+                          onChange={(v) => onUpdateSectionItem(sectionIndex, idx, 'institution', v)}
+                          placeholder="Institution"
+                          style={{ fontSize: '10px', color: '#475569', marginTop: '2px', lineHeight: 1.4 }}
+                        />
+                      </div>
+                      <DateBadge
+                        from={edu.date_from || ''}
+                        to={edu.date_to || ''}
+                        onChangeFrom={(v) => onUpdateSectionItem(sectionIndex, idx, 'date_from', v)}
+                        onChangeTo={(v) => onUpdateSectionItem(sectionIndex, idx, 'date_to', v)}
+                      />
+                    </div>
+                    {edu.description ? (
+                      <Editable
+                        tag="div"
+                        multiline
+                        value={edu.description}
+                        onChange={(v) => onUpdateSectionItem(sectionIndex, idx, 'description', v)}
+                        placeholder=""
+                        style={{ fontSize: '9.5px', color: '#64748b', marginTop: '4px', lineHeight: 1.5 }}
+                      />
+                    ) : null}
+                    <div className="pdf-hidden" data-pdf-hidden style={{ marginTop: '6px' }}>
+                      <button
+                        type="button"
+                        style={{ fontSize: '9px', color: '#dc2626', background: 'none', border: 'none', cursor: 'pointer', padding: 0 }}
+                        onClick={() => onDeleteSectionItem(sectionIndex, idx)}
+                      >
+                        Eintrag löschen
+                      </button>
+                    </div>
                   </div>
-                </div>
-              ))}
+                );
+              })}
               
               <button
                 type="button"
@@ -595,41 +617,48 @@ export const ModernCVTemplate: React.FC<ModernCVTemplateProps> = ({
           <div key={`languages-${sectionIndex}`} data-pdf-section>
             <SectionTitle>{section.title || 'Sprachen'}</SectionTitle>
             <div style={{ display: 'flex', flexDirection: 'column', gap: '5px' }}>
-              {langItems.map((lang: { language: string; level: string }, idx: number) => (
-                <div
-                  key={idx}
-                  style={{
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'space-between',
-                    borderRadius: '8px',
-                    padding: '5px 12px',
-                    fontSize: '9px',
-                    fontFamily: FONT,
-                    backgroundColor: CI.tint,
-                    border: `1px solid ${CI.border}`,
-                    breakInside: 'avoid',
-                    pageBreakInside: 'avoid',
-                  }}
-                >
-                  <Editable
-                    value={lang.language}
-                    onChange={(v) => onUpdateSectionItem(sectionIndex, idx, 'language', v)}
-                    placeholder="Sprache"
-                    style={{ fontSize: '9px', fontWeight: 600, color: '#0f172a' }}
-                  />
-                  {skillLevelToStars(lang.level) > 0 ? (
-                    <StarRating stars={skillLevelToStars(lang.level)} />
-                  ) : (
+              {langItems.map((lang: { language: string; level: string }, idx: number) => {
+                const spacerId = `languages-${sectionIndex}-${idx}`;
+                const spacerHeight = pageBreakItems?.get(spacerId) || 0;
+                
+                return (
+                  <div
+                    key={idx}
+                    data-spacer-id={spacerId}
+                    style={{
+                      marginTop: spacerHeight > 0 ? `${spacerHeight}px` : '0px',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'space-between',
+                      borderRadius: '8px',
+                      padding: '5px 12px',
+                      fontSize: '9px',
+                      fontFamily: FONT,
+                      backgroundColor: CI.tint,
+                      border: `1px solid ${CI.border}`,
+                      breakInside: 'avoid',
+                      pageBreakInside: 'avoid',
+                    }}
+                  >
                     <Editable
-                      value={lang.level}
-                      onChange={(v) => onUpdateSectionItem(sectionIndex, idx, 'level', v)}
-                      placeholder="Niveau"
-                      style={{ fontSize: '9.5px', color: '#475569', textAlign: 'right' }}
+                      value={lang.language}
+                      onChange={(v) => onUpdateSectionItem(sectionIndex, idx, 'language', v)}
+                      placeholder="Sprache"
+                      style={{ fontSize: '9px', fontWeight: 600, color: '#0f172a' }}
                     />
-                  )}
-                </div>
-              ))}
+                    {skillLevelToStars(lang.level) > 0 ? (
+                      <StarRating stars={skillLevelToStars(lang.level)} />
+                    ) : (
+                      <Editable
+                        value={lang.level}
+                        onChange={(v) => onUpdateSectionItem(sectionIndex, idx, 'level', v)}
+                        placeholder="Niveau"
+                        style={{ fontSize: '9.5px', color: '#475569', textAlign: 'right' }}
+                      />
+                    )}
+                  </div>
+                );
+              })}
             </div>
           </div>
         );
@@ -638,8 +667,12 @@ export const ModernCVTemplate: React.FC<ModernCVTemplateProps> = ({
       case 'skills': {
         if (items.length === 0) return null;
         const hasLevels = items.some((s: any) => typeof s === 'object' && s !== null && (s.level || s.niveau));
+        
+        const spacerId = `skills-block-${sectionIndex}`;
+        const spacerHeight = pageBreakItems?.get(spacerId) || 0;
+
         return (
-          <div key={`skills-${sectionIndex}`} data-pdf-section>
+          <div key={`skills-${sectionIndex}`} data-spacer-id={spacerId} data-pdf-section style={{ marginTop: spacerHeight > 0 ? `${spacerHeight}px` : '0px' }}>
             <SectionTitle>{section.title || 'Fähigkeiten'}</SectionTitle>
             {hasLevels ? (
               <div style={{ display: 'flex', flexDirection: 'column', gap: '5px' }}>
@@ -696,10 +729,13 @@ export const ModernCVTemplate: React.FC<ModernCVTemplateProps> = ({
         );
       }
 
-      case 'soft_skills':
+      case 'soft_skills': {
         if (items.length === 0) return null;
+        const spacerId = `softskills-block-${sectionIndex}`;
+        const spacerHeight = pageBreakItems?.get(spacerId) || 0;
+
         return (
-          <div key={`soft-${sectionIndex}`} data-pdf-section>
+          <div key={`soft-${sectionIndex}`} data-spacer-id={spacerId} data-pdf-section style={{ marginTop: spacerHeight > 0 ? `${spacerHeight}px` : '0px' }}>
             <SectionTitle>{section.title || 'Soft Skills'}</SectionTitle>
             <div data-chip-row style={{ display: 'block', overflow: 'visible' }}>
               {items.map((skill: any, idx: number) => {
@@ -729,12 +765,16 @@ export const ModernCVTemplate: React.FC<ModernCVTemplateProps> = ({
             </div>
           </div>
         );
+      }
 
       case 'work_values':
-      case 'values':
+      case 'values': {
         if (items.length === 0) return null;
+        const spacerId = `values-block-${sectionIndex}`;
+        const spacerHeight = pageBreakItems?.get(spacerId) || 0;
+
         return (
-          <div key={`values-${sectionIndex}`} data-pdf-section>
+          <div key={`values-${sectionIndex}`} data-spacer-id={spacerId} data-pdf-section style={{ marginTop: spacerHeight > 0 ? `${spacerHeight}px` : '0px' }}>
             <SectionTitle>Arbeitsweise & Werte</SectionTitle>
             <div data-chip-row style={{ display: 'block', overflow: 'visible' }}>
               {items.map((val: any, idx: number) => (
@@ -748,12 +788,16 @@ export const ModernCVTemplate: React.FC<ModernCVTemplateProps> = ({
             </div>
           </div>
         );
+      }
 
       case 'hobbies':
-      case 'interests':
+      case 'interests': {
         if (items.length === 0) return null;
+        const spacerId = `hobbies-block-${sectionIndex}`;
+        const spacerHeight = pageBreakItems?.get(spacerId) || 0;
+
         return (
-          <div key={`hobbies-${sectionIndex}`} data-pdf-section>
+          <div key={`hobbies-${sectionIndex}`} data-spacer-id={spacerId} data-pdf-section style={{ marginTop: spacerHeight > 0 ? `${spacerHeight}px` : '0px' }}>
             <SectionTitle>Hobbys & Interessen</SectionTitle>
             <div data-chip-row style={{ display: 'block', overflow: 'visible' }}>
               {items.map((hob: any, idx: number) => (
@@ -767,6 +811,7 @@ export const ModernCVTemplate: React.FC<ModernCVTemplateProps> = ({
             </div>
           </div>
         );
+      }
 
       case 'certifications':
       case 'courses':
@@ -777,28 +822,38 @@ export const ModernCVTemplate: React.FC<ModernCVTemplateProps> = ({
           <div key={`${section.type}-${sectionIndex}`} data-pdf-section>
             <SectionTitle>{section.title || { awards: 'Auszeichnungen', volunteering: 'Ehrenamt' }[section.type] || section.type}</SectionTitle>
             <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
-              {items.map((it: any, idx: number) => (
-                <div
-                  key={idx}
-                  style={{
-                    border: `1px solid ${CI.border}`,
-                    borderRadius: '10px',
-                    padding: '8px 12px',
-                    backgroundColor: '#ffffff',
-                    fontFamily: FONT,
-                    breakInside: 'avoid',
-                    pageBreakInside: 'avoid',
-                  }}
-                >
-                  <Editable
-                    tag="div"
-                    value={typeof it === 'string' ? it : it.name || it.title || it.label || ''}
-                    onChange={(v) => onUpdateSectionItem(sectionIndex, idx, 'name', v)}
-                    placeholder="Eintrag"
-                    style={{ fontSize: '9.5px', color: '#1e293b', lineHeight: 1.5 }}
-                  />
-                </div>
-              ))}
+              {items.map((it: any, idx: number) => {
+                const spacerId = `other-${sectionIndex}-${idx}`;
+                const spacerHeight = pageBreakItems?.get(spacerId) || 0;
+
+                return (
+                  <div
+                    key={idx}
+                    data-spacer-id={spacerId}
+                    style={{
+                      marginTop: spacerHeight > 0 ? `${spacerHeight}px` : '0px',
+                      border: `1px solid ${CI.border}`,
+                      borderRadius: '10px',
+                      padding: '8px 12px',
+                      backgroundColor: '#ffffff',
+                      fontFamily: FONT,
+                      breakInside: 'avoid',
+                      pageBreakInside: 'avoid',
+                    }}
+                  >
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '12px' }}>
+                      <Editable
+                        tag="div"
+                        value={typeof it === 'string' ? it : it.name || it.title || it.label || ''}
+                        onChange={(v) => onUpdateSectionItem(sectionIndex, idx, 'name', v)}
+                        placeholder="Eintrag"
+                        style={{ fontSize: '9.5px', color: '#1e293b', lineHeight: 1.5, flex: 1 }}
+                      />
+                      {it.date && <span style={{ fontSize: '9px', color: '#64748b' }}>{it.date}</span>}
+                    </div>
+                  </div>
+                );
+              })}
             </div>
           </div>
         );
@@ -814,28 +869,35 @@ export const ModernCVTemplate: React.FC<ModernCVTemplateProps> = ({
           <div key={`${section.type}-${sectionIndex}`} data-pdf-section>
             <SectionTitle>{section.title || TYPE_LABELS_DEFAULT[section.type] || section.type}</SectionTitle>
             <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
-              {items.map((it: any, idx: number) => (
-                <div
-                  key={idx}
-                  style={{
-                    border: `1px solid ${CI.border}`,
-                    borderRadius: '10px',
-                    padding: '8px 12px',
-                    backgroundColor: '#ffffff',
-                    fontFamily: FONT,
-                    breakInside: 'avoid',
-                    pageBreakInside: 'avoid',
-                  }}
-                >
-                  <Editable
-                    tag="div"
-                    value={typeof it === 'string' ? it : it.name || it.title || it.label || ''}
-                    onChange={(v) => onUpdateSectionItem(sectionIndex, idx, 'name', v)}
-                    placeholder="Eintrag"
-                    style={{ fontSize: '9.5px', color: '#1e293b', lineHeight: 1.5 }}
-                  />
-                </div>
-              ))}
+              {items.map((it: any, idx: number) => {
+                const spacerId = `default-${sectionIndex}-${idx}`;
+                const spacerHeight = pageBreakItems?.get(spacerId) || 0;
+
+                return (
+                  <div
+                    key={idx}
+                    data-spacer-id={spacerId}
+                    style={{
+                      marginTop: spacerHeight > 0 ? `${spacerHeight}px` : '0px',
+                      border: `1px solid ${CI.border}`,
+                      borderRadius: '10px',
+                      padding: '8px 12px',
+                      backgroundColor: '#ffffff',
+                      fontFamily: FONT,
+                      breakInside: 'avoid',
+                      pageBreakInside: 'avoid',
+                    }}
+                  >
+                    <Editable
+                      tag="div"
+                      value={typeof it === 'string' ? it : it.name || it.title || it.label || ''}
+                      onChange={(v) => onUpdateSectionItem(sectionIndex, idx, 'name', v)}
+                      placeholder="Eintrag"
+                      style={{ fontSize: '9.5px', color: '#1e293b', lineHeight: 1.5 }}
+                    />
+                  </div>
+                );
+              })}
             </div>
           </div>
         );
@@ -857,15 +919,7 @@ export const ModernCVTemplate: React.FC<ModernCVTemplateProps> = ({
         @media screen {
           .cv-render-root {
             position: relative !important;
-            background-image: linear-gradient(
-              to bottom,
-              transparent 0px,
-              transparent 1121px,
-              #cbd5e1 1121px, 
-              #cbd5e1 1122px,
-              transparent 1122px
-            ) !important;
-            background-size: 100% 1122px !important;
+            background-color: transparent !important;
           }
         }
       `}</style>
@@ -877,17 +931,14 @@ export const ModernCVTemplate: React.FC<ModernCVTemplateProps> = ({
           fontFamily: FONT,
           color: '#1e293b',
           width: '794px',
-          minHeight: '1122px',
+          /* 🔥 DAS GEHEIMNIS FÜR DEN FOOTER: Die genaue Höhe der gesamten Blätter berechnen */
+          minHeight: pageCount ? `${pageCount * 1122}px` : '1122px',
           display: 'flex',
           flexDirection: 'column',
           backgroundColor: CI.bg,
           borderLeft: `4px solid ${CI.primary}`,
-          border: `1px solid ${CI.border}`,
-          borderRadius: '16px',
-          boxShadow: '0 2px 12px rgba(0,0,0,0.08)',
           wordBreak: 'break-word',
           overflowWrap: 'anywhere',
-          flex: 1,
         }}
       >
         {/* ── HEADER ─────────────────────────────────────────────────────── */}
@@ -895,7 +946,6 @@ export const ModernCVTemplate: React.FC<ModernCVTemplateProps> = ({
           style={{
             backgroundColor: CI.bg,
             borderBottom: `1px solid ${CI.border}`,
-            borderRadius: '16px 16px 0 0',
             padding: '28px 32px 20px',
             display: 'flex',
             justifyContent: 'space-between',
@@ -1082,7 +1132,7 @@ export const ModernCVTemplate: React.FC<ModernCVTemplateProps> = ({
             fontSize: '9px',
             color: '#64748b',
             fontFamily: FONT,
-            marginTop: 'auto',
+            marginTop: 'auto', /* 🔥 FIX: Der Footer geht jetzt an den Boden der berechneten Seite */
             flexShrink: 0,
             backgroundColor: CI.bg,
           }}
