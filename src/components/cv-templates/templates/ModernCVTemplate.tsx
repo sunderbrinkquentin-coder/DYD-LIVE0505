@@ -296,23 +296,15 @@ const splitToBullets = (text: string): string[] =>
     .filter((l) => l.length > 0);
 
 const getBullets = (item: any): string[] => {
-  if (Array.isArray(item?.bulletPoints) && item.bulletPoints.length > 0) {
-    const cleaned = item.bulletPoints
-      .map((b: any) => normalizeBullet(String(b ?? '')))
-      .filter((b: string) => b.trim());
-    if (cleaned.length > 0) return cleaned;
+  // Wenn bereits ein echtes Bulletpoint-Array existiert, nutzen wir NUR dieses
+  if (Array.isArray(item?.bulletPoints)) {
+    return item.bulletPoints.map((b: any) => normalizeBullet(String(b ?? '')));
   }
   if (Array.isArray(item?.highlights) && item.highlights.length > 0) {
-    const cleaned = item.highlights
-      .map((b: any) => normalizeBullet(String(b ?? '')))
-      .filter((b: string) => b.trim());
-    if (cleaned.length > 0) return cleaned;
+    return item.highlights.map((b: any) => normalizeBullet(String(b ?? '')));
   }
   if (Array.isArray(item?.description)) {
-    const cleaned = (item.description as any[])
-      .map((b: any) => normalizeBullet(String(b ?? '')))
-      .filter((b: string) => b.trim());
-    if (cleaned.length > 0) return cleaned;
+    return (item.description as any[]).map((b: any) => normalizeBullet(String(b ?? '')));
   }
   if (typeof item?.description === 'string' && item.description.trim()) {
     return splitToBullets(item.description);
