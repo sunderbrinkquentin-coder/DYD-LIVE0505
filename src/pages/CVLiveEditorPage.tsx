@@ -1411,7 +1411,7 @@ const handleDownloadClick = () => {
       {/* MAIN CONTENT AREA MIT AUTOMATISCHEN HILFSLINIEN UND GERENDERTER WYSIWYG-KORREKTUR */}
       <main ref={mainRefCallback} className="flex-1 overflow-y-auto overflow-x-hidden flex flex-col items-center bg-zinc-800/40 w-full py-4 sm:py-8 px-0 sm:px-4">
         
-       {/* Perfekte A4-Druck-Vorschau ohne Inhaltsverschiebung */}
+      {/* Perfekte A4-Druck-Vorschau ohne Inhaltsverschiebung */}
         <style>{`
           /* WYSIWYG: Text bricht im Editor und PDF exakt identisch um */
           [data-pdf-root] textarea, 
@@ -1427,30 +1427,43 @@ const handleDownloadClick = () => {
           @media screen {
             [data-pdf-root] {
               position: relative !important;
-              /* Erzeugt ein endloses Raster aus exakt 1122px hohen A4-Blättern */
+              /* Erzeugt ein exaktes Raster aus 1122px hohen A4-Blättern im Hintergrund */
               background-image: linear-gradient(
                 to bottom,
-                #ffffff 0px,
-                #ffffff 1121px,
-                #e2e8f0 1121px, /* Die sichtbare A4-Schnittlinie (grau) */
-                #e2e8f0 1122px,
-                #ffffff 1122px
+                transparent 0px,
+                transparent 1121px,
+                #cbd5e1 1121px, /* Die sichtbare A4-Schnittlinie (grau) */
+                #cbd5e1 1122px,
+                transparent 1122px
               ) !important;
               background-size: 100% 1122px !important;
               min-height: 1122px !important;
             }
 
-            /* Indikator-Linie, die am rechten Rand des Editors den Umbruch anzeigt */
+            /* 🔥 KORREKTUR: Zwingt jede Job-Box im Editor dazu, die A4-Kante zu beachten */
+            [data-pdf-root] [data-pdf-section] {
+              break-inside: avoid-page !important;
+              page-break-inside: avoid !important;
+              position: relative;
+            }
+
+            /* Indikator-Linie, die an der echten A4-Schnittkante über dem Dokument liegt */
             [data-pdf-root]::after {
               content: "--- NÄCHSTE SEITE ---";
               position: absolute;
-              right: 15px;
-              top: 1100px;
+              left: 0;
+              right: 0;
+              top: 1112px; /* Perfekt kurz vor dem Seitenumbruch platziert */
+              text-align: right;
+              padding-right: 15px;
               font-size: 10px;
               font-weight: 700;
               color: #94a3b8;
               pointer-events: none;
               letter-spacing: 0.1em;
+              border-bottom: 1px dashed #cbd5e1; /* Sichtbare gestrichelte Linie im Editor */
+              height: 10px;
+              z-index: 10;
             }
           }
 
