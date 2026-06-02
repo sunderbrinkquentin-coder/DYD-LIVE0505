@@ -133,6 +133,7 @@ export const ClassicCVTemplate: React.FC<ClassicCVTemplateProps> = ({
       <div className="mt-1.5" style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
         {bullets.map((bp, idx) => {
           const text = typeof bp === 'string' ? bp : bp?.text ?? String(bp);
+          if (!text) return null;
           const cleanText = text.replace(/^[-•*]\s*/, '');
 
           return (
@@ -235,7 +236,7 @@ export const ClassicCVTemplate: React.FC<ClassicCVTemplateProps> = ({
                   style={{ fontSize: '9px', color: '#1e3a8a', background: 'none', border: '1px solid #c7d2fe', borderRadius: '4px', cursor: 'pointer', padding: '2px 7px', lineHeight: '1.5' }}
                   onClick={() => {
                     const current = item.bulletPoints || item.bullet_points || [];
-                    onUpdateSectionItem(experienceIndex, idx, 'bulletPoints', [...current, '']);
+                    onUpdateSectionItem(experienceIndex, idx, 'bulletPoints', [...current, 'Neuer Punkt']);
                   }}
                 >
                   + Bullet

@@ -298,7 +298,9 @@ const splitToBullets = (text: string): string[] =>
 
 const getBullets = (item: any): string[] => {
   if (Array.isArray(item?.bulletPoints) && item.bulletPoints.length > 0) {
-    return item.bulletPoints.map((b: any) => normalizeBullet(String(b ?? '')));
+    return item.bulletPoints
+      .map((b: any) => normalizeBullet(String(b ?? '')))
+      .filter((b: string) => b.length > 0);
   }
   if (Array.isArray(item?.highlights) && item.highlights.length > 0) {
     return item.highlights.map((b: any) => normalizeBullet(String(b ?? '')));
@@ -450,7 +452,7 @@ export const ModernCVTemplate: React.FC<ModernCVTemplateProps> = ({
                         : typeof item?.description === 'string' && item.description.trim()
                           ? splitToBullets(item.description)
                           : [];
-                      onUpdateSectionItem(sectionIndex, idx, 'bulletPoints', [...base, '']);
+                      onUpdateSectionItem(sectionIndex, idx, 'bulletPoints', [...base, 'Neuer Punkt']);
                       if (typeof item?.description === 'string' && item.description.trim()) {
                         onUpdateSectionItem(sectionIndex, idx, 'description', '');
                       }
@@ -829,26 +831,7 @@ export const ModernCVTemplate: React.FC<ModernCVTemplateProps> = ({
   );
 
   return (
-    <>
-      <style>{`
-        .cv-render-root {
-          position: relative !important;
-          width: 794px !important;
-          min-height: 1122px !important;
-          background-image: linear-gradient(
-            to bottom,
-            transparent 0px,
-            transparent 1121px,
-            #cbd5e1 1121px,
-            #cbd5e1 1122px,
-            transparent 1122px
-          ) !important;
-          background-size: 100% 1122px !important;
-        }
-      `}</style>
-
       <div
-        className="cv-render-root"
         style={{
           fontFamily: FONT,
           color: '#1e293b',
@@ -1070,6 +1053,5 @@ export const ModernCVTemplate: React.FC<ModernCVTemplateProps> = ({
           <span style={{ fontWeight: 600, whiteSpace: 'nowrap' }}>{today}</span>
         </footer>
       </div>
-    </>
   );
 };

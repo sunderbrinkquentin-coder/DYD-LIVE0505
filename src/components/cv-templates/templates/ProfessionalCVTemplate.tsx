@@ -56,7 +56,9 @@ const stripLeadingBullet = (s: string) =>
 // Bullet-Hilfsfunktion – verhindert doppelte Darstellung
 const getBullets = (item: any): string[] => {
   if (Array.isArray(item?.bulletPoints) && item.bulletPoints.length > 0) {
-    return item.bulletPoints.map((s: any) => stripLeadingBullet(String(s ?? '').trim()));
+    return item.bulletPoints
+      .map((s: any) => stripLeadingBullet(String(s ?? '').trim()))
+      .filter((s: string) => s.length > 0);
   }
 
   if (typeof item?.description === 'string' && item.description.trim().length > 0) {

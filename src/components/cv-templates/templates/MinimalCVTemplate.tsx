@@ -62,7 +62,9 @@ const getBullets = (item: any): string[] => {
   const foundArray = possibleArrays.find(arr => Array.isArray(arr) && arr.length > 0);
 
   if (foundArray) {
-    return foundArray.map((s: any) => stripLeadingBullet(String(s ?? '').trim()));
+    return foundArray
+      .map((s: any) => stripLeadingBullet(String(s ?? '').trim()))
+      .filter((s: string) => s.length > 0);
   }
 
   const possibleTexts = [
@@ -244,7 +246,7 @@ export const MinimalCVTemplate: React.FC<MinimalCVTemplateProps> = ({
                     style={{ fontSize: '9px', color: '#475569', background: 'none', border: '1px solid #cbd5e1', borderRadius: '4px', cursor: 'pointer', padding: '2px 7px', lineHeight: '1.5' }}
                     onClick={() => {
                       const current = getBullets(item);
-                      onUpdateSectionItem(sectionIndex, idx, 'bulletPoints', [...current, '']);
+                      onUpdateSectionItem(sectionIndex, idx, 'bulletPoints', [...current, 'Neuer Punkt']);
                     }}
                   >
                     + Bullet

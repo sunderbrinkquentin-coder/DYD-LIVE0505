@@ -10,6 +10,7 @@ import { MinimalCVTemplate } from '../components/cv-templates/templates/MinimalC
 import { CreativeCVTemplate } from '../components/cv-templates/templates/CreativeCVTemplate';
 import { ProfessionalCVTemplate } from '../components/cv-templates/templates/ProfessionalCVTemplate';
 import PhotoUpload from '../components/PhotoUpload';
+import { PaywallModal } from '../components/PaywallModal';
 import { supabase } from '../lib/supabase';
 import { useCvOptimizationStatus } from '../hooks/useCvOptimizationStatus';
 
@@ -219,6 +220,7 @@ export function CVLiveEditorPage() {
   const templateSaveTimerRef = useRef<number | null>(null);
   const [showPhotoUpload, setShowPhotoUpload] = useState(false);
   const [isDownloadUnlocked, setIsDownloadUnlocked] = useState(false);
+  const [showPaywallModal, setShowPaywallModal] = useState(false);
   const [showTemplateSelectForExport, setShowTemplateSelectForExport] = useState(false);
 
   const [showTips, setShowTips] = useState(false);
@@ -975,8 +977,8 @@ const handleDownloadClick = () => {
       return;
     }
 
-    // Not yet unlocked — go directly to paywall (handles tokens + Stripe)
-    navigate(`/cv-paywall?cvId=${cvId}&source=cv_optimizer`);
+    // Not yet unlocked — show PaywallModal (which offers token usage or Stripe purchase)
+    setShowPaywallModal(true);
   };
 
   const triggerDirectExport = async () => {
@@ -1487,157 +1489,183 @@ const updateSectionItem = (
           .nonce-export {
             display: none !important;
           }
-          /* Page separator: gray bar between A4 pages */
-          .cv-page-gap {
-            position: absolute;
-            left: 0;
-            right: 0;
-            height: 20px;
-            background: #3f3f46;
-            pointer-events: none;
-            z-index: 10;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-          }
-          .cv-page-gap-label {
-            background: #52525b;
-            color: #a1a1aa;
-            font-size: 9px;
-            font-family: system-ui, sans-serif;
-            padding: 1px 8px;
-            border-radius: 3px;
-            white-space: nowrap;
-            line-height: 1.5;
-          }
         `}</style>
 
-        {/* Scaling wrapper — height accounts for the page gaps */}
-        <div
-          style={{
-            width: `${794 * scale}px`,
-            maxWidth: '100%',
-            height: `${(cvHeight + Math.floor(cvHeight / 1122) * 20) * scale}px`,
-            position: 'relative',
-            margin: '0 auto',
-            flexShrink: 0,
-            transition: 'width 0.2s ease, height 0.2s ease',
-          }}
-        >
-          {/* The actual CV content — positioned absolutely, scaled */}
-          <div
-            ref={cvPreviewRef}
-            data-pdf-root
-            className="shadow-2xl"
-            style={{
-              width: '794px',
-              position: 'absolute',
-              top: 0,
-              left: 0,
-              transform: `scale(${scale})`,
-              transformOrigin: 'top left',
-              boxShadow: '0 8px 48px 0 rgba(0,0,0,0.45)',
-              backgroundColor: '#ffffff',
-              minHeight: '1122px',
-              display: 'flex',
-              flexDirection: 'column',
-            }}
-          >
-            <div style={{ width: '100%', flex: 1, display: 'flex', flexDirection: 'column' }}>
+        {/* ── Page-aware A4 layout ── */}
+        {(() => {
+          const PAGE_H = 1122; // A4 height in CV units
+          const PAGE_W = 794;  // A4 width in CV units
+          const GAP = 24;      // px gap between pages in editor (unscaled)
+          const pageCount = Math.max(1, Math.ceil(cvHeight / PAGE_H));
 
-              {selectedTemplate === 'modern' && editorData.personalInfo && editorData.sections && (
-                <ModernCVTemplate
-                  personalInfo={editorData.personalInfo}
-                  summary={editorData.summary}
-                  sections={editorData.sections}
-                  photoUrl={photoUrl}
-                  photoPosition={photoPosition}
-                  onUpdatePersonalInfo={updatePersonalInfo}
-                  onUpdateSummary={(value) => setEditorData((prev: any) => prev ? { ...prev, summary: value } : prev)}
-                  onUpdateSection={updateSection}
-                  onUpdateSectionItem={updateSectionItem}
-                  onAddSectionItem={addSectionItem}
-                  onDeleteSectionItem={deleteSectionItem}
-                />
-              )}
+          // templateProps shared by source div and all page frame windows
+          const templateProps = {
+            personalInfo: editorData.personalInfo!,
+            summary: editorData.summary,
+            sections: editorData.sections!,
+            photoUrl,
+            photoPosition,
+            onUpdatePersonalInfo: updatePersonalInfo,
+            onUpdateSummary: (value: string) => setEditorData((prev: any) => prev ? { ...prev, summary: value } : prev),
+            onUpdateSection: updateSection,
+            onUpdateSectionItem: updateSectionItem,
+            onAddSectionItem: addSectionItem,
+            onDeleteSectionItem: deleteSectionItem,
+          };
 
-              {selectedTemplate === 'classic' && editorData.personalInfo && editorData.sections && (
-                <ClassicCVTemplate
-                  personalInfo={editorData.personalInfo}
-                  summary={editorData.summary}
-                  sections={editorData.sections}
-                  photoUrl={photoUrl}
-                  photoPosition={photoPosition}
-                  onUpdatePersonalInfo={updatePersonalInfo}
-                  onUpdateSummary={(value) => setEditorData((prev: any) => prev ? { ...prev, summary: value } : prev)}
-                  onUpdateSection={updateSection}
-                  onUpdateSectionItem={updateSectionItem}
-                  onAddSectionItem={addSectionItem}
-                  onDeleteSectionItem={deleteSectionItem}
-                />
-              )}
+          const renderTemplate = () => {
+            if (selectedTemplate === 'modern' && editorData.personalInfo && editorData.sections)
+              return <ModernCVTemplate {...templateProps} />;
+            if (selectedTemplate === 'classic' && editorData.personalInfo && editorData.sections)
+              return <ClassicCVTemplate {...templateProps} />;
+            if (selectedTemplate === 'minimal' && editorData.personalInfo && editorData.sections)
+              return <MinimalCVTemplate {...templateProps} />;
+            if (selectedTemplate === 'creative' && editorData.personalInfo && editorData.sections)
+              return <CreativeCVTemplate {...templateProps} />;
+            if (selectedTemplate === 'professional' && editorData.personalInfo && editorData.sections)
+              return <ProfessionalCVTemplate {...templateProps} />;
+            return null;
+          };
 
-              {selectedTemplate === 'minimal' && editorData.personalInfo && editorData.sections && (
-                <MinimalCVTemplate
-                  personalInfo={editorData.personalInfo}
-                  summary={editorData.summary}
-                  sections={editorData.sections}
-                  photoUrl={photoUrl}
-                  photoPosition={photoPosition}
-                  onUpdatePersonalInfo={updatePersonalInfo}
-                  onUpdateSummary={(value) => setEditorData((prev: any) => prev ? { ...prev, summary: value } : prev)}
-                  onUpdateSection={updateSection}
-                  onUpdateSectionItem={updateSectionItem}
-                  onAddSectionItem={addSectionItem}
-                  onDeleteSectionItem={deleteSectionItem}
-                />
-              )}
+          const totalDisplayHeight = pageCount * PAGE_H * scale + (pageCount - 1) * GAP;
 
-              {selectedTemplate === 'creative' && editorData.personalInfo && editorData.sections && (
-                <CreativeCVTemplate
-                  personalInfo={editorData.personalInfo}
-                  summary={editorData.summary}
-                  sections={editorData.sections}
-                  photoUrl={photoUrl}
-                  photoPosition={photoPosition}
-                  onUpdatePersonalInfo={updatePersonalInfo}
-                  onUpdateSummary={(value) => setEditorData((prev: any) => prev ? { ...prev, summary: value } : prev)}
-                  onUpdateSection={updateSection}
-                  onUpdateSectionItem={updateSectionItem}
-                  onAddSectionItem={addSectionItem}
-                  onDeleteSectionItem={deleteSectionItem}
-                />
-              )}
-
-              {selectedTemplate === 'professional' && editorData.personalInfo && editorData.sections && (
-                <ProfessionalCVTemplate
-                  personalInfo={editorData.personalInfo}
-                  summary={editorData.summary}
-                  sections={editorData.sections}
-                  photoUrl={photoUrl}
-                  photoPosition={photoPosition}
-                  onUpdatePersonalInfo={updatePersonalInfo}
-                  onUpdateSummary={(value) => setEditorData((prev: any) => prev ? { ...prev, summary: value } : prev)}
-                  onUpdateSection={updateSection}
-                  onUpdateSectionItem={updateSectionItem}
-                  onAddSectionItem={addSectionItem}
-                  onDeleteSectionItem={deleteSectionItem}
-                />
-              )}
-            </div>
-          </div>
-
-          {/* Page gap overlays — outside cv-preview (not captured in PDF) */}
-          {Array.from({ length: Math.floor(cvHeight / 1122) }, (_, i) => (
+          return (
             <div
-              key={i}
-              className="cv-page-gap"
-              style={{ top: `${((i + 1) * 1122 * scale) + i * 20 * scale}px`, height: `${20 * scale}px` }}
+              style={{
+                width: `${PAGE_W * scale}px`,
+                maxWidth: '100%',
+                position: 'relative',
+                margin: '0 auto',
+                flexShrink: 0,
+                // Total height = all page frames + gaps between them
+                height: `${totalDisplayHeight}px`,
+              }}
             >
-              <span className="cv-page-gap-label">Seite {i + 2}</span>
+              {/* ── Hidden measurement source (PDF export target) ──
+                  Invisible to the user, used only for height measurement and PDF export.
+                  Positioned off-screen so it doesn't compete with page frames. */}
+              <div
+                ref={cvPreviewRef}
+                data-pdf-root
+                aria-hidden="true"
+                style={{
+                  width: `${PAGE_W}px`,
+                  position: 'absolute',
+                  top: 0,
+                  left: 0,
+                  transform: `scale(${scale})`,
+                  transformOrigin: 'top left',
+                  backgroundColor: '#ffffff',
+                  minHeight: `${PAGE_H}px`,
+                  // Place behind all page frames; pointer-events off so frames get all interactions
+                  zIndex: 0,
+                  pointerEvents: 'none',
+                  visibility: 'hidden',
+                }}
+              >
+                {renderTemplate()}
+              </div>
+
+              {/* ── Page frames — one per A4 page ──
+                  Each frame is a 794×1122 (scaled) viewport clipped with overflow:hidden.
+                  Inside, a duplicate render of the CV is shifted up by pageIndex * PAGE_H
+                  so only the correct page content is visible. */}
+              {Array.from({ length: pageCount }, (_, pageIndex) => {
+                const frameTop = pageIndex * (PAGE_H * scale + GAP);
+                const contentOffsetY = -(pageIndex * PAGE_H); // shift in unscaled CV units
+
+                return (
+                  <div
+                    key={pageIndex}
+                    style={{
+                      position: 'absolute',
+                      top: `${frameTop}px`,
+                      left: 0,
+                      width: `${PAGE_W * scale}px`,
+                      height: `${PAGE_H * scale}px`,
+                      overflow: 'hidden',
+                      backgroundColor: '#ffffff',
+                      boxShadow: '0 4px 24px rgba(0,0,0,0.35)',
+                      zIndex: 1,
+                    }}
+                  >
+                    {/* Page number badge — outside CV content flow */}
+                    {pageIndex > 0 && (
+                      <div
+                        style={{
+                          position: 'absolute',
+                          top: 6,
+                          right: 8,
+                          zIndex: 10,
+                          background: 'rgba(0,0,0,0.15)',
+                          color: 'rgba(0,0,0,0.4)',
+                          fontSize: '9px',
+                          fontFamily: 'system-ui, sans-serif',
+                          padding: '1px 6px',
+                          borderRadius: '3px',
+                          pointerEvents: 'none',
+                          userSelect: 'none',
+                        }}
+                      >
+                        Seite {pageIndex + 1}
+                      </div>
+                    )}
+
+                    {/* CV content shifted to show this page's slice */}
+                    <div
+                      style={{
+                        width: `${PAGE_W}px`,
+                        transform: `scale(${scale}) translateY(${contentOffsetY}px)`,
+                        transformOrigin: 'top left',
+                        position: 'absolute',
+                        top: 0,
+                        left: 0,
+                        minHeight: `${PAGE_H}px`,
+                        backgroundColor: '#ffffff',
+                      }}
+                    >
+                      {renderTemplate()}
+                    </div>
+                  </div>
+                );
+              })}
+
+              {/* ── Gap labels between pages ── */}
+              {Array.from({ length: pageCount - 1 }, (_, i) => {
+                const labelTop = (i + 1) * PAGE_H * scale + i * GAP;
+                return (
+                  <div
+                    key={i}
+                    style={{
+                      position: 'absolute',
+                      left: 0,
+                      right: 0,
+                      top: `${labelTop}px`,
+                      height: `${GAP}px`,
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      zIndex: 2,
+                      pointerEvents: 'none',
+                    }}
+                  >
+                    <span style={{
+                      background: '#3f3f46',
+                      color: '#a1a1aa',
+                      fontSize: '9px',
+                      fontFamily: 'system-ui, sans-serif',
+                      padding: '2px 10px',
+                      borderRadius: '4px',
+                      whiteSpace: 'nowrap',
+                    }}>
+                      Seite {i + 2}
+                    </span>
+                  </div>
+                );
+              })}
             </div>
-          ))}
-        </div>
+          );
+        })()}
 
         {/* METADATA SECTION */}
         {jobData && (jobData.jobTitle || jobData.company) && (
@@ -1681,6 +1709,17 @@ const updateSectionItem = (
         )}
 
       </main>
+
+      <PaywallModal
+        isOpen={showPaywallModal}
+        onClose={() => setShowPaywallModal(false)}
+        context="download"
+        onConfirm={async () => {
+          if (cvId) {
+            navigate(`/cv-paywall?cvId=${cvId}&source=cv_optimizer`);
+          }
+        }}
+      />
 
       {/* Template selection modal for already-unlocked download */}
       {showTemplateSelectForExport && (
