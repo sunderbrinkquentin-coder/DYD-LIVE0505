@@ -83,13 +83,26 @@ export function ProfessionalEducationStep({ data = [], experienceLevel, onChange
     }
   };
 
-  const isValid = entries.every(e => e.type && e.institution && e.degree && e.startYear && e.endYear);
+// Filtert leere Geister-Einträge heraus, bei denen nichts eingetippt wurde
+  const activeEntries = entries.filter(e => e.institution?.trim() || e.degree?.trim());
+
+  // Validiert nur die Einträge, die auch wirklich Daten enthalten
+  const isValid = activeEntries.every(e => 
+    e.type && 
+    e.institution?.trim() && 
+    e.degree?.trim() && 
+    e.startYear && 
+    e.endYear
+  );
 
   const handleNext = () => {
     if (!isValid) {
       setAttempted(true);
       return;
     }
+    // Bereinigt die Daten vor dem Speichern, damit keine leeren Dummys in der Datenbank landen
+    const cleanedEntries = activeEntries.length > 0 ? activeEntries : [];
+    onChange(cleanedEntries);
     onNext();
   };
 
