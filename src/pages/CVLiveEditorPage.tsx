@@ -774,21 +774,18 @@ export function CVLiveEditorPage() {
     };
   }, [cvId, hasEditorChanges]);
 
-  useEffect(() => {
-    const paymentSuccess = searchParams.get('payment') === 'success';
-    if (paymentSuccess) {
-      setIsDownloadUnlocked(true);
-      setShowPaymentSuccessBanner(true);
-    }
-  }, [searchParams]);
+// Erzeugt eine feste Referenz im Speicher, um Mehrfach-Ausführungen zu blockieren
+  const exportInProgressRef = useRef(false);
 
   useEffect(() => {
     const paymentSuccess = searchParams.get('payment') === 'success';
     if (!paymentSuccess || !editorData || !user || !cvId) return;
     if (!isTemplateReady || !templateConfirmed) return;
 
-    if (autoDownloadTriggeredRef.current) return;
+    // 🔥 FIX: Wenn der Export bereits läuft oder beendet wurde, brich sofort ab!
+    if (autoDownloadTriggeredRef.current || exportInProgressRef.current) return;
     autoDownloadTriggeredRef.current = true;
+    exportInProgressRef.current = true;
 
     const toSlug = (s: string) => s.replace(/[^a-zA-Z0-9äöüÄÖÜß]/g, '_').replace(/_+/g, '_').replace(/^_|_$/g, '');
 
@@ -804,7 +801,10 @@ export function CVLiveEditorPage() {
       };
 
       const el = await waitForElement(cvPreviewRef, 5000);
-      const navigateToDashboard = () => navigate(`/dashboard?payment=success&highlightCv=${cvId}`);
+      const navigateToDashboard = () => {
+        // Bereinigt die URL beim Verlassen, damit beim Zurückgehen kein neuer Loop entsteht
+        navigate(`/dashboard?highlightCv=${cvId}`, { replace: true });
+      };
 
       const existingJobData = jobData || {};
       const normalizedJobData = {
@@ -827,7 +827,9 @@ export function CVLiveEditorPage() {
             ...(pdfPublicUrl ? { pdf_url: pdfPublicUrl } : {}),
             updated_at: new Date().toISOString(),
           }).eq('id', cvId);
-        } catch (e) {}
+        } catch (e) {
+          console.error("Fehler beim Speichern nach Export:", e);
+        }
       };
 
       if (!el || el.scrollHeight < 50) {
@@ -889,11 +891,13 @@ export function CVLiveEditorPage() {
         await saveToDb();
       }
 
+      // Setzt die Referenz zurück und leitet sauber weiter
+      exportInProgressRef.current = false;
       navigateToDashboard();
     };
 
     doExportAndNavigate();
-  }, [templateConfirmed, editorData, user, cvId, isTemplateReady]);
+  }, [templateConfirmed, editorData, user, cvId, isTemplateReady, searchParams]);
 
   // 🔥 PERFORMANCE-FIX (Punkt 8): Erhöht auf 5s Debounce & senkt IO-Last bei 50+ parallelen Usern
   useEffect(() => {
