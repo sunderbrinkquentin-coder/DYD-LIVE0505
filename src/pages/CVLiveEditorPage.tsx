@@ -1391,14 +1391,15 @@ export function CVLiveEditorPage() {
           }
         `}</style>
 
-        {(() => {
+{(() => {
           const PAGE_H = 1122;
           const GAP = 32;
+          // Die genaue Anzahl der physischen Blätter
           const pageCount = Math.max(1, Math.ceil(cvHeight / PAGE_H));
 
           const templateProps = {
-            pageBreakItems, // Das ist wichtig, damit das Template weiß, wo geschoben werden muss!
-            pageCount,      // Wichtig für den Footer!
+            pageBreakItems,
+            pageCount,
             personalInfo: editorData.personalInfo!,
             summary: editorData.summary,
             sections: editorData.sections!,
@@ -1421,11 +1422,32 @@ export function CVLiveEditorPage() {
             return null;
           };
 
+          // Die absolut exakte, berechnete Höhe inkl. Skalierung und Abständen zwischen den Seiten
+          const totalContainerHeight = (pageCount * PAGE_H * scale) + ((pageCount - 1) * GAP * scale);
+
           return (
-            <div style={{ width: `${794 * scale}px`, position: 'relative', margin: '0 auto', flexShrink: 0, height: `${(pageCount * PAGE_H + (pageCount - 1) * GAP) * scale}px` }}>
+            <div
+              style={{
+                width: `${794 * scale}px`,
+                height: `${totalContainerHeight}px`, /* 🔥 FIX: Exakte Höhe, kein schwarzer Raum unten! */
+                position: 'relative',
+                margin: '0 auto',
+                flexShrink: 0,
+              }}
+            >
               
               {/* Unsichtbarer Mess-Kanal für die Spacer Engine & PDF-Druck */}
-              <div ref={cvPreviewRef} data-pdf-root style={{ width: '794px', position: 'absolute', left: '-9999px', top: 0, backgroundColor: '#ffffff' }}>
+              <div
+                ref={cvPreviewRef}
+                data-pdf-root
+                style={{
+                  width: '794px',
+                  position: 'absolute',
+                  left: '-9999px',
+                  top: 0,
+                  backgroundColor: '#ffffff',
+                }}
+              >
                 {renderTemplate()}
               </div>
 
@@ -1435,7 +1457,17 @@ export function CVLiveEditorPage() {
                 const contentOffsetY = -(pageIdx * PAGE_H);
 
                 return (
-                  <div key={pageIdx} className="a4-page-frame" style={{ position: 'absolute', top: `${frameTop}px`, left: 0, transform: `scale(${scale})`, transformOrigin: 'top left' }}>
+                  <div
+                    key={pageIdx}
+                    className="a4-page-frame"
+                    style={{
+                      position: 'absolute',
+                      top: `${frameTop}px`,
+                      left: 0,
+                      transform: `scale(${scale})`,
+                      transformOrigin: 'top left',
+                    }}
+                  >
                     <div className="page-badge">Seite {pageIdx + 1}</div>
                     <div className="a4-page-frame-inner" style={{ top: `${contentOffsetY}px` }}>
                       {renderTemplate()}
@@ -1488,7 +1520,6 @@ export function CVLiveEditorPage() {
           </div>
         )}
       </main>
-
       {/* CONFIGURATION & PAYMENT OVERLAYS */}
       <PaywallModal isOpen={showPaywallModal} onClose={() => setShowPaywallModal(false)} context="download" onConfirm={handlePaywallSuccess} />
 
