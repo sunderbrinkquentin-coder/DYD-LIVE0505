@@ -37,7 +37,6 @@ interface ProfessionalCVTemplateProps {
   pageBreakItems?: Map<string, number>;
   pageCount?: number;  // ← NEU
 }
-}
 
 const autoResize = (el: HTMLTextAreaElement) => {
   el.style.height = 'auto';
