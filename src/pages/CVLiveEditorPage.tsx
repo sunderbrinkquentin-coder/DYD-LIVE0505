@@ -230,6 +230,7 @@ export function CVLiveEditorPage() {
   const [templateConfirmed, setTemplateConfirmed] = useState(false);
 
   // 🔥 DIE ENGINE: Misst im Hintergrund und pusht die Boxen nach unten!
+  // 🔥 DIE ENGINE STATE
   const [pageBreakItems, setPageBreakItems] = useState<Map<string, number>>(new Map());
 
   const cvPreviewRef = useRef<HTMLDivElement | null>(null);
@@ -259,67 +260,69 @@ export function CVLiveEditorPage() {
   };
 
   useEffect(() => {
-    const el = cvPreviewRef.current;
-    if (!el) return;
-    const measure = () => {
-      const h = Math.max(el.offsetHeight, el.scrollHeight, 0);
-      setCvHeight(h);
-    };
-    measure();
-    const observer = new ResizeObserver(measure);
-    observer.observe(el);
-    return () => observer.disconnect();
-  }, [editorData, selectedTemplate, pageBreakItems]);
-
-  useEffect(() => {
     (window as any).__debugPdfHtml = () => debugLogPDFHtml(cvPreviewRef);
     return () => { delete (window as any).__debugPdfHtml; };
   }, []);
 
   // ── DIE UNZERSTÖRBARE SMART-BREAK ENGINE ──
+// ── DIE UNZERSTÖRBARE SMART-BREAK ENGINE ──
   useEffect(() => {
-    const container = cvPreviewRef.current;
-    if (!container) return;
+    const timer = setTimeout(() => {
+      const container = cvPreviewRef.current;
+      if (!container) return;
 
-    const PAGE_H = 1122;
-    const newMap = new Map<string, number>();
+      const PAGE_H = 1122;
+      const newMap = new Map<string, number>();
 
-    // Alle DOM-Elemente holen, die mit data-spacer-id markiert sind
-    const elements = Array.from(container.querySelectorAll<HTMLElement>('[data-spacer-id]'));
-    
-    // Zuerst alle Abstände Nullen, um die exakte rohe Höhe zu messen
-    elements.forEach(el => el.style.marginTop = '0px');
+      const elements = Array.from(container.querySelectorAll<HTMLElement>('[data-spacer-id]'));
+      
+      let runningOffset = 0;
+      let maxBottom = 0;
+      const parentTop = container.getBoundingClientRect().top;
 
-    // Force DOM Reflow
-    void container.offsetHeight;
-
-    elements.forEach(el => {
-      const box = el.getBoundingClientRect();
-      const parentBox = container.getBoundingClientRect();
-      // Die unskalierte Position im Editor berechnen
-      const top = (box.top - parentBox.top) / scale;
-      const height = box.height / scale;
-      const bottom = top + height;
-
-      const pageStart = Math.floor(top / PAGE_H);
-      const pageEnd = Math.floor((bottom - 0.1) / PAGE_H);
-
-      // Wenn das Element die Kante kreuzt, berechnen wir die Differenz bis zur nächsten Kante
-      if (pageEnd > pageStart && height < PAGE_H) {
-        const nextPageTop = (pageStart + 1) * PAGE_H;
-        const pushDown = nextPageTop - top + 2; // 2px Puffer
+      elements.forEach((el, index) => {
+        const box = el.getBoundingClientRect();
+        const rawTop = box.top - parentTop;
+        const height = box.height;
         
-        newMap.set(el.getAttribute('data-spacer-id')!, pushDown);
+        // Den aktuell angewendeten Abstand abziehen, um die echte Position zu ermitteln
+        const spacerId = el.getAttribute('data-spacer-id') || `spacer-${index}`;
+        const currentSpacer = pageBreakItems.get(spacerId) || 0;
+        const unspacedTop = rawTop - currentSpacer;
         
-        // Sofort anwenden, damit das Element physisch runterrutscht und das nächste Element richtig gemessen wird
-        el.style.marginTop = `${pushDown}px`;
-      }
-    });
+        const actualTop = unspacedTop + runningOffset;
+        const actualBottom = actualTop + height;
 
-    setPageBreakItems(newMap);
-    
-  }, [editorData, selectedTemplate, scale]);
+        const pageStart = Math.floor(actualTop / PAGE_H);
+        const pageEnd = Math.floor((actualBottom - 1) / PAGE_H);
 
+        // Wenn Element geschnitten wird -> Push berechnen
+        if (pageEnd > pageStart && height < PAGE_H) {
+          const pushDown = (pageStart + 1) * PAGE_H - actualTop;
+          runningOffset += pushDown;
+          newMap.set(spacerId, pushDown);
+        }
+        
+        if (actualBottom + runningOffset > maxBottom) {
+          maxBottom = actualBottom + runningOffset;
+        }
+      });
+
+      // Exakte Höhe berechnen, damit Seite 2 sichtbar wird!
+      setCvHeight(Math.max(PAGE_H, maxBottom + 50));
+
+      setPageBreakItems(prev => {
+        if (prev.size !== newMap.size) return newMap;
+        for (const [k, v] of newMap.entries()) {
+          if (prev.get(k) !== v) return newMap;
+        }
+        return prev;
+      });
+    }, 150);
+
+    return () => clearTimeout(timer);
+  }, [editorData, selectedTemplate, pageBreakItems]);
+  
   const isInitialLoadRef = useRef(true);
   const saveTimeoutRef = useRef<number | null>(null);
 
@@ -998,30 +1001,42 @@ export function CVLiveEditorPage() {
   };
 
   // 🔥 FREISCHALTFLOW-WEICHE: Token checken oder Paywall öffnen
-  const handleDownloadClick = () => {
+const handleDownloadClick = async () => {
     if (!cvId) return;
 
+    // 1. Auth-Check
     if (!user) {
-      const redirectTo = encodeURIComponent(`/cv-live-editor/${cvId}`);
-      navigate(`/login?redirect=${redirectTo}`);
+      navigate(`/login?redirect=${encodeURIComponent(`/cv-live-editor/${cvId}`)}`);
       return;
     }
 
+    // 2. Wenn bezahlt & Template schon bestätigt -> Export starten
+    if (isDownloadUnlocked && templateConfirmed) {
+      triggerDirectExport();
+      return;
+    }
+
+    // 3. Wenn noch kein Template bestätigt -> Modal öffnen
+    setShowTemplateSelectForExport(true);
+  };
+    // Wenn bereits bezahlt -> direkt zum Design-Wähler
     if (isDownloadUnlocked) {
+      setTemplateConfirmed(false);
       setShowTemplateSelectForExport(true);
       return;
     }
 
+    // Wenn nicht bezahlt -> Paywall öffnen
     setShowPaywallModal(true);
   };
-
   const handlePaywallSuccess = () => {
     setShowPaywallModal(false);
     setIsDownloadUnlocked(true);
-    setShowTemplateSelectForExport(true); // Schaltet sofort das Layout-Modal frei
+    setTemplateConfirmed(false);
+    setShowTemplateSelectForExport(true); // Ruft nach Zahlung den Screen auf
   };
 
-  const triggerDirectExport = async () => {
+const triggerDirectExport = async () => {
     if (!cvPreviewRef.current || !cvId || !user) return;
     try {
       setIsExportingPDF(true);
@@ -1033,10 +1048,30 @@ export function CVLiveEditorPage() {
         ? `Lebenslauf_${toSlug(lastName)}_${toSlug(co)}.pdf`
         : lastName ? `Lebenslauf_${toSlug(lastName)}.pdf` : 'Lebenslauf.pdf';
 
-      const savedTransform = cvPreviewRef.current.style.transform;
-      cvPreviewRef.current.style.transform = 'none';
-      const blob = await exportCVToPDFBlob(cvPreviewRef);
-      cvPreviewRef.current.style.transform = savedTransform;
+      const el = cvPreviewRef.current;
+      
+      // 1. Sichtbarkeit erzwingen
+      const parent = el.parentElement;
+      if (parent) parent.style.opacity = '1';
+// NEU: Warte, bis das Overlay "PDF wird generiert" sichtbar ist
+      await new Promise(resolve => setTimeout(resolve, 500));
+      // 2. Höhe erzwingen (Deine existierende Logik ist hier gut)
+      const PAGE_H = 1122;
+      const pageCountExport = Math.max(1, Math.ceil(cvHeight / PAGE_H));
+      const rootEl = el.querySelector('.cv-render-root') as HTMLElement;
+      if (rootEl) {
+        rootEl.style.setProperty('min-height', `${pageCountExport * PAGE_H}px`, 'important');
+      }
+
+      // 3. WICHTIG: Kurze Pause, damit React das DOM wirklich rendert
+      await new Promise(resolve => setTimeout(resolve, 300));
+
+      // 4. Export mit Übergabe der editorData (falls dein Exporter das braucht)
+      const blob = await exportCVToPDFBlob(cvPreviewRef, editorData);
+
+      // 5. Cleanup
+      if (rootEl) rootEl.style.removeProperty('min-height');
+      if (parent) parent.style.opacity = '0.001';
 
       const url = URL.createObjectURL(blob);
       const a = document.createElement('a');
@@ -1048,6 +1083,7 @@ export function CVLiveEditorPage() {
       URL.revokeObjectURL(url);
     } catch (e) {
       console.error('Export failed', e);
+      alert('PDF-Erstellung fehlgeschlagen. Bitte versuche es erneut.');
     } finally {
       setIsExportingPDF(false);
     }
@@ -1172,10 +1208,9 @@ export function CVLiveEditorPage() {
       newSections[sectionIndex] = section;
       return { ...prev, sections: newSections };
     });
-  };
 
   if (error) {
-    return (
+  return (
       <div className="min-h-screen bg-gradient-to-br from-[#050507] via-[#0a0a0f] to-[#050507] text-white flex items-center justify-center">
         <div className="text-center space-y-6 max-w-md px-4">
           <AlertTriangle size={64} className="text-red-500 mx-auto" />
@@ -1227,11 +1262,12 @@ export function CVLiveEditorPage() {
     return <LoadingPageContent elapsedSeconds={elapsedSeconds} activeStep={activeStep} PROCESSING_STEPS={PROCESSING_STEPS} INFOS={INFOS} />;
   }
 
-  const isPostPaymentFlow = searchParams.get('payment') === 'success';
+const isPostPaymentFlow = searchParams.get('payment') === 'success';
+  const showFullscreenSelect = isPostPaymentFlow || showTemplateSelectForExport;
 
-  if (isPostPaymentFlow && editorData && !templateConfirmed) {
+  if (showFullscreenSelect && editorData && !templateConfirmed) {
     return (
-      <div className="min-h-screen bg-[#06060e] text-white flex flex-col items-center justify-center px-4 py-12">
+      <div className="fixed inset-0 z-[999] bg-[#06060e] text-white flex flex-col items-center justify-center px-4 py-12">
         <div className="fixed inset-0 overflow-hidden pointer-events-none">
           <div className="absolute -top-32 left-1/4 w-[600px] h-[600px] bg-[#66c0b6]/6 rounded-full blur-[120px]" />
           <div className="absolute -bottom-32 right-1/4 w-[500px] h-[500px] bg-[#30E3CA]/4 rounded-full blur-[100px]" />
@@ -1240,7 +1276,7 @@ export function CVLiveEditorPage() {
           <div className="text-center mb-10">
             <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-[#66c0b6]/10 border border-[#66c0b6]/30 mb-6">
               <Check size={14} className="text-[#66c0b6]" />
-              <span className="text-sm text-[#66c0b6] font-medium">Zahlung erfolgreich</span>
+              <span className="text-sm text-[#66c0b6] font-medium">Bereit zum Download</span>
             </div>
             <h1 className="text-3xl sm:text-4xl font-bold mb-3">Wähle dein CV-Design</h1>
             <p className="text-white/50 text-sm">Dein CV wird im gewählten Design als PDF erstellt und heruntergeladen.</p>
@@ -1250,7 +1286,7 @@ export function CVLiveEditorPage() {
             {templates.map((t) => (
               <button
                 key={t.id}
-                onClick={() => { handleTemplateChange(t.id); }}
+                onClick={() => handleTemplateChange(t.id)}
                 className={`relative flex flex-col items-center gap-3 p-4 rounded-2xl border-2 transition-all duration-200 ${
                   selectedTemplate === t.id ? 'border-[#66c0b6] bg-[#66c0b6]/10 shadow-[0_0_20px_rgba(102,192,182,0.2)]' : 'border-white/10 bg-white/5 hover:border-white/25 hover:bg-white/8'
                 }`}
@@ -1266,21 +1302,41 @@ export function CVLiveEditorPage() {
             ))}
           </div>
 
-          <button
-            onClick={() => {
-              autoDownloadTriggeredRef.current = false;
-              setTemplateConfirmed(true);
-            }}
-            className="w-full py-4 rounded-2xl bg-gradient-to-r from-[#66c0b6] to-[#30E3CA] text-black font-bold text-lg hover:opacity-90 transition-all flex items-center justify-center gap-3"
-          >
-            <Sparkles size={20} />
-            PDF mit "{templates.find(t => t.id === selectedTemplate)?.name}"-Design erstellen
-          </button>
+          <div className="flex gap-4">
+            <button
+              onClick={() => {
+                setShowTemplateSelectForExport(false);
+                if (isPostPaymentFlow) navigate(`/cv-live-editor/${cvId}`, { replace: true });
+              }}
+              className="flex-1 py-4 rounded-2xl bg-white/5 border border-white/10 text-white font-bold text-lg hover:bg-white/10 transition-all"
+            >
+              Abbrechen
+            </button>
+<button
+  onClick={async () => {
+    setShowTemplateSelectForExport(false);
+    
+    // Prüfe Paywall
+    if (!isDownloadUnlocked) {
+      setShowPaywallModal(true); // Paywall öffnet sich
+    } else {
+      // Wenn bezahlt -> Bestätigen und Exportieren
+      setTemplateConfirmed(true);
+      
+      // WICHTIG: Kleine Pause, damit React das Modal-DOM abgebaut hat
+      await new Promise(r => setTimeout(r, 200));
+      triggerDirectExport();
+    }
+  }}
+  className="flex-[2] py-4 rounded-2xl bg-gradient-to-r from-[#66c0b6] to-[#30E3CA] text-black font-bold text-lg"
+>
+  PDF erstellen
+</button>
+          </div>
         </div>
       </div>
     );
   }
-
   return (
     <div className="h-screen bg-[#050507] flex flex-col overflow-hidden font-sans w-full">
       {isPostPaymentFlow && templateConfirmed && (
@@ -1351,7 +1407,9 @@ export function CVLiveEditorPage() {
       </header>
 
       {/* MAIN CONTENT AREA MIT PHYSISCHEN A4-BLÄTTERN */}
-      <main ref={mainRefCallback} className="flex-1 overflow-y-auto bg-zinc-900 w-full py-12 flex flex-col items-center gap-8">
+{/* MAIN CONTENT AREA MIT PHYSISCHEN A4-BLÄTTERN */}
+     {/* MAIN CONTENT AREA MIT PHYSISCHEN A4-BLÄTTERN */}
+      <main ref={mainRefCallback} className="flex-1 overflow-y-auto bg-[#1e1e24] w-full py-12 flex flex-col items-center">
         
         <style>{`
           [data-pdf-root] textarea, [data-pdf-root] p, [data-pdf-root] span, [data-pdf-root] div, [data-pdf-root] li {
@@ -1365,41 +1423,21 @@ export function CVLiveEditorPage() {
             width: 794px !important;
             height: 1122px !important;
             background-color: #ffffff !important;
-            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5) !important;
-            position: relative !important;
-            overflow: hidden !important;
-          }
-          .a4-page-frame-inner {
-            width: 794px !important;
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.4) !important;
+            border-radius: 4px;
             position: absolute !important;
-            left: 0 !important;
-            transform-origin: top left !important;
-          }
-          .page-badge {
-            position: absolute;
-            top: 12px;
-            right: 12px;
-            background: rgba(15, 23, 42, 0.06);
-            color: #64748b;
-            font-size: 9px;
-            font-weight: 700;
-            padding: 4px 10px;
-            border-radius: 6px;
-            z-index: 40;
-            text-transform: uppercase;
-            letter-spacing: 0.05em;
+            overflow: hidden !important;
           }
         `}</style>
 
-{(() => {
+        {(() => {
           const PAGE_H = 1122;
-          const GAP = 32;
-          // Die genaue Anzahl der physischen Blätter
-          const pageCount = Math.max(1, Math.ceil(cvHeight / PAGE_H));
+          const GAP = 32; // Exakt 1cm Lücke
+          const pageCountRender = Math.max(1, Math.ceil(cvHeight / PAGE_H));
 
           const templateProps = {
             pageBreakItems,
-            pageCount,
+            pageCount: pageCountRender,
             personalInfo: editorData.personalInfo!,
             summary: editorData.summary,
             sections: editorData.sections!,
@@ -1422,54 +1460,26 @@ export function CVLiveEditorPage() {
             return null;
           };
 
-          // Die absolut exakte, berechnete Höhe inkl. Skalierung und Abständen zwischen den Seiten
-          const totalContainerHeight = (pageCount * PAGE_H * scale) + ((pageCount - 1) * GAP * scale);
+          const containerHeight = (pageCountRender * PAGE_H * scale) + ((pageCountRender - 1) * GAP * scale);
 
           return (
-            <div
-              style={{
-                width: `${794 * scale}px`,
-                height: `${totalContainerHeight}px`, /* 🔥 FIX: Exakte Höhe, kein schwarzer Raum unten! */
-                position: 'relative',
-                margin: '0 auto',
-                flexShrink: 0,
-              }}
-            >
+            <div style={{ width: `${794 * scale}px`, height: `${containerHeight}px`, position: 'relative', margin: '0 auto', flexShrink: 0 }}>
               
-              {/* Unsichtbarer Mess-Kanal für die Spacer Engine & PDF-Druck */}
-              <div
-                ref={cvPreviewRef}
-                data-pdf-root
-                style={{
-                  width: '794px',
-                  position: 'absolute',
-                  left: '-9999px',
-                  top: 0,
-                  backgroundColor: '#ffffff',
-                }}
-              >
-                {renderTemplate()}
+              {/* LÖSUNG FÜR PDF-CRASH: Opacity 0.001 statt display none / -9999px! */}
+              <div style={{ position: 'absolute', top: 0, left: 0, opacity: 0.001, zIndex: -100, pointerEvents: 'none' }}>
+                <div ref={cvPreviewRef} data-pdf-root style={{ width: '794px', backgroundColor: '#ffffff' }}>
+                  {renderTemplate()}
+                </div>
               </div>
 
-              {/* Physische getrennte Blätter im Live-Editor */}
-              {Array.from({ length: pageCount }).map((_, pageIdx) => {
-                const frameTop = pageIdx * (PAGE_H * scale + GAP * scale);
-                const contentOffsetY = -(pageIdx * PAGE_H);
+              {/* Sichtbare physische A4-Blätter mit exakt 1cm Lücke */}
+              {Array.from({ length: pageCountRender }).map((_, pageIdx) => {
+                const frameTop = pageIdx * (PAGE_H + GAP) * scale;
+                const contentOffset = -(pageIdx * PAGE_H);
 
                 return (
-                  <div
-                    key={pageIdx}
-                    className="a4-page-frame"
-                    style={{
-                      position: 'absolute',
-                      top: `${frameTop}px`,
-                      left: 0,
-                      transform: `scale(${scale})`,
-                      transformOrigin: 'top left',
-                    }}
-                  >
-                    <div className="page-badge">Seite {pageIdx + 1}</div>
-                    <div className="a4-page-frame-inner" style={{ top: `${contentOffsetY}px` }}>
+                  <div key={pageIdx} className="a4-page-frame" style={{ top: `${frameTop}px`, left: 0, transform: `scale(${scale})`, transformOrigin: 'top left' }}>
+                    <div style={{ position: 'absolute', top: `${contentOffset}px`, left: 0, width: '794px' }}>
                       {renderTemplate()}
                     </div>
                   </div>
@@ -1478,45 +1488,24 @@ export function CVLiveEditorPage() {
             </div>
           );
         })()}
-
         {/* METADATA SECTION */}
         {jobData && (jobData.jobTitle || jobData.company) && (
-          <div className="mt-8 px-4 w-full" style={{ width: `${794 * scale}px` }}>
-            <button
-              onClick={() => setShowJobDescription(!showJobDescription)}
-              className="w-full flex items-center justify-between gap-3 px-4 py-3 bg-white/5 border border-white/10 rounded-xl hover:bg-white/[0.08]"
-            >
-              <div className="flex items-center gap-2 text-sm">
-                <Briefcase size={16} className="text-[#66c0b6] flex-shrink-0" />
-                <span className="text-white/70">Stellenbeschreibung:</span>
-                {jobData.jobTitle && <span className="text-[#66c0b6] font-medium truncate">{String(jobData.jobTitle)}</span>}
-              </div>
+          <div className="mt-12 px-4 w-full" style={{ width: `${794 * scale}px` }}>
+            <button onClick={() => setShowJobDescription(!showJobDescription)} className="w-full flex items-center justify-between gap-3 px-4 py-3 bg-white/5 border border-white/10 rounded-xl hover:bg-white/[0.08]">
+              <div className="flex items-center gap-2 text-sm"><Briefcase size={16} className="text-[#66c0b6] flex-shrink-0" /><span className="text-white/70">Stellenbeschreibung:</span>{jobData.jobTitle && <span className="text-[#66c0b6] font-medium truncate">{String(jobData.jobTitle)}</span>}</div>
               <ChevronDown size={16} className={`text-white/40 flex-shrink-0 transition-transform ${showJobDescription ? 'rotate-180' : ''}`} />
             </button>
-
             {showJobDescription && (
-              <div className="mt-1 bg-white/5 border border-white/10 border-t-0 rounded-b-xl overflow-hidden">
-                <div className="p-4 space-y-3">
-                  {jobData.jobDescription && (
-                    <div className="bg-black/20 rounded-lg p-3 max-h-64 overflow-y-auto text-sm text-white/80 whitespace-pre-wrap">
-                      {String(jobData.jobDescription)}
-                    </div>
-                  )}
-                </div>
-              </div>
+              <div className="mt-1 bg-white/5 border border-white/10 border-t-0 rounded-b-xl overflow-hidden"><div className="p-4 space-y-3">{jobData.jobDescription && (<div className="bg-black/20 rounded-lg p-3 max-h-64 overflow-y-auto text-sm text-white/80 whitespace-pre-wrap">{String(jobData.jobDescription)}</div>)}</div></div>
             )}
           </div>
         )}
 
+        {/* MATCHING TEXT */}
         {editorData?.matching_text && (
           <div className="mt-6 mb-12 bg-[#0f1729] border border-[#66c0b6]/20 rounded-2xl p-4 sm:p-6 w-full" style={{ width: `${794 * scale}px` }}>
-            <div className="flex items-center gap-2 mb-3">
-              <Sparkles size={18} className="text-[#66c0b6]" />
-              <h3 className="text-white font-semibold text-sm">Generierter Matching-Text</h3>
-            </div>
-            <p className="text-white/80 text-xs sm:text-sm leading-relaxed whitespace-pre-wrap">
-              {editorData.matching_text}
-            </p>
+            <div className="flex items-center gap-2 mb-3"><Sparkles size={18} className="text-[#66c0b6]" /><h3 className="text-white font-semibold text-sm">Generierter Matching-Text</h3></div>
+            <p className="text-white/80 text-xs sm:text-sm leading-relaxed whitespace-pre-wrap">{editorData.matching_text}</p>
           </div>
         )}
       </main>
