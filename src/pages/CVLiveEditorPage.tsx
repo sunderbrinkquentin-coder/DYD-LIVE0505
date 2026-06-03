@@ -1001,24 +1001,15 @@ export function CVLiveEditorPage() {
   };
 
   // 🔥 FREISCHALTFLOW-WEICHE: Token checken oder Paywall öffnen
-const handleDownloadClick = async () => {
+// 🔥 FREISCHALTFLOW: Alles sicher in einer Funktion
+  const handleDownloadClick = () => {
     if (!cvId) return;
 
-    // 1. Auth-Check
     if (!user) {
       navigate(`/login?redirect=${encodeURIComponent(`/cv-live-editor/${cvId}`)}`);
       return;
     }
 
-    // 2. Wenn bezahlt & Template schon bestätigt -> Export starten
-    if (isDownloadUnlocked && templateConfirmed) {
-      triggerDirectExport();
-      return;
-    }
-
-    // 3. Wenn noch kein Template bestätigt -> Modal öffnen
-    setShowTemplateSelectForExport(true);
-  };
     // Wenn bereits bezahlt -> direkt zum Design-Wähler
     if (isDownloadUnlocked) {
       setTemplateConfirmed(false);
@@ -1029,11 +1020,12 @@ const handleDownloadClick = async () => {
     // Wenn nicht bezahlt -> Paywall öffnen
     setShowPaywallModal(true);
   };
+
   const handlePaywallSuccess = () => {
     setShowPaywallModal(false);
     setIsDownloadUnlocked(true);
     setTemplateConfirmed(false);
-    setShowTemplateSelectForExport(true); // Ruft nach Zahlung den Screen auf
+    setShowTemplateSelectForExport(true);
   };
 
 const triggerDirectExport = async () => {
@@ -1086,6 +1078,7 @@ const triggerDirectExport = async () => {
       alert('PDF-Erstellung fehlgeschlagen. Bitte versuche es erneut.');
     } finally {
       setIsExportingPDF(false);
+      navigate(`/dashboard?highlightCv=${cvId}`); // ← diese Zeile neu hinzufügen
     }
   };
 
@@ -1196,9 +1189,8 @@ const triggerDirectExport = async () => {
         return prev;
       }
     });
-  };
-
-  const addSectionItem = (sectionIndex: number, defaultItem: any) => {
+  }
+const addSectionItem = (sectionIndex: number, defaultItem: any) => {
     setHasEditorChanges(true);
     setEditorData((prev: any) => {
       if (!prev?.sections?.[sectionIndex]) return prev;
@@ -1208,6 +1200,7 @@ const triggerDirectExport = async () => {
       newSections[sectionIndex] = section;
       return { ...prev, sections: newSections };
     });
+  }; // <--- DIESE ZEILE HAT GEFEHLT! (Schließt die Funktion)
 
   if (error) {
   return (
@@ -1313,21 +1306,18 @@ const isPostPaymentFlow = searchParams.get('payment') === 'success';
               Abbrechen
             </button>
 <button
-  onClick={async () => {
-    setShowTemplateSelectForExport(false);
-    
-    // Prüfe Paywall
-    if (!isDownloadUnlocked) {
-      setShowPaywallModal(true); // Paywall öffnet sich
-    } else {
-      // Wenn bezahlt -> Bestätigen und Exportieren
-      setTemplateConfirmed(true);
-      
-      // WICHTIG: Kleine Pause, damit React das Modal-DOM abgebaut hat
-      await new Promise(r => setTimeout(r, 200));
-      triggerDirectExport();
-    }
-  }}
+onClick={async () => {
+  if (!isDownloadUnlocked) {
+    // Erst Paywall öffnen, Modal offen lassen
+    setShowPaywallModal(true);
+    return; // ← sofort raus, kein setShowTemplateSelectForExport(false)
+  }
+  
+  setShowTemplateSelectForExport(false);
+  setTemplateConfirmed(true);
+  await new Promise(r => setTimeout(r, 200));
+  triggerDirectExport();
+}}
   className="flex-[2] py-4 rounded-2xl bg-gradient-to-r from-[#66c0b6] to-[#30E3CA] text-black font-bold text-lg"
 >
   PDF erstellen

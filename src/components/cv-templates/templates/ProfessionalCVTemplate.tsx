@@ -35,6 +35,8 @@ interface ProfessionalCVTemplateProps {
   onAddSectionItem?: (sectionIndex: number, defaultItem: any) => void;
   onDeleteSectionItem?: (sectionIndex: number, itemIndex: number) => void;
   pageBreakItems?: Map<string, number>;
+  pageCount?: number;  // ← NEU
+}
 }
 
 const autoResize = (el: HTMLTextAreaElement) => {
@@ -82,6 +84,7 @@ export const ProfessionalCVTemplate: React.FC<ProfessionalCVTemplateProps> = ({
   onUpdateSectionItem,
   onDeleteSectionItem = () => {},
   pageBreakItems,
+  pageCount, 
 }) => {
   const summaryRef = useRef<HTMLTextAreaElement | null>(null);
 
@@ -646,7 +649,7 @@ export const ProfessionalCVTemplate: React.FC<ProfessionalCVTemplateProps> = ({
   };
 
   return (
-    <div className="relative bg-white font-sans flex flex-col w-full min-h-[1122px]" style={{ wordBreak: 'break-word', overflowWrap: 'anywhere', boxSizing: 'border-box', flex: 1 }}>
+      <div className="relative bg-white font-sans w-full" style={{ wordBreak: 'break-word', overflowWrap:           'anywhere', boxSizing: 'border-box', display: 'flex', flexDirection: 'column', minHeight: pageCount         ? `${pageCount * 1122}px` : '1122px' }}>
         {/* Dunkler Professional-Header */}
         <header className="px-8 pt-7 pb-5 bg-slate-900 text-white flex justify-between gap-6 items-start border-b-4 border-[#30E3CA]">
           <div className="flex-1 min-w-0">
