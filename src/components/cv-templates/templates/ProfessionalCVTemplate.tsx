@@ -176,7 +176,8 @@ export const ProfessionalCVTemplate: React.FC<ProfessionalCVTemplateProps> = ({
             <SectionTitle>{sectionTitle}</SectionTitle>
             <div className="space-y-2">
               {items.map((exp: any, idx: number) => {
-                const itemKey = `${sectionIndex}-${idx}`;
+// 🔥 WICHTIG: Füge section.type hinzu, damit die ID global eindeutig ist
+                const itemKey = `${section.type}-${sectionIndex}-${idx}`;
                 const spacer = pageBreakItems?.get(itemKey) ?? 0;
                 const bullets = getBullets(exp);
                 return (
@@ -648,7 +649,14 @@ export const ProfessionalCVTemplate: React.FC<ProfessionalCVTemplateProps> = ({
   };
 
   return (
-      <div className="relative bg-white font-sans w-full" style={{ wordBreak: 'break-word', overflowWrap:           'anywhere', boxSizing: 'border-box', display: 'flex', flexDirection: 'column', minHeight: pageCount         ? `${pageCount * 1122}px` : '1122px' }}>
+<div 
+  className="relative bg-white font-sans w-full" 
+  style={{ 
+    display: 'flex', 
+    flexDirection: 'column', 
+    minHeight: pageCount ? `${pageCount * 1122}px` : '1122px' 
+  }}
+>
         {/* Dunkler Professional-Header */}
         <header className="px-8 pt-7 pb-5 bg-slate-900 text-white flex justify-between gap-6 items-start border-b-4 border-[#30E3CA]">
           <div className="flex-1 min-w-0">
