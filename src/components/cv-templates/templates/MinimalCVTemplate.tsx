@@ -35,6 +35,7 @@ interface MinimalCVTemplateProps {
   onAddSectionItem?: (sectionIndex: number, defaultItem: any) => void;
   onDeleteSectionItem?: (sectionIndex: number, itemIndex: number) => void;
   pageBreakItems?: Map<string, number>;
+  pageCount?: number; // 🔥 NEU
 }
 
 const SectionTitle: React.FC<{ children: React.ReactNode }> = ({ children }) => (
@@ -44,7 +45,6 @@ const SectionTitle: React.FC<{ children: React.ReactNode }> = ({ children }) => 
   </h2>
 );
 
-// Gemeinsame Bullet-Logik – keine doppelten Bullets, saubere Zeilen
 const stripLeadingBullet = (s: string) =>
   s.replace(/^[-•\u2022]\s*/, '');
 
@@ -103,10 +103,10 @@ export const MinimalCVTemplate: React.FC<MinimalCVTemplateProps> = ({
   onUpdateSectionItem,
   onDeleteSectionItem = () => {},
   pageBreakItems,
+  pageCount, // 🔥 NEU
 }) => {
   const summaryRef = useRef<HTMLTextAreaElement | null>(null);
 
-  // Summary auto-height
   useEffect(() => {
     if (summaryRef.current) autoResize(summaryRef.current);
   }, [summary]);
@@ -126,7 +126,8 @@ export const MinimalCVTemplate: React.FC<MinimalCVTemplateProps> = ({
         <SectionTitle>{title}</SectionTitle>
         <div className="space-y-1.5">
           {items.map((item: any, idx: number) => {
-            const itemKey = `${sectionIndex}-${idx}`;
+            // 🔥 Konsistente ID: section.type + sectionIndex + idx
+            const itemKey = `${section.type}-${sectionIndex}-${idx}`;
             const spacer = pageBreakItems?.get(itemKey) ?? 0;
             const bullets = getBullets(item);
 
@@ -201,18 +202,11 @@ export const MinimalCVTemplate: React.FC<MinimalCVTemplateProps> = ({
                   </div>
                 </div>
 
-{bullets.length > 0 ? (
+                {bullets.length > 0 ? (
                   <ul className="mt-1 text-[9.5px] text-slate-700" style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
                     {bullets.map((bp: string, bIdx: number) => (
                       <li key={bIdx} style={{ breakInside: 'avoid', pageBreakInside: 'avoid', display: 'flex', alignItems: 'flex-start', gap: '6px' }}>
-                        <span
-                          style={{
-                            flexShrink: 0, color: '#64748b', fontSize: '9.5px', lineHeight: '1.375', userSelect: 'none', paddingTop: '0px'
-                          }}
-                        >
-                          •
-                        </span>
-                        
+                        <span style={{ flexShrink: 0, color: '#64748b', fontSize: '9.5px', lineHeight: '1.375', userSelect: 'none' }}>•</span>
                         <textarea
                           className="flex-1 bg-transparent outline-none text-slate-800 text-[9.5px] leading-snug resize-none"
                           value={bp}
@@ -288,7 +282,8 @@ export const MinimalCVTemplate: React.FC<MinimalCVTemplateProps> = ({
             <SectionTitle>{section.title || 'Ausbildung / Studium'}</SectionTitle>
             <div className="space-y-1.5">
               {items.map((edu: any, idx: number) => {
-                const itemKey = `${sectionIndex}-${idx}`;
+                // 🔥 Konsistente ID: section.type + sectionIndex + idx
+                const itemKey = `${section.type}-${sectionIndex}-${idx}`;
                 const spacer = pageBreakItems?.get(itemKey) ?? 0;
                 return (
                 <div
@@ -312,12 +307,7 @@ export const MinimalCVTemplate: React.FC<MinimalCVTemplateProps> = ({
                         className="mt-0.5 w-full text-[10px] text-slate-500 bg-transparent outline-none"
                         value={edu.institution || ''}
                         onChange={(e) =>
-                          onUpdateSectionItem(
-                            sectionIndex,
-                            idx,
-                            'institution',
-                            e.target.value
-                          )
+                          onUpdateSectionItem(sectionIndex, idx, 'institution', e.target.value)
                         }
                         placeholder="Institution"
                       />
@@ -517,7 +507,6 @@ export const MinimalCVTemplate: React.FC<MinimalCVTemplateProps> = ({
           </div>
         );
 
-      // ───────────────── Fallback ─────────────────
       default: {
         const TYPE_LABELS_MIN: Record<string, string> = {
           skills: 'Fähigkeiten', soft_skills: 'Soft Skills', hard_skills: 'Fachliche Skills',
@@ -580,140 +569,139 @@ export const MinimalCVTemplate: React.FC<MinimalCVTemplateProps> = ({
   );
 
   return (
-    <div className="bg-white text-slate-900 font-sans w-full flex flex-col border border-slate-200" style={{ wordBreak: 'break-word', overflowWrap: 'anywhere', minHeight: '1122px', flex: 1 }}>
-        {/* Header */}
-        <header className="px-8 pt-6 pb-4 border-b border-slate-200 flex justify-between gap-6 bg-slate-50/70">
-          <div className="flex-1 min-w-0">
-            <input
-              className="w-full text-[22px] font-extrabold tracking-wide text-slate-900 bg-transparent outline-none"
-              value={personalInfo.name || ''}
-              onChange={(e) => onUpdatePersonalInfo('name', e.target.value)}
-              placeholder="Name"
-            />
-            <input
-              className="mt-1 w-full text-[12px] font-bold text-slate-600 bg-transparent outline-none"
-              value={personalInfo.title || ''}
-              onChange={(e) => onUpdatePersonalInfo('title', e.target.value)}
-              placeholder="Zielposition / Profil"
-            />
+    <div
+      className="bg-white text-slate-900 font-sans w-full flex flex-col border border-slate-200"
+      style={{
+        wordBreak: 'break-word',
+        overflowWrap: 'anywhere',
+        // 🔥 pageCount-gesteuerte minHeight
+        minHeight: pageCount ? `${pageCount * 1122}px` : '1122px',
+        flex: 1,
+      }}
+    >
+      {/* Header */}
+      <header className="px-8 pt-6 pb-4 border-b border-slate-200 flex justify-between gap-6 bg-slate-50/70">
+        <div className="flex-1 min-w-0">
+          <input
+            className="w-full text-[22px] font-extrabold tracking-wide text-slate-900 bg-transparent outline-none"
+            value={personalInfo.name || ''}
+            onChange={(e) => onUpdatePersonalInfo('name', e.target.value)}
+            placeholder="Name"
+          />
+          <input
+            className="mt-1 w-full text-[12px] font-bold text-slate-600 bg-transparent outline-none"
+            value={personalInfo.title || ''}
+            onChange={(e) => onUpdatePersonalInfo('title', e.target.value)}
+            placeholder="Zielposition / Profil"
+          />
 
-            <div className="mt-3 grid grid-cols-2 gap-x-4 gap-y-1 text-[9.5px] text-slate-700">
-              <div className="flex items-center gap-1.5">
-                <span>📍</span>
-                <input
-                  className="bg-transparent outline-none flex-1"
-                  value={personalInfo.location || ''}
-                  onChange={(e) =>
-                    onUpdatePersonalInfo('location', e.target.value)
-                  }
-                  placeholder="Ort"
-                />
-              </div>
-              <div className="flex items-center gap-1.5">
-                <span>☎</span>
-                <input
-                  className="bg-transparent outline-none flex-1"
-                  value={personalInfo.phone || ''}
-                  onChange={(e) =>
-                    onUpdatePersonalInfo('phone', e.target.value)
-                  }
-                  placeholder="Telefon"
-                />
-              </div>
-              <div className="flex items-center gap-1.5">
-                <span>✉</span>
-                <input
-                  className="bg-transparent outline-none flex-1"
-                  value={personalInfo.email || ''}
-                  onChange={(e) =>
-                    onUpdatePersonalInfo('email', e.target.value)
-                  }
-                  placeholder="E-Mail"
-                />
-              </div>
-
-              <div className="flex items-center gap-1.5">
-                {personalInfo.linkedin ? (
-                  <span className="text-[9.5px] font-semibold text-slate-700">
-                    in
-                  </span>
-                ) : (
-                  <span className="w-3" />
-                )}
-                <input
-                  className="bg-transparent outline-none flex-1"
-                  value={personalInfo.linkedin || ''}
-                  onChange={(e) =>
-                    onUpdatePersonalInfo('linkedin', e.target.value)
-                  }
-                  placeholder="LinkedIn (optional)"
-                />
-              </div>
-            </div>
-          </div>
-
-          {photoUrl && (
-            <div className="flex-shrink-0">
-              <div className="w-24 h-24 rounded-full overflow-hidden border border-slate-200 bg-slate-100">
-                <img
-                  src={photoUrl}
-                  alt="Foto"
-                  className="w-full h-full"
-                  style={{ objectFit: 'cover', objectPosition: `${photoPosition.x}% ${photoPosition.y}%`, width: '96px', height: '96px', display: 'block' }}
-                />
-              </div>
-            </div>
-          )}
-        </header>
-
-        {/* Flexbox-Spaltensystem statt starrem CSS-Grid */}
-        <div style={{ display: 'flex', width: '100%', backgroundColor: '#ffffff', flex: 1, padding: '16px 0' }}>
-          
-          {/* Linke Spalte (58% Breite) */}
-          <section style={{ flex: '0 0 58%', minWidth: 0, paddingLeft: '32px', paddingRight: '12px', display: 'flex', flexDirection: 'column', gap: '12px' }}>
-            <div>
-              <SectionTitle>Profil</SectionTitle>
-              <textarea
-                ref={summaryRef}
-                className="w-full text-[9.5px] leading-relaxed text-slate-800 bg-slate-50 border border-slate-200 rounded-lg px-3 py-2 outline-none resize-none"
-                style={{ minHeight: '60px', overflow: 'hidden' }}
-                value={summary || ''}
-                onChange={(e) => {
-                  if (summaryRef.current) {
-                    summaryRef.current.style.height = 'auto';
-                    summaryRef.current.style.height = summaryRef.current.scrollHeight + 'px';
-                  }
-                  onUpdateSummary(e.target.value);
-                }}
-                placeholder="Kurzprofil: Wer bist du, was bringst du mit und was suchst du?"
+          <div className="mt-3 grid grid-cols-2 gap-x-4 gap-y-1 text-[9.5px] text-slate-700">
+            <div className="flex items-center gap-1.5">
+              <span>📍</span>
+              <input
+                className="bg-transparent outline-none flex-1"
+                value={personalInfo.location || ''}
+                onChange={(e) => onUpdatePersonalInfo('location', e.target.value)}
+                placeholder="Ort"
               />
             </div>
-
-            {leftSections.map((section) => {
-              const index = sections.findIndex((s) => s === section);
-              return renderSection(section, index);
-            })}
-          </section>
-
-          {/* Rechte Spalte (42% Breite) */}
-          <aside style={{ flex: '0 0 42%', minWidth: 0, paddingLeft: '12px', paddingRight: '32px', display: 'flex', flexDirection: 'column', gap: '12px' }}>
-            {rightSections.map((section) => {
-              const index = sections.findIndex((s) => s === section);
-              return renderSection(section, index);
-            })}
-          </aside>
+            <div className="flex items-center gap-1.5">
+              <span>☎</span>
+              <input
+                className="bg-transparent outline-none flex-1"
+                value={personalInfo.phone || ''}
+                onChange={(e) => onUpdatePersonalInfo('phone', e.target.value)}
+                placeholder="Telefon"
+              />
+            </div>
+            <div className="flex items-center gap-1.5">
+              <span>✉</span>
+              <input
+                className="bg-transparent outline-none flex-1"
+                value={personalInfo.email || ''}
+                onChange={(e) => onUpdatePersonalInfo('email', e.target.value)}
+                placeholder="E-Mail"
+              />
+            </div>
+            <div className="flex items-center gap-1.5">
+              {personalInfo.linkedin ? (
+                <span className="text-[9.5px] font-semibold text-slate-700">in</span>
+              ) : (
+                <span className="w-3" />
+              )}
+              <input
+                className="bg-transparent outline-none flex-1"
+                value={personalInfo.linkedin || ''}
+                onChange={(e) => onUpdatePersonalInfo('linkedin', e.target.value)}
+                placeholder="LinkedIn (optional)"
+              />
+            </div>
+          </div>
         </div>
 
-        {/* Weitere Sections */}
-        {otherSections.length > 0 && (
-          <div className="px-8 pb-4 space-y-3 bg-white" data-pdf-section>
-            {otherSections.map((section) => {
-              const index = sections.findIndex((s) => s === section);
-              return renderSection(section, index);
-            })}
+        {photoUrl && (
+          <div className="flex-shrink-0">
+            <div className="w-24 h-24 rounded-full overflow-hidden border border-slate-200 bg-slate-100">
+              <img
+                src={photoUrl}
+                alt="Foto"
+                className="w-full h-full"
+                style={{ objectFit: 'cover', objectPosition: `${photoPosition.x}% ${photoPosition.y}%`, width: '96px', height: '96px', display: 'block' }}
+              />
+            </div>
           </div>
         )}
+      </header>
 
+      {/* Flexbox-Spaltensystem */}
+      <div style={{ display: 'flex', width: '100%', backgroundColor: '#ffffff', flex: 1, padding: '16px 0' }}>
+        
+        {/* Linke Spalte (58%) */}
+        <section style={{ flex: '0 0 58%', minWidth: 0, paddingLeft: '32px', paddingRight: '12px', display: 'flex', flexDirection: 'column', gap: '12px' }}>
+          <div>
+            <SectionTitle>Profil</SectionTitle>
+            <textarea
+              ref={summaryRef}
+              className="w-full text-[9.5px] leading-relaxed text-slate-800 bg-slate-50 border border-slate-200 rounded-lg px-3 py-2 outline-none resize-none"
+              style={{ minHeight: '60px', overflow: 'hidden' }}
+              value={summary || ''}
+              onChange={(e) => {
+                if (summaryRef.current) {
+                  summaryRef.current.style.height = 'auto';
+                  summaryRef.current.style.height = summaryRef.current.scrollHeight + 'px';
+                }
+                onUpdateSummary(e.target.value);
+              }}
+              placeholder="Kurzprofil: Wer bist du, was bringst du mit und was suchst du?"
+            />
+          </div>
+
+          {leftSections.map((section) => {
+            const index = sections.findIndex((s) => s === section);
+            return renderSection(section, index);
+          })}
+        </section>
+
+        {/* Rechte Spalte (42%) */}
+        <aside style={{ flex: '0 0 42%', minWidth: 0, paddingLeft: '12px', paddingRight: '32px', display: 'flex', flexDirection: 'column', gap: '12px' }}>
+          {rightSections.map((section) => {
+            const index = sections.findIndex((s) => s === section);
+            return renderSection(section, index);
+          })}
+        </aside>
+      </div>
+
+      {/* Weitere Sections */}
+      {otherSections.length > 0 && (
+        <div className="px-8 pb-4 space-y-3 bg-white" data-pdf-section>
+          {otherSections.map((section) => {
+            const index = sections.findIndex((s) => s === section);
+            return renderSection(section, index);
+          })}
+        </div>
+      )}
+
+      {/* 🔥 Footer mit marginTop: 'auto' */}
       <footer
         data-pdf-footer
         style={{
@@ -728,7 +716,7 @@ export const MinimalCVTemplate: React.FC<MinimalCVTemplateProps> = ({
           marginTop: 'auto',
           flexShrink: 0,
           backgroundColor: '#ffffff',
-          height: '40px'
+          height: '40px',
         }}
       >
         <div style={{ display: 'flex', alignItems: 'center', gap: '6px', minWidth: 0 }}>

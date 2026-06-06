@@ -35,7 +35,7 @@ interface ProfessionalCVTemplateProps {
   onAddSectionItem?: (sectionIndex: number, defaultItem: any) => void;
   onDeleteSectionItem?: (sectionIndex: number, itemIndex: number) => void;
   pageBreakItems?: Map<string, number>;
-  pageCount?: number;  // ← NEU
+  pageCount?: number;
 }
 
 const autoResize = (el: HTMLTextAreaElement) => {
@@ -43,7 +43,6 @@ const autoResize = (el: HTMLTextAreaElement) => {
   el.style.height = el.scrollHeight + 'px';
 };
 
-// Einheitlicher Section-Titel
 const SectionTitle: React.FC<{ children: React.ReactNode }> = ({ children }) => (
   <h2 className="mt-4 mb-2 !text-[9px] font-bold tracking-[0.16em] text-slate-700 uppercase flex items-center gap-1.5">
     <span className="w-1 h-1 rounded-full bg-slate-400" />
@@ -51,11 +50,9 @@ const SectionTitle: React.FC<{ children: React.ReactNode }> = ({ children }) => 
   </h2>
 );
 
-// Hilfsfunktion: führende Bullets entfernen („- …“, „• …“)
 const stripLeadingBullet = (s: string) =>
   s.replace(/^[-•\u2022]\s*/, '');
 
-// Bullet-Hilfsfunktion – verhindert doppelte Darstellung
 const getBullets = (item: any): string[] => {
   if (Array.isArray(item?.bulletPoints) && item.bulletPoints.length > 0) {
     return item.bulletPoints
@@ -83,11 +80,10 @@ export const ProfessionalCVTemplate: React.FC<ProfessionalCVTemplateProps> = ({
   onUpdateSectionItem,
   onDeleteSectionItem = () => {},
   pageBreakItems,
-  pageCount, 
+  pageCount,
 }) => {
   const summaryRef = useRef<HTMLTextAreaElement | null>(null);
 
-  // Summary-Textarea automatisch an Inhalt anpassen
   useEffect(() => {
     if (summaryRef.current) {
       summaryRef.current.style.height = 'auto';
@@ -168,7 +164,6 @@ export const ProfessionalCVTemplate: React.FC<ProfessionalCVTemplateProps> = ({
     if (items.length === 0 && !mustShow) return null;
 
     switch (section.type) {
-      // ───────────────── Berufserfahrung ─────────────────
       case 'experience':
         if (!items || items.length === 0) return null;
         return (
@@ -176,7 +171,7 @@ export const ProfessionalCVTemplate: React.FC<ProfessionalCVTemplateProps> = ({
             <SectionTitle>{sectionTitle}</SectionTitle>
             <div className="space-y-2">
               {items.map((exp: any, idx: number) => {
-// 🔥 WICHTIG: Füge section.type hinzu, damit die ID global eindeutig ist
+                // 🔥 Konsistente ID: section.type + sectionIndex + idx
                 const itemKey = `${section.type}-${sectionIndex}-${idx}`;
                 const spacer = pageBreakItems?.get(itemKey) ?? 0;
                 const bullets = getBullets(exp);
@@ -296,7 +291,6 @@ export const ProfessionalCVTemplate: React.FC<ProfessionalCVTemplateProps> = ({
           </div>
         );
 
-      // ───────────────── Projekte ─────────────────
       case 'projects':
         if (items.length === 0) return null;
         return (
@@ -304,7 +298,8 @@ export const ProfessionalCVTemplate: React.FC<ProfessionalCVTemplateProps> = ({
             <SectionTitle>{sectionTitle}</SectionTitle>
             <div className="space-y-2">
               {items.map((proj: any, idx: number) => {
-                const itemKey = `${sectionIndex}-${idx}`;
+                // 🔥 Konsistente ID: section.type + sectionIndex + idx
+                const itemKey = `${section.type}-${sectionIndex}-${idx}`;
                 const spacer = pageBreakItems?.get(itemKey) ?? 0;
                 const bullets = getBullets(proj);
                 return (
@@ -396,14 +391,14 @@ export const ProfessionalCVTemplate: React.FC<ProfessionalCVTemplateProps> = ({
           </div>
         );
 
-      // ───────────────── Ausbildung ─────────────────
       case 'education':
         return (
           <div key={sectionIndex}>
             <SectionTitle>Ausbildung & Studium</SectionTitle>
             <div className="space-y-1.5">
               {items.map((edu: any, idx: number) => {
-                const itemKey = `${sectionIndex}-${idx}`;
+                // 🔥 Konsistente ID: section.type + sectionIndex + idx
+                const itemKey = `${section.type}-${sectionIndex}-${idx}`;
                 const spacer = pageBreakItems?.get(itemKey) ?? 0;
                 return (
                 <div key={idx} data-pdf-section data-spacer-id={itemKey} style={{ display: 'block', width: '100%', ...(spacer > 0 ? { marginTop: `${spacer}px` } : {}) }} className="px-2 py-1 rounded-md">
@@ -451,7 +446,6 @@ export const ProfessionalCVTemplate: React.FC<ProfessionalCVTemplateProps> = ({
           </div>
         );
 
-      // ───────────────── Sprachen ─────────────────
       case 'languages':
         if (items.length === 0) return null;
         return (
@@ -487,7 +481,6 @@ export const ProfessionalCVTemplate: React.FC<ProfessionalCVTemplateProps> = ({
           </div>
         );
 
-      // ───────────────── Fachliche Skills ─────────────────
       case 'skills':
         if (items.length === 0) return null;
         return (
@@ -519,7 +512,6 @@ export const ProfessionalCVTemplate: React.FC<ProfessionalCVTemplateProps> = ({
           </div>
         );
 
-      // ───────────────── Soft Skills ─────────────────
       case 'soft_skills':
         if (items.length === 0) return null;
         return (
@@ -551,7 +543,6 @@ export const ProfessionalCVTemplate: React.FC<ProfessionalCVTemplateProps> = ({
           </div>
         );
 
-      // ───────────────── Arbeitsweise & Werte ─────────────────
       case 'work_values':
       case 'values':
         if (items.length === 0) return null;
@@ -582,7 +573,6 @@ export const ProfessionalCVTemplate: React.FC<ProfessionalCVTemplateProps> = ({
           </div>
         );
 
-      // ───────────────── Hobbys & Interessen ─────────────────
       case 'hobbies':
       case 'interests':
         if (items.length === 0) return null;
@@ -613,7 +603,6 @@ export const ProfessionalCVTemplate: React.FC<ProfessionalCVTemplateProps> = ({
           </div>
         );
 
-      // ───────────────── Fallback ─────────────────
       default:
         if (items.length === 0) return null;
         return (
@@ -649,144 +638,145 @@ export const ProfessionalCVTemplate: React.FC<ProfessionalCVTemplateProps> = ({
   };
 
   return (
-<div 
-  className="relative bg-white font-sans w-full" 
-  style={{ 
-    display: 'flex', 
-    flexDirection: 'column', 
-    minHeight: pageCount ? `${pageCount * 1122}px` : '1122px' 
-  }}
->
-        {/* Dunkler Professional-Header */}
-        <header className="px-8 pt-7 pb-5 bg-slate-900 text-white flex justify-between gap-6 items-start border-b-4 border-[#30E3CA]">
-          <div className="flex-1 min-w-0">
-            <input
-              className="block w-full text-[22px] font-extrabold tracking-tight outline-none bg-transparent text-white"
-              value={personalInfo.name || ''}
-              onChange={(e) => onUpdatePersonalInfo('name', e.target.value)}
-              placeholder="Name"
-            />
-            <input
-              className="mt-1 block w-full text-[12px] font-bold text-slate-200 outline-none bg-transparent"
-              value={personalInfo.title || ''}
-              onChange={(e) => onUpdatePersonalInfo('title', e.target.value)}
-              placeholder="Berufsbezeichnung"
-            />
+    <div
+      className="relative bg-white font-sans w-full"
+      style={{
+        display: 'flex',
+        flexDirection: 'column',
+        // 🔥 pageCount-gesteuerte minHeight
+        minHeight: pageCount ? `${pageCount * 1122}px` : '1122px',
+      }}
+    >
+      {/* Dunkler Professional-Header */}
+      <header className="px-8 pt-7 pb-5 bg-slate-900 text-white flex justify-between gap-6 items-start border-b-4 border-[#30E3CA]">
+        <div className="flex-1 min-w-0">
+          <input
+            className="block w-full text-[22px] font-extrabold tracking-tight outline-none bg-transparent text-white"
+            value={personalInfo.name || ''}
+            onChange={(e) => onUpdatePersonalInfo('name', e.target.value)}
+            placeholder="Name"
+          />
+          <input
+            className="mt-1 block w-full text-[12px] font-bold text-slate-200 outline-none bg-transparent"
+            value={personalInfo.title || ''}
+            onChange={(e) => onUpdatePersonalInfo('title', e.target.value)}
+            placeholder="Berufsbezeichnung"
+          />
 
-            <div className="mt-3 grid grid-cols-2 gap-x-4 gap-y-1 text-[9.5px] text-slate-100">
-              <div className="flex items-center gap-1.5">
-                <span>📍</span>
-                <input
-                  className="w-full bg-transparent outline-none placeholder:text-slate-300"
-                  value={personalInfo.location || ''}
-                  onChange={(e) => onUpdatePersonalInfo('location', e.target.value)}
-                  placeholder="Ort"
-                />
-              </div>
-              <div className="flex items-center gap-1.5">
-                <span>☎</span>
-                <input
-                  className="w-full bg-transparent outline-none placeholder:text-slate-300"
-                  value={personalInfo.phone || ''}
-                  onChange={(e) => onUpdatePersonalInfo('phone', e.target.value)}
-                  placeholder="Telefon"
-                />
-              </div>
-              <div className="flex items-center gap-1.5">
-                <span>✉</span>
-                <input
-                  className="w-full bg-transparent outline-none placeholder:text-slate-300"
-                  value={personalInfo.email || ''}
-                  onChange={(e) => onUpdatePersonalInfo('email', e.target.value)}
-                  placeholder="E-Mail"
-                />
-              </div>
-              {personalInfo.linkedin !== undefined && (
-                <div className="flex items-center gap-1.5">
-                  <span>in</span>
-                  <input
-                    className="w-full bg-transparent outline-none placeholder:text-slate-300"
-                    value={personalInfo.linkedin || ''}
-                    onChange={(e) =>
-                      onUpdatePersonalInfo('linkedin', e.target.value)
-                    }
-                    placeholder="LinkedIn (optional)"
-                  />
-                </div>
-              )}
-            </div>
-          </div>
-
-          {photoUrl && (
-            <div className="flex-shrink-0">
-              <div className="w-20 h-24 rounded-lg overflow-hidden border border-slate-600 bg-slate-800">
-                <img
-                  src={photoUrl}
-                  alt="Foto"
-                  className="w-full h-full"
-                  style={{ objectFit: 'cover', objectPosition: `${photoPosition.x}% ${photoPosition.y}%`, width: '80px', height: '96px', display: 'block' }}
-                />
-              </div>
-            </div>
-          )}
-        </header>
-
-        {/* Flexbox-Layout statt altem Grid */}
-        <div style={{ display: 'flex', width: '100%', backgroundColor: '#ffffff', flex: '1 0 auto', padding: '16px 0' }}>
-          
-          {/* Linke Spalte */}
-          <section style={{ flex: '0 0 58%', minWidth: 0, paddingLeft: '32px', paddingRight: '12px', display: 'flex', flexDirection: 'column', gap: '12px' }}>
-            <div>
-              <SectionTitle>Profil & Mehrwert</SectionTitle>
-              <textarea
-                ref={summaryRef}
-                className="w-full mt-1 text-[9.5px] leading-relaxed text-slate-800 bg-slate-50 rounded-md border border-slate-200 outline-none resize-none px-3 py-2"
-                style={{ minHeight: '60px' }}
-                value={summary || ''}
-                onChange={(e) => {
-                  onUpdateSummary(e.target.value);
-                  if (summaryRef.current) {
-                    summaryRef.current.style.height = 'auto';
-                    summaryRef.current.style.height = summaryRef.current.scrollHeight + 'px';
-                  }
-                }}
-                placeholder="Beschreibe kurz dein Profil, deinen Mehrwert und deine Ziele."
+          <div className="mt-3 grid grid-cols-2 gap-x-4 gap-y-1 text-[9.5px] text-slate-100">
+            <div className="flex items-center gap-1.5">
+              <span>📍</span>
+              <input
+                className="w-full bg-transparent outline-none placeholder:text-slate-300"
+                value={personalInfo.location || ''}
+                onChange={(e) => onUpdatePersonalInfo('location', e.target.value)}
+                placeholder="Ort"
               />
             </div>
-
-            {leftSections.map((section) => {
-              const idx = sections.findIndex((s) => s === section);
-              return renderSection(section, idx);
-            })}
-          </section>
-
-          {/* Rechte Spalte */}
-          <aside style={{ flex: '0 0 42%', minWidth: 0, paddingLeft: '12px', paddingRight: '32px', display: 'flex', flexDirection: 'column', gap: '12px' }}>
-            {rightSections.map((section) => {
-              const idx = sections.findIndex((s) => s === section);
-              return renderSection(section, idx);
-            })}
-          </aside>
+            <div className="flex items-center gap-1.5">
+              <span>☎</span>
+              <input
+                className="w-full bg-transparent outline-none placeholder:text-slate-300"
+                value={personalInfo.phone || ''}
+                onChange={(e) => onUpdatePersonalInfo('phone', e.target.value)}
+                placeholder="Telefon"
+              />
+            </div>
+            <div className="flex items-center gap-1.5">
+              <span>✉</span>
+              <input
+                className="w-full bg-transparent outline-none placeholder:text-slate-300"
+                value={personalInfo.email || ''}
+                onChange={(e) => onUpdatePersonalInfo('email', e.target.value)}
+                placeholder="E-Mail"
+              />
+            </div>
+            {personalInfo.linkedin !== undefined && (
+              <div className="flex items-center gap-1.5">
+                <span>in</span>
+                <input
+                  className="w-full bg-transparent outline-none placeholder:text-slate-300"
+                  value={personalInfo.linkedin || ''}
+                  onChange={(e) =>
+                    onUpdatePersonalInfo('linkedin', e.target.value)
+                  }
+                  placeholder="LinkedIn (optional)"
+                />
+              </div>
+            )}
+          </div>
         </div>
 
-        {/* Weitere Sections */}
-        {otherSections.length > 0 && (
-          <div className="px-8 pb-4 space-y-3 bg-white" data-pdf-section>
-            {otherSections.map((section) => {
-              const idx = sections.findIndex((s) => s === section);
-              return renderSection(section, idx);
-            })}
+        {photoUrl && (
+          <div className="flex-shrink-0">
+            <div className="w-20 h-24 rounded-lg overflow-hidden border border-slate-600 bg-slate-800">
+              <img
+                src={photoUrl}
+                alt="Foto"
+                className="w-full h-full"
+                style={{ objectFit: 'cover', objectPosition: `${photoPosition.x}% ${photoPosition.y}%`, width: '80px', height: '96px', display: 'block' }}
+              />
+            </div>
           </div>
         )}
+      </header>
 
-<footer
+      {/* Flexbox-Layout */}
+      <div style={{ display: 'flex', width: '100%', backgroundColor: '#ffffff', flex: 'none', padding: '16px 0' }}>
+        
+        {/* Linke Spalte */}
+        <section style={{ flex: '0 0 58%', minWidth: 0, paddingLeft: '32px', paddingRight: '12px', display: 'flex', flexDirection: 'column', gap: '12px' }}>
+          <div>
+            <SectionTitle>Profil & Mehrwert</SectionTitle>
+            <textarea
+              ref={summaryRef}
+              className="w-full mt-1 text-[9.5px] leading-relaxed text-slate-800 bg-slate-50 rounded-md border border-slate-200 outline-none resize-none px-3 py-2"
+              style={{ minHeight: '60px' }}
+              value={summary || ''}
+              onChange={(e) => {
+                onUpdateSummary(e.target.value);
+                if (summaryRef.current) {
+                  summaryRef.current.style.height = 'auto';
+                  summaryRef.current.style.height = summaryRef.current.scrollHeight + 'px';
+                }
+              }}
+              placeholder="Beschreibe kurz dein Profil, deinen Mehrwert und deine Ziele."
+            />
+          </div>
+
+          {leftSections.map((section) => {
+            const idx = sections.findIndex((s) => s === section);
+            return renderSection(section, idx);
+          })}
+        </section>
+
+        {/* Rechte Spalte */}
+        <aside style={{ flex: '0 0 42%', minWidth: 0, paddingLeft: '12px', paddingRight: '32px', display: 'flex', flexDirection: 'column', gap: '12px' }}>
+          {rightSections.map((section) => {
+            const idx = sections.findIndex((s) => s === section);
+            return renderSection(section, idx);
+          })}
+        </aside>
+      </div>
+
+      {/* Weitere Sections */}
+      {otherSections.length > 0 && (
+        <div className="px-8 pb-4 space-y-3 bg-white" data-pdf-section>
+          {otherSections.map((section) => {
+            const idx = sections.findIndex((s) => s === section);
+            return renderSection(section, idx);
+          })}
+        </div>
+      )}
+
+      {/* 🔥 Footer mit marginTop: 'auto' — geht an den Boden der berechneten Seite */}
+      <footer
         data-pdf-footer
         style={{
           borderTop: '1px solid #cbd5e1',
           padding: '10px 32px',
           display: 'flex',
           alignItems: 'center',
-          /* 💡 HIER KORRIGIERT: CamelCase statt Bindestrich */
           justifyContent: 'space-between',
           fontSize: '9px',
           color: '#64748b',
@@ -794,7 +784,7 @@ export const ProfessionalCVTemplate: React.FC<ProfessionalCVTemplateProps> = ({
           marginTop: 'auto',
           flexShrink: 0,
           backgroundColor: '#ffffff',
-          height: '40px'
+          height: '40px',
         }}
       >
         <div style={{ display: 'flex', alignItems: 'center', gap: '6px', minWidth: 0 }}>

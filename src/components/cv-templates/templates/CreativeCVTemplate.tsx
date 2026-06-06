@@ -1,5 +1,5 @@
 // src/components/cv-templates/templates/CreativeCVTemplate.tsx
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useEffect, useRef } from 'react';
 
 type EditorSection = {
   type: string;
@@ -36,6 +36,7 @@ interface CreativeCVTemplateProps {
   onAddSectionItem?: (sectionIndex: number, defaultItem: any) => void;
   onDeleteSectionItem?: (sectionIndex: number, itemIndex: number) => void;
   pageBreakItems?: Map<string, number>;
+  pageCount?: number; // 🔥 NEU: Prop statt lokalem State
 }
 
 const SectionTitle: React.FC<{ children: React.ReactNode }> = ({ children }) => (
@@ -45,8 +46,7 @@ const SectionTitle: React.FC<{ children: React.ReactNode }> = ({ children }) => 
   </h2>
 );
 
-// grobe A4-Höhe in px (für Preview-Guides)
-const PAGE_HEIGHT_PX = 1123;
+const PAGE_HEIGHT_PX = 1122;
 
 export const CreativeCVTemplate: React.FC<CreativeCVTemplateProps> = ({
   personalInfo,
@@ -59,40 +59,16 @@ export const CreativeCVTemplate: React.FC<CreativeCVTemplateProps> = ({
   onUpdateSectionItem,
   onDeleteSectionItem = () => {},
   pageBreakItems,
+  pageCount, // 🔥 direkt als Prop
 }) => {
   const summaryRef = useRef<HTMLTextAreaElement>(null);
-  const containerRef = useRef<HTMLDivElement>(null);
-  const [pageCount, setPageCount] = useState(1);
 
-  // Summary automatisch an Inhalt anpassen
   useEffect(() => {
     if (summaryRef.current) {
       summaryRef.current.style.height = 'auto';
       summaryRef.current.style.height = summaryRef.current.scrollHeight + 'px';
     }
   }, [summary]);
-
-  // Seitenhöhe exakt messen und volle Seiten erzwingen
-  useEffect(() => {
-    const measure = () => {
-      if (!containerRef.current) return;
-      
-      containerRef.current.style.minHeight = 'auto';
-      const contentHeight = containerRef.current.scrollHeight;
-      const pages = Math.max(1, Math.ceil(contentHeight / PAGE_HEIGHT_PX));
-      
-      setPageCount(pages);
-    };
-
-    measure();
-    const timer = setTimeout(measure, 300);
-
-    window.addEventListener('resize', measure);
-    return () => {
-      window.removeEventListener('resize', measure);
-      clearTimeout(timer);
-    };
-  }, [sections, summary, personalInfo]);
 
   // ─────────── Bullet-Helper ───────────
   const getBullets = (item: any): string[] => {
@@ -177,18 +153,17 @@ export const CreativeCVTemplate: React.FC<CreativeCVTemplateProps> = ({
     };
     const sectionTitle = section.title || TYPE_LABELS[section.type] || section.type;
 
-    // Berufserfahrung & Projekte IMMER anzeigen
     const mustShow = section.type === 'experience' || section.type === 'projects';
     if (items.length === 0 && !mustShow) return null;
 
     switch (section.type) {
-      // ───────────────── Experience ─────────────────
       case 'experience':
         return (
           <div key={sectionIndex}>
             <SectionTitle>{sectionTitle}</SectionTitle>
             {items.map((exp: any, idx: number) => {
-              const itemKey = `${sectionIndex}-${idx}`;
+              // 🔥 Konsistente ID: section.type + sectionIndex + idx
+              const itemKey = `${section.type}-${sectionIndex}-${idx}`;
               const spacer = pageBreakItems?.get(itemKey) ?? 0;
               const bullets = getBullets(exp);
               return (
@@ -261,13 +236,7 @@ export const CreativeCVTemplate: React.FC<CreativeCVTemplateProps> = ({
                             onChange={(e) => {
                               e.target.style.height = 'auto';
                               e.target.style.height = e.target.scrollHeight + 'px';
-                              handleBulletChange(
-                                sectionIndex,
-                                idx,
-                                bIdx,
-                                e.target.value,
-                                exp
-                              );
+                              handleBulletChange(sectionIndex, idx, bIdx, e.target.value, exp);
                             }}
                             onInput={(e) => {
                               const target = e.target as HTMLTextAreaElement;
@@ -328,13 +297,13 @@ export const CreativeCVTemplate: React.FC<CreativeCVTemplateProps> = ({
           </div>
         );
 
-      // ───────────────── Projekte ─────────────────
       case 'projects':
         return (
           <div key={sectionIndex}>
             <SectionTitle>{sectionTitle}</SectionTitle>
             {items.map((proj: any, idx: number) => {
-              const itemKey = `${sectionIndex}-${idx}`;
+              // 🔥 Konsistente ID: section.type + sectionIndex + idx
+              const itemKey = `${section.type}-${sectionIndex}-${idx}`;
               const spacer = pageBreakItems?.get(itemKey) ?? 0;
               const bullets = getBullets(proj);
               return (
@@ -368,13 +337,7 @@ export const CreativeCVTemplate: React.FC<CreativeCVTemplateProps> = ({
                             onChange={(e) => {
                               e.target.style.height = 'auto';
                               e.target.style.height = e.target.scrollHeight + 'px';
-                              handleBulletChange(
-                                sectionIndex,
-                                idx,
-                                bIdx,
-                                e.target.value,
-                                proj
-                              );
+                              handleBulletChange(sectionIndex, idx, bIdx, e.target.value, proj);
                             }}
                             onInput={(e) => {
                               const target = e.target as HTMLTextAreaElement;
@@ -433,13 +396,13 @@ export const CreativeCVTemplate: React.FC<CreativeCVTemplateProps> = ({
           </div>
         );
 
-      // ───────────────── Ausbildung ─────────────────
       case 'education':
         return (
           <div key={sectionIndex}>
             <SectionTitle>Ausbildung & Studium</SectionTitle>
             {items.map((edu: any, idx: number) => {
-              const itemKey = `${sectionIndex}-${idx}`;
+              // 🔥 Konsistente ID: section.type + sectionIndex + idx
+              const itemKey = `${section.type}-${sectionIndex}-${idx}`;
               const spacer = pageBreakItems?.get(itemKey) ?? 0;
               return (
               <div
@@ -463,12 +426,7 @@ export const CreativeCVTemplate: React.FC<CreativeCVTemplateProps> = ({
                       className="outline-none bg-transparent w-full text-[10px] text-slate-500 mt-0.5"
                       value={edu.institution || ''}
                       onChange={(e) =>
-                        onUpdateSectionItem(
-                          sectionIndex,
-                          idx,
-                          'institution',
-                          e.target.value
-                        )
+                        onUpdateSectionItem(sectionIndex, idx, 'institution', e.target.value)
                       }
                       placeholder="Institution"
                     />
@@ -499,7 +457,6 @@ export const CreativeCVTemplate: React.FC<CreativeCVTemplateProps> = ({
           </div>
         );
 
-      // ───────────────── Sprachen ─────────────────
       case 'languages':
         return (
           <div key={sectionIndex}>
@@ -541,7 +498,6 @@ export const CreativeCVTemplate: React.FC<CreativeCVTemplateProps> = ({
           </div>
         );
 
-      // ───────────────── Fachliche Skills ─────────────────
       case 'skills':
         return (
           <div key={sectionIndex}>
@@ -572,7 +528,6 @@ export const CreativeCVTemplate: React.FC<CreativeCVTemplateProps> = ({
           </div>
         );
 
-      // ───────────────── Soft Skills ─────────────────
       case 'soft_skills':
         return (
           <div key={sectionIndex}>
@@ -603,7 +558,6 @@ export const CreativeCVTemplate: React.FC<CreativeCVTemplateProps> = ({
           </div>
         );
 
-      // ───────────────── Arbeitsweise & Werte ─────────────────
       case 'work_values':
       case 'values':
         return (
@@ -628,7 +582,6 @@ export const CreativeCVTemplate: React.FC<CreativeCVTemplateProps> = ({
           </div>
         );
 
-      // ───────────────── Hobbys & Interessen ─────────────────
       case 'hobbies':
       case 'interests':
         return (
@@ -653,7 +606,6 @@ export const CreativeCVTemplate: React.FC<CreativeCVTemplateProps> = ({
           </div>
         );
 
-      // ───────────────── Fallback ─────────────────
       default:
         return (
           <div key={sectionIndex}>
@@ -689,24 +641,20 @@ export const CreativeCVTemplate: React.FC<CreativeCVTemplateProps> = ({
 
   return (
     <div
-      ref={containerRef}
       className="relative bg-white text-slate-900 font-sans flex flex-col w-full"
       style={{
         wordBreak: 'break-word',
         overflowWrap: 'anywhere',
-        minHeight: `${pageCount * PAGE_HEIGHT_PX}px`,
-        boxSizing: 'border-box',
+        // 🔥 pageCount aus Prop statt lokalem State
+        minHeight: pageCount ? `${pageCount * PAGE_HEIGHT_PX}px` : `${PAGE_HEIGHT_PX}px`,
         WebkitPrintColorAdjust: 'exact',
         printColorAdjust: 'exact',
         flex: 1,
       }}
     >
-      {/* GLOBALER PRINT-STYLE GEGEN WEISSE BALKEN UND FÜR SAUBERE TRENNUNGEN */}
       <style>{`
         @media print {
-          @page {
-            margin: 0 !important;
-          }
+          @page { margin: 0 !important; }
           body, html, #root {
             background-color: #ffffff !important;
             -webkit-print-color-adjust: exact !important;
@@ -723,17 +671,6 @@ export const CreativeCVTemplate: React.FC<CreativeCVTemplateProps> = ({
           }
         }
       `}</style>
-
-      {/* A4-Guides (gestrichelte Trennlinien) – nur im Editor sichtbar */}
-      {pageCount > 1 &&
-        Array.from({ length: pageCount - 1 }).map((_, i) => (
-          <div
-            key={i}
-            data-pdf-hidden
-            className="pdf-hidden pointer-events-none absolute left-4 right-4 border-t border-dashed border-white/20"
-            style={{ top: (i + 1) * PAGE_HEIGHT_PX }}
-          />
-        ))}
 
       {/* Glow-Hintergrund */}
       <div className="pointer-events-none absolute inset-0 opacity-40">
@@ -847,9 +784,7 @@ export const CreativeCVTemplate: React.FC<CreativeCVTemplateProps> = ({
             // Skills + Soft Skills zusammen als Block "Skills & Tools"
             if (section.type === 'skills' || section.type === 'soft_skills') {
               const skillsSection = rightSections.find((s) => s.type === 'skills');
-              const softSkillsSection = rightSections.find(
-                (s) => s.type === 'soft_skills'
-              );
+              const softSkillsSection = rightSections.find((s) => s.type === 'soft_skills');
 
               if (section.type === 'skills' && (skillsSection || softSkillsSection)) {
                 return (
@@ -870,7 +805,6 @@ export const CreativeCVTemplate: React.FC<CreativeCVTemplateProps> = ({
               }
 
               if (section.type === 'soft_skills') {
-                // Wird bereits im kombinierten Block gerendert
                 return null;
               }
             }
@@ -889,30 +823,37 @@ export const CreativeCVTemplate: React.FC<CreativeCVTemplateProps> = ({
         </div>
       )}
 
-      {/* Footer */}
-      <footer data-pdf-footer className="relative mt-auto px-6 py-3 border-t border-slate-200 text-[9px] text-slate-500 flex flex-row justify-between gap-2 bg-slate-50 flex-shrink-0">
-        <div className="flex items-center gap-2">
+      {/* 🔥 Footer mit marginTop: 'auto' — geht an den Boden der berechneten Seite */}
+      <footer
+        data-pdf-footer
+        className="relative flex-shrink-0"
+        style={{
+          marginTop: 'auto',
+          padding: '10px 24px',
+          borderTop: '1px solid #cbd5e1',
+          display: 'flex',
+          flexDirection: 'row',
+          justifyContent: 'space-between',
+          alignItems: 'center',
+          gap: '8px',
+          fontSize: '9px',
+          color: '#64748b',
+          backgroundColor: '#f8fafc',
+        }}
+      >
+        <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
           <span>Ort:</span>
           <input
             className="bg-transparent outline-none border-b border-dashed border-slate-300 px-1 w-32 text-slate-700"
             placeholder="Stadt"
-            defaultValue=""
+            value={personalInfo.location || ''}
+            onChange={(e) => onUpdatePersonalInfo('location', e.target.value)}
           />
         </div>
-        <div className="flex items-center gap-2">
+        <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
           <span>Datum:</span>
-          <input
-            className="bg-transparent outline-none border-b border-dashed border-slate-300 px-1 w-32 text-slate-700"
-            placeholder="TT.MM.JJJJ"
-            defaultValue={new Date().toLocaleDateString('de-DE')}
-          />
+          <span style={{ fontWeight: 600 }}>{new Date().toLocaleDateString('de-DE')}</span>
         </div>
-        {pageCount > 1 && (
-          <div data-pdf-hidden className="pdf-hidden print:hidden flex items-center gap-1 sm:ml-auto">
-            <span>Voraussichtliche Seiten:</span>
-            <span className="font-semibold text-slate-700">{pageCount}</span>
-          </div>
-        )}
       </footer>
     </div>
   );

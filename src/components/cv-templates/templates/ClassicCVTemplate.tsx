@@ -34,6 +34,7 @@ interface ClassicCVTemplateProps {
   ) => void;
   onDeleteSectionItem?: (sectionIndex: number, itemIndex: number) => void;
   pageBreakItems?: Map<string, number>;
+  pageCount?: number; // 🔥 NEU
 }
 
 const skillLevelToStars = (level: string | undefined): number => {
@@ -88,7 +89,6 @@ const EditableText: React.FC<{
     );
   }
 
-  // WICHTIG: Single-Line Inputs für Titel und Datum verhindern Layout-Explosionen!
   return (
     <input
       className={`bg-transparent outline-none border-none focus:ring-0 w-full ${className}`}
@@ -112,6 +112,7 @@ export const ClassicCVTemplate: React.FC<ClassicCVTemplateProps> = ({
   onUpdateSectionItem,
   onDeleteSectionItem = () => {},
   pageBreakItems,
+  pageCount, // 🔥 NEU
 }) => {
   const findSectionIndex = (type: string) =>
     sections.findIndex((s) => s.type === type);
@@ -127,7 +128,6 @@ export const ClassicCVTemplate: React.FC<ClassicCVTemplateProps> = ({
   const stripSectionLabel = (val: string) =>
     val.replace(/^(programmiersprachen|technische\s*f[äa]higkeiten|fachkenntnisse|kenntnisse|sprachen|fähigkeiten|soft\s*skills|skills|languages|kompetenzen|tools?)[:\s\-–]+/i, '').trim();
 
-  // Einheitliche Bulletpoint Logik
   const renderBulletPoints = (bullets: any[] | undefined, sectionIndex: number, itemIndex: number) => {
     if (!bullets || !Array.isArray(bullets) || bullets.length === 0) return null;
 
@@ -140,9 +140,7 @@ export const ClassicCVTemplate: React.FC<ClassicCVTemplateProps> = ({
 
           return (
             <div key={idx} className="flex items-start gap-2" style={{ breakInside: 'avoid', pageBreakInside: 'avoid' }}>
-              <span style={{ flexShrink: 0, color: '#1e3a8a', fontSize: '9.5px', lineHeight: '1.375', userSelect: 'none' }}>
-                •
-              </span>
+              <span style={{ flexShrink: 0, color: '#1e3a8a', fontSize: '9.5px', lineHeight: '1.375', userSelect: 'none' }}>•</span>
               <EditableText
                 value={cleanText}
                 onChange={(val) => {
@@ -177,12 +175,17 @@ export const ClassicCVTemplate: React.FC<ClassicCVTemplateProps> = ({
         </h2>
         <div className="space-y-5">
           {items.map((item: any, idx: number) => {
-            const itemKey = `${experienceIndex}-${idx}`;
+            // 🔥 Konsistente ID: section.type + sectionIndex + idx
+            const itemKey = `experience-${experienceIndex}-${idx}`;
             const spacer = pageBreakItems?.get(itemKey) ?? 0;
             return (
-            <div key={idx} className="relative" data-pdf-section data-spacer-id={itemKey} style={{ breakInside: 'avoid', pageBreakInside: 'avoid', ...(spacer > 0 ? { marginTop: `${spacer}px` } : {}) }}>
-              
-              {/* STABIL: Title und Date als single-line Input, kein items-baseline Bug mehr! */}
+            <div
+              key={idx}
+              className="relative"
+              data-pdf-section
+              data-spacer-id={itemKey}
+              style={{ breakInside: 'avoid', pageBreakInside: 'avoid', ...(spacer > 0 ? { marginTop: `${spacer}px` } : {}) }}
+            >
               <div className="flex items-baseline justify-between gap-3">
                 <EditableText
                   value={item.title}
@@ -218,10 +221,9 @@ export const ClassicCVTemplate: React.FC<ClassicCVTemplateProps> = ({
                 />
               )}
               
-              {/* 💡 FIX: Description rendert nun IMMER als Bulletpoint! Einheitlicher Look. */}
               {item.description && (
                 <div className="flex items-start gap-2 mt-2 leading-snug">
-                <span style={{ flexShrink: 0, color: '#1e3a8a', fontSize: '9.5px', lineHeight: '1.375', userSelect: 'none' }}>•</span>
+                  <span style={{ flexShrink: 0, color: '#1e3a8a', fontSize: '9.5px', lineHeight: '1.375', userSelect: 'none' }}>•</span>
                   <EditableText
                     value={item.description.replace(/^[-•*]\s*/, '')}
                     onChange={(val) => onUpdateSectionItem(experienceIndex, idx, 'description', val)}
@@ -232,7 +234,6 @@ export const ClassicCVTemplate: React.FC<ClassicCVTemplateProps> = ({
                 </div>
               )}
               
-              {/* Weitere Bulletpoints aus der Liste */}
               {renderBulletPoints(item.bulletPoints || item.bullet_points, experienceIndex, idx)}
 
               <div className="pdf-hidden" style={{ marginTop: '6px', display: 'flex', gap: '8px', alignItems: 'center' }}>
@@ -274,10 +275,17 @@ export const ClassicCVTemplate: React.FC<ClassicCVTemplateProps> = ({
         </h2>
         <div className="space-y-5">
           {items.map((item: any, idx: number) => {
-            const itemKey = `${educationIndex}-${idx}`;
+            // 🔥 Konsistente ID: section.type + sectionIndex + idx
+            const itemKey = `education-${educationIndex}-${idx}`;
             const spacer = pageBreakItems?.get(itemKey) ?? 0;
             return (
-            <div key={idx} className="relative" data-pdf-section data-spacer-id={itemKey} style={{ breakInside: 'avoid', pageBreakInside: 'avoid', ...(spacer > 0 ? { marginTop: `${spacer}px` } : {}) }}>
+            <div
+              key={idx}
+              className="relative"
+              data-pdf-section
+              data-spacer-id={itemKey}
+              style={{ breakInside: 'avoid', pageBreakInside: 'avoid', ...(spacer > 0 ? { marginTop: `${spacer}px` } : {}) }}
+            >
               <div className="flex items-baseline justify-between gap-3">
                 <EditableText
                   value={item.degree}
@@ -305,7 +313,7 @@ export const ClassicCVTemplate: React.FC<ClassicCVTemplateProps> = ({
               
               {item.description && (
                 <div className="flex items-start gap-2 mt-2 leading-snug">
-                <span style={{ flexShrink: 0, color: '#1e3a8a', fontSize: '9.5px', lineHeight: '1.375', userSelect: 'none' }}>•</span>
+                  <span style={{ flexShrink: 0, color: '#1e3a8a', fontSize: '9.5px', lineHeight: '1.375', userSelect: 'none' }}>•</span>
                   <EditableText
                     value={item.description.replace(/^[-•*]\s*/, '')}
                     onChange={(val) => onUpdateSectionItem(educationIndex, idx, 'description', val)}
@@ -335,8 +343,17 @@ export const ClassicCVTemplate: React.FC<ClassicCVTemplateProps> = ({
           Projekte
         </h2>
         <div className="space-y-5">
-          {items.map((item: any, idx: number) => (
-            <div key={idx} className="relative" style={{ breakInside: 'avoid', pageBreakInside: 'avoid' }}>
+          {items.map((item: any, idx: number) => {
+            // 🔥 Konsistente ID: section.type + sectionIndex + idx
+            const itemKey = `projects-${projectsIndex}-${idx}`;
+            const spacer = pageBreakItems?.get(itemKey) ?? 0;
+            return (
+            <div
+              key={idx}
+              className="relative"
+              data-spacer-id={itemKey}
+              style={{ breakInside: 'avoid', pageBreakInside: 'avoid', ...(spacer > 0 ? { marginTop: `${spacer}px` } : {}) }}
+            >
               <EditableText
                 value={item.title}
                 onChange={(val) => onUpdateSectionItem(projectsIndex, idx, 'title', val)}
@@ -353,7 +370,7 @@ export const ClassicCVTemplate: React.FC<ClassicCVTemplateProps> = ({
               )}
               {item.description && (
                 <div className="flex items-start gap-2 mt-2 leading-snug">
-                <span style={{ flexShrink: 0, color: '#1e3a8a', fontSize: '9.5px', lineHeight: '1.375', userSelect: 'none' }}>•</span>
+                  <span style={{ flexShrink: 0, color: '#1e3a8a', fontSize: '9.5px', lineHeight: '1.375', userSelect: 'none' }}>•</span>
                   <EditableText
                     value={item.description.replace(/^[-•*]\s*/, '')}
                     onChange={(val) => onUpdateSectionItem(projectsIndex, idx, 'description', val)}
@@ -365,7 +382,8 @@ export const ClassicCVTemplate: React.FC<ClassicCVTemplateProps> = ({
               )}
               {renderBulletPoints(item.bulletPoints || item.bullet_points, projectsIndex, idx)}
             </div>
-          ))}
+            );
+          })}
         </div>
       </div>
     );
@@ -398,7 +416,6 @@ export const ClassicCVTemplate: React.FC<ClassicCVTemplateProps> = ({
               const level = item.level || item.niveau || item.proficiency || '';
               const stars = skillLevelToStars(level);
               return (
-                // 💡 FIX: min-w-0 und flex-shrink-0 verhindern den Zeilenumbruch!
                 <li key={idx} className="flex flex-nowrap justify-between items-center gap-2 text-[9px]">
                   <EditableText
                     value={language}
@@ -484,10 +501,11 @@ export const ClassicCVTemplate: React.FC<ClassicCVTemplateProps> = ({
 
   return (
     <div
-      className="w-full text-slate-800 bg-white"
+      className="w-full text-slate-800 bg-white flex flex-col"
       style={{
         fontFamily: 'Inter, system-ui, -apple-system, sans-serif',
-        minHeight: '1122px',
+        // 🔥 pageCount-gesteuerte minHeight
+        minHeight: pageCount ? `${pageCount * 1122}px` : '1122px',
         width: '100%',
         boxSizing: 'border-box',
         wordBreak: 'break-word',
@@ -496,7 +514,7 @@ export const ClassicCVTemplate: React.FC<ClassicCVTemplateProps> = ({
         flex: 1,
       }}
     >
-      <div className="w-full p-8" style={{ height: '100%', flex: 1 }}>
+      <div className="w-full p-8" style={{ flex: 1 }}>
         <div className="flex gap-8" style={{ flex: 1 }}>
           
           {/* Linke Spalte */}
@@ -655,7 +673,7 @@ export const ClassicCVTemplate: React.FC<ClassicCVTemplateProps> = ({
                         const text = typeof item === 'string' ? item : item.description || item.text || item.label || item.name || String(item);
                         return (
                           <div key={idx} className="flex items-start gap-2 leading-snug">
-                          <span style={{ flexShrink: 0, color: '#1e3a8a', fontSize: '9.5px', lineHeight: '1.375', userSelect: 'none' }}>•</span>
+                            <span style={{ flexShrink: 0, color: '#1e3a8a', fontSize: '9.5px', lineHeight: '1.375', userSelect: 'none' }}>•</span>
                             <EditableText
                               value={text.replace(/^[-•*]\s*/, '')}
                               onChange={(val) => onUpdateSectionItem(index, idx, 'text', val)}
@@ -675,7 +693,7 @@ export const ClassicCVTemplate: React.FC<ClassicCVTemplateProps> = ({
         </div>
       </div>
       
-      {/* Footer */}
+      {/* 🔥 Footer mit marginTop: 'auto' — geht an den Boden der berechneten Seite */}
       <footer
         data-pdf-footer
         style={{
@@ -687,7 +705,9 @@ export const ClassicCVTemplate: React.FC<ClassicCVTemplateProps> = ({
           fontSize: '9px',
           color: '#64748b',
           backgroundColor: '#f8fafc',
-          height: '45px'
+          marginTop: 'auto',
+          flexShrink: 0,
+          height: '45px',
         }}
       >
         <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
