@@ -311,6 +311,13 @@ function PosterSwitcher() {
 }
 
 const BIERPONG_TICKET_IDS = new Set(['bierpong']);
+const NAV_SECTIONS = [
+  { id: 'programm',  label: 'Programm',   emoji: '🎶' },
+  { id: 'tickets',   label: 'Tickets',    emoji: '🎟️' },
+  { id: 'crew',      label: 'Crew-Deal',  emoji: '🤝' },
+  { id: 'sponsoren', label: 'Sponsoren',  emoji: '🏢' },
+  { id: 'hardfacts', label: 'Hard Facts', emoji: '📍' },
+] as const;
 
 export default function HarmonyFestivalPage() {
   const navigate = useNavigate();
@@ -419,6 +426,22 @@ useEffect(() => {
       if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' });
     }, 300);
   }
+}, []);
+  const [activeSection, setActiveSection] = useState<string>('');
+
+useEffect(() => {
+  const handleScroll = () => {
+    const offsets = NAV_SECTIONS.map(({ id }) => {
+      const el = document.getElementById(id);
+      if (!el) return { id, top: Infinity };
+      return { id, top: Math.abs(el.getBoundingClientRect().top - 100) };
+    });
+    const closest = offsets.reduce((a, b) => (a.top < b.top ? a : b));
+    setActiveSection(closest.id);
+  };
+  window.addEventListener('scroll', handleScroll, { passive: true });
+  handleScroll();
+  return () => window.removeEventListener('scroll', handleScroll);
 }, []);
 
   const doCheckout = async (ticket: typeof TICKETS[0], name: string, bpTeam?: string, bpPartner?: string) => {
