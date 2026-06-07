@@ -411,12 +411,15 @@ export default function HarmonyFestivalPage() {
     loadUserTickets();
   }, [user]);
 
-  useEffect(() => {
-    if (window.location.hash === '#tickets') {
-      const el = document.getElementById('tickets');
+useEffect(() => {
+  const hash = window.location.hash.replace('#', '');
+  if (hash) {
+    setTimeout(() => {
+      const el = document.getElementById(hash);
       if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' });
-    }
-  }, []);
+    }, 300);
+  }
+}, []);
 
   const doCheckout = async (ticket: typeof TICKETS[0], name: string, bpTeam?: string, bpPartner?: string) => {
     setError(null);
@@ -1210,7 +1213,7 @@ export default function HarmonyFestivalPage() {
           <div className="divider" />
 
           {/* ── CREW-DEAL ────────────────────────────────────────── */}
-          <motion.section {...fadeUp}>
+          <motion.section id="crew" {...fadeUp}>
             <div className="glass rounded-2xl px-8 sm:px-12 py-10">
               <div className="flex items-start justify-between flex-wrap gap-5 mb-6">
                 <div>
@@ -1322,7 +1325,7 @@ export default function HarmonyFestivalPage() {
           <div className="divider" />
 
           {/* ── LOKALE SPONSOREN ─────────────────────────────────── */}
-          <motion.section {...fadeUp}>
+          <motion.section id="sponsoren" {...fadeUp}>
             <div className="mb-10">
               <div className="tag-label mb-3">Partner & Sponsoren</div>
               <h2 className="graffiti" style={{ fontSize: 'clamp(42px, 7vw, 78px)', color: '#fff', lineHeight: 0.9 }}>
@@ -1844,7 +1847,7 @@ export default function HarmonyFestivalPage() {
           <div className="divider" />
 
           {/* ── HARD FACTS ───────────────────────────────────────── */}
-          <motion.section {...fadeUp}>
+          <motion.section id="hardfacts" {...fadeUp}>
             <div className="tag-label mb-10">Hard Facts</div>
             <div className="grid sm:grid-cols-3 gap-4 mb-10">
               {[

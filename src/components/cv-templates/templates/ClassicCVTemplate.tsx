@@ -511,11 +511,10 @@ export const ClassicCVTemplate: React.FC<ClassicCVTemplateProps> = ({
         wordBreak: 'break-word',
         overflowWrap: 'anywhere',
         border: '1px solid #e2e8f0',
-        flex: 1,
       }}
     >
-      <div className="w-full p-8" style={{ flex: 1 }}>
-        <div className="flex gap-8" style={{ flex: 1 }}>
+      <div className="w-full p-8">
+        <div className="flex gap-8">
           
           {/* Linke Spalte */}
           <aside className="w-1/3 max-w-[33%] pr-6 border-r border-slate-200 flex flex-col">

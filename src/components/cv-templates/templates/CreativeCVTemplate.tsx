@@ -649,7 +649,6 @@ export const CreativeCVTemplate: React.FC<CreativeCVTemplateProps> = ({
         minHeight: pageCount ? `${pageCount * PAGE_HEIGHT_PX}px` : `${PAGE_HEIGHT_PX}px`,
         WebkitPrintColorAdjust: 'exact',
         printColorAdjust: 'exact',
-        flex: 1,
       }}
     >
       <style>{`
@@ -748,7 +747,7 @@ export const CreativeCVTemplate: React.FC<CreativeCVTemplateProps> = ({
       </header>
 
       {/* Content */}
-      <main className="relative px-6 py-3 grid grid-cols-12 gap-4 text-slate-800 bg-white" style={{ flex: '1 0 auto' }}>
+      <main className="relative px-6 py-3 grid grid-cols-12 gap-4 text-slate-800 bg-white" style={{ flex: 'none' }}>
         <section className="col-span-7 space-y-3">
           <div>
             <SectionTitle>Profil & Story</SectionTitle>

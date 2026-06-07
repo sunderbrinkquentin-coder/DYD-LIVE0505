@@ -576,7 +576,6 @@ export const MinimalCVTemplate: React.FC<MinimalCVTemplateProps> = ({
         overflowWrap: 'anywhere',
         // 🔥 pageCount-gesteuerte minHeight
         minHeight: pageCount ? `${pageCount * 1122}px` : '1122px',
-        flex: 1,
       }}
     >
       {/* Header */}
@@ -654,7 +653,7 @@ export const MinimalCVTemplate: React.FC<MinimalCVTemplateProps> = ({
       </header>
 
       {/* Flexbox-Spaltensystem */}
-      <div style={{ display: 'flex', width: '100%', backgroundColor: '#ffffff', flex: 1, padding: '16px 0' }}>
+      <div style={{ display: 'flex', width: '100%', backgroundColor: '#ffffff', flex: 'none', padding: '16px 0' }}>
         
         {/* Linke Spalte (58%) */}
         <section style={{ flex: '0 0 58%', minWidth: 0, paddingLeft: '32px', paddingRight: '12px', display: 'flex', flexDirection: 'column', gap: '12px' }}>

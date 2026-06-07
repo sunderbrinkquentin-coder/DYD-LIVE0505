@@ -1,4 +1,4 @@
-import { motion, useScroll, useTransform } from 'framer-motion';
+import { motion, useScroll, useTransform, AnimatePresence } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
 import {
   Sparkles,
@@ -41,10 +41,19 @@ import { AboutSection } from '../components/landing/AboutSection';
 import { ProcessTimeline } from '../components/landing/ProcessTimeline';
 import FestivalPopup from '../components/FestivalPopup';
 
+const FESTIVAL_SECTIONS = [
+  { label: 'Programm',   anchor: 'programm',  emoji: '🎶' },
+  { label: 'Tickets',    anchor: 'tickets',   emoji: '🎟️' },
+  { label: 'Ticket gegen Hilfe',  anchor: 'crew',      emoji: '🤝' },
+  { label: 'Sponsoren',  anchor: 'sponsoren', emoji: '🏢' },
+  { label: 'Rahmendaten', anchor: 'hardfacts', emoji: '📍' },
+] as const;
+
 export default function LandingPage() {
   const navigate = useNavigate();
   const { user, profile } = useAuth();
   const [expandedFAQ, setExpandedFAQ] = useState<number | null>(null);
+  const [festivalOpen, setFestivalOpen] = useState(false);
   const { scrollYProgress } = useScroll();
 
   const scrollToId = (id: string) => {
@@ -215,16 +224,14 @@ export default function LandingPage() {
       {/* Content Container */}
       <div className="relative z-10">
         {/* Navigation */}
-        <nav className="fixed top-0 w-full z-50 bg-black/40 backdrop-blur-xl border-b border-white/10">
+<nav className="fixed top-0 w-full z-50 bg-black/40 backdrop-blur-xl border-b border-white/10">
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             <div className="flex items-center justify-between h-16">
               <motion.div
                 className="flex items-center gap-3 cursor-pointer"
                 whileHover={{ scale: 1.05, rotate: 2 }}
                 whileTap={{ scale: 0.98 }}
-                onClick={() =>
-                  window.scrollTo({ top: 0, behavior: 'smooth' })
-                }
+                onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}
               >
                 <motion.img
                   src="/DYD Logo RGB copy copy.svg"
@@ -237,16 +244,11 @@ export default function LandingPage() {
                       'drop-shadow(0 0 8px rgba(102,192,182,0.3))',
                     ],
                   }}
-                  transition={{
-                    duration: 3,
-                    repeat: Infinity,
-                    ease: 'easeInOut',
-                  }}
-                  onError={(e) => {
-                    e.currentTarget.style.display = 'none';
-                  }}
+                  transition={{ duration: 3, repeat: Infinity, ease: 'easeInOut' }}
+                  onError={(e) => { e.currentTarget.style.display = 'none'; }}
                 />
               </motion.div>
+
               <div className="hidden md:flex items-center gap-6">
                 <motion.button
                   type="button"
@@ -257,6 +259,7 @@ export default function LandingPage() {
                 >
                   So funktioniert&apos;s
                 </motion.button>
+
                 <motion.button
                   type="button"
                   onClick={() => scrollToId('preise')}
@@ -266,15 +269,99 @@ export default function LandingPage() {
                 >
                   Preise
                 </motion.button>
-                <motion.button
-                  type="button"
-                  onClick={() => navigate('/festival')}
-                  className="text-white/70 hover:text-white transition-colors"
-                  whileHover={{ scale: 1.05, y: -2 }}
-                  whileTap={{ scale: 0.95 }}
+
+                {/* ── FESTIVAL MIT HOVER-DROPDOWN ── */}
+                <div
+                  className="relative"
+                  onMouseEnter={() => setFestivalOpen(true)}
+                  onMouseLeave={() => setFestivalOpen(false)}
                 >
-                  Festival
-                </motion.button>
+                  <motion.button
+                    type="button"
+                    onClick={() => navigate('/festival')}
+                    className="flex items-center gap-1.5 text-white/70 hover:text-white transition-colors"
+                    whileHover={{ scale: 1.05, y: -2 }}
+                    whileTap={{ scale: 0.95 }}
+                  >
+                    Festival
+                    <motion.svg
+                      width="12" height="12" viewBox="0 0 24 24"
+                      fill="none" stroke="currentColor" strokeWidth="2.5"
+                      strokeLinecap="round" strokeLinejoin="round"
+                      animate={{ rotate: festivalOpen ? 180 : 0 }}
+                      transition={{ duration: 0.2 }}
+                    >
+                      <polyline points="6 9 12 15 18 9" />
+                    </motion.svg>
+                  </motion.button>
+
+                  <AnimatePresence>
+                    {festivalOpen && (
+                      <motion.div
+                        initial={{ opacity: 0, y: 8, scale: 0.97 }}
+                        animate={{ opacity: 1, y: 0, scale: 1 }}
+                        exit={{ opacity: 0, y: 8, scale: 0.97 }}
+                        transition={{ duration: 0.18, ease: [0.22, 1, 0.36, 1] }}
+                        className="absolute top-full left-1/2 -translate-x-1/2 mt-3 w-52 rounded-2xl overflow-hidden"
+                        style={{
+                          background: 'rgba(8,12,16,0.97)',
+                          border: '1px solid rgba(0,212,212,0.18)',
+                          boxShadow: '0 16px 48px rgba(0,0,0,0.6), 0 0 40px rgba(0,212,212,0.08)',
+                          backdropFilter: 'blur(20px)',
+                        }}
+                      >
+                        <div style={{ height: '2px', background: 'linear-gradient(to right, transparent, rgba(0,212,212,0.7), transparent)' }} />
+
+                        <button
+                          type="button"
+                          onClick={() => navigate('/festival')}
+                          className="w-full flex items-center gap-3 px-4 py-3 text-left transition-colors"
+                          style={{ borderBottom: '1px solid rgba(0,212,212,0.08)' }}
+                          onMouseEnter={e => (e.currentTarget.style.background = 'rgba(0,212,212,0.06)')}
+                          onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}
+                        >
+                          <span style={{ fontSize: '15px' }}>🎪</span>
+                          <div>
+                            <div style={{ fontFamily: "'Inter', sans-serif", fontSize: '13px', fontWeight: 700, color: '#00d4d4' }}>
+                              Zum Festival
+                            </div>
+                            <div style={{ fontFamily: "'Inter', sans-serif", fontSize: '10px', color: 'rgba(0,212,212,0.45)', marginTop: '1px' }}>
+                              22. August 2026 · Düsseldorf
+                            </div>
+                          </div>
+                        </button>
+
+                        <div className="py-1">
+                          {FESTIVAL_SECTIONS.map((section) => (
+                            <button
+                              key={section.anchor}
+                              type="button"
+                              onClick={() => {
+                                navigate(`/festival#${section.anchor}`);
+                                setTimeout(() => {
+                                  const el = document.getElementById(section.anchor);
+                                  if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                                }, 100);
+                              }}
+                              className="w-full flex items-center gap-3 px-4 py-2.5 text-left transition-colors"
+                              onMouseEnter={e => (e.currentTarget.style.background = 'rgba(255,255,255,0.04)')}
+                              onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}
+                            >
+                              <span style={{ fontSize: '14px', flexShrink: 0 }}>{section.emoji}</span>
+                              <span style={{ fontFamily: "'Inter', sans-serif", fontSize: '13px', fontWeight: 500, color: 'rgba(200,240,240,0.75)' }}>
+                                {section.label}
+                              </span>
+                            </button>
+                          ))}
+                        </div>
+
+                        <div style={{ height: '1px', background: 'linear-gradient(to right, transparent, rgba(0,212,212,0.2), transparent)' }} />
+                      </motion.div>
+                    )}
+                  </AnimatePresence>
+                </div>
+                {/* ── ENDE FESTIVAL DROPDOWN ── */}
+
                 <motion.button
                   onClick={() => navigate(user ? '/dashboard' : '/login')}
                   className="text-white/70 hover:text-white transition-colors"
@@ -283,6 +370,7 @@ export default function LandingPage() {
                 >
                   {user ? 'Dashboard' : 'Login'}
                 </motion.button>
+
                 <motion.button
                   onClick={() => navigate('/cv-check')}
                   className="px-6 py-2 rounded-xl bg-gradient-to-r from-[#66c0b6] to-[#30E3CA] text-black font-semibold shadow-lg shadow-[#66c0b6]/20 relative overflow-hidden group"
@@ -293,6 +381,7 @@ export default function LandingPage() {
                   <span className="relative">Jetzt starten</span>
                 </motion.button>
               </div>
+
               <button
                 onClick={() => navigate('/login?redirect=/dashboard')}
                 className="md:hidden px-4 py-2 rounded-lg bg-gradient-to-r from-[#66c0b6] to-[#30E3CA] text-black font-semibold text-sm"
@@ -302,7 +391,6 @@ export default function LandingPage() {
             </div>
           </div>
         </nav>
-
         <main id="main-content" aria-label="DYD Hauptinhalt – KI-Lebenslauf-Optimierung für Deutschland">
 
         {/* Hero Section */}
