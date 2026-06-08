@@ -1560,25 +1560,30 @@ onClick={async () => {
   isOpen={showPaywallModal} 
   onClose={() => setShowPaywallModal(false)} 
   context="download"
-  // Wir verknüpfen hier die echte Logik:
   onConfirm={async () => {
-    try {
-      // 1. Hier MUSS deine Bezahl-Logik stehen (z.B. Stripe-Checkout oder Token-Abzug)
-      // Falls du eine Funktion wie 'createCheckoutSession' hast, rufe sie hier auf!
-      console.log("Starte Bezahlvorgang für CV:", cvId);
-      
-      // BEISPIEL: Wenn du einen Token-Service nutzt:
-      // await tokenService.purchaseTokens('single'); 
-      
-      // 2. WICHTIG: Wenn der Aufruf erfolgreich war, triggern wir den Erfolg:
-      // handlePaywallSuccess(); 
-      
-      // Falls du aktuell noch keine Stripe-Integration hast, sag mir Bescheid, 
-      // dann zeige ich dir den Einzeiler für die Weiterleitung zum Stripe-Checkout!
-    } catch (error) {
-      console.error("Zahlungsfehler:", error);
-      throw error; // Das lässt das Modal bei Fehlern offen, damit der User es sieht
-    }
+    // Hier wird die ID dynamisch basierend auf dem gewählten Plan im Modal geladen
+    // Wir nutzen hier direkt die Stripe-Integration
+    const planMap: Record<string, string> = {
+      'single': import.meta.env.VITE_STRIPE_PRICE_CV_OPT_1,
+      'bundle-3': import.meta.env.VITE_STRIPE_PRICE_CV_OPT_5,
+      'bundle-5': import.meta.env.VITE_STRIPE_PRICE_CV_OPT_10
+    };
+    
+    // Annahme: Du musst im PaywallModal 'selectedPlan' irgendwie abgreifen oder übergeben
+    // Falls das Modal intern den State verwaltet, übergib den PriceID hier:
+    const priceId = planMap[selectedPlan]; 
+
+    const { data, error } = await supabase.functions.invoke('create-checkout-session', {
+      body: { 
+        price_id: priceId,
+        success_url: `${window.location.origin}/cv-live-editor/${cvId}?payment=success`,
+        cancel_url: window.location.href,
+        mode: 'payment'
+      }
+    });
+
+    if (error) throw error;
+    if (data?.url) window.location.href = data.url;
   }}
   onSuccess={handlePaywallSuccess} 
 />
