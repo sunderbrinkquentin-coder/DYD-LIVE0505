@@ -653,24 +653,25 @@ export function CVLiveEditorPage() {
           });
         }
 
-       // 2. ZERTIFIKATE & STIPENDIEN
+    // 2. ZERTIFIKATE & STIPENDIEN
         const certItems = findArray(['certificates', 'zertifikate']);
         const scholItems = findArray(['scholarships', 'stipendien']);
         const awardItems = findArray(['awards', 'auszeichnungen']);
         const allAwards = [...certItems, ...scholItems, ...awardItems];
 
         if (allAwards.length > 0) {
-          const items = allAwards.map((aw: any) => ({
+          const items = allAwards.map((aw: any, index: number) => ({
+            id: index, // Eindeutige ID für den Lösch-Vorgang
             degree: aw.title || aw.name || aw.degree || '', 
             institution: aw.issuer || aw.institution || aw.organization || '', 
             date_from: formatDate(aw.date_from || aw.year || aw.date || ''),
             date_to: formatDate(aw.date_to || ''),
             description: aw.description || '',
-          })).filter(i => i.degree || i.institution); // Nur Einträge mit Inhalt behalten
+          })).filter(i => i.degree || i.institution);
 
           if (items.length > 0) {
             sections.push({
-              type: 'courses',
+              type: 'courses', // Dein Template muss "courses" kennen!
               title: 'Auszeichnungen & Zertifikate',
               items: items,
             });
@@ -678,16 +679,17 @@ export function CVLiveEditorPage() {
         }
 
         // 3. EHRENAMT
-        const volItems = rawCvData?.volunteerWork || [];
-        if (Array.isArray(volItems) && volItems.length > 0) {
-          const items = volItems.map((vol: any) => ({
+        const volItems = findArray(['volunteerWork', 'ehrenamt', 'volunteering']);
+        if (volItems.length > 0) {
+          const items = volItems.map((vol: any, index: number) => ({
+            id: index, // Eindeutige ID für den Lösch-Vorgang
             title: vol.role || vol.title || '',
             company: vol.organization || vol.company || '',
             date_from: formatDate(vol.date_from || ''),
             date_to: formatDate(vol.date_to || ''),
             description: vol.description || '',
             bulletPoints: vol.bulletPoints || [],
-          })).filter(i => i.title || i.company); // Nur Einträge mit Inhalt behalten
+          })).filter(i => i.title || i.company);
 
           if (items.length > 0) {
             sections.push({
@@ -697,7 +699,6 @@ export function CVLiveEditorPage() {
             });
           }
         }
-
         // 4. PROJEKTE
         const projectItems = findArray(['projects', 'project', 'cv_projects']);
         if (projectItems.length > 0) {
