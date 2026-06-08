@@ -213,7 +213,7 @@ export function JobTargeting() {
         summary: resolvedBaseCvData.summary,
         
         // --- ALLE ERWEITERTEN BEREICHE HINZUGEFÜGT ---
-        scholarships: (resolvedBaseCvData as any).scholarships ?? [],
+        scholarships: (resolvedBaseCvData as any).stipendien ?? (resolvedBaseCvData as any).scholarships ?? [],
         awards: (resolvedBaseCvData as any).awards ?? [],
         volunteerWork: (resolvedBaseCvData as any).volunteerWork ?? [],
         certificates: (resolvedBaseCvData as any).certificates ?? [], // Hier sind die Zertifikate!
