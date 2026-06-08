@@ -701,18 +701,21 @@ const certificates = rawCertificates.map((c: any) => ({
     ? { variant: typeof rawSummary?.variant === 'string' ? rawSummary.variant : 'professional', text: summaryText }
     : undefined;
 
-  return {
-    experienceLevel,
-    personalData,
-    workExperiences,
-    professionalEducation,
-    hardSkills,
-    softSkills: softSkills.length > 0 ? softSkills : [],
-    languages,
-    projects,
-    workValues: { values: [], workStyle: [] },
-    hobbies: { hobbies: [], details: '' },
-    schoolEducation: undefined,
-    summary,
-  };
+return {
+  experienceLevel,
+  personalData,
+  workExperiences,
+  professionalEducation,
+  schoolEducation,       // ✅ NEU
+  hardSkills,
+  softSkills: softSkills.length > 0 ? softSkills : [],
+  languages,
+  projects,
+  stipendien,            // ✅ NEU
+  volunteerWork,         // ✅ NEU
+  certificates,          // ✅ NEU
+  workValues: { values: [], workStyle: [] },
+  hobbies: { hobbies: [], details: '' },
+  summary,
+};
 }
