@@ -193,34 +193,30 @@ export function JobTargeting() {
           };
 
       // 3) CV-Daten direkt übernehmen – ALLES explizit aufgeführt
-      const cvDataPayload: any = {
-        experienceLevel: resolvedBaseCvData.experienceLevel,
-        targetRole: resolvedBaseCvData.targetRole,
-        targetIndustry: resolvedBaseCvData.targetIndustry,
-        personalData: resolvedBaseCvData.personalData,
-        workExperiences: resolvedBaseCvData.workExperiences ?? [],
-        projects: resolvedBaseCvData.projects ?? [],
-        hardSkills: resolvedBaseCvData.hardSkills ?? [],
-        softSkills: resolvedBaseCvData.softSkills ?? [],
-        schoolEducation: resolvedBaseCvData.schoolEducation ?? [],
-        professionalEducation: resolvedBaseCvData.professionalEducation ?? [],
-        internships: resolvedBaseCvData.internships ?? [],
-        hobbies: resolvedBaseCvData.hobbies,
-        workValues: resolvedBaseCvData.workValues,
-        jobTarget: resolvedBaseCvData.jobTarget,
-        targetJob: resolvedBaseCvData.targetJob,
-        languages: resolvedBaseCvData.languages ?? [],
-        summary: resolvedBaseCvData.summary,
-        
-        // --- ALLE ERWEITERTEN BEREICHE HINZUGEFÜGT ---
-        scholarships: (resolvedBaseCvData as any).stipendien ?? (resolvedBaseCvData as any).scholarships ?? [],
-        awards: (resolvedBaseCvData as any).auszeichnungen ?? (resolvedBaseCvData as any).awards ?? [],
-        volunteerWork: (resolvedBaseCvData as any).ehrenamt ?? (resolvedBaseCvData as any).volunteerWork ?? [],
-        certificates: (resolvedBaseCvData as any).zertifikate ?? (resolvedBaseCvData as any).certificates ?? [],
-        // ----------------------------------
-        
-        desired_job: sanitizedJobData,
-      };
+const cvDataPayload: any = {
+  experienceLevel: resolvedBaseCvData.experienceLevel,
+  targetRole: resolvedBaseCvData.targetRole,
+  targetIndustry: resolvedBaseCvData.targetIndustry,
+  personalData: resolvedBaseCvData.personalData,
+  workExperiences: resolvedBaseCvData.workExperiences ?? [],
+  projects: resolvedBaseCvData.projects ?? [],
+  hardSkills: resolvedBaseCvData.hardSkills ?? [],
+  softSkills: resolvedBaseCvData.softSkills ?? [],
+  schoolEducation: resolvedBaseCvData.schoolEducation ?? [],
+  professionalEducation: resolvedBaseCvData.professionalEducation ?? [],
+  internships: resolvedBaseCvData.internships ?? [],
+  hobbies: resolvedBaseCvData.hobbies,
+  workValues: resolvedBaseCvData.workValues,
+  jobTarget: resolvedBaseCvData.jobTarget,
+  targetJob: resolvedBaseCvData.targetJob,
+  languages: resolvedBaseCvData.languages ?? [],
+  summary: resolvedBaseCvData.summary,
+  // ✅ Korrekte Feldnamen aus CVBuilderData
+  stipendien: resolvedBaseCvData.stipendien ?? [],
+  volunteerWork: resolvedBaseCvData.volunteerWork ?? [],
+  certificates: resolvedBaseCvData.certificates ?? [],
+  desired_job: sanitizedJobData,
+};
 
       // 4) Log & Speicherung in Supabase
       console.log('🟦 [JOB-TARGETING] CV payload field counts:', {
