@@ -653,41 +653,49 @@ export function CVLiveEditorPage() {
           });
         }
 
-        // 2. ZERTIFIKATE & STIPENDIEN (Nutzt 'courses', um den Duplikat-Filter zu umgehen!)
+       // 2. ZERTIFIKATE & STIPENDIEN
         const certItems = findArray(['certificates', 'zertifikate']);
         const scholItems = findArray(['scholarships', 'stipendien']);
         const awardItems = findArray(['awards', 'auszeichnungen']);
         const allAwards = [...certItems, ...scholItems, ...awardItems];
 
         if (allAwards.length > 0) {
-          sections.push({
-            type: 'courses', // <-- WICHTIG: Macht es einzigartig für den Filter
-            title: 'Auszeichnungen & Zertifikate',
-            items: allAwards.map((aw: any) => ({
-              degree: aw.title || aw.name || aw.degree || '', 
-              institution: aw.issuer || aw.institution || aw.organization || '', 
-              date_from: formatDate(aw.date_from || aw.year || aw.date || ''),
-              date_to: formatDate(aw.date_to || ''),
-              description: aw.description || '',
-            })),
-          });
+          const items = allAwards.map((aw: any) => ({
+            degree: aw.title || aw.name || aw.degree || '', 
+            institution: aw.issuer || aw.institution || aw.organization || '', 
+            date_from: formatDate(aw.date_from || aw.year || aw.date || ''),
+            date_to: formatDate(aw.date_to || ''),
+            description: aw.description || '',
+          })).filter(i => i.degree || i.institution); // Nur Einträge mit Inhalt behalten
+
+          if (items.length > 0) {
+            sections.push({
+              type: 'courses',
+              title: 'Auszeichnungen & Zertifikate',
+              items: items,
+            });
+          }
         }
 
-        // 3. EHRENAMT (Nutzt 'volunteering', um den Duplikat-Filter zu umgehen!)
-        const volItems = findArray(['volunteerWork', 'ehrenamt', 'volunteering']);
-        if (volItems.length > 0) {
-          sections.push({
-            type: 'volunteering', // <-- WICHTIG: Macht es einzigartig für den Filter
-            title: 'Ehrenamtliches Engagement',
-            items: volItems.map((vol: any) => ({
-              title: vol.role || vol.title || '',
-              company: vol.organization || vol.company || '',
-              date_from: formatDate(vol.date_from || ''),
-              date_to: formatDate(vol.date_to || ''),
-              description: vol.description || '',
-              bulletPoints: vol.bulletPoints || [],
-            })),
-          });
+        // 3. EHRENAMT
+        const volItems = rawCvData?.volunteerWork || [];
+        if (Array.isArray(volItems) && volItems.length > 0) {
+          const items = volItems.map((vol: any) => ({
+            title: vol.role || vol.title || '',
+            company: vol.organization || vol.company || '',
+            date_from: formatDate(vol.date_from || ''),
+            date_to: formatDate(vol.date_to || ''),
+            description: vol.description || '',
+            bulletPoints: vol.bulletPoints || [],
+          })).filter(i => i.title || i.company); // Nur Einträge mit Inhalt behalten
+
+          if (items.length > 0) {
+            sections.push({
+              type: 'volunteering',
+              title: 'Ehrenamtliches Engagement',
+              items: items,
+            });
+          }
         }
 
         // 4. PROJEKTE
