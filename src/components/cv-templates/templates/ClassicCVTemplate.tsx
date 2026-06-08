@@ -407,7 +407,7 @@ export const ClassicCVTemplate: React.FC<ClassicCVTemplateProps> = ({
         </h3>
         <ul
           className={options?.showLevelsForLanguages ? "space-y-2" : ""}
-          style={options?.showLevelsForLanguages ? {} : { display: 'block' }}
+          style={options?.showLevelsForLanguages ? { breakInside: 'avoid', pageBreakInside: 'avoid' } : { display: 'block', breakInside: 'avoid', pageBreakInside: 'avoid' }}
         >
           {items.map((item: any, idx: number) => {
             if (options?.showLevelsForLanguages) {
@@ -584,7 +584,7 @@ export const ClassicCVTemplate: React.FC<ClassicCVTemplateProps> = ({
             {renderListSection('Sprachen', languagesIndex, { showLevelsForLanguages: true })}
             
             {sections.map((section, index) => {
-              const sidebarTypes = ['values', 'hobbies', 'interests', 'certifications', 'courses', 'awards', 'volunteering'];
+              const sidebarTypes = ['values', 'hobbies', 'interests', 'certifications', 'courses', 'awards', 'volunteering', 'stipendien', 'scholarships'];
               if (!sidebarTypes.includes(section.type)) return null;
               const items = Array.isArray(section.items) ? section.items : [];
               if (!items.length) return null;
@@ -596,6 +596,8 @@ export const ClassicCVTemplate: React.FC<ClassicCVTemplateProps> = ({
                 courses: 'Kurse',
                 awards: 'Auszeichnungen',
                 volunteering: 'Ehrenamt',
+                stipendien: 'Stipendien',
+                scholarships: 'Scholarships',
               };
               const label = section.title || labelMap[section.type] || section.type;
               return (
@@ -603,24 +605,49 @@ export const ClassicCVTemplate: React.FC<ClassicCVTemplateProps> = ({
                   <h3 className="!text-[9px] font-bold tracking-[0.15em] uppercase text-[#1e3a8a] mb-3">
                     {label}
                   </h3>
-                  <ul style={{ display: 'block' }}>
+                  <div style={{ display: 'block' }}>
                     {items.map((item: any, idx: number) => {
-                      const rawText = typeof item === 'string' ? item : item.label || item.name || item.title || item.skill || '';
+                      const name = item.name || item.title || item.label || item.degree || '';
+                      const institution = item.institution || item.company || item.issuer || item.organization || '';
+                      const date = item.date || item.date_from || item.year || '';
                       return (
-                        <li key={idx} style={{ display: 'inline-flex', marginRight: '5px', marginBottom: '5px', listStyle: 'none' }}>
-                          <span className="inline-flex items-center px-2.5 py-1 rounded bg-[#f8fafc] border border-[#e2e8f0] text-[9px] font-medium text-slate-700 whitespace-nowrap">
-                            <EditableText
-                              value={rawText}
-                              onChange={(val) => onUpdateSectionItem(index, idx, 'label', val)}
-                              className="text-slate-700 bg-transparent"
-                              style={{ width: `${Math.max(2, rawText.length + 1)}ch` }}
-                              placeholder="Eintrag"
-                            />
-                          </span>
-                        </li>
+                        <div key={idx} style={{ display: 'block', marginBottom: '6px', breakInside: 'avoid', pageBreakInside: 'avoid' }}>
+                          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: '8px' }}>
+                            <div style={{ flex: 1, minWidth: 0 }}>
+                              <div style={{ fontWeight: 600, fontSize: '9.5px', color: '#1e293b' }}>
+                                <EditableText
+                                  value={name}
+                                  onChange={(val) => onUpdateSectionItem(index, idx, 'name', val)}
+                                  className="text-slate-900 bg-transparent"
+                                  placeholder="Name/Titel"
+                                />
+                              </div>
+                              {institution && (
+                                <div style={{ fontSize: '9px', color: '#64748b', marginTop: '2px' }}>
+                                  <EditableText
+                                    value={institution}
+                                    onChange={(val) => onUpdateSectionItem(index, idx, 'institution', val)}
+                                    className="text-slate-600 bg-transparent"
+                                    placeholder="Institution"
+                                  />
+                                </div>
+                              )}
+                            </div>
+                            {date && (
+                              <div style={{ fontSize: '9px', color: '#64748b', whiteSpace: 'nowrap', flexShrink: 0 }}>
+                                <EditableText
+                                  value={date}
+                                  onChange={(val) => onUpdateSectionItem(index, idx, 'date', val)}
+                                  className="text-slate-600 bg-transparent text-right"
+                                  placeholder="Datum"
+                                />
+                              </div>
+                            )}
+                          </div>
+                        </div>
                       );
                     })}
-                  </ul>
+                  </div>
                 </div>
               );
             })}

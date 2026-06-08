@@ -64,6 +64,8 @@ const SECTION_ORDER_RIGHT = [
   'courses',
   'awards',
   'volunteering',
+  'stipendien',
+  'scholarships',
 ];
 
 interface EditableProps {
@@ -672,7 +674,7 @@ export const ModernCVTemplate: React.FC<ModernCVTemplateProps> = ({
         const spacerHeight = pageBreakItems?.get(spacerId) || 0;
 
         return (
-          <div key={`skills-${sectionIndex}`} data-spacer-id={spacerId} data-pdf-section style={{ marginTop: spacerHeight > 0 ? `${spacerHeight}px` : '0px' }}>
+          <div key={`skills-${sectionIndex}`} data-spacer-id={spacerId} data-pdf-section style={{ marginTop: spacerHeight > 0 ? `${spacerHeight}px` : '0px', breakInside: 'avoid', pageBreakInside: 'avoid' }}>
             <SectionTitle>{section.title || 'Fähigkeiten'}</SectionTitle>
             {hasLevels ? (
               <div style={{ display: 'flex', flexDirection: 'column', gap: '5px' }}>
@@ -735,7 +737,7 @@ export const ModernCVTemplate: React.FC<ModernCVTemplateProps> = ({
         const spacerHeight = pageBreakItems?.get(spacerId) || 0;
 
         return (
-          <div key={`soft-${sectionIndex}`} data-spacer-id={spacerId} data-pdf-section style={{ marginTop: spacerHeight > 0 ? `${spacerHeight}px` : '0px' }}>
+          <div key={`soft-${sectionIndex}`} data-spacer-id={spacerId} data-pdf-section style={{ marginTop: spacerHeight > 0 ? `${spacerHeight}px` : '0px', breakInside: 'avoid', pageBreakInside: 'avoid' }}>
             <SectionTitle>{section.title || 'Soft Skills'}</SectionTitle>
             <div data-chip-row style={{ display: 'block', overflow: 'visible' }}>
               {items.map((skill: any, idx: number) => {
@@ -817,21 +819,26 @@ export const ModernCVTemplate: React.FC<ModernCVTemplateProps> = ({
       case 'courses':
       case 'awards':
       case 'volunteering':
+      case 'stipendien':
+      case 'scholarships':
         if (items.length === 0) return null;
         return (
           <div key={`${section.type}-${sectionIndex}`} data-pdf-section>
-            <SectionTitle>{section.title || { awards: 'Auszeichnungen', volunteering: 'Ehrenamt' }[section.type] || section.type}</SectionTitle>
+            <SectionTitle>{section.title || { awards: 'Auszeichnungen', volunteering: 'Ehrenamt', certifications: 'Zertifikate', stipendien: 'Stipendien', scholarships: 'Stipendien', courses: 'Weiterbildung' }[section.type] || section.type}</SectionTitle>
             <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
               {items.map((it: any, idx: number) => {
-                const spacerId = `other-${sectionIndex}-${idx}`;
-                const spacerHeight = pageBreakItems?.get(spacerId) || 0;
+                const itemKey = `${sectionIndex}-${idx}`;
+                const spacer = pageBreakItems?.get(itemKey) ?? 0;
+                const label = it.name || it.title || it.label || it.degree || '';
+                const sub = it.institution || it.company || it.issuer || it.organization || '';
+                const date = it.date || it.date_from || it.year || '';
 
                 return (
                   <div
                     key={idx}
-                    data-spacer-id={spacerId}
+                    data-pdf-section
+                    data-spacer-id={itemKey}
                     style={{
-                      marginTop: spacerHeight > 0 ? `${spacerHeight}px` : '0px',
                       border: `1px solid ${CI.border}`,
                       borderRadius: '10px',
                       padding: '8px 12px',
@@ -839,17 +846,29 @@ export const ModernCVTemplate: React.FC<ModernCVTemplateProps> = ({
                       fontFamily: FONT,
                       breakInside: 'avoid',
                       pageBreakInside: 'avoid',
+                      ...(spacer > 0 ? { marginTop: `${spacer}px` } : {}),
                     }}
                   >
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '12px' }}>
-                      <Editable
-                        tag="div"
-                        value={typeof it === 'string' ? it : it.name || it.title || it.label || ''}
-                        onChange={(v) => onUpdateSectionItem(sectionIndex, idx, 'name', v)}
-                        placeholder="Eintrag"
-                        style={{ fontSize: '9.5px', color: '#1e293b', lineHeight: 1.5, flex: 1 }}
-                      />
-                      {it.date && <span style={{ fontSize: '9px', color: '#64748b' }}>{it.date}</span>}
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: '8px' }}>
+                      <div style={{ flex: 1, minWidth: 0 }}>
+                        <Editable
+                          tag="div"
+                          value={label}
+                          onChange={(v) => onUpdateSectionItem(sectionIndex, idx, 'name', v)}
+                          placeholder="Bezeichnung"
+                          style={{ fontSize: '9.5px', fontWeight: 600, color: '#1e293b', lineHeight: 1.5 }}
+                        />
+                        {sub && (
+                          <Editable
+                            tag="div"
+                            value={sub}
+                            onChange={(v) => onUpdateSectionItem(sectionIndex, idx, 'institution', v)}
+                            placeholder="Organisation"
+                            style={{ fontSize: '9px', color: '#64748b', lineHeight: 1.4, marginTop: '1px' }}
+                          />
+                        )}
+                      </div>
+                      {date && <span style={{ fontSize: '9px', color: '#64748b', whiteSpace: 'nowrap', flexShrink: 0 }}>{date}</span>}
                     </div>
                   </div>
                 );

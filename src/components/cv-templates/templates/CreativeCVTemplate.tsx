@@ -123,6 +123,8 @@ export const CreativeCVTemplate: React.FC<CreativeCVTemplateProps> = ({
     'courses',
     'awards',
     'volunteering',
+    'stipendien',
+    'scholarships',
   ];
 
   const leftSections = sections.filter((s) => leftColumnTypes.includes(s.type));
@@ -150,6 +152,8 @@ export const CreativeCVTemplate: React.FC<CreativeCVTemplateProps> = ({
       courses: 'Weiterbildung',
       awards: 'Auszeichnungen',
       volunteering: 'Ehrenamt',
+      stipendien: 'Stipendien',
+      scholarships: 'Scholarships',
     };
     const sectionTitle = section.title || TYPE_LABELS[section.type] || section.type;
 
@@ -500,7 +504,7 @@ export const CreativeCVTemplate: React.FC<CreativeCVTemplateProps> = ({
 
       case 'skills':
         return (
-          <div key={sectionIndex}>
+          <div key={sectionIndex} style={{ breakInside: 'avoid', pageBreakInside: 'avoid' }}>
             <div style={{ marginBottom: '2px', fontSize: '9px', fontWeight: 600, letterSpacing: '0.05em', color: '#64748b', textTransform: 'uppercase' }}>
               Fachlich
             </div>
@@ -530,7 +534,7 @@ export const CreativeCVTemplate: React.FC<CreativeCVTemplateProps> = ({
 
       case 'soft_skills':
         return (
-          <div key={sectionIndex}>
+          <div key={sectionIndex} style={{ breakInside: 'avoid', pageBreakInside: 'avoid' }}>
             <div style={{ marginBottom: '2px', fontSize: '9px', fontWeight: 600, letterSpacing: '0.05em', color: '#64748b', textTransform: 'uppercase' }}>
               Persönlich
             </div>
@@ -612,6 +616,57 @@ export const CreativeCVTemplate: React.FC<CreativeCVTemplateProps> = ({
             <SectionTitle>{sectionTitle}</SectionTitle>
             <ul className="space-y-1 text-[9.5px] text-slate-700">
               {items.map((item: any, idx: number) => {
+                // Check if this is a detailed section (certifications, courses, awards, volunteering, stipendien, scholarships)
+                const detailedTypes = ['certifications', 'courses', 'awards', 'volunteering', 'stipendien', 'scholarships'];
+
+                if (detailedTypes.includes(section.type)) {
+                  const name = item.name || item.title || item.label || item.degree || '';
+                  const institution = item.institution || item.company || item.issuer || item.organization || '';
+                  const date = item.date || item.date_from || item.year || '';
+                  return (
+                    <li
+                      key={idx}
+                      className="py-0.5 border-b border-white/15 last:border-b-0"
+                      style={{ breakInside: 'avoid', pageBreakInside: 'avoid' }}
+                    >
+                      <div style={{ fontWeight: 600, marginBottom: institution || date ? '2px' : '0' }}>
+                        <input
+                          className="w-full outline-none bg-transparent text-[#f9fafb]"
+                          value={name}
+                          onChange={(e) =>
+                            onUpdateSectionItem(sectionIndex, idx, 'name', e.target.value)
+                          }
+                          placeholder="Name/Titel"
+                        />
+                      </div>
+                      {institution && (
+                        <div style={{ fontSize: '9px', color: '#cbd5e1', marginBottom: date ? '2px' : '0' }}>
+                          <input
+                            className="w-full outline-none bg-transparent"
+                            value={institution}
+                            onChange={(e) =>
+                              onUpdateSectionItem(sectionIndex, idx, 'institution', e.target.value)
+                            }
+                            placeholder="Institution"
+                          />
+                        </div>
+                      )}
+                      {date && (
+                        <div style={{ fontSize: '9px', color: '#cbd5e1' }}>
+                          <input
+                            className="w-full outline-none bg-transparent"
+                            value={date}
+                            onChange={(e) =>
+                              onUpdateSectionItem(sectionIndex, idx, 'date', e.target.value)
+                            }
+                            placeholder="Datum"
+                          />
+                        </div>
+                      )}
+                    </li>
+                  );
+                }
+
                 const displayValue =
                   typeof item === 'string'
                     ? item

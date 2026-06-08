@@ -130,6 +130,8 @@ export const ProfessionalCVTemplate: React.FC<ProfessionalCVTemplateProps> = ({
     'courses',
     'awards',
     'volunteering',
+    'stipendien',
+    'scholarships',
   ];
 
   const leftSections = sections.filter((s) => leftColumnTypes.includes(s.type));
@@ -157,6 +159,8 @@ export const ProfessionalCVTemplate: React.FC<ProfessionalCVTemplateProps> = ({
       courses: 'Weiterbildung',
       awards: 'Auszeichnungen',
       volunteering: 'Ehrenamt',
+      stipendien: 'Stipendien',
+      scholarships: 'Scholarships',
     };
     const sectionTitle = section.title || TYPE_LABELS[section.type] || section.type;
 
@@ -484,7 +488,7 @@ export const ProfessionalCVTemplate: React.FC<ProfessionalCVTemplateProps> = ({
       case 'skills':
         if (items.length === 0) return null;
         return (
-          <div key={sectionIndex} data-pdf-section>
+          <div key={sectionIndex} data-pdf-section style={{ breakInside: 'avoid', pageBreakInside: 'avoid' }}>
             <SectionTitle>Fachliche Skills</SectionTitle>
             <div data-chip-row style={{ display: 'block', overflow: 'visible' }}>
               {items.map((skill: any, idx: number) => {
@@ -515,7 +519,7 @@ export const ProfessionalCVTemplate: React.FC<ProfessionalCVTemplateProps> = ({
       case 'soft_skills':
         if (items.length === 0) return null;
         return (
-          <div key={sectionIndex} data-pdf-section>
+          <div key={sectionIndex} data-pdf-section style={{ breakInside: 'avoid', pageBreakInside: 'avoid' }}>
             <SectionTitle>Persönliche Stärken</SectionTitle>
             <div data-chip-row style={{ display: 'block', overflow: 'visible' }}>
               {items.map((skill: any, idx: number) => {
@@ -605,6 +609,66 @@ export const ProfessionalCVTemplate: React.FC<ProfessionalCVTemplateProps> = ({
 
       default:
         if (items.length === 0) return null;
+
+        // Check if this is a detailed section (certifications, courses, awards, volunteering, stipendien, scholarships)
+        const detailedTypes = ['certifications', 'courses', 'awards', 'volunteering', 'stipendien', 'scholarships'];
+        if (detailedTypes.includes(section.type)) {
+          return (
+            <div key={sectionIndex} data-pdf-section>
+              <SectionTitle>{sectionTitle}</SectionTitle>
+              <ul className="space-y-0.5 text-[9.5px] text-slate-800">
+                {items.map((item: any, idx: number) => {
+                  const name = item.name || item.title || item.label || item.degree || '';
+                  const institution = item.institution || item.company || item.issuer || item.organization || '';
+                  const date = item.date || item.date_from || item.year || '';
+                  return (
+                    <li
+                      key={idx}
+                      className="py-0.5 border-b border-slate-200 last:border-b-0"
+                      style={{ breakInside: 'avoid', pageBreakInside: 'avoid' }}
+                    >
+                      <div style={{ fontWeight: 600, marginBottom: institution || date ? '2px' : '0' }}>
+                        <input
+                          className="w-full bg-transparent outline-none text-slate-900"
+                          value={name}
+                          onChange={(e) =>
+                            onUpdateSectionItem(sectionIndex, idx, 'name', e.target.value)
+                          }
+                          placeholder="Name/Titel"
+                        />
+                      </div>
+                      {institution && (
+                        <div style={{ fontSize: '9px', color: '#64748b', marginBottom: date ? '2px' : '0' }}>
+                          <input
+                            className="w-full bg-transparent outline-none"
+                            value={institution}
+                            onChange={(e) =>
+                              onUpdateSectionItem(sectionIndex, idx, 'institution', e.target.value)
+                            }
+                            placeholder="Institution"
+                          />
+                        </div>
+                      )}
+                      {date && (
+                        <div style={{ fontSize: '9px', color: '#64748b' }}>
+                          <input
+                            className="w-full bg-transparent outline-none"
+                            value={date}
+                            onChange={(e) =>
+                              onUpdateSectionItem(sectionIndex, idx, 'date', e.target.value)
+                            }
+                            placeholder="Datum"
+                          />
+                        </div>
+                      )}
+                    </li>
+                  );
+                })}
+              </ul>
+            </div>
+          );
+        }
+
         return (
           <div key={sectionIndex} data-pdf-section>
             <SectionTitle>{sectionTitle}</SectionTitle>

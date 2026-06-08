@@ -386,7 +386,7 @@ export const MinimalCVTemplate: React.FC<MinimalCVTemplateProps> = ({
       case 'skills':
         if (!items || items.length === 0) return null;
         return (
-          <div key={sectionIndex} data-pdf-section>
+          <div key={sectionIndex} data-pdf-section style={{ breakInside: 'avoid', pageBreakInside: 'avoid' }}>
             <SectionTitle>{section.title || 'Fähigkeiten'}</SectionTitle>
             <div data-chip-row style={{ display: 'block', overflow: 'visible' }}>
               {items.map((skill: any, idx: number) => {
@@ -418,7 +418,7 @@ export const MinimalCVTemplate: React.FC<MinimalCVTemplateProps> = ({
       case 'soft_skills':
         if (!items || items.length === 0) return null;
         return (
-          <div key={sectionIndex} data-pdf-section>
+          <div key={sectionIndex} data-pdf-section style={{ breakInside: 'avoid', pageBreakInside: 'avoid' }}>
             <SectionTitle>{section.title || 'Soft Skills'}</SectionTitle>
             <div data-chip-row style={{ display: 'block', overflow: 'visible' }}>
               {items.map((skill: any, idx: number) => {
@@ -511,9 +511,69 @@ export const MinimalCVTemplate: React.FC<MinimalCVTemplateProps> = ({
         const TYPE_LABELS_MIN: Record<string, string> = {
           skills: 'Fähigkeiten', soft_skills: 'Soft Skills', hard_skills: 'Fachliche Skills',
           tools: 'Tools & Software', certifications: 'Zertifikate', courses: 'Weiterbildung',
-          awards: 'Auszeichnungen', volunteering: 'Ehrenamt',
+          awards: 'Auszeichnungen', volunteering: 'Ehrenamt', stipendien: 'Stipendien', scholarships: 'Scholarships',
         };
         if (items.length === 0) return null;
+
+        // Check if this is a detailed section (certifications, courses, awards, volunteering, stipendien, scholarships)
+        const detailedTypes = ['certifications', 'courses', 'awards', 'volunteering', 'stipendien', 'scholarships'];
+        if (detailedTypes.includes(section.type)) {
+          return (
+            <div key={sectionIndex} data-pdf-section>
+              <SectionTitle>{section.title || TYPE_LABELS_MIN[section.type] || section.type}</SectionTitle>
+              <ul className="space-y-1.5 text-[9.5px] text-slate-800">
+                {items.map((it: any, idx: number) => {
+                  const name = it.name || it.title || it.label || it.degree || '';
+                  const institution = it.institution || it.company || it.issuer || it.organization || '';
+                  const date = it.date || it.date_from || it.year || '';
+                  return (
+                    <li
+                      key={idx}
+                      style={{ breakInside: 'avoid', pageBreakInside: 'avoid', paddingBottom: '6px', borderBottom: '1px solid #e2e8f0', display: 'block' }}
+                      className="last:border-b-0"
+                    >
+                      <div style={{ fontWeight: 600, fontSize: '9.5px', marginBottom: institution ? '2px' : '0' }}>
+                        <input
+                          className="w-full bg-transparent outline-none text-slate-900"
+                          value={name}
+                          onChange={(e) =>
+                            onUpdateSectionItem(sectionIndex, idx, 'name', e.target.value)
+                          }
+                          placeholder="Name/Titel"
+                        />
+                      </div>
+                      {institution && (
+                        <div style={{ fontSize: '9px', color: '#64748b', marginBottom: date ? '2px' : '0' }}>
+                          <input
+                            className="w-full bg-transparent outline-none"
+                            value={institution}
+                            onChange={(e) =>
+                              onUpdateSectionItem(sectionIndex, idx, 'institution', e.target.value)
+                            }
+                            placeholder="Institution"
+                          />
+                        </div>
+                      )}
+                      {date && (
+                        <div style={{ fontSize: '9px', color: '#64748b' }}>
+                          <input
+                            className="w-full bg-transparent outline-none"
+                            value={date}
+                            onChange={(e) =>
+                              onUpdateSectionItem(sectionIndex, idx, 'date', e.target.value)
+                            }
+                            placeholder="Datum"
+                          />
+                        </div>
+                      )}
+                    </li>
+                  );
+                })}
+              </ul>
+            </div>
+          );
+        }
+
         return (
           <div key={sectionIndex} data-pdf-section>
             <SectionTitle>{section.title || TYPE_LABELS_MIN[section.type] || section.type}</SectionTitle>
@@ -560,6 +620,8 @@ export const MinimalCVTemplate: React.FC<MinimalCVTemplateProps> = ({
     'courses',
     'awards',
     'volunteering',
+    'stipendien',
+    'scholarships',
   ];
 
   const leftSections = sections.filter((s) => leftTypes.includes(s.type));

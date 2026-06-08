@@ -653,29 +653,48 @@ export function CVLiveEditorPage() {
           });
         }
 
-    // 2. ZERTIFIKATE & STIPENDIEN
+    // 2. ZERTIFIKATE & STIPENDIEN (separate Sektionen für bessere Darstellung)
         const certItems = findArray(['certificates', 'zertifikate']);
         const scholItems = findArray(['scholarships', 'stipendien']);
         const awardItems = findArray(['awards', 'auszeichnungen']);
-        const allAwards = [...certItems, ...scholItems, ...awardItems];
 
-        if (allAwards.length > 0) {
-          const items = allAwards.map((aw: any, index: number) => ({
-            id: index, // Eindeutige ID für den Lösch-Vorgang
-            degree: aw.title || aw.name || aw.degree || '', 
-            institution: aw.issuer || aw.institution || aw.organization || '', 
-            date_from: formatDate(aw.date_from || aw.year || aw.date || ''),
-            date_to: formatDate(aw.date_to || ''),
-            description: aw.description || '',
-          })).filter(i => i.degree || i.institution);
+        if (certItems.length > 0) {
+          sections.push({
+            type: 'certifications',
+            title: 'Zertifikate',
+            items: certItems.map((aw: any) => ({
+              name: aw.name || aw.title || aw.degree || '',
+              institution: aw.issuer || aw.institution || aw.organization || '',
+              date: aw.year || aw.date || aw.date_from || '',
+              description: aw.description || '',
+            })).filter(i => i.name || i.institution),
+          });
+        }
 
-          if (items.length > 0) {
-            sections.push({
-              type: 'courses', // Dein Template muss "courses" kennen!
-              title: 'Auszeichnungen & Zertifikate',
-              items: items,
-            });
-          }
+        if (scholItems.length > 0) {
+          sections.push({
+            type: 'stipendien',
+            title: 'Stipendien',
+            items: scholItems.map((aw: any) => ({
+              name: aw.name || aw.title || aw.degree || '',
+              institution: aw.issuer || aw.institution || aw.organization || '',
+              date: aw.year || aw.date || aw.date_from || '',
+              description: aw.description || '',
+            })).filter(i => i.name || i.institution),
+          });
+        }
+
+        if (awardItems.length > 0) {
+          sections.push({
+            type: 'awards',
+            title: 'Auszeichnungen',
+            items: awardItems.map((aw: any) => ({
+              name: aw.name || aw.title || aw.degree || '',
+              institution: aw.issuer || aw.institution || aw.organization || '',
+              date: aw.year || aw.date || aw.date_from || '',
+              description: aw.description || '',
+            })).filter(i => i.name || i.institution),
+          });
         }
 
         // 3. EHRENAMT
