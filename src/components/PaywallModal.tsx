@@ -34,28 +34,31 @@ export function PaywallModal({ isOpen, onClose, onConfirm, onSuccess, type = 'si
 
   const plans = {
     single: {
-      price: '9,90',
-      title: 'Einzelner CV',
+      price: '5,00',
+      title: '1 CV Optimierung',
       description: 'Perfekt für eine Bewerbung',
       cvs: 1,
-      pricePerCv: '9,90'
+      pricePerCv: '5,00',
+      priceId: import.meta.env.VITE_STRIPE_PRICE_CV_OPT_1
     },
-    'bundle-3': {
-      price: '24,90',
-      title: '3 CV Bundle',
-      description: 'Spare 25% - Ideal für mehrere Bewerbungen',
-      cvs: 3,
-      pricePerCv: '8,30',
-      savings: '25%'
-    },
-    'bundle-5': {
-      price: '34,90',
-      title: '5 CV Bundle',
-      description: 'Spare 40% - Bestes Angebot',
+    'bundle-3': { // Wir lassen 'bundle-3' im Code stehen, mappen es aber auf deine 5er Option
+      price: '20,00',
+      title: '5 CVs Bundle',
+      description: 'Spare 50% - Ideal für mehrere Bewerbungen',
       cvs: 5,
-      pricePerCv: '6,98',
-      savings: '40%',
-      popular: true
+      pricePerCv: '4,00',
+      savings: '50%',
+      priceId: import.meta.env.VITE_STRIPE_PRICE_CV_OPT_5
+    },
+    'bundle-5': { // Das entspricht deiner 10er Option
+      price: '30,00',
+      title: '10 CVs Bundle',
+      description: 'Bestes Angebot - Profi-Paket',
+      cvs: 10,
+      pricePerCv: '3,00',
+      savings: '60%',
+      popular: true,
+      priceId: import.meta.env.VITE_STRIPE_PRICE_CV_OPT_10
     }
   };
 
