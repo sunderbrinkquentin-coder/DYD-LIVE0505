@@ -248,10 +248,15 @@ export function JobTargeting() {
         jobDescription: formData.jobDescription,
       };
 
-      if (isPaidFlow && currentUserId) {
+if (isPaidFlow && currentUserId) {
         const consumed = await tokenService.consumeToken(currentUserId);
         if (!consumed) {
-          throw new Error('Nicht genügend Credits. Bitte kaufe zuerst ein Token-Paket.');
+          // ❌ Bisher: throw new Error('Nicht genügend Credits...');
+          
+          // ✅ Neu: Weiterleitung zur echten Paywall
+          setIsSaving(false); // Lade-Animation stoppen
+          navigate('/pricing'); // <-- TRAGE HIER DEINEN PAYWALL-LINK EIN
+          return; // Funktion abbrechen, damit Make.com nicht aufgerufen wird
         }
         console.log('✅ [JOB-TARGETING] Token consumed for paid flow');
       }
