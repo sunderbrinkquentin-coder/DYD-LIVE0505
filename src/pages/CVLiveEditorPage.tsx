@@ -1047,23 +1047,33 @@ export function CVLiveEditorPage() {
 
   // 🔥 FREISCHALTFLOW-WEICHE: Token checken oder Paywall öffnen
 // 🔥 FREISCHALTFLOW: Alles sicher in einer Funktion
-  const handleDownloadClick = () => {
-    if (!cvId) return;
+const handleDownloadClick = async () => {
+  // 1. Ist der User eingeloggt?
+  if (!user) {
+    navigate('/login');
+    return;
+  }
 
-    if (!user) {
-      navigate(`/login?redirect=${encodeURIComponent(`/cv-live-editor/${cvId}`)}`);
-      return;
-    }
+  // 2. Prüfe Bezahlstatus direkt via Supabase (unabhängig von cvId)
+  try {
+    const { data: profile } = await supabase
+      .from('profiles') // Oder deine Tabelle, wo der Premium-Status steht
+      .select('is_premium')
+      .eq('id', user.id)
+      .single();
 
-    // Wenn bereits bezahlt -> direkt zum Design-Wähler
-    if (isDownloadUnlocked) {
+    if (profile?.is_premium || isDownloadUnlocked) {
+      // Zugriff erlaubt
       setTemplateConfirmed(false);
       setShowTemplateSelectForExport(true);
-      return;
+    } else {
+      // Zugriff verweigert -> Paywall anzeigen
+      setShowPaywallModal(true);
     }
-
-    // Wenn nicht bezahlt -> Paywall öffnen
-    navigate('/pricing'); // <-- Ändere '/pricing' auf deinen alten Pfad
+  } catch (err) {
+    // Fallback: Wenn Status unsicher, sicherheitshalber Paywall
+    setShowPaywallModal(true);
+  }
 };
 
   const handlePaywallSuccess = () => {
