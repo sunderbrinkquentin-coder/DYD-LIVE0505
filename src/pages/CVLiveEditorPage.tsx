@@ -653,7 +653,7 @@ export function CVLiveEditorPage() {
           });
         }
 
-        // 2. ZERTIFIKATE & STIPENDIEN (Getarnt als Education-Struktur für sicheres PDF-Rendering!)
+        // 2. ZERTIFIKATE & STIPENDIEN (Nutzt 'courses', um den Duplikat-Filter zu umgehen!)
         const certItems = findArray(['certificates', 'zertifikate']);
         const scholItems = findArray(['scholarships', 'stipendien']);
         const awardItems = findArray(['awards', 'auszeichnungen']);
@@ -661,7 +661,7 @@ export function CVLiveEditorPage() {
 
         if (allAwards.length > 0) {
           sections.push({
-            type: 'education', 
+            type: 'courses', // <-- WICHTIG: Macht es einzigartig für den Filter
             title: 'Auszeichnungen & Zertifikate',
             items: allAwards.map((aw: any) => ({
               degree: aw.title || aw.name || aw.degree || '', 
@@ -673,11 +673,11 @@ export function CVLiveEditorPage() {
           });
         }
 
-        // 3. EHRENAMT (Getarnt als Experience-Struktur, damit Bulletpoints gedruckt werden!)
+        // 3. EHRENAMT (Nutzt 'volunteering', um den Duplikat-Filter zu umgehen!)
         const volItems = findArray(['volunteerWork', 'ehrenamt', 'volunteering']);
         if (volItems.length > 0) {
           sections.push({
-            type: 'experience', 
+            type: 'volunteering', // <-- WICHTIG: Macht es einzigartig für den Filter
             title: 'Ehrenamtliches Engagement',
             items: volItems.map((vol: any) => ({
               title: vol.role || vol.title || '',
@@ -704,7 +704,6 @@ export function CVLiveEditorPage() {
             })),
           });
         }
-
         const isLanguageItem = (item: any): boolean => {
           const langs = ['deutsch', 'englisch', 'französisch', 'spanisch', 'italienisch', 'portugiesisch', 'russisch', 'chinesisch', 'japanisch', 'arabisch', 'türkisch', 'polnisch', 'niederländisch', 'schwedisch', 'norwegian', 'dänisch', 'finnisch', 'griechisch', 'german', 'english', 'french', 'spanish', 'italian', 'portuguese', 'russian', 'chinese', 'japanese', 'arabic', 'turkish', 'polish', 'dutch', 'swedish', 'danish', 'finnish', 'greek'];
           if (typeof item === 'string') return langs.some(l => item.toLowerCase().includes(l));
