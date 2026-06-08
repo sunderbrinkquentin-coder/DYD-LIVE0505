@@ -500,6 +500,68 @@ export function mapEditorDataToWizard(editorData: any): CVBuilderData {
     const startParsed = parseDateToMonthYear(rawStartDate);
     const endParsed = isCurrent ? { month: '', year: '' } : parseDateToMonthYear(rawEndDate);
 
+    // School Education
+const rawSchoolEducation: any[] =
+  Array.isArray(editorData.schoolEducation) ? editorData.schoolEducation :
+  Array.isArray(editorData.schule) ? editorData.schule :
+  [];
+
+const schoolEducation = rawSchoolEducation.map((s: any) => ({
+  type: safe(s.type || 'school'),
+  school: safe(s.school || s.schule || s.institution || ''),
+  graduation: safe(s.graduation || s.abschluss || s.degree || ''),
+  year: safe(s.year || s.jahr || s.endYear || ''),
+  startYear: safe(s.startYear || s.von || ''),
+  startMonth: safe(s.startMonth || ''),
+  endYear: safe(s.endYear || s.bis || ''),
+  endMonth: safe(s.endMonth || ''),
+  location: safe(s.location || s.ort || ''),
+  focus: Array.isArray(s.focus) ? s.focus : [],
+  projects: [],
+}));
+
+// Stipendien
+const rawStipendien: any[] =
+  Array.isArray(editorData.stipendien) ? editorData.stipendien :
+  Array.isArray(editorData.scholarships) ? editorData.scholarships :
+  [];
+
+const stipendien = rawStipendien.map((s: any) => ({
+  name: safe(s.name || s.titel || ''),
+  organization: safe(s.organization || s.organisation || s.issuer || ''),
+  year: safe(s.year || s.jahr || ''),
+  description: safe(s.description || s.beschreibung || ''),
+})).filter((s: any) => s.name);
+
+// Volunteer Work
+const rawVolunteerWork: any[] =
+  Array.isArray(editorData.volunteerWork) ? editorData.volunteerWork :
+  Array.isArray(editorData.ehrenamt) ? editorData.ehrenamt :
+  [];
+
+const volunteerWork = rawVolunteerWork.map((v: any) => ({
+  role: safe(v.role || v.rolle || v.position || ''),
+  organization: safe(v.organization || v.organisation || ''),
+  startDate: safe(v.startDate || v.von || ''),
+  endDate: safe(v.endDate || v.bis || ''),
+  current: !!(v.current || v.aktuell),
+  description: safe(v.description || v.beschreibung || ''),
+  bulletPoints: Array.isArray(v.bulletPoints) ? v.bulletPoints : [],
+})).filter((v: any) => v.role);
+
+// Certificates
+const rawCertificates: any[] =
+  Array.isArray(editorData.certificates) ? editorData.certificates :
+  Array.isArray(editorData.zertifikate) ? editorData.zertifikate :
+  [];
+
+const certificates = rawCertificates.map((c: any) => ({
+  name: safe(c.name || c.titel || c.title || ''),
+  issuer: safe(c.issuer || c.organisation || c.organization || ''),
+  year: safe(c.year || c.datum || c.jahr || ''),
+  description: safe(c.description || c.beschreibung || ''),
+})).filter((c: any) => c.name);
+
     // Normalize startDate/endDate to YYYY-MM format (required by formatTimeframe)
     const normalizedStartDate = startParsed.year && startParsed.month
       ? `${startParsed.year}-${startParsed.month}`
