@@ -169,6 +169,14 @@ const POSTER_SLIDES = [
     accentAlpha: 'rgba(185,215,55,0.2)',
     glow: 'rgba(185,215,55,0.08)',
   },
+  {
+    src: '/Stand-Up_LineUp.png',
+    alt: 'Stand-Up Comedy Line-Up',
+    label: 'Stand-Up Line-Up',
+    accent: 'rgba(240,120,32,1)',
+    accentAlpha: 'rgba(240,120,32,0.18)',
+    glow: 'rgba(240,120,32,0.08)',
+  },
 ];
 
 function PosterSwitcher() {
