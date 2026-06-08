@@ -661,6 +661,15 @@ export function CVLiveEditorPage() {
 
         if (allAwards.length > 0) {
           const items = allAwards.map((aw: any) => ({
+            degree: aw.title || aw.name || aw.degree || '', 
+            institution: aw.issuer || aw.institution || aw.organization || '', 
+            date_from: formatDate(aw.date_from || aw.year || aw.date || ''),
+            date_to: formatDate(aw.date_to || ''),
+            description: aw.description || '',
+          })).filter(i => i.degree || i.institution); // Nur Einträge mit Inhalt behalten
+
+          if (items.length > 0) {
+            sections.push({
 type: 'certifications',
     title: 'Auszeichnungen & Zertifikate',
     items: allAwards.map((aw: any, index: number) => ({
@@ -669,14 +678,6 @@ type: 'certifications',
       institution: aw.issuer || aw.institution || '', 
       date_from: aw.date_from || '',
       description: aw.description || '',
-          })).filter(i => i.degree || i.institution); // Nur Einträge mit Inhalt behalten
-
-          if (items.length > 0) {
-            sections.push({
-              type: 'courses',
-              title: 'Auszeichnungen & Zertifikate',
-              items: items,
-            });
           }
         }
 
