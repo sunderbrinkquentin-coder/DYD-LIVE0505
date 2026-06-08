@@ -659,9 +659,9 @@ export function CVLiveEditorPage() {
         const awardItems = findArray(['awards', 'auszeichnungen']);
         const allAwards = [...certItems, ...scholItems, ...awardItems];
 
-if (allAwards.length > 0) {
-  sections.push({
-    type: 'certifications',
+        if (allAwards.length > 0) {
+          const items = allAwards.map((aw: any) => ({
+type: 'certifications',
     title: 'Auszeichnungen & Zertifikate',
     items: allAwards.map((aw: any, index: number) => ({
       id: `cert-${index}`, // <--- WICHTIG: Eindeutige ID für den Editor
