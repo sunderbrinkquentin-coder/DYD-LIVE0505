@@ -670,14 +670,10 @@ export function CVLiveEditorPage() {
 
           if (items.length > 0) {
             sections.push({
-type: 'certifications',
-    title: 'Auszeichnungen & Zertifikate',
-    items: allAwards.map((aw: any, index: number) => ({
-      id: `cert-${index}`, // <--- WICHTIG: Eindeutige ID für den Editor
-      degree: aw.title || aw.name || '', 
-      institution: aw.issuer || aw.institution || '', 
-      date_from: aw.date_from || '',
-      description: aw.description || '',
+              type: 'courses',
+              title: 'Auszeichnungen & Zertifikate',
+              items: items,
+            });
           }
         }
 
