@@ -553,18 +553,22 @@ export function CVWizard() {
       }
     }
 
-    const finalData: CVBuilderData = {
-      ...cvData,
-      workExperiences: cvData.workExperiences || [],
-      projects: cvData.projects || [],
-      hardSkills: cvData.hardSkills || [],
-      softSkills: cvData.softSkills || [],
-      schoolEducation: cvData.schoolEducation || [],
-      professionalEducation: cvData.professionalEducation || [],
-      languages: cvData.languages || [],
-      workValues: cvData.workValues || { values: [], workStyle: [] },
-      hobbies: cvData.hobbies || { hobbies: [], details: '' },
-    };
+const finalData: CVBuilderData = {
+  ...cvData,
+  workExperiences: cvData.workExperiences || [],
+  projects: cvData.projects || [],
+  hardSkills: cvData.hardSkills || [],
+  softSkills: cvData.softSkills || [],
+  schoolEducation: cvData.schoolEducation || [],
+  professionalEducation: cvData.professionalEducation || [],
+  languages: cvData.languages || [],
+  workValues: cvData.workValues || { values: [], workStyle: [] },
+  hobbies: cvData.hobbies || { hobbies: [], details: '' },
+  // ✅ NEU
+  stipendien: cvData.stipendien || [],
+  volunteerWork: cvData.volunteerWork || [],
+  certificates: cvData.certificates || [],
+};
 
     // Best-effort save with timeout guard — navigation always proceeds regardless
     const saveTimeout = new Promise<void>(resolve => setTimeout(resolve, 8000));
