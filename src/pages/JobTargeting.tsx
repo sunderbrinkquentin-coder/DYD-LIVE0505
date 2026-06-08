@@ -214,9 +214,9 @@ export function JobTargeting() {
         
         // --- ALLE ERWEITERTEN BEREICHE HINZUGEFÜGT ---
         scholarships: (resolvedBaseCvData as any).stipendien ?? (resolvedBaseCvData as any).scholarships ?? [],
-        awards: (resolvedBaseCvData as any).awards ?? [],
-        volunteerWork: (resolvedBaseCvData as any).volunteerWork ?? [],
-        certificates: (resolvedBaseCvData as any).certificates ?? [], // Hier sind die Zertifikate!
+        awards: (resolvedBaseCvData as any).auszeichnungen ?? (resolvedBaseCvData as any).awards ?? [],
+        volunteerWork: (resolvedBaseCvData as any).ehrenamt ?? (resolvedBaseCvData as any).volunteerWork ?? [],
+        certificates: (resolvedBaseCvData as any).zertifikate ?? (resolvedBaseCvData as any).certificates ?? [],
         // ----------------------------------
         
         desired_job: sanitizedJobData,
