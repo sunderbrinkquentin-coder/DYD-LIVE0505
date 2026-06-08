@@ -10,7 +10,7 @@ import { MinimalCVTemplate } from '../components/cv-templates/templates/MinimalC
 import { CreativeCVTemplate } from '../components/cv-templates/templates/CreativeCVTemplate';
 import { ProfessionalCVTemplate } from '../components/cv-templates/templates/ProfessionalCVTemplate';
 import PhotoUpload from '../components/PhotoUpload';
-import { PaywallModal } from '../components/PaywallModal';
+import { CVOptimizerPaywall } from '../components/dashboard/CVOptimizerPaywall';
 import { supabase } from '../lib/supabase';
 import { useCvOptimizationStatus } from '../hooks/useCvOptimizationStatus';
 
@@ -1580,15 +1580,12 @@ onClick={async () => {
         )}
       </main>
       {/* CONFIGURATION & PAYMENT OVERLAYS */}
-<PaywallModal
+<CVOptimizerPaywall
   isOpen={showPaywallModal}
   onClose={() => setShowPaywallModal(false)}
-  context="download"
-  onConfirm={async () => {
-    setShowPaywallModal(false);
-    navigate(`/cv-paywall?cvId=${cvId}&source=cv_optimizer`);
-  }}
   onSuccess={handlePaywallSuccess}
+  cvId={cvId}
+  userId={user?.id}
 />
 
       {showTemplateSelectForExport && (
