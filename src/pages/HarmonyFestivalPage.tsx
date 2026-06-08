@@ -483,11 +483,12 @@ function PosterSwitcher() {
 
 const BIERPONG_TICKET_IDS = new Set(['bierpong']);
 const NAV_SECTIONS = [
-  { id: 'programm',  label: 'Programm',   emoji: '🎶' },
-  { id: 'tickets',   label: 'Tickets',    emoji: '🎟️' },
-  { id: 'crew',      label: 'Crew-Deal',  emoji: '🤝' },
-  { id: 'sponsoren', label: 'Sponsoren',  emoji: '🏢' },
-  { id: 'hardfacts', label: 'Hard Facts', emoji: '📍' },
+  { id: 'programm',      label: 'Programm',    emoji: '🎶' },
+  { id: 'tickets',       label: 'Tickets',     emoji: '🎟️' },
+  { id: 'crew',          label: 'Crew-Deal',   emoji: '🤝' },
+  { id: 'sponsoren',     label: 'Sponsoren',   emoji: '🏢' },
+  { id: 'hardfacts',     label: 'Hard Facts',  emoji: '📍' },
+  { id: 'unterstuetzen', label: 'Unterstützen', emoji: '💛' },
 ] as const;
 
 export default function HarmonyFestivalPage() {
@@ -1634,7 +1635,7 @@ useEffect(() => {
           <div className="divider" />
 
           {/* ── HARMONY UNTERSTÜTZEN ─────────────────────────────── */}
-          <motion.section {...fadeUp}>
+          <motion.section id="unterstuetzen" {...fadeUp}>
             <div className="relative rounded-2xl overflow-hidden" style={{ background: 'linear-gradient(135deg, rgba(0,212,212,0.08) 0%, rgba(30,144,212,0.06) 100%)', border: '1px solid rgba(0,212,212,0.2)' }}>
               <div className="absolute inset-x-0 top-0 h-0.5" style={{ background: `linear-gradient(to right, transparent, ${C.cyan}90, ${C.blue}80, transparent)` }} />
               <div className="px-8 sm:px-12 py-10">
