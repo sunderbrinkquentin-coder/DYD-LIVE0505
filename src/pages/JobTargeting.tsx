@@ -177,7 +177,7 @@ export function JobTargeting() {
         console.warn('🟨 [JOB-TARGETING] Could not get user ID:', e);
       }
 
-      // 2) Job-Daten (nur primitive Strings, deepSanitize ist hier sicher)
+      // 2) Job-Daten
       const sanitizedJobData = generalistMode
         ? {
             company: 'Generalist-Modus',
@@ -192,7 +192,7 @@ export function JobTargeting() {
             job_description: deepSanitize(formData.jobDescription),
           };
 
-      // 3) CV-Daten direkt übernehmen – alle Felder explizit übernehmen, damit keine Station verloren geht
+      // 3) CV-Daten direkt übernehmen – ALLES explizit aufgeführt
       const cvDataPayload: any = {
         experienceLevel: resolvedBaseCvData.experienceLevel,
         targetRole: resolvedBaseCvData.targetRole,
@@ -212,17 +212,17 @@ export function JobTargeting() {
         languages: resolvedBaseCvData.languages ?? [],
         summary: resolvedBaseCvData.summary,
         
-        // --- NEUE BEREICHE HINZUGEFÜGT ---
-        // 'as any' sorgt dafür, dass TS nicht meckert, falls die Felder im Type noch fehlen
+        // --- ALLE ERWEITERTEN BEREICHE HINZUGEFÜGT ---
         scholarships: (resolvedBaseCvData as any).scholarships ?? [],
         awards: (resolvedBaseCvData as any).awards ?? [],
         volunteerWork: (resolvedBaseCvData as any).volunteerWork ?? [],
+        certificates: (resolvedBaseCvData as any).certificates ?? [], // Hier sind die Zertifikate!
         // ----------------------------------
         
         desired_job: sanitizedJobData,
       };
 
-      // 4) In stored_cvs speichern (status = processing, Make.com läuft)
+      // 4) Log & Speicherung in Supabase
       console.log('🟦 [JOB-TARGETING] CV payload field counts:', {
         workExperiences: cvDataPayload.workExperiences?.length ?? 0,
         schoolEducation: cvDataPayload.schoolEducation?.length ?? 0,
@@ -232,10 +232,10 @@ export function JobTargeting() {
         projects: cvDataPayload.projects?.length ?? 0,
         internships: cvDataPayload.internships?.length ?? 0,
         languages: cvDataPayload.languages?.length ?? 0,
-        // Neue Felder im Log:
         scholarships: cvDataPayload.scholarships?.length ?? 0,
         awards: cvDataPayload.awards?.length ?? 0,
         volunteerWork: cvDataPayload.volunteerWork?.length ?? 0,
+        certificates: cvDataPayload.certificates?.length ?? 0,
       });
       console.log('🟦 [JOB-TARGETING] Saving to Supabase (status=processing)...');
 
@@ -248,15 +248,13 @@ export function JobTargeting() {
         jobDescription: formData.jobDescription,
       };
 
-if (isPaidFlow && currentUserId) {
+      if (isPaidFlow && currentUserId) {
         const consumed = await tokenService.consumeToken(currentUserId);
         if (!consumed) {
-          // ❌ Bisher: throw new Error('Nicht genügend Credits...');
-          
-          // ✅ Neu: Weiterleitung zur echten Paywall
-          setIsSaving(false); // Lade-Animation stoppen
-          navigate('/pricing'); // <-- TRAGE HIER DEINEN PAYWALL-LINK EIN
-          return; // Funktion abbrechen, damit Make.com nicht aufgerufen wird
+          // Weiterleitung zur echten Paywall
+          setIsSaving(false);
+          navigate('/pricing'); 
+          return;
         }
         console.log('✅ [JOB-TARGETING] Token consumed for paid flow');
       }
