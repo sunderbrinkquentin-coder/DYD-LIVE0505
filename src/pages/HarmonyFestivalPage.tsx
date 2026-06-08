@@ -934,89 +934,187 @@ useEffect(() => {
               <Ticket className="w-3.5 h-3.5" /> Tickets
             </button>
           </div>
-          {/* ── STICKY SIDE NAV ── */}
-<nav
-  aria-label="Seitennavigation"
-  className="hidden lg:flex"
-  style={{
-    position: 'fixed',
-    right: '24px',
-    top: '50%',
-    transform: 'translateY(-50%)',
-    zIndex: 40,
-    flexDirection: 'column',
-    gap: '6px',
-  }}
->
-  {NAV_SECTIONS.map((section) => {
-    const isActive = activeSection === section.id;
-    return (
-      <button
-        key={section.id}
-        type="button"
-        onClick={() => {
-          const el = document.getElementById(section.id);
-          if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' });
-        }}
-        title={section.label}
+        </div>
+      </nav>
+
+      {/* ── DESKTOP SIDE NAV ─────────────────────────────────────── */}
+      <nav
+        aria-label="Seitennavigation"
+        className="hidden lg:flex"
         style={{
-          display: 'flex',
-          alignItems: 'center',
-          gap: '8px',
-          padding: isActive ? '7px 14px 7px 10px' : '7px 10px',
-          borderRadius: '999px',
-          background: isActive ? 'rgba(0,212,212,0.15)' : 'rgba(8,12,16,0.7)',
-          border: isActive ? '1px solid rgba(0,212,212,0.5)' : '1px solid rgba(255,255,255,0.07)',
-          backdropFilter: 'blur(12px)',
-          cursor: 'pointer',
-          transition: 'all 0.22s ease',
-          whiteSpace: 'nowrap',
-          maxWidth: isActive ? '160px' : '38px',
-          overflow: 'hidden',
-          boxShadow: isActive ? '0 0 20px rgba(0,212,212,0.2)' : '0 2px 12px rgba(0,0,0,0.4)',
-        }}
-        onMouseEnter={e => {
-          if (!isActive) {
-            const btn = e.currentTarget as HTMLButtonElement;
-            btn.style.maxWidth = '160px';
-            btn.style.padding = '7px 14px 7px 10px';
-            btn.style.border = '1px solid rgba(0,212,212,0.25)';
-          }
-        }}
-        onMouseLeave={e => {
-          if (!isActive) {
-            const btn = e.currentTarget as HTMLButtonElement;
-            btn.style.maxWidth = '38px';
-            btn.style.padding = '7px 10px';
-            btn.style.border = '1px solid rgba(255,255,255,0.07)';
-          }
+          position: 'fixed',
+          right: '24px',
+          top: '50%',
+          transform: 'translateY(-50%)',
+          zIndex: 40,
+          flexDirection: 'column',
+          gap: '6px',
         }}
       >
-        {/* Dot */}
-        <span style={{
-          width: '8px',
-          height: '8px',
-          borderRadius: '50%',
-          flexShrink: 0,
-          background: isActive ? '#00d4d4' : 'rgba(255,255,255,0.25)',
-          boxShadow: isActive ? '0 0 8px #00d4d4' : 'none',
-          transition: 'all 0.22s ease',
-        }} />
-        {/* Label */}
-        <span style={{
-          fontFamily: "'Inter', sans-serif",
-          fontSize: '12px',
-          fontWeight: isActive ? 700 : 500,
-          color: isActive ? '#00d4d4' : 'rgba(200,240,240,0.65)',
-          letterSpacing: '0.03em',
-        }}>
-          {section.emoji} {section.label}
-        </span>
-      </button>
-    );
-  })}
-</nav>
-        </div>
+        {NAV_SECTIONS.map((section) => {
+          const isActive = activeSection === section.id;
+          return (
+            <button
+              key={section.id}
+              type="button"
+              onClick={() => {
+                const el = document.getElementById(section.id);
+                if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+              }}
+              title={section.label}
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: '8px',
+                padding: isActive ? '7px 14px 7px 10px' : '7px 10px',
+                borderRadius: '999px',
+                background: isActive ? 'rgba(0,212,212,0.15)' : 'rgba(8,12,16,0.7)',
+                border: isActive ? '1px solid rgba(0,212,212,0.5)' : '1px solid rgba(255,255,255,0.07)',
+                backdropFilter: 'blur(12px)',
+                WebkitBackdropFilter: 'blur(12px)',
+                cursor: 'pointer',
+                transition: 'all 0.22s ease',
+                whiteSpace: 'nowrap',
+                maxWidth: isActive ? '160px' : '38px',
+                overflow: 'hidden',
+                boxShadow: isActive ? '0 0 20px rgba(0,212,212,0.25), 0 2px 12px rgba(0,0,0,0.5)' : '0 2px 12px rgba(0,0,0,0.4)',
+              }}
+              onMouseEnter={e => {
+                if (!isActive) {
+                  const btn = e.currentTarget as HTMLButtonElement;
+                  btn.style.maxWidth = '160px';
+                  btn.style.padding = '7px 14px 7px 10px';
+                  btn.style.border = '1px solid rgba(0,212,212,0.25)';
+                }
+              }}
+              onMouseLeave={e => {
+                if (!isActive) {
+                  const btn = e.currentTarget as HTMLButtonElement;
+                  btn.style.maxWidth = '38px';
+                  btn.style.padding = '7px 10px';
+                  btn.style.border = '1px solid rgba(255,255,255,0.07)';
+                }
+              }}
+            >
+              <span style={{
+                width: '8px',
+                height: '8px',
+                borderRadius: '50%',
+                flexShrink: 0,
+                background: isActive ? '#00d4d4' : 'rgba(255,255,255,0.25)',
+                boxShadow: isActive ? '0 0 8px #00d4d4' : 'none',
+                transition: 'all 0.22s ease',
+              }} />
+              <span style={{
+                fontFamily: "'Inter', sans-serif",
+                fontSize: '12px',
+                fontWeight: isActive ? 700 : 500,
+                color: isActive ? '#00d4d4' : 'rgba(200,240,240,0.65)',
+                letterSpacing: '0.03em',
+              }}>
+                {section.emoji} {section.label}
+              </span>
+            </button>
+          );
+        })}
+      </nav>
+
+      {/* ── MOBILE BOTTOM NAV ────────────────────────────────────── */}
+      <nav
+        aria-label="Schnellnavigation"
+        className="lg:hidden"
+        style={{
+          position: 'fixed',
+          bottom: '16px',
+          left: '50%',
+          transform: 'translateX(-50%)',
+          zIndex: 50,
+          display: 'flex',
+          alignItems: 'center',
+          gap: '4px',
+          padding: '6px 8px',
+          borderRadius: '999px',
+          background: 'rgba(8,12,16,0.88)',
+          border: '1px solid rgba(0,212,212,0.22)',
+          backdropFilter: 'blur(20px)',
+          WebkitBackdropFilter: 'blur(20px)',
+          boxShadow: '0 8px 32px rgba(0,0,0,0.6), 0 0 0 1px rgba(0,212,212,0.06), 0 0 40px rgba(0,212,212,0.08)',
+        }}
+      >
+        {NAV_SECTIONS.map((section) => {
+          const isActive = activeSection === section.id;
+          return (
+            <button
+              key={section.id}
+              type="button"
+              onClick={() => {
+                const el = document.getElementById(section.id);
+                if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+              }}
+              style={{
+                display: 'flex',
+                flexDirection: 'column',
+                alignItems: 'center',
+                gap: '3px',
+                padding: isActive ? '7px 14px' : '7px 10px',
+                borderRadius: '999px',
+                background: isActive ? 'rgba(0,212,212,0.18)' : 'transparent',
+                border: isActive ? '1px solid rgba(0,212,212,0.4)' : '1px solid transparent',
+                cursor: 'pointer',
+                transition: 'all 0.2s ease',
+                minWidth: isActive ? '76px' : '40px',
+                boxShadow: isActive ? '0 0 16px rgba(0,212,212,0.2)' : 'none',
+              }}
+            >
+              <span style={{ fontSize: '16px', lineHeight: 1 }}>{section.emoji}</span>
+              {isActive && (
+                <span style={{
+                  fontFamily: "'Inter', sans-serif",
+                  fontSize: '9px',
+                  fontWeight: 700,
+                  letterSpacing: '0.06em',
+                  color: '#00d4d4',
+                  textTransform: 'uppercase',
+                  whiteSpace: 'nowrap',
+                }}>
+                  {section.label}
+                </span>
+              )}
+            </button>
+          );
+        })}
+
+        {/* Ticket CTA pill */}
+        <div style={{ width: '1px', height: '24px', background: 'rgba(0,212,212,0.15)', margin: '0 4px', flexShrink: 0 }} />
+        <button
+          type="button"
+          onClick={() => document.getElementById('tickets')?.scrollIntoView({ behavior: 'smooth' })}
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: '5px',
+            padding: '7px 14px',
+            borderRadius: '999px',
+            background: 'linear-gradient(135deg, #00d4d4 0%, #1e90d4 100%)',
+            border: 'none',
+            cursor: 'pointer',
+            boxShadow: '0 4px 16px rgba(0,212,212,0.35)',
+            transition: 'all 0.2s ease',
+          }}
+        >
+          <Ticket style={{ width: '13px', height: '13px', color: '#080c10', flexShrink: 0 }} />
+          <span style={{
+            fontFamily: "'Bebas Neue', 'Barlow Condensed', sans-serif",
+            fontSize: '13px',
+            fontWeight: 700,
+            letterSpacing: '0.12em',
+            color: '#080c10',
+            textTransform: 'uppercase',
+            whiteSpace: 'nowrap',
+          }}>
+            Tickets
+          </span>
+        </button>
       </nav>
 
       {payStatus === 'success' && (
