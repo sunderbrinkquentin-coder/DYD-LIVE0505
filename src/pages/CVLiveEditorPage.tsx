@@ -1046,35 +1046,40 @@ export function CVLiveEditorPage() {
     };
   };
 
-  // 🔥 FREISCHALTFLOW-WEICHE: Token checken oder Paywall öffnen
-// 🔥 FREISCHALTFLOW: Alles sicher in einer Funktion
+  // Paywall-Check: Token/Bezahlstatus prüfen, dann Paywall oder direkt Export
 const handleDownloadClick = async () => {
-  // 1. Ist der User eingeloggt?
   if (!user) {
     navigate('/login');
     return;
   }
 
-  // 2. Prüfe Bezahlstatus direkt via Supabase (unabhängig von cvId)
-  try {
-    const { data: profile } = await supabase
-      .from('profiles') // Oder deine Tabelle, wo der Premium-Status steht
-      .select('is_premium')
-      .eq('id', user.id)
-      .single();
-
-    if (profile?.is_premium || isDownloadUnlocked) {
-      // Zugriff erlaubt
-      setTemplateConfirmed(false);
-      setShowTemplateSelectForExport(true);
-    } else {
-      // Zugriff verweigert -> Paywall anzeigen
-      setShowPaywallModal(true);
-    }
-  } catch (err) {
-    // Fallback: Wenn Status unsicher, sicherheitshalber Paywall
-    setShowPaywallModal(true);
+  // Bereits freigeschaltet → direkt zur Template-Auswahl
+  if (isDownloadUnlocked) {
+    setTemplateConfirmed(false);
+    setShowTemplateSelectForExport(true);
+    return;
   }
+
+  // Prüfe ob CV in DB bereits bezahlt/freigeschaltet
+  try {
+    if (cvId) {
+      const { data: stored } = await supabase
+        .from('stored_cvs')
+        .select('is_paid, download_unlocked')
+        .eq('id', cvId)
+        .maybeSingle();
+
+      if (stored?.is_paid || stored?.download_unlocked) {
+        setIsDownloadUnlocked(true);
+        setTemplateConfirmed(false);
+        setShowTemplateSelectForExport(true);
+        return;
+      }
+    }
+  } catch (_) {}
+
+  // Nicht freigeschaltet → Paywall öffnen
+  setShowPaywallModal(true);
 };
 
   const handlePaywallSuccess = () => {
@@ -1556,36 +1561,15 @@ onClick={async () => {
         )}
       </main>
       {/* CONFIGURATION & PAYMENT OVERLAYS */}
-<PaywallModal 
-  isOpen={showPaywallModal} 
-  onClose={() => setShowPaywallModal(false)} 
+<PaywallModal
+  isOpen={showPaywallModal}
+  onClose={() => setShowPaywallModal(false)}
   context="download"
   onConfirm={async () => {
-    // Hier wird die ID dynamisch basierend auf dem gewählten Plan im Modal geladen
-    // Wir nutzen hier direkt die Stripe-Integration
-    const planMap: Record<string, string> = {
-      'single': import.meta.env.VITE_STRIPE_PRICE_CV_OPT_1,
-      'bundle-3': import.meta.env.VITE_STRIPE_PRICE_CV_OPT_5,
-      'bundle-5': import.meta.env.VITE_STRIPE_PRICE_CV_OPT_10
-    };
-    
-    // Annahme: Du musst im PaywallModal 'selectedPlan' irgendwie abgreifen oder übergeben
-    // Falls das Modal intern den State verwaltet, übergib den PriceID hier:
-    const priceId = planMap[selectedPlan]; 
-
-    const { data, error } = await supabase.functions.invoke('create-checkout-session', {
-      body: { 
-        price_id: priceId,
-        success_url: `${window.location.origin}/cv-live-editor/${cvId}?payment=success`,
-        cancel_url: window.location.href,
-        mode: 'payment'
-      }
-    });
-
-    if (error) throw error;
-    if (data?.url) window.location.href = data.url;
+    setShowPaywallModal(false);
+    navigate(`/cv-paywall?cvId=${cvId}&source=cv_optimizer`);
   }}
-  onSuccess={handlePaywallSuccess} 
+  onSuccess={handlePaywallSuccess}
 />
 
       {showTemplateSelectForExport && (
