@@ -109,17 +109,21 @@ export function CVWizard() {
     modeIsNew ? null : (location.state?.cvId || searchParams.get('cvId'))
   );
   const [tempId, setTempId] = useState<string | null>(null);
-  const [cvData, setCVData] = useState<CVBuilderData>({
-    personalData: {},
-    workExperiences: [],
-    professionalEducation: [],
-    hardSkills: [],
-    softSkills: [],
-    languages: [],
-    projects: [],
-    workValues: { values: [], workStyle: [] },
-    hobbies: { hobbies: [], details: '' }
-  } as CVBuilderData);
+const [cvData, setCVData] = useState<CVBuilderData>({
+  personalData: {},
+  workExperiences: [],
+  schoolEducation: [],        // ✅ NEU
+  professionalEducation: [],
+  hardSkills: [],
+  softSkills: [],
+  languages: [],
+  projects: [],
+  workValues: { values: [], workStyle: [] },
+  hobbies: { hobbies: [], details: '' },
+  stipendien: [],             // ✅ NEU
+  volunteerWork: [],          // ✅ NEU
+  certificates: [],           // ✅ NEU
+} as CVBuilderData);
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
   const [loadError, setLoadError] = useState<string | null>(null);
