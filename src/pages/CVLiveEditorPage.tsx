@@ -1545,7 +1545,32 @@ onClick={async () => {
         )}
       </main>
       {/* CONFIGURATION & PAYMENT OVERLAYS */}
-      <PaywallModal isOpen={showPaywallModal} onClose={() => setShowPaywallModal(false)} context="download" onConfirm={handlePaywallSuccess} />
+<PaywallModal 
+  isOpen={showPaywallModal} 
+  onClose={() => setShowPaywallModal(false)} 
+  context="download"
+  // Wir verknüpfen hier die echte Logik:
+  onConfirm={async () => {
+    try {
+      // 1. Hier MUSS deine Bezahl-Logik stehen (z.B. Stripe-Checkout oder Token-Abzug)
+      // Falls du eine Funktion wie 'createCheckoutSession' hast, rufe sie hier auf!
+      console.log("Starte Bezahlvorgang für CV:", cvId);
+      
+      // BEISPIEL: Wenn du einen Token-Service nutzt:
+      // await tokenService.purchaseTokens('single'); 
+      
+      // 2. WICHTIG: Wenn der Aufruf erfolgreich war, triggern wir den Erfolg:
+      // handlePaywallSuccess(); 
+      
+      // Falls du aktuell noch keine Stripe-Integration hast, sag mir Bescheid, 
+      // dann zeige ich dir den Einzeiler für die Weiterleitung zum Stripe-Checkout!
+    } catch (error) {
+      console.error("Zahlungsfehler:", error);
+      throw error; // Das lässt das Modal bei Fehlern offen, damit der User es sieht
+    }
+  }}
+  onSuccess={handlePaywallSuccess} 
+/>
 
       {showTemplateSelectForExport && (
         <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4">
