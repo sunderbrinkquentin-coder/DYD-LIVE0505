@@ -1055,7 +1055,7 @@ export function CVLiveEditorPage() {
     }
 
     // Wenn nicht bezahlt -> Paywall öffnen
-    navigate('/PaywallModa'); // <-- Ändere '/pricing' auf deinen alten Pfad
+    navigate('/pricing'); // <-- Ändere '/pricing' auf deinen alten Pfad
 };
 
   const handlePaywallSuccess = () => {
