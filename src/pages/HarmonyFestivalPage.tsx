@@ -177,29 +177,129 @@ const POSTER_SLIDES = [
     accentAlpha: 'rgba(240,120,32,0.18)',
     glow: 'rgba(240,120,32,0.08)',
   },
+  {
+    src: '/Unbenannt.jpg',
+    alt: 'Zirkel.WTF – Das ist die Tour',
+    label: 'Zirkel.WTF',
+    accent: 'rgba(255,255,255,1)',
+    accentAlpha: 'rgba(255,255,255,0.15)',
+    glow: 'rgba(200,200,200,0.06)',
+  },
+  {
+    src: '/22.08.2026_Klub_Kulb_Dusseldorf_(1)%20copy%20copy.png',
+    alt: 'Harmony Festival – Hauptposter',
+    label: 'Festival Poster',
+    accent: 'rgba(0,190,150,1)',
+    accentAlpha: 'rgba(0,190,150,0.18)',
+    glow: 'rgba(0,180,140,0.08)',
+  },
 ];
+
+const AUTOPLAY_INTERVAL = 10000;
 
 function PosterSwitcher() {
   const [active, setActive] = useState(0);
-  const [dir, setDir] = useState(1);
-  const next = (active + 1) % POSTER_SLIDES.length;
+  const [paused, setPaused] = useState(false);
+  const [progress, setProgress] = useState(0);
+  const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const progressRef = useRef<ReturnType<typeof setInterval> | null>(null);
+
+  const total = POSTER_SLIDES.length;
+  const next = (active + 1) % total;
   const current = POSTER_SLIDES[active];
   const nextSlide = POSTER_SLIDES[next];
 
-  const go = () => {
-    setDir(1);
-    setActive(next);
+  const goTo = (idx: number) => {
+    setActive(idx);
+    setProgress(0);
+  };
+
+  const goNext = () => goTo((active + 1) % total);
+
+  const startTimers = () => {
+    if (intervalRef.current) clearInterval(intervalRef.current);
+    if (progressRef.current) clearInterval(progressRef.current);
+    setProgress(0);
+
+    intervalRef.current = setInterval(() => {
+      setActive(prev => (prev + 1) % total);
+      setProgress(0);
+    }, AUTOPLAY_INTERVAL);
+
+    const tickMs = 50;
+    progressRef.current = setInterval(() => {
+      setProgress(prev => Math.min(prev + (tickMs / AUTOPLAY_INTERVAL) * 100, 100));
+    }, tickMs);
+  };
+
+  const stopTimers = () => {
+    if (intervalRef.current) clearInterval(intervalRef.current);
+    if (progressRef.current) clearInterval(progressRef.current);
+  };
+
+  useEffect(() => {
+    if (!paused) {
+      startTimers();
+    } else {
+      stopTimers();
+    }
+    return stopTimers;
+  }, [paused, active]);
+
+  const handleManualNav = (idx: number) => {
+    goTo(idx);
+    if (!paused) {
+      stopTimers();
+      startTimers();
+    }
+  };
+
+  const handleManualNext = () => {
+    handleManualNav((active + 1) % total);
   };
 
   return (
     <section>
       <motion.div {...{ initial: { opacity: 0, y: 28 }, whileInView: { opacity: 1, y: 0 }, viewport: { once: true }, transition: { duration: 0.6 } }}>
-        <div className="tag-label mb-10 text-center">{current.label}</div>
+        <div className="flex items-center justify-center gap-4 mb-8">
+          <div className="tag-label">{current.label}</div>
+          {/* Pause / Play toggle */}
+          <button
+            type="button"
+            onClick={() => setPaused(p => !p)}
+            title={paused ? 'Autoplay starten' : 'Autoplay pausieren'}
+            style={{
+              width: '28px',
+              height: '28px',
+              borderRadius: '50%',
+              background: 'rgba(255,255,255,0.07)',
+              border: '1px solid rgba(255,255,255,0.14)',
+              cursor: 'pointer',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              flexShrink: 0,
+              transition: 'background 0.18s',
+            }}
+          >
+            {paused ? (
+              <svg width="10" height="12" viewBox="0 0 10 12" fill="rgba(255,255,255,0.7)">
+                <path d="M0 0L10 6L0 12Z" />
+              </svg>
+            ) : (
+              <svg width="10" height="12" viewBox="0 0 10 12" fill="rgba(255,255,255,0.7)">
+                <rect x="0" y="0" width="3.5" height="12" rx="1" />
+                <rect x="6.5" y="0" width="3.5" height="12" rx="1" />
+              </svg>
+            )}
+          </button>
+        </div>
 
         <div className="relative mx-auto" style={{ maxWidth: '600px', paddingRight: '36px' }}>
           <div className="flex items-start gap-0" style={{ position: 'relative' }}>
 
-            <div style={{ flex: '1 1 0', minWidth: 0 }}>
+            {/* Main image */}
+            <div style={{ flex: '1 1 0', minWidth: 0, position: 'relative' }}>
               <div
                 style={{
                   borderRadius: '16px',
@@ -209,15 +309,44 @@ function PosterSwitcher() {
                   transition: 'box-shadow 0.4s ease',
                 }}
               >
-                <img
-                  key={active}
-                  src={current.src}
-                  alt={current.alt}
-                  style={{ display: 'block', width: '100%', height: 'auto' }}
-                />
+                <AnimatePresence mode="wait">
+                  <motion.img
+                    key={active}
+                    src={current.src}
+                    alt={current.alt}
+                    initial={{ opacity: 0, scale: 1.03 }}
+                    animate={{ opacity: 1, scale: 1 }}
+                    exit={{ opacity: 0, scale: 0.97 }}
+                    transition={{ duration: 0.35, ease: [0.22, 1, 0.36, 1] }}
+                    style={{ display: 'block', width: '100%', height: 'auto' }}
+                  />
+                </AnimatePresence>
               </div>
+
+              {/* Progress bar */}
+              {!paused && (
+                <div style={{
+                  position: 'absolute',
+                  bottom: 0,
+                  left: 0,
+                  right: 0,
+                  height: '3px',
+                  background: 'rgba(255,255,255,0.1)',
+                  borderRadius: '0 0 16px 16px',
+                  overflow: 'hidden',
+                }}>
+                  <div style={{
+                    height: '100%',
+                    width: `${progress}%`,
+                    background: current.accent,
+                    transition: 'width 0.05s linear',
+                    borderRadius: '0 0 16px 16px',
+                  }} />
+                </div>
+              )}
             </div>
 
+            {/* Next slide preview */}
             <div
               style={{
                 width: '90px',
@@ -236,31 +365,64 @@ function PosterSwitcher() {
                   cursor: 'pointer',
                   borderRadius: '12px',
                   overflow: 'hidden',
-                  opacity: 0.45,
-                  filter: 'blur(1px)',
-                  transition: 'opacity 0.25s, filter 0.25s',
+                  opacity: 0.55,
+                  filter: 'blur(0.5px)',
+                  transition: 'opacity 0.25s, filter 0.25s, transform 0.2s',
                   flexShrink: 0,
                 }}
                 onMouseEnter={e => {
-                  (e.currentTarget as HTMLDivElement).style.opacity = '0.7';
-                  (e.currentTarget as HTMLDivElement).style.filter = 'blur(0px)';
+                  const el = e.currentTarget as HTMLDivElement;
+                  el.style.opacity = '0.85';
+                  el.style.filter = 'blur(0px)';
+                  el.style.transform = 'scale(1.04)';
                 }}
                 onMouseLeave={e => {
-                  (e.currentTarget as HTMLDivElement).style.opacity = '0.45';
-                  (e.currentTarget as HTMLDivElement).style.filter = 'blur(1px)';
+                  const el = e.currentTarget as HTMLDivElement;
+                  el.style.opacity = '0.55';
+                  el.style.filter = 'blur(0.5px)';
+                  el.style.transform = 'scale(1)';
                 }}
-                onClick={go}
+                onClick={handleManualNext}
               >
-                <img src={nextSlide.src} alt={nextSlide.alt} style={{ display: 'block', width: '100%', height: 'auto', borderRadius: '12px' }} />
+                <AnimatePresence mode="wait">
+                  <motion.img
+                    key={next}
+                    src={nextSlide.src}
+                    alt={nextSlide.alt}
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    exit={{ opacity: 0 }}
+                    transition={{ duration: 0.25 }}
+                    style={{ display: 'block', width: '100%', height: 'auto', borderRadius: '12px' }}
+                  />
+                </AnimatePresence>
                 <div style={{
                   position: 'absolute', inset: 0,
-                  background: 'linear-gradient(to right, rgba(0,0,0,0) 0%, rgba(0,0,0,0.45) 100%)',
+                  background: 'linear-gradient(to right, rgba(0,0,0,0) 0%, rgba(0,0,0,0.35) 100%)',
                   borderRadius: '12px',
+                  pointerEvents: 'none',
                 }} />
+                {/* "Next" label */}
+                <div style={{
+                  position: 'absolute',
+                  bottom: '6px',
+                  left: 0,
+                  right: 0,
+                  textAlign: 'center',
+                  fontFamily: "'Inter', sans-serif",
+                  fontSize: '8px',
+                  fontWeight: 700,
+                  letterSpacing: '0.1em',
+                  textTransform: 'uppercase',
+                  color: 'rgba(255,255,255,0.6)',
+                  pointerEvents: 'none',
+                }}>
+                  {nextSlide.label}
+                </div>
               </div>
 
               <button
-                onClick={go}
+                onClick={handleManualNext}
                 style={{
                   position: 'absolute',
                   right: '-18px',
@@ -294,11 +456,12 @@ function PosterSwitcher() {
             </div>
           </div>
 
+          {/* Dot indicators */}
           <div className="flex justify-center gap-2 mt-6">
             {POSTER_SLIDES.map((s, i) => (
               <button
                 key={i}
-                onClick={() => { setDir(i > active ? 1 : -1); setActive(i); }}
+                onClick={() => handleManualNav(i)}
                 style={{
                   width: i === active ? '24px' : '8px',
                   height: '8px',
