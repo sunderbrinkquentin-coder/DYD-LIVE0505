@@ -633,36 +633,74 @@ export function CVLiveEditorPage() {
           sections.push(sortSectionNewestFirst(expSection));
         }
 
-        const schoolEduItems = nonEmpty(editorPayload.schoolEducation) || [];
-        const professionalEduItems = nonEmpty(editorPayload.professionalEducation) || [];
-        const educationItems = findArray(['education', 'cv_education']).length > 0
-          ? findArray(['education', 'cv_education'])
-          : nonEmpty([...professionalEduItems, ...schoolEduItems]) || [];
+// 1. BILDUNGSSTATIONEN (Studium + Schule)
+        const schoolEduItems = findArray(['schoolEducation', 'school_education']);
+        const professionalEduItems = findArray(['professionalEducation', 'professional_education']);
+        const basicEduItems = findArray(['education', 'cv_education']);
 
-        if (educationItems.length > 0) {
+        const allEduItems = [...professionalEduItems, ...schoolEduItems, ...basicEduItems];
+        if (allEduItems.length > 0) {
           sections.push({
             type: 'education',
             title: 'Ausbildung / Studium',
-            items: educationItems.map((edu: any) => ({
-              degree: edu.degree || edu.title || edu.qualification || edu.graduation || edu.type || '',
-              institution: edu.institution || edu.school || edu.university || edu.schoolName || '',
-              date_from: formatDate(edu.date_from || edu.from || edu.startDate || edu.start_date || edu.start || edu.startYear || ''),
-              date_to: formatDate(edu.date_to || edu.to || edu.endDate || edu.end_date || edu.end || edu.endYear || edu.year || ''),
-              description: edu.description || (Array.isArray(edu.focus) ? edu.focus.join(', ') : edu.focus) || edu.field || '',
+            items: allEduItems.map((edu: any) => ({
+              degree: edu.degree || edu.title || edu.qualification || edu.type || '',
+              institution: edu.institution || edu.school || edu.university || '',
+              date_from: formatDate(edu.date_from || edu.startDate || ''),
+              date_to: formatDate(edu.date_to || edu.endDate || edu.year || ''),
+              description: edu.description || (Array.isArray(edu.focus) ? edu.focus.join(', ') : edu.focus) || '',
             })),
           });
         }
 
+        // 2. ZERTIFIKATE & STIPENDIEN (Getarnt als Education-Struktur für sicheres PDF-Rendering!)
+        const certItems = findArray(['certificates', 'zertifikate']);
+        const scholItems = findArray(['scholarships', 'stipendien']);
+        const awardItems = findArray(['awards', 'auszeichnungen']);
+        const allAwards = [...certItems, ...scholItems, ...awardItems];
+
+        if (allAwards.length > 0) {
+          sections.push({
+            type: 'education', 
+            title: 'Auszeichnungen & Zertifikate',
+            items: allAwards.map((aw: any) => ({
+              degree: aw.title || aw.name || aw.degree || '', 
+              institution: aw.issuer || aw.institution || aw.organization || '', 
+              date_from: formatDate(aw.date_from || aw.year || aw.date || ''),
+              date_to: formatDate(aw.date_to || ''),
+              description: aw.description || '',
+            })),
+          });
+        }
+
+        // 3. EHRENAMT (Getarnt als Experience-Struktur, damit Bulletpoints gedruckt werden!)
+        const volItems = findArray(['volunteerWork', 'ehrenamt', 'volunteering']);
+        if (volItems.length > 0) {
+          sections.push({
+            type: 'experience', 
+            title: 'Ehrenamtliches Engagement',
+            items: volItems.map((vol: any) => ({
+              title: vol.role || vol.title || '',
+              company: vol.organization || vol.company || '',
+              date_from: formatDate(vol.date_from || ''),
+              date_to: formatDate(vol.date_to || ''),
+              description: vol.description || '',
+              bulletPoints: vol.bulletPoints || [],
+            })),
+          });
+        }
+
+        // 4. PROJEKTE
         const projectItems = findArray(['projects', 'project', 'cv_projects']);
         if (projectItems.length > 0) {
           sections.push({
             type: 'projects',
             title: 'Projekte',
             items: projectItems.map((proj: any) => ({
-              title: proj.title || proj.name || proj.projectName || '',
+              title: proj.title || proj.name || '',
               role: proj.role || proj.position || '',
-              description: proj.description || proj.summary || proj.result || '',
-              bulletPoints: proj.bulletPoints || proj.bullet_points || proj.tasks || proj.achievements || [],
+              description: proj.description || proj.summary || '',
+              bulletPoints: proj.bulletPoints || [],
             })),
           });
         }
