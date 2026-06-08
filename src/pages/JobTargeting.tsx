@@ -253,7 +253,7 @@ export function JobTargeting() {
         if (!consumed) {
           // Weiterleitung zur echten Paywall
           setIsSaving(false);
-          navigate('/pricing'); 
+          navigate('/checkout'); 
           return;
         }
         console.log('✅ [JOB-TARGETING] Token consumed for paid flow');
