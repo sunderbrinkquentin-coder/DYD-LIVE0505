@@ -193,7 +193,7 @@ export function JobTargeting() {
           };
 
       // 3) CV-Daten direkt übernehmen – alle Felder explizit übernehmen, damit keine Station verloren geht
-      const cvDataPayload: CVBuilderData & { desired_job: typeof sanitizedJobData } = {
+      const cvDataPayload: any = {
         experienceLevel: resolvedBaseCvData.experienceLevel,
         targetRole: resolvedBaseCvData.targetRole,
         targetIndustry: resolvedBaseCvData.targetIndustry,
@@ -211,6 +211,14 @@ export function JobTargeting() {
         targetJob: resolvedBaseCvData.targetJob,
         languages: resolvedBaseCvData.languages ?? [],
         summary: resolvedBaseCvData.summary,
+        
+        // --- NEUE BEREICHE HINZUGEFÜGT ---
+        // 'as any' sorgt dafür, dass TS nicht meckert, falls die Felder im Type noch fehlen
+        scholarships: (resolvedBaseCvData as any).scholarships ?? [],
+        awards: (resolvedBaseCvData as any).awards ?? [],
+        volunteerWork: (resolvedBaseCvData as any).volunteerWork ?? [],
+        // ----------------------------------
+        
         desired_job: sanitizedJobData,
       };
 
@@ -224,6 +232,10 @@ export function JobTargeting() {
         projects: cvDataPayload.projects?.length ?? 0,
         internships: cvDataPayload.internships?.length ?? 0,
         languages: cvDataPayload.languages?.length ?? 0,
+        // Neue Felder im Log:
+        scholarships: cvDataPayload.scholarships?.length ?? 0,
+        awards: cvDataPayload.awards?.length ?? 0,
+        volunteerWork: cvDataPayload.volunteerWork?.length ?? 0,
       });
       console.log('🟦 [JOB-TARGETING] Saving to Supabase (status=processing)...');
 
