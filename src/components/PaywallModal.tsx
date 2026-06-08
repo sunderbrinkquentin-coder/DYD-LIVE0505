@@ -18,19 +18,16 @@ export function PaywallModal({ isOpen, onClose, onConfirm, onSuccess, type = 'si
 
   if (!isOpen) return null;
 
-  const handleConfirm = async () => {
+const handleConfirm = async () => {
     setIsProcessing(true);
     try {
-      if (onConfirm) {
-        await onConfirm();
-      }
-      if (onSuccess) {
-        onSuccess();
-      }
+      // WICHTIG: Gib den gewählten Plan an die Funktion weiter
+      if (onConfirm) await onConfirm(selectedPlan); 
+      if (onSuccess) onSuccess();
     } finally {
       setIsProcessing(false);
     }
-  };
+};
 
   const plans = {
     single: {
