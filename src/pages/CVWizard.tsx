@@ -66,29 +66,32 @@ function adaptParsedCvToBuilderData(parsed: any): CVBuilderData {
   console.log('[Mapper] Processing source keys:', Object.keys(raw));
 
   // If data is already in CVBuilderData format (wizard draft), return as-is with defaults
-  if (raw.personalData != null || raw.workExperiences != null || raw.experienceLevel != null) {
-    console.log('[CVWizard] Data is already in CVBuilderData format, using as-is');
-    const workExperiences = (raw.workExperiences || []).map((exp: any) => {
-      if (Array.isArray(exp.tasksWithMetrics) && exp.tasksWithMetrics.length > 0) return exp;
-      const bullets: string[] = Array.isArray(exp.bullets) ? exp.bullets.filter(Boolean) :
-        Array.isArray(exp.tasks) ? exp.tasks.filter(Boolean) : [];
-      return {
-        ...exp,
-        tasksWithMetrics: bullets.map((b: string) => ({ task: b, metrics: { description: b } })),
-      };
-    });
+ if (raw.personalData != null || raw.workExperiences != null || raw.experienceLevel != null) {
+  const workExperiences = (raw.workExperiences || []).map((exp: any) => {
+    if (Array.isArray(exp.tasksWithMetrics) && exp.tasksWithMetrics.length > 0) return exp;
+    const bullets: string[] = Array.isArray(exp.bullets) ? exp.bullets.filter(Boolean) :
+      Array.isArray(exp.tasks) ? exp.tasks.filter(Boolean) : [];
     return {
-      ...raw,
-      workExperiences,
-      projects: raw.projects || [],
-      hardSkills: raw.hardSkills || [],
-      softSkills: raw.softSkills || [],
-      professionalEducation: raw.professionalEducation || [],
-      languages: raw.languages || [],
-      workValues: raw.workValues || { values: [], workStyle: [] },
-      hobbies: raw.hobbies || { hobbies: [], details: '' },
-    } as CVBuilderData;
-  }
+      ...exp,
+      tasksWithMetrics: bullets.map((b: string) => ({ task: b, metrics: { description: b } })),
+    };
+  });
+  return {
+    ...raw,
+    workExperiences,
+    schoolEducation: raw.schoolEducation || [],        // ✅ NEU
+    projects: raw.projects || [],
+    hardSkills: raw.hardSkills || [],
+    softSkills: raw.softSkills || [],
+    professionalEducation: raw.professionalEducation || [],
+    languages: raw.languages || [],
+    workValues: raw.workValues || { values: [], workStyle: [] },
+    hobbies: raw.hobbies || { hobbies: [], details: '' },
+    stipendien: raw.stipendien || [],                  // ✅ NEU
+    volunteerWork: raw.volunteerWork || [],            // ✅ NEU
+    certificates: raw.certificates || [],              // ✅ NEU
+  } as CVBuilderData;
+}
 
   // Snake_case / Make / CV-Check format — delegate to the full multi-format mapper
   return mapEditorDataToWizard(raw);
