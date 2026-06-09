@@ -409,6 +409,15 @@ export const ModernCVTemplate: React.FC<ModernCVTemplateProps> = ({
                       placeholder={isProject ? 'Deine Rolle' : 'Unternehmen'}
                       style={{ fontSize: '10px', color: '#475569', marginTop: '2px', lineHeight: 1.4 }}
                     />
+                    {!isProject && (item.location || item.ort) && (
+                      <Editable
+                        tag="div"
+                        value={item.location || item.ort || ''}
+                        onChange={(v) => onUpdateSectionItem(sectionIndex, idx, 'location', v)}
+                        placeholder="Ort"
+                        style={{ fontSize: '9.5px', color: '#94a3b8', marginTop: '2px', lineHeight: 1.4 }}
+                      />
+                    )}
                   </div>
                   <DateBadge
                     from={item.date_from || ''}
@@ -578,6 +587,15 @@ export const ModernCVTemplate: React.FC<ModernCVTemplateProps> = ({
                           placeholder="Institution"
                           style={{ fontSize: '10px', color: '#475569', marginTop: '2px', lineHeight: 1.4 }}
                         />
+                        {edu.location && (
+                          <Editable
+                            tag="div"
+                            value={edu.location || ''}
+                            onChange={(v) => onUpdateSectionItem(sectionIndex, idx, 'location', v)}
+                            placeholder="Ort"
+                            style={{ fontSize: '9.5px', color: '#94a3b8', marginTop: '2px', lineHeight: 1.4 }}
+                          />
+                        )}
                       </div>
                       <DateBadge
                         from={edu.date_from || ''}
@@ -596,6 +614,18 @@ export const ModernCVTemplate: React.FC<ModernCVTemplateProps> = ({
                         style={{ fontSize: '9.5px', color: '#64748b', marginTop: '4px', lineHeight: 1.5 }}
                       />
                     ) : null}
+                    {(edu.grade || edu.grades || edu.note) && (
+                      <div style={{ fontSize: '9.5px', color: '#64748b', marginTop: '4px', lineHeight: 1.5 }}>
+                        <span style={{ fontWeight: 600 }}>Note: </span>
+                        <Editable
+                          tag="span"
+                          value={edu.grade || edu.grades || edu.note || ''}
+                          onChange={(v) => onUpdateSectionItem(sectionIndex, idx, 'grade', v)}
+                          placeholder="Note"
+                          style={{ fontSize: '9.5px', color: '#64748b' }}
+                        />
+                      </div>
+                    )}
                     <div className="pdf-hidden" data-pdf-hidden style={{ marginTop: '6px' }}>
                       <button
                         type="button"

@@ -624,6 +624,7 @@ export function CVLiveEditorPage() {
           const mappedExpItems = experienceItems.map((exp: any) => ({
             title: exp.title || exp.position || exp.role || exp.jobTitle || '',
             company: exp.company || exp.employer || exp.organization || '',
+            location: exp.location || exp.ort || '',
             date_from: formatDate(exp.date_from || exp.from || exp.startDate || exp.start_date || exp.start || ''),
             date_to: formatDate(exp.date_to || exp.to || exp.endDate || exp.end_date || exp.end || '') || 'Heute',
             description: exp.description || exp.responsibilities || exp.summary || '',
@@ -646,9 +647,11 @@ export function CVLiveEditorPage() {
             items: allEduItems.map((edu: any) => ({
               degree: edu.degree || edu.title || edu.qualification || edu.type || '',
               institution: edu.institution || edu.school || edu.university || '',
-              date_from: formatDate(edu.date_from || edu.startDate || ''),
-              date_to: formatDate(edu.date_to || edu.endDate || edu.year || ''),
+              date_from: formatDate(edu.date_from || edu.startDate || edu.startYear || ''),
+              date_to: formatDate(edu.date_to || edu.endDate || edu.endYear || edu.year || ''),
+              location: edu.location || edu.ort || '',
               description: edu.description || (Array.isArray(edu.focus) ? edu.focus.join(', ') : edu.focus) || '',
+              grade: edu.grade || edu.grades || edu.note || edu.gpa || '',
             })),
           });
         }

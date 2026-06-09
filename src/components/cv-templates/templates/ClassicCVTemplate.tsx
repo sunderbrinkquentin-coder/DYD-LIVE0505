@@ -337,9 +337,28 @@ export const ClassicCVTemplate: React.FC<ClassicCVTemplateProps> = ({
                 value={item.institution}
                 onChange={(val) => onUpdateSectionItem(educationIndex, idx, 'institution', val)}
                 className="text-[10px] font-semibold text-slate-700 leading-snug mt-0.5"
-                placeholder="Institution / Ort"
+                placeholder="Institution"
               />
-              
+              {item.location && (
+                <EditableText
+                  value={item.location || ''}
+                  onChange={(val) => onUpdateSectionItem(educationIndex, idx, 'location', val)}
+                  className="text-[9.5px] text-slate-500 leading-snug mt-0.5"
+                  placeholder="Ort"
+                />
+              )}
+
+              {(item.grade || item.grades || item.note) && (
+                <div className="flex items-center gap-1.5 mt-1 text-[9.5px] text-slate-500">
+                  <span className="font-semibold text-[#1e3a8a]">Note:</span>
+                  <EditableText
+                    value={item.grade || item.grades || item.note || ''}
+                    onChange={(val) => onUpdateSectionItem(educationIndex, idx, 'grade', val)}
+                    className="text-[9.5px] text-slate-600"
+                    placeholder="Note"
+                  />
+                </div>
+              )}
               {item.description && (
                 <div className="flex items-start gap-2 mt-2 leading-snug">
                   <span style={{ flexShrink: 0, color: '#1e3a8a', fontSize: '9.5px', lineHeight: '1.375', userSelect: 'none' }}>•</span>

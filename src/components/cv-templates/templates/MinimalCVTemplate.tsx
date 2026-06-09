@@ -339,6 +339,36 @@ export const MinimalCVTemplate: React.FC<MinimalCVTemplateProps> = ({
                         }
                         placeholder="Institution"
                       />
+                      {edu.location && (
+                        <input
+                          className="mt-0.5 w-full text-[9.5px] text-slate-400 bg-transparent outline-none"
+                          value={edu.location || ''}
+                          onChange={(e) => onUpdateSectionItem(sectionIndex, idx, 'location', e.target.value)}
+                          placeholder="Ort"
+                        />
+                      )}
+                      {(edu.grade || edu.grades || edu.note) && (
+                        <div className="mt-0.5 flex items-center gap-1 text-[9.5px] text-slate-500">
+                          <span className="font-semibold">Note:</span>
+                          <input
+                            className="bg-transparent outline-none flex-1 text-[9.5px] text-slate-500"
+                            value={edu.grade || edu.grades || edu.note || ''}
+                            onChange={(e) => onUpdateSectionItem(sectionIndex, idx, 'grade', e.target.value)}
+                            placeholder="Note"
+                          />
+                        </div>
+                      )}
+                      {(edu.description || edu.focus) && (
+                        <textarea
+                          className="mt-0.5 w-full text-[9.5px] text-slate-600 bg-transparent outline-none resize-none leading-snug"
+                          value={edu.description || (Array.isArray(edu.focus) ? edu.focus.join(', ') : edu.focus) || ''}
+                          onChange={(e) => onUpdateSectionItem(sectionIndex, idx, 'description', e.target.value)}
+                          placeholder="Schwerpunkte / Beschreibung"
+                          rows={1}
+                          style={{ overflow: 'hidden', minHeight: '16px' }}
+                          onInput={(e) => { const t = e.currentTarget; t.style.height = 'auto'; t.style.height = t.scrollHeight + 'px'; }}
+                        />
+                      )}
                     </div>
 
                     <div className="text-[9px] text-slate-500 text-right whitespace-nowrap flex flex-col items-end gap-0.5 flex-shrink-0">

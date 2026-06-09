@@ -446,53 +446,83 @@ export const CreativeCVTemplate: React.FC<CreativeCVTemplateProps> = ({
               const itemKey = `${section.type}-${sectionIndex}-${idx}`;
               const spacer = pageBreakItems?.get(itemKey) ?? 0;
               return (
-              <div
-                key={idx}
-                data-pdf-section
-                data-spacer-id={itemKey}
-                className="mb-2 rounded-xl bg-white border border-slate-200 px-3 py-2 shadow-sm w-full split-box-fix"
-                style={{ display: 'block', breakInside: 'avoid', pageBreakInside: 'avoid', ...(spacer > 0 ? { marginTop: `${spacer}px` } : {}) }}
-              >
-                <div className="flex justify-between items-start gap-2">
-                  <div className="flex-1 min-w-0">
-                    <input
-                      className="font-bold text-[11px] outline-none w-full bg-transparent text-slate-900"
-                      value={edu.degree || ''}
-                      onChange={(e) =>
-                        onUpdateSectionItem(sectionIndex, idx, 'degree', e.target.value)
-                      }
-                      placeholder="Abschluss"
-                    />
-                    <input
-                      className="outline-none bg-transparent w-full text-[10px] text-slate-500 mt-0.5"
-                      value={edu.institution || ''}
-                      onChange={(e) =>
-                        onUpdateSectionItem(sectionIndex, idx, 'institution', e.target.value)
-                      }
-                      placeholder="Institution"
-                    />
+                <div
+                  key={idx}
+                  data-pdf-section
+                  data-spacer-id={itemKey}
+                  className="mb-2 rounded-xl bg-white border border-slate-200 px-3 py-2 shadow-sm w-full split-box-fix"
+                  style={{ display: 'block', breakInside: 'avoid', pageBreakInside: 'avoid', ...(spacer > 0 ? { marginTop: `${spacer}px` } : {}) }}
+                >
+                  <div className="flex justify-between items-start gap-2">
+                    <div className="flex-1 min-w-0">
+                      <input
+                        className="font-bold text-[11px] outline-none w-full bg-transparent text-slate-900"
+                        value={edu.degree || ''}
+                        onChange={(e) =>
+                          onUpdateSectionItem(sectionIndex, idx, 'degree', e.target.value)
+                        }
+                        placeholder="Abschluss"
+                      />
+                      <input
+                        className="outline-none bg-transparent w-full text-[10px] text-slate-500 mt-0.5"
+                        value={edu.institution || ''}
+                        onChange={(e) =>
+                          onUpdateSectionItem(sectionIndex, idx, 'institution', e.target.value)
+                        }
+                        placeholder="Institution"
+                      />
+                      {edu.location && (
+                        <input
+                          className="outline-none bg-transparent w-full text-[9.5px] text-slate-400 mt-0.5"
+                          value={edu.location || ''}
+                          onChange={(e) => onUpdateSectionItem(sectionIndex, idx, 'location', e.target.value)}
+                          placeholder="Ort"
+                        />
+                      )}
+                    </div>
+                    <div className="text-[9.5px] text-slate-500 whitespace-nowrap flex-shrink-0 flex items-center gap-0.5">
+                      <input
+                        className="outline-none bg-transparent w-14 text-right"
+                        value={edu.date_from || ''}
+                        onChange={(e) =>
+                          onUpdateSectionItem(sectionIndex, idx, 'date_from', e.target.value)
+                        }
+                        placeholder="Von"
+                      />
+                      –
+                      <input
+                        className="outline-none bg-transparent w-14"
+                        value={edu.date_to || ''}
+                        onChange={(e) =>
+                          onUpdateSectionItem(sectionIndex, idx, 'date_to', e.target.value)
+                        }
+                        placeholder="Bis"
+                      />
+                    </div>
                   </div>
-                  <div className="text-[9.5px] text-slate-500 whitespace-nowrap flex-shrink-0 flex items-center gap-0.5">
-                    <input
-                      className="outline-none bg-transparent w-14 text-right"
-                      value={edu.date_from || ''}
-                      onChange={(e) =>
-                        onUpdateSectionItem(sectionIndex, idx, 'date_from', e.target.value)
-                      }
-                      placeholder="Von"
+                  {(edu.grade || edu.grades || edu.note) && (
+                    <div className="mt-1 flex items-center gap-1 text-[9.5px] text-slate-500">
+                      <span className="font-semibold text-[#22c1c3]">Note:</span>
+                      <input
+                        className="outline-none bg-transparent flex-1 text-[9.5px] text-slate-500"
+                        value={edu.grade || edu.grades || edu.note || ''}
+                        onChange={(e) => onUpdateSectionItem(sectionIndex, idx, 'grade', e.target.value)}
+                        placeholder="Note"
+                      />
+                    </div>
+                  )}
+                  {(edu.description || edu.focus) && (
+                    <textarea
+                      className="mt-1 w-full text-[9.5px] text-slate-600 outline-none resize-none overflow-hidden bg-transparent leading-snug"
+                      value={edu.description || (Array.isArray(edu.focus) ? edu.focus.join(', ') : edu.focus) || ''}
+                      onChange={(e) => onUpdateSectionItem(sectionIndex, idx, 'description', e.target.value)}
+                      placeholder="Schwerpunkte / Beschreibung"
+                      rows={1}
+                      style={{ minHeight: '16px' }}
+                      onInput={(e) => { const t = e.currentTarget; t.style.height = 'auto'; t.style.height = t.scrollHeight + 'px'; }}
                     />
-                    –
-                    <input
-                      className="outline-none bg-transparent w-14"
-                      value={edu.date_to || ''}
-                      onChange={(e) =>
-                        onUpdateSectionItem(sectionIndex, idx, 'date_to', e.target.value)
-                      }
-                      placeholder="Bis"
-                    />
-                  </div>
+                  )}
                 </div>
-              </div>
               );
             })}
           </div>
