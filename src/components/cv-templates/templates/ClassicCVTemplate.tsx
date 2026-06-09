@@ -517,8 +517,7 @@ export const ClassicCVTemplate: React.FC<ClassicCVTemplateProps> = ({
       className="w-full text-slate-800 bg-white flex flex-col"
       style={{
         fontFamily: 'Inter, system-ui, -apple-system, sans-serif',
-        // 🔥 pageCount-gesteuerte minHeight
-        minHeight: pageCount ? `${pageCount * 1122}px` : '1122px',
+        minHeight: '1122px',
         width: '100%',
         boxSizing: 'border-box',
         wordBreak: 'break-word',

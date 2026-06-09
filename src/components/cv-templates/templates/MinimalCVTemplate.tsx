@@ -649,8 +649,7 @@ export const MinimalCVTemplate: React.FC<MinimalCVTemplateProps> = ({
       style={{
         wordBreak: 'break-word',
         overflowWrap: 'anywhere',
-        // 🔥 pageCount-gesteuerte minHeight
-        minHeight: pageCount ? `${pageCount * 1122}px` : '1122px',
+        minHeight: '1122px',
       }}
     >
       {/* Header */}

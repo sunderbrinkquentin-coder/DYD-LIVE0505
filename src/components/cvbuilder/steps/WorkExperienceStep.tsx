@@ -136,6 +136,7 @@ export function WorkExperienceStep({
   onSkip,
 }: WorkExperienceStepProps) {
   const [showValidationHint, setShowValidationHint] = useState(false);
+  const [attempted, setAttempted] = useState(false);
   const [experiences, setExperiences] = useState<LocalWorkExperience[]>(() => {
     if (data && data.length > 0) {
       return data.map((exp) => ({
@@ -255,6 +256,7 @@ export function WorkExperienceStep({
   const handleNext = () => {
     if (!isValidExperience) {
       setShowValidationHint(true);
+      setAttempted(true);
       return;
     }
     setShowValidationHint(false);
@@ -331,6 +333,16 @@ export function WorkExperienceStep({
   const selectBase =
     'w-full px-3 py-2 rounded-lg bg-slate-900 border border-white/40 text-white text-sm md:text-base focus:outline-none focus:border-[#66c0b6]';
 
+  const reqInput = (value: string | undefined) =>
+    `w-full px-4 py-3 rounded-xl bg-white/10 border text-white placeholder-white/40 focus:outline-none transition-colors ${
+      attempted && !value?.trim()
+        ? 'border-red-500/70 focus:border-red-400 bg-red-500/5'
+        : 'border-white/25 focus:border-[#66c0b6]'
+    }`;
+
+  const reqSelect = (value: string | undefined) =>
+    `${selectBase} ${attempted && !value ? 'border-red-500/70 focus:border-red-400' : ''}`;
+
   const stationProjects = activeExp.stationProjects || [];
 
   return (
@@ -371,7 +383,7 @@ export function WorkExperienceStep({
               return (
                 <button
                   key={index}
-                  onClick={() => { setActiveIndex(index); setActiveTab('tasks'); }}
+                  onClick={() => { setActiveIndex(index); setActiveTab('tasks'); setAttempted(false); }}
                   className={`
                     relative flex items-start gap-3 p-3 rounded-xl text-left transition-all border
                     ${isActive
@@ -425,7 +437,7 @@ export function WorkExperienceStep({
                   value={activeExp.jobTitle || ''}
                   onChange={(e) => updateExperience(activeIndex, 'jobTitle', e.target.value)}
                   placeholder="z.B. Sales Manager, Software Engineer"
-                  className="w-full px-4 py-3 rounded-xl bg-white/10 border border-white/25 text-white placeholder-white/40 focus:outline-none focus:border-[#66c0b6]"
+                  className={reqInput(activeExp.jobTitle)}
                 />
               </div>
 
@@ -436,7 +448,7 @@ export function WorkExperienceStep({
                   value={activeExp.company || ''}
                   onChange={(e) => updateExperience(activeIndex, 'company', e.target.value)}
                   placeholder="z.B. SAP AG, BMW Group"
-                  className="w-full px-4 py-3 rounded-xl bg-white/10 border border-white/25 text-white placeholder-white/40 focus:outline-none focus:border-[#66c0b6]"
+                  className={reqInput(activeExp.company)}
                 />
               </div>
 
@@ -490,12 +502,12 @@ export function WorkExperienceStep({
               <div>
                 <p className="text-xs text-white/60 mb-1.5">Startdatum</p>
                 <div className="grid grid-cols-2 gap-2">
-                  <select value={activeExp.startMonth || ''} onChange={(e) => updateExperience(activeIndex, 'startMonth', e.target.value)} className={selectBase}>
+                  <select value={activeExp.startMonth || ''} onChange={(e) => updateExperience(activeIndex, 'startMonth', e.target.value)} className={reqSelect(activeExp.startMonth)}>
                     <option value="">Monat</option>
                     {MONTHS.map((m) => <option key={m} value={m}>{m}</option>)}
                   </select>
-                  <select value={activeExp.startYear || ''} onChange={(e) => updateExperience(activeIndex, 'startYear', e.target.value)} className={selectBase}>
-                    <option value="">Jahr</option>
+                  <select value={activeExp.startYear || ''} onChange={(e) => updateExperience(activeIndex, 'startYear', e.target.value)} className={reqSelect(activeExp.startYear)}>
+                    <option value="">Jahr *</option>
                     {YEARS.map((y) => <option key={y} value={y}>{y}</option>)}
                   </select>
                 </div>
@@ -509,12 +521,12 @@ export function WorkExperienceStep({
                   </label>
                 </div>
                 <div className="grid grid-cols-2 gap-2">
-                  <select value={activeExp.current ? '' : activeExp.endMonth || ''} onChange={(e) => updateExperience(activeIndex, 'endMonth', e.target.value)} disabled={!!activeExp.current} className={`${selectBase} disabled:opacity-40`}>
+                  <select value={activeExp.current ? '' : activeExp.endMonth || ''} onChange={(e) => updateExperience(activeIndex, 'endMonth', e.target.value)} disabled={!!activeExp.current} className={`${!activeExp.current ? reqSelect(activeExp.endMonth) : selectBase} disabled:opacity-40`}>
                     <option value="">Monat</option>
                     {MONTHS.map((m) => <option key={m} value={m}>{m}</option>)}
                   </select>
-                  <select value={activeExp.current ? '' : activeExp.endYear || ''} onChange={(e) => updateExperience(activeIndex, 'endYear', e.target.value)} disabled={!!activeExp.current} className={`${selectBase} disabled:opacity-40`}>
-                    <option value="">Jahr</option>
+                  <select value={activeExp.current ? '' : activeExp.endYear || ''} onChange={(e) => updateExperience(activeIndex, 'endYear', e.target.value)} disabled={!!activeExp.current} className={`${!activeExp.current ? reqSelect(activeExp.endYear) : selectBase} disabled:opacity-40`}>
+                    <option value="">Jahr *</option>
                     {YEARS.map((y) => <option key={y} value={y}>{y}</option>)}
                   </select>
                 </div>
@@ -739,10 +751,14 @@ export function WorkExperienceStep({
         {/* Desktop Navigation */}
         <div className="hidden lg:block pt-4">
           {showValidationHint && !isValidExperience && (
-            <div className="mb-3 p-3 rounded-xl bg-amber-500/15 border border-amber-500/30 animate-fade-in">
-              <p className="text-amber-400 text-sm font-medium">
-                Bitte Position, Unternehmen und Startdatum eingeben – diese Felder sind für den Lebenslauf erforderlich.
-              </p>
+            <div className="mb-3 p-3 rounded-xl bg-red-500/10 border border-red-500/25 animate-fade-in">
+              <p className="text-red-400 text-sm font-medium mb-1">Bitte fülle die rot markierten Felder aus:</p>
+              <ul className="text-red-300/80 text-xs space-y-0.5 ml-3">
+                {!activeExp.jobTitle?.trim() && <li>• Position / Jobtitel</li>}
+                {!activeExp.company?.trim() && <li>• Unternehmen</li>}
+                {!activeExp.startYear && <li>• Startjahr</li>}
+                {!activeExp.current && !activeExp.endYear && <li>• Endjahr (oder „Aktuell hier tätig" aktivieren)</li>}
+              </ul>
               {onSkip && (
                 <button
                   onClick={onSkip}
@@ -777,10 +793,14 @@ export function WorkExperienceStep({
         {/* Mobile Navigation */}
         <div className="lg:hidden fixed bottom-0 left-0 right-0 bg-gradient-to-t from-[#020617] via-[#020617]/95 to-transparent z-50 pt-3">
           {showValidationHint && !isValidExperience && (
-            <div className="mx-4 mb-2 p-3 rounded-xl bg-amber-500/15 border border-amber-500/30 animate-fade-in">
-              <p className="text-amber-400 text-sm font-medium">
-                Bitte Position, Unternehmen und Startdatum eingeben.
-              </p>
+            <div className="mx-4 mb-2 p-3 rounded-xl bg-red-500/10 border border-red-500/25 animate-fade-in">
+              <p className="text-red-400 text-sm font-medium mb-1">Rot markierte Felder ausfüllen:</p>
+              <ul className="text-red-300/80 text-xs space-y-0.5 ml-3">
+                {!activeExp.jobTitle?.trim() && <li>• Position / Jobtitel</li>}
+                {!activeExp.company?.trim() && <li>• Unternehmen</li>}
+                {!activeExp.startYear && <li>• Startjahr</li>}
+                {!activeExp.current && !activeExp.endYear && <li>• Endjahr oder „Aktuell" wählen</li>}
+              </ul>
               {onSkip && (
                 <button
                   onClick={onSkip}

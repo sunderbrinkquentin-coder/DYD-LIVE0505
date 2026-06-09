@@ -722,8 +722,7 @@ export const CreativeCVTemplate: React.FC<CreativeCVTemplateProps> = ({
       style={{
         wordBreak: 'break-word',
         overflowWrap: 'anywhere',
-        // 🔥 pageCount aus Prop statt lokalem State
-        minHeight: pageCount ? `${pageCount * PAGE_HEIGHT_PX}px` : `${PAGE_HEIGHT_PX}px`,
+        minHeight: `${PAGE_HEIGHT_PX}px`,
         WebkitPrintColorAdjust: 'exact',
         printColorAdjust: 'exact',
       }}

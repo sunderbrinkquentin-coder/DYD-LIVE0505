@@ -963,8 +963,7 @@ export const ModernCVTemplate: React.FC<ModernCVTemplateProps> = ({
           fontFamily: FONT,
           color: '#1e293b',
           width: '794px',
-          /* 🔥 DAS GEHEIMNIS FÜR DEN FOOTER: Die genaue Höhe der gesamten Blätter berechnen */
-          minHeight: pageCount ? `${pageCount * 1122}px` : '1122px',
+          minHeight: '1122px',
           display: 'flex',
           flexDirection: 'column',
           backgroundColor: CI.bg,

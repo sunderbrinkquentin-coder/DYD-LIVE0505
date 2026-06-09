@@ -138,8 +138,7 @@ export function KanbanCard({ cv, status, onDragStart, onUpdate, onStatusChange, 
   const cvData = cv.cv_data || {};
 
   const isNew = isHighlighted || (!isExample && cv.updated_at &&
-    (Date.now() - new Date(cv.updated_at).getTime()) < 24 * 60 * 60 * 1000 &&
-    cv.pdf_url);
+    (Date.now() - new Date(cv.updated_at).getTime()) < 24 * 60 * 60 * 1000);
 
   const desiredJob = cvData.desired_job || {};
   const initialJobTitle =
@@ -201,6 +200,8 @@ export function KanbanCard({ cv, status, onDragStart, onUpdate, onStatusChange, 
       className={`bg-white rounded-xl shadow-sm transition-all border overflow-hidden select-none ${
         isHighlighted
           ? 'border-[#66c0b6] shadow-[0_0_0_3px_rgba(102,192,182,0.2),0_2px_12px_rgba(102,192,182,0.15)] cursor-grab active:cursor-grabbing'
+          : isNew && !isExample
+          ? 'border-[#66c0b6]/40 shadow-sm hover:shadow-md cursor-grab active:cursor-grabbing active:opacity-70 active:scale-[0.98]'
           : isExample
           ? 'border-dashed border-[#66c0b6]/40 opacity-75 cursor-default'
           : 'hover:shadow-md cursor-grab active:cursor-grabbing border-gray-200 active:opacity-70 active:scale-[0.98]'
@@ -213,9 +214,10 @@ export function KanbanCard({ cv, status, onDragStart, onUpdate, onStatusChange, 
         </div>
       )}
       {isNew && !isExample && (
-        <div className="flex items-center gap-1.5 px-3 pt-2.5 pb-0">
-          <div className="w-1.5 h-1.5 rounded-full bg-[#66c0b6] animate-pulse" />
-          <span className="text-xs font-semibold text-[#3a9e94] uppercase tracking-wide">Neu</span>
+        <div className="flex items-center gap-1.5 px-3 py-1.5 bg-gradient-to-r from-[#66c0b6]/15 to-[#30E3CA]/10 border-b border-[#66c0b6]/20">
+          <div className="w-1.5 h-1.5 rounded-full bg-[#66c0b6] animate-pulse flex-shrink-0" />
+          <span className="text-[10px] font-bold text-[#3a9e94] uppercase tracking-wider">Neu erstellt</span>
+          <span className="ml-auto text-[9px] text-[#66c0b6]/70">letzte 24h</span>
         </div>
       )}
 

@@ -729,8 +729,7 @@ export const ProfessionalCVTemplate: React.FC<ProfessionalCVTemplateProps> = ({
       style={{
         display: 'flex',
         flexDirection: 'column',
-        // 🔥 pageCount-gesteuerte minHeight
-        minHeight: pageCount ? `${pageCount * 1122}px` : '1122px',
+        minHeight: '1122px',
       }}
     >
       {/* Dunkler Professional-Header */}
