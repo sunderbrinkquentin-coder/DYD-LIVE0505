@@ -19,9 +19,8 @@ const POLL_INTERVAL_MS = 3_000;
 const POLL_MAX = 40;
 const FALLBACK_TIMEOUT_MS = 60_000;
 const CV_DATA_POLL_MAX = 30;
-// Max polls waiting for skillgap_paid (10 × 2s = 20s)
-const PAID_POLL_MAX = 10;
-const PAID_POLL_INTERVAL_MS = 2_000;
+const PAID_POLL_MAX = 45;       // war: 10
+const PAID_POLL_INTERVAL_MS = 2_000;   // 45 × 2s = 90 Sek.
 
 const COMPLETE_STATUSES = new Set(['gap_analysis_complete', 'curriculum_ready', 'completed']);
 
