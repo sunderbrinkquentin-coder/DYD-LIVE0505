@@ -1291,7 +1291,7 @@ export function CareerVisionSection({ cvId: initialCvId, onAnalysisComplete, res
 
       if (cancelled) return;
 
-      // 5. Nach 45 Sek. starten, dann alle 10 Sek. pollen — bis zu 4 Minuten
+      // 5. Alle 5 Sek. pollen — sobald status = completed Ergebnis zeigen
       const showResult = (row: Record<string, unknown>) => {
         if (completedRef.current) return;
         completedRef.current = true;
@@ -1322,13 +1322,13 @@ export function CareerVisionSection({ cvId: initialCvId, onAnalysisComplete, res
             return;
           }
         } catch { /* weiter versuchen */ }
-        // Alle 10 Sek. wiederholen bis 4 Min.
-        const t = setTimeout(poll, 10_000);
+        // Alle 5 Sek. wiederholen
+        const t = setTimeout(poll, 5_000);
         timers.push(t);
       };
 
-      // Ersten Poll nach 45 Sek.
-      const t = setTimeout(poll, 45_000);
+      // Ersten Poll nach 5 Sek. starten
+      const t = setTimeout(poll, 5_000);
       timers.push(t);
 
       // Fallback nach 4.5 Min.
