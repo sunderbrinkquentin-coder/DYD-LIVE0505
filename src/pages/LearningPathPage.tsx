@@ -2070,7 +2070,7 @@ export default function LearningPathPage() {
     await supabase.from('learning_paths')
       .update({ final_exam_score: pct, final_exam_status: 'done', updated_at: new Date().toISOString() })
       .eq('id', learningPath.id);
-    if (pct === 100) {
+    if (pct >= 80) {
       setFinalExamPhase('done');
       // Issue certificate
       setIssuingCertificate(true);
@@ -2251,7 +2251,7 @@ export default function LearningPathPage() {
                   <div className="px-6 py-5">
                     <p className="text-[10px] font-black uppercase tracking-widest text-[#30E3CA]/60 mb-1">Abschlussprüfung</p>
                     <p className="text-lg font-black text-white">{learningPath.target_job}</p>
-                    <p className="text-xs text-white/40 mt-1">{finalExamQuestions.length} Fragen · 100% erforderlich für Zertifikat</p>
+                    <p className="text-xs text-white/40 mt-1">{finalExamQuestions.length} Fragen · mindestens 80% erforderlich für Zertifikat</p>
                   </div>
                 </div>
                 <div className="flex items-center justify-between px-1">
@@ -2307,23 +2307,23 @@ export default function LearningPathPage() {
               <div className="max-w-2xl mx-auto space-y-4" style={{ animation: 'lp_fadeUp 0.4s ease' }}>
                 <div className="rounded-2xl p-6 text-center space-y-3"
                   style={{
-                    background: finalExamScore === 100 ? 'rgba(34,197,94,0.07)' : 'rgba(248,113,113,0.06)',
-                    border: `1px solid ${finalExamScore === 100 ? 'rgba(34,197,94,0.3)' : 'rgba(248,113,113,0.25)'}`,
+                    background: finalExamScore >= 80 ? 'rgba(34,197,94,0.07)' : 'rgba(248,113,113,0.06)',
+                    border: `1px solid ${finalExamScore >= 80 ? 'rgba(34,197,94,0.3)' : 'rgba(248,113,113,0.25)'}`,
                   }}>
-                  <div className="text-5xl font-black" style={{ color: finalExamScore === 100 ? '#4ade80' : '#f87171' }}>
+                  <div className="text-5xl font-black" style={{ color: finalExamScore >= 80 ? '#4ade80' : '#f87171' }}>
                     {finalExamScore}%
                   </div>
                   <p className="text-lg font-bold text-white">
-                    {finalExamScore === 100 ? 'Perfekt! Zertifikat erworben!' : 'Nicht bestanden'}
+                    {finalExamScore >= 80 ? 'Bestanden! Zertifikat erworben!' : 'Nicht bestanden'}
                   </p>
                   <p className="text-sm text-white/55">
-                    {finalExamScore === 100
-                      ? 'Du hast alle Fragen richtig beantwortet. Dein Zertifikat wird jetzt erstellt.'
-                      : `${Math.round((finalExamScore / 100) * finalExamQuestions.length)} von ${finalExamQuestions.length} richtig — für das Zertifikat sind 100% erforderlich.`}
+                    {finalExamScore >= 80
+                      ? 'Du hast die Prüfung bestanden. Dein Zertifikat wird jetzt erstellt.'
+                      : `${Math.round((finalExamScore / 100) * finalExamQuestions.length)} von ${finalExamQuestions.length} richtig — für das Zertifikat sind mindestens 80% erforderlich.`}
                   </p>
                 </div>
 
-                {finalExamScore === 100 && (
+                {finalExamScore >= 80 && (
                   <div className="space-y-3">
                     {issuingCertificate && (
                       <div className="flex items-center justify-center gap-2 text-[#30E3CA]/70 text-xs">
@@ -2343,7 +2343,7 @@ export default function LearningPathPage() {
                   </div>
                 )}
 
-                {finalExamScore < 100 && (
+                {finalExamScore < 80 && (
                   <button
                     onClick={() => {
                       setFinalExamAnswers({});

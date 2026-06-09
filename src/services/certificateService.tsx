@@ -14,8 +14,8 @@ export class CertificateService {
       .select('final_exam_score')
       .eq('id', learningPath.id)
       .maybeSingle();
-    if ((lpCheck?.final_exam_score ?? 0) !== 100) {
-      throw new Error('Die Abschlussprüfung muss mit 100% bestanden werden, um das Zertifikat zu erhalten.');
+    if ((lpCheck?.final_exam_score ?? 0) < 80) {
+      throw new Error('Die Abschlussprüfung muss mit mindestens 80% bestanden werden, um das Zertifikat zu erhalten.');
     }
 
     // Try to get the full display name from the profile

@@ -14,7 +14,7 @@ import { LearningPathPaywall } from './LearningPathPaywall';
 
 // ── Constants ──────────────────────────────────────────────────────────────────
 
-const VISION_WEBHOOK_URL = 'https://hook.eu2.make.com/2gw464yqj339tqv3eh6yiv6qnw2q76q1';
+const VISION_WEBHOOK_URL = import.meta.env.VITE_MAKE_WEBHOOK_SKILLGAP || 'https://hook.eu2.make.com/2gw464yqj339tqv3eh6yiv6qnw2q76q1';
 const POLL_INTERVAL_MS = 3_000;
 const POLL_MAX = 40;
 const FALLBACK_TIMEOUT_MS = 60_000;
