@@ -1,4 +1,4 @@
-import React, { useEffect, useRef } from 'react';
+import React, { useEffect, useLayoutEffect, useRef, useState } from 'react';
 
 type EditorSection = {
   type: string;
@@ -110,6 +110,21 @@ export const MinimalCVTemplate: React.FC<MinimalCVTemplateProps> = ({
   pageCount, // 🔥 NEU
 }) => {
   const summaryRef = useRef<HTMLTextAreaElement | null>(null);
+  const contentRef = useRef<HTMLDivElement | null>(null);
+  const [containerMinHeight, setContainerMinHeight] = useState(1122);
+
+  useLayoutEffect(() => {
+    const el = contentRef.current;
+    if (!el) return;
+    const update = () => {
+      const h = el.offsetHeight;
+      setContainerMinHeight(Math.max(1122, Math.ceil(h / 1122) * 1122));
+    };
+    update();
+    const ro = new ResizeObserver(update);
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, []);
 
   useEffect(() => {
     if (summaryRef.current) autoResize(summaryRef.current);
@@ -649,9 +664,10 @@ export const MinimalCVTemplate: React.FC<MinimalCVTemplateProps> = ({
       style={{
         wordBreak: 'break-word',
         overflowWrap: 'anywhere',
-        minHeight: '1122px',
+        minHeight: `${containerMinHeight}px`,
       }}
     >
+      <div ref={contentRef}>
       {/* Header */}
       <header className="px-8 pt-6 pb-4 border-b border-slate-200 flex justify-between gap-6 bg-slate-50/70">
         <div className="flex-1 min-w-0">
@@ -802,6 +818,7 @@ export const MinimalCVTemplate: React.FC<MinimalCVTemplateProps> = ({
       )}
 
       {/* 🔥 Footer mit marginTop: 'auto' */}
+      </div>
       <footer
         data-pdf-footer
         style={{

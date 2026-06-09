@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useLayoutEffect, useRef, useState } from 'react';
 
 type EditorSection = {
   type: string;
@@ -118,6 +118,22 @@ export const ClassicCVTemplate: React.FC<ClassicCVTemplateProps> = ({
   pageBreakItems,
   pageCount, // 🔥 NEU
 }) => {
+  const contentRef = useRef<HTMLDivElement | null>(null);
+  const [containerMinHeight, setContainerMinHeight] = useState(1122);
+
+  useLayoutEffect(() => {
+    const el = contentRef.current;
+    if (!el) return;
+    const update = () => {
+      const h = el.offsetHeight;
+      setContainerMinHeight(Math.max(1122, Math.ceil(h / 1122) * 1122));
+    };
+    update();
+    const ro = new ResizeObserver(update);
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, []);
+
   const findSectionIndex = (type: string) =>
     sections.findIndex((s) => s.type === type);
 
@@ -517,7 +533,7 @@ export const ClassicCVTemplate: React.FC<ClassicCVTemplateProps> = ({
       className="w-full text-slate-800 bg-white flex flex-col"
       style={{
         fontFamily: 'Inter, system-ui, -apple-system, sans-serif',
-        minHeight: '1122px',
+        minHeight: `${containerMinHeight}px`,
         width: '100%',
         boxSizing: 'border-box',
         wordBreak: 'break-word',
@@ -525,7 +541,7 @@ export const ClassicCVTemplate: React.FC<ClassicCVTemplateProps> = ({
         border: '1px solid #e2e8f0',
       }}
     >
-      <div className="w-full p-8">
+      <div ref={contentRef} className="w-full p-8">
         <div className="flex gap-8">
           
           {/* Linke Spalte */}

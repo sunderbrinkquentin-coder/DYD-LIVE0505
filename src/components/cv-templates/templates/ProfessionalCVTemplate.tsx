@@ -1,4 +1,4 @@
-import React, { useEffect, useRef } from 'react';
+import React, { useEffect, useLayoutEffect, useRef, useState } from 'react';
 
 type EditorSection = {
   type: string;
@@ -87,6 +87,21 @@ export const ProfessionalCVTemplate: React.FC<ProfessionalCVTemplateProps> = ({
   pageCount,
 }) => {
   const summaryRef = useRef<HTMLTextAreaElement | null>(null);
+  const contentRef = useRef<HTMLDivElement | null>(null);
+  const [containerMinHeight, setContainerMinHeight] = useState(1122);
+
+  useLayoutEffect(() => {
+    const el = contentRef.current;
+    if (!el) return;
+    const update = () => {
+      const h = el.offsetHeight;
+      setContainerMinHeight(Math.max(1122, Math.ceil(h / 1122) * 1122));
+    };
+    update();
+    const ro = new ResizeObserver(update);
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, []);
 
   useEffect(() => {
     if (summaryRef.current) {
@@ -729,10 +744,11 @@ export const ProfessionalCVTemplate: React.FC<ProfessionalCVTemplateProps> = ({
       style={{
         display: 'flex',
         flexDirection: 'column',
-        minHeight: '1122px',
+        minHeight: `${containerMinHeight}px`,
       }}
     >
       {/* Dunkler Professional-Header */}
+      <div ref={contentRef}>
       <header className="px-8 pt-7 pb-5 bg-slate-900 text-white flex justify-between gap-6 items-start border-b-4 border-[#30E3CA]">
         <div className="flex-1 min-w-0">
           <input
@@ -897,6 +913,7 @@ export const ProfessionalCVTemplate: React.FC<ProfessionalCVTemplateProps> = ({
       )}
 
       {/* 🔥 Footer mit marginTop: 'auto' — geht an den Boden der berechneten Seite */}
+      </div>
       <footer
         data-pdf-footer
         style={{

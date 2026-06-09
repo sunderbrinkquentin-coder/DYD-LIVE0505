@@ -1,4 +1,4 @@
-import React, { useCallback, useRef, useEffect } from 'react';
+import React, { useCallback, useLayoutEffect, useRef, useEffect, useState } from 'react';
 
 type EditorSection = {
   type: string;
@@ -339,6 +339,21 @@ export const ModernCVTemplate: React.FC<ModernCVTemplateProps> = ({
 }) => {
   const today = new Date().toLocaleDateString('de-DE', { day: '2-digit', month: '2-digit', year: 'numeric' });
   const footerLocation = (personalInfo.footerLocation ?? personalInfo.location ?? '').toString();
+  const contentRef = useRef<HTMLDivElement | null>(null);
+  const [containerMinHeight, setContainerMinHeight] = useState(1122);
+
+  useLayoutEffect(() => {
+    const el = contentRef.current;
+    if (!el) return;
+    const update = () => {
+      const h = el.offsetHeight;
+      setContainerMinHeight(Math.max(1122, Math.ceil(h / 1122) * 1122));
+    };
+    update();
+    const ro = new ResizeObserver(update);
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, []);
 
   const renderExperienceOrProjects = (
     section: EditorSection,
@@ -963,7 +978,7 @@ export const ModernCVTemplate: React.FC<ModernCVTemplateProps> = ({
           fontFamily: FONT,
           color: '#1e293b',
           width: '794px',
-          minHeight: '1122px',
+          minHeight: `${containerMinHeight}px`,
           display: 'flex',
           flexDirection: 'column',
           backgroundColor: CI.bg,
@@ -973,6 +988,7 @@ export const ModernCVTemplate: React.FC<ModernCVTemplateProps> = ({
         }}
       >
         {/* ── HEADER ─────────────────────────────────────────────────────── */}
+        <div ref={contentRef}>
         <header
           style={{
             backgroundColor: CI.bg,
@@ -1179,6 +1195,7 @@ export const ModernCVTemplate: React.FC<ModernCVTemplateProps> = ({
         )}
 
         {/* ── FOOTER ─────────────────────────────────────────────────────── */}
+        </div>
         <footer
           data-pdf-footer
           style={{

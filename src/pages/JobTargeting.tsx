@@ -150,6 +150,11 @@ export function JobTargeting() {
       internships: [],
       hobbies: [],
       workValues: [],
+      stipendien: [],
+      volunteerWork: [],
+      certificates: [],
+      languages: [],
+      summary: '',
     } as unknown as CVBuilderData;
 
     setIsSaving(true);

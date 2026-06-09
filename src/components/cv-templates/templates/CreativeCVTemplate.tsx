@@ -1,5 +1,5 @@
 // src/components/cv-templates/templates/CreativeCVTemplate.tsx
-import React, { useEffect, useRef } from 'react';
+import React, { useEffect, useLayoutEffect, useRef, useState } from 'react';
 
 type EditorSection = {
   type: string;
@@ -66,6 +66,21 @@ export const CreativeCVTemplate: React.FC<CreativeCVTemplateProps> = ({
   pageCount, // 🔥 direkt als Prop
 }) => {
   const summaryRef = useRef<HTMLTextAreaElement>(null);
+  const contentRef = useRef<HTMLDivElement | null>(null);
+  const [containerMinHeight, setContainerMinHeight] = useState(PAGE_HEIGHT_PX);
+
+  useLayoutEffect(() => {
+    const el = contentRef.current;
+    if (!el) return;
+    const update = () => {
+      const h = el.offsetHeight;
+      setContainerMinHeight(Math.max(PAGE_HEIGHT_PX, Math.ceil(h / PAGE_HEIGHT_PX) * PAGE_HEIGHT_PX));
+    };
+    update();
+    const ro = new ResizeObserver(update);
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, []);
 
   useEffect(() => {
     if (summaryRef.current) {
@@ -722,7 +737,7 @@ export const CreativeCVTemplate: React.FC<CreativeCVTemplateProps> = ({
       style={{
         wordBreak: 'break-word',
         overflowWrap: 'anywhere',
-        minHeight: `${PAGE_HEIGHT_PX}px`,
+        minHeight: `${containerMinHeight}px`,
         WebkitPrintColorAdjust: 'exact',
         printColorAdjust: 'exact',
       }}
@@ -754,6 +769,7 @@ export const CreativeCVTemplate: React.FC<CreativeCVTemplateProps> = ({
       </div>
 
       {/* Header */}
+      <div ref={contentRef}>
       <header className="relative px-6 pt-4 pb-2.5 flex items-center justify-between border-b border-slate-200 bg-slate-50 gap-3 flex-shrink-0">
         <div className="relative flex-1 min-w-0">
           <input
@@ -924,6 +940,7 @@ export const CreativeCVTemplate: React.FC<CreativeCVTemplateProps> = ({
       )}
 
       {/* 🔥 Footer mit marginTop: 'auto' — geht an den Boden der berechneten Seite */}
+      </div>
       <footer
         data-pdf-footer
         className="relative flex-shrink-0"
