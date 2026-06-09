@@ -1266,6 +1266,7 @@ export function CareerVisionSection({ cvId: initialCvId, onAnalysisComplete, res
         return;
       }
 
+      console.log('[SkillGap] Starting flow for resumePathId:', resumePathId);
       // 4. Polling SOFORT einrichten — unabhängig vom Make-Aufruf
       const showResult = (row: Record<string, unknown>) => {
         if (completedRef.current) return;
@@ -1286,29 +1287,61 @@ export function CareerVisionSection({ cvId: initialCvId, onAnalysisComplete, res
 
       const poll = async () => {
         if (cancelled || completedRef.current) return;
+        console.log('[SkillGap] Polling status for', resumePathId);
         try {
-          const { data: d1, error: e1 } = await supabase
+          const { data: statusRow, error: statusErr } = await supabase
             .from('learning_paths')
-            .select('status, missing_skills, current_skills, strategic_outlook_2026, match_score, industry, target_job, target_company')
+            .select('status')
             .eq('id', resumePathId)
             .maybeSingle();
-          const fresh = (!e1 && d1) ? d1 as Record<string, unknown> : null;
-          if (fresh && COMPLETE_STATUSES.has(fresh.status as string)) {
-            showResult(fresh);
+
+          console.log('[SkillGap] Poll result:', statusRow?.status, statusErr?.message ?? 'ok');
+
+          if (statusRow && COMPLETE_STATUSES.has(statusRow.status as string)) {
+            console.log('[SkillGap] Completed! Loading full data...');
+            const { data: full } = await supabase
+              .from('learning_paths')
+              .select('*')
+              .eq('id', resumePathId)
+              .maybeSingle();
+            showResult((full ?? statusRow) as Record<string, unknown>);
             return;
           }
-        } catch { /* weiter versuchen */ }
+        } catch (e: any) {
+          console.error('[SkillGap] Poll error:', e.message);
+        }
         if (!cancelled && !completedRef.current) {
-          const t = setTimeout(poll, 5_000);
-          timers.push(t);
+          timers.push(setTimeout(poll, 5_000));
         }
       };
 
-      // Ersten Poll nach 5 Sek., dann alle 5 Sek.
+      // Realtime: sofort reagieren wenn Make die DB updated
+      const channel = supabase
+        .channel(`skillgap_result_${resumePathId}`)
+        .on('postgres_changes', {
+          event: 'UPDATE',
+          schema: 'public',
+          table: 'learning_paths',
+          filter: `id=eq.${resumePathId}`,
+        }, async (payload) => {
+          const status = (payload.new as any)?.status as string;
+          if (COMPLETE_STATUSES.has(status)) {
+            const { data: full } = await supabase
+              .from('learning_paths').select('*').eq('id', resumePathId).maybeSingle();
+            showResult((full ?? payload.new) as Record<string, unknown>);
+          }
+        })
+        .subscribe();
+      timers.push(0 as any); // Placeholder, channel wird im cleanup entfernt
+      const origCleanup = () => { supabase.removeChannel(channel); };
+      (timers as any).__channelCleanup = origCleanup;
+
+      // Polling als Fallback alle 5 Sek.
       timers.push(setTimeout(poll, 5_000));
-      // Fallback nach 4 Min.
+      // Fallback-UI nach 4 Min.
       timers.push(setTimeout(() => { if (!completedRef.current) setPhase('fallback'); }, 240_000));
 
+      console.log('[SkillGap] Polling set up. Firing Make webhook...');
       // 5. Make Webhook feuern — OHNE await zu blockieren
       const makeUrl = import.meta.env.VITE_MAKE_WEBHOOK_SKILLGAP;
       if (!makeUrl) {
@@ -1351,7 +1384,8 @@ export function CareerVisionSection({ cvId: initialCvId, onAnalysisComplete, res
 
     return () => {
       cancelled = true;
-      timers.forEach(clearTimeout);
+      timers.forEach((t) => { if (typeof t === 'number') clearTimeout(t); });
+      if ((timers as any).__channelCleanup) (timers as any).__channelCleanup();
     };
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [resumePathId]);
