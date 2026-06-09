@@ -1270,7 +1270,7 @@ export default function LandingPage() {
                   {/* Right: lineup image */}
                   <div className="lg:w-[320px] flex-shrink-0 flex items-end justify-center lg:justify-end overflow-hidden">
                     <img
-                      src="/public-static/Workshop_LineUP_Quentin.png"
+                      src="/Workshop_LineUP_Quentin.png"
                       alt="Workshop Lineup – Quentin Sunderbrink"
                       className="w-full max-w-[280px] lg:max-w-none lg:w-[320px] object-contain object-bottom rounded-b-3xl lg:rounded-none lg:rounded-br-3xl"
                       style={{ maxHeight: '380px' }}
@@ -1472,7 +1472,7 @@ export default function LandingPage() {
                   <div className="flex-shrink-0 w-full sm:w-56 rounded-2xl overflow-hidden border border-white/10"
                     style={{ background: 'rgba(255,255,255,0.03)' }}>
                     <img
-                      src="/public-static/Workshop_LineUP_Quentin.png"
+                      src="/Workshop_LineUP_Quentin.png"
                       alt="Quentin Sunderbrink – Speaker"
                       className="w-full object-cover object-top"
                       style={{ maxHeight: '200px' }}
