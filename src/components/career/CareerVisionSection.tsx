@@ -19,8 +19,9 @@ const POLL_INTERVAL_MS = 3_000;
 const POLL_MAX = 40;
 const FALLBACK_TIMEOUT_MS = 60_000;
 const CV_DATA_POLL_MAX = 30;
-const PAID_POLL_MAX = 45;       // war: 10
-const PAID_POLL_INTERVAL_MS = 2_000;   // 45 × 2s = 90 Sek.
+// Max polls waiting for skillgap_paid (45 × 2s = 90s)
+const PAID_POLL_MAX = 45;
+const PAID_POLL_INTERVAL_MS = 2_000;
 
 const COMPLETE_STATUSES = new Set(['gap_analysis_complete', 'curriculum_ready', 'completed']);
 
@@ -1159,18 +1160,44 @@ export function CareerVisionSection({ cvId: initialCvId, onAnalysisComplete, res
     completedRef.current = false;
     pathIdRef.current = pathId;
 
-    try {
-      const { error } = await supabase.functions.invoke('trigger-skillgap', {
-        body: { path_id: pathId },
-      });
-      if (error) {
-        console.error('[CVSection] trigger-skillgap error:', error.message);
-        setApiError('Die Analyse konnte nicht gestartet werden. Bitte versuche es erneut.');
-        setPhase('idle');
-        return;
+    const makeUrl = import.meta.env.VITE_MAKE_WEBHOOK_SKILLGAP;
+    if (makeUrl) {
+      try {
+        const { data: lp } = await supabase
+          .from('learning_paths')
+          .select('user_id, target_job, target_company, vision_description, industry, cv_id')
+          .eq('id', pathId)
+          .maybeSingle();
+
+        let cvData: string | null = null;
+        if (lp?.cv_id) {
+          const { data: cv } = await supabase
+            .from('stored_cvs')
+            .select('cv_data, extracted_text')
+            .eq('id', lp.cv_id)
+            .maybeSingle();
+          if (cv) cvData = (cv.extracted_text as string | null) ?? (cv.cv_data as string | null) ?? null;
+        }
+
+        await fetch(makeUrl, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            learning_path_id: pathId,
+            user_id: lp?.user_id ?? null,
+            target_job: lp?.target_job ?? null,
+            target_company: lp?.target_company ?? null,
+            vision_description: lp?.vision_description ?? null,
+            industry: lp?.industry ?? null,
+            cv_data: cvData,
+            timestamp: new Date().toISOString(),
+          }),
+        });
+      } catch (e: any) {
+        console.warn('[CVSection] Make webhook call failed (continuing polling):', e.message);
       }
-    } catch (e: any) {
-      console.warn('[CVSection] trigger-skillgap invoke failed (continuing polling):', e.message);
+    } else {
+      console.warn('[CVSection] VITE_MAKE_WEBHOOK_SKILLGAP not set');
     }
 
     startRealtime(pathId);
