@@ -16,8 +16,8 @@ import { SkillGapPaywall } from './SkillGapPaywall';
 // ── Constants ──────────────────────────────────────────────────────────────────
 
 const POLL_INTERVAL_MS = 3_000;
-const POLL_MAX = 40;
-const FALLBACK_TIMEOUT_MS = 60_000;
+const POLL_MAX = 80;           // 80 × 3s = 4 Minuten
+const FALLBACK_TIMEOUT_MS = 150_000; // 2.5 Minuten bevor Fallback erscheint
 const CV_DATA_POLL_MAX = 30;
 // Max polls waiting for skillgap_paid (45 × 2s = 90s)
 const PAID_POLL_MAX = 45;
@@ -1293,7 +1293,8 @@ export function CareerVisionSection({ cvId: initialCvId, onAnalysisComplete, res
     })();
 
     return () => { cancelled = true; };
-  }, [resumePathId, handleCompletion, startRealtime, startPolling]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [resumePathId]);
 
   // ── Handlers ────────────────────────────────────────────────────────────────
 
@@ -1373,14 +1374,14 @@ export function CareerVisionSection({ cvId: initialCvId, onAnalysisComplete, res
           <div className="flex items-start gap-3">
             <AlertCircle size={22} className="text-amber-400 flex-shrink-0 mt-0.5" />
             <div className="space-y-1">
-              <p className="font-semibold text-amber-300">Analyse dauert länger als erwartet</p>
-              <p className="text-sm text-white/55">Die Verbindung könnte unterbrochen sein. Prüfe den Status manuell oder versuche es erneut.</p>
+              <p className="font-semibold text-amber-300">Analyse läuft noch — bitte warten</p>
+              <p className="text-sm text-white/55">Die KI analysiert gerade dein Profil. Das kann bis zu 3 Minuten dauern. Klicke auf "Ergebnis laden" sobald du bereit bist.</p>
             </div>
           </div>
           <div className="flex gap-3 flex-wrap">
             <button onClick={handleManualCheck}
               className="flex items-center gap-2 px-5 py-2.5 rounded-xl bg-amber-500/20 border border-amber-500/30 text-amber-200 hover:bg-amber-500/30 transition-all font-medium text-sm">
-              <Eye size={16} /> Status manuell prüfen
+              <Eye size={16} /> Ergebnis laden
             </button>
             <button onClick={handleRetry}
               className="flex items-center gap-2 px-5 py-2.5 rounded-xl bg-white/10 border border-white/20 text-white/70 hover:bg-white/20 transition-all font-medium text-sm">
