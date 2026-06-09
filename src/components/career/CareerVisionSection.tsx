@@ -1265,7 +1265,7 @@ export function CareerVisionSection({ cvId: initialCvId, onAnalysisComplete, res
       }
 
       console.log('[SkillGap] Starting flow for resumePathId:', resumePathId);
-      // 4. Polling SOFORT einrichten — unabhängig vom Make-Aufruf
+      // 4. Ergebnis anzeigen
       const showResult = (row: Record<string, unknown>) => {
         if (completedRef.current) return;
         completedRef.current = true;
@@ -1283,59 +1283,30 @@ export function CareerVisionSection({ cvId: initialCvId, onAnalysisComplete, res
         setTimeout(() => setPhase('done'), 1_500);
       };
 
-      const poll = async () => {
-        if (cancelled || completedRef.current) return;
-        console.log('[SkillGap] Polling status for', resumePathId);
+      // 5. Polling — alle 5 Sek. bis status = completed
+      const intervalId = setInterval(async () => {
+        if (cancelled || completedRef.current) {
+          clearInterval(intervalId);
+          return;
+        }
         try {
-          const { data: statusRow, error: statusErr } = await supabase
+          console.log('[SkillGap] Polling:', resumePathId);
+          const { data: row } = await supabase
             .from('learning_paths')
-            .select('status')
+            .select('status, missing_skills, current_skills, strategic_outlook_2026, match_score, industry, target_job, target_company')
             .eq('id', resumePathId)
             .maybeSingle();
-
-          console.log('[SkillGap] Poll result:', statusRow?.status, statusErr?.message ?? 'ok');
-
-          if (statusRow && COMPLETE_STATUSES.has(statusRow.status as string)) {
-            console.log('[SkillGap] Completed! Loading full data...');
-            const { data: full } = await supabase
-              .from('learning_paths')
-              .select('*')
-              .eq('id', resumePathId)
-              .maybeSingle();
-            showResult((full ?? statusRow) as Record<string, unknown>);
-            return;
+          console.log('[SkillGap] Status:', row?.status);
+          if (row && COMPLETE_STATUSES.has(row.status as string)) {
+            clearInterval(intervalId);
+            showResult(row as Record<string, unknown>);
           }
         } catch (e: any) {
           console.error('[SkillGap] Poll error:', e.message);
         }
-        if (!cancelled && !completedRef.current) {
-          timers.push(setTimeout(poll, 5_000));
-        }
-      };
+      }, 5_000);
 
-      // Realtime: sofort reagieren wenn Make die DB updated
-      const channel = supabase
-        .channel(`skillgap_result_${resumePathId}`)
-        .on('postgres_changes', {
-          event: 'UPDATE',
-          schema: 'public',
-          table: 'learning_paths',
-          filter: `id=eq.${resumePathId}`,
-        }, async (payload) => {
-          const status = (payload.new as any)?.status as string;
-          if (COMPLETE_STATUSES.has(status)) {
-            const { data: full } = await supabase
-              .from('learning_paths').select('*').eq('id', resumePathId).maybeSingle();
-            showResult((full ?? payload.new) as Record<string, unknown>);
-          }
-        })
-        .subscribe();
-      timers.push(0 as any); // Placeholder, channel wird im cleanup entfernt
-      const origCleanup = () => { supabase.removeChannel(channel); };
-      (timers as any).__channelCleanup = origCleanup;
-
-      // Polling als Fallback alle 5 Sek.
-      timers.push(setTimeout(poll, 5_000));
+      timers.push(intervalId as unknown as ReturnType<typeof setTimeout>);
       // Fallback-UI nach 4 Min.
       timers.push(setTimeout(() => { if (!completedRef.current) setPhase('fallback'); }, 240_000));
 
@@ -1383,8 +1354,7 @@ export function CareerVisionSection({ cvId: initialCvId, onAnalysisComplete, res
 
     return () => {
       cancelled = true;
-      timers.forEach((t) => { if (typeof t === 'number') clearTimeout(t); });
-      if ((timers as any).__channelCleanup) (timers as any).__channelCleanup();
+      timers.forEach((t) => { try { clearInterval(t as any); clearTimeout(t as any); } catch {} });
     };
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [resumePathId]);
