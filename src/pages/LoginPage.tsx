@@ -88,6 +88,21 @@ export function LoginPage() {
           const uploadId = from.split('/cv-result/')[1];
           console.log('[LoginPage] 🔐 CV-Check flow detected, redirecting to paywall with uploadId:', uploadId);
           navigate(`/cv-paywall?cvId=${uploadId}&source=cv-check`, { replace: true });
+        } else if (from.includes('/cv-paywall')) {
+          // Paywall redirect — preserve the full URL with cvId/source params.
+          // Also restore cvId from localStorage if not already in redirect URL.
+          const storedCvId = localStorage.getItem('paywall_cv_id');
+          const storedSource = localStorage.getItem('paywall_cv_source');
+          if (storedCvId && !from.includes('cvId=')) {
+            const extraSource = storedSource ? `&source=${storedSource}` : '';
+            localStorage.removeItem('paywall_cv_id');
+            localStorage.removeItem('paywall_cv_source');
+            navigate(`/cv-paywall?cvId=${storedCvId}${extraSource}`, { replace: true });
+          } else {
+            localStorage.removeItem('paywall_cv_id');
+            localStorage.removeItem('paywall_cv_source');
+            navigate(from, { replace: true });
+          }
         } else {
           // Redirect to original page (z.B. /cv-result/:uploadId)
           // Action param wird in der Zielseite abgefragt

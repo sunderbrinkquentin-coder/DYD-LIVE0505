@@ -463,7 +463,7 @@ export const CreativeCVTemplate: React.FC<CreativeCVTemplateProps> = ({
 
       case 'languages':
         return (
-          <div key={sectionIndex}>
+          <div key={sectionIndex} style={{ breakInside: 'avoid', pageBreakInside: 'avoid' }}>
             <SectionTitle>Sprachen</SectionTitle>
             <div className="space-y-0.5">
               {items.map((lang: any, idx: number) => (
@@ -626,7 +626,7 @@ export const CreativeCVTemplate: React.FC<CreativeCVTemplateProps> = ({
                   return (
                     <li
                       key={idx}
-                      className="py-0.5 border-b border-white/15 last:border-b-0"
+                      className="py-0.5 border-b border-white/30 last:border-b-0"
                       style={{ breakInside: 'avoid', pageBreakInside: 'avoid' }}
                     >
                       <div style={{ fontWeight: 600, marginBottom: institution || date ? '2px' : '0' }}>
@@ -640,7 +640,7 @@ export const CreativeCVTemplate: React.FC<CreativeCVTemplateProps> = ({
                         />
                       </div>
                       {institution && (
-                        <div style={{ fontSize: '9px', color: '#cbd5e1', marginBottom: date ? '2px' : '0' }}>
+                        <div style={{ fontSize: '9px', color: '#e2e8f0', marginBottom: date ? '2px' : '0' }}>
                           <input
                             className="w-full outline-none bg-transparent"
                             value={institution}
@@ -652,7 +652,7 @@ export const CreativeCVTemplate: React.FC<CreativeCVTemplateProps> = ({
                         </div>
                       )}
                       {date && (
-                        <div style={{ fontSize: '9px', color: '#cbd5e1' }}>
+                        <div style={{ fontSize: '9px', color: '#e2e8f0' }}>
                           <input
                             className="w-full outline-none bg-transparent"
                             value={date}
@@ -674,7 +674,7 @@ export const CreativeCVTemplate: React.FC<CreativeCVTemplateProps> = ({
                 return (
                   <li
                     key={idx}
-                    className="py-0.5 border-b border-white/15 last:border-b-0"
+                    className="py-0.5 border-b border-white/30 last:border-b-0"
                     style={{ breakInside: 'avoid', pageBreakInside: 'avoid' }}
                   >
                     <input

@@ -112,6 +112,8 @@ export default function CvPaywallPage() {
   const [userTokens, setUserTokens] = useState<number>(0);
   const [isUsingToken, setIsUsingToken] = useState(false);
   const [showSlowHint, setShowSlowHint] = useState(false);
+  // Prevents redirect loop: only redirect to login once per page load
+  const [hasRedirectedToLogin, setHasRedirectedToLogin] = useState(false);
 
   useEffect(() => {
     setIsProcessing(false);
@@ -143,6 +145,9 @@ export default function CvPaywallPage() {
     }
 
     if (!user) {
+      // Only redirect to login once — avoids loop when Supabase session propagates after login
+      if (hasRedirectedToLogin) return;
+      setHasRedirectedToLogin(true);
       localStorage.setItem('paywall_cv_id', cvId);
       if (source) {
         localStorage.setItem('paywall_cv_source', source);
@@ -154,7 +159,7 @@ export default function CvPaywallPage() {
     }
 
     setIsChecking(true);
-  }, [user, cvId, source, navigate]);
+  }, [user, cvId, source, navigate, hasRedirectedToLogin]);
 
   useEffect(() => {
     if (!cvId) {

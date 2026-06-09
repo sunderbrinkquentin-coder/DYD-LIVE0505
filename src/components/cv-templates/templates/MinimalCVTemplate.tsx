@@ -342,7 +342,7 @@ export const MinimalCVTemplate: React.FC<MinimalCVTemplateProps> = ({
       case 'languages':
         if (!items || items.length === 0) return null;
         return (
-          <div key={sectionIndex} data-pdf-section>
+          <div key={sectionIndex} data-pdf-section style={{ breakInside: 'avoid', pageBreakInside: 'avoid' }}>
             <SectionTitle>Sprachen</SectionTitle>
             <div className="space-y-1">
               {items.map((lang: any, idx: number) => {
