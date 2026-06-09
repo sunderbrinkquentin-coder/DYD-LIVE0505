@@ -178,10 +178,15 @@ function bakeComputedStyles(liveEl: HTMLElement, cloneEl: HTMLElement): void {
   // Height — only bake for block containers, not for content-sized elements.
   // Inputs/textareas need height:auto so replaced divs can size to their text.
   // Inline elements size from content naturally.
+  // li, p — always auto so bullet content can wrap.
   const isContentSized =
     INLINE_TAGS.has(tag) ||
     tag === 'textarea' ||
     tag === 'input' ||
+    tag === 'li' ||
+    tag === 'p' ||
+    tag === 'ul' ||
+    tag === 'ol' ||
     cs.height === 'auto';
 
   if (isContentSized) {
@@ -189,15 +194,27 @@ function bakeComputedStyles(liveEl: HTMLElement, cloneEl: HTMLElement): void {
     cloneEl.style.minHeight = cs.minHeight !== 'auto' ? cs.minHeight : '0';
     cloneEl.style.maxHeight = 'none';
   } else {
-    cloneEl.style.height = cs.height;
-    cloneEl.style.minHeight = cs.minHeight;
-    cloneEl.style.maxHeight = cs.maxHeight === 'none' ? 'none' : cs.maxHeight;
+    // For flex/grid containers that might contain text, let height grow.
+    // Only bake explicit px heights for containers that layout their children.
+    const isFlex = cs.display === 'flex' || cs.display === 'inline-flex';
+    const isGrid = cs.display === 'grid' || cs.display === 'inline-grid';
+    if (isFlex || isGrid) {
+      // Use minHeight so the container can grow if text wraps
+      cloneEl.style.height = 'auto';
+      cloneEl.style.minHeight = cs.minHeight !== 'auto' && cs.minHeight !== '0px' ? cs.minHeight : '0';
+    } else {
+      cloneEl.style.height = cs.height;
+      cloneEl.style.minHeight = cs.minHeight;
+    }
+    cloneEl.style.maxHeight = 'none';
   }
 
-  // Overflow
-  cloneEl.style.overflow = cs.overflow;
-  cloneEl.style.overflowX = cs.overflowX;
-  cloneEl.style.overflowY = cs.overflowY;
+  // Overflow — never clip content in the PDF clone.
+  // In the live editor overflow:hidden hides scrollbars, but in the PDF
+  // it clips text that wraps to additional lines.
+  cloneEl.style.overflow = 'visible';
+  cloneEl.style.overflowX = 'visible';
+  cloneEl.style.overflowY = 'visible';
 
   // Flex container
   if (cs.display === 'flex' || cs.display === 'inline-flex') {
@@ -295,11 +312,11 @@ function prepareClone(clone: HTMLElement, liveRoot: HTMLElement): void {
   for (let i = 0; i < cloneTAs.length; i++) {
     const ct = cloneTAs[i];
     const lt = liveTAs[i];
-    
+
     // Zieht den Wert direkt aus der echten Textarea des Editors
     const val = (lt?.value || lt?.textContent || ct.value || '').trim();
 
-    // 🛠️ WICHTIG: Wir deaktivieren das Löschen von "Platzhaltern" für den Export, 
+    // 🛠️ WICHTIG: Wir deaktivieren das Löschen von "Platzhaltern" für den Export,
     // damit KI-generierte Bullets nicht versehentlich gelöscht werden.
     if (val === '') {
       const row = ct.closest('[data-pdf-field-wrap]') ?? ct.closest('li');
@@ -319,6 +336,20 @@ function prepareClone(clone: HTMLElement, liveRoot: HTMLElement): void {
     div.style.wordBreak = 'break-word';
     div.style.resize = 'none';
     ct.parentNode?.replaceChild(div, ct);
+
+    // Unlock parent chain so they can grow with the content
+    let ancestor = div.parentElement;
+    let depth = 0;
+    while (ancestor && ancestor !== clone && depth < 6) {
+      ancestor.style.height = 'auto';
+      ancestor.style.minHeight = '0';
+      ancestor.style.maxHeight = 'none';
+      ancestor.style.overflow = 'visible';
+      ancestor.style.overflowX = 'visible';
+      ancestor.style.overflowY = 'visible';
+      ancestor = ancestor.parentElement;
+      depth++;
+    }
   }
 
   // contentEditable spans (ModernCVTemplate)
@@ -328,6 +359,13 @@ function prepareClone(clone: HTMLElement, liveRoot: HTMLElement): void {
     el.style.outline = 'none';
     el.style.cursor = 'default';
     el.style.caretColor = 'transparent';
+    // Ensure text can wrap freely
+    el.style.height = 'auto';
+    el.style.minHeight = '0';
+    el.style.maxHeight = 'none';
+    el.style.overflow = 'visible';
+    el.style.whiteSpace = 'pre-wrap';
+    el.style.wordBreak = 'break-word';
     const text = (el.textContent ?? '').trim();
     if (isPlaceholder(text) || text === '') {
       el.textContent = '';
@@ -352,6 +390,29 @@ function prepareClone(clone: HTMLElement, liveRoot: HTMLElement): void {
     div.style.backgroundPosition = 'center';
     div.style.backgroundRepeat = 'no-repeat';
     img.parentNode?.replaceChild(div, img);
+  });
+
+  // Final pass: ensure no element clips its content in the PDF clone.
+  // This catches any containers whose overflow:hidden was baked before
+  // textarea/input replacement expanded the content.
+  // All content-bearing elements must grow with their text.
+  clone.querySelectorAll<HTMLElement>(
+    'li, ul, ol, p, [data-pdf-section], [data-pdf-bullet-row]'
+  ).forEach(el => {
+    el.style.overflow = 'visible';
+    el.style.overflowX = 'visible';
+    el.style.overflowY = 'visible';
+    el.style.height = 'auto';
+    el.style.maxHeight = 'none';
+  });
+
+  // Also unlock any div that directly contains an li or replaced textarea-div
+  clone.querySelectorAll<HTMLElement>('div').forEach(el => {
+    if (el.querySelector('li, ul') || el.getAttribute('data-pdf-section') !== null) {
+      el.style.overflow = 'visible';
+      el.style.height = 'auto';
+      el.style.maxHeight = 'none';
+    }
   });
 }
 
@@ -515,8 +576,8 @@ async function renderElementToPDFBlob(
   document.body.appendChild(clone);
   prepareClone(clone, element);
 
-  // Let browser lay out the clone
-  await new Promise<void>(r => requestAnimationFrame(() => r()));
+  // Let browser fully reflow the clone (two frames + microtask for auto-height elements)
+  await new Promise<void>(r => requestAnimationFrame(() => requestAnimationFrame(() => setTimeout(r, 50))));
 
   const cloneH = clone.scrollHeight;
 
