@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { X, ArrowRight, Pencil, Plus, Trash2, Check, ChevronDown, ChevronUp } from 'lucide-react';
-import { CVBuilderData, WorkExperience, ProfessionalEducation } from '../../types/cvBuilder';
+import { CVBuilderData, WorkExperience, ProfessionalEducation, Certificate, VolunteerWork, Stipendium } from '../../types/cvBuilder';
 
 interface WizardCVOverviewProps {
   isOpen: boolean;
@@ -60,6 +60,22 @@ const EMPTY_EDU: ProfessionalEducation = {
   endYear: '',
 };
 
+const EMPTY_CERT: Certificate = {
+  name: '',
+  issuer: '',
+  year: '',
+  description: '',
+};
+
+const EMPTY_VOLUNTEER: VolunteerWork = {
+  role: '',
+  organization: '',
+  startDate: '',
+  endDate: '',
+  current: false,
+  description: '',
+};
+
 export function WizardCVOverview({ isOpen, cvData, cvId, onClose, onContinue }: WizardCVOverviewProps) {
   const navigate = useNavigate();
 
@@ -68,6 +84,9 @@ export function WizardCVOverview({ isOpen, cvData, cvId, onClose, onContinue }: 
     workExperiences: cvData.workExperiences ? cvData.workExperiences.map(e => ({ ...e })) : [],
     professionalEducation: cvData.professionalEducation ? cvData.professionalEducation.map(e => ({ ...e })) : [],
     schoolEducation: cvData.schoolEducation ? cvData.schoolEducation.map(e => ({ ...e })) : [],
+    certificates: cvData.certificates ? cvData.certificates.map(e => ({ ...e })) : [],
+    volunteerWork: cvData.volunteerWork ? cvData.volunteerWork.map(e => ({ ...e })) : [],
+    stipendien: cvData.stipendien ? cvData.stipendien.map(e => ({ ...e })) : [],
   }));
 
   const [confirmed, setConfirmed] = useState(false);
@@ -75,6 +94,9 @@ export function WizardCVOverview({ isOpen, cvData, cvId, onClose, onContinue }: 
   const [expandedEdu, setExpandedEdu] = useState(true);
   const [expandedSchool, setExpandedSchool] = useState(false);
   const [expandedSkills, setExpandedSkills] = useState(false);
+  const [expandedCerts, setExpandedCerts] = useState(false);
+  const [expandedVolunteer, setExpandedVolunteer] = useState(false);
+  const [expandedStipendien, setExpandedStipendien] = useState(false);
 
   if (!isOpen) return null;
 
@@ -90,12 +112,10 @@ export function WizardCVOverview({ isOpen, cvData, cvId, onClose, onContinue }: 
     });
     setConfirmed(false);
   };
-
   const deleteExp = (i: number) => {
     setData(prev => ({ ...prev, workExperiences: (prev.workExperiences || []).filter((_, idx) => idx !== i) }));
     setConfirmed(false);
   };
-
   const addExp = () => {
     setData(prev => ({ ...prev, workExperiences: [...(prev.workExperiences || []), { ...EMPTY_EXPERIENCE }] }));
     setExpandedExp(true);
@@ -111,15 +131,51 @@ export function WizardCVOverview({ isOpen, cvData, cvId, onClose, onContinue }: 
     });
     setConfirmed(false);
   };
-
   const deleteEdu = (i: number) => {
     setData(prev => ({ ...prev, professionalEducation: (prev.professionalEducation || []).filter((_, idx) => idx !== i) }));
     setConfirmed(false);
   };
-
   const addEdu = () => {
     setData(prev => ({ ...prev, professionalEducation: [...(prev.professionalEducation || []), { ...EMPTY_EDU }] }));
     setExpandedEdu(true);
+    setConfirmed(false);
+  };
+
+  // ── Certificate helpers ──
+  const updateCert = (i: number, field: keyof Certificate, value: any) => {
+    setData(prev => {
+      const certs = [...(prev.certificates || [])];
+      certs[i] = { ...certs[i], [field]: value };
+      return { ...prev, certificates: certs };
+    });
+    setConfirmed(false);
+  };
+  const deleteCert = (i: number) => {
+    setData(prev => ({ ...prev, certificates: (prev.certificates || []).filter((_, idx) => idx !== i) }));
+    setConfirmed(false);
+  };
+  const addCert = () => {
+    setData(prev => ({ ...prev, certificates: [...(prev.certificates || []), { ...EMPTY_CERT }] }));
+    setExpandedCerts(true);
+    setConfirmed(false);
+  };
+
+  // ── Volunteer helpers ──
+  const updateVolunteer = (i: number, field: keyof VolunteerWork, value: any) => {
+    setData(prev => {
+      const vols = [...(prev.volunteerWork || [])];
+      vols[i] = { ...vols[i], [field]: value };
+      return { ...prev, volunteerWork: vols };
+    });
+    setConfirmed(false);
+  };
+  const deleteVolunteer = (i: number) => {
+    setData(prev => ({ ...prev, volunteerWork: (prev.volunteerWork || []).filter((_, idx) => idx !== i) }));
+    setConfirmed(false);
+  };
+  const addVolunteer = () => {
+    setData(prev => ({ ...prev, volunteerWork: [...(prev.volunteerWork || []), { ...EMPTY_VOLUNTEER }] }));
+    setExpandedVolunteer(true);
     setConfirmed(false);
   };
 
@@ -128,6 +184,9 @@ export function WizardCVOverview({ isOpen, cvData, cvId, onClose, onContinue }: 
   const schools = data.schoolEducation || [];
   const hardSkills = data.hardSkills || [];
   const softSkills = data.softSkills || [];
+  const certs = data.certificates || [];
+  const volunteers = data.volunteerWork || [];
+  const stipendien = data.stipendien || [];
 
   return (
     <div className="fixed inset-0 bg-black/80 backdrop-blur-sm flex items-center justify-center z-50 p-4">
@@ -254,7 +313,7 @@ export function WizardCVOverview({ isOpen, cvData, cvId, onClose, onContinue }: 
             )}
           </div>
 
-          {/* ── Ausbildung ── */}
+          {/* ── Ausbildung & Studium ── */}
           <div>
             <SectionHeader
               label="Ausbildung & Studium"
@@ -352,7 +411,7 @@ export function WizardCVOverview({ isOpen, cvData, cvId, onClose, onContinue }: 
             )}
           </div>
 
-          {/* ── Schulbildung (collapsed by default) ── */}
+          {/* ── Schulbildung (read-only, collapsed by default) ── */}
           {schools.length > 0 && (
             <div>
               <SectionHeader
@@ -371,6 +430,188 @@ export function WizardCVOverview({ isOpen, cvData, cvId, onClose, onContinue }: 
                           {s.startYear && s.endYear ? `${s.startYear}–${s.endYear}` : (s.year || '')}
                         </span>
                       )}
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* ── Zertifikate ── */}
+          <div>
+            <SectionHeader
+              label="Zertifikate"
+              count={certs.length}
+              expanded={expandedCerts}
+              onToggle={() => setExpandedCerts(v => !v)}
+            />
+            {expandedCerts && (
+              <div className="mt-2 space-y-3 pl-1">
+                {certs.length === 0 && (
+                  <p className="text-sm text-white/30 px-2">Noch keine Zertifikate eingetragen.</p>
+                )}
+                {certs.map((cert, i) => (
+                  <div key={i} className="p-4 rounded-xl border border-white/10 bg-white/3 space-y-2">
+                    <div className="flex items-center justify-between gap-2 mb-1">
+                      <span className="text-xs font-semibold text-[#66c0b6] uppercase tracking-wider">Zertifikat {i + 1}</span>
+                      <button
+                        type="button"
+                        onClick={() => deleteCert(i)}
+                        className="p-1 hover:bg-red-500/20 rounded-md transition-colors"
+                      >
+                        <Trash2 size={13} className="text-red-400/70" />
+                      </button>
+                    </div>
+                    <div className="grid grid-cols-2 gap-2">
+                      <div>
+                        <label className="text-[10px] text-white/40 mb-0.5 block">Zertifikat</label>
+                        <input
+                          className={inputCls()}
+                          value={cert.name || ''}
+                          onChange={e => updateCert(i, 'name', e.target.value)}
+                          placeholder="z.B. AWS Certified Solutions Architect"
+                        />
+                      </div>
+                      <div>
+                        <label className="text-[10px] text-white/40 mb-0.5 block">Aussteller</label>
+                        <input
+                          className={inputCls()}
+                          value={cert.issuer || ''}
+                          onChange={e => updateCert(i, 'issuer', e.target.value)}
+                          placeholder="Amazon Web Services"
+                        />
+                      </div>
+                    </div>
+                    <div>
+                      <label className="text-[10px] text-white/40 mb-0.5 block">Jahr</label>
+                      <input
+                        className={inputCls('max-w-[120px]')}
+                        value={cert.year || ''}
+                        onChange={e => updateCert(i, 'year', e.target.value)}
+                        placeholder="2023"
+                      />
+                    </div>
+                  </div>
+                ))}
+                <button
+                  type="button"
+                  onClick={addCert}
+                  className="flex items-center gap-1.5 text-sm text-[#66c0b6] hover:text-[#30E3CA] transition-colors px-2 py-1"
+                >
+                  <Plus size={14} /> Zertifikat hinzufügen
+                </button>
+              </div>
+            )}
+          </div>
+
+          {/* ── Ehrenamt & Freiwilligenarbeit ── */}
+          <div>
+            <SectionHeader
+              label="Ehrenamt & Freiwilligenarbeit"
+              count={volunteers.length}
+              expanded={expandedVolunteer}
+              onToggle={() => setExpandedVolunteer(v => !v)}
+            />
+            {expandedVolunteer && (
+              <div className="mt-2 space-y-3 pl-1">
+                {volunteers.length === 0 && (
+                  <p className="text-sm text-white/30 px-2">Noch kein Ehrenamt eingetragen.</p>
+                )}
+                {volunteers.map((vol, i) => (
+                  <div key={i} className="p-4 rounded-xl border border-white/10 bg-white/3 space-y-2">
+                    <div className="flex items-center justify-between gap-2 mb-1">
+                      <span className="text-xs font-semibold text-[#66c0b6] uppercase tracking-wider">Ehrenamt {i + 1}</span>
+                      <button
+                        type="button"
+                        onClick={() => deleteVolunteer(i)}
+                        className="p-1 hover:bg-red-500/20 rounded-md transition-colors"
+                      >
+                        <Trash2 size={13} className="text-red-400/70" />
+                      </button>
+                    </div>
+                    <div className="grid grid-cols-2 gap-2">
+                      <div>
+                        <label className="text-[10px] text-white/40 mb-0.5 block">Rolle / Funktion</label>
+                        <input
+                          className={inputCls()}
+                          value={vol.role || ''}
+                          onChange={e => updateVolunteer(i, 'role', e.target.value)}
+                          placeholder="z.B. Trainer, Vorstand"
+                        />
+                      </div>
+                      <div>
+                        <label className="text-[10px] text-white/40 mb-0.5 block">Organisation</label>
+                        <input
+                          className={inputCls()}
+                          value={vol.organization || ''}
+                          onChange={e => updateVolunteer(i, 'organization', e.target.value)}
+                          placeholder="Verein / Initiative"
+                        />
+                      </div>
+                    </div>
+                    <div className="grid grid-cols-3 gap-2">
+                      <div>
+                        <label className="text-[10px] text-white/40 mb-0.5 block">Von (MM/YYYY)</label>
+                        <input
+                          className={inputCls()}
+                          value={vol.startDate || ''}
+                          onChange={e => updateVolunteer(i, 'startDate', e.target.value)}
+                          placeholder="01/2020"
+                        />
+                      </div>
+                      <div>
+                        <label className="text-[10px] text-white/40 mb-0.5 block">Bis (MM/YYYY)</label>
+                        <input
+                          className={inputCls()}
+                          value={vol.current ? 'Heute' : (vol.endDate || '')}
+                          onChange={e => updateVolunteer(i, 'endDate', e.target.value)}
+                          placeholder="Heute oder MM/YYYY"
+                          disabled={!!vol.current}
+                        />
+                      </div>
+                      <div className="flex flex-col justify-end pb-0.5">
+                        <label className="flex items-center gap-2 cursor-pointer select-none">
+                          <input
+                            type="checkbox"
+                            checked={!!vol.current}
+                            onChange={e => {
+                              updateVolunteer(i, 'current', e.target.checked);
+                              if (e.target.checked) updateVolunteer(i, 'endDate', 'Heute');
+                            }}
+                            className="w-3.5 h-3.5 rounded accent-[#66c0b6]"
+                          />
+                          <span className="text-xs text-white/60">Aktuell</span>
+                        </label>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+                <button
+                  type="button"
+                  onClick={addVolunteer}
+                  className="flex items-center gap-1.5 text-sm text-[#66c0b6] hover:text-[#30E3CA] transition-colors px-2 py-1"
+                >
+                  <Plus size={14} /> Ehrenamt hinzufügen
+                </button>
+              </div>
+            )}
+          </div>
+
+          {/* ── Stipendien (read-only, collapsed by default) ── */}
+          {stipendien.length > 0 && (
+            <div>
+              <SectionHeader
+                label="Stipendien"
+                count={stipendien.length}
+                expanded={expandedStipendien}
+                onToggle={() => setExpandedStipendien(v => !v)}
+              />
+              {expandedStipendien && (
+                <div className="mt-2 pl-1 space-y-1">
+                  {stipendien.map((s: Stipendium, i: number) => (
+                    <div key={i} className="flex items-center gap-2 px-3 py-2 rounded-lg bg-white/3 border border-white/10 text-sm text-white/70">
+                      <span className="flex-1">{s.name}{s.organization ? ` · ${s.organization}` : ''}</span>
+                      {s.year && <span className="text-white/40 text-xs shrink-0">{s.year}</span>}
                     </div>
                   ))}
                 </div>
@@ -437,7 +678,7 @@ export function WizardCVOverview({ isOpen, cvData, cvId, onClose, onContinue }: 
               <div>
                 <p className="text-sm font-semibold text-white">Daten sind korrekt und vollständig</p>
                 <p className="text-xs text-white/50 mt-0.5">
-                  Ich habe meine Berufs- und Ausbildungsdaten geprüft und bestätige, dass sie stimmen.
+                  Ich habe meine Daten geprüft – Berufserfahrung, Ausbildung, Zertifikate und Ehrenamt stimmen.
                 </p>
               </div>
             </label>

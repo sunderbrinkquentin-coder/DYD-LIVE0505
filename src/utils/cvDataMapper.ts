@@ -539,15 +539,28 @@ const rawVolunteerWork: any[] =
   Array.isArray(editorData.ehrenamt) ? editorData.ehrenamt :
   [];
 
-const volunteerWork = rawVolunteerWork.map((v: any) => ({
-  role: safe(v.role || v.rolle || v.position || ''),
-  organization: safe(v.organization || v.organisation || ''),
-  startDate: safe(v.startDate || v.von || ''),
-  endDate: safe(v.endDate || v.bis || ''),
-  current: !!(v.current || v.aktuell),
-  description: safe(v.description || v.beschreibung || ''),
-  bulletPoints: Array.isArray(v.bulletPoints) ? v.bulletPoints : [],
-})).filter((v: any) => v.role);
+const volunteerWork = rawVolunteerWork.map((v: any) => {
+  const rawVolStart = safe(v.startDate || v.von || '');
+  const rawVolEnd = safe(v.endDate || v.bis || '');
+  const volEndIsPresent = PRESENT_STRINGS.has(rawVolEnd.toLowerCase().trim());
+  const volIsCurrent = !!(v.current || v.aktuell) || volEndIsPresent;
+  const volStartParsed = parseDateToMonthYear(rawVolStart);
+  const volEndParsed = volIsCurrent ? { month: '', year: '' } : parseDateToMonthYear(rawVolEnd);
+  const normalizedVolStart = volStartParsed.year && volStartParsed.month
+    ? `${volStartParsed.year}-${volStartParsed.month}`
+    : volStartParsed.year || rawVolStart;
+  const normalizedVolEnd = volIsCurrent ? 'Heute'
+    : (volEndParsed.year && volEndParsed.month ? `${volEndParsed.year}-${volEndParsed.month}` : volEndParsed.year || rawVolEnd);
+  return {
+    role: safe(v.role || v.rolle || v.position || ''),
+    organization: safe(v.organization || v.organisation || ''),
+    startDate: normalizedVolStart,
+    endDate: normalizedVolEnd,
+    current: volIsCurrent,
+    description: safe(v.description || v.beschreibung || ''),
+    bulletPoints: Array.isArray(v.bulletPoints) ? v.bulletPoints : [],
+  };
+}).filter((v: any) => v.role);
 
 // Certificates
 const rawCertificates: any[] =
@@ -555,12 +568,18 @@ const rawCertificates: any[] =
   Array.isArray(editorData.zertifikate) ? editorData.zertifikate :
   [];
 
-const certificates = rawCertificates.map((c: any) => ({
-  name: safe(c.name || c.titel || c.title || ''),
-  issuer: safe(c.issuer || c.organisation || c.organization || ''),
-  year: safe(c.year || c.datum || c.jahr || ''),
-  description: safe(c.description || c.beschreibung || ''),
-})).filter((c: any) => c.name);
+const certificates = rawCertificates.map((c: any) => {
+  // Extract just the year from various date formats (e.g. "15.03.2023" → "2023")
+  const rawYear = safe(c.year || c.datum || c.jahr || c.date || '');
+  const yearMatch = rawYear.match(/\b(\d{4})\b/);
+  const certYear = yearMatch ? yearMatch[1] : rawYear;
+  return {
+    name: safe(c.name || c.titel || c.title || ''),
+    issuer: safe(c.issuer || c.organisation || c.organization || c.aussteller || ''),
+    year: certYear,
+    description: safe(c.description || c.beschreibung || ''),
+  };
+}).filter((c: any) => c.name);
 
     // Normalize startDate/endDate to YYYY-MM format (required by formatTimeframe)
     const normalizedStartDate = startParsed.year && startParsed.month
