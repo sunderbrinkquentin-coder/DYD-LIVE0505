@@ -1173,10 +1173,10 @@ export function CareerVisionSection({ cvId: initialCvId, onAnalysisComplete, res
         if (lp?.cv_id) {
           const { data: cv } = await supabase
             .from('stored_cvs')
-            .select('cv_data, extracted_text')
+            .select('cv_data')
             .eq('id', lp.cv_id)
             .maybeSingle();
-          if (cv) cvData = (cv.extracted_text as string | null) ?? (cv.cv_data as string | null) ?? null;
+          if (cv) cvData = (cv.cv_data as string | null) ?? null;
         }
 
         await fetch(makeUrl, {
@@ -1221,16 +1221,30 @@ export function CareerVisionSection({ cvId: initialCvId, onAnalysisComplete, res
       completedRef.current = false;
       pathIdRef.current = resumePathId;
 
-      // 2. DB-Zeile laden
-      const { data, error: fetchErr } = await supabase
-        .from('learning_paths')
-        .select('user_id, target_job, target_company, vision_description, industry, cv_id, status, missing_skills, current_skills, strategic_outlook_2026, match_score')
-        .eq('id', resumePathId)
-        .maybeSingle();
+      // 2. DB-Zeile laden — erst alle Felder, bei 400 Fallback auf Basisfelder
+      let data: Record<string, unknown> | null = null;
+      {
+        const { data: d1, error: e1 } = await supabase
+          .from('learning_paths')
+          .select('user_id, target_job, target_company, vision_description, industry, cv_id, status, missing_skills, current_skills, strategic_outlook_2026, match_score')
+          .eq('id', resumePathId)
+          .maybeSingle();
+        if (!e1 && d1) {
+          data = d1 as Record<string, unknown>;
+        } else {
+          // Fallback: nur Pflichtfelder (falls optionale Spalten fehlen)
+          const { data: d2 } = await supabase
+            .from('learning_paths')
+            .select('user_id, target_job, target_company, vision_description, industry, cv_id, status, missing_skills, current_skills')
+            .eq('id', resumePathId)
+            .maybeSingle();
+          if (d2) data = d2 as Record<string, unknown>;
+        }
+      }
 
       if (cancelled) return;
 
-      if (fetchErr || !data) {
+      if (!data) {
         setApiError('Analyse nicht gefunden. Bitte lade die Seite neu.');
         setPhase('idle');
         return;
@@ -1264,10 +1278,10 @@ export function CareerVisionSection({ cvId: initialCvId, onAnalysisComplete, res
         if (data.cv_id) {
           const { data: cv } = await supabase
             .from('stored_cvs')
-            .select('cv_data, extracted_text')
+            .select('cv_data')
             .eq('id', data.cv_id)
             .maybeSingle();
-          if (cv) cvData = (cv.extracted_text as string | null) ?? (cv.cv_data as string | null) ?? null;
+          if (cv) cvData = (cv.cv_data as string | null) ?? null;
         }
 
         const res = await fetch(makeUrl, {
@@ -1312,13 +1326,25 @@ export function CareerVisionSection({ cvId: initialCvId, onAnalysisComplete, res
       const poll = async () => {
         if (cancelled || completedRef.current) return;
         try {
-          const { data: fresh } = await supabase
+          // Erst mit allen Feldern, bei Fehler Fallback
+          let fresh: Record<string, unknown> | null = null;
+          const { data: d1, error: e1 } = await supabase
             .from('learning_paths')
             .select('status, missing_skills, current_skills, strategic_outlook_2026, match_score, industry, target_job, target_company')
             .eq('id', resumePathId)
             .maybeSingle();
+          if (!e1 && d1) {
+            fresh = d1 as Record<string, unknown>;
+          } else {
+            const { data: d2 } = await supabase
+              .from('learning_paths')
+              .select('status, missing_skills, current_skills, industry, target_job, target_company')
+              .eq('id', resumePathId)
+              .maybeSingle();
+            if (d2) fresh = d2 as Record<string, unknown>;
+          }
           if (fresh && COMPLETE_STATUSES.has(fresh.status as string)) {
-            showResult(fresh as Record<string, unknown>);
+            showResult(fresh);
             return;
           }
         } catch { /* weiter versuchen */ }
