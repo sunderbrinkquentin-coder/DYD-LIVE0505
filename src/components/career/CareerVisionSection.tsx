@@ -19,7 +19,6 @@ const POLL_INTERVAL_MS = 3_000;
 const POLL_MAX = 80;           // 80 × 3s = 4 Minuten
 const FALLBACK_TIMEOUT_MS = 150_000; // 2.5 Minuten bevor Fallback erscheint
 const CV_DATA_POLL_MAX = 30;
-// Max polls waiting for skillgap_paid (45 × 2s = 90s)
 const PAID_POLL_MAX = 45;
 const PAID_POLL_INTERVAL_MS = 2_000;
 
@@ -1129,7 +1128,6 @@ export function CareerVisionSection({ cvId: initialCvId, onAnalysisComplete, res
           missing_skills: [],
           current_skills: [],
           is_paid: false,
-          skillgap_paid: false,
           progress: {},
         })
         .select('id')
