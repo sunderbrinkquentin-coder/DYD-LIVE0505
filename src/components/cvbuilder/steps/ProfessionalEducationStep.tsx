@@ -220,7 +220,7 @@ export function ProfessionalEducationStep({ data = [], experienceLevel, onChange
                     <select
                       value={entry.startMonth || ''}
                       onChange={(e) => updateEntry(index, 'startMonth', e.target.value)}
-                      className={dynSelect(undefined)}
+                      className={dynSelect(entry.startMonth || 'optional')}
                     >
                       <option value="">Monat</option>
                       {MONTHS.map((m) => (
@@ -251,7 +251,7 @@ export function ProfessionalEducationStep({ data = [], experienceLevel, onChange
                     <select
                       value={entry.endMonth || ''}
                       onChange={(e) => updateEntry(index, 'endMonth', e.target.value)}
-                      className={dynSelect(undefined)}
+                      className={dynSelect(entry.endMonth || 'optional')}
                     >
                       <option value="">Monat</option>
                       {MONTHS.map((m) => (

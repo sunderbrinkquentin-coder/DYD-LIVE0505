@@ -1,4 +1,4 @@
-import { X, Star, Check, CreditCard, Loader, AlertCircle } from 'lucide-react';
+import { X, Check, CreditCard, Loader, AlertCircle, Zap, Shield, TrendingUp, Star } from 'lucide-react';
 import { useState, useMemo, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '../../lib/supabase';
@@ -12,7 +12,6 @@ interface TokenPaywallModalProps {
   successAction?: string;
 }
 
-// Stripe Price IDs Mapping
 const PRICE_IDS: Record<string, string> = {
   single: import.meta.env.VITE_STRIPE_PRICE_CV_OPT_1 || '',
   'bundle-5': import.meta.env.VITE_STRIPE_PRICE_CV_OPT_5 || '',
@@ -25,7 +24,7 @@ export function TokenPaywallModal({ isOpen, onClose, onSuccess, defaultPlan, suc
   const navigate = useNavigate();
   const [isProcessing, setIsProcessing] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [highlightedPlan, setHighlightedPlan] = useState<string | undefined>(defaultPlan);
+  const [selectedPlan, setSelectedPlan] = useState<'single' | 'bundle-5' | 'bundle-10'>(defaultPlan || 'bundle-5');
 
   const stripeValidation = useMemo(() => validateStripePriceIds(), []);
 
@@ -33,8 +32,9 @@ export function TokenPaywallModal({ isOpen, onClose, onSuccess, defaultPlan, suc
     if (isOpen) {
       setIsProcessing(false);
       setError(null);
+      setSelectedPlan(defaultPlan || 'bundle-5');
     }
-  }, [isOpen]);
+  }, [isOpen, defaultPlan]);
 
   if (!isOpen) return null;
 
@@ -116,7 +116,9 @@ export function TokenPaywallModal({ isOpen, onClose, onSuccess, defaultPlan, suc
       price: '5',
       pricePerCredit: '5,00',
       title: '1 Optimierung',
-      description: 'Perfekt für eine Bewerbung',
+      subtitle: 'Zum Ausprobieren',
+      savings: null,
+      popular: false,
     },
     {
       id: 'bundle-5' as const,
@@ -124,8 +126,8 @@ export function TokenPaywallModal({ isOpen, onClose, onSuccess, defaultPlan, suc
       price: '20',
       pricePerCredit: '4,00',
       title: '5 Optimierungen',
-      description: 'Spare 20%',
-      savings: '20%',
+      subtitle: 'Beliebteste Wahl',
+      savings: '20% sparen',
       popular: true,
     },
     {
@@ -134,173 +136,157 @@ export function TokenPaywallModal({ isOpen, onClose, onSuccess, defaultPlan, suc
       price: '30',
       pricePerCredit: '3,00',
       title: '10 Optimierungen',
-      description: 'Spare 40% - Beste Wahl',
-      savings: '40%',
+      subtitle: 'Bestes Preis-Leistungs-Verhältnis',
+      savings: '40% sparen',
+      popular: false,
     },
   ];
 
+  const benefits = [
+    { icon: Zap, text: 'KI analysiert die Stelle & optimiert deinen CV in Sekunden' },
+    { icon: TrendingUp, text: 'Höhere Interview-Rate durch keyword-optimierte Bewerbungen' },
+    { icon: Shield, text: 'Unbegrenzte Nachbearbeitung & PDF-Export inklusive' },
+  ];
+
   return (
-    <div className="fixed inset-0 bg-black/80 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-      <div className="bg-[#1a1a1a] border border-white/10 rounded-2xl max-w-4xl w-full max-h-[90vh] overflow-y-auto">
-        <div className="sticky top-0 bg-[#1a1a1a] border-b border-white/10 px-6 py-4 flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <div className="p-2 rounded-lg bg-gradient-to-r from-[#66c0b6] to-[#30E3CA]">
-              <Star size={24} className="text-black" />
-            </div>
-            <h2 className="text-2xl font-bold text-white">Credits kaufen</h2>
-          </div>
+    <div className="fixed inset-0 bg-black/85 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+      <div className="bg-[#111] border border-white/10 rounded-2xl max-w-2xl w-full max-h-[92vh] overflow-y-auto shadow-2xl">
+
+        {/* Header */}
+        <div className="relative px-6 pt-6 pb-0">
           <button
             onClick={onClose}
-            className="p-2 hover:bg-white/10 rounded-lg transition-all"
+            className="absolute top-4 right-4 p-2 hover:bg-white/10 rounded-lg transition-all"
           >
-            <X size={24} className="text-white/60" />
+            <X size={20} className="text-white/50" />
           </button>
-        </div>
 
-        <div className="p-6 space-y-6">
-          <div className="text-center space-y-2">
-            <p className="text-lg text-white/80">
-              Kaufe Credits, um deine CVs für neue Stellen zu optimieren
-            </p>
-            <p className="text-white/60">
-              Mit Bundles sparst du bis zu 40%
-            </p>
+          <div className="flex items-center gap-2 mb-3">
+            <div className="p-1.5 rounded-lg bg-gradient-to-br from-[#66c0b6] to-[#30E3CA]">
+              <Star size={16} className="text-black" />
+            </div>
+            <span className="text-xs font-semibold tracking-widest uppercase text-[#66c0b6]">CV-Optimierung</span>
           </div>
 
+          <h2 className="text-2xl font-bold text-white mb-1">
+            Heb dich von der Masse ab
+          </h2>
+          <p className="text-white/60 text-sm mb-5">
+            Lass KI deinen CV perfekt auf jede Stelle abstimmen — in Sekunden.
+          </p>
+
+          {/* Benefits */}
+          <div className="flex flex-col gap-2 mb-6">
+            {benefits.map(({ icon: Icon, text }) => (
+              <div key={text} className="flex items-center gap-3">
+                <div className="p-1.5 rounded-md bg-[#66c0b6]/15 flex-shrink-0">
+                  <Icon size={14} className="text-[#66c0b6]" />
+                </div>
+                <span className="text-sm text-white/75">{text}</span>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        <div className="px-6 pb-6 space-y-4">
           {!stripeValidation.isValid && (
-            <div className="p-4 rounded-xl bg-red-500/10 border border-red-500/30 flex items-start gap-3">
-              <AlertCircle size={20} className="text-red-400 flex-shrink-0 mt-0.5" />
+            <div className="p-3 rounded-xl bg-red-500/10 border border-red-500/30 flex items-start gap-3">
+              <AlertCircle size={18} className="text-red-400 flex-shrink-0 mt-0.5" />
               <div>
-                <p className="text-red-300 text-sm font-semibold">
-                  Stripe Price IDs missing in environment configuration
-                </p>
-                <p className="text-red-200/70 text-xs mt-1">
-                  {stripeValidation.missingKeys.join(', ')}
-                </p>
+                <p className="text-red-300 text-sm font-semibold">Stripe nicht konfiguriert</p>
+                <p className="text-red-200/60 text-xs mt-0.5">{stripeValidation.missingKeys.join(', ')}</p>
               </div>
             </div>
           )}
 
           {error && (
-            <div className="p-4 rounded-xl bg-red-500/10 border border-red-500/30 text-red-300 text-sm">
+            <div className="p-3 rounded-xl bg-red-500/10 border border-red-500/30 text-red-300 text-sm">
               {error}
             </div>
           )}
 
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          {/* Plan cards */}
+          <div className="grid grid-cols-3 gap-3">
             {plans.map((plan) => {
-              const isHighlighted = highlightedPlan === plan.id;
+              const isSelected = selectedPlan === plan.id;
               return (
-              <div
-                key={plan.id}
-                onClick={() => setHighlightedPlan(plan.id)}
-                className={`relative rounded-xl p-6 border-2 transition-all cursor-pointer ${
-                  isHighlighted
-                    ? 'border-[#66c0b6] bg-[#66c0b6]/10 ring-2 ring-[#66c0b6]/40'
-                    : plan.popular
-                    ? 'border-[#66c0b6]/50 bg-[#66c0b6]/5'
-                    : 'border-white/10 bg-white/5 hover:bg-white/10'
-                }`}
-              >
-                {plan.popular && (
-                  <div className="absolute -top-3 left-1/2 -translate-x-1/2 px-3 py-1 rounded-full bg-gradient-to-r from-[#66c0b6] to-[#30E3CA] text-black text-xs font-bold">
-                    BELIEBT
-                  </div>
-                )}
-
-                {plan.savings && (
-                  <div className="absolute -top-3 -right-3 px-3 py-1 rounded-full bg-green-500 text-white text-xs font-bold">
-                    -{plan.savings}
-                  </div>
-                )}
-
-                <div className="text-center space-y-4">
-                  <div>
-                    <div className="text-3xl font-bold text-white">{plan.credits}</div>
-                    <div className="text-sm text-white/60">Credit{plan.credits > 1 ? 's' : ''}</div>
-                  </div>
-
-                  <div>
-                    <div className="text-4xl font-bold text-[#66c0b6]">€{plan.price}</div>
-                    <div className="text-xs text-white/60 mt-1">
-                      €{plan.pricePerCredit} pro Credit
+                <button
+                  key={plan.id}
+                  type="button"
+                  onClick={() => setSelectedPlan(plan.id)}
+                  className={`relative rounded-xl p-4 border-2 transition-all text-left ${
+                    isSelected
+                      ? 'border-[#66c0b6] bg-[#66c0b6]/10'
+                      : plan.popular
+                      ? 'border-[#66c0b6]/30 bg-white/5 hover:border-[#66c0b6]/60'
+                      : 'border-white/10 bg-white/5 hover:border-white/20'
+                  }`}
+                >
+                  {plan.popular && !isSelected && (
+                    <div className="absolute -top-2.5 left-1/2 -translate-x-1/2 px-2 py-0.5 rounded-full bg-gradient-to-r from-[#66c0b6] to-[#30E3CA] text-black text-[10px] font-bold whitespace-nowrap">
+                      BELIEBT
                     </div>
-                  </div>
-
-                  <div className="space-y-2">
-                    <p className="text-sm font-semibold text-white">{plan.title}</p>
-                    <p className="text-xs text-white/60">{plan.description}</p>
-                  </div>
-
-                  <div className="space-y-2 pt-4 border-t border-white/10">
-                    <div className="flex items-center gap-2 text-xs text-white/70">
-                      <Check size={16} className="text-[#66c0b6]" />
-                      <span>CV-Optimierung für {plan.credits} Stelle{plan.credits > 1 ? 'n' : ''}</span>
+                  )}
+                  {isSelected && (
+                    <div className="absolute -top-2.5 left-1/2 -translate-x-1/2 px-2 py-0.5 rounded-full bg-[#66c0b6] text-black text-[10px] font-bold whitespace-nowrap">
+                      AUSGEWÄHLT
                     </div>
-                    <div className="flex items-center gap-2 text-xs text-white/70">
-                      <Check size={16} className="text-[#66c0b6]" />
-                      <span>KI-gestützte Anpassung</span>
+                  )}
+                  {plan.savings && (
+                    <div className="absolute -top-2.5 -right-2.5 px-2 py-0.5 rounded-full bg-green-500 text-white text-[10px] font-bold">
+                      {plan.savings}
                     </div>
-                    <div className="flex items-center gap-2 text-xs text-white/70">
-                      <Check size={16} className="text-[#66c0b6]" />
-                      <span>Unbegrenzte Bearbeitungen</span>
-                    </div>
-                  </div>
+                  )}
 
-                  <div className="space-y-2">
-                    <button
-                      onClick={() => handlePurchase(plan.id)}
-                      disabled={isProcessing || !stripeValidation.isValid}
-                      title={!stripeValidation.isValid ? 'Checkout disabled until Stripe env is configured.' : ''}
-                      className={`w-full px-6 py-3 rounded-xl font-bold transition-all flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed ${
-                        plan.popular
-                          ? 'bg-gradient-to-r from-[#66c0b6] to-[#30E3CA] text-black hover:opacity-90'
-                          : 'bg-white/5 border border-white/10 text-white hover:bg-white/10'
-                      }`}
-                    >
-                      {isProcessing ? (
-                        <>
-                          <Loader size={18} className="animate-spin" />
-                          <span>Wird geladen...</span>
-                        </>
-                      ) : (
-                        <>
-                          <CreditCard size={18} />
-                          <span>Jetzt kaufen</span>
-                        </>
-                      )}
-                    </button>
-                    {!stripeValidation.isValid && (
-                      <p className="text-xs text-white/50 text-center">
-                        Checkout disabled until Stripe env is configured.
-                      </p>
-                    )}
-                  </div>
-                </div>
-              </div>
+                  <div className="text-2xl font-bold text-white mb-0.5">{plan.credits}</div>
+                  <div className="text-[10px] text-white/50 mb-2">Credit{plan.credits > 1 ? 's' : ''}</div>
+                  <div className="text-xl font-bold text-[#66c0b6]">€{plan.price}</div>
+                  <div className="text-[10px] text-white/40 mt-0.5">€{plan.pricePerCredit}/Credit</div>
+                  <div className="text-[11px] text-white/60 mt-2 leading-tight">{plan.subtitle}</div>
+                </button>
               );
             })}
           </div>
 
-          <div className="bg-white/5 border border-white/10 rounded-xl p-4">
-            <div className="flex items-start gap-3">
-              <div className="p-2 rounded-lg bg-[#66c0b6]/20 flex-shrink-0">
-                <Star size={20} className="text-[#66c0b6]" />
+          {/* What's included */}
+          <div className="bg-white/5 border border-white/10 rounded-xl p-3 flex flex-col gap-1.5">
+            {[
+              'CV-Optimierung für 1 Stelle pro Credit',
+              'KI-gestützte Keyword-Analyse',
+              'Unbegrenzte Nachbearbeitung & PDF-Export',
+              'Credits verfallen nicht',
+            ].map((item) => (
+              <div key={item} className="flex items-center gap-2.5">
+                <Check size={14} className="text-[#66c0b6] flex-shrink-0" />
+                <span className="text-sm text-white/70">{item}</span>
               </div>
-              <div className="space-y-1">
-                <h4 className="font-semibold text-white">Was du mit Credits bekommst:</h4>
-                <ul className="text-sm text-white/70 space-y-1">
-                  <li>• Optimiere deine bestehenden CVs für neue Stellen</li>
-                  <li>• KI analysiert die Stellenbeschreibung und passt deinen CV an</li>
-                  <li>• Jeder Credit = 1 Optimierung für eine neue Stelle</li>
-                  <li>• Bearbeite und exportiere deine CVs unbegrenzt</li>
-                </ul>
-              </div>
-            </div>
+            ))}
           </div>
 
-          <p className="text-xs text-white/40 text-center">
-            Sichere Zahlung über Stripe • Sofortiger Zugang
+          {/* CTA button */}
+          <button
+            onClick={() => handlePurchase(selectedPlan)}
+            disabled={isProcessing || !stripeValidation.isValid}
+            title={!stripeValidation.isValid ? 'Checkout disabled until Stripe env is configured.' : ''}
+            className="w-full py-3.5 rounded-xl font-bold text-base transition-all flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed bg-gradient-to-r from-[#66c0b6] to-[#30E3CA] text-black hover:opacity-90 hover:scale-[1.01]"
+          >
+            {isProcessing ? (
+              <>
+                <Loader size={18} className="animate-spin" />
+                <span>Wird geladen...</span>
+              </>
+            ) : (
+              <>
+                <CreditCard size={18} />
+                <span>
+                  {plans.find(p => p.id === selectedPlan)?.credits} Credit{(plans.find(p => p.id === selectedPlan)?.credits ?? 1) > 1 ? 's' : ''} kaufen — €{plans.find(p => p.id === selectedPlan)?.price}
+                </span>
+              </>
+            )}
+          </button>
+
+          <p className="text-xs text-white/30 text-center">
+            Sichere Zahlung über Stripe · Sofortiger Zugang · Keine Abonnement-Falle
           </p>
         </div>
       </div>

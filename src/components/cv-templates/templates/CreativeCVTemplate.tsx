@@ -35,6 +35,8 @@ interface CreativeCVTemplateProps {
   ) => void;
   onAddSectionItem?: (sectionIndex: number, defaultItem: any) => void;
   onDeleteSectionItem?: (sectionIndex: number, itemIndex: number) => void;
+  onDeleteBullet?: (sectionIndex: number, itemIndex: number, bulletIndex: number) => void;
+  onReorderSections?: (fromIndex: number, toIndex: number) => void;
   pageBreakItems?: Map<string, number>;
   pageCount?: number; // 🔥 NEU: Prop statt lokalem State
 }
@@ -58,6 +60,8 @@ export const CreativeCVTemplate: React.FC<CreativeCVTemplateProps> = ({
   onUpdateSummary,
   onUpdateSectionItem,
   onDeleteSectionItem = () => {},
+  onDeleteBullet,
+  onReorderSections,
   pageBreakItems,
   pageCount, // 🔥 direkt als Prop
 }) => {
@@ -253,6 +257,15 @@ export const CreativeCVTemplate: React.FC<CreativeCVTemplateProps> = ({
                             }}
                             placeholder="Aufgabe / Erfolg"
                           />
+                          {onDeleteBullet && (
+                            <button
+                              type="button"
+                              className="pdf-hidden flex-shrink-0 text-red-400 hover:text-red-600 transition-colors"
+                              style={{ lineHeight: 1, padding: '1px 3px', fontSize: '11px', background: 'none', border: 'none', cursor: 'pointer' }}
+                              onClick={() => onDeleteBullet(sectionIndex, idx, bIdx)}
+                              title="Bullet löschen"
+                            >×</button>
+                          )}
                         </li>
                       ))}
                     </ul>
@@ -354,6 +367,15 @@ export const CreativeCVTemplate: React.FC<CreativeCVTemplateProps> = ({
                             }}
                             placeholder="Detail / Ergebnis"
                           />
+                          {onDeleteBullet && (
+                            <button
+                              type="button"
+                              className="pdf-hidden flex-shrink-0 text-red-400 hover:text-red-600 transition-colors"
+                              style={{ lineHeight: 1, padding: '1px 3px', fontSize: '11px', background: 'none', border: 'none', cursor: 'pointer' }}
+                              onClick={() => onDeleteBullet(sectionIndex, idx, bIdx)}
+                              title="Bullet löschen"
+                            >×</button>
+                          )}
                         </li>
                       ))}
                     </ul>
@@ -827,7 +849,16 @@ export const CreativeCVTemplate: React.FC<CreativeCVTemplateProps> = ({
 
           {leftSections.map((section) => {
             const sectionIndex = sections.findIndex((s) => s === section);
-            return renderSection(section, sectionIndex);
+            const content = renderSection(section, sectionIndex);
+            if (!content) return null;
+            return (
+              <div key={sectionIndex} draggable={!!onReorderSections}
+                onDragStart={(e) => { e.dataTransfer.setData('text/plain', String(sectionIndex)); e.dataTransfer.effectAllowed = 'move'; }}
+                onDragOver={(e) => e.preventDefault()}
+                onDrop={(e) => { e.preventDefault(); const from = parseInt(e.dataTransfer.getData('text/plain')); if (from !== sectionIndex) onReorderSections?.(from, sectionIndex); }}
+                style={{ cursor: onReorderSections ? 'grab' : undefined }}
+              >{content}</div>
+            );
           })}
         </section>
 
@@ -863,7 +894,14 @@ export const CreativeCVTemplate: React.FC<CreativeCVTemplateProps> = ({
               }
             }
 
-            return renderSection(section, sectionIndex);
+            return (
+              <div key={sectionIndex} draggable={!!onReorderSections}
+                onDragStart={(e) => { e.dataTransfer.setData('text/plain', String(sectionIndex)); e.dataTransfer.effectAllowed = 'move'; }}
+                onDragOver={(e) => e.preventDefault()}
+                onDrop={(e) => { e.preventDefault(); const from = parseInt(e.dataTransfer.getData('text/plain')); if (from !== sectionIndex) onReorderSections?.(from, sectionIndex); }}
+                style={{ cursor: onReorderSections ? 'grab' : undefined }}
+              >{renderSection(section, sectionIndex)}</div>
+            );
           })}
         </aside>
       </main>
@@ -872,7 +910,16 @@ export const CreativeCVTemplate: React.FC<CreativeCVTemplateProps> = ({
         <div className="relative px-6 pb-3 space-y-3 bg-white">
           {otherSections.map((section) => {
             const sectionIndex = sections.findIndex((s) => s === section);
-            return renderSection(section, sectionIndex);
+            const content = renderSection(section, sectionIndex);
+            if (!content) return null;
+            return (
+              <div key={sectionIndex} draggable={!!onReorderSections}
+                onDragStart={(e) => { e.dataTransfer.setData('text/plain', String(sectionIndex)); e.dataTransfer.effectAllowed = 'move'; }}
+                onDragOver={(e) => e.preventDefault()}
+                onDrop={(e) => { e.preventDefault(); const from = parseInt(e.dataTransfer.getData('text/plain')); if (from !== sectionIndex) onReorderSections?.(from, sectionIndex); }}
+                style={{ cursor: onReorderSections ? 'grab' : undefined }}
+              >{content}</div>
+            );
           })}
         </div>
       )}

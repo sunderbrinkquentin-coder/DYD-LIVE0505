@@ -35,6 +35,8 @@ interface ModernCVTemplateProps {
   ) => void;
   onAddSectionItem?: (sectionIndex: number, defaultItem: any) => void;
   onDeleteSectionItem: (sectionIndex: number, itemIndex: number) => void;
+  onDeleteBullet?: (sectionIndex: number, itemIndex: number, bulletIndex: number) => void;
+  onReorderSections?: (fromIndex: number, toIndex: number) => void;
   // 🔥 NEU: Die Spacer-Engine & Seitenanzahl
   pageBreakItems?: Map<string, number>;
   pageCount?: number;
@@ -330,6 +332,8 @@ export const ModernCVTemplate: React.FC<ModernCVTemplateProps> = ({
   onUpdateSectionItem,
   onAddSectionItem,
   onDeleteSectionItem,
+  onDeleteBullet,
+  onReorderSections,
   pageBreakItems,
   pageCount,
 }) => {
@@ -435,6 +439,15 @@ export const ModernCVTemplate: React.FC<ModernCVTemplateProps> = ({
                           placeholder="Aufgabe / Ergebnis"
                           style={{ fontSize: '9.5px', color: '#1e293b', lineHeight: 1.55, flex: 1, display: 'block', whiteSpace: 'pre-wrap', wordBreak: 'break-word' }}
                         />
+                        {onDeleteBullet && (
+                          <button
+                            type="button"
+                            className="pdf-hidden flex-shrink-0 text-red-400 hover:text-red-600 transition-colors"
+                            style={{ lineHeight: 1, padding: '1px 3px', fontSize: '11px', background: 'none', border: 'none', cursor: 'pointer' }}
+                            onClick={() => onDeleteBullet(sectionIndex, idx, bIdx)}
+                            title="Bullet löschen"
+                          >×</button>
+                        )}
                       </li>
                     ))}
                   </ul>
@@ -1117,7 +1130,16 @@ export const ModernCVTemplate: React.FC<ModernCVTemplateProps> = ({
             )}
             {leftSections.map((section) => {
               const index = sections.findIndex((s) => s === section);
-              return renderSection(section, index);
+              const content = renderSection(section, index);
+              if (!content) return null;
+              return (
+                <div key={index} draggable={!!onReorderSections}
+                  onDragStart={(e) => { e.dataTransfer.setData('text/plain', String(index)); e.dataTransfer.effectAllowed = 'move'; }}
+                  onDragOver={(e) => e.preventDefault()}
+                  onDrop={(e) => { e.preventDefault(); const from = parseInt(e.dataTransfer.getData('text/plain')); if (from !== index) onReorderSections?.(from, index); }}
+                  style={{ cursor: onReorderSections ? 'grab' : undefined }}
+                >{content}</div>
+              );
             })}
           </section>
 
@@ -1125,7 +1147,16 @@ export const ModernCVTemplate: React.FC<ModernCVTemplateProps> = ({
           <aside style={{ flex: '0 0 42%', minWidth: 0, paddingLeft: '14px', display: 'flex', flexDirection: 'column' }}>
             {rightSections.map((section) => {
               const index = sections.findIndex((s) => s === section);
-              return renderSection(section, index);
+              const content = renderSection(section, index);
+              if (!content) return null;
+              return (
+                <div key={index} draggable={!!onReorderSections}
+                  onDragStart={(e) => { e.dataTransfer.setData('text/plain', String(index)); e.dataTransfer.effectAllowed = 'move'; }}
+                  onDragOver={(e) => e.preventDefault()}
+                  onDrop={(e) => { e.preventDefault(); const from = parseInt(e.dataTransfer.getData('text/plain')); if (from !== index) onReorderSections?.(from, index); }}
+                  style={{ cursor: onReorderSections ? 'grab' : undefined }}
+                >{content}</div>
+              );
             })}
           </aside>
         </main>
@@ -1134,7 +1165,16 @@ export const ModernCVTemplate: React.FC<ModernCVTemplateProps> = ({
           <div style={{ padding: '0 32px 16px', flex: 'none' }} data-pdf-section>
             {otherSections.map((section) => {
               const index = sections.findIndex((s) => s === section);
-              return renderSection(section, index);
+              const content = renderSection(section, index);
+              if (!content) return null;
+              return (
+                <div key={index} draggable={!!onReorderSections}
+                  onDragStart={(e) => { e.dataTransfer.setData('text/plain', String(index)); e.dataTransfer.effectAllowed = 'move'; }}
+                  onDragOver={(e) => e.preventDefault()}
+                  onDrop={(e) => { e.preventDefault(); const from = parseInt(e.dataTransfer.getData('text/plain')); if (from !== index) onReorderSections?.(from, index); }}
+                  style={{ cursor: onReorderSections ? 'grab' : undefined }}
+                >{content}</div>
+              );
             })}
           </div>
         )}

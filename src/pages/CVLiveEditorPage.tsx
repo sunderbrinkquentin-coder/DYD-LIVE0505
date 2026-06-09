@@ -1068,7 +1068,9 @@ export function CVLiveEditorPage() {
   // Paywall-Check: Token/Bezahlstatus prüfen, dann Paywall oder direkt Export
 const handleDownloadClick = async () => {
   if (!user) {
-    navigate('/login');
+    const redirectTarget = cvId ? `/cv/${cvId}` : '/dashboard';
+    sessionStorage.setItem('pending_download_cv_id', cvId || '');
+    navigate(`/login?redirect=${encodeURIComponent(redirectTarget)}`);
     return;
   }
 
@@ -1232,6 +1234,38 @@ const triggerDirectExport = async () => {
       } catch (error) {
         return prev;
       }
+    });
+  };
+
+  const deleteBulletPoint = (sectionIndex: number, itemIndex: number, bulletIndex: number) => {
+    setHasEditorChanges(true);
+    setEditorData((prev: any) => {
+      if (!prev?.sections?.[sectionIndex]?.items) return prev;
+      try {
+        const newSections = prev.sections.map((sec: any, sIdx: number) => {
+          if (sIdx !== sectionIndex) return sec;
+          const newItems = [...sec.items];
+          const item = { ...newItems[itemIndex] };
+          const bullets = Array.isArray(item.bulletPoints) ? [...item.bulletPoints] : [];
+          item.bulletPoints = bullets.filter((_: any, bIdx: number) => bIdx !== bulletIndex);
+          newItems[itemIndex] = item;
+          return { ...sec, items: newItems };
+        });
+        return { ...prev, sections: newSections };
+      } catch {
+        return prev;
+      }
+    });
+  };
+
+  const reorderSections = (fromIndex: number, toIndex: number) => {
+    setHasEditorChanges(true);
+    setEditorData((prev: any) => {
+      if (!prev?.sections) return prev;
+      const newSections = [...prev.sections];
+      const [moved] = newSections.splice(fromIndex, 1);
+      newSections.splice(toIndex, 0, moved);
+      return { ...prev, sections: newSections };
     });
   };
 
@@ -1519,6 +1553,8 @@ onClick={async () => {
             onUpdateSectionItem: updateSectionItem,
             onAddSectionItem: addSectionItem,
             onDeleteSectionItem: deleteSectionItem,
+            onDeleteBullet: deleteBulletPoint,
+            onReorderSections: reorderSections,
           };
 
           const renderTemplate = () => {

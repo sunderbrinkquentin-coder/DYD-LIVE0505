@@ -34,6 +34,8 @@ interface MinimalCVTemplateProps {
   ) => void;
   onAddSectionItem?: (sectionIndex: number, defaultItem: any) => void;
   onDeleteSectionItem?: (sectionIndex: number, itemIndex: number) => void;
+  onDeleteBullet?: (sectionIndex: number, itemIndex: number, bulletIndex: number) => void;
+  onReorderSections?: (fromIndex: number, toIndex: number) => void;
   pageBreakItems?: Map<string, number>;
   pageCount?: number; // 🔥 NEU
 }
@@ -102,6 +104,8 @@ export const MinimalCVTemplate: React.FC<MinimalCVTemplateProps> = ({
   onUpdateSummary,
   onUpdateSectionItem,
   onDeleteSectionItem = () => {},
+  onDeleteBullet,
+  onReorderSections,
   pageBreakItems,
   pageCount, // 🔥 NEU
 }) => {
@@ -221,6 +225,15 @@ export const MinimalCVTemplate: React.FC<MinimalCVTemplateProps> = ({
                           placeholder="Aufgabe / Ergebnis"
                           style={{ overflow: 'hidden', minHeight: '16px' }}
                         />
+                        {onDeleteBullet && (
+                          <button
+                            type="button"
+                            className="pdf-hidden flex-shrink-0 text-red-400 hover:text-red-600 transition-colors"
+                            style={{ lineHeight: 1, padding: '1px 3px', fontSize: '11px', background: 'none', border: 'none', cursor: 'pointer' }}
+                            onClick={() => onDeleteBullet(sectionIndex, idx, bIdx)}
+                            title="Bullet löschen"
+                          >×</button>
+                        )}
                       </li>
                     ))}
                   </ul>
@@ -519,7 +532,7 @@ export const MinimalCVTemplate: React.FC<MinimalCVTemplateProps> = ({
         const detailedTypes = ['certifications', 'courses', 'awards', 'volunteering', 'stipendien', 'scholarships'];
         if (detailedTypes.includes(section.type)) {
           return (
-            <div key={sectionIndex} data-pdf-section>
+            <div key={sectionIndex} data-pdf-section style={{ breakInside: 'avoid', pageBreakInside: 'avoid' }}>
               <SectionTitle>{section.title || TYPE_LABELS_MIN[section.type] || section.type}</SectionTitle>
               <ul className="space-y-1.5 text-[9.5px] text-slate-800">
                 {items.map((it: any, idx: number) => {
@@ -543,7 +556,7 @@ export const MinimalCVTemplate: React.FC<MinimalCVTemplateProps> = ({
                         />
                       </div>
                       {institution && (
-                        <div style={{ fontSize: '9px', color: '#64748b', marginBottom: date ? '2px' : '0' }}>
+                        <div style={{ fontSize: '9px', color: '#334155', marginBottom: date ? '2px' : '0' }}>
                           <input
                             className="w-full bg-transparent outline-none"
                             value={institution}
@@ -555,7 +568,7 @@ export const MinimalCVTemplate: React.FC<MinimalCVTemplateProps> = ({
                         </div>
                       )}
                       {date && (
-                        <div style={{ fontSize: '9px', color: '#64748b' }}>
+                        <div style={{ fontSize: '9px', color: '#334155' }}>
                           <input
                             className="w-full bg-transparent outline-none"
                             value={date}
@@ -739,7 +752,16 @@ export const MinimalCVTemplate: React.FC<MinimalCVTemplateProps> = ({
 
           {leftSections.map((section) => {
             const index = sections.findIndex((s) => s === section);
-            return renderSection(section, index);
+            const content = renderSection(section, index);
+            if (!content) return null;
+            return (
+              <div key={index} draggable={!!onReorderSections}
+                onDragStart={(e) => { e.dataTransfer.setData('text/plain', String(index)); e.dataTransfer.effectAllowed = 'move'; }}
+                onDragOver={(e) => e.preventDefault()}
+                onDrop={(e) => { e.preventDefault(); const from = parseInt(e.dataTransfer.getData('text/plain')); if (from !== index) onReorderSections?.(from, index); }}
+                style={{ cursor: onReorderSections ? 'grab' : undefined }}
+              >{content}</div>
+            );
           })}
         </section>
 
@@ -747,7 +769,16 @@ export const MinimalCVTemplate: React.FC<MinimalCVTemplateProps> = ({
         <aside style={{ flex: '0 0 42%', minWidth: 0, paddingLeft: '12px', paddingRight: '32px', display: 'flex', flexDirection: 'column', gap: '12px' }}>
           {rightSections.map((section) => {
             const index = sections.findIndex((s) => s === section);
-            return renderSection(section, index);
+            const content = renderSection(section, index);
+            if (!content) return null;
+            return (
+              <div key={index} draggable={!!onReorderSections}
+                onDragStart={(e) => { e.dataTransfer.setData('text/plain', String(index)); e.dataTransfer.effectAllowed = 'move'; }}
+                onDragOver={(e) => e.preventDefault()}
+                onDrop={(e) => { e.preventDefault(); const from = parseInt(e.dataTransfer.getData('text/plain')); if (from !== index) onReorderSections?.(from, index); }}
+                style={{ cursor: onReorderSections ? 'grab' : undefined }}
+              >{content}</div>
+            );
           })}
         </aside>
       </div>
@@ -757,7 +788,16 @@ export const MinimalCVTemplate: React.FC<MinimalCVTemplateProps> = ({
         <div className="px-8 pb-4 space-y-3 bg-white" data-pdf-section>
           {otherSections.map((section) => {
             const index = sections.findIndex((s) => s === section);
-            return renderSection(section, index);
+            const content = renderSection(section, index);
+            if (!content) return null;
+            return (
+              <div key={index} draggable={!!onReorderSections}
+                onDragStart={(e) => { e.dataTransfer.setData('text/plain', String(index)); e.dataTransfer.effectAllowed = 'move'; }}
+                onDragOver={(e) => e.preventDefault()}
+                onDrop={(e) => { e.preventDefault(); const from = parseInt(e.dataTransfer.getData('text/plain')); if (from !== index) onReorderSections?.(from, index); }}
+                style={{ cursor: onReorderSections ? 'grab' : undefined }}
+              >{content}</div>
+            );
           })}
         </div>
       )}

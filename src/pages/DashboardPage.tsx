@@ -738,23 +738,13 @@ export function DashboardPage() {
       setExistingCvDataForQuick(mappedData);
       setExistingWizardCvId(richestCv.id ?? null);
 
-      if (currentTokens <= 0) {
-        setPaywallFromCreateCv(true);
-        setShowPaywall(true);
-        return;
-      }
-
+      // Always show the overview first — paywall check happens on "Continue"
       setShowWizardOverview(true);
     } else {
-      if (currentTokens <= 0) {
-        setPaywallFromCreateCv(true);
-        setShowPaywall(true);
-      } else {
-        // No existing CVs — show empty Status Quo screen so user can enter data
-        setExistingCvDataForQuick(null);
-        setExistingWizardCvId(null);
-        setShowWizardOverview(true);
-      }
+      // No existing CVs — show empty Status Quo screen so user can enter data
+      setExistingCvDataForQuick(null);
+      setExistingWizardCvId(null);
+      setShowWizardOverview(true);
     }
   };
 

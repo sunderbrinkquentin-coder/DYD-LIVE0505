@@ -33,6 +33,8 @@ interface ClassicCVTemplateProps {
     value: any
   ) => void;
   onDeleteSectionItem?: (sectionIndex: number, itemIndex: number) => void;
+  onDeleteBullet?: (sectionIndex: number, itemIndex: number, bulletIndex: number) => void;
+  onReorderSections?: (fromIndex: number, toIndex: number) => void;
   pageBreakItems?: Map<string, number>;
   pageCount?: number; // 🔥 NEU
 }
@@ -111,6 +113,8 @@ export const ClassicCVTemplate: React.FC<ClassicCVTemplateProps> = ({
   onUpdateSection,
   onUpdateSectionItem,
   onDeleteSectionItem = () => {},
+  onDeleteBullet,
+  onReorderSections,
   pageBreakItems,
   pageCount, // 🔥 NEU
 }) => {
@@ -156,6 +160,15 @@ export const ClassicCVTemplate: React.FC<ClassicCVTemplateProps> = ({
                 multiline
                 placeholder="Eintrag"
               />
+              {onDeleteBullet && (
+                <button
+                  type="button"
+                  className="pdf-hidden flex-shrink-0 text-red-400 hover:text-red-600 transition-colors"
+                  style={{ lineHeight: 1, padding: '1px 3px', fontSize: '11px', background: 'none', border: 'none', cursor: 'pointer' }}
+                  onClick={() => onDeleteBullet(sectionIndex, itemIndex, idx)}
+                  title="Bullet löschen"
+                >×</button>
+              )}
             </div>
           );
         })}
@@ -601,7 +614,15 @@ export const ClassicCVTemplate: React.FC<ClassicCVTemplateProps> = ({
               };
               const label = section.title || labelMap[section.type] || section.type;
               return (
-                <div key={index} className="mb-6" style={{ breakInside: 'avoid', pageBreakInside: 'avoid' }}>
+                <div
+                  key={index}
+                  className="mb-6"
+                  style={{ breakInside: 'avoid', pageBreakInside: 'avoid', cursor: onReorderSections ? 'grab' : undefined }}
+                  draggable={!!onReorderSections}
+                  onDragStart={(e) => { e.dataTransfer.setData('text/plain', String(index)); e.dataTransfer.effectAllowed = 'move'; }}
+                  onDragOver={(e) => e.preventDefault()}
+                  onDrop={(e) => { e.preventDefault(); const from = parseInt(e.dataTransfer.getData('text/plain')); if (from !== index) onReorderSections?.(from, index); }}
+                >
                   <h3 className="!text-[9px] font-bold tracking-[0.15em] uppercase text-[#1e3a8a] mb-3">
                     {label}
                   </h3>

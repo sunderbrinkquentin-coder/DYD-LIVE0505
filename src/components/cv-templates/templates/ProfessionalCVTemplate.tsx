@@ -34,6 +34,8 @@ interface ProfessionalCVTemplateProps {
   ) => void;
   onAddSectionItem?: (sectionIndex: number, defaultItem: any) => void;
   onDeleteSectionItem?: (sectionIndex: number, itemIndex: number) => void;
+  onDeleteBullet?: (sectionIndex: number, itemIndex: number, bulletIndex: number) => void;
+  onReorderSections?: (fromIndex: number, toIndex: number) => void;
   pageBreakItems?: Map<string, number>;
   pageCount?: number;
 }
@@ -79,6 +81,8 @@ export const ProfessionalCVTemplate: React.FC<ProfessionalCVTemplateProps> = ({
   onUpdateSummary,
   onUpdateSectionItem,
   onDeleteSectionItem = () => {},
+  onDeleteBullet,
+  onReorderSections,
   pageBreakItems,
   pageCount,
 }) => {
@@ -255,6 +259,15 @@ export const ProfessionalCVTemplate: React.FC<ProfessionalCVTemplateProps> = ({
                               ref={(el) => { if (el) autoResize(el); }}
                               placeholder="Aufgabe / Erfolg"
                             />
+                            {onDeleteBullet && (
+                              <button
+                                type="button"
+                                className="pdf-hidden flex-shrink-0 text-red-400 hover:text-red-600 transition-colors mt-0.5"
+                                style={{ lineHeight: 1, padding: '1px 3px', fontSize: '11px', background: 'none', border: 'none', cursor: 'pointer' }}
+                                onClick={() => onDeleteBullet(sectionIndex, idx, bIdx)}
+                                title="Bullet löschen"
+                              >×</button>
+                            )}
                           </li>
                         ))}
                       </ul>
@@ -352,6 +365,15 @@ export const ProfessionalCVTemplate: React.FC<ProfessionalCVTemplateProps> = ({
                               ref={(el) => { if (el) autoResize(el); }}
                               placeholder="Ergebnis / Beitrag"
                             />
+                            {onDeleteBullet && (
+                              <button
+                                type="button"
+                                className="pdf-hidden flex-shrink-0 text-red-400 hover:text-red-600 transition-colors mt-0.5"
+                                style={{ lineHeight: 1, padding: '1px 3px', fontSize: '11px', background: 'none', border: 'none', cursor: 'pointer' }}
+                                onClick={() => onDeleteBullet(sectionIndex, idx, bIdx)}
+                                title="Bullet löschen"
+                              >×</button>
+                            )}
                           </li>
                         ))}
                       </ul>
@@ -614,7 +636,7 @@ export const ProfessionalCVTemplate: React.FC<ProfessionalCVTemplateProps> = ({
         const detailedTypes = ['certifications', 'courses', 'awards', 'volunteering', 'stipendien', 'scholarships'];
         if (detailedTypes.includes(section.type)) {
           return (
-            <div key={sectionIndex} data-pdf-section>
+            <div key={sectionIndex} data-pdf-section style={{ breakInside: 'avoid', pageBreakInside: 'avoid' }}>
               <SectionTitle>{sectionTitle}</SectionTitle>
               <ul className="space-y-0.5 text-[9.5px] text-slate-800">
                 {items.map((item: any, idx: number) => {
@@ -638,7 +660,7 @@ export const ProfessionalCVTemplate: React.FC<ProfessionalCVTemplateProps> = ({
                         />
                       </div>
                       {institution && (
-                        <div style={{ fontSize: '9px', color: '#64748b', marginBottom: date ? '2px' : '0' }}>
+                        <div style={{ fontSize: '9px', color: '#334155', marginBottom: date ? '2px' : '0' }}>
                           <input
                             className="w-full bg-transparent outline-none"
                             value={institution}
@@ -650,7 +672,7 @@ export const ProfessionalCVTemplate: React.FC<ProfessionalCVTemplateProps> = ({
                         </div>
                       )}
                       {date && (
-                        <div style={{ fontSize: '9px', color: '#64748b' }}>
+                        <div style={{ fontSize: '9px', color: '#334155' }}>
                           <input
                             className="w-full bg-transparent outline-none"
                             value={date}
@@ -810,7 +832,21 @@ export const ProfessionalCVTemplate: React.FC<ProfessionalCVTemplateProps> = ({
 
           {leftSections.map((section) => {
             const idx = sections.findIndex((s) => s === section);
-            return renderSection(section, idx);
+            const content = renderSection(section, idx);
+            if (!content) return null;
+            return (
+              <div
+                key={idx}
+                className="pdf-section-drag"
+                draggable={!!onReorderSections}
+                onDragStart={(e) => { e.dataTransfer.setData('text/plain', String(idx)); e.dataTransfer.effectAllowed = 'move'; }}
+                onDragOver={(e) => e.preventDefault()}
+                onDrop={(e) => { e.preventDefault(); const from = parseInt(e.dataTransfer.getData('text/plain')); if (from !== idx) onReorderSections?.(from, idx); }}
+                style={{ cursor: onReorderSections ? 'grab' : undefined }}
+              >
+                {content}
+              </div>
+            );
           })}
         </section>
 
@@ -818,7 +854,21 @@ export const ProfessionalCVTemplate: React.FC<ProfessionalCVTemplateProps> = ({
         <aside style={{ flex: '0 0 42%', minWidth: 0, paddingLeft: '12px', paddingRight: '32px', display: 'flex', flexDirection: 'column', gap: '12px' }}>
           {rightSections.map((section) => {
             const idx = sections.findIndex((s) => s === section);
-            return renderSection(section, idx);
+            const content = renderSection(section, idx);
+            if (!content) return null;
+            return (
+              <div
+                key={idx}
+                className="pdf-section-drag"
+                draggable={!!onReorderSections}
+                onDragStart={(e) => { e.dataTransfer.setData('text/plain', String(idx)); e.dataTransfer.effectAllowed = 'move'; }}
+                onDragOver={(e) => e.preventDefault()}
+                onDrop={(e) => { e.preventDefault(); const from = parseInt(e.dataTransfer.getData('text/plain')); if (from !== idx) onReorderSections?.(from, idx); }}
+                style={{ cursor: onReorderSections ? 'grab' : undefined }}
+              >
+                {content}
+              </div>
+            );
           })}
         </aside>
       </div>
@@ -828,7 +878,21 @@ export const ProfessionalCVTemplate: React.FC<ProfessionalCVTemplateProps> = ({
         <div className="px-8 pb-4 space-y-3 bg-white" data-pdf-section>
           {otherSections.map((section) => {
             const idx = sections.findIndex((s) => s === section);
-            return renderSection(section, idx);
+            const content = renderSection(section, idx);
+            if (!content) return null;
+            return (
+              <div
+                key={idx}
+                className="pdf-section-drag"
+                draggable={!!onReorderSections}
+                onDragStart={(e) => { e.dataTransfer.setData('text/plain', String(idx)); e.dataTransfer.effectAllowed = 'move'; }}
+                onDragOver={(e) => e.preventDefault()}
+                onDrop={(e) => { e.preventDefault(); const from = parseInt(e.dataTransfer.getData('text/plain')); if (from !== idx) onReorderSections?.(from, idx); }}
+                style={{ cursor: onReorderSections ? 'grab' : undefined }}
+              >
+                {content}
+              </div>
+            );
           })}
         </div>
       )}
