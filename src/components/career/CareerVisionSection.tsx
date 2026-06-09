@@ -1363,6 +1363,7 @@ export function CareerVisionSection({ cvId: initialCvId, onAnalysisComplete, res
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
+              id: resumePathId,
               learning_path_id: resumePathId,
               user_id: data.user_id ?? null,
               target_job: data.target_job ?? null,
