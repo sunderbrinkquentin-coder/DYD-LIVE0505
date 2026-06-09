@@ -160,7 +160,7 @@ function SmartProgressBar({ done, paused }: { done: boolean; paused: boolean }) 
   return (
     <div className="w-full space-y-2">
       <div className="flex justify-between items-center text-xs">
-        <span className="text-white/45 font-medium">{done ? 'Analyse abgeschlossen' : 'Tiefenanalyse läuft…'}</span>
+        <span className="text-white/45 font-medium">{done ? 'Analyse abgeschlossen' : 'Tiefenanalyse läuft… · ca. 1 Min.'}</span>
         <span className="font-bold tabular-nums" style={{ color: done ? '#22c55e' : '#30E3CA' }}>{display}%</span>
       </div>
       <div className="h-2 rounded-full bg-white/8 overflow-hidden relative">
@@ -358,7 +358,7 @@ function AnalysisLoader({ messages, success }: { messages: string[]; success: bo
         )}
         <span className="text-[10px] font-black uppercase tracking-[0.18em]"
           style={{ color: success ? 'rgba(34,197,94,0.7)' : 'rgba(102,192,182,0.65)' }}>
-          {success ? 'Analyse abgeschlossen' : 'Schritt 2 von 2 · KI-Tiefenanalyse läuft'}
+          {success ? 'Analyse abgeschlossen' : 'Schritt 2 von 2 · KI-Tiefenanalyse läuft · ca. 1 Min.'}
         </span>
       </div>
       <div className="absolute inset-0 pointer-events-none overflow-hidden">
@@ -1213,14 +1213,15 @@ export function CareerVisionSection({ cvId: initialCvId, onAnalysisComplete, res
   useEffect(() => {
     if (!resumePathId) return;
     let cancelled = false;
+    const timers: ReturnType<typeof setTimeout>[] = [];
 
     (async () => {
-      // Ladepage sofort anzeigen — User kommt von Stripe zurück, Zahlung ist erfolgt
+      // 1. Ladepage sofort zeigen
       setPhase('waiting');
       completedRef.current = false;
       pathIdRef.current = resumePathId;
 
-      // DB-Zeile laden
+      // 2. DB-Zeile laden
       const { data, error: fetchErr } = await supabase
         .from('learning_paths')
         .select('user_id, target_job, target_company, vision_description, industry, cv_id, status, missing_skills, current_skills, strategic_outlook_2026, match_score')
@@ -1235,25 +1236,23 @@ export function CareerVisionSection({ cvId: initialCvId, onAnalysisComplete, res
         return;
       }
 
-      // Bereits fertig? Direkt Ergebnis zeigen
+      // 3. Bereits fertig? Sofort zeigen
       if (COMPLETE_STATUSES.has(data.status as string)) {
-        handleCompletion(resumePathId, data as Record<string, unknown>);
+        setResult({
+          pathId: resumePathId,
+          missingSkills:    parseSkills(data.missing_skills),
+          currentSkills:    normalizeCurrentSkills(data.current_skills),
+          strategicOutlook: (data.strategic_outlook_2026 as string) ?? '',
+          matchScore:       Number(data.match_score ?? 0),
+          industry:         (data.industry as string) ?? '',
+          targetJob:        (data.target_job as string) ?? '',
+          targetCompany:    (data.target_company as string) ?? '',
+        });
+        setPhase('done');
         return;
       }
 
-      // Formularfelder aus DB befüllen
-      if (data.target_job) setTargetJob(data.target_job as string);
-      if (data.target_company) setTargetCompany(data.target_company as string);
-      if (data.industry) setIndustry(data.industry as string);
-
-      // Realtime + Polling starten — warten auf status = gap_analysis_complete
-      startRealtime(resumePathId);
-      startPolling(resumePathId);
-      fallbackTimRef.current = setTimeout(() => {
-        if (!completedRef.current) setPhase('fallback');
-      }, FALLBACK_TIMEOUT_MS);
-
-      // Make Webhook sofort feuern
+      // 4. Make Webhook sofort feuern
       const makeUrl = import.meta.env.VITE_MAKE_WEBHOOK_SKILLGAP;
       if (!makeUrl) {
         setApiError('Konfigurationsfehler: VITE_MAKE_WEBHOOK_SKILLGAP ist nicht gesetzt.');
@@ -1285,14 +1284,64 @@ export function CareerVisionSection({ cvId: initialCvId, onAnalysisComplete, res
             timestamp: new Date().toISOString(),
           }),
         });
-
         if (!res.ok) throw new Error(`Status ${res.status}`);
       } catch (e: any) {
         setApiError(`Make Webhook Fehler: ${e.message}`);
       }
+
+      if (cancelled) return;
+
+      // 5. Nach 45 Sek. starten, dann alle 10 Sek. pollen — bis zu 4 Minuten
+      const showResult = (row: Record<string, unknown>) => {
+        if (completedRef.current) return;
+        completedRef.current = true;
+        setResult({
+          pathId: resumePathId,
+          missingSkills:    parseSkills(row.missing_skills),
+          currentSkills:    normalizeCurrentSkills(row.current_skills),
+          strategicOutlook: (row.strategic_outlook_2026 as string) ?? '',
+          matchScore:       Number(row.match_score ?? 0),
+          industry:         (row.industry as string) ?? (data.industry as string) ?? '',
+          targetJob:        (row.target_job as string) ?? (data.target_job as string) ?? '',
+          targetCompany:    (row.target_company as string) ?? (data.target_company as string) ?? '',
+        });
+        setPhase('revealing');
+        setTimeout(() => setPhase('done'), 1_500);
+      };
+
+      const poll = async () => {
+        if (cancelled || completedRef.current) return;
+        try {
+          const { data: fresh } = await supabase
+            .from('learning_paths')
+            .select('status, missing_skills, current_skills, strategic_outlook_2026, match_score, industry, target_job, target_company')
+            .eq('id', resumePathId)
+            .maybeSingle();
+          if (fresh && COMPLETE_STATUSES.has(fresh.status as string)) {
+            showResult(fresh as Record<string, unknown>);
+            return;
+          }
+        } catch { /* weiter versuchen */ }
+        // Alle 10 Sek. wiederholen bis 4 Min.
+        const t = setTimeout(poll, 10_000);
+        timers.push(t);
+      };
+
+      // Ersten Poll nach 45 Sek.
+      const t = setTimeout(poll, 45_000);
+      timers.push(t);
+
+      // Fallback nach 4.5 Min.
+      const fb = setTimeout(() => {
+        if (!completedRef.current) setPhase('fallback');
+      }, 270_000);
+      timers.push(fb);
     })();
 
-    return () => { cancelled = true; };
+    return () => {
+      cancelled = true;
+      timers.forEach(clearTimeout);
+    };
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [resumePathId]);
 
