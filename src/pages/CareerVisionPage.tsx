@@ -14,7 +14,7 @@ export default function CareerVisionPage() {
   const [searchParams] = useSearchParams();
 
   // Set after Stripe redirect: /#/career-vision?analysis={pathId}
-  const resumePathId = searchParams.get('analysis') || undefined;
+  const resumePathId = searchParams.get('resume') || undefined;
 
   const [cvId, setCvId] = useState<string | null>(null);
   const [userPaths, setUserPaths] = useState<LearningPath[]>([]);
