@@ -1322,6 +1322,16 @@ export default function LandingPage() {
                   icon: Music,
                   color: 'from-orange-500/20 to-red-500/20',
                 },
+                {
+                  name: 'JobMedi Essen',
+                  date: '12.12.2026',
+                  location: 'Essen – Grugahalle',
+                  type: 'Karrieremesse',
+                  booth: 'Standinfo folgt',
+                  highlight: 'Live CV-Checks',
+                  icon: Briefcase,
+                  color: 'from-emerald-500/20 to-teal-500/20',
+                },
               ].map((event, index) => (
                 <motion.div
                   key={index}
