@@ -11,15 +11,17 @@ import { useAuth } from '../../contexts/AuthContext';
 import { supabase } from '../../lib/supabase';
 import { uploadCvAndCreateRecord } from '../../services/cvUploadService';
 import { LearningPathPaywall } from './LearningPathPaywall';
+import { SkillGapPaywall } from './SkillGapPaywall';
 
 // ── Constants ──────────────────────────────────────────────────────────────────
 
-const VISION_WEBHOOK_URL = import.meta.env.VITE_MAKE_WEBHOOK_SKILLGAP || 'https://hook.eu2.make.com/2gw464yqj339tqv3eh6yiv6qnw2q76q1';
 const POLL_INTERVAL_MS = 3_000;
 const POLL_MAX = 40;
 const FALLBACK_TIMEOUT_MS = 60_000;
-// Max wait for cv_data to appear after CV upload (30 × 3s = 90s)
 const CV_DATA_POLL_MAX = 30;
+// Max polls waiting for skillgap_paid (10 × 2s = 20s)
+const PAID_POLL_MAX = 10;
+const PAID_POLL_INTERVAL_MS = 2_000;
 
 const COMPLETE_STATUSES = new Set(['gap_analysis_complete', 'curriculum_ready', 'completed']);
 
@@ -64,6 +66,7 @@ interface AnalysisResult {
 type Phase =
   | 'idle'
   | 'cv_uploading'   // CV being uploaded + cv_data waiting
+  | 'paywall'        // waiting for skillgap payment
   | 'waiting'        // vision webhook sent, listening for DB update
   | 'revealing'      // completed received, brief success state
   | 'done'           // results fully visible
@@ -862,9 +865,10 @@ function ResultView({ result, onNavigate }: { result: AnalysisResult; onNavigate
 interface CareerVisionSectionProps {
   cvId?: string;
   onAnalysisComplete?: (pathId: string) => void;
+  resumePathId?: string;
 }
 
-export function CareerVisionSection({ cvId: initialCvId, onAnalysisComplete }: CareerVisionSectionProps) {
+export function CareerVisionSection({ cvId: initialCvId, onAnalysisComplete, resumePathId }: CareerVisionSectionProps) {
   const { user } = useAuth();
   const navigate = useNavigate();
 
@@ -1029,8 +1033,7 @@ export function CareerVisionSection({ cvId: initialCvId, onAnalysisComplete }: C
 
   // ── CV upload + cv_data polling ─────────────────────────────────────────────
 
-  const uploadCvAndWaitForData = useCallback(async (file: File): Promise<{ uploadId: string; cvData: string }> => {
-    // 1. Upload file to Supabase storage + create stored_cvs record
+  const uploadCvAndWaitForData = useCallback(async (file: File): Promise<{ uploadId: string }> => {
     const up = await uploadCvAndCreateRecord(file, { source: 'skill', userId: user?.id ?? null });
     if (!up.success || !up.uploadId) {
       throw new Error('CV-Upload fehlgeschlagen');
@@ -1038,38 +1041,36 @@ export function CareerVisionSection({ cvId: initialCvId, onAnalysisComplete }: C
 
     const uploadId = up.uploadId;
 
-    // 2. Trigger the CV-Check Make webhook directly (same as CVCheckPage)
     const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
     const callbackUrl = `${supabaseUrl}/functions/v1/make-cv-callback`;
 
     try {
-      // Get public file URL for Make
       const { data: cvRow } = await supabase
         .from('stored_cvs')
         .select('file_url,file_path,file_name')
         .eq('id', uploadId)
         .maybeSingle();
 
-      const makePayload = {
-        upload_id: uploadId,
-        url: cvRow?.file_url ?? '',
-        file_url: cvRow?.file_url ?? '',
-        file_url_fallback: null,
-        file_name: cvRow?.file_name ?? file.name,
-        file_path: cvRow?.file_path ?? null,
-        source: 'skill',
-        user_id: user?.id ?? null,
-        temp_id: null,
-        callback_url: callbackUrl,
-        timestamp: new Date().toISOString(),
-      };
-
-      await supabase.functions.invoke('trigger-cv-check', { body: makePayload });
+      await supabase.functions.invoke('trigger-cv-check', {
+        body: {
+          upload_id: uploadId,
+          url: cvRow?.file_url ?? '',
+          file_url: cvRow?.file_url ?? '',
+          file_url_fallback: null,
+          file_name: cvRow?.file_name ?? file.name,
+          file_path: cvRow?.file_path ?? null,
+          source: 'skill',
+          user_id: user?.id ?? null,
+          temp_id: null,
+          callback_url: callbackUrl,
+          timestamp: new Date().toISOString(),
+        },
+      });
     } catch (e: any) {
       console.warn('[CVSection] CV-Check trigger error (continuing):', e.message);
     }
 
-    // 3. Poll stored_cvs for cv_data to appear (Make writes it back)
+    // Poll for cv_data to appear (Make writes it back)
     for (let i = 0; i < CV_DATA_POLL_MAX; i++) {
       await new Promise((r) => setTimeout(r, POLL_INTERVAL_MS));
       const { data } = await supabase
@@ -1081,23 +1082,17 @@ export function CareerVisionSection({ cvId: initialCvId, onAnalysisComplete }: C
       if (data?.status === 'failed') {
         throw new Error('CV-Analyse fehlgeschlagen. Bitte versuche es erneut.');
       }
-
       if (data?.cv_data != null) {
-        const cvData = typeof data.cv_data === 'string'
-          ? data.cv_data
-          : JSON.stringify(data.cv_data);
-
-        // Update local state so the CV is shown as selected
         setActiveCvId(uploadId);
         setCvFileName(file.name);
-        return { uploadId, cvData };
+        return { uploadId };
       }
     }
 
-    // cv_data never appeared — continue with uploadId, no cv_data
+    // cv_data never appeared — continue; Edge Function handles null cv_data gracefully
     setActiveCvId(uploadId);
     setCvFileName(file.name);
-    return { uploadId, cvData: 'NO_CV_PROVIDED' };
+    return { uploadId };
   }, [user?.id]);
 
   // ── Run analysis ────────────────────────────────────────────────────────────
@@ -1113,29 +1108,14 @@ export function CareerVisionSection({ cvId: initialCvId, onAnalysisComplete }: C
 
     try {
       let resolvedCvId = activeCvId;
-      let cvDataPayload = 'NO_CV_PROVIDED';
 
-      // ── Case A: new CV file selected → upload via CV-Check and wait for cv_data ──
       if (useNewCv && newCvFile) {
         setCvUploadFileName(newCvFile.name);
         setPhase('cv_uploading');
-
-        const { uploadId, cvData } = await uploadCvAndWaitForData(newCvFile);
+        const { uploadId } = await uploadCvAndWaitForData(newCvFile);
         resolvedCvId = uploadId;
-        cvDataPayload = cvData;
-      } else if (resolvedCvId) {
-        // ── Case B: existing CV → fetch cv_data from DB ──
-        const { data: cvRow } = await supabase
-          .from('stored_cvs').select('cv_data').eq('id', resolvedCvId).maybeSingle();
-        if (cvRow?.cv_data != null) {
-          cvDataPayload = typeof cvRow.cv_data === 'string'
-            ? cvRow.cv_data
-            : JSON.stringify(cvRow.cv_data);
-        }
       }
-      // ── Case C: no CV → cvDataPayload stays 'NO_CV_PROVIDED' ──
 
-      // Insert learning_paths row
       const { data: lp, error: insertErr } = await supabase
         .from('learning_paths')
         .insert({
@@ -1149,6 +1129,7 @@ export function CareerVisionSection({ cvId: initialCvId, onAnalysisComplete }: C
           missing_skills: [],
           current_skills: [],
           is_paid: false,
+          skillgap_paid: false,
           progress: {},
         })
         .select('id')
@@ -1158,36 +1139,9 @@ export function CareerVisionSection({ cvId: initialCvId, onAnalysisComplete }: C
         throw new Error('Analyse konnte nicht gestartet werden: ' + (insertErr?.message ?? 'Unbekannter Fehler'));
       }
 
-      const pathId = lp.id;
-      pathIdRef.current = pathId;
-      setPhase('waiting');
-
-      // Fire vision webhook
-      try {
-        await fetch(VISION_WEBHOOK_URL, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            id: pathId,
-            user_id: user.id,
-            target_job: targetJob.trim(),
-            target_company: targetCompany.trim() || null,
-            industry: industry.trim() || null,
-            vision_description: visionDescription.trim() || null,
-            current_skills: cvDataPayload,
-          }),
-        });
-      } catch (e: any) {
-        console.warn('[CVSection] Vision webhook error (continuing):', e.message);
-      }
-
-      startRealtime(pathId);
-      startPolling(pathId);
-
-      fallbackTimRef.current = setTimeout(() => {
-        if (!completedRef.current) setPhase('fallback');
-      }, FALLBACK_TIMEOUT_MS);
-
+      pathIdRef.current = lp.id;
+      // Show paywall — webhook fires only after payment
+      setPhase('paywall');
     } catch (e: any) {
       console.error('[CVSection] runAnalysis error:', e);
       setApiError(e.message || 'Ein unbekannter Fehler ist aufgetreten. Bitte versuche es erneut.');
@@ -1196,8 +1150,77 @@ export function CareerVisionSection({ cvId: initialCvId, onAnalysisComplete }: C
   }, [
     targetJob, targetCompany, industry, visionDescription,
     activeCvId, useNewCv, newCvFile, user,
-    startRealtime, startPolling, uploadCvAndWaitForData,
+    uploadCvAndWaitForData,
   ]);
+
+  // ── Trigger skillgap Edge Function ──────────────────────────────────────────
+
+  const triggerSkillgapWebhook = useCallback(async (pathId: string) => {
+    setPhase('waiting');
+    completedRef.current = false;
+    pathIdRef.current = pathId;
+
+    try {
+      const { error } = await supabase.functions.invoke('trigger-skillgap', {
+        body: { path_id: pathId },
+      });
+      if (error) {
+        console.error('[CVSection] trigger-skillgap error:', error.message);
+        setApiError('Die Analyse konnte nicht gestartet werden. Bitte versuche es erneut.');
+        setPhase('idle');
+        return;
+      }
+    } catch (e: any) {
+      console.warn('[CVSection] trigger-skillgap invoke failed (continuing polling):', e.message);
+    }
+
+    startRealtime(pathId);
+    startPolling(pathId);
+
+    fallbackTimRef.current = setTimeout(() => {
+      if (!completedRef.current) setPhase('fallback');
+    }, FALLBACK_TIMEOUT_MS);
+  }, [startRealtime, startPolling]);
+
+  // ── Resume after Stripe redirect ────────────────────────────────────────────
+
+  useEffect(() => {
+    if (!resumePathId) return;
+    let cancelled = false;
+
+    (async () => {
+      for (let i = 0; i < PAID_POLL_MAX; i++) {
+        if (cancelled) return;
+        const { data } = await supabase
+          .from('learning_paths')
+          .select('skillgap_paid, target_job, target_company, industry, status, missing_skills, current_skills, strategic_outlook_2026, match_score')
+          .eq('id', resumePathId)
+          .maybeSingle();
+
+        if (!data) break;
+
+        if (COMPLETE_STATUSES.has(data.status as string)) {
+          handleCompletion(resumePathId, data as Record<string, unknown>);
+          return;
+        }
+
+        if (data.skillgap_paid) {
+          if (cancelled) return;
+          if (data.target_job) setTargetJob(data.target_job as string);
+          if (data.target_company) setTargetCompany(data.target_company as string);
+          if (data.industry) setIndustry(data.industry as string);
+          await triggerSkillgapWebhook(resumePathId);
+          return;
+        }
+
+        await new Promise((r) => setTimeout(r, PAID_POLL_INTERVAL_MS));
+      }
+
+      if (!cancelled) setPhase('idle');
+    })();
+
+    return () => { cancelled = true; };
+  }, [resumePathId, triggerSkillgapWebhook, handleCompletion]);
 
   // ── Handlers ────────────────────────────────────────────────────────────────
 
@@ -1221,13 +1244,7 @@ export function CareerVisionSection({ cvId: initialCvId, onAnalysisComplete }: C
     if (data && COMPLETE_STATUSES.has(data.status as string)) {
       handleCompletion(pathId, data as Record<string, unknown>);
     } else {
-      setPhase('waiting');
-      completedRef.current = false;
-      startRealtime(pathId);
-      startPolling(pathId);
-      fallbackTimRef.current = setTimeout(() => {
-        if (!completedRef.current) setPhase('fallback');
-      }, FALLBACK_TIMEOUT_MS);
+      await triggerSkillgapWebhook(pathId);
     }
   };
 
@@ -1243,7 +1260,7 @@ export function CareerVisionSection({ cvId: initialCvId, onAnalysisComplete }: C
   const isAnalyzing   = phase === 'waiting' || phase === 'revealing';
   const showLoader    = isCvUploading || isAnalyzing;
   const showResult    = phase === 'done' && result !== null;
-  const showForm      = !showLoader && phase !== 'done' && phase !== 'fallback';
+  const showForm      = !showLoader && phase !== 'done' && phase !== 'fallback' && phase !== 'paywall';
   const canSubmit     = !!targetJob.trim() && !showLoader;
 
   // Drag-drop handlers for the CV upload area
@@ -1302,6 +1319,17 @@ export function CareerVisionSection({ cvId: initialCvId, onAnalysisComplete }: C
 
       {/* Results */}
       {showResult && result && <ResultView result={result} onNavigate={handleNavigate} />}
+
+      {/* SkillGap paywall */}
+      {phase === 'paywall' && pathIdRef.current && (
+        <SkillGapPaywall
+          isOpen
+          onClose={() => { pathIdRef.current = null; setPhase('idle'); }}
+          learningPathId={pathIdRef.current}
+          targetJob={targetJob}
+          targetCompany={targetCompany || undefined}
+        />
+      )}
 
       {/* Input form */}
       {showForm && (

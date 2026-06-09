@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { Target, TrendingUp, ArrowLeft, Award } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import { CareerVisionSection } from '../components/career/CareerVisionSection';
@@ -11,6 +11,10 @@ import { supabase } from '../lib/supabase';
 export default function CareerVisionPage() {
   const { user } = useAuth();
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+
+  // Set after Stripe redirect: /#/career-vision?analysis={pathId}
+  const resumePathId = searchParams.get('analysis') || undefined;
 
   const [cvId, setCvId] = useState<string | null>(null);
   const [userPaths, setUserPaths] = useState<LearningPath[]>([]);
@@ -95,7 +99,7 @@ export default function CareerVisionPage() {
         {/* Analysis form */}
         <div className="rounded-3xl overflow-hidden" style={{ border: '1px solid rgba(255,255,255,0.08)', background: 'rgba(255,255,255,0.02)' }}>
           <div className="p-6 sm:p-8">
-            <CareerVisionSection cvId={cvId || undefined} onAnalysisComplete={handleAnalysisComplete} />
+            <CareerVisionSection cvId={cvId || undefined} onAnalysisComplete={handleAnalysisComplete} resumePathId={resumePathId} />
           </div>
         </div>
 

@@ -4,12 +4,11 @@ import { supabase } from '../lib/supabase';
 
 // ── Constants ──────────────────────────────────────────────────────────────────
 
-const WEBHOOK_URL =
-  import.meta.env.VITE_MAKE_WEBHOOK_LEARNINGPATH
-  || 'https://hook.eu2.make.com/1pvur1oth8sibonqc3twq57itg2ti1d0';
-
 const POLL_INTERVAL_MS = 2_500;
 const POLL_MAX = 150; // ~6.5 minutes max wait
+// Max polls waiting for is_paid (12 × 1.5s = 18s)
+const PAID_POLL_MAX = 12;
+const PAID_POLL_INTERVAL_MS = 1_500;
 
 const DONE_STATUSES = new Set(['completed']);
 
@@ -353,51 +352,22 @@ export default function LearningPathWaitingPage() {
     pollTimerRef.current = setTimeout(tick, 2_000);
   }, [pathId, markDone, markError]);
 
-  // ── Trigger Make ───────────────────────────────────────────────────────────
+  // ── Trigger via Edge Function ──────────────────────────────────────────────
 
-  const triggerMake = useCallback(async (path: Record<string, unknown>): Promise<boolean> => {
-    console.log('[LPW2] Firing Make webhook:', WEBHOOK_URL);
-    const parseSkills = (raw: unknown): unknown[] => {
-      if (!raw) return [];
-      if (Array.isArray(raw)) return raw;
-      if (typeof raw === 'string') {
-        try { const p = JSON.parse(raw); return Array.isArray(p) ? p : [p]; } catch { /**/ }
-        try { return JSON.parse(`[${raw}]`); } catch { /**/ }
-      }
-      return [];
-    };
-    const selectedSkill = (path.skill as string) || null;
+  const triggerLearningpath = useCallback(async (): Promise<boolean> => {
+    console.log('[LPW2] Invoking trigger-learningpath for:', pathId);
     try {
-      const res = await fetch(WEBHOOK_URL, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          learning_path_id: pathId,
-          skill: selectedSkill,
-          selected_skill: selectedSkill,
-          missing_skills: selectedSkill ? [selectedSkill] : parseSkills(path.missing_skills),
-          current_skills: parseSkills(path.current_skills),
-          target_job: path.target_job,
-          target_company: path.target_company,
-          industry: path.industry,
-          user_id: path.user_id,
-          timeframe: '12_months',
-          learning_style: 'balanced',
-          timestamp: new Date().toISOString(),
-        }),
+      const { error } = await supabase.functions.invoke('trigger-learningpath', {
+        body: { learning_path_id: pathId },
       });
-      if (!res.ok) {
-        console.error('[LPW2] Webhook HTTP error:', res.status);
+      if (error) {
+        console.error('[LPW2] trigger-learningpath error:', error.message);
         return false;
       }
-      console.log('[LPW2] Make webhook triggered OK');
-      const now = new Date().toISOString();
-      await supabase.from('learning_paths')
-        .update({ status: 'in_progress', updated_at: now, triggered_at: now })
-        .eq('id', pathId);
+      console.log('[LPW2] trigger-learningpath success');
       return true;
     } catch (e) {
-      console.error('[LPW2] Webhook fetch failed:', e);
+      console.error('[LPW2] trigger-learningpath invoke threw:', e);
       return false;
     }
   }, [pathId]);
@@ -417,8 +387,6 @@ export default function LearningPathWaitingPage() {
 
       if (lp.target_job) setTargetJob(lp.target_job);
 
-      // If DB doesn't have skill yet (race condition: webhook still processing),
-      // use the URL param as fallback and persist it immediately so Make gets the right value
       let effectivePath = lp as Record<string, unknown>;
       if (!(lp as any).skill && skillFromUrl) {
         console.log('[LPW2] skill missing from DB — using URL param:', skillFromUrl);
@@ -430,7 +398,7 @@ export default function LearningPathWaitingPage() {
 
       pathDataRef.current = effectivePath;
 
-      // Already has rows? → navigate immediately (remaining rows load in background)
+      // Already has rows? → navigate immediately
       const { data: existingRows } = await supabase
         .from('learning_results').select('id').eq('learning_path_id', pathId).limit(1);
       if (existingRows && existingRows.length > 0) {
@@ -439,22 +407,37 @@ export default function LearningPathWaitingPage() {
         return;
       }
 
-      // Path already completed status (but rows somehow missing) → navigate
       if (lp.status === 'completed') {
         console.log('[LPW2] Already completed — navigating');
         markDone();
         return;
       }
 
-      // Already in-flight → just listen, don't re-trigger
       if (lp.status === 'in_progress') {
-        console.log('[LPW2] Already in_progress — listening for first row');
+        console.log('[LPW2] Already in_progress — listening');
         startListening();
         return;
       }
 
-      console.log('[LPW2] Triggering Make | lp.status:', lp.status, '| skill:', effectivePath.skill);
-      const ok = await triggerMake(effectivePath);
+      // Guard: wait for is_paid before triggering (Stripe webhook may arrive after redirect)
+      let isPaid = !!(lp as any).is_paid;
+      if (!isPaid) {
+        console.log('[LPW2] is_paid not set yet — polling...');
+        for (let i = 0; i < PAID_POLL_MAX; i++) {
+          await new Promise((r) => setTimeout(r, PAID_POLL_INTERVAL_MS));
+          const { data: fresh } = await supabase
+            .from('learning_paths').select('is_paid').eq('id', pathId).maybeSingle();
+          if (fresh?.is_paid) { isPaid = true; break; }
+        }
+      }
+
+      if (!isPaid) {
+        markError('Die Zahlung wurde noch nicht bestätigt. Bitte warte einen Moment und lade die Seite neu.');
+        return;
+      }
+
+      console.log('[LPW2] Triggering learningpath | lp.status:', lp.status);
+      const ok = await triggerLearningpath();
       if (!ok) {
         markError('Der Lernpfad konnte nicht gestartet werden. Bitte versuche es erneut.');
         return;
@@ -481,12 +464,9 @@ export default function LearningPathWaitingPage() {
       await supabase.from('learning_paths')
         .update({ status: 'gap_analysis_complete', updated_at: new Date().toISOString() })
         .eq('id', pathId);
-      const { data: fresh } = await supabase.from('learning_paths').select('*').eq('id', pathId).maybeSingle();
-      if (!fresh) { setErrorMsg('Pfad nicht gefunden.'); return; }
-      pathDataRef.current = fresh as Record<string, unknown>;
       setPhase('waiting');
       startProgressAnimation();
-      const ok = await triggerMake(fresh as Record<string, unknown>);
+      const ok = await triggerLearningpath();
       if (!ok) { markError('Webhook-Fehler. Bitte lade die Seite neu.'); return; }
       startListening();
     } catch {
@@ -494,7 +474,7 @@ export default function LearningPathWaitingPage() {
     } finally {
       setRetrying(false);
     }
-  }, [pathId, triggerMake, startListening, markError, startProgressAnimation]);
+  }, [pathId, triggerLearningpath, startListening, markError, startProgressAnimation]);
 
   // Auto-navigate when countdown reaches 0
   useEffect(() => {

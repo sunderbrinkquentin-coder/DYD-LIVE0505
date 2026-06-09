@@ -269,6 +269,25 @@ Deno.serve(async (req: Request) => {
         }
       }
 
+      // Handle skillgap analysis payment
+      const skillgapPathId = session.metadata?.skillgap_path_id;
+      if (skillgapPathId) {
+        console.log("[Stripe Webhook] Payment for skillgap analysis:", skillgapPathId);
+        const { error: sgErr } = await supabase
+          .from("learning_paths")
+          .update({ skillgap_paid: true, updated_at: new Date().toISOString() })
+          .eq("id", skillgapPathId);
+        if (sgErr) {
+          console.error("[Stripe Webhook] Error unlocking skillgap:", sgErr);
+        } else {
+          console.log("[Stripe Webhook] Skillgap analysis unlocked:", skillgapPathId);
+        }
+        return new Response(JSON.stringify({ received: true }), {
+          status: 200,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+
       // Handle learning path payment
       if (learningPathId) {
         console.log("[Stripe Webhook] Payment for learning path:", learningPathId);
