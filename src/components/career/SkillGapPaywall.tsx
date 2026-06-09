@@ -58,7 +58,8 @@ export function SkillGapPaywall({ isOpen, onClose, learningPathId, targetJob, ta
       const token = session?.access_token || import.meta.env.VITE_SUPABASE_ANON_KEY;
 
       const origin = window.location.origin;
-      const successUrl = `${origin}/#/career-vision?analysis=${learningPathId}&session_id={CHECKOUT_SESSION_ID}`;
+      // ✅ Fix: ?resume= statt ?analysis= damit resumePathId-Flow in CareerVisionSection greift
+      const successUrl = `${origin}/#/career-vision?resume=${learningPathId}&session_id={CHECKOUT_SESSION_ID}`;
       const cancelUrl  = `${origin}/#/career-vision`;
 
       const resp = await fetch(STRIPE_CHECKOUT_URL, {
@@ -110,17 +111,14 @@ export function SkillGapPaywall({ isOpen, onClose, learningPathId, targetJob, ta
           overflowY: 'auto',
         }}
       >
-        {/* Ambient orb */}
         <div className="absolute inset-0 pointer-events-none overflow-hidden">
           <div className="absolute w-72 h-72 rounded-full opacity-[0.05]"
             style={{ background: 'radial-gradient(circle,#30E3CA,transparent)', top: '-80px', right: '-60px', animation: 'sgOrb 9s ease-in-out infinite' }} />
         </div>
 
-        {/* Top accent line */}
         <div className="h-[3px]" style={{ background: 'linear-gradient(90deg,#30E3CA,#66c0b6,transparent)' }} />
 
         <div className="relative">
-          {/* Header */}
           <div className="flex items-start justify-between p-6 pb-4">
             <div className="flex items-center gap-3">
               <div className="w-11 h-11 rounded-2xl flex items-center justify-center flex-shrink-0"
@@ -141,7 +139,6 @@ export function SkillGapPaywall({ isOpen, onClose, learningPathId, targetJob, ta
             </button>
           </div>
 
-          {/* Price display */}
           <div className="px-6 pb-4">
             <div
               className="flex items-center justify-between p-4 rounded-2xl"
@@ -164,7 +161,6 @@ export function SkillGapPaywall({ isOpen, onClose, learningPathId, targetJob, ta
             </div>
           </div>
 
-          {/* Benefits list */}
           <div className="px-6 pb-4 space-y-2">
             <p className="text-[10px] font-black uppercase tracking-widest text-white/35 mb-3">Was du bekommst</p>
             {BENEFITS.map(({ icon: Icon, title, desc }) => (
@@ -183,7 +179,6 @@ export function SkillGapPaywall({ isOpen, onClose, learningPathId, targetJob, ta
             ))}
           </div>
 
-          {/* Trust badges */}
           <div className="px-6 pb-4">
             <div className="flex items-center justify-center gap-4 flex-wrap">
               {[
@@ -199,7 +194,6 @@ export function SkillGapPaywall({ isOpen, onClose, learningPathId, targetJob, ta
             </div>
           </div>
 
-          {/* Error */}
           {error && (
             <div className="mx-6 mb-3 px-4 py-3 rounded-xl text-sm text-red-300"
               style={{ background: 'rgba(239,68,68,0.08)', border: '1px solid rgba(239,68,68,0.2)' }}>
@@ -207,7 +201,6 @@ export function SkillGapPaywall({ isOpen, onClose, learningPathId, targetJob, ta
             </div>
           )}
 
-          {/* CTA */}
           <div className="p-6 pt-0 space-y-3">
             <button
               onClick={handleCheckout}
