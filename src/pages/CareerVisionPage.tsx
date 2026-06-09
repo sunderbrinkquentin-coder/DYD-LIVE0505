@@ -13,15 +13,9 @@ export default function CareerVisionPage() {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
 
-  // Set after Stripe redirect: /#/career-vision?analysis={pathId}
-  // ✅ nachher — parst manuell aus dem Hash
-const resumePathId = (() => {
-  const hash = window.location.hash; // z.B. "#/career-vision?resume=abc123"
-  const queryStart = hash.indexOf('?');
-  if (queryStart === -1) return undefined;
-  const params = new URLSearchParams(hash.slice(queryStart));
-  return params.get('resume') || params.get('analysis') || undefined;
-})();
+  // Nach Stripe-Redirect: /#/career-vision?resume={pathId}
+  const resumePathId = searchParams.get('resume') || searchParams.get('analysis') || undefined;
+  console.log('[CareerVisionPage] resumePathId:', resumePathId, '| hash:', window.location.hash);
 
   const [cvId, setCvId] = useState<string | null>(null);
   const [userPaths, setUserPaths] = useState<LearningPath[]>([]);
