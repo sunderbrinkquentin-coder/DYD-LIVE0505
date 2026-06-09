@@ -1,4 +1,4 @@
-import { X, Check, CreditCard, Loader, AlertCircle, Zap, Shield, TrendingUp, Star } from 'lucide-react';
+import { X, Check, CreditCard, Loader, AlertCircle, Zap, TrendingUp, Shield, ArrowRight, Users, Star } from 'lucide-react';
 import { useState, useMemo, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '../../lib/supabase';
@@ -20,11 +20,68 @@ const PRICE_IDS: Record<string, string> = {
 
 const STRIPE_CHECKOUT_URL = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/stripe-checkout`;
 
+const plans = [
+  {
+    id: 'single' as const,
+    credits: 1,
+    price: 5,
+    originalPrice: null,
+    pricePerCredit: '5,00',
+    label: 'Starter',
+    tag: null,
+    savingsPct: null,
+  },
+  {
+    id: 'bundle-5' as const,
+    credits: 5,
+    price: 20,
+    originalPrice: 25,
+    pricePerCredit: '4,00',
+    label: 'Beliebt',
+    tag: 'EMPFOHLEN',
+    savingsPct: 20,
+  },
+  {
+    id: 'bundle-10' as const,
+    credits: 10,
+    price: 30,
+    originalPrice: 50,
+    pricePerCredit: '3,00',
+    label: 'Pro',
+    tag: 'BESTES PREIS-LEISTUNGS',
+    savingsPct: 40,
+  },
+];
+
+const STEPS = [
+  {
+    icon: Zap,
+    title: 'KI analysiert die Stelle',
+    desc: 'Dein CV wird in Sekunden auf die Jobbeschreibung zugeschnitten.',
+  },
+  {
+    icon: TrendingUp,
+    title: 'Keywords & ATS-Score steigen',
+    desc: 'Recruiter-Systeme erkennen deinen CV als hochrelevant.',
+  },
+  {
+    icon: Shield,
+    title: 'Du bewirbst dich mit Vorsprung',
+    desc: 'Unbegrenzt nachbearbeiten, als PDF exportieren — fertig.',
+  },
+];
+
+const SOCIAL_PROOF = [
+  { name: 'Lena K.', role: 'UX Designerin', quote: 'Interview-Rate von 1 auf 4 von 5.' },
+  { name: 'Marcus T.', role: 'Software Engineer', quote: '3× mehr Rückmeldungen in Woche 1.' },
+];
+
 export function TokenPaywallModal({ isOpen, onClose, onSuccess, defaultPlan, successAction }: TokenPaywallModalProps) {
   const navigate = useNavigate();
   const [isProcessing, setIsProcessing] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [selectedPlan, setSelectedPlan] = useState<'single' | 'bundle-5' | 'bundle-10'>(defaultPlan || 'bundle-5');
+  const [activeStep, setActiveStep] = useState(0);
 
   const stripeValidation = useMemo(() => validateStripePriceIds(), []);
 
@@ -33,8 +90,16 @@ export function TokenPaywallModal({ isOpen, onClose, onSuccess, defaultPlan, suc
       setIsProcessing(false);
       setError(null);
       setSelectedPlan(defaultPlan || 'bundle-5');
+      setActiveStep(0);
     }
   }, [isOpen, defaultPlan]);
+
+  // Cycle through benefit steps
+  useEffect(() => {
+    if (!isOpen) return;
+    const id = setInterval(() => setActiveStep((s) => (s + 1) % STEPS.length), 3000);
+    return () => clearInterval(id);
+  }, [isOpen]);
 
   if (!isOpen) return null;
 
@@ -94,7 +159,6 @@ export function TokenPaywallModal({ isOpen, onClose, onSuccess, defaultPlan, suc
 
         const { url } = await response.json();
         if (!url) throw new Error('Keine Checkout-URL erhalten');
-
         window.location.href = url;
       } catch (fetchErr: any) {
         clearTimeout(timeoutId);
@@ -109,103 +173,90 @@ export function TokenPaywallModal({ isOpen, onClose, onSuccess, defaultPlan, suc
     }
   };
 
-  const plans = [
-    {
-      id: 'single' as const,
-      credits: 1,
-      price: '5',
-      pricePerCredit: '5,00',
-      title: '1 Optimierung',
-      subtitle: 'Zum Ausprobieren',
-      savings: null,
-      popular: false,
-    },
-    {
-      id: 'bundle-5' as const,
-      credits: 5,
-      price: '20',
-      pricePerCredit: '4,00',
-      title: '5 Optimierungen',
-      subtitle: 'Beliebteste Wahl',
-      savings: '20% sparen',
-      popular: true,
-    },
-    {
-      id: 'bundle-10' as const,
-      credits: 10,
-      price: '30',
-      pricePerCredit: '3,00',
-      title: '10 Optimierungen',
-      subtitle: 'Bestes Preis-Leistungs-Verhältnis',
-      savings: '40% sparen',
-      popular: false,
-    },
-  ];
-
-  const benefits = [
-    { icon: Zap, text: 'KI analysiert die Stelle & optimiert deinen CV in Sekunden' },
-    { icon: TrendingUp, text: 'Höhere Interview-Rate durch keyword-optimierte Bewerbungen' },
-    { icon: Shield, text: 'Unbegrenzte Nachbearbeitung & PDF-Export inklusive' },
-  ];
+  const chosen = plans.find((p) => p.id === selectedPlan)!;
 
   return (
     <div className="fixed inset-0 bg-black/85 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-      <div className="bg-[#111] border border-white/10 rounded-2xl max-w-2xl w-full max-h-[92vh] overflow-y-auto shadow-2xl">
+      <div
+        className="relative bg-[#0d1117] border border-white/10 rounded-2xl w-full shadow-2xl overflow-hidden"
+        style={{ maxWidth: '760px', maxHeight: '95vh', overflowY: 'auto' }}
+      >
+        {/* Ambient top glow */}
+        <div style={{
+          position: 'absolute', top: 0, left: 0, right: 0, height: '260px', pointerEvents: 'none',
+          background: 'radial-gradient(ellipse 80% 60% at 50% -10%, rgba(102,192,182,0.22), transparent 70%)',
+        }} />
 
-        {/* Header */}
-        <div className="relative px-6 pt-6 pb-0">
-          <button
-            onClick={onClose}
-            className="absolute top-4 right-4 p-2 hover:bg-white/10 rounded-lg transition-all"
-          >
-            <X size={20} className="text-white/50" />
-          </button>
+        {/* Close */}
+        <button
+          onClick={onClose}
+          className="absolute top-4 right-4 z-20 p-2 hover:bg-white/10 rounded-lg transition-all"
+        >
+          <X size={18} className="text-white/40" />
+        </button>
 
-          <div className="flex items-center gap-2 mb-3">
-            <div className="p-1.5 rounded-lg bg-gradient-to-br from-[#66c0b6] to-[#30E3CA]">
-              <Star size={16} className="text-black" />
-            </div>
-            <span className="text-xs font-semibold tracking-widest uppercase text-[#66c0b6]">CV-Optimierung</span>
+        {/* ── HERO ── */}
+        <div className="relative z-10 text-center pt-8 pb-6 px-6">
+          <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full mb-4 text-xs font-semibold"
+            style={{ background: 'rgba(102,192,182,0.12)', border: '1px solid rgba(102,192,182,0.28)', color: '#66c0b6' }}>
+            <Star size={11} fill="currentColor" />
+            KI-gestützte CV-Optimierung
           </div>
 
-          <h2 className="text-2xl font-bold text-white mb-1">
-            Heb dich von der Masse ab
+          <h2 className="text-2xl sm:text-3xl font-black text-white mb-2 leading-tight">
+            Mehr Interviews. In weniger Zeit.
           </h2>
-          <p className="text-white/60 text-sm mb-5">
-            Lass KI deinen CV perfekt auf jede Stelle abstimmen — in Sekunden.
+          <p className="text-white/50 text-sm max-w-md mx-auto">
+            Lass KI deinen CV für jede Stelle individuell optimieren — ATS-geprüft, keyword-reich und in Sekunden.
           </p>
+        </div>
 
-          {/* Benefits */}
-          <div className="flex flex-col gap-2 mb-6">
-            {benefits.map(({ icon: Icon, text }) => (
-              <div key={text} className="flex items-center gap-3">
-                <div className="p-1.5 rounded-md bg-[#66c0b6]/15 flex-shrink-0">
-                  <Icon size={14} className="text-[#66c0b6]" />
-                </div>
-                <span className="text-sm text-white/75">{text}</span>
-              </div>
+        {/* ── BENEFIT JOURNEY (animated steps) ── */}
+        <div className="relative z-10 mx-6 mb-6 rounded-xl overflow-hidden"
+          style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.08)' }}>
+          <div className="flex border-b border-white/8">
+            {STEPS.map((step, i) => (
+              <button
+                key={i}
+                onClick={() => setActiveStep(i)}
+                className={`flex-1 py-2.5 text-[11px] font-semibold transition-all ${
+                  activeStep === i
+                    ? 'text-[#66c0b6] border-b-2 border-[#66c0b6] -mb-px'
+                    : 'text-white/30 hover:text-white/50'
+                }`}
+              >
+                {i + 1}. Schritt
+              </button>
             ))}
+          </div>
+          <div className="p-4 flex items-start gap-3">
+            {(() => {
+              const { icon: Icon, title, desc } = STEPS[activeStep];
+              return (
+                <>
+                  <div className="w-9 h-9 rounded-xl flex-shrink-0 flex items-center justify-center"
+                    style={{ background: 'linear-gradient(135deg,rgba(102,192,182,0.25),rgba(48,227,202,0.12))', border: '1px solid rgba(102,192,182,0.3)' }}>
+                    <Icon size={16} style={{ color: '#66c0b6' }} />
+                  </div>
+                  <div>
+                    <div className="text-sm font-bold text-white mb-0.5">{title}</div>
+                    <div className="text-xs text-white/50">{desc}</div>
+                  </div>
+                </>
+              );
+            })()}
+          </div>
+          {/* Progress bar */}
+          <div className="h-0.5 bg-white/5">
+            <div
+              className="h-full bg-gradient-to-r from-[#66c0b6] to-[#30E3CA] transition-all duration-[2800ms]"
+              style={{ width: `${((activeStep + 1) / STEPS.length) * 100}%` }}
+            />
           </div>
         </div>
 
-        <div className="px-6 pb-6 space-y-4">
-          {!stripeValidation.isValid && (
-            <div className="p-3 rounded-xl bg-red-500/10 border border-red-500/30 flex items-start gap-3">
-              <AlertCircle size={18} className="text-red-400 flex-shrink-0 mt-0.5" />
-              <div>
-                <p className="text-red-300 text-sm font-semibold">Stripe nicht konfiguriert</p>
-                <p className="text-red-200/60 text-xs mt-0.5">{stripeValidation.missingKeys.join(', ')}</p>
-              </div>
-            </div>
-          )}
-
-          {error && (
-            <div className="p-3 rounded-xl bg-red-500/10 border border-red-500/30 text-red-300 text-sm">
-              {error}
-            </div>
-          )}
-
-          {/* Plan cards */}
+        {/* ── PLAN CARDS ── */}
+        <div className="relative z-10 px-6 mb-4">
           <div className="grid grid-cols-3 gap-3">
             {plans.map((plan) => {
               const isSelected = selectedPlan === plan.id;
@@ -214,80 +265,139 @@ export function TokenPaywallModal({ isOpen, onClose, onSuccess, defaultPlan, suc
                   key={plan.id}
                   type="button"
                   onClick={() => setSelectedPlan(plan.id)}
-                  className={`relative rounded-xl p-4 border-2 transition-all text-left ${
-                    isSelected
-                      ? 'border-[#66c0b6] bg-[#66c0b6]/10'
-                      : plan.popular
-                      ? 'border-[#66c0b6]/30 bg-white/5 hover:border-[#66c0b6]/60'
-                      : 'border-white/10 bg-white/5 hover:border-white/20'
-                  }`}
+                  className="relative rounded-xl text-left transition-all duration-200 focus:outline-none"
+                  style={{
+                    padding: '16px 14px',
+                    border: `2px solid ${isSelected ? '#66c0b6' : plan.id === 'bundle-5' ? 'rgba(102,192,182,0.3)' : 'rgba(255,255,255,0.08)'}`,
+                    background: isSelected
+                      ? 'rgba(102,192,182,0.1)'
+                      : plan.id === 'bundle-5'
+                      ? 'rgba(102,192,182,0.04)'
+                      : 'rgba(255,255,255,0.02)',
+                    transform: isSelected ? 'translateY(-2px)' : 'none',
+                    boxShadow: isSelected ? '0 6px 24px rgba(102,192,182,0.18)' : 'none',
+                  }}
                 >
-                  {plan.popular && !isSelected && (
-                    <div className="absolute -top-2.5 left-1/2 -translate-x-1/2 px-2 py-0.5 rounded-full bg-gradient-to-r from-[#66c0b6] to-[#30E3CA] text-black text-[10px] font-bold whitespace-nowrap">
-                      BELIEBT
+                  {/* Top badge */}
+                  {plan.tag && (
+                    <div className="absolute -top-3 left-1/2 -translate-x-1/2 whitespace-nowrap px-2.5 py-0.5 rounded-full text-[9px] font-black text-black"
+                      style={{ background: 'linear-gradient(135deg,#66c0b6,#30E3CA)' }}>
+                      {plan.tag}
                     </div>
                   )}
-                  {isSelected && (
-                    <div className="absolute -top-2.5 left-1/2 -translate-x-1/2 px-2 py-0.5 rounded-full bg-[#66c0b6] text-black text-[10px] font-bold whitespace-nowrap">
-                      AUSGEWÄHLT
-                    </div>
-                  )}
-                  {plan.savings && (
-                    <div className="absolute -top-2.5 -right-2.5 px-2 py-0.5 rounded-full bg-green-500 text-white text-[10px] font-bold">
-                      {plan.savings}
+                  {plan.savingsPct && (
+                    <div className="absolute -top-2.5 -right-2.5 w-9 h-9 rounded-full flex items-center justify-center text-[9px] font-black text-white"
+                      style={{ background: 'rgba(34,197,94,0.92)' }}>
+                      -{plan.savingsPct}%
                     </div>
                   )}
 
-                  <div className="text-2xl font-bold text-white mb-0.5">{plan.credits}</div>
-                  <div className="text-[10px] text-white/50 mb-2">Credit{plan.credits > 1 ? 's' : ''}</div>
-                  <div className="text-xl font-bold text-[#66c0b6]">€{plan.price}</div>
-                  <div className="text-[10px] text-white/40 mt-0.5">€{plan.pricePerCredit}/Credit</div>
-                  <div className="text-[11px] text-white/60 mt-2 leading-tight">{plan.subtitle}</div>
+                  <div className="mb-2">
+                    <span className="text-[10px] font-bold uppercase tracking-wider"
+                      style={{ color: isSelected ? '#66c0b6' : 'rgba(255,255,255,0.3)' }}>
+                      {plan.label}
+                    </span>
+                  </div>
+
+                  {/* Price with anchor */}
+                  <div className="flex items-baseline gap-1.5 mb-0.5">
+                    <span className="text-2xl font-black text-white">€{plan.price}</span>
+                    {plan.originalPrice && (
+                      <span className="text-xs text-white/30 line-through">€{plan.originalPrice}</span>
+                    )}
+                  </div>
+                  <div className="text-[10px] text-white/40 mb-3">
+                    {plan.credits === 1 ? 'einmalig' : `€${plan.pricePerCredit} / Optimierung`}
+                  </div>
+
+                  <div className="text-base font-bold text-white mb-1">{plan.credits}</div>
+                  <div className="text-[10px] text-white/50">
+                    Credit{plan.credits > 1 ? 's' : ''}
+                  </div>
+
+                  {/* Selected indicator */}
+                  {isSelected && (
+                    <div className="absolute bottom-3 right-3 w-4 h-4 rounded-full flex items-center justify-center"
+                      style={{ background: 'linear-gradient(135deg,#66c0b6,#30E3CA)' }}>
+                      <Check size={9} className="text-black" />
+                    </div>
+                  )}
                 </button>
               );
             })}
           </div>
+        </div>
 
-          {/* What's included */}
-          <div className="bg-white/5 border border-white/10 rounded-xl p-3 flex flex-col gap-1.5">
-            {[
-              'CV-Optimierung für 1 Stelle pro Credit',
-              'KI-gestützte Keyword-Analyse',
-              'Unbegrenzte Nachbearbeitung & PDF-Export',
-              'Credits verfallen nicht',
-            ].map((item) => (
-              <div key={item} className="flex items-center gap-2.5">
-                <Check size={14} className="text-[#66c0b6] flex-shrink-0" />
-                <span className="text-sm text-white/70">{item}</span>
+        {/* ── SOCIAL PROOF ── */}
+        <div className="relative z-10 mx-6 mb-4 grid grid-cols-2 gap-2.5">
+          {SOCIAL_PROOF.map((p) => (
+            <div key={p.name} className="rounded-xl p-3"
+              style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.07)' }}>
+              <div className="flex items-center gap-1.5 mb-1.5">
+                <div className="w-5 h-5 rounded-full bg-gradient-to-br from-[#66c0b6] to-[#30E3CA] flex items-center justify-center">
+                  <Users size={9} className="text-black" />
+                </div>
+                <div>
+                  <div className="text-[10px] font-bold text-white/80">{p.name}</div>
+                  <div className="text-[9px] text-white/30">{p.role}</div>
+                </div>
               </div>
-            ))}
-          </div>
+              <p className="text-[10px] text-white/55 italic">"{p.quote}"</p>
+            </div>
+          ))}
+        </div>
 
-          {/* CTA button */}
+        {/* ── ERROR ── */}
+        {!stripeValidation.isValid && (
+          <div className="relative z-10 mx-6 mb-3 p-3 rounded-xl flex items-start gap-3"
+            style={{ background: 'rgba(239,68,68,0.1)', border: '1px solid rgba(239,68,68,0.25)' }}>
+            <AlertCircle size={15} className="text-red-400 flex-shrink-0 mt-0.5" />
+            <div>
+              <p className="text-red-300 text-xs font-semibold">Stripe nicht konfiguriert</p>
+              <p className="text-red-200/60 text-[10px] mt-0.5">{stripeValidation.missingKeys.join(', ')}</p>
+            </div>
+          </div>
+        )}
+        {error && (
+          <div className="relative z-10 mx-6 mb-3 p-3 rounded-xl"
+            style={{ background: 'rgba(239,68,68,0.1)', border: '1px solid rgba(239,68,68,0.25)' }}>
+            <p className="text-red-300 text-xs">{error}</p>
+          </div>
+        )}
+
+        {/* ── CTA ── */}
+        <div className="relative z-10 px-6 pb-6">
           <button
             onClick={() => handlePurchase(selectedPlan)}
             disabled={isProcessing || !stripeValidation.isValid}
             title={!stripeValidation.isValid ? 'Checkout disabled until Stripe env is configured.' : ''}
-            className="w-full py-3.5 rounded-xl font-bold text-base transition-all flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed bg-gradient-to-r from-[#66c0b6] to-[#30E3CA] text-black hover:opacity-90 hover:scale-[1.01]"
+            className="w-full py-4 rounded-xl font-black text-base transition-all flex items-center justify-center gap-2.5 disabled:opacity-50 disabled:cursor-not-allowed"
+            style={{ background: 'linear-gradient(135deg,#66c0b6,#30E3CA)', color: '#000' }}
           >
             {isProcessing ? (
               <>
                 <Loader size={18} className="animate-spin" />
-                <span>Wird geladen...</span>
+                <span>Wird geladen…</span>
               </>
             ) : (
               <>
-                <CreditCard size={18} />
+                <CreditCard size={17} />
                 <span>
-                  {plans.find(p => p.id === selectedPlan)?.credits} Credit{(plans.find(p => p.id === selectedPlan)?.credits ?? 1) > 1 ? 's' : ''} kaufen — €{plans.find(p => p.id === selectedPlan)?.price}
+                  {chosen.credits} Credit{chosen.credits > 1 ? 's' : ''} kaufen — €{chosen.price}
                 </span>
+                <ArrowRight size={15} />
               </>
             )}
           </button>
 
-          <p className="text-xs text-white/30 text-center">
-            Sichere Zahlung über Stripe · Sofortiger Zugang · Keine Abonnement-Falle
-          </p>
+          <div className="flex items-center justify-center gap-4 mt-3">
+            {['Sichere Zahlung via Stripe', 'Sofortiger Zugang', 'Credits verfallen nicht'].map((t) => (
+              <span key={t} className="text-[10px] text-white/25 flex items-center gap-1">
+                <Check size={9} className="text-white/20" />
+                {t}
+              </span>
+            ))}
+          </div>
         </div>
       </div>
     </div>

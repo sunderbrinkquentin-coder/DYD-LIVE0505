@@ -1,5 +1,6 @@
 import { useState, useRef } from 'react';
-import { Calendar, User, Briefcase, DollarSign, FileText, Download, Pencil, Sparkles, Bell, ChevronDown } from 'lucide-react';
+import { Calendar, User, Briefcase, DollarSign, FileText, Download, Pencil, Sparkles, Bell, ChevronDown, ExternalLink } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
 import { supabase } from '../../lib/supabase';
 import { KanbanStatus } from './KanbanBoard';
 
@@ -132,6 +133,7 @@ function getDeadlineHighlight(deadlineStr: string): 'danger' | 'warning' | null 
 const ALL_STATUSES: KanbanStatus[] = ['draft', 'applied', 'interview', 'offer', 'rejected'];
 
 export function KanbanCard({ cv, status, onDragStart, onUpdate, onStatusChange, isExample = false, isHighlighted = false }: KanbanCardProps) {
+  const navigate = useNavigate();
   const jobData = cv.job_data || {};
   const cvData = cv.cv_data || {};
 
@@ -140,7 +142,7 @@ export function KanbanCard({ cv, status, onDragStart, onUpdate, onStatusChange, 
     cv.pdf_url);
 
   const desiredJob = cvData.desired_job || {};
-  const jobTitle =
+  const initialJobTitle =
     jobData.positionTitle ||
     jobData.jobTitle ||
     jobData.job_title ||
@@ -149,7 +151,7 @@ export function KanbanCard({ cv, status, onDragStart, onUpdate, onStatusChange, 
     cvData.targetRole ||
     cvData.jobTitle ||
     cvData.personalInfo?.title ||
-    'Unbenannte Position';
+    '';
   const company =
     jobData.company ||
     jobData.companyName ||
@@ -160,6 +162,7 @@ export function KanbanCard({ cv, status, onDragStart, onUpdate, onStatusChange, 
     '';
   const notes = jobData.notes || null;
 
+  const [jobTitle, setJobTitle] = useState(initialJobTitle);
   const [statusMenuOpen, setStatusMenuOpen] = useState(false);
   const [contactPerson, setContactPerson] = useState<string>(jobData.contactPerson || jobData.contact_name || '');
   const [applicationDate, setApplicationDate] = useState<string>(
@@ -218,12 +221,17 @@ export function KanbanCard({ cv, status, onDragStart, onUpdate, onStatusChange, 
 
       <div className="p-3">
         <div className="mb-2.5">
-          <h4 className="font-semibold text-gray-900 text-sm leading-tight line-clamp-2">
-            {jobTitle}
-          </h4>
+          <EditableField
+            value={jobTitle}
+            placeholder="Stellenbezeichnung"
+            icon={<Briefcase className="w-3 h-3 text-gray-400" />}
+            onSave={(val) => {
+              setJobTitle(val);
+              saveField('positionTitle', val);
+            }}
+          />
           {company && (
-            <div className="flex items-center gap-1.5 mt-0.5">
-              <Briefcase className="w-3 h-3 text-gray-400 flex-shrink-0" />
+            <div className="flex items-center gap-1.5 mt-0.5 pl-5">
               <span className="text-xs font-medium text-gray-500 line-clamp-1">{company}</span>
             </div>
           )}
@@ -344,14 +352,24 @@ export function KanbanCard({ cv, status, onDragStart, onUpdate, onStatusChange, 
             </div>
           )}
 
-          {!isExample && cv.pdf_url && (
-            <button
-              onClick={handleDownload}
-              className="flex items-center gap-1 px-2 py-1 rounded-lg bg-gradient-to-r from-[#66c0b6] to-[#30E3CA] text-black text-xs font-semibold hover:opacity-90 transition-opacity shadow-sm"
-            >
-              <Download className="w-3 h-3" />
-              PDF
-            </button>
+          {!isExample && (
+            cv.pdf_url ? (
+              <button
+                onClick={handleDownload}
+                className="flex items-center gap-1 px-2 py-1 rounded-lg bg-gradient-to-r from-[#66c0b6] to-[#30E3CA] text-black text-xs font-semibold hover:opacity-90 transition-opacity shadow-sm"
+              >
+                <Download className="w-3 h-3" />
+                PDF
+              </button>
+            ) : cv.id && cv.id !== '__example__' ? (
+              <button
+                onClick={(e) => { e.stopPropagation(); navigate(`/cv/${cv.id}`); }}
+                className="flex items-center gap-1 px-2 py-1 rounded-lg bg-white/80 border border-gray-200 text-gray-600 text-xs font-medium hover:bg-white hover:border-[#66c0b6] hover:text-[#3a9e94] transition-all"
+              >
+                <ExternalLink className="w-3 h-3" />
+                CV öffnen
+              </button>
+            ) : null
           )}
         </div>
       </div>

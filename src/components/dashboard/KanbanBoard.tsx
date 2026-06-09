@@ -337,6 +337,7 @@ export function KanbanBoard({ cvs, onCVUpdate, highlightedCvId }: KanbanBoardPro
                   status={getCardStatus(cv)}
                   onDragStart={() => handleDragStart(cv)}
                   onUpdate={onCVUpdate}
+                  onStatusChange={(s) => handleStatusChange(cv, s)}
                   isHighlighted={!!highlightedCvId && cv.id === highlightedCvId}
                 />
               ))}
