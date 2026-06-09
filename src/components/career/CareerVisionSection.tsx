@@ -1215,38 +1215,117 @@ export function CareerVisionSection({ cvId: initialCvId, onAnalysisComplete, res
     let cancelled = false;
 
     (async () => {
-      for (let i = 0; i < PAID_POLL_MAX; i++) {
-        if (cancelled) return;
-        const { data } = await supabase
+      // Ladepage sofort anzeigen — User kommt von Stripe zurück
+      setPhase('waiting');
+      completedRef.current = false;
+      pathIdRef.current = resumePathId;
+
+      // Aktuellen Stand aus DB lesen
+      const { data, error: fetchErr } = await supabase
+        .from('learning_paths')
+        .select('skillgap_paid, target_job, target_company, industry, status, missing_skills, current_skills, strategic_outlook_2026, match_score')
+        .eq('id', resumePathId)
+        .maybeSingle();
+
+      if (cancelled) return;
+
+      if (fetchErr || !data) {
+        setApiError('Analyse konnte nicht geladen werden. Bitte lade die Seite neu.');
+        setPhase('idle');
+        return;
+      }
+
+      // Bereits fertig? Direkt Ergebnis zeigen
+      if (COMPLETE_STATUSES.has(data.status as string)) {
+        handleCompletion(resumePathId, data as Record<string, unknown>);
+        return;
+      }
+
+      // Formularfelder aus DB befüllen
+      if (data.target_job) setTargetJob(data.target_job as string);
+      if (data.target_company) setTargetCompany(data.target_company as string);
+      if (data.industry) setIndustry(data.industry as string);
+
+      // Realtime + Polling im Hintergrund starten
+      startRealtime(resumePathId);
+      startPolling(resumePathId);
+      fallbackTimRef.current = setTimeout(() => {
+        if (!completedRef.current) setPhase('fallback');
+      }, FALLBACK_TIMEOUT_MS);
+
+      // Auf skillgap_paid warten — max 30 Sek
+      let isPaid = !!data.skillgap_paid;
+      if (!isPaid) {
+        for (let i = 0; i < 15 && !isPaid && !cancelled; i++) {
+          await new Promise((r) => setTimeout(r, 2_000));
+          const { data: fresh } = await supabase
+            .from('learning_paths')
+            .select('skillgap_paid, status')
+            .eq('id', resumePathId)
+            .maybeSingle();
+          if (fresh?.skillgap_paid) { isPaid = true; break; }
+          if (COMPLETE_STATUSES.has(fresh?.status as string)) return; // Polling übernimmt
+        }
+      }
+
+      if (cancelled) return;
+
+      if (!isPaid) {
+        setApiError('Zahlung konnte nicht bestätigt werden. Bitte warte einen Moment und klicke auf Retry.');
+        setPhase('idle');
+        return;
+      }
+
+      // Make Webhook feuern
+      const makeUrl = import.meta.env.VITE_MAKE_WEBHOOK_SKILLGAP;
+      if (!makeUrl) {
+        setApiError('Konfigurationsfehler: VITE_MAKE_WEBHOOK_SKILLGAP ist nicht gesetzt.');
+        setPhase('idle');
+        return;
+      }
+
+      try {
+        const { data: lp } = await supabase
           .from('learning_paths')
-          .select('skillgap_paid, target_job, target_company, industry, status, missing_skills, current_skills, strategic_outlook_2026, match_score')
+          .select('user_id, target_job, target_company, vision_description, industry, cv_id')
           .eq('id', resumePathId)
           .maybeSingle();
 
-        if (!data) break;
-
-        if (COMPLETE_STATUSES.has(data.status as string)) {
-          handleCompletion(resumePathId, data as Record<string, unknown>);
-          return;
+        let cvData: string | null = null;
+        if (lp?.cv_id) {
+          const { data: cv } = await supabase
+            .from('stored_cvs')
+            .select('cv_data, extracted_text')
+            .eq('id', lp.cv_id)
+            .maybeSingle();
+          if (cv) cvData = (cv.extracted_text as string | null) ?? (cv.cv_data as string | null) ?? null;
         }
 
-        if (data.skillgap_paid) {
-          if (cancelled) return;
-          if (data.target_job) setTargetJob(data.target_job as string);
-          if (data.target_company) setTargetCompany(data.target_company as string);
-          if (data.industry) setIndustry(data.industry as string);
-          await triggerSkillgapWebhook(resumePathId);
-          return;
-        }
+        const res = await fetch(makeUrl, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            learning_path_id: resumePathId,
+            user_id: lp?.user_id ?? null,
+            target_job: lp?.target_job ?? null,
+            target_company: lp?.target_company ?? null,
+            vision_description: lp?.vision_description ?? null,
+            industry: lp?.industry ?? null,
+            cv_data: cvData,
+            timestamp: new Date().toISOString(),
+          }),
+        });
 
-        await new Promise((r) => setTimeout(r, PAID_POLL_INTERVAL_MS));
+        if (!res.ok) {
+          throw new Error(`Make Webhook antwortete mit Status ${res.status}`);
+        }
+      } catch (e: any) {
+        setApiError(`Make Webhook Fehler: ${e.message} — Analyse läuft möglicherweise trotzdem weiter.`);
       }
-
-      if (!cancelled) setPhase('idle');
     })();
 
     return () => { cancelled = true; };
-  }, [resumePathId, triggerSkillgapWebhook, handleCompletion]);
+  }, [resumePathId, handleCompletion, startRealtime, startPolling]);
 
   // ── Handlers ────────────────────────────────────────────────────────────────
 
