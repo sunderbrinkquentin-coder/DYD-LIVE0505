@@ -6,8 +6,8 @@ import { supabase } from '../lib/supabase';
 
 const POLL_INTERVAL_MS = 2_500;
 const POLL_MAX = 150; // ~6.5 minutes max wait
-// Max polls waiting for is_paid (12 × 1.5s = 18s)
-const PAID_POLL_MAX = 12;
+// Max polls waiting for is_paid (40 × 1.5s = 60s)
+const PAID_POLL_MAX = 40;
 const PAID_POLL_INTERVAL_MS = 1_500;
 
 const DONE_STATUSES = new Set(['completed']);
