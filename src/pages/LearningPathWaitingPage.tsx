@@ -408,9 +408,14 @@ export default function LearningPathWaitingPage() {
       }
 
       if (lp.status === 'completed') {
-        console.log('[LPW2] Already completed — navigating');
-        markDone();
-        return;
+        // Nur navigieren wenn learning_results bereits existieren
+        // Wenn nicht: skill gap hat completed gesetzt, learning path muss noch erstellt werden
+        if (existingRows && existingRows.length > 0) {
+          console.log('[LPW2] Already completed with results — navigating');
+          markDone();
+          return;
+        }
+        console.log('[LPW2] status=completed but no learning_results yet — triggering learning path');
       }
 
       if (lp.status === 'in_progress') {
