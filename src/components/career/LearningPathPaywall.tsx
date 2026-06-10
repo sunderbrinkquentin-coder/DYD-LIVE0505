@@ -100,6 +100,14 @@ export function LearningPathPaywall({
     setError(null);
 
     try {
+      // Skill sofort in DB schreiben — bevor Stripe Redirect passiert
+      if (selectedSkill && learningPathId) {
+        await supabase
+          .from('learning_paths')
+          .update({ skill: selectedSkill, updated_at: new Date().toISOString() })
+          .eq('id', learningPathId);
+      }
+
       const { data: { session } } = await supabase.auth.getSession();
       const token = session?.access_token || import.meta.env.VITE_SUPABASE_ANON_KEY;
 
