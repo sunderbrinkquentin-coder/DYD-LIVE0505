@@ -19,6 +19,7 @@ const POLL_INTERVAL_MS = 3_000;
 const POLL_MAX = 80;           // 80 × 3s = 4 Minuten
 const FALLBACK_TIMEOUT_MS = 150_000; // 2.5 Minuten bevor Fallback erscheint
 const CV_DATA_POLL_MAX = 30;
+// Max polls waiting for skillgap_paid (45 × 2s = 90s)
 const PAID_POLL_MAX = 45;
 const PAID_POLL_INTERVAL_MS = 2_000;
 
@@ -1128,6 +1129,7 @@ export function CareerVisionSection({ cvId: initialCvId, onAnalysisComplete, res
           missing_skills: [],
           current_skills: [],
           is_paid: false,
+          skillgap_paid: false,
           progress: {},
         })
         .select('id')
@@ -1264,8 +1266,7 @@ export function CareerVisionSection({ cvId: initialCvId, onAnalysisComplete, res
         return;
       }
 
-      console.log('[SkillGap] Starting flow for resumePathId:', resumePathId);
-      // 4. Ergebnis anzeigen
+      // 4. Ergebnis anzeigen wenn fertig
       const showResult = (row: Record<string, unknown>) => {
         if (completedRef.current) return;
         completedRef.current = true;
@@ -1283,78 +1284,77 @@ export function CareerVisionSection({ cvId: initialCvId, onAnalysisComplete, res
         setTimeout(() => setPhase('done'), 1_500);
       };
 
-      // 5. Polling — alle 5 Sek. bis status = completed
-      const intervalId = setInterval(async () => {
-        if (cancelled || completedRef.current) {
-          clearInterval(intervalId);
-          return;
-        }
-        try {
-          console.log('[SkillGap] Polling:', resumePathId);
-          const { data: row } = await supabase
-            .from('learning_paths')
-            .select('status, missing_skills, current_skills, strategic_outlook_2026, match_score, industry, target_job, target_company')
-            .eq('id', resumePathId)
-            .maybeSingle();
-          console.log('[SkillGap] Status:', row?.status);
-          if (row && COMPLETE_STATUSES.has(row.status as string)) {
-            clearInterval(intervalId);
-            showResult(row as Record<string, unknown>);
+      // 5. Polling SOFORT starten — alle 5 Sek. für mind. 4 Min.
+      let pollActive = true;
+      const runPolling = async () => {
+        while (pollActive && !cancelled && !completedRef.current) {
+          await new Promise(r => setTimeout(r, 5_000));
+          if (!pollActive || cancelled || completedRef.current) break;
+          try {
+            console.log('[SkillGap] Polling status...');
+            const { data: row } = await supabase
+              .from('learning_paths')
+              .select('status, missing_skills, current_skills, strategic_outlook_2026, match_score, industry, target_job, target_company')
+              .eq('id', resumePathId)
+              .maybeSingle();
+            console.log('[SkillGap] Status:', row?.status);
+            if (row && COMPLETE_STATUSES.has(row.status as string)) {
+              pollActive = false;
+              showResult(row as Record<string, unknown>);
+              return;
+            }
+          } catch (e: any) {
+            console.error('[SkillGap] Poll error:', e.message);
           }
-        } catch (e: any) {
-          console.error('[SkillGap] Poll error:', e.message);
         }
-      }, 5_000);
+      };
+      runPolling();
 
-      timers.push(intervalId as unknown as ReturnType<typeof setTimeout>);
-      // Fallback-UI nach 4 Min.
-      timers.push(setTimeout(() => { if (!completedRef.current) setPhase('fallback'); }, 240_000));
+      // Fallback nach 4 Min.
+      const fallbackTimer = setTimeout(() => {
+        if (!completedRef.current) setPhase('fallback');
+      }, 240_000);
 
-      console.log('[SkillGap] Polling set up. Firing Make webhook...');
-      // 5. Make Webhook feuern — OHNE await zu blockieren
+      // 6. Make Webhook fire-and-forget — blockiert das Polling nicht
       const makeUrl = import.meta.env.VITE_MAKE_WEBHOOK_SKILLGAP;
       if (!makeUrl) {
         setApiError('Konfigurationsfehler: VITE_MAKE_WEBHOOK_SKILLGAP ist nicht gesetzt.');
-        return;
-      }
-
-      // CV-Daten holen und Make aufrufen — nicht-blockierend
-      (async () => {
-        try {
-          let cvData: string | null = null;
-          if (data.cv_id) {
-            const { data: cv } = await supabase
-              .from('stored_cvs')
-              .select('cv_data')
-              .eq('id', data.cv_id)
-              .maybeSingle();
-            if (cv) cvData = (cv.cv_data as string | null) ?? null;
+      } else {
+        (async () => {
+          try {
+            let cvData: string | null = null;
+            if (data.cv_id) {
+              const { data: cv } = await supabase
+                .from('stored_cvs').select('cv_data').eq('id', data.cv_id).maybeSingle();
+              if (cv) cvData = (cv.cv_data as string | null) ?? null;
+            }
+            const res = await fetch(makeUrl, {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                id: resumePathId,
+                learning_path_id: resumePathId,
+                user_id: data.user_id ?? null,
+                target_job: data.target_job ?? null,
+                target_company: data.target_company ?? null,
+                vision_description: data.vision_description ?? null,
+                industry: data.industry ?? null,
+                cv_data: cvData,
+                timestamp: new Date().toISOString(),
+              }),
+            });
+            if (!res.ok) throw new Error(`Status ${res.status}`);
+            console.log('[SkillGap] Make webhook fired successfully');
+          } catch (e: any) {
+            console.error('[SkillGap] Make webhook error:', e.message);
+            setApiError(`Make Webhook Fehler: ${e.message}`);
           }
-          const res = await fetch(makeUrl, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-              id: resumePathId,
-              learning_path_id: resumePathId,
-              user_id: data.user_id ?? null,
-              target_job: data.target_job ?? null,
-              target_company: data.target_company ?? null,
-              vision_description: data.vision_description ?? null,
-              industry: data.industry ?? null,
-              cv_data: cvData,
-              timestamp: new Date().toISOString(),
-            }),
-          });
-          if (!res.ok) throw new Error(`Status ${res.status}`);
-        } catch (e: any) {
-          setApiError(`Make Webhook Fehler: ${e.message}`);
-        }
-      })();
+        })();
+      }
     })();
 
     return () => {
       cancelled = true;
-      timers.forEach((t) => { try { clearInterval(t as any); clearTimeout(t as any); } catch {} });
     };
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [resumePathId]);
