@@ -758,21 +758,6 @@ function LearningContent({
       }] as QuizQuestion[];
     }
     return [];
-    // Legacy fallback (keep for compatibility)
-    if (false) {
-      const raw = result?.final_exam as unknown;
-      if (!raw) return [];
-      try {
-        if (Array.isArray(raw)) return raw as QuizQuestion[];
-        if (typeof raw === 'string') {
-          let s = raw.trim();
-          if (s.startsWith('"')) s = JSON.parse(s) as string;
-          if (!s.startsWith('[')) s = `[${s}]`;
-          const parsed = JSON.parse(s);
-          if (Array.isArray(parsed)) return parsed as QuizQuestion[];
-        }
-    } catch { /* */ }
-    return [];
   })();
 
   // Parse certificate_metadata — handle double-encoded
