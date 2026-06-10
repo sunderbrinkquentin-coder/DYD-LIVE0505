@@ -624,7 +624,6 @@ interface QuizQuestion {
 
 interface LearningResultRow {
   id: string;
-  content: unknown;
   final_exam: unknown;
   certificate_metadata: {
     official_title?: string;
@@ -675,24 +674,6 @@ function LearningContent({
   const thisUnitComplete = completedUnits.has(unitIndex);
 
   const result: LearningResultRow = learningResultRow;
-
-  // Parse Make's content field — all 5 units stored as JSON array in one row
-  const contentUnit = (() => {
-    if (!result?.content) return null;
-    try {
-      let units: any[];
-      const raw = result.content as unknown;
-      if (Array.isArray(raw)) { units = raw; }
-      else if (typeof raw === 'string') {
-        let s = (raw as string).trim();
-        if (s.startsWith('"')) s = JSON.parse(s) as string;
-        if (!s.startsWith('[')) s = `[${s}]`;
-        units = JSON.parse(s);
-      } else { return null; }
-      return units.find((u: any) => u.unit_id === unitIndex) ?? units[unitIndex - 1] ?? null;
-    } catch { return null; }
-  })();
-
   const [learningPhase, setLearningPhase] = useState<LearningPhase>('intro');
   const [savingCompletion, setSavingCompletion] = useState(false);
 
@@ -724,39 +705,20 @@ function LearningContent({
     }
   };
 
-  // Parse questions — first try final_exam, then fall back to content.quiz
+  // Parse questions from learningResultRow.final_exam — handle double-encoded JSON from Make
   const questions: QuizQuestion[] = (() => {
-    // Try final_exam first (legacy format)
-    if (result?.final_exam) {
-      const raw = result.final_exam as unknown;
-      try {
-        if (Array.isArray(raw)) return raw as QuizQuestion[];
-        if (typeof raw === 'string') {
-          let s = raw.trim();
-          if (s.startsWith('"')) s = JSON.parse(s) as string;
-          if (!s.startsWith('[')) s = `[${s}]`;
-          const parsed = JSON.parse(s);
-          if (Array.isArray(parsed)) return parsed as QuizQuestion[];
-        }
-      } catch { /* fall through */ }
-    }
-    // Fall back to content.quiz (Make's new format)
-    if (contentUnit?.quiz) {
-      const quiz = contentUnit.quiz as any;
-      const opts: string[] = Array.isArray(quiz.options) ? quiz.options : [];
-      const keys = ['A', 'B', 'C', 'D'] as const;
-      const options: any = {};
-      opts.slice(0, 4).forEach((opt, i) => { options[keys[i]] = opt; });
-      const correctIdx = opts.findIndex((o: string) => o === quiz.correct_answer);
-      return [{
-        question_id: 1,
-        question: quiz.question,
-        options,
-        correct_key: correctIdx >= 0 ? keys[correctIdx] : 'A',
-        rationale: quiz.explanation_if_wrong || '',
-        clt_rating: quiz.clt_check,
-      }] as QuizQuestion[];
-    }
+    if (!result?.final_exam) return [];
+    const raw = result.final_exam as unknown;
+    try {
+      if (Array.isArray(raw)) return raw as QuizQuestion[];
+      if (typeof raw === 'string') {
+        let s = raw.trim();
+        if (s.startsWith('"')) s = JSON.parse(s) as string;
+        if (!s.startsWith('[')) s = `[${s}]`;
+        const parsed = JSON.parse(s);
+        if (Array.isArray(parsed)) return parsed as QuizQuestion[];
+      }
+    } catch { /* */ }
     return [];
   })();
 
@@ -776,7 +738,7 @@ function LearningContent({
   })();
 
   const competencies: string[] = certMeta?.competency_profile ?? [];
-  const officialTitle = contentUnit?.mobile_title || certMeta?.official_title || learningPath.target_job || '';
+  const officialTitle = certMeta?.official_title || learningPath.target_job || '';
   const dqrRef = certMeta?.dqr_reference || '';
 
   // Split: first half for guided practice, all for the unit test
@@ -884,16 +846,10 @@ function LearningContent({
               </div>
               <h2 className="text-2xl font-black text-white leading-tight">{officialTitle}</h2>
               {dqrRef && <p className="text-xs text-white/35">{dqrRef}</p>}
-              {contentUnit && (unitVariant === 'B' ? contentUnit.variant_b : contentUnit.variant_a) ? (
-                <p className="text-sm text-white/70 leading-relaxed whitespace-pre-line">
-                  {unitVariant === 'B' ? contentUnit.variant_b as string : contentUnit.variant_a as string}
-                </p>
-              ) : (
-                <p className="text-sm text-white/60 leading-relaxed">
-                  Diese Lerneinheit wurde speziell für dein Karriereziel <span className="text-white font-bold">{learningPath.target_job}</span> zusammengestellt.
-                  Du wirst Schritt für Schritt durch die wichtigsten Kompetenzen geführt — mit geführter Übungsphase, Vertiefung und einem IHK-konformen Abschlusstest.
-                </p>
-              )}
+              <p className="text-sm text-white/60 leading-relaxed">
+                Diese Lerneinheit wurde speziell für dein Karriereziel <span className="text-white font-bold">{learningPath.target_job}</span> zusammengestellt.
+                Du wirst Schritt für Schritt durch die wichtigsten Kompetenzen geführt — mit geführter Übungsphase, Vertiefung und einem IHK-konformen Abschlusstest.
+              </p>
             </div>
           </div>
 
@@ -1876,7 +1832,7 @@ export default function LearningPathPage() {
     if (!pathId_) return;
     const { data } = await supabase
       .from('learning_results')
-      .select('id, content, final_exam, certificate_metadata')
+      .select('id, final_exam, certificate_metadata')
       .eq('learning_path_id', pathId_)
       .order('created_at', { ascending: true })
       .limit(10);
