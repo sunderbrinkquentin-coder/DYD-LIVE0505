@@ -1050,7 +1050,8 @@ export function DashboardPage() {
                 if (score(b) !== score(a)) return score(b) - score(a);
                 return new Date(b.updated_at).getTime() - new Date(a.updated_at).getTime();
               });
-            const unpaidPaths = learningPaths.filter(p => !p.is_paid);
+            // Only show gap analysis rows as teaser (have missing_skills but no is_paid)
+            const unpaidPaths = learningPaths.filter(p => !p.is_paid && !(p as any).skill);
             const primaryUnpaid = unpaidPaths[0];
 
             return (
