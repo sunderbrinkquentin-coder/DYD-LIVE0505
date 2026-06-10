@@ -726,7 +726,6 @@ function LearningContent({
 
   // Parse questions — first try final_exam, then fall back to content.quiz
   const questions: QuizQuestion[] = (() => {
-    // Try final_exam first (legacy format)
     if (result?.final_exam) {
       const raw = result.final_exam as unknown;
       try {
@@ -740,7 +739,6 @@ function LearningContent({
         }
       } catch { /* fall through */ }
     }
-    // Fall back to content.quiz (Make's new format)
     if (contentUnit?.quiz) {
       const quiz = contentUnit.quiz as any;
       const opts: string[] = Array.isArray(quiz.options) ? quiz.options : [];
