@@ -424,23 +424,7 @@ export default function LearningPathWaitingPage() {
         return;
       }
 
-      // Guard: wait for is_paid before triggering (Stripe webhook may arrive after redirect)
-      let isPaid = !!(lp as any).is_paid;
-      if (!isPaid) {
-        console.log('[LPW2] is_paid not set yet — polling...');
-        for (let i = 0; i < PAID_POLL_MAX; i++) {
-          await new Promise((r) => setTimeout(r, PAID_POLL_INTERVAL_MS));
-          const { data: fresh } = await supabase
-            .from('learning_paths').select('is_paid').eq('id', pathId).maybeSingle();
-          if (fresh?.is_paid) { isPaid = true; break; }
-        }
-      }
-
-      if (!isPaid) {
-        markError('Die Zahlung wurde noch nicht bestätigt. Bitte warte einen Moment und lade die Seite neu.');
-        return;
-      }
-
+      // Zahlung via Stripe erfolgt — direkt triggern
       console.log('[LPW2] Triggering learningpath | lp.status:', lp.status);
       const ok = await triggerLearningpath();
       if (!ok) {
