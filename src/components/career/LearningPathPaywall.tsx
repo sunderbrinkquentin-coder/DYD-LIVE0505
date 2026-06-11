@@ -14,6 +14,12 @@ const STRIPE_CHECKOUT_URL = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/s
 
 type Plan = 'single' | 'all';
 
+interface SkillItem {
+  skill_name?: string;
+  name?: string;
+  gap_severity?: number;
+}
+
 interface LearningPathPaywallProps {
   isOpen: boolean;
   onClose: () => void;
@@ -22,6 +28,7 @@ interface LearningPathPaywallProps {
   targetCompany?: string;
   skillCount?: number;
   selectedSkill?: string;
+  missingSkills?: SkillItem[];
 }
 
 const BENEFITS_SINGLE = [
@@ -83,7 +90,7 @@ const GLOBAL_STYLES = `
 `;
 
 export function LearningPathPaywall({
-  isOpen, onClose, learningPathId, targetJob, targetCompany, skillCount = 0, selectedSkill,
+  isOpen, onClose, learningPathId, targetJob, targetCompany, skillCount = 0, selectedSkill, missingSkills,
 }: LearningPathPaywallProps) {
   const [selectedPlan, setSelectedPlan] = useState<Plan>('single');
   const [isLoading, setIsLoading] = useState(false);
@@ -100,20 +107,61 @@ export function LearningPathPaywall({
     setError(null);
 
     try {
-      // Skill sofort in DB schreiben — bevor Stripe Redirect passiert
-      if (selectedSkill && learningPathId) {
+      const { data: { session } } = await supabase.auth.getSession();
+      const token = session?.access_token || import.meta.env.VITE_SUPABASE_ANON_KEY;
+      const origin = window.location.origin;
+
+      // Fetch source path data to copy into new skill rows
+      const { data: sourcePath } = await supabase
+        .from('learning_paths')
+        .select('user_id, target_job, target_company, missing_skills, vision_description, industry, match_score, current_skills')
+        .eq('id', learningPathId)
+        .maybeSingle();
+
+      let primaryPathId = learningPathId;
+      let allPathIds: string | undefined;
+
+      if (isAllPlan && missingSkills && missingSkills.length > 0 && sourcePath) {
+        // Create one row per skill
+        const skillNames = missingSkills
+          .map(s => s.skill_name || s.name)
+          .filter((s): s is string => !!s)
+          .slice(0, 5);
+
+        const rows = skillNames.map(skill => ({
+          user_id: sourcePath.user_id,
+          target_job: sourcePath.target_job,
+          target_company: sourcePath.target_company,
+          skill,
+          missing_skills: sourcePath.missing_skills,
+          vision_description: sourcePath.vision_description,
+          industry: sourcePath.industry,
+          match_score: sourcePath.match_score,
+          current_skills: sourcePath.current_skills,
+          status: 'gap_analysis_complete',
+          is_paid: false,
+        }));
+
+        const { data: newRows, error: insertErr } = await supabase
+          .from('learning_paths')
+          .insert(rows)
+          .select('id, skill');
+
+        if (!insertErr && newRows && newRows.length > 0) {
+          const primary = newRows.find((r: any) => r.skill === selectedSkill) || newRows[0];
+          primaryPathId = primary.id;
+          allPathIds = newRows.map((r: any) => r.id).join(',');
+        }
+      } else if (!isAllPlan && selectedSkill && sourcePath) {
+        // Single skill — save selected skill to original row before checkout
         await supabase
           .from('learning_paths')
           .update({ skill: selectedSkill, updated_at: new Date().toISOString() })
           .eq('id', learningPathId);
       }
 
-      const { data: { session } } = await supabase.auth.getSession();
-      const token = session?.access_token || import.meta.env.VITE_SUPABASE_ANON_KEY;
-
-      const origin = window.location.origin;
       const skillParam = selectedSkill ? `&skill=${encodeURIComponent(selectedSkill)}` : '';
-      const successUrl = `${origin}/#/learning-path-waiting/${learningPathId}?session_id={CHECKOUT_SESSION_ID}${skillParam}`;
+      const successUrl = `${origin}/#/learning-path-waiting/${primaryPathId}?session_id={CHECKOUT_SESSION_ID}${skillParam}`;
       const cancelUrl  = `${origin}/#/learning-path/${learningPathId}?payment=cancelled`;
 
       const resp = await fetch(STRIPE_CHECKOUT_URL, {
@@ -128,11 +176,12 @@ export function LearningPathPaywall({
           success_url: successUrl,
           cancel_url: cancelUrl,
           metadata: {
-            learning_path_id: learningPathId,
+            learning_path_id: primaryPathId,
             target_job: targetJob,
             source: isAllPlan ? 'learning_path_all' : 'learning_path',
             unlock_all: isAllPlan ? 'true' : 'false',
             ...(selectedSkill ? { selected_skill: selectedSkill } : {}),
+            ...(allPathIds ? { all_path_ids: allPathIds } : {}),
           },
         }),
       });
