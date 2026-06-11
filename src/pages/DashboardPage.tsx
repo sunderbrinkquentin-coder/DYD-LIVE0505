@@ -1,7 +1,7 @@
 // src/pages/DashboardPage.tsx
 import { useState, useEffect } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
-import { Plus, Briefcase, LogOut, ClipboardCheck, Coins, CheckCircle, Target, Lock, ExternalLink, Calendar, TrendingUp, FileSearch, ChevronDown, ChevronUp, Download, FileText, X, Zap, ArrowRight, Settings, CreditCard as Edit2, Award, Sparkles } from 'lucide-react';
+import { Plus, Briefcase, LogOut, ClipboardCheck, Coins, CheckCircle, Target, Lock, ExternalLink, Calendar, TrendingUp, FileSearch, ChevronDown, ChevronUp, Download, FileText, X, Zap, ArrowRight, Settings, CreditCard as Edit2, Award } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import { cvStorageService } from '../services/cvStorageService';
 import { tokenService } from '../services/tokenService';
@@ -1042,7 +1042,7 @@ export function DashboardPage() {
           {/* Career Vision — Lernpfade */}
           {learningPaths.length > 0 && (() => {
             const paidPaths = [...learningPaths]
-              .filter(p => p.is_paid)
+              .filter(p => p.is_paid && !!(p as any).skill)
               .sort((a, b) => {
                 // Ready first, then in_progress, then others
                 const score = (p: LearningPath) =>
@@ -1050,8 +1050,7 @@ export function DashboardPage() {
                 if (score(b) !== score(a)) return score(b) - score(a);
                 return new Date(b.updated_at).getTime() - new Date(a.updated_at).getTime();
               });
-            // Only show gap analysis rows as teaser (have missing_skills but no is_paid)
-            const unpaidPaths = learningPaths.filter(p => !p.is_paid && !(p as any).skill);
+            const unpaidPaths = learningPaths.filter(p => !p.is_paid);
             const primaryUnpaid = unpaidPaths[0];
 
             return (
