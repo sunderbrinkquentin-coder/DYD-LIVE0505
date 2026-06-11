@@ -1891,21 +1891,6 @@ export default function LearningPathPage() {
         return;
       }
 
-      // Not paid → but check URL params for payment success (Stripe webhook race condition)
-      const urlParams = new URLSearchParams(window.location.search);
-      const hashParams = new URLSearchParams(window.location.hash.split('?')[1] || '');
-      const hasPaymentSuccess = urlParams.get('session_id') || hashParams.get('session_id');
-      
-      if (hasPaymentSuccess) {
-        // Payment just happened — wait briefly for Stripe webhook then redirect to waiting
-        await new Promise(r => setTimeout(r, 2000));
-        const { data: freshPath } = await supabase.from('learning_paths').select('is_paid').eq('id', pathId).maybeSingle();
-        if (freshPath?.is_paid) {
-          navigate(`/learning-path-waiting/${pathId}`, { replace: true });
-          return;
-        }
-      }
-      
       // Not paid → show result/analysis with paywall CTA
       setPhase('result');
     } catch (err: any) {
