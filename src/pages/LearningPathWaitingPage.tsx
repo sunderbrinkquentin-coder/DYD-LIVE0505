@@ -408,30 +408,20 @@ export default function LearningPathWaitingPage() {
       }
 
       if (lp.status === 'completed') {
-        // Nur navigieren wenn learning_results bereits existieren
-        // Wenn nicht: skill gap hat completed gesetzt, learning path muss noch erstellt werden
-        if (existingRows && existingRows.length > 0) {
-          console.log('[LPW2] Already completed with results — navigating');
-          markDone();
-          return;
-        }
-        console.log('[LPW2] status=completed but no learning_results yet — triggering learning path');
-      }
-
-      if (lp.status === 'in_progress') {
-        console.log('[LPW2] Already in_progress — listening');
-        startListening();
+        console.log('[LPW2] Already completed — navigating');
+        markDone();
         return;
       }
 
-      // Zahlung via Stripe erfolgt — direkt triggern
+      // Immer triggern — auch wenn status=in_progress (Make könnte silent failed sein)
+      // startListening läuft parallel und erkennt Content sobald er ankommt
       console.log('[LPW2] Triggering learningpath | lp.status:', lp.status);
+      startListening();
       const ok = await triggerLearningpath();
       if (!ok) {
         markError('Der Lernpfad konnte nicht gestartet werden. Bitte versuche es erneut.');
         return;
       }
-      startListening();
     })();
 
     return () => cleanup();
