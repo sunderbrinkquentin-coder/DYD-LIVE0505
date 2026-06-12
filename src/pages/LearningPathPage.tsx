@@ -1852,9 +1852,9 @@ export default function LearningPathPage() {
 
       // Ready as soon as at least 1 learning_results row exists (remaining rows load in background)
       const { data: rowCheck } = await supabase
-        .from('learning_results').select('id, content').eq('learning_path_id', pathId).limit(1);
-      // Only count as "has results" if content is actually filled
-      const hasResults = (rowCheck?.some((r: any) => r.content != null) ?? false) || path.status === 'completed';
+        .from('learning_results').select('id, content, status').eq('learning_path_id', pathId).limit(1);
+      // Count as "has results" if content filled OR learning_results status=completed
+      const hasResults = (rowCheck?.some((r: any) => r.content != null || r.status === 'completed') ?? false) || path.status === 'completed';
 
       // If rows exist but is_paid is missing (Stripe webhook race), fix it in DB and treat as paid
       if (hasResults && !path.is_paid) {
@@ -1887,13 +1887,6 @@ export default function LearningPathPage() {
 
       // No rows yet — check if paid (redirect to waiting page to trigger Make)
       if (path.is_paid) {
-        navigate(`/learning-path-waiting/${pathId}`, { replace: true });
-        return;
-      }
-
-      // Check if trigger already ran (status=in_progress means Make is running)
-      if (path.status === 'in_progress' || path.status === 'completed') {
-        // Redirect to waiting page — Make is generating or done
         navigate(`/learning-path-waiting/${pathId}`, { replace: true });
         return;
       }
