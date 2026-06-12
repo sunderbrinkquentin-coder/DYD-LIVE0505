@@ -318,12 +318,13 @@ export default function LearningPathWaitingPage() {
       .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'learning_results', filter: `learning_path_id=eq.${pathId}` },
         (payload) => {
           const row = payload.new as any;
-          if (row?.status === 'completed' || row?.content != null) markDone();
+          // Both conditions must be true — Make writes content first, then status=completed
+          if (row?.status === 'completed' && row?.content != null) markDone();
         })
       .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'learning_results', filter: `learning_path_id=eq.${pathId}` },
         (payload) => {
           const row = payload.new as any;
-          if (row?.status === 'completed' || row?.content != null) markDone();
+          if (row?.status === 'completed' && row?.content != null) markDone();
         })
       .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'learning_paths', filter: `id=eq.${pathId}` },
         (payload) => {
@@ -343,7 +344,7 @@ export default function LearningPathWaitingPage() {
       }
       pollCountRef.current += 1;
 
-      // Check if learning_results row exists with status=completed OR content filled
+      // Check if learning_results row is complete — BOTH status=completed AND content!=null
       const { data: rows } = await supabase
         .from('learning_results')
         .select('id, status, content')
@@ -351,7 +352,7 @@ export default function LearningPathWaitingPage() {
         .limit(1);
       if (rows && rows.length > 0) {
         const row = rows[0] as any;
-        if (row.status === 'completed' || row.content != null) { markDone(); return; }
+        if (row.status === 'completed' && row.content != null) { markDone(); return; }
       }
 
       // Also check path status for error states
@@ -410,19 +411,25 @@ export default function LearningPathWaitingPage() {
 
       pathDataRef.current = effectivePath;
 
-      // Already has rows WITH content? → navigate immediately
+      // Check if learning_results already complete — BOTH status=completed AND content!=null
       const { data: existingRows } = await supabase
         .from('learning_results').select('id, status, content').eq('learning_path_id', pathId).limit(1);
       const firstRow = existingRows && existingRows.length > 0 ? existingRows[0] as any : null;
-      const hasContent = firstRow && (firstRow.status === 'completed' || firstRow.content != null);
-      if (hasContent) {
-        console.log('[LPW2] learning_results ready — navigating immediately');
+      const isComplete = firstRow && firstRow.status === 'completed' && firstRow.content != null;
+
+      if (isComplete) {
+        console.log('[LPW2] Already complete with content — navigating immediately');
         markDone();
         return;
       }
 
-      // Immer triggern — auch wenn status=in_progress (Make könnte silent failed sein)
-      // startListening läuft parallel und erkennt Content sobald er ankommt
+      // If stale row exists (status=completed but no content) → delete it and re-trigger
+      if (firstRow && firstRow.status === 'completed' && firstRow.content == null) {
+        console.log('[LPW2] Stale row found (status=completed, content=null) — deleting and re-triggering');
+        await supabase.from('learning_results').delete().eq('id', firstRow.id);
+      }
+
+      // Trigger Make and start listening
       console.log('[LPW2] Triggering learningpath | lp.status:', lp.status);
       startListening();
       const ok = await triggerLearningpath();
