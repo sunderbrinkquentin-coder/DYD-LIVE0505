@@ -1891,6 +1891,13 @@ export default function LearningPathPage() {
         return;
       }
 
+      // Check if trigger already ran (status=in_progress means Make is running)
+      if (path.status === 'in_progress' || path.status === 'completed') {
+        // Redirect to waiting page — Make is generating or done
+        navigate(`/learning-path-waiting/${pathId}`, { replace: true });
+        return;
+      }
+
       // Not paid → show result/analysis with paywall CTA
       setPhase('result');
     } catch (err: any) {
