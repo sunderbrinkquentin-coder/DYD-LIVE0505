@@ -317,15 +317,30 @@ export default function LearningPathWaitingPage() {
       .channel(`lpw2_${pathId}_${Date.now()}`)
       .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'learning_results', filter: `learning_path_id=eq.${pathId}` },
         (payload) => {
-          const row = payload.new as any;
-          const hasContent = row?.content != null && row?.content !== '' && row?.content !== '[]';
-          if (hasContent) markDone();
+          const c = (payload.new as any)?.content;
+          console.log('[LPW2] Realtime INSERT — content:', typeof c, c != null ? 'HAS_CONTENT' : 'null');
+          if (c != null && c !== '' && c !== '[]' && c !== 'null') markDone();
+          else {
+            // Realtime payload may omit large content — poll immediately
+            setTimeout(async () => {
+              const { data } = await supabase.from('learning_results').select('content').eq('learning_path_id', pathId).limit(1);
+              const pc = data?.[0]?.content;
+              if (pc != null && pc !== '' && pc !== '[]') markDone();
+            }, 500);
+          }
         })
       .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'learning_results', filter: `learning_path_id=eq.${pathId}` },
         (payload) => {
-          const row = payload.new as any;
-          const hasContent = row?.content != null && row?.content !== '' && row?.content !== '[]';
-          if (hasContent) markDone();
+          const c = (payload.new as any)?.content;
+          console.log('[LPW2] Realtime UPDATE — content:', typeof c, c != null ? 'HAS_CONTENT' : 'null');
+          if (c != null && c !== '' && c !== '[]' && c !== 'null') markDone();
+          else {
+            setTimeout(async () => {
+              const { data } = await supabase.from('learning_results').select('content').eq('learning_path_id', pathId).limit(1);
+              const pc = data?.[0]?.content;
+              if (pc != null && pc !== '' && pc !== '[]') markDone();
+            }, 500);
+          }
         })
       .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'learning_paths', filter: `id=eq.${pathId}` },
         (payload) => {
@@ -353,11 +368,11 @@ export default function LearningPathWaitingPage() {
         .limit(1);
       if (rows && rows.length > 0) {
         const row = rows[0] as any;
-        // content can be array, object or string — just check it's not null/empty
-        const hasContent = row.content != null && row.content !== '' && row.content !== '[]';
-        if (row.status === 'completed' && hasContent) { markDone(); return; }
-        // Also accept if content exists even without completed status (Make wrote data)
-        if (hasContent && Array.isArray(row.content) && row.content.length > 0) { markDone(); return; }
+        // Fire as soon as content is written — string, array, or object
+        const c = row.content;
+        const hasContent = c != null && c !== '' && c !== '[]' && c !== 'null';
+        console.log('[LPW2] Poll tick — content:', typeof c, hasContent ? 'HAS_CONTENT' : 'empty');
+        if (hasContent) { markDone(); return; }
       }
 
       // Also check path status for error states
@@ -421,7 +436,8 @@ export default function LearningPathWaitingPage() {
       const { data: existingRows } = await supabase
         .from('learning_results').select('id, status, content').eq('learning_path_id', pathId).limit(1);
       const firstRow = existingRows && existingRows.length > 0 ? existingRows[0] as any : null;
-      const isComplete = firstRow && firstRow.status === 'completed' && firstRow.content != null;
+      const c2 = firstRow?.content;
+      const isComplete = firstRow && c2 != null && c2 !== '' && c2 !== '[]' && c2 !== 'null';
 
       if (isComplete) {
         console.log('[LPW2] Already complete with content — navigating immediately');
