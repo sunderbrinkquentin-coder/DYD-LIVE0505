@@ -428,11 +428,21 @@ export default function LearningPathWaitingPage() {
         return;
       }
 
-      // If already in_progress → just listen, don't trigger again
+      // If already in_progress → check if it's stale (> 10 min since triggered_at)
       if (lp.status === 'in_progress') {
-        console.log('[LPW2] Already in_progress — listening only');
-        startListening();
-        return;
+        const triggeredAt = (lp as any).triggered_at ? new Date((lp as any).triggered_at).getTime() : 0;
+        const ageMs = Date.now() - triggeredAt;
+        const isStale = ageMs > 10 * 60 * 1000; // 10 minutes
+
+        if (!isStale) {
+          console.log('[LPW2] Already in_progress (fresh) — listening only');
+          startListening();
+          return;
+        }
+        console.log('[LPW2] in_progress but stale — resetting and re-triggering');
+        await supabase.from('learning_paths')
+          .update({ status: 'gap_analysis_complete' })
+          .eq('id', pathId);
       }
 
       // Trigger Make and start listening
