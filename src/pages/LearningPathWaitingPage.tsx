@@ -214,7 +214,6 @@ export default function LearningPathWaitingPage() {
   const pollCountRef = useRef(0);
   const channelRef = useRef<ReturnType<typeof supabase.channel> | null>(null);
   const pathDataRef = useRef<Record<string, unknown> | null>(null);
-  const bootRanRef = useRef(false); // prevent React StrictMode double-run
   const startTimeRef = useRef<number | null>(null);
   const rafRef = useRef<number | null>(null);
 
@@ -396,13 +395,8 @@ export default function LearningPathWaitingPage() {
   useEffect(() => {
     if (!pathId) { navigate('/', { replace: true }); return; }
 
-    // Always start animation (even on StrictMode second mount)
     setPhase('waiting');
     startProgressAnimation();
-
-    // React StrictMode guard — only run trigger logic once
-    if (bootRanRef.current) return;
-    bootRanRef.current = true;
 
     (async () => {
 
