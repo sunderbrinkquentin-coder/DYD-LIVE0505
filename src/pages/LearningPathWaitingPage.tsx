@@ -361,6 +361,7 @@ export default function LearningPathWaitingPage() {
       pollCountRef.current += 1;
 
       // Check if learning_results row is complete — BOTH status=completed AND content!=null
+      console.log('[LPW2] Polling for pathId:', pathId);
       const { data: rows } = await supabase
         .from('learning_results')
         .select('id, status, content')
