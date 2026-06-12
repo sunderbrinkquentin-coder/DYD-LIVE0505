@@ -272,19 +272,19 @@ export function DashboardPage() {
       if (paths.length > 0) {
         const ids = paths.filter(p => p.is_paid).map(p => p.id);
         if (ids.length > 0) {
+          const allPathIds = paths.map(p => p.id);
           const [{ data: partial }, { data: unitRows }] = await Promise.all([
-            supabase.from('learning_results').select('learning_path_id')
-              .in('learning_path_id', ids),
+            supabase.from('learning_results').select('learning_path_id, content')
+              .in('learning_path_id', allPathIds),
             supabase.from('unit_completions').select('learning_path_id')
-              .in('learning_path_id', ids),
+              .in('learning_path_id', allPathIds),
           ]);
 
-          // A path is "ready" (has content) when learning_results rows exist
+          // A path is "ready" when learning_results has content filled
           const map: Record<string, boolean> = {};
           (partial ?? []).forEach((r: any) => {
-            if (r.learning_path_id) map[r.learning_path_id] = true;
+            if (r.learning_path_id && r.content != null) map[r.learning_path_id] = true;
           });
-          // Override with status === 'completed' from paths
           paths.forEach(p => {
             if (p.status === 'completed') map[p.id] = true;
           });
@@ -516,32 +516,35 @@ export function DashboardPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // Realtime: update lpResults as soon as Make writes final_exam to learning_results
+  // Realtime: update lpResults as soon as Make writes content to learning_results
   useEffect(() => {
     if (learningPaths.length === 0) return;
-    const paidIds = learningPaths.filter(p => p.is_paid).map(p => p.id);
-    if (paidIds.length === 0) return;
+    const allIds = learningPaths.map(p => p.id);
+    if (allIds.length === 0) return;
 
     const ch = supabase
       .channel(`dashboard_lp_results_${Date.now()}`)
       .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'learning_results' },
         (payload) => {
           const row = payload.new as any;
-          if (!row?.final_exam) return;
-          if (row.id && paidIds.includes(row.id)) {
-            setLpResults(prev => ({ ...prev, [row.id]: true }));
-          } else if (row.learning_path_id && paidIds.includes(row.learning_path_id)) {
+          if (row?.content != null && row.learning_path_id && allIds.includes(row.learning_path_id)) {
             setLpResults(prev => ({ ...prev, [row.learning_path_id]: true }));
+            // Also reload learning paths to pick up is_paid changes
+            loadLearningPaths();
           }
         })
       .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'learning_results' },
         (payload) => {
           const row = payload.new as any;
-          if (!row?.final_exam) return;
-          if (row.id && paidIds.includes(row.id)) {
-            setLpResults(prev => ({ ...prev, [row.id]: true }));
-          } else if (row.learning_path_id && paidIds.includes(row.learning_path_id)) {
+          if (row?.content != null && row.learning_path_id && allIds.includes(row.learning_path_id)) {
             setLpResults(prev => ({ ...prev, [row.learning_path_id]: true }));
+          }
+        })
+      .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'learning_paths' },
+        (payload) => {
+          const row = payload.new as any;
+          if (row?.is_paid && allIds.includes(row.id)) {
+            loadLearningPaths();
           }
         })
       .subscribe();
@@ -1041,8 +1044,20 @@ export function DashboardPage() {
 
           {/* Career Vision — Lernpfade */}
           {learningPaths.length > 0 && (() => {
+            // Show path if: (is_paid AND has skill) OR has content — deduped by skill name
+            const seenSkills = new Set<string>();
             const paidPaths = [...learningPaths]
-              .filter(p => p.is_paid && !!(p as any).skill)
+              .filter(p => {
+                const skill = (p as any).skill;
+                if (!skill) return false; // must have a skill
+                const hasContent = lpResults[p.id] === true;
+                const isPaid = p.is_paid === true;
+                if (!isPaid && !hasContent) return false;
+                // Deduplicate by skill — show only the most recent row per skill
+                if (seenSkills.has(skill)) return false;
+                seenSkills.add(skill);
+                return true;
+              })
               .sort((a, b) => {
                 // Ready first, then in_progress, then others
                 const score = (p: LearningPath) =>
