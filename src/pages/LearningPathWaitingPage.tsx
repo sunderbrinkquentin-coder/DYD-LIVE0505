@@ -316,19 +316,14 @@ export default function LearningPathWaitingPage() {
     const ch = supabase
       .channel(`lpw2_${pathId}_${Date.now()}`)
       .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'learning_results', filter: `learning_path_id=eq.${pathId}` },
-        async (payload) => {
+        (payload) => {
           const row = payload.new as any;
-          if (row?.content != null) {
-            markDone();
-          } else {
-            const { data: fresh } = await supabase.from('learning_results').select('content').eq('id', row.id).maybeSingle();
-            if (fresh?.content != null) markDone();
-          }
+          if (row?.status === 'completed' || row?.content != null) markDone();
         })
       .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'learning_results', filter: `learning_path_id=eq.${pathId}` },
         (payload) => {
           const row = payload.new as any;
-          if (row?.content != null) markDone();
+          if (row?.status === 'completed' || row?.content != null) markDone();
         })
       .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'learning_paths', filter: `id=eq.${pathId}` },
         (payload) => {
@@ -348,13 +343,16 @@ export default function LearningPathWaitingPage() {
       }
       pollCountRef.current += 1;
 
-      // Check if learning_results row exists WITH content filled
+      // Check if learning_results row exists with status=completed OR content filled
       const { data: rows } = await supabase
         .from('learning_results')
-        .select('id, content')
+        .select('id, status, content')
         .eq('learning_path_id', pathId)
         .limit(1);
-      if (rows && rows.length > 0 && (rows[0] as any).content != null) { markDone(); return; }
+      if (rows && rows.length > 0) {
+        const row = rows[0] as any;
+        if (row.status === 'completed' || row.content != null) { markDone(); return; }
+      }
 
       // Also check path status for error states
       const { data: lp } = await supabase
@@ -414,10 +412,11 @@ export default function LearningPathWaitingPage() {
 
       // Already has rows WITH content? → navigate immediately
       const { data: existingRows } = await supabase
-        .from('learning_results').select('id, content').eq('learning_path_id', pathId).limit(1);
-      const hasContent = existingRows && existingRows.length > 0 && (existingRows[0] as any).content != null;
+        .from('learning_results').select('id, status, content').eq('learning_path_id', pathId).limit(1);
+      const firstRow = existingRows && existingRows.length > 0 ? existingRows[0] as any : null;
+      const hasContent = firstRow && (firstRow.status === 'completed' || firstRow.content != null);
       if (hasContent) {
-        console.log('[LPW2] learning_results with content — navigating immediately');
+        console.log('[LPW2] learning_results ready — navigating immediately');
         markDone();
         return;
       }
