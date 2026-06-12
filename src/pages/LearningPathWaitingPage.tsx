@@ -319,13 +319,14 @@ export default function LearningPathWaitingPage() {
       .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'learning_results', filter: `learning_path_id=eq.${pathId}` },
         (payload) => {
           const row = payload.new as any;
-          // Both conditions must be true — Make writes content first, then status=completed
-          if (row?.status === 'completed' && row?.content != null) markDone();
+          const hasContent = row?.content != null && row?.content !== '' && row?.content !== '[]';
+          if (hasContent) markDone();
         })
       .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'learning_results', filter: `learning_path_id=eq.${pathId}` },
         (payload) => {
           const row = payload.new as any;
-          if (row?.status === 'completed' && row?.content != null) markDone();
+          const hasContent = row?.content != null && row?.content !== '' && row?.content !== '[]';
+          if (hasContent) markDone();
         })
       .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'learning_paths', filter: `id=eq.${pathId}` },
         (payload) => {
@@ -353,7 +354,11 @@ export default function LearningPathWaitingPage() {
         .limit(1);
       if (rows && rows.length > 0) {
         const row = rows[0] as any;
-        if (row.status === 'completed' && row.content != null) { markDone(); return; }
+        // content can be array, object or string — just check it's not null/empty
+        const hasContent = row.content != null && row.content !== '' && row.content !== '[]';
+        if (row.status === 'completed' && hasContent) { markDone(); return; }
+        // Also accept if content exists even without completed status (Make wrote data)
+        if (hasContent && Array.isArray(row.content) && row.content.length > 0) { markDone(); return; }
       }
 
       // Also check path status for error states
@@ -391,13 +396,15 @@ export default function LearningPathWaitingPage() {
   useEffect(() => {
     if (!pathId) { navigate('/', { replace: true }); return; }
 
-    // React StrictMode runs effects twice in dev — guard against double boot
+    // Always start animation (even on StrictMode second mount)
+    setPhase('waiting');
+    startProgressAnimation();
+
+    // React StrictMode guard — only run trigger logic once
     if (bootRanRef.current) return;
     bootRanRef.current = true;
 
     (async () => {
-      setPhase('waiting');
-      startProgressAnimation();
 
       const { data: lp } = await supabase
         .from('learning_paths').select('*').eq('id', pathId).maybeSingle();
