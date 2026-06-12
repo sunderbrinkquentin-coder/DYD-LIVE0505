@@ -316,7 +316,17 @@ export default function LearningPathWaitingPage() {
     const ch = supabase
       .channel(`lpw2_${pathId}_${Date.now()}`)
       .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'learning_results', filter: `learning_path_id=eq.${pathId}` },
-        () => { markDone(); })
+        async (payload) => {
+          // Only mark done if content is actually filled
+          const row = payload.new as any;
+          if (row?.content != null) {
+            markDone();
+          } else {
+            // Row exists but content empty — poll until content arrives
+            const { data: fresh } = await supabase.from('learning_results').select('content').eq('id', row.id).maybeSingle();
+            if (fresh?.content != null) markDone();
+          }
+        })
       .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'learning_paths', filter: `id=eq.${pathId}` },
         (payload) => {
           const s = (payload.new as any)?.status as string;
@@ -334,13 +344,13 @@ export default function LearningPathWaitingPage() {
       }
       pollCountRef.current += 1;
 
-      // Check if any learning_results row exists — first row = ready to start
+      // Check if learning_results row exists WITH content filled
       const { data: rows } = await supabase
         .from('learning_results')
-        .select('id')
+        .select('id, content')
         .eq('learning_path_id', pathId)
         .limit(1);
-      if (rows && rows.length > 0) { markDone(); return; }
+      if (rows && rows.length > 0 && (rows[0] as any).content != null) { markDone(); return; }
 
       // Also check path status for error states
       const { data: lp } = await supabase
@@ -398,17 +408,12 @@ export default function LearningPathWaitingPage() {
 
       pathDataRef.current = effectivePath;
 
-      // Already has rows? → navigate immediately
+      // Already has rows WITH content? → navigate immediately
       const { data: existingRows } = await supabase
-        .from('learning_results').select('id').eq('learning_path_id', pathId).limit(1);
-      if (existingRows && existingRows.length > 0) {
-        console.log('[LPW2] learning_results exist — navigating immediately');
-        markDone();
-        return;
-      }
-
-      if (lp.status === 'completed') {
-        console.log('[LPW2] Already completed — navigating');
+        .from('learning_results').select('id, content').eq('learning_path_id', pathId).limit(1);
+      const hasContent = existingRows && existingRows.length > 0 && (existingRows[0] as any).content != null;
+      if (hasContent) {
+        console.log('[LPW2] learning_results with content — navigating immediately');
         markDone();
         return;
       }
