@@ -214,6 +214,7 @@ export default function LearningPathWaitingPage() {
   const pollCountRef = useRef(0);
   const channelRef = useRef<ReturnType<typeof supabase.channel> | null>(null);
   const pathDataRef = useRef<Record<string, unknown> | null>(null);
+  const bootRanRef = useRef(false); // prevent React StrictMode double-run
   const startTimeRef = useRef<number | null>(null);
   const rafRef = useRef<number | null>(null);
 
@@ -390,6 +391,10 @@ export default function LearningPathWaitingPage() {
   useEffect(() => {
     if (!pathId) { navigate('/', { replace: true }); return; }
 
+    // React StrictMode runs effects twice in dev — guard against double boot
+    if (bootRanRef.current) return;
+    bootRanRef.current = true;
+
     (async () => {
       setPhase('waiting');
       startProgressAnimation();
@@ -423,10 +428,11 @@ export default function LearningPathWaitingPage() {
         return;
       }
 
-      // If stale row exists (status=completed but no content) → delete it and re-trigger
-      if (firstRow && firstRow.status === 'completed' && firstRow.content == null) {
-        console.log('[LPW2] Stale row found (status=completed, content=null) — deleting and re-triggering');
-        await supabase.from('learning_results').delete().eq('id', firstRow.id);
+      // If already in_progress → just listen, don't trigger again
+      if (lp.status === 'in_progress') {
+        console.log('[LPW2] Already in_progress — listening only');
+        startListening();
+        return;
       }
 
       // Trigger Make and start listening
