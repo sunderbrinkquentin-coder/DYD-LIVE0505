@@ -333,7 +333,8 @@ export default function LearningPathWaitingPage() {
       .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'learning_paths', filter: `id=eq.${pathId}` },
         (payload) => {
           const s = (payload.new as any)?.status as string;
-          if (s === 'completed' || s === 'in_progress') markDone();
+          // Only markDone on 'completed' — 'in_progress' fires too early (before content is written)
+          if (s === 'completed') markDone();
           if (s === 'failed') markError('Die KI konnte deinen Lernpfad nicht erstellen. Bitte versuche es erneut.');
         })
       .subscribe();
