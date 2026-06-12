@@ -317,15 +317,18 @@ export default function LearningPathWaitingPage() {
       .channel(`lpw2_${pathId}_${Date.now()}`)
       .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'learning_results', filter: `learning_path_id=eq.${pathId}` },
         async (payload) => {
-          // Only mark done if content is actually filled
           const row = payload.new as any;
           if (row?.content != null) {
             markDone();
           } else {
-            // Row exists but content empty — poll until content arrives
             const { data: fresh } = await supabase.from('learning_results').select('content').eq('id', row.id).maybeSingle();
             if (fresh?.content != null) markDone();
           }
+        })
+      .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'learning_results', filter: `learning_path_id=eq.${pathId}` },
+        (payload) => {
+          const row = payload.new as any;
+          if (row?.content != null) markDone();
         })
       .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'learning_paths', filter: `id=eq.${pathId}` },
         (payload) => {
