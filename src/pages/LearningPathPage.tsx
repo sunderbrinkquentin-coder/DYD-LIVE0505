@@ -1853,8 +1853,8 @@ export default function LearningPathPage() {
       // Ready as soon as at least 1 learning_results row exists (remaining rows load in background)
       const { data: rowCheck } = await supabase
         .from('learning_results').select('id, content, status').eq('learning_path_id', pathId).limit(1);
-      // Count as "has results" if content filled OR learning_results status=completed
-      const hasResults = (rowCheck?.some((r: any) => r.content != null || r.status === 'completed') ?? false) || path.status === 'completed';
+      // Has results = row with BOTH status=completed AND content!=null (same rule as WaitingPage)
+      const hasResults = (rowCheck?.some((r: any) => r.status === 'completed' && r.content != null) ?? false);
 
       // If rows exist but is_paid is missing (Stripe webhook race), fix it in DB and treat as paid
       if (hasResults && !path.is_paid) {
