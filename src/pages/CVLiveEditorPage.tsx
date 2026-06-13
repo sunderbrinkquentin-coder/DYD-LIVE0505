@@ -251,17 +251,7 @@ export function CVLiveEditorPage() {
     if (!el) return;
     const recalc = () => {
       const available = el.clientWidth;
-      if (available > 0) {
-        // On mobile: always show at full size, let user scroll horizontally
-        // This keeps fonts at their native print size (readable)
-        // On desktop: scale to fit if container is smaller than 794px
-        const isMobile = window.innerWidth < 768;
-        if (isMobile) {
-          setScale(1); // Full size, horizontal scroll
-        } else {
-          setScale(available < 794 ? available / 794 : 1);
-        }
-      }
+      if (available > 0) setScale(available < 794 ? available / 794 : 1);
     };
     recalc();
     const obs = new ResizeObserver(recalc);
@@ -1526,7 +1516,7 @@ onClick={async () => {
       {/* MAIN CONTENT AREA MIT PHYSISCHEN A4-BLÄTTERN */}
 {/* MAIN CONTENT AREA MIT PHYSISCHEN A4-BLÄTTERN */}
      {/* MAIN CONTENT AREA MIT PHYSISCHEN A4-BLÄTTERN */}
-      <main ref={mainRefCallback} className="flex-1 overflow-y-auto overflow-x-auto bg-[#1e1e24] w-full py-12 flex flex-col">
+      <main ref={mainRefCallback} className="flex-1 overflow-y-auto bg-[#1e1e24] w-full py-12 flex flex-col items-center">
         
         <style>{`
           [data-pdf-root] textarea, [data-pdf-root] p, [data-pdf-root] span, [data-pdf-root] div, [data-pdf-root] li {
@@ -1588,12 +1578,20 @@ onClick={async () => {
           const containerHeight = (pageCountRender * PAGE_H * scale) + ((pageCountRender - 1) * GAP * scale);
 
           return (
-            <div style={{ width: `${794 * scale}px`, height: `${containerHeight}px`, position: 'relative', margin: scale < 1 ? '0 auto' : '0 0 0 16px', flexShrink: 0 }}>
+            <div style={{ width: `${794 * scale}px`, height: `${containerHeight}px`, position: 'relative', margin: '0 auto', flexShrink: 0 }}>
               
-              {/* LÖSUNG FÜR PDF-CRASH: Opacity 0.001 statt display none / -9999px! */}
+              {/* PDF export element — NO spacers so PDF has natural flow without gaps */}
               <div style={{ position: 'absolute', top: 0, left: 0, opacity: 0.001, zIndex: -100, pointerEvents: 'none' }}>
                 <div ref={cvPreviewRef} data-pdf-root style={{ width: '794px', backgroundColor: '#ffffff' }}>
-                  {renderTemplate()}
+                  {(() => {
+                    const emptyBreaks = new Map<string, number>();
+                    if (selectedTemplate === 'modern') return <ModernCVTemplate {...templateProps} pageBreakItems={emptyBreaks} />;
+                    if (selectedTemplate === 'classic') return <ClassicCVTemplate {...templateProps} pageBreakItems={emptyBreaks} />;
+                    if (selectedTemplate === 'minimal') return <MinimalCVTemplate {...templateProps} pageBreakItems={emptyBreaks} />;
+                    if (selectedTemplate === 'creative') return <CreativeCVTemplate {...templateProps} pageBreakItems={emptyBreaks} />;
+                    if (selectedTemplate === 'professional') return <ProfessionalCVTemplate {...templateProps} pageBreakItems={emptyBreaks} />;
+                    return null;
+                  })()}
                 </div>
               </div>
 
@@ -1615,7 +1613,7 @@ onClick={async () => {
         })()}
         {/* METADATA SECTION */}
         {jobData && (jobData.jobTitle || jobData.company) && (
-          <div className="mt-12 px-4" style={{ width: `${794 * scale}px`, marginLeft: scale < 1 ? 'auto' : '16px', marginRight: scale < 1 ? 'auto' : '0' }}>
+          <div className="mt-12 px-4 w-full" style={{ width: `${794 * scale}px` }}>
             <button onClick={() => setShowJobDescription(!showJobDescription)} className="w-full flex items-center justify-between gap-3 px-4 py-3 bg-white/5 border border-white/10 rounded-xl hover:bg-white/[0.08]">
               <div className="flex items-center gap-2 text-sm"><Briefcase size={16} className="text-[#66c0b6] flex-shrink-0" /><span className="text-white/70">Stellenbeschreibung:</span>{jobData.jobTitle && <span className="text-[#66c0b6] font-medium truncate">{String(jobData.jobTitle)}</span>}</div>
               <ChevronDown size={16} className={`text-white/40 flex-shrink-0 transition-transform ${showJobDescription ? 'rotate-180' : ''}`} />
@@ -1628,7 +1626,7 @@ onClick={async () => {
 
         {/* MATCHING TEXT */}
         {editorData?.matching_text && (
-          <div className="mt-6 mb-12 bg-[#0f1729] border border-[#66c0b6]/20 rounded-2xl p-4 sm:p-6" style={{ width: `${794 * scale}px`, marginLeft: scale < 1 ? 'auto' : '16px', marginRight: scale < 1 ? 'auto' : '0' }}>
+          <div className="mt-6 mb-12 bg-[#0f1729] border border-[#66c0b6]/20 rounded-2xl p-4 sm:p-6 w-full" style={{ width: `${794 * scale}px` }}>
             <div className="flex items-center gap-2 mb-3"><Sparkles size={18} className="text-[#66c0b6]" /><h3 className="text-white font-semibold text-sm">Generierter Matching-Text</h3></div>
             <p className="text-white/80 text-xs sm:text-sm leading-relaxed whitespace-pre-wrap">{editorData.matching_text}</p>
           </div>
