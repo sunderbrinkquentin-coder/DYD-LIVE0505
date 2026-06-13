@@ -438,9 +438,8 @@ export default function LearningPathWaitingPage() {
         return;
       }
 
-      // Trigger Make and start listening — Edge Function handles deduplication
+      // Trigger Make
       console.log('[LPW2] Triggering learningpath | lp.status:', lp.status);
-      startListening();
       const ok = await triggerLearningpath();
       if (!ok) {
         markError('Der Lernpfad konnte nicht gestartet werden. Bitte versuche es erneut.');
@@ -448,7 +447,70 @@ export default function LearningPathWaitingPage() {
       }
     })();
 
-    return () => cleanup();
+    // ── Polling — same pattern as CvResultPage ─────────────────────────────
+    let pollTimer: ReturnType<typeof setTimeout> | null = null;
+    let pollAttempt = 0;
+    const MAX_ATTEMPTS = 150;
+
+    const poll = async () => {
+      if (doneRef.current) return;
+      if (pollAttempt >= MAX_ATTEMPTS) {
+        markError('Keine Antwort von Make erhalten. Bitte versuche es erneut.');
+        return;
+      }
+      pollAttempt++;
+
+      try {
+        const { data } = await supabase
+          .from('learning_results')
+          .select('content')
+          .eq('learning_path_id', pathId)
+          .not('content', 'is', null)
+          .limit(1);
+
+        if (doneRef.current) return;
+
+        if (data && data.length > 0 && data[0].content) {
+          markDone();
+          return;
+        }
+
+        const { data: lpCheck } = await supabase
+          .from('learning_paths').select('status').eq('id', pathId).maybeSingle();
+        if (lpCheck?.status === 'failed') {
+          markError('Die KI konnte deinen Lernpfad nicht erstellen.');
+          return;
+        }
+      } catch (_e) { /* retry */ }
+
+      if (!doneRef.current) {
+        pollTimer = setTimeout(poll, 2_500);
+      }
+    };
+
+    // ── Realtime subscription ──────────────────────────────────────────────
+    const channel = supabase
+      .channel(`lpw2_${pathId}_${Date.now()}`)
+      .on('postgres_changes', {
+        event: '*', schema: 'public', table: 'learning_results',
+        filter: `learning_path_id=eq.${pathId}`,
+      }, async () => {
+        const { data } = await supabase
+          .from('learning_results').select('content')
+          .eq('learning_path_id', pathId)
+          .not('content', 'is', null).limit(1);
+        if (data && data.length > 0 && data[0].content) markDone();
+      })
+      .subscribe();
+
+    pollTimer = setTimeout(poll, 2_500);
+
+    return () => {
+      doneRef.current = true;
+      if (pollTimer) clearTimeout(pollTimer);
+      supabase.removeChannel(channel);
+      if (rafRef.current) cancelAnimationFrame(rafRef.current);
+    };
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [pathId]);
 
