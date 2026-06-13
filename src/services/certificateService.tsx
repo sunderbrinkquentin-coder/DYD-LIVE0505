@@ -54,7 +54,14 @@ export class CertificateService {
     // Use competency_profile from learning_results if available, otherwise fall back to missing_skills
     const masteredSkills = certMeta?.competency_profile?.length
       ? certMeta.competency_profile
-      : (learningPath.missing_skills ?? []).map((s: any) => s.skill_name || s.name || s);
+      : (() => {
+          const raw = learningPath.missing_skills;
+          if (!raw) return [];
+          const arr = Array.isArray(raw) ? raw
+            : typeof raw === 'string' ? (() => { try { return JSON.parse(raw); } catch { return []; } })()
+            : [];
+          return arr.map((s: any) => s.skill_name || s.name || s);
+        })();
 
     // Use official_title from learning_results if available
     const certTitle = certMeta?.official_title || learningPath.target_job;
