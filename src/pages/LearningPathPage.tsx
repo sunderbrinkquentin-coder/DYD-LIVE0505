@@ -676,6 +676,161 @@ function mapQuizQuestions(quiz: any[]): QuizQuestion[] {
   });
 }
 
+
+// ── FinalExamWaiting — ARCS/DSR animated loading for final exam generation ────
+
+const EXAM_STAGES = [
+  { id: 'analyse', icon: '🎯', label: 'Lernziele analysieren', sub: 'IHK-Anforderungen werden geprüft', dur: 0.20 },
+  { id: 'profile', icon: '🧠', label: 'Wissensprofil erstellen', sub: 'Deine Stärken werden bewertet', dur: 0.25 },
+  { id: 'generate', icon: '📝', label: 'Fragen generieren', sub: '30 IHK-konforme Prüfungsfragen', dur: 0.30 },
+  { id: 'quality', icon: '✅', label: 'Qualitätsprüfung', sub: 'Prüfungsstandards werden geprüft', dur: 0.25 },
+];
+
+function FinalExamWaiting({ targetJob, skill }: { targetJob: string; skill: string }) {
+  const [progress, setProgress] = useState(0);
+  const [stageIdx, setStageIdx] = useState(0);
+  const [quoteIdx, setQuoteIdx] = useState(0);
+  const rafRef = useRef<number | null>(null);
+  const startRef = useRef<number>(Date.now());
+  const TOTAL_MS = 90_000; // 90s animation
+
+  const QUOTES = [
+    { text: 'Prüfungen sind keine Hindernisse — sie sind Meilensteine.', author: 'Decide your Dream' },
+    { text: 'Das Zertifikat beweist nicht nur dein Wissen — es beweist deine Disziplin.', author: 'IHK-Philosophie' },
+    { text: 'Vorbereitung ist der Schlüssel zum Erfolg.', author: 'Benjamin Franklin' },
+    { text: 'Du hast die Module gemeistert. Der Rest ist Formsache.', author: 'Decide your Dream' },
+  ];
+
+  useEffect(() => {
+    const tick = () => {
+      const elapsed = Date.now() - startRef.current;
+      const frac = Math.min(elapsed / TOTAL_MS, 1);
+      const eased = 1 - Math.pow(1 - frac, 2);
+      const pct = Math.min(eased * 92, 92);
+      setProgress(pct);
+      let acc = 0;
+      for (let i = 0; i < EXAM_STAGES.length; i++) {
+        acc += EXAM_STAGES[i].dur * 100;
+        if (pct < acc) { setStageIdx(i); break; }
+        if (i === EXAM_STAGES.length - 1) setStageIdx(EXAM_STAGES.length - 1);
+      }
+      rafRef.current = requestAnimationFrame(tick);
+    };
+    rafRef.current = requestAnimationFrame(tick);
+    const qi = setInterval(() => setQuoteIdx(i => (i + 1) % QUOTES.length), 8000);
+    return () => {
+      if (rafRef.current) cancelAnimationFrame(rafRef.current);
+      clearInterval(qi);
+    };
+  }, []);
+
+  const stage = EXAM_STAGES[stageIdx];
+  const color = '#f59e0b';
+
+  return (
+    <div className="max-w-2xl mx-auto space-y-4" style={{ animation: 'lp_fadeUp 0.5s ease' }}>
+      <style>{`
+        @keyframes fex_pulse { 0%,100%{opacity:1;} 50%{opacity:0.4;} }
+        @keyframes fex_spin { from{transform:rotate(0deg);}to{transform:rotate(360deg);} }
+        @keyframes fex_glow { 0%,100%{opacity:0.4;} 50%{opacity:1;} }
+        @keyframes fex_up { from{opacity:0;transform:translateY(10px);} to{opacity:1;transform:translateY(0);} }
+      `}</style>
+
+      {/* Hero card */}
+      <div className="rounded-3xl overflow-hidden"
+        style={{ background: 'linear-gradient(135deg,rgba(245,158,11,0.08),rgba(6,7,15,0.99))', border: '1px solid rgba(245,158,11,0.25)' }}>
+        <div className="h-[3px]" style={{ background: `linear-gradient(90deg,${color},${color}40,transparent)` }} />
+        <div className="p-6 space-y-5">
+          {/* Status badge */}
+          <div className="flex items-center gap-2">
+            <div className="w-2 h-2 rounded-full" style={{ background: color, animation: 'fex_pulse 1.3s ease infinite' }} />
+            <span className="text-[10px] font-black uppercase tracking-widest" style={{ color: `${color}80` }}>
+              Abschlussprüfung wird generiert
+            </span>
+          </div>
+
+          {/* Title */}
+          <div>
+            <h2 className="text-2xl font-black text-white leading-tight">
+              Deine IHK-Prüfung für{' '}
+              <span style={{ color }}>{skill || targetJob}</span>
+            </h2>
+            <p className="text-sm text-white/40 mt-1.5">
+              Personalisierte Fragen basierend auf deinen 5 Lerneinheiten.
+            </p>
+          </div>
+
+          {/* Progress */}
+          <div className="space-y-2">
+            <div className="flex justify-between text-xs">
+              <span className="text-white/35 font-bold">{stage?.label}</span>
+              <span className="font-black tabular-nums" style={{ color }}>{Math.round(progress)}%</span>
+            </div>
+            <div className="h-1.5 rounded-full overflow-hidden" style={{ background: 'rgba(255,255,255,0.07)' }}>
+              <div className="h-full rounded-full transition-all duration-700 ease-out"
+                style={{ width: `${progress}%`, background: `linear-gradient(90deg,${color}90,${color})`, boxShadow: `0 0 8px ${color}60` }} />
+            </div>
+            <p className="text-[11px] text-white/25">Dauert ca. 1–2 Minuten — diese Seite aktualisiert sich automatisch.</p>
+          </div>
+        </div>
+      </div>
+
+      {/* Stage checklist */}
+      <div className="rounded-2xl overflow-hidden" style={{ background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.07)' }}>
+        <div className="px-4 py-3 border-b border-white/[0.06]">
+          <p className="text-[10px] font-black uppercase tracking-widest text-white/30">Prüfungserstellung</p>
+        </div>
+        <div className="p-2 space-y-0.5">
+          {EXAM_STAGES.map((s, i) => {
+            const isDone = i < stageIdx;
+            const isActive = i === stageIdx;
+            return (
+              <div key={s.id} className="flex items-center gap-3 px-3 py-2.5 rounded-xl transition-all duration-500"
+                style={{
+                  background: isActive ? `rgba(245,158,11,0.07)` : 'transparent',
+                  border: isActive ? '1px solid rgba(245,158,11,0.2)' : '1px solid transparent',
+                  opacity: !isDone && !isActive ? 0.3 : 1,
+                }}>
+                <div className="w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0 text-base"
+                  style={{
+                    background: isDone ? 'rgba(34,197,94,0.1)' : isActive ? 'rgba(245,158,11,0.12)' : 'rgba(255,255,255,0.04)',
+                    border: isDone ? '1px solid rgba(34,197,94,0.3)' : isActive ? `1px solid ${color}35` : '1px solid rgba(255,255,255,0.07)',
+                  }}>
+                  {isDone
+                    ? <svg width="14" height="14" viewBox="0 0 14 14"><polyline points="2,7 5.5,10.5 12,4" fill="none" stroke="#22c55e" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"/></svg>
+                    : <span style={{ filter: !isActive ? 'grayscale(1)' : 'none' }}>{s.icon}</span>
+                  }
+                </div>
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm font-black leading-snug"
+                    style={{ color: isDone ? 'rgba(255,255,255,0.3)' : isActive ? '#fff' : 'rgba(255,255,255,0.3)', textDecoration: isDone ? 'line-through' : 'none' }}>
+                    {s.label}
+                  </p>
+                  {isActive && <p className="text-[11px] mt-0.5" style={{ color: `${color}80` }}>{s.sub}</p>}
+                </div>
+                {isActive && (
+                  <div className="flex-shrink-0 flex items-center gap-1.5">
+                    <div className="w-1.5 h-1.5 rounded-full" style={{ background: color, animation: 'fex_pulse 1.2s ease infinite' }} />
+                    <span className="text-[10px] font-black uppercase tracking-widest" style={{ color }}>Aktiv</span>
+                  </div>
+                )}
+                {isDone && <span className="flex-shrink-0 text-[9px] font-black uppercase tracking-widest text-green-400/50">Fertig</span>}
+              </div>
+            );
+          })}
+        </div>
+      </div>
+
+      {/* Motivational quote */}
+      <div className="rounded-2xl p-5" style={{ background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.07)' }}>
+        <p className="text-[10px] font-black uppercase tracking-widest text-white/20 mb-3">Motivation</p>
+        <p className="text-sm text-white/65 leading-relaxed italic">&ldquo;{QUOTES[quoteIdx].text}&rdquo;</p>
+        <p className="text-[11px] text-white/30 mt-2 font-bold">— {QUOTES[quoteIdx].author}</p>
+      </div>
+    </div>
+  );
+}
+
 // ── ARCS/DSR/CLT Learning Journey phases ──────────────────────────────────────
 // Phase 1 (ARCS – Attention):    Intro card — hook, relevance, why this matters now
 // Phase 2 (DSR – Discipline):    Pre-learning — understand competency list, learning goals
@@ -2308,22 +2463,7 @@ export default function LearningPathPage() {
 
             {/* Final exam: triggering / waiting */}
             {(finalExamPhase === 'triggering' || finalExamPhase === 'waiting') && (
-              <div className="max-w-2xl mx-auto rounded-2xl p-8 text-center space-y-5"
-                style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.1)' }}>
-                <Loader2 size={36} className="animate-spin text-[#30E3CA] mx-auto" />
-                <div>
-                  <p className="text-white font-black text-lg">Abschlussprüfung wird erstellt…</p>
-                  <p className="text-white/45 text-sm mt-2 leading-relaxed">
-                    Deine personalisierten Prüfungsfragen werden generiert. Das dauert in der Regel 1–2 Minuten.
-                  </p>
-                </div>
-                <div className="flex justify-center gap-1.5">
-                  {[0,1,2].map(i => (
-                    <div key={i} className="w-1.5 h-1.5 rounded-full bg-[#30E3CA]"
-                      style={{ animation: `lp_blipPop 1.4s ease-in-out ${i * 0.2}s infinite` }} />
-                  ))}
-                </div>
-              </div>
+              <FinalExamWaiting targetJob={learningPath?.target_job || ''} skill={(learningPath as any)?.skill || ''} />
             )}
 
             {/* Final exam: ready to take */}
