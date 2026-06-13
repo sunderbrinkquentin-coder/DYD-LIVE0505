@@ -1551,11 +1551,23 @@ onClick={async () => {
             overflow: hidden !important;
           }
 
-          /* Verhindert iOS Browser-Schriftvergrößerung — CV skaliert wie PDF */
+          /* iOS vergrößert inputs/textareas automatisch auf 16px — hart überschreiben */
+          .a4-page-frame input,
+          .a4-page-frame textarea,
+          .a4-page-frame [contenteditable] {
+            font-size: 9px !important;
+            -webkit-text-size-adjust: none !important;
+            text-size-adjust: none !important;
+            transform: none !important;
+          }
           .a4-page-frame * {
             -webkit-text-size-adjust: none !important;
             text-size-adjust: none !important;
-            -webkit-font-smoothing: antialiased;
+          }
+          /* Skill chips dürfen nicht aus der Spalte laufen */
+          [data-chip-row] {
+            overflow: hidden !important;
+            max-width: 100% !important;
           }
         `}</style>
 
