@@ -297,14 +297,20 @@ function prepareClone(clone: HTMLElement, liveRoot: HTMLElement): void {
     div.textContent = val;
     div.style.cssText = ci.style.cssText;
     // Let the div size to its content — fixed-width inputs would clip text
-    div.style.display = 'flex';
-    div.style.alignItems = 'center';
+    div.style.display = 'inline';
     div.style.width = 'auto';
     div.style.minWidth = '0';
     div.style.maxWidth = '100%';
     div.style.overflow = 'visible';
-    div.style.whiteSpace = 'normal';
-    div.style.wordBreak = 'break-word';
+    div.style.whiteSpace = 'nowrap';
+    div.style.wordBreak = 'normal';
+    // Force fontSize from live element inline style — baked computed may be wrong
+    const liveFontSize = liveInputs[i]?.style?.fontSize;
+    if (liveFontSize) div.style.fontSize = liveFontSize;
+    const liveFontWeight = liveInputs[i]?.style?.fontWeight;
+    if (liveFontWeight) div.style.fontWeight = liveFontWeight;
+    const liveColor = liveInputs[i]?.style?.color;
+    if (liveColor) div.style.color = liveColor;
     ci.parentNode?.replaceChild(div, ci);
   }
 
@@ -404,6 +410,13 @@ function prepareClone(clone: HTMLElement, liveRoot: HTMLElement): void {
     el.style.overflowY = 'visible';
     el.style.height = 'auto';
     el.style.maxHeight = 'none';
+  });
+
+  // Skill chips: keep overflow hidden so chips don't spill outside column
+  clone.querySelectorAll<HTMLElement>('[data-chip-row]').forEach(el => {
+    el.style.overflow = 'hidden';
+    el.style.overflowX = 'hidden';
+    el.style.maxWidth = '100%';
   });
 
   // Also unlock any div that directly contains an li or replaced textarea-div
