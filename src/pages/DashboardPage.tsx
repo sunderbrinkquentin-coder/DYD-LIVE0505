@@ -1044,16 +1044,13 @@ export function DashboardPage() {
 
           {/* Career Vision — Lernpfade */}
           {learningPaths.length > 0 && (() => {
-            // Show path if: (is_paid AND has skill) OR has content — deduped by skill name
+            // Show ONLY paths where is_paid=true AND has skill — deduped by skill
             const seenSkills = new Set<string>();
             const paidPaths = [...learningPaths]
               .filter(p => {
                 const skill = (p as any).skill;
-                if (!skill) return false; // must have a skill
-                const hasContent = lpResults[p.id] === true;
-                const isPaid = p.is_paid === true;
-                if (!isPaid && !hasContent) return false;
-                // Deduplicate by skill — show only the most recent row per skill
+                if (!skill) return false;
+                if (!p.is_paid) return false;
                 if (seenSkills.has(skill)) return false;
                 seenSkills.add(skill);
                 return true;
