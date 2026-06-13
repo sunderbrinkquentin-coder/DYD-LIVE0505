@@ -461,18 +461,51 @@ export default function LearningPathWaitingPage() {
       pollAttempt++;
 
       try {
+        // Primary: check exact pathId
         const { data } = await supabase
           .from('learning_results')
-          .select('content')
+          .select('content, learning_path_id')
           .eq('learning_path_id', pathId)
           .not('content', 'is', null)
           .limit(1);
 
         if (doneRef.current) return;
 
-        if (data && data.length > 0 && data[0].content) {
+        if (data && data.length > 0 && (data[0] as any).content) {
           markDone();
           return;
+        }
+
+        // Fallback: check ALL paid paths of this user — handles pathId mismatch between triggers
+        const userId = (pathDataRef.current as any)?.user_id;
+        if (userId) {
+          const { data: userPaths } = await supabase
+            .from('learning_paths')
+            .select('id')
+            .eq('user_id', userId)
+            .eq('is_paid', true);
+
+          if (userPaths && userPaths.length > 0) {
+            const ids = (userPaths as any[]).map(p => p.id);
+            const { data: anyResult } = await supabase
+              .from('learning_results')
+              .select('content, learning_path_id')
+              .in('learning_path_id', ids)
+              .not('content', 'is', null)
+              .limit(1);
+
+            if (anyResult && anyResult.length > 0 && (anyResult[0] as any).content) {
+              const correctId = (anyResult[0] as any).learning_path_id;
+              console.log('[LPW2] Content found at pathId:', correctId, '(current:', pathId, ')');
+              doneRef.current = true;
+              if (correctId !== pathId) {
+                navigate(`/learning-path/${correctId}`, { replace: true });
+              } else {
+                markDone();
+              }
+              return;
+            }
+          }
         }
 
         const { data: lpCheck } = await supabase
