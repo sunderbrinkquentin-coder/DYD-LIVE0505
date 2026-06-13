@@ -312,10 +312,22 @@ export function CVLiveEditorPage() {
         const pageEnd = Math.floor((actualBottom - 1) / PAGE_H);
 
         // Wenn Element geschnitten wird -> Push berechnen
+        // Nur schieben wenn das Element WIRKLICH durchgeschnitten wird
+        // (nicht nur nahe der Grenze) — verhindert große weiße Gaps
         if (pageEnd > pageStart && height < PAGE_H) {
-          const pushDown = (pageStart + 1) * PAGE_H - actualTop;
-          runningOffset += pushDown;
-          newMap.set(spacerId, pushDown);
+          const pageBottom = (pageStart + 1) * PAGE_H;
+          const overflowIntoNextPage = actualBottom - pageBottom;
+          const remainingOnCurrentPage = pageBottom - actualTop;
+
+          // Nur schieben wenn mehr als 30% des Elements auf der nächsten Seite landet
+          // ODER wenn weniger als 60px des Elements auf der aktuellen Seite sichtbar wären
+          const shouldPush = overflowIntoNextPage > height * 0.3 || remainingOnCurrentPage < 60;
+
+          if (shouldPush) {
+            const pushDown = pageBottom - actualTop;
+            runningOffset += pushDown;
+            newMap.set(spacerId, pushDown);
+          }
         }
         
         if (actualBottom + runningOffset > maxBottom) {
@@ -323,8 +335,15 @@ export function CVLiveEditorPage() {
         }
       });
 
-      // Exakte Höhe berechnen, damit Seite 2 sichtbar wird!
-      setCvHeight(Math.max(PAGE_H, maxBottom + 50));
+      // Exakte Höhe berechnen — kein leeres Blatt wenn Overflow < 40px
+      const rawHeight = maxBottom + 20;
+      const pages = Math.ceil(rawHeight / PAGE_H);
+      const lastPageContent = rawHeight - (pages - 1) * PAGE_H;
+      // Wenn die letzte Seite weniger als 40px Inhalt hat, diese Seite weglassen
+      const finalHeight = lastPageContent < 40 && pages > 1
+        ? (pages - 1) * PAGE_H
+        : rawHeight;
+      setCvHeight(Math.max(PAGE_H, finalHeight));
 
       setPageBreakItems(prev => {
         if (prev.size !== newMap.size) return newMap;
