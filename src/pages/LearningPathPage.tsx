@@ -657,20 +657,26 @@ function parseContentUnit(content: unknown, unitIndex: number): Record<string, a
   } catch { return null; }
 }
 
-// Parse final exam questions — already in correct {A,B,C,D} format from IHK prompt
+// Parse final exam questions — handles array, object, string, or comma-separated objects
 function parseFinalExamQuestions(raw: unknown): QuizQuestion[] {
   if (!raw) return [];
   try {
     let data: any;
     if (Array.isArray(raw)) {
       data = raw;
-    } else if (typeof raw === 'object' && (raw as any)?.final_exam) {
-      data = (raw as any).final_exam;
+    } else if (typeof raw === 'object' && !Array.isArray(raw)) {
+      // Could be {final_exam: [...]} or a single question object
+      const obj = raw as any;
+      data = obj.final_exam || [obj];
     } else if (typeof raw === 'string') {
       let s = (raw as string).trim();
+      // Remove outer quotes if double-encoded
       if (s.startsWith('"')) s = JSON.parse(s) as string;
+      // Wrap comma-separated objects in array if needed
+      if (!s.startsWith('[') && !s.startsWith('{')) return [];
+      if (!s.startsWith('[')) s = `[${s}]`;
       const parsed = JSON.parse(s);
-      data = Array.isArray(parsed) ? parsed : parsed?.final_exam || [];
+      data = Array.isArray(parsed) ? parsed : parsed?.final_exam ? parsed.final_exam : [parsed];
     } else {
       return [];
     }
