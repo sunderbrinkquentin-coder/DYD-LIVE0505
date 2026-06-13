@@ -312,78 +312,69 @@ export default function LearningPathWaitingPage() {
     doneRef.current = false;
     pollCountRef.current = 0;
 
-    // Navigate as soon as the first learning_results row appears — no need to wait for all 10
+    // ── Realtime subscription ──────────────────────────────────────────────
     const ch = supabase
       .channel(`lpw2_${pathId}_${Date.now()}`)
-      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'learning_results', filter: `learning_path_id=eq.${pathId}` },
-        (payload) => {
-          const c = (payload.new as any)?.content;
-          console.log('[LPW2] Realtime INSERT — content:', typeof c, c != null ? 'HAS_CONTENT' : 'null');
-          if (c != null && c !== '' && c !== '[]' && c !== 'null') markDone();
-          else {
-            // Realtime payload may omit large content — poll immediately
-            setTimeout(async () => {
-              const { data } = await supabase.from('learning_results').select('content').eq('learning_path_id', pathId).limit(1);
-              const pc = data?.[0]?.content;
-              if (pc != null && pc !== '' && pc !== '[]') markDone();
-            }, 500);
-          }
-        })
-      .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'learning_results', filter: `learning_path_id=eq.${pathId}` },
-        (payload) => {
-          const c = (payload.new as any)?.content;
-          console.log('[LPW2] Realtime UPDATE — content:', typeof c, c != null ? 'HAS_CONTENT' : 'null');
-          if (c != null && c !== '' && c !== '[]' && c !== 'null') markDone();
-          else {
-            setTimeout(async () => {
-              const { data } = await supabase.from('learning_results').select('content').eq('learning_path_id', pathId).limit(1);
-              const pc = data?.[0]?.content;
-              if (pc != null && pc !== '' && pc !== '[]') markDone();
-            }, 500);
-          }
-        })
-      .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'learning_paths', filter: `id=eq.${pathId}` },
-        (payload) => {
-          const s = (payload.new as any)?.status as string;
-          // Only markDone on 'completed' — 'in_progress' fires too early (before content is written)
-          if (s === 'completed') markDone();
-          if (s === 'failed') markError('Die KI konnte deinen Lernpfad nicht erstellen. Bitte versuche es erneut.');
-        })
+      .on('postgres_changes', {
+        event: '*',
+        schema: 'public',
+        table: 'learning_results',
+        filter: `learning_path_id=eq.${pathId}`,
+      }, async () => {
+        // Realtime payload may omit large content — always re-fetch from DB
+        const { data } = await supabase
+          .from('learning_results')
+          .select('content')
+          .eq('learning_path_id', pathId)
+          .not('content', 'is', null)
+          .limit(1);
+        if (data && data.length > 0 && data[0].content) markDone();
+      })
       .subscribe();
     channelRef.current = ch;
 
-    const tick = async () => {
-      if (doneRef.current) return;
-      if (pollCountRef.current >= POLL_MAX) {
-        markError('Keine Antwort von Make erhalten. Bitte prüfe deine Verbindung und versuche es erneut.');
+    // ── Polling fallback ───────────────────────────────────────────────────
+    const cancelled = { value: false };
+    let attempt = 0;
+
+    const poll = async () => {
+      if (cancelled.value || doneRef.current) return;
+      if (attempt >= POLL_MAX) {
+        markError('Keine Antwort von Make erhalten. Bitte versuche es erneut.');
         return;
       }
-      pollCountRef.current += 1;
+      attempt++;
 
-      // Check if learning_results row is complete — BOTH status=completed AND content!=null
-      console.log('[LPW2] Polling for pathId:', pathId);
-      const { data: rows } = await supabase
-        .from('learning_results')
-        .select('id, status, content')
-        .eq('learning_path_id', pathId)
-        .limit(1);
-      if (rows && rows.length > 0) {
-        const row = rows[0] as any;
-        // Fire as soon as content is written — string, array, or object
-        const c = row.content;
-        const hasContent = c != null && c !== '' && c !== '[]' && c !== 'null';
-        console.log('[LPW2] Poll tick — content:', typeof c, hasContent ? 'HAS_CONTENT' : 'empty');
-        if (hasContent) { markDone(); return; }
+      try {
+        const { data } = await supabase
+          .from('learning_results')
+          .select('content')
+          .eq('learning_path_id', pathId)
+          .not('content', 'is', null)
+          .limit(1);
+
+        if (cancelled.value || doneRef.current) return;
+
+        if (data && data.length > 0 && data[0].content) {
+          markDone();
+          return;
+        }
+
+        // Check for failed status
+        const { data: lp } = await supabase
+          .from('learning_paths').select('status').eq('id', pathId).maybeSingle();
+        if (lp?.status === 'failed') { markError('Die KI konnte deinen Lernpfad nicht erstellen.'); return; }
+
+      } catch (_e) { /* ignore, retry */ }
+
+      if (!cancelled.value && !doneRef.current) {
+        pollTimerRef.current = setTimeout(poll, POLL_INTERVAL_MS);
       }
-
-      // Also check path status for error states
-      const { data: lp } = await supabase
-        .from('learning_paths').select('status').eq('id', pathId).maybeSingle();
-      if (lp?.status === 'failed') { markError('Die KI konnte deinen Lernpfad nicht erstellen.'); return; }
-
-      if (!doneRef.current) pollTimerRef.current = setTimeout(tick, POLL_INTERVAL_MS);
     };
-    pollTimerRef.current = setTimeout(tick, 2_000);
+
+    // Store cancelled ref so cleanup can cancel it
+    (channelRef as any)._cancelled = cancelled;
+    pollTimerRef.current = setTimeout(poll, 2_000);
   }, [pathId, markDone, markError]);
 
   // ── Trigger via Edge Function ──────────────────────────────────────────────
