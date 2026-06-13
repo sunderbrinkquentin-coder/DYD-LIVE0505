@@ -657,6 +657,37 @@ function parseContentUnit(content: unknown, unitIndex: number): Record<string, a
   } catch { return null; }
 }
 
+// Parse final exam questions — already in correct {A,B,C,D} format from IHK prompt
+function parseFinalExamQuestions(raw: unknown): QuizQuestion[] {
+  if (!raw) return [];
+  try {
+    let data: any;
+    if (Array.isArray(raw)) {
+      data = raw;
+    } else if (typeof raw === 'object' && (raw as any)?.final_exam) {
+      data = (raw as any).final_exam;
+    } else if (typeof raw === 'string') {
+      let s = (raw as string).trim();
+      if (s.startsWith('"')) s = JSON.parse(s) as string;
+      const parsed = JSON.parse(s);
+      data = Array.isArray(parsed) ? parsed : parsed?.final_exam || [];
+    } else {
+      return [];
+    }
+    if (!Array.isArray(data)) return [];
+    return data.map((q: any, i: number) => ({
+      question_id: q.question_id ?? i,
+      question: q.question || '',
+      options: typeof q.options === 'object' && !Array.isArray(q.options)
+        ? q.options
+        : { A: '', B: '', C: '', D: '' },
+      correct_key: q.correct_key || 'A',
+      rationale: q.rationale || q.explanation_if_wrong || '',
+      clt_rating: q.clt_rating || '',
+    }));
+  } catch { return []; }
+}
+
 // Map Make quiz format to QuizQuestion format
 function mapQuizQuestions(quiz: any[]): QuizQuestion[] {
   if (!Array.isArray(quiz)) return [];
@@ -1693,6 +1724,7 @@ function ModuleOverview({
       <div
         className={`relative rounded-3xl overflow-hidden transition-all duration-500 ${allUnitsPassed ? 'cursor-pointer hover:scale-[1.01]' : ''}`}
         onClick={allUnitsPassed ? onStartFinalExam : undefined}
+        style={{ pointerEvents: allUnitsPassed ? 'auto' : 'none' }}
         style={{
           background: allUnitsPassed
             ? 'linear-gradient(135deg,rgba(251,191,36,0.1) 0%,rgba(234,179,8,0.04) 40%,rgba(4,8,16,0.98) 100%)'
@@ -2069,8 +2101,8 @@ export default function LearningPathPage() {
         if ((path as any).final_exam_status === 'ready' || (path as any).final_exam_status === 'done') {
           setFinalExamPhase((path as any).final_exam_score === 100 ? 'done' : 'ready');
           if ((path as any).final_exam_questions) {
-            const raw = (path as any).final_exam_questions;
-            setFinalExamQuestions(Array.isArray(raw) ? raw : []);
+            const qs = parseFinalExamQuestions((path as any).final_exam_questions);
+            if (qs.length > 0) setFinalExamQuestions(qs);
           }
           if ((path as any).certificate_url) setCertificateUrl((path as any).certificate_url);
         }
@@ -2205,6 +2237,7 @@ export default function LearningPathPage() {
 
   const triggerFinalExam = async () => {
     if (!learningPath) return;
+    if (finalExamPhase !== 'idle') return; // Guard: prevent multiple triggers
     setFinalExamPhase('triggering');
     try {
       // Get skill from learning_path row, or fall back to learning_results content
@@ -2249,13 +2282,7 @@ export default function LearningPathPage() {
         (payload) => {
           const row = payload.new as any;
           if (row?.final_exam != null) {
-            const raw = row.final_exam;
-            const qs = mapQuizQuestions(
-              Array.isArray(raw) ? raw
-                : typeof raw === 'string'
-                  ? (() => { try { return JSON.parse(raw); } catch { return []; } })()
-                  : []
-            );
+            const qs = parseFinalExamQuestions(row.final_exam);
             if (qs.length > 0) {
               setFinalExamQuestions(qs);
               setFinalExamPhase('ready');
@@ -2269,24 +2296,24 @@ export default function LearningPathPage() {
     // Polling fallback — check learning_results.final_exam
     let polls = 0;
     const lpId = learningPath.id;
+    const userId = learningPath.user_id;
+    const triggeredAt = new Date().toISOString();
+
     const poll = async () => {
       polls++;
       if (polls > 60) return; // max 4 minutes
-      const { data } = await supabase
+
+      // Primary: check by learning_path_id (correct Make setup)
+      const { data: exact } = await supabase
         .from('learning_results')
         .select('final_exam')
         .eq('learning_path_id', lpId)
         .not('final_exam', 'is', null)
         .limit(1)
         .maybeSingle();
-      if (data?.final_exam != null) {
-        const raw = data.final_exam;
-        const qs = mapQuizQuestions(
-          Array.isArray(raw) ? raw
-            : typeof raw === 'string'
-              ? (() => { try { return JSON.parse(raw); } catch { return []; } })()
-              : []
-        );
+
+      if (exact?.final_exam != null) {
+        const qs = parseFinalExamQuestions(exact.final_exam);
         if (qs.length > 0) {
           setFinalExamQuestions(qs);
           setFinalExamPhase('ready');
@@ -2294,6 +2321,37 @@ export default function LearningPathPage() {
           return;
         }
       }
+
+      // Fallback: Make wrote row with NULL learning_path_id — find by selected_skill + recent timestamp
+      const selectedSkill = (learningPath as any).skill;
+      if (selectedSkill) {
+        const { data: fallback } = await supabase
+          .from('learning_results')
+          .select('id, final_exam')
+          .is('learning_path_id', null)
+          .eq('selected_skill', selectedSkill)
+          .not('final_exam', 'is', null)
+          .gte('created_at', triggeredAt)
+          .order('created_at', { ascending: false })
+          .limit(1)
+          .maybeSingle();
+
+        if (fallback?.final_exam != null) {
+          // Fix the row — set correct learning_path_id
+          await supabase.from('learning_results')
+            .update({ learning_path_id: lpId, user_id: userId })
+            .eq('id', (fallback as any).id);
+
+          const qs = parseFinalExamQuestions(fallback.final_exam);
+          if (qs.length > 0) {
+            setFinalExamQuestions(qs);
+            setFinalExamPhase('ready');
+            if (finalExamChannelRef.current) supabase.removeChannel(finalExamChannelRef.current);
+            return;
+          }
+        }
+      }
+
       setTimeout(poll, 4000);
     };
     setTimeout(poll, 4000);
