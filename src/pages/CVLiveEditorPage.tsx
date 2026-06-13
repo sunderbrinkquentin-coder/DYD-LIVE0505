@@ -1537,17 +1537,9 @@ onClick={async () => {
           }
 
           /* Verhindert iOS/Android automatische Schriftvergrößerung */
-          .a4-page-frame * {
-            -webkit-text-size-adjust: 100% !important;
-            text-size-adjust: 100% !important;
-          }
-
-          /* Blockschutz: verhindert Trennung von Elementen über Seiten */
-          [data-spacer-id] {
-            break-inside: avoid !important;
-            page-break-inside: avoid !important;
-            orphans: 3;
-            widows: 3;
+          .a4-page-frame, .a4-page-frame * {
+            -webkit-text-size-adjust: none !important;
+            text-size-adjust: none !important;
           }
         `}</style>
 
