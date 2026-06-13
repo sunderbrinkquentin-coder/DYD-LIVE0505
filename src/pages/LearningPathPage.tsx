@@ -624,6 +624,8 @@ interface QuizQuestion {
 
 interface LearningResultRow {
   id: string;
+  content: unknown; // Array of 5 units: [{unit_id, mobile_title, variant_a, variant_b, competencies, quiz}]
+  status: string | null;
   final_exam: unknown;
   certificate_metadata: {
     official_title?: string;
@@ -631,6 +633,47 @@ interface LearningResultRow {
     dqr_reference?: string;
     verification_footer?: string;
   } | null;
+}
+
+// Parse content field to extract a specific unit by index
+function parseContentUnit(content: unknown, unitIndex: number): Record<string, any> | null {
+  if (!content) return null;
+  try {
+    let units: any[];
+    if (Array.isArray(content)) {
+      units = content;
+    } else if (typeof content === 'string') {
+      let s = (content as string).trim();
+      if (s.startsWith('"')) s = JSON.parse(s) as string;
+      if (!s.startsWith('[')) s = `[${s}]`;
+      units = JSON.parse(s);
+    } else if (typeof content === 'object') {
+      // Single unit object
+      units = [content];
+    } else {
+      return null;
+    }
+    return units.find((u: any) => u.unit_id === unitIndex) ?? units[unitIndex - 1] ?? units[0] ?? null;
+  } catch { return null; }
+}
+
+// Map Make quiz format to QuizQuestion format
+function mapQuizQuestions(quiz: any[]): QuizQuestion[] {
+  if (!Array.isArray(quiz)) return [];
+  const KEYS = ['A', 'B', 'C', 'D'] as const;
+  return quiz.map((q: any, i: number) => {
+    const opts: string[] = Array.isArray(q.options) ? q.options.slice(0, 4) : [];
+    const correctIdx = opts.indexOf(q.correct_answer);
+    const optObj: Record<string, string> = {};
+    opts.forEach((opt: string, idx: number) => { optObj[KEYS[idx]] = opt; });
+    return {
+      question_id: i,
+      question: q.question || '',
+      options: optObj as { A: string; B: string; C: string; D: string },
+      correct_key: correctIdx >= 0 ? KEYS[correctIdx] : 'A',
+      rationale: q.explanation_if_wrong || '',
+    };
+  });
 }
 
 // ── ARCS/DSR/CLT Learning Journey phases ──────────────────────────────────────
@@ -705,24 +748,19 @@ function LearningContent({
     }
   };
 
-  // Parse questions from learningResultRow.final_exam — handle double-encoded JSON from Make
-  const questions: QuizQuestion[] = (() => {
-    if (!result?.final_exam) return [];
-    const raw = result.final_exam as unknown;
-    try {
-      if (Array.isArray(raw)) return raw as QuizQuestion[];
-      if (typeof raw === 'string') {
-        let s = raw.trim();
-        if (s.startsWith('"')) s = JSON.parse(s) as string;
-        if (!s.startsWith('[')) s = `[${s}]`;
-        const parsed = JSON.parse(s);
-        if (Array.isArray(parsed)) return parsed as QuizQuestion[];
-      }
-    } catch { /* */ }
-    return [];
-  })();
+  // Parse content field to get this unit's data
+  const contentUnit = parseContentUnit(result?.content, unitIndex);
+  const unitVariantText: string = unitVariant === 'A'
+    ? (contentUnit?.variant_a || '')
+    : (contentUnit?.variant_b || contentUnit?.variant_a || '');
+  const competencies: string[] = contentUnit?.competencies || [];
+  const officialTitle = contentUnit?.mobile_title || learningPath.target_job || '';
+  const dqrRef = '';
 
-  // Parse certificate_metadata — handle double-encoded
+  // Map quiz questions from content
+  const questions: QuizQuestion[] = mapQuizQuestions(contentUnit?.quiz || []);
+
+  // Parse certificate_metadata for final exam (kept for backwards compatibility)
   const certMeta = (() => {
     const raw = result?.certificate_metadata;
     if (!raw) return null;
@@ -736,10 +774,6 @@ function LearningContent({
     }
     return null;
   })();
-
-  const competencies: string[] = certMeta?.competency_profile ?? [];
-  const officialTitle = certMeta?.official_title || learningPath.target_job || '';
-  const dqrRef = certMeta?.dqr_reference || '';
 
   // Split: first half for guided practice, all for the unit test
   const practiceQuestions = questions.slice(0, Math.ceil(questions.length / 2));
@@ -845,11 +879,13 @@ function LearningContent({
                 <span className="text-[10px] font-black uppercase tracking-widest text-[#30E3CA]/60">Deine Lerneinheit</span>
               </div>
               <h2 className="text-2xl font-black text-white leading-tight">{officialTitle}</h2>
-              {dqrRef && <p className="text-xs text-white/35">{dqrRef}</p>}
-              <p className="text-sm text-white/60 leading-relaxed">
-                Diese Lerneinheit wurde speziell für dein Karriereziel <span className="text-white font-bold">{learningPath.target_job}</span> zusammengestellt.
-                Du wirst Schritt für Schritt durch die wichtigsten Kompetenzen geführt — mit geführter Übungsphase, Vertiefung und einem IHK-konformen Abschlusstest.
-              </p>
+              {unitVariantText ? (
+                <p className="text-sm text-white/70 leading-relaxed whitespace-pre-line">{unitVariantText}</p>
+              ) : (
+                <p className="text-sm text-white/60 leading-relaxed">
+                  Diese Lerneinheit wurde speziell für dein Karriereziel <span className="text-white font-bold">{learningPath.target_job}</span> zusammengestellt.
+                </p>
+              )}
             </div>
           </div>
 
@@ -1832,10 +1868,11 @@ export default function LearningPathPage() {
     if (!pathId_) return;
     const { data } = await supabase
       .from('learning_results')
-      .select('id, final_exam, certificate_metadata')
+      .select('id, content, status, final_exam, certificate_metadata')
       .eq('learning_path_id', pathId_)
-      .order('created_at', { ascending: true })
-      .limit(10);
+      .not('content', 'is', null)
+      .order('created_at', { ascending: false })
+      .limit(1);
     if (data && data.length > 0) {
       setUnitRows(data as LearningResultRow[]);
     }
@@ -1853,8 +1890,8 @@ export default function LearningPathPage() {
       // Ready as soon as at least 1 learning_results row exists (remaining rows load in background)
       const { data: rowCheck } = await supabase
         .from('learning_results').select('id, content, status').eq('learning_path_id', pathId).limit(1);
-      // Has results = row with BOTH status=completed AND content!=null (same rule as WaitingPage)
-      const hasResults = (rowCheck?.some((r: any) => r.status === 'completed' && r.content != null) ?? false);
+      // Has results = row with content filled (same rule as WaitingPage polling)
+      const hasResults = (rowCheck?.some((r: any) => r.content != null) ?? false);
 
       // If rows exist but is_paid is missing (Stripe webhook race), fix it in DB and treat as paid
       if (hasResults && !path.is_paid) {
