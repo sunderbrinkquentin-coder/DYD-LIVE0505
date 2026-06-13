@@ -483,43 +483,6 @@ export default function LearningPathWaitingPage() {
           return;
         }
 
-        // Fallback: check ALL paid paths of this user — handles pathId mismatch between triggers
-        const userId = (pathDataRef.current as any)?.user_id;
-        if (userId) {
-          const { data: userPaths } = await supabase
-            .from('learning_paths')
-            .select('id')
-            .eq('user_id', userId)
-            .eq('is_paid', true);
-
-          if (userPaths && userPaths.length > 0) {
-            const ids = (userPaths as any[]).map(p => p.id);
-            const { data: anyResult } = await supabase
-              .from('learning_results')
-              .select('content, learning_path_id')
-              .in('learning_path_id', ids)
-              .not('content', 'is', null)
-              .limit(1);
-
-            if (anyResult && anyResult.length > 0 && (anyResult[0] as any).content) {
-              const correctId = (anyResult[0] as any).learning_path_id;
-              console.log('[LPW2] Content found at pathId:', correctId, '(current:', pathId, ')');
-              // Verify target path is paid before navigating
-              const { data: targetPath } = await supabase
-                .from('learning_paths').select('is_paid').eq('id', correctId).maybeSingle();
-              if (targetPath?.is_paid) {
-                doneRef.current = true;
-                if (correctId !== pathId) {
-                  navigate(`/learning-path/${correctId}`, { replace: true });
-                } else {
-                  markDone();
-                }
-                return;
-              }
-            }
-          }
-        }
-
         const { data: lpCheck } = await supabase
           .from('learning_paths').select('status').eq('id', pathId).maybeSingle();
         if (lpCheck?.status === 'failed') {
