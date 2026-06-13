@@ -251,7 +251,10 @@ export function CVLiveEditorPage() {
     if (!el) return;
     const recalc = () => {
       const available = el.clientWidth;
-      if (available > 0) setScale(available < 794 ? available / 794 : 1);
+      if (available > 0) {
+        const raw = available < 794 ? available / 794 : 1;
+        setScale(Math.max(raw, 0.55)); // Minimum 55% — keeps fonts readable on mobile
+      }
     };
     recalc();
     const obs = new ResizeObserver(recalc);
