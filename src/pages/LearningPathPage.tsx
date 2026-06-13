@@ -1885,8 +1885,24 @@ export default function LearningPathPage() {
         return;
       }
 
-      // No rows yet — check if paid (redirect to waiting page to trigger Make)
+      // No content yet — check if paid
       if (path.is_paid) {
+        // Only redirect to waiting if no other path of this user is already in_progress
+        const { data: inProgressPaths } = await supabase
+          .from('learning_paths')
+          .select('id')
+          .eq('user_id', path.user_id)
+          .eq('status', 'in_progress')
+          .neq('id', pathId)
+          .limit(1);
+
+        if (inProgressPaths && inProgressPaths.length > 0) {
+          // Another path is already being generated — don't trigger a second Make run
+          console.log('[LPP] Another path already in_progress, skipping redirect');
+          setPhase('result');
+          return;
+        }
+
         navigate(`/learning-path-waiting/${pathId}`, { replace: true });
         return;
       }
