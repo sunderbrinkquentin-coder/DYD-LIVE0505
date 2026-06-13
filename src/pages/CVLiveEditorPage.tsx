@@ -1553,11 +1553,7 @@ onClick={async () => {
       <main ref={mainRefCallback} className="flex-1 overflow-y-auto bg-[#1e1e24] w-full py-12 flex flex-col items-center">
         
         <style>{`
-          [data-pdf-root] textarea, [data-pdf-root] p, [data-pdf-root] span, [data-pdf-root] div, [data-pdf-root] li {
-            white-space: pre-wrap !important;
-            word-break: break-word !important;
-          }
-          .pdf-hidden { display: block !important; }
+          .pdf-hidden { display: none !important; }
           .nonce-export { display: none !important; }
 
           .a4-page-frame {
@@ -1613,12 +1609,17 @@ onClick={async () => {
             onReorderSections: reorderSections,
           };
 
+          // Visible frames use emptyBreaks — no artificial gaps in preview
+          // PDF exporter handles clean page breaks via findBreak()
+          const emptyBreaksForFrames = new Map<string, number>();
+          const frameProps = { ...templateProps, pageBreakItems: emptyBreaksForFrames };
+
           const renderTemplate = () => {
-            if (selectedTemplate === 'modern') return <ModernCVTemplate {...templateProps} />;
-            if (selectedTemplate === 'classic') return <ClassicCVTemplate {...templateProps} />;
-            if (selectedTemplate === 'minimal') return <MinimalCVTemplate {...templateProps} />;
-            if (selectedTemplate === 'creative') return <CreativeCVTemplate {...templateProps} />;
-            if (selectedTemplate === 'professional') return <ProfessionalCVTemplate {...templateProps} />;
+            if (selectedTemplate === 'modern') return <ModernCVTemplate {...frameProps} />;
+            if (selectedTemplate === 'classic') return <ClassicCVTemplate {...frameProps} />;
+            if (selectedTemplate === 'minimal') return <MinimalCVTemplate {...frameProps} />;
+            if (selectedTemplate === 'creative') return <CreativeCVTemplate {...frameProps} />;
+            if (selectedTemplate === 'professional') return <ProfessionalCVTemplate {...frameProps} />;
             return null;
           };
 
