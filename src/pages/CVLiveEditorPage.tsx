@@ -1526,7 +1526,7 @@ onClick={async () => {
       {/* MAIN CONTENT AREA MIT PHYSISCHEN A4-BLÄTTERN */}
 {/* MAIN CONTENT AREA MIT PHYSISCHEN A4-BLÄTTERN */}
      {/* MAIN CONTENT AREA MIT PHYSISCHEN A4-BLÄTTERN */}
-      <main ref={mainRefCallback} className="flex-1 overflow-y-auto overflow-x-auto bg-[#1e1e24] w-full py-12 flex flex-col items-center">
+      <main ref={mainRefCallback} className="flex-1 overflow-y-auto overflow-x-auto bg-[#1e1e24] w-full py-12 flex flex-col">
         
         <style>{`
           [data-pdf-root] textarea, [data-pdf-root] p, [data-pdf-root] span, [data-pdf-root] div, [data-pdf-root] li {
@@ -1588,7 +1588,7 @@ onClick={async () => {
           const containerHeight = (pageCountRender * PAGE_H * scale) + ((pageCountRender - 1) * GAP * scale);
 
           return (
-            <div style={{ width: `${794 * scale}px`, height: `${containerHeight}px`, position: 'relative', margin: '0 auto', flexShrink: 0 }}>
+            <div style={{ width: `${794 * scale}px`, height: `${containerHeight}px`, position: 'relative', margin: scale < 1 ? '0 auto' : '0 0 0 16px', flexShrink: 0 }}>
               
               {/* LÖSUNG FÜR PDF-CRASH: Opacity 0.001 statt display none / -9999px! */}
               <div style={{ position: 'absolute', top: 0, left: 0, opacity: 0.001, zIndex: -100, pointerEvents: 'none' }}>
@@ -1615,7 +1615,7 @@ onClick={async () => {
         })()}
         {/* METADATA SECTION */}
         {jobData && (jobData.jobTitle || jobData.company) && (
-          <div className="mt-12 px-4 w-full" style={{ width: `${794 * scale}px` }}>
+          <div className="mt-12 px-4" style={{ width: `${794 * scale}px`, marginLeft: scale < 1 ? 'auto' : '16px', marginRight: scale < 1 ? 'auto' : '0' }}>
             <button onClick={() => setShowJobDescription(!showJobDescription)} className="w-full flex items-center justify-between gap-3 px-4 py-3 bg-white/5 border border-white/10 rounded-xl hover:bg-white/[0.08]">
               <div className="flex items-center gap-2 text-sm"><Briefcase size={16} className="text-[#66c0b6] flex-shrink-0" /><span className="text-white/70">Stellenbeschreibung:</span>{jobData.jobTitle && <span className="text-[#66c0b6] font-medium truncate">{String(jobData.jobTitle)}</span>}</div>
               <ChevronDown size={16} className={`text-white/40 flex-shrink-0 transition-transform ${showJobDescription ? 'rotate-180' : ''}`} />
@@ -1628,7 +1628,7 @@ onClick={async () => {
 
         {/* MATCHING TEXT */}
         {editorData?.matching_text && (
-          <div className="mt-6 mb-12 bg-[#0f1729] border border-[#66c0b6]/20 rounded-2xl p-4 sm:p-6 w-full" style={{ width: `${794 * scale}px` }}>
+          <div className="mt-6 mb-12 bg-[#0f1729] border border-[#66c0b6]/20 rounded-2xl p-4 sm:p-6" style={{ width: `${794 * scale}px`, marginLeft: scale < 1 ? 'auto' : '16px', marginRight: scale < 1 ? 'auto' : '0' }}>
             <div className="flex items-center gap-2 mb-3"><Sparkles size={18} className="text-[#66c0b6]" /><h3 className="text-white font-semibold text-sm">Generierter Matching-Text</h3></div>
             <p className="text-white/80 text-xs sm:text-sm leading-relaxed whitespace-pre-wrap">{editorData.matching_text}</p>
           </div>
