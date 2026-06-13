@@ -264,6 +264,21 @@ export function CVLiveEditorPage() {
     return () => { delete (window as any).__debugPdfHtml; };
   }, []);
 
+  // Set viewport to 794px (CV width) on mobile so the browser scales
+  // the page proportionally — identical appearance to desktop, no JS scaling needed
+  useEffect(() => {
+    const meta = document.querySelector<HTMLMetaElement>('meta[name="viewport"]');
+    if (!meta) return;
+    const original = meta.getAttribute('content') || '';
+    const isMobile = window.innerWidth < 794;
+    if (isMobile) {
+      meta.setAttribute('content', 'width=794, initial-scale=1.0');
+    }
+    return () => {
+      meta.setAttribute('content', original);
+    };
+  }, []);
+
   // ── DIE UNZERSTÖRBARE SMART-BREAK ENGINE ──
 // ── DIE UNZERSTÖRBARE SMART-BREAK ENGINE ──
   useEffect(() => {
