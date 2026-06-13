@@ -253,7 +253,7 @@ export function CVLiveEditorPage() {
       const available = el.clientWidth;
       if (available > 0) {
         const raw = available < 794 ? available / 794 : 1;
-        setScale(Math.max(raw, 0.55)); // Minimum 55% — keeps fonts readable on mobile
+        setScale(Math.max(raw, 0.75)); // Minimum 75% — keeps fonts readable on mobile
       }
     };
     recalc();
@@ -1519,7 +1519,7 @@ onClick={async () => {
       {/* MAIN CONTENT AREA MIT PHYSISCHEN A4-BLÄTTERN */}
 {/* MAIN CONTENT AREA MIT PHYSISCHEN A4-BLÄTTERN */}
      {/* MAIN CONTENT AREA MIT PHYSISCHEN A4-BLÄTTERN */}
-      <main ref={mainRefCallback} className="flex-1 overflow-y-auto bg-[#1e1e24] w-full py-12 flex flex-col items-center">
+      <main ref={mainRefCallback} className="flex-1 overflow-y-auto overflow-x-auto bg-[#1e1e24] w-full py-12 flex flex-col items-center">
         
         <style>{`
           [data-pdf-root] textarea, [data-pdf-root] p, [data-pdf-root] span, [data-pdf-root] div, [data-pdf-root] li {
@@ -1539,10 +1539,10 @@ onClick={async () => {
             overflow: hidden !important;
           }
 
-          /* Verhindert iOS/Android automatische Schriftvergrößerung */
-          .a4-page-frame, .a4-page-frame * {
-            -webkit-text-size-adjust: none !important;
-            text-size-adjust: none !important;
+          /* Schrift-Rendering auf Mobile stabilisieren */
+          .a4-page-frame {
+            -webkit-font-smoothing: antialiased;
+            text-rendering: optimizeLegibility;
           }
         `}</style>
 
