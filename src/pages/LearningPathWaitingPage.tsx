@@ -338,6 +338,7 @@ export default function LearningPathWaitingPage() {
     let attempt = 0;
 
     const poll = async () => {
+      console.log('[LPW2] poll running, attempt:', attempt, 'cancelled:', cancelled.value, 'done:', doneRef.current);
       if (cancelled.value || doneRef.current) return;
       if (attempt >= POLL_MAX) {
         markError('Keine Antwort von Make erhalten. Bitte versuche es erneut.');
