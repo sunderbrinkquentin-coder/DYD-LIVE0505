@@ -252,8 +252,15 @@ export function CVLiveEditorPage() {
     const recalc = () => {
       const available = el.clientWidth;
       if (available > 0) {
-        const raw = available < 794 ? available / 794 : 1;
-        setScale(Math.max(raw, 0.75)); // Minimum 75% — keeps fonts readable on mobile
+        // On mobile: always show at full size, let user scroll horizontally
+        // This keeps fonts at their native print size (readable)
+        // On desktop: scale to fit if container is smaller than 794px
+        const isMobile = window.innerWidth < 768;
+        if (isMobile) {
+          setScale(1); // Full size, horizontal scroll
+        } else {
+          setScale(available < 794 ? available / 794 : 1);
+        }
       }
     };
     recalc();
