@@ -713,7 +713,7 @@ function mapQuizQuestions(quiz: any[]): QuizQuestion[] {
 const EXAM_STAGES = [
   { id: 'analyse', icon: '🎯', label: 'Lernziele analysieren', sub: 'IHK-Anforderungen werden geprüft', dur: 0.20 },
   { id: 'profile', icon: '🧠', label: 'Wissensprofil erstellen', sub: 'Deine Stärken werden bewertet', dur: 0.25 },
-  { id: 'generate', icon: '📝', label: 'Fragen generieren', sub: '30 IHK-konforme Prüfungsfragen', dur: 0.30 },
+  { id: 'generate', icon: '📝', label: 'Fragen generieren', sub: '10 Prüfungsfragen werden erstellt', dur: 0.30 },
   { id: 'quality', icon: '✅', label: 'Qualitätsprüfung', sub: 'Prüfungsstandards werden geprüft', dur: 0.25 },
 ];
 
@@ -787,7 +787,7 @@ function FinalExamWaiting({ targetJob, skill }: { targetJob: string; skill: stri
               <span style={{ color }}>{skill || targetJob}</span>
             </h2>
             <p className="text-sm text-white/40 mt-1.5">
-              Personalisierte Fragen basierend auf deinen 5 Lerneinheiten.
+              10 Fragen basierend auf deinen 5 Lerneinheiten. Besteh die Prüfung und erhalte dein Zertifikat.
             </p>
           </div>
 
@@ -2262,6 +2262,7 @@ export default function LearningPathPage() {
           skill: selectedSkill,
           selected_skill: selectedSkill,
           target_job: learningPath.target_job,
+          target_company: (learningPath as any).target_company || null,
           user_id: learningPath.user_id,
           timestamp: new Date().toISOString(),
         }),
@@ -2293,27 +2294,28 @@ export default function LearningPathPage() {
       .subscribe();
     finalExamChannelRef.current = channel;
 
-    // Polling fallback — check learning_results.final_exam
+    // Polling — check every 4s for final_exam data
     let polls = 0;
     const lpId = learningPath.id;
     const userId = learningPath.user_id;
-    const triggeredAt = new Date().toISOString();
+    const selectedSkill = (learningPath as any).skill || null;
+    const startedAt = Date.now();
 
     const poll = async () => {
       polls++;
-      if (polls > 60) return; // max 4 minutes
+      if (polls > 75) return; // max 5 minutes
 
-      // Primary: check by learning_path_id (correct Make setup)
-      const { data: exact } = await supabase
+      // Check 1: by learning_path_id (correct Make config)
+      const { data: byPath } = await supabase
         .from('learning_results')
-        .select('final_exam')
+        .select('id, final_exam')
         .eq('learning_path_id', lpId)
         .not('final_exam', 'is', null)
         .limit(1)
         .maybeSingle();
 
-      if (exact?.final_exam != null) {
-        const qs = parseFinalExamQuestions(exact.final_exam);
+      if (byPath?.final_exam) {
+        const qs = parseFinalExamQuestions(byPath.final_exam);
         if (qs.length > 0) {
           setFinalExamQuestions(qs);
           setFinalExamPhase('ready');
@@ -2322,27 +2324,32 @@ export default function LearningPathPage() {
         }
       }
 
-      // Fallback: Make wrote row with NULL learning_path_id — find by selected_skill + recent timestamp
-      const selectedSkill = (learningPath as any).skill;
-      if (selectedSkill) {
-        const { data: fallback } = await supabase
-          .from('learning_results')
-          .select('id, final_exam')
-          .is('learning_path_id', null)
-          .eq('selected_skill', selectedSkill)
-          .not('final_exam', 'is', null)
-          .gte('created_at', triggeredAt)
-          .order('created_at', { ascending: false })
-          .limit(1)
-          .maybeSingle();
+      // Check 2: fallback — row written by Make without learning_path_id
+      // Find most recent row with final_exam data for this skill (created after trigger)
+      const sinceIso = new Date(startedAt - 10000).toISOString(); // 10s before trigger
+      const { data: rows } = await supabase
+        .from('learning_results')
+        .select('id, final_exam, learning_path_id')
+        .not('final_exam', 'is', null)
+        .gte('created_at', sinceIso)
+        .order('created_at', { ascending: false })
+        .limit(5);
 
-        if (fallback?.final_exam != null) {
-          // Fix the row — set correct learning_path_id
-          await supabase.from('learning_results')
-            .update({ learning_path_id: lpId, user_id: userId })
-            .eq('id', (fallback as any).id);
+      if (rows && rows.length > 0) {
+        const row = rows.find((r: any) =>
+          r.learning_path_id === lpId ||
+          r.learning_path_id === null ||
+          r.learning_path_id === undefined
+        ) as any;
 
-          const qs = parseFinalExamQuestions(fallback.final_exam);
+        if (row?.final_exam) {
+          // Fix the row if learning_path_id is wrong
+          if (!row.learning_path_id) {
+            await supabase.from('learning_results')
+              .update({ learning_path_id: lpId, user_id: userId })
+              .eq('id', row.id);
+          }
+          const qs = parseFinalExamQuestions(row.final_exam);
           if (qs.length > 0) {
             setFinalExamQuestions(qs);
             setFinalExamPhase('ready');
@@ -2354,7 +2361,7 @@ export default function LearningPathPage() {
 
       setTimeout(poll, 4000);
     };
-    setTimeout(poll, 4000);
+    setTimeout(poll, 3000);
   };
 
   const handleFinalExamSubmit = async () => {
