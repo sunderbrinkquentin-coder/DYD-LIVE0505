@@ -403,6 +403,8 @@ export default function LearningPathWaitingPage() {
   useEffect(() => {
     if (!pathId) { navigate('/', { replace: true }); return; }
 
+    // Reset state for fresh run
+    doneRef.current = false;
     setPhase('waiting');
     startProgressAnimation();
 
@@ -453,6 +455,7 @@ export default function LearningPathWaitingPage() {
     const MAX_ATTEMPTS = 150;
 
     const poll = async () => {
+      console.log('[LPW2] poll tick #', pollAttempt, '— doneRef:', doneRef.current);
       if (doneRef.current) return;
       if (pollAttempt >= MAX_ATTEMPTS) {
         markError('Keine Antwort von Make erhalten. Bitte versuche es erneut.');
@@ -539,7 +542,6 @@ export default function LearningPathWaitingPage() {
     pollTimer = setTimeout(poll, 2_500);
 
     return () => {
-      doneRef.current = true;
       if (pollTimer) clearTimeout(pollTimer);
       supabase.removeChannel(channel);
       if (rafRef.current) cancelAnimationFrame(rafRef.current);
