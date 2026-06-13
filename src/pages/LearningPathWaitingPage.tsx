@@ -440,12 +440,16 @@ export default function LearningPathWaitingPage() {
         return;
       }
 
-      // Trigger Make
-      console.log('[LPW2] Triggering learningpath | lp.status:', lp.status);
-      const ok = await triggerLearningpath();
-      if (!ok) {
-        markError('Der Lernpfad konnte nicht gestartet werden. Bitte versuche es erneut.');
-        return;
+      // Skip trigger if already in_progress — Edge Function would block it anyway, but this avoids the extra call
+      if (lp.status === 'in_progress') {
+        console.log('[LPW2] Already in_progress — polling only');
+      } else {
+        console.log('[LPW2] Triggering learningpath | lp.status:', lp.status);
+        const ok = await triggerLearningpath();
+        if (!ok) {
+          markError('Der Lernpfad konnte nicht gestartet werden. Bitte versuche es erneut.');
+          return;
+        }
       }
     })();
 
@@ -500,13 +504,18 @@ export default function LearningPathWaitingPage() {
             if (anyResult && anyResult.length > 0 && (anyResult[0] as any).content) {
               const correctId = (anyResult[0] as any).learning_path_id;
               console.log('[LPW2] Content found at pathId:', correctId, '(current:', pathId, ')');
-              doneRef.current = true;
-              if (correctId !== pathId) {
-                navigate(`/learning-path/${correctId}`, { replace: true });
-              } else {
-                markDone();
+              // Verify target path is paid before navigating
+              const { data: targetPath } = await supabase
+                .from('learning_paths').select('is_paid').eq('id', correctId).maybeSingle();
+              if (targetPath?.is_paid) {
+                doneRef.current = true;
+                if (correctId !== pathId) {
+                  navigate(`/learning-path/${correctId}`, { replace: true });
+                } else {
+                  markDone();
+                }
+                return;
               }
-              return;
             }
           }
         }
