@@ -2052,7 +2052,20 @@ export default function LearningPathPage() {
     if (!learningPath) return;
     setFinalExamPhase('triggering');
     try {
-      const selectedSkill = (learningPath as any).skill || null;
+      // Get skill from learning_path row, or fall back to learning_results content
+      let selectedSkill = (learningPath as any).skill || null;
+      if (!selectedSkill) {
+        const { data: lr } = await supabase
+          .from('learning_results')
+          .select('content, selected_skill')
+          .eq('learning_path_id', learningPath.id)
+          .not('content', 'is', null)
+          .limit(1)
+          .maybeSingle();
+        if (lr) {
+          selectedSkill = (lr as any).selected_skill || null;
+        }
+      }
       await fetch(FINAL_EXAM_WEBHOOK_URL, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -2073,41 +2086,58 @@ export default function LearningPathPage() {
 
     setFinalExamPhase('waiting');
 
-    // Subscribe to Realtime for final_exam_status = 'ready'
+    // Subscribe to Realtime — listen for final_exam on learning_results row
     const channel = supabase
       .channel(`final_exam_${learningPath.id}_${Date.now()}`)
       .on('postgres_changes',
-        { event: 'UPDATE', schema: 'public', table: 'learning_paths', filter: `id=eq.${learningPath.id}` },
+        { event: 'UPDATE', schema: 'public', table: 'learning_results', filter: `learning_path_id=eq.${learningPath.id}` },
         (payload) => {
           const row = payload.new as any;
-          if (row?.final_exam_status === 'ready' && row?.final_exam_questions) {
-            const raw = row.final_exam_questions;
-            const qs = Array.isArray(raw) ? raw : [];
-            setFinalExamQuestions(qs);
-            setFinalExamPhase('ready');
-            supabase.removeChannel(channel);
+          if (row?.final_exam != null) {
+            const raw = row.final_exam;
+            const qs = mapQuizQuestions(
+              Array.isArray(raw) ? raw
+                : typeof raw === 'string'
+                  ? (() => { try { return JSON.parse(raw); } catch { return []; } })()
+                  : []
+            );
+            if (qs.length > 0) {
+              setFinalExamQuestions(qs);
+              setFinalExamPhase('ready');
+              supabase.removeChannel(channel);
+            }
           }
         })
       .subscribe();
     finalExamChannelRef.current = channel;
 
-    // Polling fallback
+    // Polling fallback — check learning_results.final_exam
     let polls = 0;
+    const lpId = learningPath.id;
     const poll = async () => {
       polls++;
       if (polls > 60) return; // max 4 minutes
       const { data } = await supabase
-        .from('learning_paths')
-        .select('final_exam_status, final_exam_questions')
-        .eq('id', learningPath.id)
+        .from('learning_results')
+        .select('final_exam')
+        .eq('learning_path_id', lpId)
+        .not('final_exam', 'is', null)
+        .limit(1)
         .maybeSingle();
-      if (data?.final_exam_status === 'ready' && data?.final_exam_questions) {
-        const raw = data.final_exam_questions;
-        const qs = Array.isArray(raw) ? raw : [];
-        setFinalExamQuestions(qs);
-        setFinalExamPhase('ready');
-        if (finalExamChannelRef.current) supabase.removeChannel(finalExamChannelRef.current);
-        return;
+      if (data?.final_exam != null) {
+        const raw = data.final_exam;
+        const qs = mapQuizQuestions(
+          Array.isArray(raw) ? raw
+            : typeof raw === 'string'
+              ? (() => { try { return JSON.parse(raw); } catch { return []; } })()
+              : []
+        );
+        if (qs.length > 0) {
+          setFinalExamQuestions(qs);
+          setFinalExamPhase('ready');
+          if (finalExamChannelRef.current) supabase.removeChannel(finalExamChannelRef.current);
+          return;
+        }
       }
       setTimeout(poll, 4000);
     };
