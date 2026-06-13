@@ -250,8 +250,7 @@ export function CVLiveEditorPage() {
     }
     if (!el) return;
     const recalc = () => {
-      const available = el.clientWidth;
-      if (available > 0) setScale(available < 794 ? available / 794 : 1);
+      setScale(1); // Always full size — identical to desktop
     };
     recalc();
     const obs = new ResizeObserver(recalc);
@@ -1516,7 +1515,7 @@ onClick={async () => {
       {/* MAIN CONTENT AREA MIT PHYSISCHEN A4-BLÄTTERN */}
 {/* MAIN CONTENT AREA MIT PHYSISCHEN A4-BLÄTTERN */}
      {/* MAIN CONTENT AREA MIT PHYSISCHEN A4-BLÄTTERN */}
-      <main ref={mainRefCallback} className="flex-1 overflow-y-auto bg-[#1e1e24] w-full py-12 flex flex-col items-center">
+      <main ref={mainRefCallback} className="flex-1 overflow-y-auto overflow-x-auto bg-[#1e1e24] w-full py-12 flex flex-col">
         
         <style>{`
           [data-pdf-root] textarea, [data-pdf-root] p, [data-pdf-root] span, [data-pdf-root] div, [data-pdf-root] li {
@@ -1578,7 +1577,7 @@ onClick={async () => {
           const containerHeight = (pageCountRender * PAGE_H * scale) + ((pageCountRender - 1) * GAP * scale);
 
           return (
-            <div style={{ width: `${794 * scale}px`, height: `${containerHeight}px`, position: 'relative', margin: '0 auto', flexShrink: 0 }}>
+            <div style={{ width: '794px', height: `${containerHeight}px`, position: 'relative', marginLeft: 'auto', marginRight: 'auto', flexShrink: 0 }}>
               
               {/* PDF export element — NO spacers so PDF has natural flow without gaps */}
               <div style={{ position: 'absolute', top: 0, left: 0, opacity: 0.001, zIndex: -100, pointerEvents: 'none' }}>
