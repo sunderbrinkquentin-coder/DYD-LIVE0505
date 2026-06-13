@@ -1241,16 +1241,79 @@ export function DashboardPage() {
                   </div>
                 )}
 
-                {/* Unpaid path — show the first one as a teaser with CareerVisionCard */}
-                {primaryUnpaid && (
-                  <CareerVisionCard
-                    learningPath={primaryUnpaid}
-                    variant="compact"
-                    onStartLearning={() => navigate(`/learning-path/${primaryUnpaid.id}`)}
-                  />
-                )}
+                {/* Locked skills — skills from missing_skills not yet paid */}
+                {(() => {
+                  // Get all skills from the gap analysis
+                  const gapPath = learningPaths.find(p => !p.is_paid && (p as any).missing_skills);
+                  if (!gapPath) {
+                    // Fallback: show career vision card if no gap path
+                    if (primaryUnpaid) return (
+                      <CareerVisionCard
+                        learningPath={primaryUnpaid}
+                        variant="compact"
+                        onStartLearning={() => navigate(`/learning-path/${primaryUnpaid.id}`)}
+                      />
+                    );
+                    return null;
+                  }
 
-                {!primaryUnpaid && paidPaths.length === 0 && learningPaths.slice(0, 1).map(path => (
+                  // Parse missing_skills
+                  let allSkills: string[] = [];
+                  try {
+                    const raw = (gapPath as any).missing_skills;
+                    const parsed = typeof raw === 'string' ? JSON.parse(raw) : raw;
+                    if (Array.isArray(parsed)) {
+                      allSkills = parsed.map((s: any) => s.skill_name || s.name).filter(Boolean);
+                    }
+                  } catch { /**/ }
+
+                  // Skills already paid
+                  const paidSkills = new Set(paidPaths.map(p => (p as any).skill));
+
+                  // Locked = not yet paid
+                  const lockedSkills = allSkills.filter(s => !paidSkills.has(s));
+
+                  if (lockedSkills.length === 0) return null;
+
+                  return (
+                    <div className="space-y-2">
+                      <p className="text-[10px] font-black uppercase tracking-widest text-white/20 px-1">
+                        Noch freizuschalten
+                      </p>
+                      {lockedSkills.map((skill) => (
+                        <div
+                          key={skill}
+                          className="flex items-center gap-3 px-4 py-3.5 rounded-2xl"
+                          style={{
+                            background: 'rgba(255,255,255,0.02)',
+                            border: '1px solid rgba(255,255,255,0.07)',
+                          }}
+                        >
+                          {/* Lock icon */}
+                          <div className="w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0"
+                            style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.09)' }}>
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.25)" strokeWidth="2" strokeLinecap="round">
+                              <rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/>
+                            </svg>
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <p className="text-xs font-black text-white/35 truncate">{skill}</p>
+                            <p className="text-[10px] text-white/20 mt-0.5">{gapPath.target_job}</p>
+                          </div>
+                          <button
+                            onClick={() => navigate(`/learning-path/${gapPath.id}?unlock_skill=${encodeURIComponent(skill)}`)}
+                            className="flex-shrink-0 px-3 py-1.5 rounded-xl text-[11px] font-black transition-all hover:scale-[1.02]"
+                            style={{ background: 'rgba(48,227,202,0.08)', border: '1px solid rgba(48,227,202,0.2)', color: '#30E3CA' }}
+                          >
+                            Freischalten
+                          </button>
+                        </div>
+                      ))}
+                    </div>
+                  );
+                })()}
+
+                {!learningPaths.some(p => (p as any).missing_skills) && paidPaths.length === 0 && learningPaths.slice(0, 1).map(path => (
                   <CareerVisionCard
                     key={path.id}
                     learningPath={path}
