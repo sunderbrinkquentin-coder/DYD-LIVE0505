@@ -493,13 +493,13 @@ export const ClassicCVTemplate: React.FC<ClassicCVTemplateProps> = ({
             return (
               <li key={idx} style={{ display: 'inline-flex', marginRight: '5px', marginBottom: '5px', verticalAlign: 'middle', listStyle: 'none' }}>
                 <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded bg-[#f8fafc] border border-[#e2e8f0] text-[9px] font-medium text-slate-700 whitespace-nowrap">
-                  <EditableText
-                    value={display}
-                    onChange={(val) => onUpdateSectionItem(index, idx, 'skill', val)}
-                    className="text-slate-700 bg-transparent"
-                    style={{ width: `${Math.max(2, display.length + 1)}ch` }}
-                    placeholder="Eintrag"
-                  />
+                  <span
+                    contentEditable
+                    suppressContentEditableWarning
+                    style={{ background: 'transparent', outline: 'none', fontSize: '9px', color: '#334155', minWidth: '20px', border: 'none', whiteSpace: 'nowrap', cursor: 'text', display: 'inline-block' }}
+                    onBlur={(e) => onUpdateSectionItem(index, idx, 'skill', (e.target as HTMLElement).textContent || '')}
+                    onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); (e.target as HTMLElement).blur(); } }}
+                  >{display}</span>
                   <button
                     type="button"
                     className="pdf-hidden"
