@@ -1556,6 +1556,42 @@ onClick={async () => {
           .pdf-hidden { display: block !important; }
           .nonce-export { display: none !important; }
 
+          /* iOS erzwingt eine Mindest-Schriftgröße (~13px) für <input>/<textarea>,
+             unabhängig von font-size — text-size-adjust greift hier NICHT.
+             Fix: font-size:16px (über dem iOS-Minimum) + zoom als Kompensation.
+             zoom skaliert Schrift UND Layout-Box gemeinsam, also bleibt das
+             Layout korrekt während die Schrift visuell auf Zielgröße schrumpft. */
+          .a4-page-frame input, .a4-page-frame textarea,
+          [data-pdf-root] input, [data-pdf-root] textarea {
+            font-size: 16px !important;
+            zoom: 0.5625; /* Standard ~9px */
+          }
+          .a4-page-frame input.text-\[9px\], .a4-page-frame textarea.text-\[9px\],
+          [data-pdf-root] input.text-\[9px\], [data-pdf-root] textarea.text-\[9px\] {
+            zoom: 0.5625; /* 9px */
+          }
+          .a4-page-frame input.text-\[9\.5px\], .a4-page-frame textarea.text-\[9\.5px\],
+          [data-pdf-root] input.text-\[9\.5px\], [data-pdf-root] textarea.text-\[9\.5px\] {
+            zoom: 0.59375; /* 9.5px */
+          }
+          .a4-page-frame input.text-\[10px\], .a4-page-frame textarea.text-\[10px\],
+          [data-pdf-root] input.text-\[10px\], [data-pdf-root] textarea.text-\[10px\] {
+            zoom: 0.625; /* 10px */
+          }
+          .a4-page-frame input.text-\[11px\], .a4-page-frame textarea.text-\[11px\],
+          [data-pdf-root] input.text-\[11px\], [data-pdf-root] textarea.text-\[11px\] {
+            zoom: 0.6875; /* 11px */
+          }
+          .a4-page-frame input.text-\[12px\], .a4-page-frame textarea.text-\[12px\],
+          [data-pdf-root] input.text-\[12px\], [data-pdf-root] textarea.text-\[12px\] {
+            zoom: 0.75; /* 12px */
+          }
+          .a4-page-frame input.text-\[22px\], .a4-page-frame textarea.text-\[22px\],
+          [data-pdf-root] input.text-\[22px\], [data-pdf-root] textarea.text-\[22px\] {
+            font-size: 22px !important;
+            zoom: 1; /* bereits >=16px — kein Fix nötig */
+          }
+
           .a4-page-frame {
             width: 794px !important;
             height: 1122px !important;
