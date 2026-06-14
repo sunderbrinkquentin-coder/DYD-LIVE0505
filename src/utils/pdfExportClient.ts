@@ -291,12 +291,22 @@ function prepareClone(clone: HTMLElement, liveRoot: HTMLElement): void {
     div.style.overflow = 'visible';
     div.style.whiteSpace = 'nowrap';
     div.style.wordBreak = 'normal';
-    // Force fontSize from live element inline style — baked computed may be wrong
-    const liveFontSize = liveInputs[i]?.style?.fontSize;
-    if (liveFontSize) div.style.fontSize = liveFontSize;
-    const liveFontWeight = liveInputs[i]?.style?.fontWeight;
+    // Determine the TRUE intended font-size, ignoring potentially device-skewed
+    // computed styles entirely. Source of truth, in order of preference:
+    //   1. Tailwind text-[Npx] class on the input itself (desktop-authored size)
+    //   2. Inline style.fontSize set via React (e.g. skill chips)
+    //   3. Fall back to whatever was baked from computed style
+    const liveInputEl = liveInputs[i];
+    const classFontSize = liveInputEl?.className?.match(/text-\[([\d.]+)px\]/)?.[1];
+    const liveFontSize = liveInputEl?.style?.fontSize;
+    if (classFontSize) {
+      div.style.fontSize = `${classFontSize}px`;
+    } else if (liveFontSize) {
+      div.style.fontSize = liveFontSize;
+    }
+    const liveFontWeight = liveInputEl?.style?.fontWeight;
     if (liveFontWeight) div.style.fontWeight = liveFontWeight;
-    const liveColor = liveInputs[i]?.style?.color;
+    const liveColor = liveInputEl?.style?.color;
     if (liveColor) div.style.color = liveColor;
     ci.parentNode?.replaceChild(div, ci);
   }
@@ -328,6 +338,14 @@ function prepareClone(clone: HTMLElement, liveRoot: HTMLElement): void {
     div.style.whiteSpace = 'pre-wrap';
     div.style.wordBreak = 'break-word';
     div.style.resize = 'none';
+    // Same source-of-truth fontSize logic as <input> — desktop-authored
+    // Tailwind class wins over (potentially device-skewed) computed style.
+    const classFontSizeTA = lt?.className?.match(/text-\[([\d.]+)px\]/)?.[1];
+    if (classFontSizeTA) {
+      div.style.fontSize = `${classFontSizeTA}px`;
+    } else if (lt?.style?.fontSize) {
+      div.style.fontSize = lt.style.fontSize;
+    }
     ct.parentNode?.replaceChild(div, ct);
 
     // Unlock parent chain so they can grow with the content
