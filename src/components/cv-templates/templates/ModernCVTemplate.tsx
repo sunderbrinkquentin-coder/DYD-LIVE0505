@@ -741,8 +741,8 @@ export const ModernCVTemplate: React.FC<ModernCVTemplateProps> = ({
                   const level = typeof skill === 'object' ? skill.level || skill.niveau || '' : '';
                   const display = level ? `${name} (${level.trim()})` : name;
                   return (
-                    <div key={idx} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', borderRadius: '8px', padding: '5px 12px', fontSize: '9px', backgroundColor: CI.tint, border: `1px solid ${CI.border}`, breakInside: 'avoid', pageBreakInside: 'avoid' }}>
-                      <Editable value={display} onChange={(v) => onUpdateSectionItem(sectionIndex, idx, 'skill', v)} style={{ fontSize: '9px', fontWeight: 600, color: '#0f172a', flex: 1 }} />
+                    <div key={idx} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', borderRadius: '8px', padding: '5px 12px', fontSize: '9px', backgroundColor: CI.tint, border: `1px solid ${CI.border}`, breakInside: 'avoid', pageBreakInside: 'avoid', maxWidth: '100%', overflow: 'hidden' }}>
+                      <Editable value={display} onChange={(v) => onUpdateSectionItem(sectionIndex, idx, 'skill', v)} style={{ fontSize: '9px', fontWeight: 600, color: '#0f172a', flex: 1, maxWidth: '100%', overflow: 'hidden', whiteSpace: 'nowrap', textOverflow: 'ellipsis' }} />
                       <button
                         type="button"
                         className="pdf-hidden"
@@ -764,13 +764,13 @@ export const ModernCVTemplate: React.FC<ModernCVTemplateProps> = ({
                   return (
                     <span key={idx} style={{ display: 'inline-flex', alignItems: 'center', marginRight: '5px', marginBottom: '5px', verticalAlign: 'middle', breakInside: 'avoid', pageBreakInside: 'avoid' }}>
                       <span style={{ display: 'inline-flex', alignItems: 'center', backgroundColor: CI.tint, border: `1px solid ${CI.border}`, borderRadius: '9999px', padding: '2px 8px', gap: '4px' }}>
-                        <input
-                          size={Math.max(3, display.length)}
-                          style={{ background: 'transparent', outline: 'none', fontSize: '9px', fontWeight: 600, color: '#0f172a', minWidth: 'unset', border: 'none', width: 'auto' }}
-                          value={display}
-                          onChange={(e) => onUpdateSectionItem(sectionIndex, idx, 'skill', e.target.value)}
-                          placeholder="Skill"
-                        />
+                        <span
+                          contentEditable
+                          suppressContentEditableWarning
+                          style={{ background: 'transparent', outline: 'none', fontSize: '9px', fontWeight: 600, color: '#0f172a', minWidth: '20px', border: 'none', whiteSpace: 'nowrap', cursor: 'text', display: 'inline-block' }}
+                          onBlur={(e) => onUpdateSectionItem(sectionIndex, idx, 'skill', (e.target as HTMLElement).textContent || '')}
+                          onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); (e.target as HTMLElement).blur(); } }}
+                        >{display}</span>
                         <button
                           type="button"
                           className="pdf-hidden"
@@ -803,13 +803,13 @@ export const ModernCVTemplate: React.FC<ModernCVTemplateProps> = ({
                 return (
                   <span key={idx} style={{ display: 'inline-flex', alignItems: 'center', marginRight: '5px', marginBottom: '5px', verticalAlign: 'middle', breakInside: 'avoid', pageBreakInside: 'avoid' }}>
                     <span style={{ display: 'inline-flex', alignItems: 'center', backgroundColor: '#f8fafc', border: '1px solid #cbd5e1', borderRadius: '9999px', padding: '2px 8px', gap: '4px' }}>
-                      <input
-                        size={Math.max(3, val.length)}
-                        style={{ background: 'transparent', outline: 'none', fontSize: '9px', color: '#334155', minWidth: 'unset', border: 'none', width: 'auto' }}
-                        value={val}
-                        onChange={(e) => onUpdateSectionItem(sectionIndex, idx, 'skill', e.target.value)}
-                        placeholder="Soft Skill"
-                      />
+                      <span
+                        contentEditable
+                        suppressContentEditableWarning
+                        style={{ background: 'transparent', outline: 'none', fontSize: '9px', color: '#334155', minWidth: '20px', border: 'none', whiteSpace: 'nowrap', cursor: 'text', display: 'inline-block' }}
+                        onBlur={(e) => onUpdateSectionItem(sectionIndex, idx, 'skill', (e.target as HTMLElement).textContent || '')}
+                        onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); (e.target as HTMLElement).blur(); } }}
+                      >{val}</span>
                       <button
                         type="button"
                         className="pdf-hidden"
