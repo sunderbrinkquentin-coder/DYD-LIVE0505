@@ -1,4 +1,4 @@
-import React, { useLayoutEffect, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react';
 
 type EditorSection = {
   type: string;
@@ -60,11 +60,6 @@ const StarRating: React.FC<{ stars: number; total?: number }> = ({ stars, total 
   </span>
 );
 
-const autoResize = (el: HTMLTextAreaElement) => {
-  el.style.height = 'auto';
-  el.style.height = el.scrollHeight + 'px';
-};
-
 const EditableText: React.FC<{
   value?: string;
   onChange: (value: string) => void;
@@ -73,31 +68,60 @@ const EditableText: React.FC<{
   multiline?: boolean;
   style?: React.CSSProperties;
 }> = ({ value, onChange, className = '', placeholder = '', multiline = false, style }) => {
-  if (multiline) {
-    return (
-      <textarea
-        className={`w-full resize-none bg-transparent outline-none border-none focus:ring-0 ${className}`}
-        style={{ ...style, overflow: 'hidden', minHeight: '24px', padding: 0, margin: 0 }}
-        rows={1}
-        value={value ?? ''}
-        placeholder={placeholder}
-        onChange={(e) => {
-          autoResize(e.target);
-          onChange(e.target.value);
-        }}
-        onFocus={(e) => autoResize(e.target)}
-        ref={(el) => { if (el) autoResize(el); }}
-      />
-    );
-  }
+  const ref = useRef<HTMLDivElement>(null);
+  const isComposing = useRef(false);
+  const lastValue = useRef(value ?? '');
+
+  // Sync external value -> DOM, but never while the user is actively typing/focused.
+  // This is the key fix: avoids React re-renders wiping contentEditable content.
+  useEffect(() => {
+    if (!ref.current) return;
+    if (document.activeElement === ref.current) return;
+    const v = value ?? '';
+    if (ref.current.textContent !== v) {
+      ref.current.textContent = v;
+    }
+    lastValue.current = v;
+  }, [value]);
+
+  const handleInput = useCallback(() => {
+    if (isComposing.current) return;
+    const text = ref.current?.textContent ?? '';
+    if (text !== lastValue.current) {
+      lastValue.current = text;
+      onChange(text);
+    }
+  }, [onChange]);
+
+  const handleKeyDown = useCallback((e: React.KeyboardEvent<HTMLDivElement>) => {
+    if (!multiline && e.key === 'Enter') {
+      e.preventDefault();
+      e.currentTarget.blur();
+    }
+  }, [multiline]);
 
   return (
-    <input
-      className={`bg-transparent outline-none border-none focus:ring-0 w-full ${className}`}
-      style={style}
-      value={value ?? ''}
-      placeholder={placeholder}
-      onChange={(e) => onChange(e.target.value)}
+    <div
+      ref={ref}
+      contentEditable
+      suppressContentEditableWarning
+      onInput={handleInput}
+      onKeyDown={handleKeyDown}
+      onCompositionStart={() => { isComposing.current = true; }}
+      onCompositionEnd={() => { isComposing.current = false; handleInput(); }}
+      data-placeholder={placeholder}
+      className={[
+        'outline-none focus:ring-0 cursor-text w-full',
+        'empty:before:content-[attr(data-placeholder)] empty:before:text-slate-300',
+        className,
+      ].join(' ')}
+      style={{
+        whiteSpace: multiline ? 'pre-wrap' : 'nowrap',
+        wordBreak: multiline ? 'break-word' : 'normal',
+        overflow: multiline ? 'visible' : 'hidden',
+        textOverflow: multiline ? 'unset' : 'ellipsis',
+        ...style,
+      }}
     />
   );
 };
