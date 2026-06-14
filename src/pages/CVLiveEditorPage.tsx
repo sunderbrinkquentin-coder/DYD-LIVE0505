@@ -1566,10 +1566,8 @@ onClick={async () => {
             overflow: hidden !important;
           }
 
-          /* iOS vergrößert inputs/textareas/contenteditable automatisch (Auto-Zoom).
-             text-size-adjust:none verhindert das, OHNE die eigentliche font-size zu
-             überschreiben — jedes Feld behält seine korrekte Größe (Name groß,
-             Skill-Chips 9px, etc.). Gilt für sichtbare A4-Frames UND das versteckte
+          /* text-size-adjust:none verhindert iOS-Text-Boosting global, ohne
+             font-size zu ändern — gilt für sichtbare A4-Frames UND das versteckte
              PDF-Export-Element (data-pdf-root), da html2canvas die tatsächlich
              gerenderten Pixel des versteckten Elements fotografiert. */
           .a4-page-frame,
@@ -1578,6 +1576,20 @@ onClick={async () => {
           [data-pdf-root] * {
             -webkit-text-size-adjust: none !important;
             text-size-adjust: none !important;
+          }
+
+          /* Skill-/Soft-Skill-/Werte-/Hobby-Chips: iOS zwingt input/contenteditable
+             sonst auf min. 16-17px — hier GEZIELT auf 9px fixieren.
+             Nur innerhalb [data-chip-row], damit Name/Titel/Beschreibungen
+             ihre eigene (größere) font-size behalten. */
+          .a4-page-frame [data-chip-row] input,
+          .a4-page-frame [data-chip-row] [contenteditable],
+          .a4-page-frame [data-chip-row] *,
+          [data-pdf-root] [data-chip-row] input,
+          [data-pdf-root] [data-chip-row] [contenteditable],
+          [data-pdf-root] [data-chip-row] * {
+            font-size: 9px !important;
+            transform: none !important;
           }
           /* Skill chips dürfen nicht aus der Spalte laufen */
           [data-chip-row] {
