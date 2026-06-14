@@ -1274,6 +1274,23 @@ const triggerDirectExport = async () => {
     });
   };
 
+  // Chip-type sections (skills, hobbies, etc.) — single tag removal, no confirmation needed.
+  // Everything else (experience, education, projects, ...) is a "Station" with multiple
+  // fields/bullets — deleting it loses real data, so confirm first.
+  const CHIP_SECTION_TYPES = new Set([
+    'skills', 'soft_skills', 'hobbies', 'interests', 'work_values', 'values', 'languages', 'tools',
+  ]);
+
+  const deleteSectionItemWithConfirm = (sectionIndex: number, itemIndex: number) => {
+    const section = editorData?.sections?.[sectionIndex];
+    const isChip = !!section && CHIP_SECTION_TYPES.has(section.type);
+    if (!isChip) {
+      const ok = window.confirm('Möchtest du diese Station wirklich vollständig löschen? Alle Inhalte (Titel, Zeitraum, Stichpunkte) gehen dabei verloren.');
+      if (!ok) return;
+    }
+    deleteSectionItem(sectionIndex, itemIndex);
+  };
+
   const deleteBulletPoint = (sectionIndex: number, itemIndex: number, bulletIndex: number) => {
     setHasEditorChanges(true);
     setEditorData((prev: any) => {
@@ -1614,7 +1631,7 @@ onClick={async () => {
             onUpdateSection: updateSection,
             onUpdateSectionItem: updateSectionItem,
             onAddSectionItem: addSectionItem,
-            onDeleteSectionItem: deleteSectionItem,
+            onDeleteSectionItem: deleteSectionItemWithConfirm,
             onDeleteBullet: deleteBulletPoint,
             onReorderSections: reorderSections,
           };
