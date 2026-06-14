@@ -78,10 +78,8 @@ function bakeComputedStyles(liveEl: HTMLElement, cloneEl: HTMLElement): void {
   cloneEl.style.zIndex = cs.zIndex;
 
   // 🔥 NEU: Wenn es ein reines Textelement ist, radikal in den Vordergrund zwingen
-  if (INLINE_TAGS.has(tag) || ['h1', 'h2', 'h3', 'h4', 'h5', 'h6', 'p', 'li'].includes(tag)) {
-    cloneEl.style.zIndex = '999';
-    cloneEl.style.position = pos === 'static' ? 'relative' : pos; // relative benötigt für z-index
-  }
+  // Note: we intentionally do NOT set zIndex:999 on inline elements as this
+  // causes html2canvas to misrender text at incorrect scale
   // ── SVG root ──────────────────────────────────────────────────────────────
   if (tag === 'svg') {
     const r = liveEl.getBoundingClientRect();
@@ -154,18 +152,7 @@ function bakeComputedStyles(liveEl: HTMLElement, cloneEl: HTMLElement): void {
   cloneEl.style.marginBottom = cs.marginBottom;
   cloneEl.style.marginLeft = cs.marginLeft;
 
-  // ── 🔥 FIX FÜR DIE EBENEN (Nutzt das bereits deklarierte "pos" und "tag") ──
-  // Kopiere den echten z-index aus dem Live-Editor
-  cloneEl.style.zIndex = cs.zIndex;
-
-  // Wenn es ein Textelement ist, zwingen wir es nach ganz oben.
-  if (INLINE_TAGS.has(tag) || ['h1', 'h2', 'h3', 'h4', 'h5', 'h6', 'p', 'li'].includes(tag)) {
-    cloneEl.style.zIndex = '999';
-    if (pos === 'static') {
-      cloneEl.style.position = 'relative';
-    }
-  }
-  // ─────────────────────────────────────────────────────────────────────────
+  // Keep natural z-index stacking — forced zIndex:999 breaks html2canvas scale
 
   // Display
   cloneEl.style.display = cs.display;
@@ -360,6 +347,13 @@ function prepareClone(clone: HTMLElement, liveRoot: HTMLElement): void {
 
   // contentEditable spans (ModernCVTemplate)
   clone.querySelectorAll<HTMLElement>('[contenteditable]').forEach(el => {
+    // Preserve font-size from live element before removing contenteditable
+    const liveIdx = Array.from(liveRoot.querySelectorAll('[contenteditable]')).indexOf(el as any);
+    const liveEl = liveRoot.querySelectorAll('[contenteditable]')[liveIdx] as HTMLElement | null;
+    const preservedFontSize = liveEl?.style?.fontSize || el.style.fontSize || '';
+    const preservedFontWeight = liveEl?.style?.fontWeight || el.style.fontWeight || '';
+    const preservedColor = liveEl?.style?.color || el.style.color || '';
+
     el.removeAttribute('contenteditable');
     el.setAttribute('data-placeholder', '');
     el.style.outline = 'none';
@@ -372,6 +366,10 @@ function prepareClone(clone: HTMLElement, liveRoot: HTMLElement): void {
     el.style.overflow = 'visible';
     el.style.whiteSpace = 'pre-wrap';
     el.style.wordBreak = 'break-word';
+    // Re-apply font properties from live element (baking may have lost them)
+    if (preservedFontSize) el.style.fontSize = preservedFontSize;
+    if (preservedFontWeight) el.style.fontWeight = preservedFontWeight;
+    if (preservedColor) el.style.color = preservedColor;
     const text = (el.textContent ?? '').trim();
     if (isPlaceholder(text) || text === '') {
       el.textContent = '';
@@ -412,11 +410,23 @@ function prepareClone(clone: HTMLElement, liveRoot: HTMLElement): void {
     el.style.maxHeight = 'none';
   });
 
-  // Skill chips: keep overflow hidden so chips don't spill outside column
+  // Skill chips: constrain overflow
   clone.querySelectorAll<HTMLElement>('[data-chip-row]').forEach(el => {
     el.style.overflow = 'hidden';
     el.style.overflowX = 'hidden';
     el.style.maxWidth = '100%';
+  });
+
+  // Final safety pass: cap any element with font > 13px that is inside a skill/chip section
+  // This catches edge cases where baking produces wrong font sizes
+  clone.querySelectorAll<HTMLElement>('[data-pdf-section] *, [data-chip-row] *').forEach(el => {
+    const fs = parseFloat(el.style.fontSize);
+    if (!isNaN(fs) && fs > 13) {
+      const tag = el.tagName.toLowerCase();
+      if (!['h1','h2','h3','h4'].includes(tag)) {
+        el.style.fontSize = '9px';
+      }
+    }
   });
 
   // Also unlock any div that directly contains an li or replaced textarea-div
