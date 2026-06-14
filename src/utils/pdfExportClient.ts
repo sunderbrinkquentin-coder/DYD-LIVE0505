@@ -370,12 +370,19 @@ function prepareClone(clone: HTMLElement, liveRoot: HTMLElement): void {
     if (preservedFontSize) el.style.fontSize = preservedFontSize;
     if (preservedFontWeight) el.style.fontWeight = preservedFontWeight;
     if (preservedColor) el.style.color = preservedColor;
-    const text = (el.textContent ?? '').trim();
-    if (isPlaceholder(text) || text === '') {
-      el.textContent = '';
-      const d = el.style.display || 'inline';
-      if (d === 'inline' || d === 'inline-block' || d === 'inline-flex' || d === 'none') {
-        el.style.display = 'none';
+
+    // Skill/value/hobby chips have their own empty-filtering in React (return null
+    // before render) — never hide them here, even if textContent looks like a
+    // placeholder word (e.g. a skill literally named "Tools").
+    const insideChip = el.closest('[data-chip-row]') !== null;
+    if (!insideChip) {
+      const text = (el.textContent ?? '').trim();
+      if (isPlaceholder(text) || text === '') {
+        el.textContent = '';
+        const d = el.style.display || 'inline';
+        if (d === 'inline' || d === 'inline-block' || d === 'inline-flex' || d === 'none') {
+          el.style.display = 'none';
+        }
       }
     }
   });
