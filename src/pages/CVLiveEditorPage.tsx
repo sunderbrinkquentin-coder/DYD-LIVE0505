@@ -1553,22 +1553,7 @@ onClick={async () => {
       <main ref={mainRefCallback} className="flex-1 overflow-y-auto bg-[#1e1e24] w-full py-12 flex flex-col items-center">
         
         <style>{`
-          /* Add/Remove-Controls standardmäßig unsichtbar (wie im PDF-Render),
-             erscheinen bei Hover über die jeweilige Station/Zeile — so bleibt
-             die Ansicht identisch zum Rendering, ist aber weiter editierbar. */
-          .pdf-hidden {
-            opacity: 0;
-            pointer-events: none;
-            transition: opacity 0.12s ease;
-          }
-          [data-spacer-id]:hover .pdf-hidden,
-          [data-pdf-section]:hover .pdf-hidden,
-          li:hover .pdf-hidden,
-          [data-chip-row] > span:hover .pdf-hidden,
-          [data-pdf-field-wrap]:hover .pdf-hidden {
-            opacity: 1;
-            pointer-events: auto;
-          }
+          .pdf-hidden { display: block !important; }
           .nonce-export { display: none !important; }
 
           .a4-page-frame {
