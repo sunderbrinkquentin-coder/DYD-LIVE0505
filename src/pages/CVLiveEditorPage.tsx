@@ -1553,7 +1553,22 @@ onClick={async () => {
       <main ref={mainRefCallback} className="flex-1 overflow-y-auto bg-[#1e1e24] w-full py-12 flex flex-col items-center">
         
         <style>{`
-          .pdf-hidden { display: none !important; }
+          /* Add/Remove-Controls standardmäßig unsichtbar (wie im PDF-Render),
+             erscheinen bei Hover über die jeweilige Station/Zeile — so bleibt
+             die Ansicht identisch zum Rendering, ist aber weiter editierbar. */
+          .pdf-hidden {
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.12s ease;
+          }
+          [data-spacer-id]:hover .pdf-hidden,
+          [data-pdf-section]:hover .pdf-hidden,
+          li:hover .pdf-hidden,
+          [data-chip-row] > span:hover .pdf-hidden,
+          [data-pdf-field-wrap]:hover .pdf-hidden {
+            opacity: 1;
+            pointer-events: auto;
+          }
           .nonce-export { display: none !important; }
 
           .a4-page-frame {
@@ -1580,14 +1595,12 @@ onClick={async () => {
 
           /* Skill-/Soft-Skill-/Werte-/Hobby-Chips: iOS zwingt input/contenteditable
              sonst auf min. 16-17px — hier GEZIELT auf 9px fixieren.
-             Nur innerhalb [data-chip-row], damit Name/Titel/Beschreibungen
-             ihre eigene (größere) font-size behalten. */
+             Nur Form-Controls/Editable-Elemente innerhalb [data-chip-row],
+             damit Name/Titel/Beschreibungen ihre eigene (größere) font-size behalten. */
           .a4-page-frame [data-chip-row] input,
           .a4-page-frame [data-chip-row] [contenteditable],
-          .a4-page-frame [data-chip-row] *,
           [data-pdf-root] [data-chip-row] input,
-          [data-pdf-root] [data-chip-row] [contenteditable],
-          [data-pdf-root] [data-chip-row] * {
+          [data-pdf-root] [data-chip-row] [contenteditable] {
             font-size: 9px !important;
             transform: none !important;
           }
