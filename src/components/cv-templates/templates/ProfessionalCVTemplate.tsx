@@ -569,13 +569,13 @@ export const ProfessionalCVTemplate: React.FC<ProfessionalCVTemplateProps> = ({
                 const display = level ? `${cleanedVal} (${level.trim()})` : cleanedVal;
                 return (
                   <span key={idx} style={{ display: 'inline-flex', alignItems: 'center', marginRight: '5px', marginBottom: '5px', verticalAlign: 'middle', padding: '2px 8px', borderRadius: '9999px', border: '1px solid #cbd5e1', background: '#f1f5f9', whiteSpace: 'nowrap', breakInside: 'avoid', pageBreakInside: 'avoid' }}>
-                    <span
-                      contentEditable
-                      suppressContentEditableWarning
-                      style={{ background: 'transparent', outline: 'none', fontSize: '9px', color: '#1e293b', minWidth: '20px', border: 'none', whiteSpace: 'nowrap', cursor: 'text', display: 'inline-block' }}
-                      onBlur={(e) => onUpdateSectionItem(sectionIndex, idx, 'skill', (e.target as HTMLElement).textContent || '')}
-                      onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); (e.target as HTMLElement).blur(); } }}
-                    >{display}</span>
+                    <input
+                      size={Math.max(3, display.length)}
+                      style={{ background: 'transparent', outline: 'none', fontSize: '9px', color: '#1e293b', minWidth: 'unset', border: 'none', width: 'auto', whiteSpace: 'nowrap' }}
+                      value={display}
+                      onChange={(e) => onUpdateSectionItem(sectionIndex, idx, 'skill', e.target.value)}
+                      placeholder="Skill"
+                    />
                   </span>
                 );
               })}
@@ -600,13 +600,13 @@ export const ProfessionalCVTemplate: React.FC<ProfessionalCVTemplateProps> = ({
                 const display = level ? `${cleanedVal} (${level.trim()})` : cleanedVal;
                 return (
                   <span key={idx} style={{ display: 'inline-flex', alignItems: 'center', marginRight: '5px', marginBottom: '5px', verticalAlign: 'middle', padding: '2px 8px', borderRadius: '9999px', border: '1px solid #cbd5e1', background: '#f1f5f9', whiteSpace: 'nowrap', breakInside: 'avoid', pageBreakInside: 'avoid' }}>
-                    <span
-                      contentEditable
-                      suppressContentEditableWarning
-                      style={{ background: 'transparent', outline: 'none', fontSize: '9px', color: '#1e293b', minWidth: '20px', border: 'none', whiteSpace: 'nowrap', cursor: 'text', display: 'inline-block' }}
-                      onBlur={(e) => onUpdateSectionItem(sectionIndex, idx, 'skill', (e.target as HTMLElement).textContent || '')}
-                      onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); (e.target as HTMLElement).blur(); } }}
-                    >{display}</span>
+                    <input
+                      size={Math.max(3, display.length)}
+                      style={{ background: 'transparent', outline: 'none', fontSize: '9px', color: '#1e293b', minWidth: 'unset', border: 'none', width: 'auto', whiteSpace: 'nowrap' }}
+                      value={display}
+                      onChange={(e) => onUpdateSectionItem(sectionIndex, idx, 'skill', e.target.value)}
+                      placeholder="Stärke"
+                    />
                   </span>
                 );
               })}
@@ -630,13 +630,13 @@ export const ProfessionalCVTemplate: React.FC<ProfessionalCVTemplateProps> = ({
 
                 return (
                   <span key={idx} style={{ display: 'inline-flex', alignItems: 'center', marginRight: '5px', marginBottom: '5px', verticalAlign: 'middle', padding: '2px 8px', borderRadius: '9999px', border: '1px solid #cbd5e1', background: '#f1f5f9', whiteSpace: 'nowrap', breakInside: 'avoid', pageBreakInside: 'avoid' }}>
-                    <span
-                      contentEditable
-                      suppressContentEditableWarning
-                      style={{ background: 'transparent', outline: 'none', fontSize: '9px', color: '#1e293b', border: 'none', minWidth: '20px', whiteSpace: 'nowrap', cursor: 'text', display: 'inline-block' }}
-                      onBlur={(e) => onUpdateSectionItem(sectionIndex, idx, 'label', (e.target as HTMLElement).textContent || '')}
-                      onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); (e.target as HTMLElement).blur(); } }}
-                    >{cleanedV}</span>
+                    <input
+                      size={Math.max(3, cleanedV.length)}
+                      style={{ background: 'transparent', outline: 'none', fontSize: '9px', color: '#1e293b', border: 'none', minWidth: 'unset', width: 'auto' }}
+                      value={cleanedV}
+                      onChange={(e) => onUpdateSectionItem(sectionIndex, idx, 'label', e.target.value)}
+                      placeholder="Wert"
+                    />
                   </span>
                 );
               })}
@@ -660,13 +660,13 @@ export const ProfessionalCVTemplate: React.FC<ProfessionalCVTemplateProps> = ({
 
                 return (
                   <span key={idx} style={{ display: 'inline-flex', alignItems: 'center', marginRight: '5px', marginBottom: '5px', verticalAlign: 'middle', padding: '2px 8px', borderRadius: '9999px', border: '1px solid #cbd5e1', background: '#f1f5f9', whiteSpace: 'nowrap', breakInside: 'avoid', pageBreakInside: 'avoid' }}>
-                    <span
-                      contentEditable
-                      suppressContentEditableWarning
-                      style={{ background: 'transparent', outline: 'none', fontSize: '9px', color: '#1e293b', border: 'none', minWidth: '20px', whiteSpace: 'nowrap', cursor: 'text', display: 'inline-block' }}
-                      onBlur={(e) => onUpdateSectionItem(sectionIndex, idx, 'label', (e.target as HTMLElement).textContent || '')}
-                      onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); (e.target as HTMLElement).blur(); } }}
-                    >{cleanedV}</span>
+                    <input
+                      size={Math.max(3, cleanedV.length)}
+                      style={{ background: 'transparent', outline: 'none', fontSize: '9px', color: '#1e293b', border: 'none', minWidth: 'unset', width: 'auto' }}
+                      value={cleanedV}
+                      onChange={(e) => onUpdateSectionItem(sectionIndex, idx, 'label', e.target.value)}
+                      placeholder="Hobby"
+                    />
                   </span>
                 );
               })}
