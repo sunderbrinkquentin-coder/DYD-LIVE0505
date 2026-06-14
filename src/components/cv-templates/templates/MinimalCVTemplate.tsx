@@ -459,13 +459,13 @@ export const MinimalCVTemplate: React.FC<MinimalCVTemplateProps> = ({
                 const display = level ? `${cleanedVal} (${level.trim()})` : cleanedVal;
                 return (
                   <span key={idx} style={{ display: 'inline-flex', alignItems: 'center', marginRight: '6px', marginBottom: '6px', verticalAlign: 'middle', padding: '3px 10px', borderRadius: '9999px', border: '1px solid #cbd5e1', background: '#f1f5f9', whiteSpace: 'nowrap', breakInside: 'avoid', pageBreakInside: 'avoid' }}>
-                    <input
-                      size={Math.max(3, display.length)}
-                      style={{ background: 'transparent', outline: 'none', fontSize: '9px', fontWeight: 600, color: '#1e293b', minWidth: 'unset', border: 'none', width: 'auto' }}
-                      value={display}
-                      onChange={(e) => onUpdateSectionItem(sectionIndex, idx, 'skill', e.target.value)}
-                      placeholder="Skill"
-                    />
+                    <span
+                      contentEditable
+                      suppressContentEditableWarning
+                      style={{ background: 'transparent', outline: 'none', fontSize: '9px', fontWeight: 600, color: '#1e293b', minWidth: '20px', border: 'none', whiteSpace: 'nowrap', cursor: 'text', display: 'inline-block' }}
+                      onBlur={(e) => onUpdateSectionItem(sectionIndex, idx, 'skill', (e.target as HTMLElement).textContent || '')}
+                      onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); (e.target as HTMLElement).blur(); } }}
+                    >{display}</span>
                   </span>
                 );
               })}
@@ -491,13 +491,13 @@ export const MinimalCVTemplate: React.FC<MinimalCVTemplateProps> = ({
                 const display = level ? `${cleanedVal} (${level.trim()})` : cleanedVal;
                 return (
                   <span key={idx} style={{ display: 'inline-flex', alignItems: 'center', marginRight: '6px', marginBottom: '6px', verticalAlign: 'middle', padding: '3px 10px', borderRadius: '9999px', border: '1px solid #e2e8f0', background: '#ffffff', whiteSpace: 'nowrap', breakInside: 'avoid', pageBreakInside: 'avoid' }}>
-                    <input
-                      size={Math.max(3, display.length)}
-                      style={{ background: 'transparent', outline: 'none', fontSize: '9px', fontWeight: 500, color: '#334155', minWidth: 'unset', border: 'none', width: 'auto' }}
-                      value={display}
-                      onChange={(e) => onUpdateSectionItem(sectionIndex, idx, 'skill', e.target.value)}
-                      placeholder="Stärke"
-                    />
+                    <span
+                      contentEditable
+                      suppressContentEditableWarning
+                      style={{ background: 'transparent', outline: 'none', fontSize: '9px', fontWeight: 500, color: '#334155', minWidth: '20px', border: 'none', whiteSpace: 'nowrap', cursor: 'text', display: 'inline-block' }}
+                      onBlur={(e) => onUpdateSectionItem(sectionIndex, idx, 'skill', (e.target as HTMLElement).textContent || '')}
+                      onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); (e.target as HTMLElement).blur(); } }}
+                    >{display}</span>
                   </span>
                 );
               })}
@@ -521,13 +521,13 @@ export const MinimalCVTemplate: React.FC<MinimalCVTemplateProps> = ({
 
                 return (
                   <span key={idx} style={{ display: 'inline-flex', alignItems: 'center', marginRight: '4px', marginBottom: '4px', verticalAlign: 'middle', padding: '2px 8px', borderRadius: '6px', border: '1px solid #cbd5e1', background: '#f8fafc', whiteSpace: 'nowrap', breakInside: 'avoid', pageBreakInside: 'avoid' }}>
-                    <input
-                      size={Math.max(3, cleanedV.length)}
-                      style={{ background: 'transparent', outline: 'none', fontSize: '9px', color: '#0f172a', border: 'none', minWidth: 'unset', width: 'auto' }}
-                      value={cleanedV}
-                      onChange={(e) => onUpdateSectionItem(sectionIndex, idx, 'label', e.target.value)}
-                      placeholder="Wert"
-                    />
+                    <span
+                      contentEditable
+                      suppressContentEditableWarning
+                      style={{ background: 'transparent', outline: 'none', fontSize: '9px', color: '#0f172a', border: 'none', minWidth: '20px', whiteSpace: 'nowrap', cursor: 'text', display: 'inline-block' }}
+                      onBlur={(e) => onUpdateSectionItem(sectionIndex, idx, 'label', (e.target as HTMLElement).textContent || '')}
+                      onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); (e.target as HTMLElement).blur(); } }}
+                    >{cleanedV}</span>
                   </span>
                 );
               })}
@@ -551,13 +551,13 @@ export const MinimalCVTemplate: React.FC<MinimalCVTemplateProps> = ({
 
                 return (
                   <span key={idx} style={{ display: 'inline-flex', alignItems: 'center', marginRight: '4px', marginBottom: '4px', verticalAlign: 'middle', padding: '2px 8px', borderRadius: '6px', border: '1px solid #cbd5e1', background: '#f8fafc', whiteSpace: 'nowrap', breakInside: 'avoid', pageBreakInside: 'avoid' }}>
-                    <input
-                      size={Math.max(3, cleanedV.length)}
-                      style={{ background: 'transparent', outline: 'none', fontSize: '9px', color: '#0f172a', border: 'none', minWidth: 'unset', width: 'auto' }}
-                      value={cleanedV}
-                      onChange={(e) => onUpdateSectionItem(sectionIndex, idx, 'label', e.target.value)}
-                      placeholder="Hobby"
-                    />
+                    <span
+                      contentEditable
+                      suppressContentEditableWarning
+                      style={{ background: 'transparent', outline: 'none', fontSize: '9px', color: '#0f172a', border: 'none', minWidth: '20px', whiteSpace: 'nowrap', cursor: 'text', display: 'inline-block' }}
+                      onBlur={(e) => onUpdateSectionItem(sectionIndex, idx, 'label', (e.target as HTMLElement).textContent || '')}
+                      onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); (e.target as HTMLElement).blur(); } }}
+                    >{cleanedV}</span>
                   </span>
                 );
               })}
