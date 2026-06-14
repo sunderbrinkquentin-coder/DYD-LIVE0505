@@ -1566,16 +1566,16 @@ onClick={async () => {
             overflow: hidden !important;
           }
 
-          /* iOS vergrößert inputs/textareas automatisch auf 16px — hart überschreiben */
-          .a4-page-frame input,
-          .a4-page-frame textarea,
-          .a4-page-frame [contenteditable] {
-            font-size: 9px !important;
-            -webkit-text-size-adjust: none !important;
-            text-size-adjust: none !important;
-            transform: none !important;
-          }
-          .a4-page-frame * {
+          /* iOS vergrößert inputs/textareas/contenteditable automatisch (Auto-Zoom).
+             text-size-adjust:none verhindert das, OHNE die eigentliche font-size zu
+             überschreiben — jedes Feld behält seine korrekte Größe (Name groß,
+             Skill-Chips 9px, etc.). Gilt für sichtbare A4-Frames UND das versteckte
+             PDF-Export-Element (data-pdf-root), da html2canvas die tatsächlich
+             gerenderten Pixel des versteckten Elements fotografiert. */
+          .a4-page-frame,
+          .a4-page-frame *,
+          [data-pdf-root],
+          [data-pdf-root] * {
             -webkit-text-size-adjust: none !important;
             text-size-adjust: none !important;
           }
