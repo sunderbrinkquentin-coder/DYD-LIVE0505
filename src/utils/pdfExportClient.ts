@@ -439,11 +439,23 @@ function prepareClone(clone: HTMLElement, liveRoot: HTMLElement): void {
     el.style.maxHeight = 'none';
   });
 
-  // Skill chips: constrain overflow
+  // Skill chips: constrain horizontal overflow only. Do NOT clip vertically —
+  // `height` was baked as a fixed px value from the live DOM in an earlier
+  // pass, and that live measurement can be smaller than the chips actually
+  // need (e.g. due to live-editor layout quirks). With overflow:hidden + a
+  // stale small height, chip text gets clipped in the PDF while the chip
+  // background/border (which fits within the small height) stays visible —
+  // looking like "boxes covering the text". Letting height grow (auto) while
+  // still capping horizontal overflow keeps chips from overflowing the page
+  // width without clipping their content vertically.
   clone.querySelectorAll<HTMLElement>('[data-chip-row]').forEach(el => {
-    el.style.overflow = 'hidden';
+    el.style.overflow = 'visible';
     el.style.overflowX = 'hidden';
+    el.style.overflowY = 'visible';
     el.style.maxWidth = '100%';
+    el.style.height = 'auto';
+    el.style.minHeight = '0';
+    el.style.maxHeight = 'none';
   });
 
   // Final safety pass: cap any element with font > 13px that is inside a skill/chip section
