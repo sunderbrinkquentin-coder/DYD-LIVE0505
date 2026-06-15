@@ -238,7 +238,6 @@ export function KanbanBoard({ cvs, onCVUpdate, highlightedCvId }: KanbanBoardPro
               onDragLeave={handleDragLeave}
               onDrop={() => handleDrop(column.id)}
               onAddCard={handleAddCard}
-              compact
             >
               {showExample && (
                 <KanbanCard cv={EXAMPLE_CARD} status="draft" onDragStart={() => {}} isExample />
@@ -259,8 +258,10 @@ export function KanbanBoard({ cvs, onCVUpdate, highlightedCvId }: KanbanBoardPro
         })}
       </div>
 
-      {/* Desktop: horizontal scroll view */}
-      <div className="hidden md:flex gap-5 overflow-x-auto pb-6 min-w-0" style={{ alignItems: 'flex-start' }}>
+      {/* Desktop: 5 equal-width columns side by side — no horizontal scroll,
+          all areas always visible. Each column's card list is height-capped
+          and scrolls internally (see KanbanColumn). */}
+      <div className="hidden md:grid md:grid-cols-5 gap-3 items-start">
         {COLUMNS.map((column) => {
           const columnCards = groupedCVs[column.id];
           const showExample = column.id === 'draft' && kanbanCvs.length === 0;
@@ -276,6 +277,7 @@ export function KanbanBoard({ cvs, onCVUpdate, highlightedCvId }: KanbanBoardPro
               onDragLeave={handleDragLeave}
               onDrop={() => handleDrop(column.id)}
               onAddCard={handleAddCard}
+              maxHeight="520px"
             >
               {showExample && (
                 <KanbanCard
