@@ -222,6 +222,7 @@ export function CVLiveEditorPage() {
   const [isDownloadUnlocked, setIsDownloadUnlocked] = useState(false);
   const [showPaywallModal, setShowPaywallModal] = useState(false);
   const [showTemplateSelectForExport, setShowTemplateSelectForExport] = useState(false);
+  const [pendingDeleteItem, setPendingDeleteItem] = useState<{ sectionIndex: number; itemIndex: number } | null>(null);
 
   const [showTips, setShowTips] = useState(false);
   const [showPaymentSuccessBanner, setShowPaymentSuccessBanner] = useState(false);
@@ -1325,10 +1326,26 @@ const triggerDirectExport = async () => {
     const section = editorData?.sections?.[sectionIndex];
     const isChip = !!section && CHIP_SECTION_TYPES.has(section.type);
     if (!isChip) {
-      const ok = window.confirm('Möchtest du diese Station wirklich vollständig löschen? Alle Inhalte (Titel, Zeitraum, Stichpunkte) gehen dabei verloren.');
-      if (!ok) return;
+      // Show our own Corporate-Design confirm modal instead of
+      // window.confirm. Deletion happens only on explicit confirmation
+      // (confirmDeleteItem); "Abbrechen" (cancelDeleteItem) just closes the
+      // modal and changes nothing else — the editor continues exactly as
+      // before, no other part of the flow is affected.
+      setPendingDeleteItem({ sectionIndex, itemIndex });
+      return;
     }
     deleteSectionItem(sectionIndex, itemIndex);
+  };
+
+  const confirmDeleteItem = () => {
+    if (pendingDeleteItem) {
+      deleteSectionItem(pendingDeleteItem.sectionIndex, pendingDeleteItem.itemIndex);
+    }
+    setPendingDeleteItem(null);
+  };
+
+  const cancelDeleteItem = () => {
+    setPendingDeleteItem(null);
   };
 
   const deleteBulletPoint = (sectionIndex: number, itemIndex: number, bulletIndex: number) => {
@@ -1796,6 +1813,33 @@ onClick={async () => {
             <div className="flex gap-3">
               <button onClick={() => setShowTemplateSelectForExport(false)} className="flex-1 py-3 rounded-xl bg-white/5 border border-white/10 text-white font-semibold hover:bg-white/10 transition-all">Abbrechen</button>
               <button onClick={() => { setShowTemplateSelectForExport(false); triggerDirectExport(); }} className="flex-1 py-3 rounded-xl bg-gradient-to-r from-[#66c0b6] to-[#30E3CA] text-black font-bold transition-all flex items-center justify-center gap-2"><Download size={18} /> PDF erstellen</button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {pendingDeleteItem && (
+        <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4">
+          <div className="bg-[#111] border border-white/10 rounded-2xl p-8 max-w-md w-full shadow-2xl">
+            <div className="text-center mb-6">
+              <h2 className="text-xl font-bold text-white mb-2">Station löschen?</h2>
+              <p className="text-white/50 text-sm">
+                Möchtest du diese Station wirklich vollständig löschen? Alle Inhalte (Titel, Zeitraum, Stichpunkte) gehen dabei verloren.
+              </p>
+            </div>
+            <div className="flex gap-3">
+              <button
+                onClick={cancelDeleteItem}
+                className="flex-1 py-3 rounded-xl bg-white/5 border border-white/10 text-white font-semibold hover:bg-white/10 transition-all"
+              >
+                Abbrechen
+              </button>
+              <button
+                onClick={confirmDeleteItem}
+                className="flex-1 py-3 rounded-xl bg-red-500/90 hover:bg-red-500 text-white font-bold transition-all"
+              >
+                Löschen
+              </button>
             </div>
           </div>
         </div>
