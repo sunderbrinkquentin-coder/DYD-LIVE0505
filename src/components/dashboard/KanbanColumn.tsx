@@ -11,10 +11,12 @@ interface KanbanColumnProps {
   onDrop: () => void;
   isDragOver: boolean;
   onAddCard: (status: KanbanStatus) => void;
-  /** Compact mode: full-width column with a height-capped, internally
-   * scrollable card list — used for the stacked mobile "all columns visible"
-   * layout, so each area has a fixed height regardless of card count. */
-  compact?: boolean;
+  /** Max height of the card list before it scrolls internally. The column
+   * itself always fills the width of its grid/flex cell — on mobile that's
+   * the full row width (stacked layout), on desktop one of 5 equal grid
+   * columns. This keeps every area visible at once, with only the card list
+   * scrolling for columns that have many entries. */
+  maxHeight?: string;
 }
 
 const STATUS_COLORS: Record<string, { border: string; bg: string; header: string; dot: string }> = {
@@ -34,16 +36,13 @@ export function KanbanColumn({
   onDrop,
   isDragOver,
   onAddCard,
-  compact = false,
+  maxHeight = '440px',
 }: KanbanColumnProps) {
   const colors = STATUS_COLORS[column.id];
 
   return (
-    <div
-      className={compact ? 'flex flex-col w-full' : 'flex flex-col w-full md:flex-shrink-0'}
-      style={compact ? undefined : { minWidth: '280px', width: '288px', maxWidth: '100%' }}
-    >
-      <div className={`${colors.header} px-3 py-2 rounded-lg ${compact ? 'mb-2' : 'mb-3'} flex items-center justify-between`}>
+    <div className="flex flex-col w-full min-w-0">
+      <div className={`${colors.header} px-3 py-2 rounded-lg mb-2 flex items-center justify-between`}>
         <div className="flex items-center gap-2">
           <span className={`w-2 h-2 rounded-full ${colors.dot} flex-shrink-0`} />
           <div>
@@ -56,7 +55,7 @@ export function KanbanColumn({
         <button
           onClick={() => onAddCard(column.id)}
           title="Kachel hinzufügen"
-          className="flex items-center justify-center w-6 h-6 rounded-md bg-white/70 hover:bg-white transition-colors border border-gray-200 hover:border-gray-300 text-gray-500 hover:text-gray-700"
+          className="flex items-center justify-center w-6 h-6 rounded-md bg-white/70 hover:bg-white transition-colors border border-gray-200 hover:border-gray-300 text-gray-500 hover:text-gray-700 flex-shrink-0"
         >
           <Plus className="w-3.5 h-3.5" />
         </button>
@@ -66,12 +65,12 @@ export function KanbanColumn({
         onDragOver={onDragOver}
         onDragLeave={onDragLeave}
         onDrop={onDrop}
-        className={`flex flex-col gap-2.5 p-2.5 rounded-lg border-2 transition-all duration-150 ${compact ? 'overflow-y-auto' : 'flex-1'} ${
+        className={`flex flex-col gap-2.5 p-2.5 rounded-lg border-2 overflow-y-auto transition-all duration-150 ${
           isDragOver
             ? `${colors.border} bg-white shadow-inner scale-[1.01]`
             : `border-transparent ${colors.bg}`
         }`}
-        style={compact ? { maxHeight: '236px', minHeight: '52px' } : { minHeight: '420px' }}
+        style={{ maxHeight, minHeight: '56px' }}
       >
         {children}
       </div>
