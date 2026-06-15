@@ -1,4 +1,4 @@
-import React, { useEffect, useLayoutEffect, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react';
 
 type EditorSection = {
   type: string;
@@ -40,9 +40,68 @@ interface ProfessionalCVTemplateProps {
   pageCount?: number;
 }
 
-const autoResize = (el: HTMLTextAreaElement) => {
-  el.style.height = 'auto';
-  el.style.height = el.scrollHeight + 'px';
+const EditableText: React.FC<{
+  value?: string;
+  onChange: (value: string) => void;
+  className?: string;
+  placeholder?: string;
+  multiline?: boolean;
+  style?: React.CSSProperties;
+}> = ({ value, onChange, className = '', placeholder = '', multiline = false, style }) => {
+  const ref = useRef<HTMLDivElement>(null);
+  const isComposing = useRef(false);
+  const lastValue = useRef(value ?? '');
+
+  useEffect(() => {
+    if (!ref.current) return;
+    if (document.activeElement === ref.current) return;
+    const v = value ?? '';
+    if (ref.current.textContent !== v) {
+      ref.current.textContent = v;
+    }
+    lastValue.current = v;
+  }, [value]);
+
+  const handleInput = useCallback(() => {
+    if (isComposing.current) return;
+    const text = ref.current?.textContent ?? '';
+    if (text !== lastValue.current) {
+      lastValue.current = text;
+      onChange(text);
+    }
+  }, [onChange]);
+
+  const handleKeyDown = useCallback((e: React.KeyboardEvent<HTMLDivElement>) => {
+    if (!multiline && e.key === 'Enter') {
+      e.preventDefault();
+      e.currentTarget.blur();
+    }
+  }, [multiline]);
+
+  return (
+    <div
+      ref={ref}
+      contentEditable
+      suppressContentEditableWarning
+      onInput={handleInput}
+      onKeyDown={handleKeyDown}
+      onCompositionStart={() => { isComposing.current = true; }}
+      onCompositionEnd={() => { isComposing.current = false; handleInput(); }}
+      data-placeholder={placeholder}
+      className={[
+        'outline-none focus:ring-0 cursor-text w-full',
+        'empty:before:content-[attr(data-placeholder)] empty:before:text-slate-300',
+        className,
+      ].join(' ')}
+      style={{
+        whiteSpace: multiline ? 'pre-wrap' : 'nowrap',
+        wordBreak: multiline ? 'break-word' : 'normal',
+        overflow: multiline ? 'visible' : 'hidden',
+        textOverflow: multiline ? 'unset' : 'ellipsis',
+        ...style,
+      }}
+    />
+  );
 };
 
 const SectionTitle: React.FC<{ children: React.ReactNode }> = ({ children }) => (
@@ -86,7 +145,6 @@ export const ProfessionalCVTemplate: React.FC<ProfessionalCVTemplateProps> = ({
   pageBreakItems,
   pageCount,
 }) => {
-  const summaryRef = useRef<HTMLTextAreaElement | null>(null);
   const contentRef = useRef<HTMLDivElement | null>(null);
   const [containerMinHeight, setContainerMinHeight] = useState(1122);
 
@@ -102,13 +160,6 @@ export const ProfessionalCVTemplate: React.FC<ProfessionalCVTemplateProps> = ({
     ro.observe(el);
     return () => ro.disconnect();
   }, []);
-
-  useEffect(() => {
-    if (summaryRef.current) {
-      summaryRef.current.style.height = 'auto';
-      summaryRef.current.style.height = summaryRef.current.scrollHeight + 'px';
-    }
-  }, [summary]);
 
   const handleBulletChange = (
     sectionIndex: number,
@@ -208,28 +259,28 @@ export const ProfessionalCVTemplate: React.FC<ProfessionalCVTemplateProps> = ({
                   >
                     <div className="flex justify-between gap-2 items-start">
                       <div className="flex-1 min-w-0">
-                        <input
-                          className="w-full text-[11px] font-bold text-slate-900 bg-transparent outline-none"
+                        <EditableText
+                          className="text-[11px] font-bold text-slate-900"
                           value={exp.title || exp.position || ''}
-                          onChange={(e) =>
-                            onUpdateSectionItem(sectionIndex, idx, 'title', e.target.value)
+                          onChange={(val) =>
+                            onUpdateSectionItem(sectionIndex, idx, 'title', val)
                           }
                           placeholder="Position"
                         />
-                        <input
-                          className="mt-0.5 w-full text-[10px] text-slate-500 bg-transparent outline-none"
+                        <EditableText
+                          className="mt-0.5 text-[10px] text-slate-500"
                           value={exp.company || ''}
-                          onChange={(e) =>
-                            onUpdateSectionItem(sectionIndex, idx, 'company', e.target.value)
+                          onChange={(val) =>
+                            onUpdateSectionItem(sectionIndex, idx, 'company', val)
                           }
                           placeholder="Unternehmen"
                         />
                         {(exp.location || exp.ort) && (
-                          <input
-                            className="mt-0.5 w-full text-[10px] text-slate-400 bg-transparent outline-none"
+                          <EditableText
+                            className="mt-0.5 text-[10px] text-slate-400"
                             value={exp.location || exp.ort || ''}
-                            onChange={(e) =>
-                              onUpdateSectionItem(sectionIndex, idx, 'location', e.target.value)
+                            onChange={(val) =>
+                              onUpdateSectionItem(sectionIndex, idx, 'location', val)
                             }
                             placeholder="Ort"
                           />
@@ -237,19 +288,21 @@ export const ProfessionalCVTemplate: React.FC<ProfessionalCVTemplateProps> = ({
                       </div>
                       {(exp.date_from || exp.date_to) && (
                         <div className="text-[9px] text-slate-500 text-right whitespace-nowrap flex flex-col items-end gap-0.5 flex-shrink-0">
-                          <input
-                            className="bg-transparent outline-none w-20 text-right"
+                          <EditableText
+                            className="text-right"
+                            style={{ width: '60px' }}
                             value={exp.date_from || ''}
-                            onChange={(e) =>
-                              onUpdateSectionItem(sectionIndex, idx, 'date_from', e.target.value)
+                            onChange={(val) =>
+                              onUpdateSectionItem(sectionIndex, idx, 'date_from', val)
                             }
                             placeholder="Von"
                           />
-                          <input
-                            className="bg-transparent outline-none w-20 text-right"
+                          <EditableText
+                            className="text-right"
+                            style={{ width: '60px' }}
                             value={exp.date_to || ''}
-                            onChange={(e) =>
-                              onUpdateSectionItem(sectionIndex, idx, 'date_to', e.target.value)
+                            onChange={(val) =>
+                              onUpdateSectionItem(sectionIndex, idx, 'date_to', val)
                             }
                             placeholder="Bis"
                           />
@@ -262,16 +315,14 @@ export const ProfessionalCVTemplate: React.FC<ProfessionalCVTemplateProps> = ({
                         {bullets.map((bp: string, bIdx: number) => (
                           <li key={bIdx} style={{ display: 'flex', alignItems: 'flex-start', gap: '6px', breakInside: 'avoid', pageBreakInside: 'avoid' }}>
                             <span style={{ flexShrink: 0, color: '#334155', fontSize: '9.5px', lineHeight: '1.375', userSelect: 'none' }}>•</span>
-                            <textarea
-                              className="w-full bg-transparent outline-none text-slate-800 !text-[9.5px] leading-tight resize-none"
-                              style={{ flex: 1, overflow: 'hidden', minHeight: '20px' }}
+                            <EditableText
+                              multiline
+                              className="text-slate-800 !text-[9.5px] leading-tight"
+                              style={{ flex: 1, minHeight: '20px' }}
                               value={bp}
-                              onChange={(e) => {
-                                autoResize(e.target);
-                                handleBulletChange(sectionIndex, idx, bIdx, e.target.value, exp);
+                              onChange={(val) => {
+                                handleBulletChange(sectionIndex, idx, bIdx, val, exp);
                               }}
-                              onFocus={(e) => autoResize(e.target)}
-                              ref={(el) => { if (el) autoResize(el); }}
                               placeholder="Aufgabe / Erfolg"
                             />
                             {onDeleteBullet && (
@@ -288,12 +339,13 @@ export const ProfessionalCVTemplate: React.FC<ProfessionalCVTemplateProps> = ({
                       </ul>
                     ) : (
                       exp.description && (
-                        <textarea
-                          className="mt-1.5 w-full text-[9.5px] text-slate-700 bg-transparent outline-none resize-none leading-tight"
-                          style={{ height: 'auto', minHeight: '16px' }}
+                        <EditableText
+                          multiline
+                          className="mt-1.5 text-[9.5px] text-slate-700 leading-tight"
+                          style={{ minHeight: '16px' }}
                           value={exp.description}
-                          onChange={(e) =>
-                            onUpdateSectionItem(sectionIndex, idx, 'description', e.target.value)
+                          onChange={(val) =>
+                            onUpdateSectionItem(sectionIndex, idx, 'description', val)
                           }
                           placeholder="Beschreibung"
                         />
@@ -344,19 +396,19 @@ export const ProfessionalCVTemplate: React.FC<ProfessionalCVTemplateProps> = ({
                   >
                     <div className="flex justify-between gap-2 items-start">
                       <div className="flex-1 min-w-0">
-                        <input
-                          className="w-full text-[11px] font-bold text-slate-900 bg-transparent outline-none"
+                        <EditableText
+                          className="text-[11px] font-bold text-slate-900"
                           value={proj.title || proj.name || ''}
-                          onChange={(e) =>
-                            onUpdateSectionItem(sectionIndex, idx, 'title', e.target.value)
+                          onChange={(val) =>
+                            onUpdateSectionItem(sectionIndex, idx, 'title', val)
                           }
                           placeholder="Projekt"
                         />
-                        <input
-                          className="mt-0.5 w-full text-[10px] text-slate-500 bg-transparent outline-none"
+                        <EditableText
+                          className="mt-0.5 text-[10px] text-slate-500"
                           value={proj.role || ''}
-                          onChange={(e) =>
-                            onUpdateSectionItem(sectionIndex, idx, 'role', e.target.value)
+                          onChange={(val) =>
+                            onUpdateSectionItem(sectionIndex, idx, 'role', val)
                           }
                           placeholder="Rolle"
                         />
@@ -368,16 +420,14 @@ export const ProfessionalCVTemplate: React.FC<ProfessionalCVTemplateProps> = ({
                         {bullets.map((bp: string, bIdx: number) => (
                           <li key={bIdx} style={{ display: 'flex', alignItems: 'flex-start', gap: '6px', breakInside: 'avoid', pageBreakInside: 'avoid' }}>
                             <span style={{ flexShrink: 0, color: '#334155', fontSize: '9.5px', lineHeight: '1.375', userSelect: 'none' }}>•</span>
-                            <textarea
-                              className="w-full bg-transparent outline-none text-slate-800 !text-[9.5px] leading-tight resize-none"
-                              style={{ overflow: 'hidden', minHeight: '20px' }}
+                            <EditableText
+                              multiline
+                              className="text-slate-800 !text-[9.5px] leading-tight"
+                              style={{ minHeight: '20px' }}
                               value={bp}
-                              onChange={(e) => {
-                                autoResize(e.target);
-                                handleBulletChange(sectionIndex, idx, bIdx, e.target.value, proj);
+                              onChange={(val) => {
+                                handleBulletChange(sectionIndex, idx, bIdx, val, proj);
                               }}
-                              onFocus={(e) => autoResize(e.target)}
-                              ref={(el) => { if (el) autoResize(el); }}
                               placeholder="Ergebnis / Beitrag"
                             />
                             {onDeleteBullet && (
@@ -394,16 +444,14 @@ export const ProfessionalCVTemplate: React.FC<ProfessionalCVTemplateProps> = ({
                       </ul>
                     ) : (
                       proj.description && (
-                        <textarea
-                          className="mt-0.5 w-full text-[9.5px] text-slate-800 bg-transparent outline-none resize-none leading-tight"
-                          style={{ overflow: 'hidden', minHeight: '40px' }}
+                        <EditableText
+                          multiline
+                          className="mt-0.5 text-[9.5px] text-slate-800 leading-tight"
+                          style={{ minHeight: '40px' }}
                           value={proj.description || ''}
-                          onChange={(e) => {
-                            autoResize(e.target);
-                            onUpdateSectionItem(sectionIndex, idx, 'description', e.target.value);
+                          onChange={(val) => {
+                            onUpdateSectionItem(sectionIndex, idx, 'description', val);
                           }}
-                          onFocus={(e) => autoResize(e.target)}
-                          ref={(el) => { if (el) autoResize(el); }}
                           placeholder="Kurzbeschreibung"
                         />
                       )
@@ -443,46 +491,46 @@ export const ProfessionalCVTemplate: React.FC<ProfessionalCVTemplateProps> = ({
                 const spacer = pageBreakItems?.get(itemKey) ?? 0;
                 return (
                 <div key={idx} data-pdf-section data-spacer-id={itemKey} style={{ display: 'block', width: '100%', ...(spacer > 0 ? { marginTop: `${spacer}px` } : {}) }} className="px-2 py-1 rounded-md">
-                  <input
-                    className="w-full text-[11px] font-bold text-slate-900 bg-transparent outline-none"
+                  <EditableText
+                    className="text-[11px] font-bold text-slate-900"
                     value={edu.degree || ''}
-                    onChange={(e) =>
-                      onUpdateSectionItem(sectionIndex, idx, 'degree', e.target.value)
+                    onChange={(val) =>
+                      onUpdateSectionItem(sectionIndex, idx, 'degree', val)
                     }
                     placeholder="Abschluss / Studiengang"
                   />
-                  <input
-                    className="mt-0.5 w-full text-[10px] text-slate-500 bg-transparent outline-none"
+                  <EditableText
+                    className="mt-0.5 text-[10px] text-slate-500"
                     value={edu.institution || ''}
-                    onChange={(e) =>
-                      onUpdateSectionItem(sectionIndex, idx, 'institution', e.target.value)
+                    onChange={(val) =>
+                      onUpdateSectionItem(sectionIndex, idx, 'institution', val)
                     }
                     placeholder="Institution"
                   />
                   {edu.location && (
-                    <input
-                      className="mt-0.5 w-full text-[9.5px] text-slate-400 bg-transparent outline-none"
+                    <EditableText
+                      className="mt-0.5 text-[9.5px] text-slate-400"
                       value={edu.location || ''}
-                      onChange={(e) => onUpdateSectionItem(sectionIndex, idx, 'location', e.target.value)}
+                      onChange={(val) => onUpdateSectionItem(sectionIndex, idx, 'location', val)}
                       placeholder="Ort"
                     />
                   )}
                   {(edu.date_from || edu.date_to) && (
                     <div className="mt-0.5 text-[9px] text-slate-500 flex gap-1">
-                      <input
-                        className="bg-transparent outline-none w-16"
+                      <EditableText
+                        style={{ width: '50px' }}
                         value={edu.date_from || ''}
-                        onChange={(e) =>
-                          onUpdateSectionItem(sectionIndex, idx, 'date_from', e.target.value)
+                        onChange={(val) =>
+                          onUpdateSectionItem(sectionIndex, idx, 'date_from', val)
                         }
                         placeholder="Von"
                       />
                       <span>–</span>
-                      <input
-                        className="bg-transparent outline-none w-16"
+                      <EditableText
+                        style={{ width: '50px' }}
                         value={edu.date_to || ''}
-                        onChange={(e) =>
-                          onUpdateSectionItem(sectionIndex, idx, 'date_to', e.target.value)
+                        onChange={(val) =>
+                          onUpdateSectionItem(sectionIndex, idx, 'date_to', val)
                         }
                         placeholder="Bis"
                       />
@@ -491,23 +539,22 @@ export const ProfessionalCVTemplate: React.FC<ProfessionalCVTemplateProps> = ({
                   {(edu.grade || edu.grades || edu.note) && (
                     <div className="mt-0.5 flex items-center gap-1 text-[9.5px] text-slate-500">
                       <span className="font-semibold text-[#30E3CA]">Note:</span>
-                      <input
-                        className="bg-transparent outline-none flex-1 text-[9.5px] text-slate-500"
+                      <EditableText
+                        className="flex-1 text-[9.5px] text-slate-500"
                         value={edu.grade || edu.grades || edu.note || ''}
-                        onChange={(e) => onUpdateSectionItem(sectionIndex, idx, 'grade', e.target.value)}
+                        onChange={(val) => onUpdateSectionItem(sectionIndex, idx, 'grade', val)}
                         placeholder="Note"
                       />
                     </div>
                   )}
                   {(edu.description || edu.focus) && (
-                    <textarea
-                      className="mt-0.5 w-full text-[9.5px] text-slate-600 bg-transparent outline-none resize-none leading-tight"
+                    <EditableText
+                      multiline
+                      className="mt-0.5 text-[9.5px] text-slate-600 leading-tight"
+                      style={{ minHeight: '16px' }}
                       value={edu.description || (Array.isArray(edu.focus) ? edu.focus.join(', ') : edu.focus) || ''}
-                      onChange={(e) => onUpdateSectionItem(sectionIndex, idx, 'description', e.target.value)}
+                      onChange={(val) => onUpdateSectionItem(sectionIndex, idx, 'description', val)}
                       placeholder="Schwerpunkte / Beschreibung"
-                      rows={1}
-                      style={{ overflow: 'hidden', minHeight: '16px' }}
-                      onInput={(e) => { const t = e.currentTarget; t.style.height = 'auto'; t.style.height = t.scrollHeight + 'px'; }}
                     />
                   )}
                 </div>
@@ -531,17 +578,18 @@ export const ProfessionalCVTemplate: React.FC<ProfessionalCVTemplateProps> = ({
                 const levelVal = typeof lang === 'object' && lang !== null ? (lang.level || lang.niveau || lang.proficiency || '') : '';
                 return (
                   <div key={idx} style={{ breakInside: 'avoid', pageBreakInside: 'avoid' }} className="flex items-center justify-between gap-2 text-[9.5px] text-slate-800">
-                    <input
-                      className="bg-transparent outline-none flex-1"
+                    <EditableText
+                      className="flex-1"
                       value={langVal}
-                      onChange={(e) => onUpdateSectionItem(sectionIndex, idx, 'language', e.target.value)}
+                      onChange={(val) => onUpdateSectionItem(sectionIndex, idx, 'language', val)}
                       placeholder="Sprache"
                     />
                     {levelVal && (
-                      <input
-                        className="bg-transparent outline-none text-right text-slate-500 w-[70px]"
+                      <EditableText
+                        className="text-right text-slate-500"
+                        style={{ width: '70px' }}
                         value={levelVal}
-                        onChange={(e) => onUpdateSectionItem(sectionIndex, idx, 'level', e.target.value)}
+                        onChange={(val) => onUpdateSectionItem(sectionIndex, idx, 'level', val)}
                         placeholder="Niveau"
                       />
                     )}
@@ -569,11 +617,10 @@ export const ProfessionalCVTemplate: React.FC<ProfessionalCVTemplateProps> = ({
                 const display = level ? `${cleanedVal} (${level.trim()})` : cleanedVal;
                 return (
                   <span key={idx} style={{ display: 'inline-flex', alignItems: 'center', marginRight: '5px', marginBottom: '5px', verticalAlign: 'middle', padding: '2px 8px', borderRadius: '9999px', border: '1px solid #cbd5e1', background: '#f1f5f9', whiteSpace: 'nowrap', breakInside: 'avoid', pageBreakInside: 'avoid' }}>
-                    <input
-                      size={Math.max(3, display.length)}
-                      style={{ background: 'transparent', outline: 'none', fontSize: '9px', color: '#1e293b', minWidth: 'unset', border: 'none', width: 'auto', whiteSpace: 'nowrap' }}
+                    <EditableText
+                      style={{ fontSize: '9px', color: '#1e293b', width: `${Math.max(2, display.length + 1)}ch` }}
                       value={display}
-                      onChange={(e) => onUpdateSectionItem(sectionIndex, idx, 'skill', e.target.value)}
+                      onChange={(val) => onUpdateSectionItem(sectionIndex, idx, 'skill', val)}
                       placeholder="Skill"
                     />
                   </span>
@@ -600,11 +647,10 @@ export const ProfessionalCVTemplate: React.FC<ProfessionalCVTemplateProps> = ({
                 const display = level ? `${cleanedVal} (${level.trim()})` : cleanedVal;
                 return (
                   <span key={idx} style={{ display: 'inline-flex', alignItems: 'center', marginRight: '5px', marginBottom: '5px', verticalAlign: 'middle', padding: '2px 8px', borderRadius: '9999px', border: '1px solid #cbd5e1', background: '#f1f5f9', whiteSpace: 'nowrap', breakInside: 'avoid', pageBreakInside: 'avoid' }}>
-                    <input
-                      size={Math.max(3, display.length)}
-                      style={{ background: 'transparent', outline: 'none', fontSize: '9px', color: '#1e293b', minWidth: 'unset', border: 'none', width: 'auto', whiteSpace: 'nowrap' }}
+                    <EditableText
+                      style={{ fontSize: '9px', color: '#1e293b', width: `${Math.max(2, display.length + 1)}ch` }}
                       value={display}
-                      onChange={(e) => onUpdateSectionItem(sectionIndex, idx, 'skill', e.target.value)}
+                      onChange={(val) => onUpdateSectionItem(sectionIndex, idx, 'skill', val)}
                       placeholder="Stärke"
                     />
                   </span>
@@ -630,11 +676,10 @@ export const ProfessionalCVTemplate: React.FC<ProfessionalCVTemplateProps> = ({
 
                 return (
                   <span key={idx} style={{ display: 'inline-flex', alignItems: 'center', marginRight: '5px', marginBottom: '5px', verticalAlign: 'middle', padding: '2px 8px', borderRadius: '9999px', border: '1px solid #cbd5e1', background: '#f1f5f9', whiteSpace: 'nowrap', breakInside: 'avoid', pageBreakInside: 'avoid' }}>
-                    <input
-                      size={Math.max(3, cleanedV.length)}
-                      style={{ background: 'transparent', outline: 'none', fontSize: '9px', color: '#1e293b', border: 'none', minWidth: 'unset', width: 'auto' }}
+                    <EditableText
+                      style={{ fontSize: '9px', color: '#1e293b', width: `${Math.max(2, cleanedV.length + 1)}ch` }}
                       value={cleanedV}
-                      onChange={(e) => onUpdateSectionItem(sectionIndex, idx, 'label', e.target.value)}
+                      onChange={(val) => onUpdateSectionItem(sectionIndex, idx, 'label', val)}
                       placeholder="Wert"
                     />
                   </span>
@@ -660,11 +705,10 @@ export const ProfessionalCVTemplate: React.FC<ProfessionalCVTemplateProps> = ({
 
                 return (
                   <span key={idx} style={{ display: 'inline-flex', alignItems: 'center', marginRight: '5px', marginBottom: '5px', verticalAlign: 'middle', padding: '2px 8px', borderRadius: '9999px', border: '1px solid #cbd5e1', background: '#f1f5f9', whiteSpace: 'nowrap', breakInside: 'avoid', pageBreakInside: 'avoid' }}>
-                    <input
-                      size={Math.max(3, cleanedV.length)}
-                      style={{ background: 'transparent', outline: 'none', fontSize: '9px', color: '#1e293b', border: 'none', minWidth: 'unset', width: 'auto' }}
+                    <EditableText
+                      style={{ fontSize: '9px', color: '#1e293b', width: `${Math.max(2, cleanedV.length + 1)}ch` }}
                       value={cleanedV}
-                      onChange={(e) => onUpdateSectionItem(sectionIndex, idx, 'label', e.target.value)}
+                      onChange={(val) => onUpdateSectionItem(sectionIndex, idx, 'label', val)}
                       placeholder="Hobby"
                     />
                   </span>
@@ -695,22 +739,21 @@ export const ProfessionalCVTemplate: React.FC<ProfessionalCVTemplateProps> = ({
                       style={{ breakInside: 'avoid', pageBreakInside: 'avoid' }}
                     >
                       <div style={{ fontWeight: 600, marginBottom: institution || date ? '2px' : '0' }}>
-                        <input
-                          className="w-full bg-transparent outline-none text-slate-900"
+                        <EditableText
+                          className="text-slate-900"
                           value={name}
-                          onChange={(e) =>
-                            onUpdateSectionItem(sectionIndex, idx, 'name', e.target.value)
+                          onChange={(val) =>
+                            onUpdateSectionItem(sectionIndex, idx, 'name', val)
                           }
                           placeholder="Name/Titel"
                         />
                       </div>
                       {institution && (
                         <div style={{ fontSize: '9px', color: '#334155', marginBottom: date ? '2px' : '0' }}>
-                          <input
-                            className="w-full bg-transparent outline-none"
+                          <EditableText
                             value={institution}
-                            onChange={(e) =>
-                              onUpdateSectionItem(sectionIndex, idx, 'institution', e.target.value)
+                            onChange={(val) =>
+                              onUpdateSectionItem(sectionIndex, idx, 'institution', val)
                             }
                             placeholder="Institution"
                           />
@@ -718,11 +761,10 @@ export const ProfessionalCVTemplate: React.FC<ProfessionalCVTemplateProps> = ({
                       )}
                       {date && (
                         <div style={{ fontSize: '9px', color: '#334155' }}>
-                          <input
-                            className="w-full bg-transparent outline-none"
+                          <EditableText
                             value={date}
-                            onChange={(e) =>
-                              onUpdateSectionItem(sectionIndex, idx, 'date', e.target.value)
+                            onChange={(val) =>
+                              onUpdateSectionItem(sectionIndex, idx, 'date', val)
                             }
                             placeholder="Datum"
                           />
@@ -751,11 +793,10 @@ export const ProfessionalCVTemplate: React.FC<ProfessionalCVTemplateProps> = ({
                     className="py-0.5 border-b border-slate-200 last:border-b-0"
                     style={{ breakInside: 'avoid', pageBreakInside: 'avoid' }}
                   >
-                    <input
-                      className="w-full bg-transparent outline-none"
+                    <EditableText
                       value={displayValue}
-                      onChange={(e) =>
-                        onUpdateSectionItem(sectionIndex, idx, 'name', e.target.value)
+                      onChange={(val) =>
+                        onUpdateSectionItem(sectionIndex, idx, 'name', val)
                       }
                       placeholder="Eintrag"
                     />
@@ -781,55 +822,55 @@ export const ProfessionalCVTemplate: React.FC<ProfessionalCVTemplateProps> = ({
       <div ref={contentRef}>
       <header className="px-8 pt-7 pb-5 bg-slate-900 text-white flex justify-between gap-6 items-start border-b-4 border-[#30E3CA]">
         <div className="flex-1 min-w-0">
-          <input
-            className="block w-full text-[22px] font-extrabold tracking-tight outline-none bg-transparent text-white"
+          <EditableText
+            className="text-[22px] font-extrabold tracking-tight text-white"
             value={personalInfo.name || ''}
-            onChange={(e) => onUpdatePersonalInfo('name', e.target.value)}
+            onChange={(val) => onUpdatePersonalInfo('name', val)}
             placeholder="Name"
           />
-          <input
-            className="mt-1 block w-full text-[12px] font-bold text-slate-200 outline-none bg-transparent"
+          <EditableText
+            className="mt-1 text-[12px] font-bold text-slate-200"
             value={personalInfo.title || ''}
-            onChange={(e) => onUpdatePersonalInfo('title', e.target.value)}
+            onChange={(val) => onUpdatePersonalInfo('title', val)}
             placeholder="Berufsbezeichnung"
           />
 
           <div className="mt-3 grid grid-cols-2 gap-x-4 gap-y-1 text-[9.5px] text-slate-100">
             <div className="flex items-center gap-1.5">
               <span>📍</span>
-              <input
-                className="w-full bg-transparent outline-none placeholder:text-slate-300"
+              <EditableText
+                className="placeholder:text-slate-300"
                 value={personalInfo.location || ''}
-                onChange={(e) => onUpdatePersonalInfo('location', e.target.value)}
+                onChange={(val) => onUpdatePersonalInfo('location', val)}
                 placeholder="Ort"
               />
             </div>
             <div className="flex items-center gap-1.5">
               <span>☎</span>
-              <input
-                className="w-full bg-transparent outline-none placeholder:text-slate-300"
+              <EditableText
+                className="placeholder:text-slate-300"
                 value={personalInfo.phone || ''}
-                onChange={(e) => onUpdatePersonalInfo('phone', e.target.value)}
+                onChange={(val) => onUpdatePersonalInfo('phone', val)}
                 placeholder="Telefon"
               />
             </div>
             <div className="flex items-center gap-1.5">
               <span>✉</span>
-              <input
-                className="w-full bg-transparent outline-none placeholder:text-slate-300"
+              <EditableText
+                className="placeholder:text-slate-300"
                 value={personalInfo.email || ''}
-                onChange={(e) => onUpdatePersonalInfo('email', e.target.value)}
+                onChange={(val) => onUpdatePersonalInfo('email', val)}
                 placeholder="E-Mail"
               />
             </div>
             {personalInfo.linkedin !== undefined && (
               <div className="flex items-center gap-1.5">
                 <span>in</span>
-                <input
-                  className="w-full bg-transparent outline-none placeholder:text-slate-300"
+                <EditableText
+                  className="placeholder:text-slate-300"
                   value={personalInfo.linkedin || ''}
-                  onChange={(e) =>
-                    onUpdatePersonalInfo('linkedin', e.target.value)
+                  onChange={(val) =>
+                    onUpdatePersonalInfo('linkedin', val)
                   }
                   placeholder="LinkedIn (optional)"
                 />
@@ -859,18 +900,12 @@ export const ProfessionalCVTemplate: React.FC<ProfessionalCVTemplateProps> = ({
         <section style={{ flex: '0 0 58%', minWidth: 0, paddingLeft: '32px', paddingRight: '12px', display: 'flex', flexDirection: 'column', gap: '12px' }}>
           <div>
             <SectionTitle>Profil & Mehrwert</SectionTitle>
-            <textarea
-              ref={summaryRef}
-              className="w-full mt-1 text-[9.5px] leading-relaxed text-slate-800 bg-slate-50 rounded-md border border-slate-200 outline-none resize-none px-3 py-2"
+            <EditableText
+              multiline
+              className="mt-1 text-[9.5px] leading-relaxed text-slate-800 bg-slate-50 rounded-md border border-slate-200 px-3 py-2"
               style={{ minHeight: '60px' }}
               value={summary || ''}
-              onChange={(e) => {
-                onUpdateSummary(e.target.value);
-                if (summaryRef.current) {
-                  summaryRef.current.style.height = 'auto';
-                  summaryRef.current.style.height = summaryRef.current.scrollHeight + 'px';
-                }
-              }}
+              onChange={onUpdateSummary}
               placeholder="Beschreibe kurz dein Profil, deinen Mehrwert und deine Ziele."
             />
           </div>
@@ -963,11 +998,11 @@ export const ProfessionalCVTemplate: React.FC<ProfessionalCVTemplateProps> = ({
       >
         <div style={{ display: 'flex', alignItems: 'center', gap: '6px', minWidth: 0 }}>
           <span style={{ fontWeight: 600, flexShrink: 0 }}>Ort:</span>
-          <input
-            className="bg-transparent outline-none text-slate-500"
+          <EditableText
+            className="text-slate-500"
             style={{ fontSize: '9px', width: '120px' }}
             value={personalInfo.location || ''}
-            onChange={(e) => onUpdatePersonalInfo('location', e.target.value)}
+            onChange={(val) => onUpdatePersonalInfo('location', val)}
             placeholder="Ort"
           />
         </div>
