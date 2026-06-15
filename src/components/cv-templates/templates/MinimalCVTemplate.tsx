@@ -527,9 +527,9 @@ export const MinimalCVTemplate: React.FC<MinimalCVTemplateProps> = ({
 
                 const display = level ? `${cleanedVal} (${level.trim()})` : cleanedVal;
                 return (
-                  <span key={idx} style={{ display: 'inline-flex', alignItems: 'center', lineHeight: 'normal', marginRight: '6px', marginBottom: '6px', verticalAlign: 'middle', padding: '3px 10px', borderRadius: '9999px', border: '1px solid #cbd5e1', background: '#f1f5f9', whiteSpace: 'nowrap', breakInside: 'avoid', pageBreakInside: 'avoid' }}>
+                  <span key={idx} style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', marginRight: '6px', marginBottom: '6px', verticalAlign: 'middle', padding: '3px 10px', borderRadius: '9999px', border: '1px solid #cbd5e1', background: '#f1f5f9', whiteSpace: 'nowrap', breakInside: 'avoid', pageBreakInside: 'avoid', lineHeight: 1.4 }}>
                     <EditableText
-                      style={{ display: 'flex', alignItems: 'center', height: '12px', fontSize: '9px', lineHeight: 'normal', fontWeight: 600, color: '#1e293b', width: `${Math.max(2, display.length + 1)}ch` }}
+                      style={{ fontSize: '9px', color: '#1e293b', fontWeight: 600, lineHeight: 1.4, display: 'inline-block', verticalAlign: 'middle', textAlign: 'center', width: 'auto' }}
                       value={display}
                       onChange={(val) => onUpdateSectionItem(sectionIndex, idx, 'skill', val)}
                       placeholder="Skill"
@@ -558,9 +558,9 @@ export const MinimalCVTemplate: React.FC<MinimalCVTemplateProps> = ({
 
                 const display = level ? `${cleanedVal} (${level.trim()})` : cleanedVal;
                 return (
-                  <span key={idx} style={{ display: 'inline-flex', alignItems: 'center', lineHeight: 'normal', marginRight: '6px', marginBottom: '6px', verticalAlign: 'middle', padding: '3px 10px', borderRadius: '9999px', border: '1px solid #e2e8f0', background: '#ffffff', whiteSpace: 'nowrap', breakInside: 'avoid', pageBreakInside: 'avoid' }}>
+                  <span key={idx} style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', marginRight: '6px', marginBottom: '6px', verticalAlign: 'middle', padding: '3px 10px', borderRadius: '9999px', border: '1px solid #e2e8f0', background: '#ffffff', whiteSpace: 'nowrap', breakInside: 'avoid', pageBreakInside: 'avoid', lineHeight: 1.4 }}>
                     <EditableText
-                      style={{ display: 'flex', alignItems: 'center', height: '12px', fontSize: '9px', lineHeight: 'normal', fontWeight: 500, color: '#334155', width: `${Math.max(2, display.length + 1)}ch` }}
+                      style={{ fontSize: '9px', color: '#334155', fontWeight: 500, lineHeight: 1.4, display: 'inline-block', verticalAlign: 'middle', textAlign: 'center', width: 'auto' }}
                       value={display}
                       onChange={(val) => onUpdateSectionItem(sectionIndex, idx, 'skill', val)}
                       placeholder="Stärke"
@@ -587,9 +587,9 @@ export const MinimalCVTemplate: React.FC<MinimalCVTemplateProps> = ({
                 if (cleanedV === '') return null;
 
                 return (
-                  <span key={idx} style={{ display: 'inline-flex', alignItems: 'center', marginRight: '4px', marginBottom: '4px', verticalAlign: 'middle', padding: '2px 8px', borderRadius: '6px', border: '1px solid #cbd5e1', background: '#f8fafc', whiteSpace: 'nowrap', breakInside: 'avoid', pageBreakInside: 'avoid' }}>
+                  <span key={idx} style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', marginRight: '4px', marginBottom: '4px', verticalAlign: 'middle', padding: '2px 8px', borderRadius: '6px', border: '1px solid #cbd5e1', background: '#f8fafc', whiteSpace: 'nowrap', breakInside: 'avoid', pageBreakInside: 'avoid', lineHeight: 1.4 }}>
                     <EditableText
-                      style={{ display: 'flex', alignItems: 'center', height: '12px', fontSize: '9px', lineHeight: 'normal', color: '#0f172a', width: `${Math.max(2, cleanedV.length + 1)}ch` }}
+                      style={{ fontSize: '9px', color: '#0f172a', lineHeight: 1.4, display: 'inline-block', verticalAlign: 'middle', textAlign: 'center', width: 'auto' }}
                       value={cleanedV}
                       onChange={(val) => onUpdateSectionItem(sectionIndex, idx, 'label', val)}
                       placeholder="Wert"
@@ -616,9 +616,9 @@ export const MinimalCVTemplate: React.FC<MinimalCVTemplateProps> = ({
                 if (cleanedV === '') return null;
 
                 return (
-                  <span key={idx} style={{ display: 'inline-flex', alignItems: 'center', marginRight: '4px', marginBottom: '4px', verticalAlign: 'middle', padding: '2px 8px', borderRadius: '6px', border: '1px solid #cbd5e1', background: '#f8fafc', whiteSpace: 'nowrap', breakInside: 'avoid', pageBreakInside: 'avoid' }}>
+                  <span key={idx} style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', marginRight: '4px', marginBottom: '4px', verticalAlign: 'middle', padding: '2px 8px', borderRadius: '6px', border: '1px solid #cbd5e1', background: '#f8fafc', whiteSpace: 'nowrap', breakInside: 'avoid', pageBreakInside: 'avoid', lineHeight: 1.4 }}>
                     <EditableText
-                      style={{ display: 'flex', alignItems: 'center', height: '12px', fontSize: '9px', lineHeight: 'normal', color: '#0f172a', width: `${Math.max(2, cleanedV.length + 1)}ch` }}
+                      style={{ fontSize: '9px', color: '#0f172a', lineHeight: 1.4, display: 'inline-block', verticalAlign: 'middle', textAlign: 'center', width: 'auto' }}
                       value={cleanedV}
                       onChange={(val) => onUpdateSectionItem(sectionIndex, idx, 'label', val)}
                       placeholder="Hobby"
