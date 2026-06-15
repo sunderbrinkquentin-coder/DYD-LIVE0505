@@ -382,8 +382,12 @@ function prepareClone(clone: HTMLElement, liveRoot: HTMLElement): void {
     el.style.minHeight = '0';
     el.style.maxHeight = 'none';
     el.style.overflow = 'visible';
-    el.style.whiteSpace = 'pre-wrap';
-    el.style.wordBreak = 'break-word';
+    // Respect each field's OWN white-space/word-break (already baked from its live
+    // inline style by bakeComputedStyles): single-line fields (titles, dates,
+    // company names) use 'nowrap' and must NOT be forced to wrap; only multiline
+    // fields (bullet points, descriptions) use 'pre-wrap'/'break-word'. Forcing
+    // pre-wrap on a narrow flex:1 single-line field causes one-character-per-line
+    // vertical text stacking.
     // Re-apply font properties from live element (baking may have lost them)
     if (preservedFontSize) el.style.fontSize = preservedFontSize;
     if (preservedFontWeight) el.style.fontWeight = preservedFontWeight;
