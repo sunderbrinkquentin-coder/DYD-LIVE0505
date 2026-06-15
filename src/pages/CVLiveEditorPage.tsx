@@ -1570,7 +1570,29 @@ onClick={async () => {
       <main ref={mainRefCallback} className="flex-1 overflow-y-auto bg-[#1e1e24] w-full py-12 flex flex-col items-center">
         
         <style>{`
-          .pdf-hidden { display: block !important; }
+          /* Add/Remove-Controls: standardmäßig auf 0 kollabiert (kein Puffer),
+             unabhängig vom jeweiligen display-Wert (flex/block/inline-block).
+             max-height/max-width statt display vermeidet Konflikte mit
+             Inline-Styles wie style={{display:'flex'}}. Beim Hover über die
+             Station/Zeile/Chip expandieren die Controls wieder. */
+          .pdf-hidden {
+            max-height: 0 !important;
+            max-width: 0 !important;
+            overflow: hidden !important;
+            opacity: 0;
+            pointer-events: none;
+            transition: max-height 0.12s ease, max-width 0.12s ease, opacity 0.12s ease;
+          }
+          [data-spacer-id]:hover .pdf-hidden,
+          [data-pdf-section]:hover .pdf-hidden,
+          li:hover .pdf-hidden,
+          [data-chip-row] > span:hover .pdf-hidden {
+            max-height: 120px !important;
+            max-width: 100% !important;
+            overflow: visible !important;
+            opacity: 1;
+            pointer-events: auto;
+          }
           .nonce-export { display: none !important; }
 
           .a4-page-frame {
