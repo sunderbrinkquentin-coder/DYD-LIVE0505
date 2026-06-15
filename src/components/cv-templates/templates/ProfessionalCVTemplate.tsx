@@ -48,19 +48,24 @@ const EditableText: React.FC<{
   multiline?: boolean;
   style?: React.CSSProperties;
 }> = ({ value, onChange, className = '', placeholder = '', multiline = false, style }) => {
+  const v = value ?? '';
   const ref = useRef<HTMLDivElement>(null);
   const isComposing = useRef(false);
-  const lastValue = useRef(value ?? '');
+  const isFocused = useRef(false);
+  const lastValue = useRef(v);
+  // `renderKey` is rendered as JSX children, so the correct text is present
+  // from the FIRST render/paint — no need to wait for an effect (which could
+  // run after a PDF clone is taken, leaving the clone empty). It mirrors `v`
+  // except while focused, where it's frozen so React doesn't remount the
+  // node mid-keystroke (which would reset the cursor position).
+  const [renderKey, setRenderKey] = useState(v);
 
   useEffect(() => {
-    if (!ref.current) return;
-    if (document.activeElement === ref.current) return;
-    const v = value ?? '';
-    if (ref.current.textContent !== v) {
-      ref.current.textContent = v;
+    if (!isFocused.current) {
+      setRenderKey(v);
+      lastValue.current = v;
     }
-    lastValue.current = v;
-  }, [value]);
+  }, [v]);
 
   const handleInput = useCallback(() => {
     if (isComposing.current) return;
@@ -71,6 +76,16 @@ const EditableText: React.FC<{
     }
   }, [onChange]);
 
+  const handleFocus = useCallback(() => {
+    isFocused.current = true;
+  }, []);
+
+  const handleBlur = useCallback(() => {
+    isFocused.current = false;
+    handleInput();
+    setRenderKey(ref.current?.textContent ?? v);
+  }, [handleInput, v]);
+
   const handleKeyDown = useCallback((e: React.KeyboardEvent<HTMLDivElement>) => {
     if (!multiline && e.key === 'Enter') {
       e.preventDefault();
@@ -80,10 +95,13 @@ const EditableText: React.FC<{
 
   return (
     <div
+      key={renderKey}
       ref={ref}
       contentEditable
       suppressContentEditableWarning
       onInput={handleInput}
+      onFocus={handleFocus}
+      onBlur={handleBlur}
       onKeyDown={handleKeyDown}
       onCompositionStart={() => { isComposing.current = true; }}
       onCompositionEnd={() => { isComposing.current = false; handleInput(); }}
@@ -100,7 +118,7 @@ const EditableText: React.FC<{
         textOverflow: multiline ? 'unset' : 'ellipsis',
         ...style,
       }}
-    />
+    >{renderKey}</div>
   );
 };
 
