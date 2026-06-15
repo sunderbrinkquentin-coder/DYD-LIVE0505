@@ -406,6 +406,36 @@ function prepareClone(clone: HTMLElement, liveRoot: HTMLElement): void {
           el.style.display = 'none';
         }
       }
+    } else {
+      // Chip text: bakeComputedStyles baked the live element's
+      // display:inline-block + verticalAlign:middle + lineHeight onto the
+      // clone. html2canvas has known issues rendering that exact
+      // combination as a flex child — the text paints roughly one
+      // line-height below the chip's background/border, which is exactly
+      // the "boxes cover the text" symptom seen in exported PDFs (the live
+      // editor, without html2canvas, renders the same styles correctly).
+      // Fix: collapse the text node to the simplest possible inline content
+      // with no box-model/vertical-align complications of its own, and let
+      // the chip's outer span (display:flex + align-items/justify-content,
+      // baked from inline-flex) center it via flexbox.
+      el.style.display = 'inline';
+      el.style.verticalAlign = 'baseline';
+      el.style.lineHeight = 'normal';
+      el.style.textAlign = 'left';
+      el.style.width = 'auto';
+      el.style.minWidth = '0';
+      el.style.maxWidth = 'none';
+
+      const chipSpan = el.parentElement;
+      if (chipSpan && chipSpan.tagName.toLowerCase() === 'span') {
+        const chipCs = chipSpan.style.display;
+        if (chipCs === 'inline-flex' || chipCs === 'flex') {
+          chipSpan.style.display = 'flex';
+        }
+        chipSpan.style.alignItems = 'center';
+        chipSpan.style.justifyContent = 'center';
+        chipSpan.style.lineHeight = 'normal';
+      }
     }
   });
 
