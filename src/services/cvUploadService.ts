@@ -68,30 +68,38 @@ export async function uploadCvAndCreateRecord(
     // ─────────────────────────────────────────────────────────────────────
     // STEP 1: Upload file to Supabase Storage via SDK
     // ─────────────────────────────────────────────────────────────────────
+// ─────────────────────────────────────────────────────────────────────
+    // STEP 1: Upload file to Supabase Storage via SDK (Handy-optimiert)
+    // ─────────────────────────────────────────────────────────────────────
     const sanitizedFileName = sanitizeFileName(file.name);
     const filePath = `${STORAGE_CONFIG.UPLOAD_PATH_PREFIX}/${Date.now()}_${sanitizedFileName}`;
 
     logStep('Uploading to storage', { path: filePath, sizeMB: (file.size / 1024 / 1024).toFixed(2) });
 
+    // NEU & CRITICAL FÜR HANDYS: Wir lesen die Datei explizit als ArrayBuffer ein.
+    // Das zwingt iOS/Android, die Datei JETZT komplett lokal bereitzustellen!
+    let fileBody: Uint8Array;
+    try {
+      const arrayBuffer = await file.arrayBuffer();
+      fileBody = new Uint8Array(arrayBuffer);
+      
+      // Sicherheits-Check: Hat das Handy uns eine leere Datei untergejubelt?
+      if (fileBody.length === 0) {
+        throw new Error("Die ausgewählte Datei ist leer oder wurde vom Mobilgerät blockiert.");
+      }
+    } catch (readErr: any) {
+      logError('file reading on mobile', readErr);
+      throw new Error(`Datei konnte auf dem Mobilgerät nicht gelesen werden: ${readErr.message}`);
+    }
+
+    // Jetzt laden wir das sichere 'fileBody' hoch, statt des unzuverlässigen 'file'-Objekts
     const { data: uploadData, error: uploadError } = await supabase.storage
       .from(CV_BUCKET)
-      .upload(filePath, file, {
+      .upload(filePath, fileBody, {
         cacheControl: '3600',
         upsert: true,
-        contentType: file.type,
+        contentType: file.type || 'application/pdf', // Fallback falls das Handy den Typ verschluckt
       });
-
-    if (uploadError) {
-      logError('storage upload', uploadError, { filePath, bucket: CV_BUCKET });
-      throw new Error(`Storage-Upload fehlgeschlagen: ${uploadError.message}`);
-    }
-
-    if (!uploadData?.path) {
-      throw new Error('Storage-Upload fehlgeschlagen: Kein Pfad zurückgegeben');
-    }
-
-    const storagePath = filePath;
-    logStep('File stored', { storagePath, sdkPath: uploadData.path });
 
     // ─────────────────────────────────────────────────────────────────────
     // STEP 2: Generate URLs + Create DB entry in parallel
