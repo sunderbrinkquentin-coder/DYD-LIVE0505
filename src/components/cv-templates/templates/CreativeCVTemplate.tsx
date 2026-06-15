@@ -627,9 +627,9 @@ export const CreativeCVTemplate: React.FC<CreativeCVTemplateProps> = ({
                 const level = typeof skill === 'object' && skill !== null ? skill.level || skill.niveau || '' : '';
                 const display = level ? `${cleanedVal} (${level.trim()})` : cleanedVal;
                 return (
-                  <span key={idx} style={{ display: 'inline-flex', alignItems: 'center', lineHeight: 'normal', marginRight: '4px', marginBottom: '4px', verticalAlign: 'middle', padding: '2px 6px', borderRadius: '9999px', background: '#f0fdfe', border: '1px solid #38bdf8', whiteSpace: 'nowrap', breakInside: 'avoid', pageBreakInside: 'avoid' }}>
+                  <span key={idx} style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', marginRight: '4px', marginBottom: '4px', verticalAlign: 'middle', padding: '2px 6px', borderRadius: '9999px', background: '#f0fdfe', border: '1px solid #38bdf8', lineHeight: 1.4, whiteSpace: 'nowrap', breakInside: 'avoid', pageBreakInside: 'avoid' }}>
                     <EditableText
-                      style={{ display: 'flex', alignItems: 'center', height: '12px', fontSize: '9px', lineHeight: 'normal', color: '#1e293b', width: `${Math.max(2, display.length + 1)}ch` }}
+                      style={{ fontSize: '9px', color: '#1e293b', lineHeight: 1.4, display: 'inline-block', verticalAlign: 'middle', textAlign: 'center', width: 'auto' }}
                       value={display}
                       onChange={(val) => onUpdateSectionItem(sectionIndex, idx, 'skill', val)}
                       placeholder="Skill"
@@ -656,9 +656,9 @@ export const CreativeCVTemplate: React.FC<CreativeCVTemplateProps> = ({
                 const level = typeof skill === 'object' && skill !== null ? skill.level || skill.niveau || '' : '';
                 const display = level ? `${cleanedVal} (${level.trim()})` : cleanedVal;
                 return (
-                  <span key={idx} style={{ display: 'inline-flex', alignItems: 'center', lineHeight: 'normal', marginRight: '4px', marginBottom: '4px', verticalAlign: 'middle', padding: '2px 6px', borderRadius: '9999px', background: '#f5f3ff', border: '1px solid #a855f7', whiteSpace: 'nowrap', breakInside: 'avoid', pageBreakInside: 'avoid' }}>
+                  <span key={idx} style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', marginRight: '4px', marginBottom: '4px', verticalAlign: 'middle', padding: '2px 6px', borderRadius: '9999px', background: '#f5f3ff', border: '1px solid #a855f7', lineHeight: 1.4, whiteSpace: 'nowrap', breakInside: 'avoid', pageBreakInside: 'avoid' }}>
                     <EditableText
-                      style={{ display: 'flex', alignItems: 'center', height: '12px', fontSize: '9px', lineHeight: 'normal', color: '#1e293b', width: `${Math.max(2, display.length + 1)}ch` }}
+                      style={{ fontSize: '9px', color: '#1e293b', lineHeight: 1.4, display: 'inline-block', verticalAlign: 'middle', textAlign: 'center', width: 'auto' }}
                       value={display}
                       onChange={(val) => onUpdateSectionItem(sectionIndex, idx, 'skill', val)}
                       placeholder="Stärke"
@@ -679,9 +679,9 @@ export const CreativeCVTemplate: React.FC<CreativeCVTemplateProps> = ({
               {items.map((val: any, idx: number) => {
                 const v = typeof val === 'string' ? val : val.label || '';
                 return (
-                  <span key={idx} style={{ display: 'inline-flex', alignItems: 'center', lineHeight: 'normal', marginRight: '4px', marginBottom: '4px', verticalAlign: 'middle', padding: '2px 6px', borderRadius: '9999px', background: '#f0fdfe', border: '1px solid #22c1c3', whiteSpace: 'nowrap', breakInside: 'avoid', pageBreakInside: 'avoid' }}>
+                  <span key={idx} style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', marginRight: '4px', marginBottom: '4px', verticalAlign: 'middle', padding: '2px 6px', borderRadius: '9999px', background: '#f0fdfe', border: '1px solid #22c1c3', lineHeight: 1.4, whiteSpace: 'nowrap', breakInside: 'avoid', pageBreakInside: 'avoid' }}>
                     <EditableText
-                      style={{ display: 'flex', alignItems: 'center', height: '12px', fontSize: '9px', lineHeight: 'normal', color: '#1e293b', width: `${Math.max(2, v.length + 1)}ch` }}
+                      style={{ fontSize: '9px', color: '#1e293b', lineHeight: 1.4, display: 'inline-block', verticalAlign: 'middle', textAlign: 'center', width: 'auto' }}
                       value={v}
                       onChange={(val) => onUpdateSectionItem(sectionIndex, idx, 'label', val)}
                       placeholder="Wert"
@@ -702,9 +702,9 @@ export const CreativeCVTemplate: React.FC<CreativeCVTemplateProps> = ({
               {items.map((hob: any, idx: number) => {
                 const v = typeof hob === 'string' ? hob : hob.label || '';
                 return (
-                  <span key={idx} style={{ display: 'inline-flex', alignItems: 'center', lineHeight: 'normal', marginRight: '4px', marginBottom: '4px', verticalAlign: 'middle', padding: '2px 6px', borderRadius: '9999px', background: '#fff7ed', border: '1px solid #f97316', whiteSpace: 'nowrap', breakInside: 'avoid', pageBreakInside: 'avoid' }}>
+                  <span key={idx} style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', marginRight: '4px', marginBottom: '4px', verticalAlign: 'middle', padding: '2px 6px', borderRadius: '9999px', background: '#fff7ed', border: '1px solid #f97316', lineHeight: 1.4, whiteSpace: 'nowrap', breakInside: 'avoid', pageBreakInside: 'avoid' }}>
                     <EditableText
-                      style={{ display: 'flex', alignItems: 'center', height: '12px', fontSize: '9px', lineHeight: 'normal', color: '#1e293b', width: `${Math.max(2, v.length + 1)}ch` }}
+                      style={{ fontSize: '9px', color: '#1e293b', lineHeight: 1.4, display: 'inline-block', verticalAlign: 'middle', textAlign: 'center', width: 'auto' }}
                       value={v}
                       onChange={(val) => onUpdateSectionItem(sectionIndex, idx, 'label', val)}
                       placeholder="Hobby"
