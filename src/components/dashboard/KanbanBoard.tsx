@@ -277,7 +277,6 @@ export function KanbanBoard({ cvs, onCVUpdate, highlightedCvId }: KanbanBoardPro
               onDragLeave={handleDragLeave}
               onDrop={() => handleDrop(column.id)}
               onAddCard={handleAddCard}
-              maxHeight="520px"
             >
               {showExample && (
                 <KanbanCard
