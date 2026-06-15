@@ -933,8 +933,14 @@ export function CVLiveEditorPage() {
 
   useEffect(() => {
     const paymentSuccess = searchParams.get('payment') === 'success';
-    if (!paymentSuccess || !editorData || !user || !cvId) return;
-    if (!isTemplateReady || !templateConfirmed) return;
+    const isAutoExportFlow = searchParams.get('autoExport') === '1';
+    if ((!paymentSuccess && !isAutoExportFlow) || !editorData || !user || !cvId) return;
+    if (!isTemplateReady) return;
+    // Post-payment requires the user to confirm the template in the
+    // fullscreen picker first. The "PDF nachträglich erstellen"-flow
+    // (autoExport=1, for existing CVs that don't have a pdf_url yet) reuses
+    // the already-saved template, so no confirmation step is needed.
+    if (paymentSuccess && !templateConfirmed) return;
 
     if (autoDownloadTriggeredRef.current || exportInProgressRef.current) return;
     autoDownloadTriggeredRef.current = true;
@@ -955,7 +961,7 @@ export function CVLiveEditorPage() {
 
       const el = await waitForElement(cvPreviewRef, 5000);
       const navigateToDashboard = () => {
-        navigate(`/dashboard?highlightCv=${cvId}`, { replace: true });
+        navigate(`/dashboard?cvReady=${cvId}`, { replace: true });
       };
 
       const existingJobData = jobData || {};
@@ -1192,12 +1198,46 @@ const triggerDirectExport = async () => {
       a.click();
       a.remove();
       URL.revokeObjectURL(url);
+
+      // 6. PDF zusätzlich in Storage hochladen + stored_cvs aktualisieren,
+      //    damit es im Kanban-Board (Karte + Popup) verfügbar ist
+      try {
+        const filePath = `${user.id}/${cvId}.pdf`;
+        const { error: uploadError } = await supabase.storage.from('cv-pdfs').upload(filePath, blob, {
+          contentType: 'application/pdf',
+          upsert: true,
+        });
+        let pdfPublicUrl: string | undefined;
+        if (uploadError) {
+          console.error('[triggerDirectExport] PDF-Upload nach cv-pdfs fehlgeschlagen:', uploadError.message, uploadError);
+        } else {
+          const { data: urlData } = supabase.storage.from('cv-pdfs').getPublicUrl(filePath);
+          pdfPublicUrl = urlData.publicUrl;
+        }
+
+        const { data: currentRow } = await supabase
+          .from('stored_cvs')
+          .select('status')
+          .eq('id', cvId)
+          .maybeSingle();
+        const preservedStatus = currentRow?.status && currentRow.status !== 'completed' ? currentRow.status : 'completed';
+
+        await supabase.from('stored_cvs').update({
+          cv_data: prepareCvDataForSave(editorData),
+          download_unlocked: true,
+          status: preservedStatus,
+          ...(pdfPublicUrl ? { pdf_url: pdfPublicUrl } : {}),
+          updated_at: new Date().toISOString(),
+        }).eq('id', cvId);
+      } catch (e) {
+        console.error('PDF-Upload/Speichern fehlgeschlagen', e);
+      }
     } catch (e) {
       console.error('Export failed', e);
       alert('PDF-Erstellung fehlgeschlagen. Bitte versuche es erneut.');
     } finally {
       setIsExportingPDF(false);
-      navigate(`/dashboard?highlightCv=${cvId}`); // ← diese Zeile neu hinzufügen
+      navigate(`/dashboard?cvReady=${cvId}`);
     }
   };
 
