@@ -364,10 +364,14 @@ function prepareClone(clone: HTMLElement, liveRoot: HTMLElement): void {
   }
 
   // contentEditable spans (ModernCVTemplate)
-  clone.querySelectorAll<HTMLElement>('[contenteditable]').forEach(el => {
-    // Preserve font-size from live element before removing contenteditable
-    const liveIdx = Array.from(liveRoot.querySelectorAll('[contenteditable]')).indexOf(el as any);
-    const liveEl = liveRoot.querySelectorAll('[contenteditable]')[liveIdx] as HTMLElement | null;
+  const liveContentEditables = liveRoot.querySelectorAll<HTMLElement>('[contenteditable]');
+  clone.querySelectorAll<HTMLElement>('[contenteditable]').forEach((el, idx) => {
+    // Preserve font-size from live element before removing contenteditable.
+    // clone is a deep-clone of liveRoot taken just before this loop, so
+    // [contenteditable] elements appear in the same order with the same
+    // count in both trees — match by index (NOT indexOf, which would search
+    // for the clone node inside the live list and always return -1).
+    const liveEl = liveContentEditables[idx] as HTMLElement | undefined;
     const preservedFontSize = liveEl?.style?.fontSize || el.style.fontSize || '';
     const preservedFontWeight = liveEl?.style?.fontWeight || el.style.fontWeight || '';
     const preservedColor = liveEl?.style?.color || el.style.color || '';
@@ -402,7 +406,20 @@ function prepareClone(clone: HTMLElement, liveRoot: HTMLElement): void {
       if (isPlaceholder(text) || text === '') {
         el.textContent = '';
         const d = el.style.display || 'inline';
-        if (d === 'inline' || d === 'inline-block' || d === 'inline-flex' || d === 'none') {
+        // Header contact fields are rendered as <div><span>Icon</span><EditableText/></div>.
+        // If the field is empty, hiding only the EditableText leaves the icon/badge
+        // (e.g. "in" for LinkedIn, 📍/☎/✉) orphaned in the PDF. Hide the whole
+        // icon+field pair instead so nothing is left behind.
+        const parent = el.parentElement;
+        if (
+          parent &&
+          parent.tagName === 'DIV' &&
+          parent.children.length === 2 &&
+          parent.children[1] === el &&
+          parent.children[0].tagName === 'SPAN'
+        ) {
+          parent.style.display = 'none';
+        } else if (d === 'inline' || d === 'inline-block' || d === 'inline-flex' || d === 'none') {
           el.style.display = 'none';
         }
       }
