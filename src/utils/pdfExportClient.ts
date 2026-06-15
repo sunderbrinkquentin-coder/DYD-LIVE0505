@@ -419,7 +419,7 @@ function prepareClone(clone: HTMLElement, liveRoot: HTMLElement): void {
       // the chip's outer span (display:flex + align-items/justify-content,
       // baked from inline-flex) center it via flexbox.
       el.style.display = 'inline';
-      el.style.verticalAlign = 'baseline';
+      el.style.verticalAlign = 'middle';
       el.style.lineHeight = 'normal';
       el.style.textAlign = 'left';
       el.style.width = 'auto';
