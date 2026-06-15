@@ -1,5 +1,5 @@
 import { useState, useCallback, useMemo } from 'react';
-import { Search, X, ChevronLeft, ChevronRight } from 'lucide-react';
+import { Search, X } from 'lucide-react';
 import { supabase } from '../../lib/supabase';
 import { KanbanColumn } from './KanbanColumn';
 import { KanbanCard } from './KanbanCard';
@@ -53,7 +53,6 @@ export function KanbanBoard({ cvs, onCVUpdate, highlightedCvId }: KanbanBoardPro
   const [addModalStatus, setAddModalStatus] = useState<KanbanStatus | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
   const [celebration, setCelebration] = useState<CelebrationInfo | null>(null);
-  const [mobileColumnIndex, setMobileColumnIndex] = useState(0);
 
   const VALID_STATUSES = useMemo(() => new Set<string>(COLUMNS.map((c) => c.id)), []);
 
@@ -199,8 +198,6 @@ export function KanbanBoard({ cvs, onCVUpdate, highlightedCvId }: KanbanBoardPro
     setAddModalStatus(status);
   }, []);
 
-  const mobileColumn = COLUMNS[mobileColumnIndex];
-
   return (
     <>
       <div className="mb-4 flex items-center gap-3">
@@ -224,84 +221,42 @@ export function KanbanBoard({ cvs, onCVUpdate, highlightedCvId }: KanbanBoardPro
         </div>
       </div>
 
-      {/* Mobile: tab-based single column view */}
-      <div className="block md:hidden">
-        <div className="flex items-center gap-1 mb-3 bg-white/5 rounded-xl p-1">
-          {COLUMNS.map((col, idx) => {
-            const count = groupedCVs[col.id]?.length ?? 0;
-            const isActive = idx === mobileColumnIndex;
-            return (
-              <button
-                key={col.id}
-                onClick={() => setMobileColumnIndex(idx)}
-                className={`flex-1 py-1.5 rounded-lg text-xs font-semibold transition-all flex flex-col items-center gap-0.5 ${
-                  isActive
-                    ? 'bg-white text-gray-800 shadow-sm'
-                    : 'text-white/50 hover:text-white/80'
-                }`}
-              >
-                <span className="truncate leading-none">{col.label}</span>
-                {count > 0 && (
-                  <span className={`text-[10px] leading-none font-bold ${isActive ? 'text-gray-500' : 'text-white/30'}`}>
-                    {count}
-                  </span>
-                )}
-              </button>
-            );
-          })}
-        </div>
+      {/* Mobile: all columns stacked as a compact list, each scrolling internally */}
+      <div className="block md:hidden space-y-3">
+        {COLUMNS.map((column) => {
+          const columnCards = groupedCVs[column.id];
+          const showExample = column.id === 'draft' && kanbanCvs.length === 0;
+          const displayCount = showExample ? columnCards.length + 1 : columnCards.length;
 
-        <div className="flex items-center justify-between mb-2">
-          <button
-            onClick={() => setMobileColumnIndex((i) => Math.max(0, i - 1))}
-            disabled={mobileColumnIndex === 0}
-            className="p-1.5 rounded-lg bg-white/5 disabled:opacity-30 hover:bg-white/10 transition-all"
-          >
-            <ChevronLeft className="w-4 h-4 text-white/60" />
-          </button>
-          <span className="text-sm font-semibold text-white/70">{mobileColumn.label}</span>
-          <button
-            onClick={() => setMobileColumnIndex((i) => Math.min(COLUMNS.length - 1, i + 1))}
-            disabled={mobileColumnIndex === COLUMNS.length - 1}
-            className="p-1.5 rounded-lg bg-white/5 disabled:opacity-30 hover:bg-white/10 transition-all"
-          >
-            <ChevronRight className="w-4 h-4 text-white/60" />
-          </button>
-        </div>
-
-        <div className="w-full">
-          {(() => {
-            const columnCards = groupedCVs[mobileColumn.id];
-            const showExample = mobileColumn.id === 'draft' && kanbanCvs.length === 0;
-            const displayCount = showExample ? columnCards.length + 1 : columnCards.length;
-            return (
-              <KanbanColumn
-                column={mobileColumn}
-                cardCount={displayCount}
-                isDragOver={dragOverColumn === mobileColumn.id}
-                onDragOver={(e) => handleDragOver(e, mobileColumn.id)}
-                onDragLeave={handleDragLeave}
-                onDrop={() => handleDrop(mobileColumn.id)}
-                onAddCard={handleAddCard}
-              >
-                {showExample && (
-                  <KanbanCard cv={EXAMPLE_CARD} status="draft" onDragStart={() => {}} isExample />
-                )}
-                {columnCards.map((cv) => (
-                  <KanbanCard
-                    key={cv.id}
-                    cv={cv}
-                    status={getCardStatus(cv)}
-                    onDragStart={() => handleDragStart(cv)}
-                    onUpdate={onCVUpdate}
-                    onStatusChange={(s) => handleStatusChange(cv, s)}
-                    isHighlighted={!!highlightedCvId && cv.id === highlightedCvId}
-                  />
-                ))}
-              </KanbanColumn>
-            );
-          })()}
-        </div>
+          return (
+            <KanbanColumn
+              key={column.id}
+              column={column}
+              cardCount={displayCount}
+              isDragOver={dragOverColumn === column.id}
+              onDragOver={(e) => handleDragOver(e, column.id)}
+              onDragLeave={handleDragLeave}
+              onDrop={() => handleDrop(column.id)}
+              onAddCard={handleAddCard}
+              compact
+            >
+              {showExample && (
+                <KanbanCard cv={EXAMPLE_CARD} status="draft" onDragStart={() => {}} isExample />
+              )}
+              {columnCards.map((cv) => (
+                <KanbanCard
+                  key={cv.id}
+                  cv={cv}
+                  status={getCardStatus(cv)}
+                  onDragStart={() => handleDragStart(cv)}
+                  onUpdate={onCVUpdate}
+                  onStatusChange={(s) => handleStatusChange(cv, s)}
+                  isHighlighted={!!highlightedCvId && cv.id === highlightedCvId}
+                />
+              ))}
+            </KanbanColumn>
+          );
+        })}
       </div>
 
       {/* Desktop: horizontal scroll view */}
