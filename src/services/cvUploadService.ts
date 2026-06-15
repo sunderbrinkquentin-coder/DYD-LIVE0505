@@ -1,6 +1,6 @@
 /**
  * src/services/cvUploadService.ts
- * Unified Upload Logic - SDK-Only Flow
+ * Unified Upload Logic - SDK-Only Flow (Handy- & PC-stabilisiert)
  */
 
 import { supabase } from '../lib/supabase';
@@ -66,24 +66,22 @@ export async function uploadCvAndCreateRecord(
 
   try {
     // ─────────────────────────────────────────────────────────────────────
-    // STEP 1: Upload file to Supabase Storage via SDK
-    // ─────────────────────────────────────────────────────────────────────
-// ─────────────────────────────────────────────────────────────────────
-    // STEP 1: Upload file to Supabase Storage via SDK (Handy-optimiert)
+    // STEP 1: Upload file to Supabase Storage (Handy-optimiert)
     // ─────────────────────────────────────────────────────────────────────
     const sanitizedFileName = sanitizeFileName(file.name);
     const filePath = `${STORAGE_CONFIG.UPLOAD_PATH_PREFIX}/${Date.now()}_${sanitizedFileName}`;
+    
+    // FIX: storagePath global für die Funktion als Alias definieren
+    const storagePath = filePath; 
 
-    logStep('Uploading to storage', { path: filePath, sizeMB: (file.size / 1024 / 1024).toFixed(2) });
+    logStep('Uploading to storage', { path: storagePath, sizeMB: (file.size / 1024 / 1024).toFixed(2) });
 
-    // NEU & CRITICAL FÜR HANDYS: Wir lesen die Datei explizit als ArrayBuffer ein.
-    // Das zwingt iOS/Android, die Datei JETZT komplett lokal bereitzustellen!
+    // Zwingt iOS/Android die Cloud-Datei physisch im RAM bereitzustellen
     let fileBody: Uint8Array;
     try {
       const arrayBuffer = await file.arrayBuffer();
       fileBody = new Uint8Array(arrayBuffer);
       
-      // Sicherheits-Check: Hat das Handy uns eine leere Datei untergejubelt?
       if (fileBody.length === 0) {
         throw new Error("Die ausgewählte Datei ist leer oder wurde vom Mobilgerät blockiert.");
       }
@@ -92,14 +90,26 @@ export async function uploadCvAndCreateRecord(
       throw new Error(`Datei konnte auf dem Mobilgerät nicht gelesen werden: ${readErr.message}`);
     }
 
-    // Jetzt laden wir das sichere 'fileBody' hoch, statt des unzuverlässigen 'file'-Objekts
+    // Sicherer Upload via ArrayBuffer
     const { data: uploadData, error: uploadError } = await supabase.storage
       .from(CV_BUCKET)
-      .upload(filePath, fileBody, {
+      .upload(storagePath, fileBody, {
         cacheControl: '3600',
         upsert: true,
-        contentType: file.type || 'application/pdf', // Fallback falls das Handy den Typ verschluckt
+        contentType: file.type || 'application/pdf',
       });
+
+    // FIX: Fehlerabfrage für den Upload hinzufügen
+    if (uploadError) {
+      logError('storage upload', uploadError, { storagePath, bucket: CV_BUCKET });
+      throw new Error(`Storage-Upload fehlgeschlagen: ${uploadError.message}`);
+    }
+
+    if (!uploadData?.path) {
+      throw new Error('Storage-Upload fehlgeschlagen: Kein Pfad zurückgegeben');
+    }
+
+    logStep('File stored', { storagePath, sdkPath: uploadData.path });
 
     // ─────────────────────────────────────────────────────────────────────
     // STEP 2: Generate URLs + Create DB entry in parallel
@@ -160,14 +170,6 @@ export async function uploadCvAndCreateRecord(
 
     logStep('Invoking trigger-cv-check edge function', { uploadId });
 
-    // Must exceed the edge function's own worst-case duration (2 Make
-    // attempts: 28s + 4s delay + 28s ≈ 60s). If this is shorter, the client
-    // gives up while the edge function is still running server-side, and
-    // CvResultPage's `?retry=1` fires a SECOND trigger-cv-check invocation —
-    // if that second one later fails, its markFailed() can overwrite a
-    // status that the first (slow but successful) invocation already set to
-    // completed, causing intermittent "failed" results on slower (mobile)
-    // connections even though the analysis actually succeeded.
     const TRIGGER_TIMEOUT_MS = 65_000;
     let triggerSucceeded = false;
 
