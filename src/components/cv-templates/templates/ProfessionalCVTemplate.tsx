@@ -634,9 +634,9 @@ export const ProfessionalCVTemplate: React.FC<ProfessionalCVTemplateProps> = ({
 
                 const display = level ? `${cleanedVal} (${level.trim()})` : cleanedVal;
                 return (
-                  <span key={idx} style={{ display: 'inline-flex', alignItems: 'center', lineHeight: 'normal', marginRight: '5px', marginBottom: '5px', verticalAlign: 'middle', padding: '2px 8px', borderRadius: '9999px', border: '1px solid #cbd5e1', background: '#f1f5f9', whiteSpace: 'nowrap', breakInside: 'avoid', pageBreakInside: 'avoid' }}>
+                  <span key={idx} style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', marginRight: '5px', marginBottom: '5px', verticalAlign: 'middle', padding: '2px 8px', borderRadius: '9999px', border: '1px solid #cbd5e1', background: '#f1f5f9', whiteSpace: 'nowrap', breakInside: 'avoid', pageBreakInside: 'avoid', lineHeight: 1.4 }}>
                     <EditableText
-                      style={{ display: 'flex', alignItems: 'center', height: '12px', fontSize: '9px', lineHeight: 'normal', color: '#1e293b', width: `${Math.max(2, display.length + 1)}ch` }}
+                      style={{ fontSize: '9px', color: '#1e293b', lineHeight: 1.4, display: 'inline-block', verticalAlign: 'middle', textAlign: 'center', width: 'auto' }}
                       value={display}
                       onChange={(val) => onUpdateSectionItem(sectionIndex, idx, 'skill', val)}
                       placeholder="Skill"
@@ -664,9 +664,9 @@ export const ProfessionalCVTemplate: React.FC<ProfessionalCVTemplateProps> = ({
 
                 const display = level ? `${cleanedVal} (${level.trim()})` : cleanedVal;
                 return (
-                  <span key={idx} style={{ display: 'inline-flex', alignItems: 'center', lineHeight: 'normal', marginRight: '5px', marginBottom: '5px', verticalAlign: 'middle', padding: '2px 8px', borderRadius: '9999px', border: '1px solid #cbd5e1', background: '#f1f5f9', whiteSpace: 'nowrap', breakInside: 'avoid', pageBreakInside: 'avoid' }}>
+                  <span key={idx} style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', marginRight: '5px', marginBottom: '5px', verticalAlign: 'middle', padding: '2px 8px', borderRadius: '9999px', border: '1px solid #cbd5e1', background: '#f1f5f9', whiteSpace: 'nowrap', breakInside: 'avoid', pageBreakInside: 'avoid', lineHeight: 1.4 }}>
                     <EditableText
-                      style={{ display: 'flex', alignItems: 'center', height: '12px', fontSize: '9px', lineHeight: 'normal', color: '#1e293b', width: `${Math.max(2, display.length + 1)}ch` }}
+                      style={{ fontSize: '9px', color: '#1e293b', lineHeight: 1.4, display: 'inline-block', verticalAlign: 'middle', textAlign: 'center', width: 'auto' }}
                       value={display}
                       onChange={(val) => onUpdateSectionItem(sectionIndex, idx, 'skill', val)}
                       placeholder="Stärke"
@@ -693,9 +693,9 @@ export const ProfessionalCVTemplate: React.FC<ProfessionalCVTemplateProps> = ({
                 if (cleanedV === '') return null;
 
                 return (
-                  <span key={idx} style={{ display: 'inline-flex', alignItems: 'center', lineHeight: 'normal', marginRight: '5px', marginBottom: '5px', verticalAlign: 'middle', padding: '2px 8px', borderRadius: '9999px', border: '1px solid #cbd5e1', background: '#f1f5f9', whiteSpace: 'nowrap', breakInside: 'avoid', pageBreakInside: 'avoid' }}>
+                  <span key={idx} style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', marginRight: '5px', marginBottom: '5px', verticalAlign: 'middle', padding: '2px 8px', borderRadius: '9999px', border: '1px solid #cbd5e1', background: '#f1f5f9', whiteSpace: 'nowrap', breakInside: 'avoid', pageBreakInside: 'avoid', lineHeight: 1.4 }}>
                     <EditableText
-                      style={{ display: 'flex', alignItems: 'center', height: '12px', fontSize: '9px', lineHeight: 'normal', color: '#1e293b', width: `${Math.max(2, cleanedV.length + 1)}ch` }}
+                      style={{ fontSize: '9px', color: '#1e293b', lineHeight: 1.4, display: 'inline-block', verticalAlign: 'middle', textAlign: 'center', width: 'auto' }}
                       value={cleanedV}
                       onChange={(val) => onUpdateSectionItem(sectionIndex, idx, 'label', val)}
                       placeholder="Wert"
@@ -722,9 +722,9 @@ export const ProfessionalCVTemplate: React.FC<ProfessionalCVTemplateProps> = ({
                 if (cleanedV === '') return null;
 
                 return (
-                  <span key={idx} style={{ display: 'inline-flex', alignItems: 'center', lineHeight: 'normal', marginRight: '5px', marginBottom: '5px', verticalAlign: 'middle', padding: '2px 8px', borderRadius: '9999px', border: '1px solid #cbd5e1', background: '#f1f5f9', whiteSpace: 'nowrap', breakInside: 'avoid', pageBreakInside: 'avoid' }}>
+                  <span key={idx} style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', marginRight: '5px', marginBottom: '5px', verticalAlign: 'middle', padding: '2px 8px', borderRadius: '9999px', border: '1px solid #cbd5e1', background: '#f1f5f9', whiteSpace: 'nowrap', breakInside: 'avoid', pageBreakInside: 'avoid', lineHeight: 1.4 }}>
                     <EditableText
-                      style={{ display: 'flex', alignItems: 'center', height: '12px', fontSize: '9px', lineHeight: 'normal', color: '#1e293b', width: `${Math.max(2, cleanedV.length + 1)}ch` }}
+                      style={{ fontSize: '9px', color: '#1e293b', lineHeight: 1.4, display: 'inline-block', verticalAlign: 'middle', textAlign: 'center', width: 'auto' }}
                       value={cleanedV}
                       onChange={(val) => onUpdateSectionItem(sectionIndex, idx, 'label', val)}
                       placeholder="Hobby"
