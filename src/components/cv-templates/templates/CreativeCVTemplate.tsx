@@ -615,7 +615,7 @@ export const CreativeCVTemplate: React.FC<CreativeCVTemplateProps> = ({
       case 'skills':
         return (
           <div key={sectionIndex} style={{ breakInside: 'avoid', pageBreakInside: 'avoid' }}>
-            <div style={{ marginBottom: '2px', fontSize: '9px', fontWeight: 600, letterSpacing: '0.05em', color: '#64748b', textTransform: 'uppercase' }}>
+            <div style={{ marginBottom: '6px', fontSize: '9px', fontWeight: 600, letterSpacing: '0.05em', color: '#64748b', textTransform: 'uppercase' }}>
               Fachlich
             </div>
             <div data-chip-row style={{ display: 'block', overflow: 'visible' }}>
@@ -644,7 +644,7 @@ export const CreativeCVTemplate: React.FC<CreativeCVTemplateProps> = ({
       case 'soft_skills':
         return (
           <div key={sectionIndex} style={{ breakInside: 'avoid', pageBreakInside: 'avoid' }}>
-            <div style={{ marginBottom: '2px', fontSize: '9px', fontWeight: 600, letterSpacing: '0.05em', color: '#64748b', textTransform: 'uppercase' }}>
+            <div style={{ marginBottom: '6px', fontSize: '9px', fontWeight: 600, letterSpacing: '0.05em', color: '#64748b', textTransform: 'uppercase' }}>
               Persönlich
             </div>
             <div data-chip-row style={{ display: 'block', overflow: 'visible' }}>
