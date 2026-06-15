@@ -11,12 +11,6 @@ interface KanbanColumnProps {
   onDrop: () => void;
   isDragOver: boolean;
   onAddCard: (status: KanbanStatus) => void;
-  /** Max height of the card list before it scrolls internally. The column
-   * itself always fills the width of its grid/flex cell — on mobile that's
-   * the full row width (stacked layout), on desktop one of 5 equal grid
-   * columns. This keeps every area visible at once, with only the card list
-   * scrolling for columns that have many entries. */
-  maxHeight?: string;
 }
 
 const STATUS_COLORS: Record<string, { border: string; bg: string; header: string; dot: string }> = {
@@ -36,7 +30,6 @@ export function KanbanColumn({
   onDrop,
   isDragOver,
   onAddCard,
-  maxHeight = '440px',
 }: KanbanColumnProps) {
   const colors = STATUS_COLORS[column.id];
 
@@ -61,16 +54,19 @@ export function KanbanColumn({
         </button>
       </div>
 
+      {/* Card list: grows to fit ALL cards in full — no height cap, no
+          internal scroll. Every card with all its information is always
+          fully visible; the page scrolls normally if the list is long. */}
       <div
         onDragOver={onDragOver}
         onDragLeave={onDragLeave}
         onDrop={onDrop}
-        className={`flex flex-col gap-2.5 p-2.5 rounded-lg border-2 overflow-y-auto transition-all duration-150 ${
+        className={`flex flex-col gap-2.5 p-2.5 rounded-lg border-2 transition-all duration-150 ${
           isDragOver
             ? `${colors.border} bg-white shadow-inner scale-[1.01]`
             : `border-transparent ${colors.bg}`
         }`}
-        style={{ maxHeight, minHeight: '56px' }}
+        style={{ minHeight: '80px' }}
       >
         {children}
       </div>
