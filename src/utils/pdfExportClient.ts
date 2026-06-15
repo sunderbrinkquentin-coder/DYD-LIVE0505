@@ -407,34 +407,47 @@ function prepareClone(clone: HTMLElement, liveRoot: HTMLElement): void {
         }
       }
     } else {
-      // Chip text: bakeComputedStyles baked the live element's
-      // display:inline-block + verticalAlign:middle + lineHeight onto the
-      // clone. html2canvas has known issues rendering that exact
-      // combination as a flex child — the text paints roughly one
-      // line-height below the chip's background/border, which is exactly
-      // the "boxes cover the text" symptom seen in exported PDFs (the live
-      // editor, without html2canvas, renders the same styles correctly).
-      // Fix: collapse the text node to the simplest possible inline content
-      // with no box-model/vertical-align complications of its own, and let
-      // the chip's outer span (display:flex + align-items/justify-content,
-      // baked from inline-flex) center it via flexbox.
-      el.style.display = 'inline';
-      el.style.verticalAlign = 'middle';
-      el.style.lineHeight = 'normal';
-      el.style.textAlign = 'left';
-      el.style.width = 'auto';
-      el.style.minWidth = '0';
-      el.style.maxWidth = 'none';
-
+      // Chip text: rather than guessing which combination of
+      // display/align-items/vertical-align html2canvas honors, measure
+      // exactly where this text sits inside its chip in the LIVE editor
+      // (which renders correctly) and replicate that geometry on the clone.
+      // offsetWidth/offsetHeight/offsetTop are unaffected by the
+      // .cv-scale-wrapper transform (mobile scaling), so they're already in
+      // the same 794px-page coordinate space as the clone. getBoundingClientRect
+      // IS affected by that transform, so differences from it are divided by
+      // K (visual size / layout size) to undo the scale.
       const chipSpan = el.parentElement;
-      if (chipSpan && chipSpan.tagName.toLowerCase() === 'span') {
-        const chipCs = chipSpan.style.display;
-        if (chipCs === 'inline-flex' || chipCs === 'flex') {
-          chipSpan.style.display = 'flex';
+      const liveChipSpan = liveEl?.parentElement as HTMLElement | null | undefined;
+      if (liveEl && chipSpan && liveChipSpan) {
+        const rootRect = liveRoot.getBoundingClientRect();
+        const K = liveRoot.offsetWidth > 0 && rootRect.width > 0 ? rootRect.width / liveRoot.offsetWidth : 1;
+
+        const liveTextRect = liveEl.getBoundingClientRect();
+        const liveChipRect = liveChipSpan.getBoundingClientRect();
+
+        const offsetTop = (liveTextRect.top - liveChipRect.top) / K;
+        const offsetLeft = (liveTextRect.left - liveChipRect.left) / K;
+        const textW = liveEl.offsetWidth;
+        const textH = liveEl.offsetHeight;
+        const chipW = liveChipSpan.offsetWidth;
+        const chipH = liveChipSpan.offsetHeight;
+
+        if (chipW > 0 && chipH > 0 && textW > 0 && textH > 0) {
+          chipSpan.style.position = 'relative';
+          chipSpan.style.display = 'inline-block';
+          chipSpan.style.width = `${chipW}px`;
+          chipSpan.style.height = `${chipH}px`;
+
+          el.style.position = 'absolute';
+          el.style.display = 'block';
+          el.style.top = `${offsetTop}px`;
+          el.style.left = `${offsetLeft}px`;
+          el.style.width = `${textW}px`;
+          el.style.height = `${textH}px`;
+          el.style.margin = '0';
+          el.style.whiteSpace = 'nowrap';
+          el.style.lineHeight = 'normal';
         }
-        chipSpan.style.alignItems = 'center';
-        chipSpan.style.justifyContent = 'center';
-        chipSpan.style.lineHeight = 'normal';
       }
     }
   });
