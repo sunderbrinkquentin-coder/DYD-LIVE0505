@@ -532,12 +532,12 @@ export const ClassicCVTemplate: React.FC<ClassicCVTemplateProps> = ({
 
             return (
               <li key={idx} style={{ display: 'inline-flex', marginRight: '5px', marginBottom: '5px', verticalAlign: 'middle', listStyle: 'none' }}>
-                <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded bg-[#f8fafc] border border-[#e2e8f0] text-[9px] leading-[normal] font-medium text-slate-700 whitespace-nowrap">
+                <span className="inline-flex items-center justify-center gap-1 px-2.5 py-1 rounded bg-[#f8fafc] border border-[#e2e8f0] text-[9px] leading-[1.4] font-medium text-slate-700 whitespace-nowrap">
                   <EditableText
                     value={display}
                     onChange={(val) => onUpdateSectionItem(index, idx, 'skill', val)}
                     className="text-slate-700 bg-transparent"
-                    style={{ display: 'flex', alignItems: 'center', height: '12px', width: `${Math.max(2, display.length + 1)}ch`, fontSize: '9px', lineHeight: 'normal' }}
+                    style={{ display: 'inline-block', verticalAlign: 'middle', textAlign: 'center', width: 'auto', fontSize: '9px', lineHeight: 1.4 }}
                     placeholder="Eintrag"
                   />
                   <button
