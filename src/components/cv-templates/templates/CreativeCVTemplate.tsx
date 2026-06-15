@@ -1,5 +1,5 @@
 // src/components/cv-templates/templates/CreativeCVTemplate.tsx
-import React, { useEffect, useLayoutEffect, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react';
 
 type EditorSection = {
   type: string;
@@ -50,6 +50,70 @@ const SectionTitle: React.FC<{ children: React.ReactNode }> = ({ children }) => 
 
 const PAGE_HEIGHT_PX = 1122;
 
+const EditableText: React.FC<{
+  value?: string;
+  onChange: (value: string) => void;
+  className?: string;
+  placeholder?: string;
+  multiline?: boolean;
+  style?: React.CSSProperties;
+}> = ({ value, onChange, className = '', placeholder = '', multiline = false, style }) => {
+  const ref = useRef<HTMLDivElement>(null);
+  const isComposing = useRef(false);
+  const lastValue = useRef(value ?? '');
+
+  useEffect(() => {
+    if (!ref.current) return;
+    if (document.activeElement === ref.current) return;
+    const v = value ?? '';
+    if (ref.current.textContent !== v) {
+      ref.current.textContent = v;
+    }
+    lastValue.current = v;
+  }, [value]);
+
+  const handleInput = useCallback(() => {
+    if (isComposing.current) return;
+    const text = ref.current?.textContent ?? '';
+    if (text !== lastValue.current) {
+      lastValue.current = text;
+      onChange(text);
+    }
+  }, [onChange]);
+
+  const handleKeyDown = useCallback((e: React.KeyboardEvent<HTMLDivElement>) => {
+    if (!multiline && e.key === 'Enter') {
+      e.preventDefault();
+      e.currentTarget.blur();
+    }
+  }, [multiline]);
+
+  return (
+    <div
+      ref={ref}
+      contentEditable
+      suppressContentEditableWarning
+      onInput={handleInput}
+      onKeyDown={handleKeyDown}
+      onCompositionStart={() => { isComposing.current = true; }}
+      onCompositionEnd={() => { isComposing.current = false; handleInput(); }}
+      data-placeholder={placeholder}
+      className={[
+        'outline-none focus:ring-0 cursor-text w-full',
+        'empty:before:content-[attr(data-placeholder)] empty:before:text-slate-300',
+        className,
+      ].join(' ')}
+      style={{
+        whiteSpace: multiline ? 'pre-wrap' : 'nowrap',
+        wordBreak: multiline ? 'break-word' : 'normal',
+        overflow: multiline ? 'visible' : 'hidden',
+        textOverflow: multiline ? 'unset' : 'ellipsis',
+        ...style,
+      }}
+    />
+  );
+};
+
 export const CreativeCVTemplate: React.FC<CreativeCVTemplateProps> = ({
   personalInfo,
   summary,
@@ -65,7 +129,6 @@ export const CreativeCVTemplate: React.FC<CreativeCVTemplateProps> = ({
   pageBreakItems,
   pageCount, // 🔥 direkt als Prop
 }) => {
-  const summaryRef = useRef<HTMLTextAreaElement>(null);
   const contentRef = useRef<HTMLDivElement | null>(null);
   const [containerMinHeight, setContainerMinHeight] = useState(PAGE_HEIGHT_PX);
 
@@ -81,13 +144,6 @@ export const CreativeCVTemplate: React.FC<CreativeCVTemplateProps> = ({
     ro.observe(el);
     return () => ro.disconnect();
   }, []);
-
-  useEffect(() => {
-    if (summaryRef.current) {
-      summaryRef.current.style.height = 'auto';
-      summaryRef.current.style.height = summaryRef.current.scrollHeight + 'px';
-    }
-  }, [summary]);
 
   // ─────────── Bullet-Helper ───────────
   const getBullets = (item: any): string[] => {
@@ -199,48 +255,49 @@ export const CreativeCVTemplate: React.FC<CreativeCVTemplateProps> = ({
                 >
                   <div className="flex justify-between items-start gap-2" style={{ breakInside: 'avoid', pageBreakInside: 'avoid' }}>
                     <div className="flex-1 min-w-0">
-                      <input
-                        className="font-bold text-[11px] outline-none w-full bg-transparent text-slate-900"
+                      <EditableText
+                        className="font-bold text-[11px] text-slate-900"
                         value={exp.title || exp.position || ''}
-                        onChange={(e) =>
-                          onUpdateSectionItem(sectionIndex, idx, 'title', e.target.value)
+                        onChange={(val) =>
+                          onUpdateSectionItem(sectionIndex, idx, 'title', val)
                         }
                         placeholder="Position"
                       />
-                      <input
-                        className="outline-none bg-transparent w-full text-[10px] text-slate-500 mt-0.5"
+                      <EditableText
+                        className="text-[10px] text-slate-500 mt-0.5"
                         value={exp.company || ''}
-                        onChange={(e) =>
-                          onUpdateSectionItem(sectionIndex, idx, 'company', e.target.value)
+                        onChange={(val) =>
+                          onUpdateSectionItem(sectionIndex, idx, 'company', val)
                         }
                         placeholder="Unternehmen"
                       />
                       {(exp.location || exp.ort) && (
-                        <input
-                          className="outline-none bg-transparent w-full text-[9.5px] text-slate-400 mt-0.5"
+                        <EditableText
+                          className="text-[9.5px] text-slate-400 mt-0.5"
                           value={exp.location || exp.ort || ''}
-                          onChange={(e) =>
-                            onUpdateSectionItem(sectionIndex, idx, 'location', e.target.value)
+                          onChange={(val) =>
+                            onUpdateSectionItem(sectionIndex, idx, 'location', val)
                           }
                           placeholder="Ort"
                         />
                       )}
                     </div>
                     <div className="text-[9px] text-slate-500 whitespace-nowrap flex-shrink-0 flex items-center gap-0.5">
-                      <input
-                        className="outline-none bg-transparent w-14 text-right"
+                      <EditableText
+                        className="text-right"
+                        style={{ width: '40px' }}
                         value={exp.date_from || ''}
-                        onChange={(e) =>
-                          onUpdateSectionItem(sectionIndex, idx, 'date_from', e.target.value)
+                        onChange={(val) =>
+                          onUpdateSectionItem(sectionIndex, idx, 'date_from', val)
                         }
                         placeholder="Von"
                       />
                       –
-                      <input
-                        className="outline-none bg-transparent w-14"
+                      <EditableText
+                        style={{ width: '40px' }}
                         value={exp.date_to || ''}
-                        onChange={(e) =>
-                          onUpdateSectionItem(sectionIndex, idx, 'date_to', e.target.value)
+                        onChange={(val) =>
+                          onUpdateSectionItem(sectionIndex, idx, 'date_to', val)
                         }
                         placeholder="Bis"
                       />
@@ -252,23 +309,12 @@ export const CreativeCVTemplate: React.FC<CreativeCVTemplateProps> = ({
                       {bullets.map((bp: string, bIdx: number) => (
                         <li key={bIdx} style={{ display: 'flex', alignItems: 'flex-start', gap: '4px', breakInside: 'avoid', pageBreakInside: 'avoid' }}>
                           <span style={{ flexShrink: 0, color: '#22c1c3', fontSize: '9.5px', lineHeight: '1.375', userSelect: 'none' }}>•</span>
-                          <textarea
-                            className="flex-1 bg-transparent outline-none resize-none overflow-hidden leading-snug text-slate-700 !text-[9.5px]"
-                            style={{ minHeight: '20px', height: 'auto' }}
+                          <EditableText
+                            multiline
+                            className="flex-1 leading-snug text-slate-700 !text-[9.5px]"
                             value={bp}
-                            onChange={(e) => {
-                              e.target.style.height = 'auto';
-                              e.target.style.height = e.target.scrollHeight + 'px';
-                              handleBulletChange(sectionIndex, idx, bIdx, e.target.value, exp);
-                            }}
-                            onInput={(e) => {
-                              const target = e.target as HTMLTextAreaElement;
-                              target.style.height = 'auto';
-                              target.style.height = target.scrollHeight + 'px';
-                            }}
-                            onFocus={(e) => {
-                              e.target.style.height = 'auto';
-                              e.target.style.height = e.target.scrollHeight + 'px';
+                            onChange={(val) => {
+                              handleBulletChange(sectionIndex, idx, bIdx, val, exp);
                             }}
                             placeholder="Aufgabe / Erfolg"
                           />
@@ -286,19 +332,13 @@ export const CreativeCVTemplate: React.FC<CreativeCVTemplateProps> = ({
                     </ul>
                   ) : (
                     <div style={{ breakInside: 'avoid', pageBreakInside: 'avoid' }}>
-                      <textarea
-                        className="mt-0.5 w-full text-[9.5px] text-slate-700 outline-none resize-none overflow-hidden bg-transparent leading-snug"
-                        style={{ minHeight: '40px', height: 'auto' }}
+                      <EditableText
+                        multiline
+                        className="mt-0.5 text-[9.5px] text-slate-700 leading-snug"
+                        style={{ minHeight: '20px' }}
                         value={exp.description || ''}
-                        onChange={(e) => {
-                          e.target.style.height = 'auto';
-                          e.target.style.height = e.target.scrollHeight + 'px';
-                          onUpdateSectionItem(sectionIndex, idx, 'description', e.target.value);
-                        }}
-                        onInput={(e) => {
-                          const target = e.target as HTMLTextAreaElement;
-                          target.style.height = 'auto';
-                          target.style.height = target.scrollHeight + 'px';
+                        onChange={(val) => {
+                          onUpdateSectionItem(sectionIndex, idx, 'description', val);
                         }}
                         placeholder="Aufgaben und Erfolge (jede Zeile = eigener Punkt)"
                       />
@@ -347,11 +387,11 @@ export const CreativeCVTemplate: React.FC<CreativeCVTemplateProps> = ({
                   style={{ display: 'block', breakInside: 'auto', pageBreakInside: 'auto', ...(spacer > 0 ? { marginTop: `${spacer}px` } : {}) }}
                 >
                   <div style={{ breakInside: 'avoid', pageBreakInside: 'avoid' }}>
-                    <input
-                      className="font-bold text-[11px] outline-none w-full bg-transparent text-slate-900"
+                    <EditableText
+                      className="font-bold text-[11px] text-slate-900"
                       value={proj.title || proj.name || ''}
-                      onChange={(e) =>
-                        onUpdateSectionItem(sectionIndex, idx, 'title', e.target.value)
+                      onChange={(val) =>
+                        onUpdateSectionItem(sectionIndex, idx, 'title', val)
                       }
                       placeholder="Projekt"
                     />
@@ -362,23 +402,12 @@ export const CreativeCVTemplate: React.FC<CreativeCVTemplateProps> = ({
                       {bullets.map((bp: string, bIdx: number) => (
                         <li key={bIdx} style={{ display: 'flex', alignItems: 'flex-start', gap: '4px', breakInside: 'avoid', pageBreakInside: 'avoid' }}>
                           <span style={{ flexShrink: 0, color: '#22c1c3', fontSize: '9.5px', lineHeight: '1.375', userSelect: 'none' }}>•</span>
-                          <textarea
-                            className="flex-1 bg-transparent outline-none resize-none overflow-hidden leading-snug text-slate-700 !text-[9.5px]"
-                            style={{ minHeight: '20px', height: 'auto' }}
+                          <EditableText
+                            multiline
+                            className="flex-1 leading-snug text-slate-700 !text-[9.5px]"
                             value={bp}
-                            onChange={(e) => {
-                              e.target.style.height = 'auto';
-                              e.target.style.height = e.target.scrollHeight + 'px';
-                              handleBulletChange(sectionIndex, idx, bIdx, e.target.value, proj);
-                            }}
-                            onInput={(e) => {
-                              const target = e.target as HTMLTextAreaElement;
-                              target.style.height = 'auto';
-                              target.style.height = target.scrollHeight + 'px';
-                            }}
-                            onFocus={(e) => {
-                              e.target.style.height = 'auto';
-                              e.target.style.height = e.target.scrollHeight + 'px';
+                            onChange={(val) => {
+                              handleBulletChange(sectionIndex, idx, bIdx, val, proj);
                             }}
                             placeholder="Detail / Ergebnis"
                           />
@@ -396,19 +425,13 @@ export const CreativeCVTemplate: React.FC<CreativeCVTemplateProps> = ({
                     </ul>
                   ) : (
                     <div style={{ breakInside: 'avoid', pageBreakInside: 'avoid' }}>
-                      <textarea
-                        className="mt-0.5 w-full text-[9.5px] text-slate-700 outline-none resize-none overflow-hidden bg-transparent leading-snug"
-                        style={{ minHeight: '25px', height: 'auto' }}
+                      <EditableText
+                        multiline
+                        className="mt-0.5 text-[9.5px] text-slate-700 leading-snug"
+                        style={{ minHeight: '20px' }}
                         value={proj.description || ''}
-                        onChange={(e) => {
-                          e.target.style.height = 'auto';
-                          e.target.style.height = e.target.scrollHeight + 'px';
-                          onUpdateSectionItem(sectionIndex, idx, 'description', e.target.value);
-                        }}
-                        onInput={(e) => {
-                          const target = e.target as HTMLTextAreaElement;
-                          target.style.height = 'auto';
-                          target.style.height = target.scrollHeight + 'px';
+                        onChange={(val) => {
+                          onUpdateSectionItem(sectionIndex, idx, 'description', val);
                         }}
                         placeholder="Kurzbeschreibung des Projekts"
                       />
@@ -455,46 +478,47 @@ export const CreativeCVTemplate: React.FC<CreativeCVTemplateProps> = ({
                 >
                   <div className="flex justify-between items-start gap-2">
                     <div className="flex-1 min-w-0">
-                      <input
-                        className="font-bold text-[11px] outline-none w-full bg-transparent text-slate-900"
+                      <EditableText
+                        className="font-bold text-[11px] text-slate-900"
                         value={edu.degree || ''}
-                        onChange={(e) =>
-                          onUpdateSectionItem(sectionIndex, idx, 'degree', e.target.value)
+                        onChange={(val) =>
+                          onUpdateSectionItem(sectionIndex, idx, 'degree', val)
                         }
                         placeholder="Abschluss"
                       />
-                      <input
-                        className="outline-none bg-transparent w-full text-[10px] text-slate-500 mt-0.5"
+                      <EditableText
+                        className="text-[10px] text-slate-500 mt-0.5"
                         value={edu.institution || ''}
-                        onChange={(e) =>
-                          onUpdateSectionItem(sectionIndex, idx, 'institution', e.target.value)
+                        onChange={(val) =>
+                          onUpdateSectionItem(sectionIndex, idx, 'institution', val)
                         }
                         placeholder="Institution"
                       />
                       {edu.location && (
-                        <input
-                          className="outline-none bg-transparent w-full text-[9.5px] text-slate-400 mt-0.5"
+                        <EditableText
+                          className="text-[9.5px] text-slate-400 mt-0.5"
                           value={edu.location || ''}
-                          onChange={(e) => onUpdateSectionItem(sectionIndex, idx, 'location', e.target.value)}
+                          onChange={(val) => onUpdateSectionItem(sectionIndex, idx, 'location', val)}
                           placeholder="Ort"
                         />
                       )}
                     </div>
                     <div className="text-[9.5px] text-slate-500 whitespace-nowrap flex-shrink-0 flex items-center gap-0.5">
-                      <input
-                        className="outline-none bg-transparent w-14 text-right"
+                      <EditableText
+                        className="text-right"
+                        style={{ width: '40px' }}
                         value={edu.date_from || ''}
-                        onChange={(e) =>
-                          onUpdateSectionItem(sectionIndex, idx, 'date_from', e.target.value)
+                        onChange={(val) =>
+                          onUpdateSectionItem(sectionIndex, idx, 'date_from', val)
                         }
                         placeholder="Von"
                       />
                       –
-                      <input
-                        className="outline-none bg-transparent w-14"
+                      <EditableText
+                        style={{ width: '40px' }}
                         value={edu.date_to || ''}
-                        onChange={(e) =>
-                          onUpdateSectionItem(sectionIndex, idx, 'date_to', e.target.value)
+                        onChange={(val) =>
+                          onUpdateSectionItem(sectionIndex, idx, 'date_to', val)
                         }
                         placeholder="Bis"
                       />
@@ -503,23 +527,22 @@ export const CreativeCVTemplate: React.FC<CreativeCVTemplateProps> = ({
                   {(edu.grade || edu.grades || edu.note) && (
                     <div className="mt-1 flex items-center gap-1 text-[9.5px] text-slate-500">
                       <span className="font-semibold text-[#22c1c3]">Note:</span>
-                      <input
-                        className="outline-none bg-transparent flex-1 text-[9.5px] text-slate-500"
+                      <EditableText
+                        className="flex-1 text-[9.5px] text-slate-500"
                         value={edu.grade || edu.grades || edu.note || ''}
-                        onChange={(e) => onUpdateSectionItem(sectionIndex, idx, 'grade', e.target.value)}
+                        onChange={(val) => onUpdateSectionItem(sectionIndex, idx, 'grade', val)}
                         placeholder="Note"
                       />
                     </div>
                   )}
                   {(edu.description || edu.focus) && (
-                    <textarea
-                      className="mt-1 w-full text-[9.5px] text-slate-600 outline-none resize-none overflow-hidden bg-transparent leading-snug"
-                      value={edu.description || (Array.isArray(edu.focus) ? edu.focus.join(', ') : edu.focus) || ''}
-                      onChange={(e) => onUpdateSectionItem(sectionIndex, idx, 'description', e.target.value)}
-                      placeholder="Schwerpunkte / Beschreibung"
-                      rows={1}
+                    <EditableText
+                      multiline
+                      className="mt-1 text-[9.5px] text-slate-600 leading-snug"
                       style={{ minHeight: '16px' }}
-                      onInput={(e) => { const t = e.currentTarget; t.style.height = 'auto'; t.style.height = t.scrollHeight + 'px'; }}
+                      value={edu.description || (Array.isArray(edu.focus) ? edu.focus.join(', ') : edu.focus) || ''}
+                      onChange={(val) => onUpdateSectionItem(sectionIndex, idx, 'description', val)}
+                      placeholder="Schwerpunkte / Beschreibung"
                     />
                   )}
                 </div>
@@ -539,27 +562,29 @@ export const CreativeCVTemplate: React.FC<CreativeCVTemplateProps> = ({
                   className="flex justify-between items-center text-[9.5px] text-slate-700"
                   style={{ breakInside: 'avoid', pageBreakInside: 'avoid' }}
                 >
-                  <input
-                    className="outline-none bg-transparent font-medium w-1/2"
+                  <EditableText
+                    className="font-medium"
+                    style={{ width: '50%' }}
                     value={
                       typeof lang === 'string'
                         ? lang
                         : lang.language || lang.name || ''
                     }
-                    onChange={(e) =>
-                      onUpdateSectionItem(sectionIndex, idx, 'language', e.target.value)
+                    onChange={(val) =>
+                      onUpdateSectionItem(sectionIndex, idx, 'language', val)
                     }
                     placeholder="Sprache"
                   />
-                  <input
-                    className="outline-none bg-transparent text-slate-500 w-1/2 text-right text-[9px]"
+                  <EditableText
+                    className="text-slate-500 text-right text-[9px]"
+                    style={{ width: '50%' }}
                     value={
                       typeof lang === 'object'
                         ? lang.level || lang.proficiency || ''
                         : ''
                     }
-                    onChange={(e) =>
-                      onUpdateSectionItem(sectionIndex, idx, 'level', e.target.value)
+                    onChange={(val) =>
+                      onUpdateSectionItem(sectionIndex, idx, 'level', val)
                     }
                     placeholder="Niveau"
                   />
@@ -585,11 +610,10 @@ export const CreativeCVTemplate: React.FC<CreativeCVTemplateProps> = ({
                 const display = level ? `${cleanedVal} (${level.trim()})` : cleanedVal;
                 return (
                   <span key={idx} style={{ display: 'inline-flex', alignItems: 'center', marginRight: '4px', marginBottom: '4px', verticalAlign: 'middle', padding: '2px 6px', borderRadius: '9999px', background: '#f0fdfe', border: '1px solid #38bdf8', whiteSpace: 'nowrap', breakInside: 'avoid', pageBreakInside: 'avoid' }}>
-                    <input
-                      size={Math.max(3, display.length)}
-                      style={{ background: 'transparent', outline: 'none', fontSize: '9px', color: '#1e293b', minWidth: 'unset', border: 'none', width: 'auto' }}
+                    <EditableText
+                      style={{ fontSize: '9px', color: '#1e293b', width: `${Math.max(2, display.length + 1)}ch` }}
                       value={display}
-                      onChange={(e) => onUpdateSectionItem(sectionIndex, idx, 'skill', e.target.value)}
+                      onChange={(val) => onUpdateSectionItem(sectionIndex, idx, 'skill', val)}
                       placeholder="Skill"
                     />
                   </span>
@@ -615,11 +639,10 @@ export const CreativeCVTemplate: React.FC<CreativeCVTemplateProps> = ({
                 const display = level ? `${cleanedVal} (${level.trim()})` : cleanedVal;
                 return (
                   <span key={idx} style={{ display: 'inline-flex', alignItems: 'center', marginRight: '4px', marginBottom: '4px', verticalAlign: 'middle', padding: '2px 6px', borderRadius: '9999px', background: '#f5f3ff', border: '1px solid #a855f7', whiteSpace: 'nowrap', breakInside: 'avoid', pageBreakInside: 'avoid' }}>
-                    <input
-                      size={Math.max(3, display.length)}
-                      style={{ background: 'transparent', outline: 'none', fontSize: '9px', color: '#1e293b', minWidth: 'unset', border: 'none', width: 'auto' }}
+                    <EditableText
+                      style={{ fontSize: '9px', color: '#1e293b', width: `${Math.max(2, display.length + 1)}ch` }}
                       value={display}
-                      onChange={(e) => onUpdateSectionItem(sectionIndex, idx, 'skill', e.target.value)}
+                      onChange={(val) => onUpdateSectionItem(sectionIndex, idx, 'skill', val)}
                       placeholder="Stärke"
                     />
                   </span>
@@ -639,11 +662,10 @@ export const CreativeCVTemplate: React.FC<CreativeCVTemplateProps> = ({
                 const v = typeof val === 'string' ? val : val.label || '';
                 return (
                   <span key={idx} style={{ display: 'inline-flex', alignItems: 'center', marginRight: '4px', marginBottom: '4px', verticalAlign: 'middle', padding: '2px 6px', borderRadius: '9999px', background: '#f0fdfe', border: '1px solid #22c1c3', whiteSpace: 'nowrap', breakInside: 'avoid', pageBreakInside: 'avoid' }}>
-                    <input
-                      size={Math.max(3, v.length)}
-                      style={{ background: 'transparent', outline: 'none', fontSize: '9px', color: '#1e293b', border: 'none', minWidth: 'unset', width: 'auto' }}
+                    <EditableText
+                      style={{ fontSize: '9px', color: '#1e293b', width: `${Math.max(2, v.length + 1)}ch` }}
                       value={v}
-                      onChange={(e) => onUpdateSectionItem(sectionIndex, idx, 'label', e.target.value)}
+                      onChange={(val) => onUpdateSectionItem(sectionIndex, idx, 'label', val)}
                       placeholder="Wert"
                     />
                   </span>
@@ -663,11 +685,10 @@ export const CreativeCVTemplate: React.FC<CreativeCVTemplateProps> = ({
                 const v = typeof hob === 'string' ? hob : hob.label || '';
                 return (
                   <span key={idx} style={{ display: 'inline-flex', alignItems: 'center', marginRight: '4px', marginBottom: '4px', verticalAlign: 'middle', padding: '2px 6px', borderRadius: '9999px', background: '#fff7ed', border: '1px solid #f97316', whiteSpace: 'nowrap', breakInside: 'avoid', pageBreakInside: 'avoid' }}>
-                    <input
-                      size={Math.max(3, v.length)}
-                      style={{ background: 'transparent', outline: 'none', fontSize: '9px', color: '#1e293b', border: 'none', minWidth: 'unset', width: 'auto' }}
+                    <EditableText
+                      style={{ fontSize: '9px', color: '#1e293b', width: `${Math.max(2, v.length + 1)}ch` }}
                       value={v}
-                      onChange={(e) => onUpdateSectionItem(sectionIndex, idx, 'label', e.target.value)}
+                      onChange={(val) => onUpdateSectionItem(sectionIndex, idx, 'label', val)}
                       placeholder="Hobby"
                     />
                   </span>
@@ -697,22 +718,21 @@ export const CreativeCVTemplate: React.FC<CreativeCVTemplateProps> = ({
                       style={{ breakInside: 'avoid', pageBreakInside: 'avoid' }}
                     >
                       <div style={{ fontWeight: 600, marginBottom: institution || date ? '2px' : '0' }}>
-                        <input
-                          className="w-full outline-none bg-transparent text-[#f9fafb]"
+                        <EditableText
+                          className="text-[#f9fafb]"
                           value={name}
-                          onChange={(e) =>
-                            onUpdateSectionItem(sectionIndex, idx, 'name', e.target.value)
+                          onChange={(val) =>
+                            onUpdateSectionItem(sectionIndex, idx, 'name', val)
                           }
                           placeholder="Name/Titel"
                         />
                       </div>
                       {institution && (
                         <div style={{ fontSize: '9px', color: '#e2e8f0', marginBottom: date ? '2px' : '0' }}>
-                          <input
-                            className="w-full outline-none bg-transparent"
+                          <EditableText
                             value={institution}
-                            onChange={(e) =>
-                              onUpdateSectionItem(sectionIndex, idx, 'institution', e.target.value)
+                            onChange={(val) =>
+                              onUpdateSectionItem(sectionIndex, idx, 'institution', val)
                             }
                             placeholder="Institution"
                           />
@@ -720,11 +740,10 @@ export const CreativeCVTemplate: React.FC<CreativeCVTemplateProps> = ({
                       )}
                       {date && (
                         <div style={{ fontSize: '9px', color: '#e2e8f0' }}>
-                          <input
-                            className="w-full outline-none bg-transparent"
+                          <EditableText
                             value={date}
-                            onChange={(e) =>
-                              onUpdateSectionItem(sectionIndex, idx, 'date', e.target.value)
+                            onChange={(val) =>
+                              onUpdateSectionItem(sectionIndex, idx, 'date', val)
                             }
                             placeholder="Datum"
                           />
@@ -744,11 +763,11 @@ export const CreativeCVTemplate: React.FC<CreativeCVTemplateProps> = ({
                     className="py-0.5 border-b border-white/30 last:border-b-0"
                     style={{ breakInside: 'avoid', pageBreakInside: 'avoid' }}
                   >
-                    <input
-                      className="w-full outline-none bg-transparent text-[#f9fafb]"
+                    <EditableText
+                      className="text-[#f9fafb]"
                       value={displayValue}
-                      onChange={(e) =>
-                        onUpdateSectionItem(sectionIndex, idx, 'name', e.target.value)
+                      onChange={(val) =>
+                        onUpdateSectionItem(sectionIndex, idx, 'name', val)
                       }
                       placeholder="Eintrag"
                     />
@@ -802,52 +821,48 @@ export const CreativeCVTemplate: React.FC<CreativeCVTemplateProps> = ({
       <div ref={contentRef}>
       <header className="relative px-6 pt-4 pb-2.5 flex items-center justify-between border-b border-slate-200 bg-slate-50 gap-3 flex-shrink-0">
         <div className="relative flex-1 min-w-0">
-          <input
-            className="block w-full text-[22px] font-extrabold tracking-[0.12em] uppercase outline-none bg-transparent text-slate-900"
+          <EditableText
+            className="text-[22px] font-extrabold tracking-[0.12em] uppercase text-slate-900"
             value={personalInfo.name || ''}
-            onChange={(e) => onUpdatePersonalInfo('name', e.target.value)}
+            onChange={(val) => onUpdatePersonalInfo('name', val)}
             placeholder="Name"
           />
-          <input
-            className="mt-0.5 block w-full text-[12px] font-bold text-slate-600 outline-none bg-transparent"
+          <EditableText
+            className="mt-0.5 text-[12px] font-bold text-slate-600"
             value={personalInfo.title || ''}
-            onChange={(e) => onUpdatePersonalInfo('title', e.target.value)}
+            onChange={(val) => onUpdatePersonalInfo('title', val)}
             placeholder="Titel"
           />
           <div className="mt-2 grid grid-cols-2 gap-x-3 gap-y-0.5 text-[9.5px] text-slate-700">
             <div className="flex items-center gap-1.5">
               <span>📍</span>
-              <input
-                className="w-full bg-transparent outline-none"
+              <EditableText
                 value={personalInfo.location || ''}
-                onChange={(e) => onUpdatePersonalInfo('location', e.target.value)}
+                onChange={(val) => onUpdatePersonalInfo('location', val)}
                 placeholder="Ort"
               />
             </div>
             <div className="flex items-center gap-1.5">
               <span>☎</span>
-              <input
-                className="w-full bg-transparent outline-none"
+              <EditableText
                 value={personalInfo.phone || ''}
-                onChange={(e) => onUpdatePersonalInfo('phone', e.target.value)}
+                onChange={(val) => onUpdatePersonalInfo('phone', val)}
                 placeholder="Telefon"
               />
             </div>
             <div className="flex items-center gap-1.5">
               <span>✉</span>
-              <input
-                className="w-full bg-transparent outline-none"
+              <EditableText
                 value={personalInfo.email || ''}
-                onChange={(e) => onUpdatePersonalInfo('email', e.target.value)}
+                onChange={(val) => onUpdatePersonalInfo('email', val)}
                 placeholder="E-Mail"
               />
             </div>
             <div className="flex items-center gap-1.5">
               <span>in</span>
-              <input
-                className="w-full bg-transparent outline-none"
+              <EditableText
                 value={personalInfo.linkedin || ''}
-                onChange={(e) => onUpdatePersonalInfo('linkedin', e.target.value)}
+                onChange={(val) => onUpdatePersonalInfo('linkedin', val)}
                 placeholder="LinkedIn"
               />
             </div>
@@ -873,21 +888,12 @@ export const CreativeCVTemplate: React.FC<CreativeCVTemplateProps> = ({
         <section className="col-span-7 space-y-3">
           <div>
             <SectionTitle>Profil & Story</SectionTitle>
-            <textarea
-              ref={summaryRef}
-              className="w-full mt-0.5 text-[9.5px] leading-relaxed text-slate-800 bg-slate-50 rounded-lg border border-slate-200 outline-none resize-none px-2 py-1.5 overflow-hidden"
-              style={{ minHeight: '60px', height: 'auto' }}
+            <EditableText
+              multiline
+              className="mt-0.5 text-[9.5px] leading-relaxed text-slate-800 bg-slate-50 rounded-lg border border-slate-200 px-2 py-1.5"
+              style={{ minHeight: '60px' }}
               value={summary || ''}
-              onChange={(e) => {
-                e.target.style.height = 'auto';
-                e.target.style.height = e.target.scrollHeight + 'px';
-                onUpdateSummary(e.target.value);
-              }}
-              onInput={(e) => {
-                const target = e.target as HTMLTextAreaElement;
-                target.style.height = 'auto';
-                target.style.height = target.scrollHeight + 'px';
-              }}
+              onChange={onUpdateSummary}
               placeholder="Beschreibe kurz deinen Werdegang, dein Profil und was dich ausmacht."
             />
           </div>
@@ -990,11 +996,12 @@ export const CreativeCVTemplate: React.FC<CreativeCVTemplateProps> = ({
       >
         <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
           <span>Ort:</span>
-          <input
-            className="bg-transparent outline-none border-b border-dashed border-slate-300 px-1 w-32 text-slate-700"
+          <EditableText
+            className="border-b border-dashed border-slate-300 px-1 text-slate-700"
+            style={{ width: '128px' }}
             placeholder="Stadt"
             value={personalInfo.location || ''}
-            onChange={(e) => onUpdatePersonalInfo('location', e.target.value)}
+            onChange={(val) => onUpdatePersonalInfo('location', val)}
           />
         </div>
         <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
