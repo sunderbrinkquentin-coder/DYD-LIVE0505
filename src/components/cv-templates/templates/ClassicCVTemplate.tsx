@@ -537,7 +537,7 @@ export const ClassicCVTemplate: React.FC<ClassicCVTemplateProps> = ({
                     value={display}
                     onChange={(val) => onUpdateSectionItem(index, idx, 'skill', val)}
                     className="text-slate-700 bg-transparent"
-                    style={{ width: `${Math.max(2, display.length + 1)}ch`, fontSize: '9px', lineHeight: 'normal' }}
+                    style={{ display: 'flex', alignItems: 'center', height: '12px', width: `${Math.max(2, display.length + 1)}ch`, fontSize: '9px', lineHeight: 'normal' }}
                     placeholder="Eintrag"
                   />
                   <button
