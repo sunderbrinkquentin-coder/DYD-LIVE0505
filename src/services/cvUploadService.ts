@@ -96,29 +96,12 @@ export async function uploadCvAndCreateRecord(
     // ─────────────────────────────────────────────────────────────────────
     // STEP 2: Generate URLs + Create DB entry in parallel
     // ─────────────────────────────────────────────────────────────────────
-// ─────────────────────────────────────────────────────────────────────
-    // STEP 2: Generate URLs + Create DB entry step-by-step for debugging
-    // ─────────────────────────────────────────────────────────────────────
-    const { data: publicUrlData } = supabase.storage.from(CV_BUCKET).getPublicUrl(storagePath);
-    const fileUrl = publicUrlData.publicUrl;
+    const { data: { publicUrl } } = supabase.storage.from(CV_BUCKET).getPublicUrl(storagePath);
+    const fileUrl = publicUrl;
 
-    logStep('Generating signed URL...');
-    let signedUrl: string | null = null;
-    try {
-      const { data: sData, error: sError } = await supabase.storage.from(CV_BUCKET).createSignedUrl(storagePath, 3600);
-      if (sError) throw sError;
-      signedUrl = sData?.signedUrl ?? null;
-      logStep('Signed URL created successfully');
-    } catch (sErr) {
-      logError('signed URL creation caught', sErr, { storagePath });
-    }
-
-    logStep('Inserting entry into DB table stored_cvs...');
-    let dbResultData: any = null;
-    
-    const { data: dbData, error: dbError } = await supabase
-      .from('stored_cvs')
-      .insert({
+    const [signedUrlResult, dbResult] = await Promise.all([
+      supabase.storage.from(CV_BUCKET).createSignedUrl(storagePath, 3600),
+      supabase.from('stored_cvs').insert({
         user_id: userId,
         temp_id: tempId,
         session_id: tempId,
@@ -128,21 +111,22 @@ export async function uploadCvAndCreateRecord(
         file_url: fileUrl,
         original_file_url: fileUrl,
         file_path: storagePath,
-      })
-      .select('id')
-      .maybeSingle(); // Verhindert Absturz, falls kein Datensatz zurückgegeben wird
+      }).select('id').single(),
+    ]);
 
-    if (dbError) {
-      logError('DB insert failed hard', dbError, { userId, tempId, source });
-      throw new Error(`Datenbank-Fehler beim Insert: ${dbError.message}`);
+    if (signedUrlResult.error) {
+      logError('signed URL creation', signedUrlResult.error, { storagePath });
     }
 
-    if (!dbData?.id) {
-      throw new Error('Datenbank-Fehler: Keine ID von stored_cvs zurückgegeben.');
+    const signedUrl = signedUrlResult.data?.signedUrl ?? null;
+
+    if (dbResult.error || !dbResult.data?.id) {
+      logError('DB insert', dbResult.error ?? new Error('No ID returned'), { userId, tempId, source });
+      throw new Error(`Datenbank-Fehler: ${dbResult.error?.message || 'Unbekannter Fehler'}`);
     }
 
-    const uploadId = dbData.id;
-    logStep('DB entry created successfully', { uploadId });
+    const uploadId = dbResult.data.id;
+    logStep('DB entry created with processing status', { uploadId, hasSignedUrl: !!signedUrl });
 
     // ─────────────────────────────────────────────────────────────────────
     // STEP 3: Trigger Make.com via Edge Function
@@ -168,7 +152,15 @@ export async function uploadCvAndCreateRecord(
 
     logStep('Invoking trigger-cv-check edge function', { uploadId });
 
-    const TRIGGER_TIMEOUT_MS = 20_000;
+    // Must exceed the edge function's own worst-case duration (2 Make
+    // attempts: 28s + 4s delay + 28s ≈ 60s). If this is shorter, the client
+    // gives up while the edge function is still running server-side, and
+    // CvResultPage's `?retry=1` fires a SECOND trigger-cv-check invocation —
+    // if that second one later fails, its markFailed() can overwrite a
+    // status that the first (slow but successful) invocation already set to
+    // completed, causing intermittent "failed" results on slower (mobile)
+    // connections even though the analysis actually succeeded.
+    const TRIGGER_TIMEOUT_MS = 65_000;
     let triggerSucceeded = false;
 
     try {
