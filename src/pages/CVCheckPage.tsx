@@ -25,7 +25,24 @@ export default function CVCheckPage() {
   const { user, loading: authLoading } = useAuth();
   const abortRef = useRef<AbortController | null>(null);
 
+  // If the page reloads mid-upload (very common on mobile: backgrounding the
+  // tab to switch apps can make iOS Safari/Android Chrome suspend or evict
+  // it, then reload it fresh on return), a brand-new tempId would orphan the
+  // stored_cvs row the previous attempt already created — there'd be no way
+  // to find it again for an anonymous (not logged-in) user. Reusing the same
+  // tempId for a short window lets the lookup below recover it.
+  const RESUME_WINDOW_MS = 15 * 60 * 1000;
+
   const [tempId] = useState(() => {
+    const existing = localStorage.getItem('cv_temp_id');
+    if (existing) {
+      const match = existing.match(/^temp_(\d+)_/);
+      const createdAt = match ? parseInt(match[1], 10) : 0;
+      if (createdAt && Date.now() - createdAt < RESUME_WINDOW_MS) {
+        sessionStorage.setItem('cv_check_temp_id', existing);
+        return existing;
+      }
+    }
     const newId = `temp_${Date.now()}_${Math.random().toString(36).slice(2, 9)}`;
     sessionStorage.setItem('cv_check_temp_id', newId);
     localStorage.setItem('cv_temp_id', newId);
@@ -43,7 +60,7 @@ export default function CVCheckPage() {
   useEffect(() => {
     if (uploadState === 'uploading') {
       setShowUploadHint(false);
-      const t = setTimeout(() => setShowUploadHint(true), 5000);
+      const t = setTimeout(() => setShowUploadHint(true), 10000);
       return () => clearTimeout(t);
     } else {
       setShowUploadHint(false);
@@ -63,23 +80,37 @@ export default function CVCheckPage() {
   }, []);
 
   useEffect(() => {
-    if (authLoading || !user || userDismissedExisting) return;
+    if (authLoading || userDismissedExisting) return;
 
     let isMounted = true;
 
     const checkExistingAnalysis = async () => {
       try {
-        const { data, error: dbError } = await supabase
+        const baseQuery = supabase
           .from('stored_cvs')
           .select('id, created_at')
-          .eq('user_id', user.id)
           .eq('source', 'check')
           .order('created_at', { ascending: false })
-          .limit(1)
-          .maybeSingle();
+          .limit(1);
+
+        // Logged-in: look up by account (any age, same as before).
+        // Anonymous: look up by this session's tempId, and only within the
+        // resume window — this is specifically to recover from an
+        // interrupted attempt (e.g. mobile tab reload), not to resurface
+        // old checks on an unrelated later visit.
+        const { data, error: dbError } = user
+          ? await baseQuery.eq('user_id', user.id).maybeSingle()
+          : await baseQuery.eq('temp_id', tempId).maybeSingle();
 
         if (dbError) throw dbError;
-        if (data && isMounted) setExistingCheck(data);
+        if (!data || !isMounted) return;
+
+        if (!user) {
+          const ageMs = Date.now() - new Date(data.created_at).getTime();
+          if (ageMs > RESUME_WINDOW_MS) return;
+        }
+
+        setExistingCheck(data);
       } catch (err) {
         console.error('[CVCheckPage] Error checking existing analysis:', err);
       }
@@ -88,21 +119,29 @@ export default function CVCheckPage() {
     checkExistingAnalysis();
 
     return () => { isMounted = false; };
-  }, [user, authLoading, userDismissedExisting]);
+  }, [user, authLoading, userDismissedExisting, tempId]);
+
+  const MAX_FILE_SIZE_MB = 5;
 
   const onDrop = useCallback((acceptedFiles: File[], rejectedFiles: any[]) => {
     if (rejectedFiles && rejectedFiles.length > 0) {
       const rejection = rejectedFiles[0];
-      const isWrongType = rejection.errors?.some((e: any) => e.code === 'file-invalid-type');
-      if (isWrongType) {
+      const codes: string[] = rejection.errors?.map((e: any) => e.code) ?? [];
+      if (codes.includes('file-invalid-type')) {
         setError('Bitte lade dein CV als PDF-Datei hoch. Word-Dateien (.doc, .docx) werden derzeit nicht unterstuetzt.');
-        return;
+      } else if (codes.includes('file-too-large')) {
+        // Phone-scanned or mobile-exported PDFs are frequently much larger
+        // than desktop-made ones — this is the most common real-world
+        // reason a mobile user's file gets rejected here.
+        setError(`Die Datei ist zu gross (max. ${MAX_FILE_SIZE_MB} MB). Gescannte PDFs vom Handy sind oft groesser als gedacht - probiere ggf. eine komprimierte Version oder einen anderen Export.`);
+      } else {
+        setError('Diese Datei konnte nicht ausgewaehlt werden. Bitte versuche es mit einer anderen PDF-Datei.');
       }
+      return;
     }
     if (!acceptedFiles || acceptedFiles.length === 0) return;
     const selected = acceptedFiles[0];
 
-    const MAX_FILE_SIZE_MB = 5;
     if (selected.size > MAX_FILE_SIZE_MB * 1024 * 1024) {
       setError(`Die Datei ist zu gross. Bitte lade eine PDF-Datei bis ${MAX_FILE_SIZE_MB} MB hoch.`);
       return;
@@ -125,7 +164,7 @@ export default function CVCheckPage() {
     accept: {
       'application/pdf': ['.pdf'],
     },
-    maxSize: 5 * 1024 * 1024,
+    maxSize: MAX_FILE_SIZE_MB * 1024 * 1024,
   });
 
   const handleUpload = async () => {
@@ -263,7 +302,7 @@ export default function CVCheckPage() {
               </div>
               {showUploadHint && (
                 <p className="text-xs text-slate-400 leading-relaxed">
-                  Das dauert ungewohnlich lang. Bitte drucke <strong className="text-slate-200">STRG + F5</strong> um die Seite neu zu laden und starte den Prozess nochmal.
+                  Das dauert gerade etwas länger - das ist normal, die Analyse läuft im Hintergrund weiter. Bitte lass dieses Fenster geöffnet, bis sie fertig ist.
                 </p>
               )}
             </div>
