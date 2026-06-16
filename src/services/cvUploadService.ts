@@ -1,11 +1,29 @@
 /**
  * src/services/cvUploadService.ts
- * Unified Upload Logic - SDK-Only Flow (Handy- & PC-stabilisiert)
+ * Unified Upload Logic - SDK-Only Flow
  */
 
 import { supabase } from '../lib/supabase';
 import { CV_BUCKET, STORAGE_CONFIG } from '../config/storage';
 import type { UploadResult, UploadOptions } from '../types/cvUpload';
+
+// Some mobile networks (especially cellular) are known to silently stall a
+// long-lived request — no error, no timeout of their own, the connection
+// just sits there. fetch() does not time out on its own in that case, so
+// without an explicit race here, a stalled storage upload or DB call would
+// hang `uploadCvAndCreateRecord` forever: no resolve, no reject, no catch
+// block ever runs, no error is ever shown to the user, and the page never
+// navigates to the result page. Wrapping every network step in this keeps
+// every step bounded, so a stall always surfaces as a normal catchable error.
+function withTimeout<T>(promise: Promise<T>, ms: number, label: string): Promise<T> {
+  return new Promise<T>((resolve, reject) => {
+    const timer = setTimeout(() => reject(new Error(`${label} hat zu lange gedauert (Timeout)`)), ms);
+    promise.then(
+      (value) => { clearTimeout(timer); resolve(value); },
+      (err) => { clearTimeout(timer); reject(err); }
+    );
+  });
+}
 
 function sanitizeFileName(fileName: string): string {
   const lastDotIndex = fileName.lastIndexOf('.');
@@ -66,42 +84,27 @@ export async function uploadCvAndCreateRecord(
 
   try {
     // ─────────────────────────────────────────────────────────────────────
-    // STEP 1: Upload file to Supabase Storage (Handy-optimiert)
+    // STEP 1: Upload file to Supabase Storage via SDK
     // ─────────────────────────────────────────────────────────────────────
     const sanitizedFileName = sanitizeFileName(file.name);
     const filePath = `${STORAGE_CONFIG.UPLOAD_PATH_PREFIX}/${Date.now()}_${sanitizedFileName}`;
-    
-    // FIX: storagePath global für die Funktion als Alias definieren
-    const storagePath = filePath; 
 
-    logStep('Uploading to storage', { path: storagePath, sizeMB: (file.size / 1024 / 1024).toFixed(2) });
+    logStep('Uploading to storage', { path: filePath, sizeMB: (file.size / 1024 / 1024).toFixed(2) });
 
-    // Zwingt iOS/Android die Cloud-Datei physisch im RAM bereitzustellen
-    let fileBody: Uint8Array;
-    try {
-      const arrayBuffer = await file.arrayBuffer();
-      fileBody = new Uint8Array(arrayBuffer);
-      
-      if (fileBody.length === 0) {
-        throw new Error("Die ausgewählte Datei ist leer oder wurde vom Mobilgerät blockiert.");
-      }
-    } catch (readErr: any) {
-      logError('file reading on mobile', readErr);
-      throw new Error(`Datei konnte auf dem Mobilgerät nicht gelesen werden: ${readErr.message}`);
-    }
+    const { data: uploadData, error: uploadError } = await withTimeout(
+      supabase.storage
+        .from(CV_BUCKET)
+        .upload(filePath, file, {
+          cacheControl: '3600',
+          upsert: true,
+          contentType: file.type,
+        }),
+      60_000,
+      'Datei-Upload'
+    );
 
-    // Sicherer Upload via ArrayBuffer
-    const { data: uploadData, error: uploadError } = await supabase.storage
-      .from(CV_BUCKET)
-      .upload(storagePath, fileBody, {
-        cacheControl: '3600',
-        upsert: true,
-        contentType: file.type || 'application/pdf',
-      });
-
-    // FIX: Fehlerabfrage für den Upload hinzufügen
     if (uploadError) {
-      logError('storage upload', uploadError, { storagePath, bucket: CV_BUCKET });
+      logError('storage upload', uploadError, { filePath, bucket: CV_BUCKET });
       throw new Error(`Storage-Upload fehlgeschlagen: ${uploadError.message}`);
     }
 
@@ -109,6 +112,7 @@ export async function uploadCvAndCreateRecord(
       throw new Error('Storage-Upload fehlgeschlagen: Kein Pfad zurückgegeben');
     }
 
+    const storagePath = filePath;
     logStep('File stored', { storagePath, sdkPath: uploadData.path });
 
     // ─────────────────────────────────────────────────────────────────────
@@ -117,20 +121,24 @@ export async function uploadCvAndCreateRecord(
     const { data: { publicUrl } } = supabase.storage.from(CV_BUCKET).getPublicUrl(storagePath);
     const fileUrl = publicUrl;
 
-    const [signedUrlResult, dbResult] = await Promise.all([
-      supabase.storage.from(CV_BUCKET).createSignedUrl(storagePath, 3600),
-      supabase.from('stored_cvs').insert({
-        user_id: userId,
-        temp_id: tempId,
-        session_id: tempId,
-        status: 'processing',
-        source,
-        file_name: file.name,
-        file_url: fileUrl,
-        original_file_url: fileUrl,
-        file_path: storagePath,
-      }).select('id').single(),
-    ]);
+    const [signedUrlResult, dbResult] = await withTimeout(
+      Promise.all([
+        supabase.storage.from(CV_BUCKET).createSignedUrl(storagePath, 3600),
+        supabase.from('stored_cvs').insert({
+          user_id: userId,
+          temp_id: tempId,
+          session_id: tempId,
+          status: 'processing',
+          source,
+          file_name: file.name,
+          file_url: fileUrl,
+          original_file_url: fileUrl,
+          file_path: storagePath,
+        }).select('id').single(),
+      ]),
+      30_000,
+      'Datenbank-Eintrag'
+    );
 
     if (signedUrlResult.error) {
       logError('signed URL creation', signedUrlResult.error, { storagePath });
@@ -170,6 +178,14 @@ export async function uploadCvAndCreateRecord(
 
     logStep('Invoking trigger-cv-check edge function', { uploadId });
 
+    // Must exceed the edge function's own worst-case duration (2 Make
+    // attempts: 28s + 4s delay + 28s ≈ 60s). If this is shorter, the client
+    // gives up while the edge function is still running server-side, and
+    // CvResultPage's `?retry=1` fires a SECOND trigger-cv-check invocation —
+    // if that second one later fails, its markFailed() can overwrite a
+    // status that the first (slow but successful) invocation already set to
+    // completed, causing intermittent "failed" results on slower (mobile)
+    // connections even though the analysis actually succeeded.
     const TRIGGER_TIMEOUT_MS = 65_000;
     let triggerSucceeded = false;
 
