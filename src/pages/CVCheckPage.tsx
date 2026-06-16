@@ -268,7 +268,7 @@ export default function CVCheckPage() {
           <div className="mb-4 flex items-center justify-between gap-3 rounded-xl bg-teal-500/10 border border-teal-500/30 px-4 py-3">
             <div className="flex items-center gap-2 text-sm text-teal-300">
               <BarChart3 className="w-4 h-4 shrink-0" />
-              <span>Du hast bereits einen CV-Check. <button onClick={() => navigate(`/cv-result/${existingCheck.id}`)} className="underline hover:text-teal-200">Ergebnis ansehen</button></span>
+              <span>Du hast bereits einen CV-Check. <button onClick={() => navigate(`/cv-result/${existingCheck.id}?retry=1`)} className="underline hover:text-teal-200">Ergebnis ansehen</button></span>
             </div>
             <button onClick={resetState} className="text-xs text-slate-400 hover:text-slate-200 shrink-0">Neuer Check</button>
           </div>
