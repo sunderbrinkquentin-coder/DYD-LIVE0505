@@ -229,7 +229,11 @@ Deno.serve(async (req: Request) => {
       result = await sendToMake(makeWebhookUrl, webhookBody, 2);
     }
 
-    if (!result.ok) {
+    // A 200/201/202 from Make.com are all legitimate successes (202 =
+    // Accepted is Make's normal response for async scenarios).
+    const isMakeSuccess = result.ok || result.status === 202 || result.status === 201;
+
+    if (!isMakeSuccess) {
       const errMsg = `Make.com webhook failed after 2 attempts. Status: ${result.status}. Response: ${JSON.stringify(result.body).substring(0, 500)}`;
       console.error(`[trigger-cv-check] ${errMsg}`);
       await markFailed(supabase, uploadId, errMsg);
