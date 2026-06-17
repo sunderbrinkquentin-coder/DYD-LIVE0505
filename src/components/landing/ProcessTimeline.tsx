@@ -1,578 +1,415 @@
 import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
-import { FileText, Target, Briefcase, ArrowRight, Check, ChevronRight, TrendingUp, Map } from 'lucide-react';
+import {
+  FileText, Target, Briefcase, ArrowRight, Check, ChevronDown,
+  TrendingUp, Map, Award, GraduationCap, Radio, Sparkles,
+} from 'lucide-react';
 
 const ACCENT = '#66c0b6';
 const ACCENT2 = '#30E3CA';
+const GOLD = '#fbbf24';
 
-const tabs = [
-  { id: 'wizard',     label: 'Der CV-Wizard',       icon: FileText   },
-  { id: 'check',      label: 'Der CV-Check',         icon: Target     },
-  { id: 'skillgap',   label: 'Skill-Gap-Analyse',    icon: TrendingUp },
-  { id: 'lernpfade',  label: 'Lernpfade',            icon: Map        },
-  { id: 'management', label: 'Bewerbungsmanagement', icon: Briefcase  },
-] as const;
+/* ───────────────────────── Top-level stations ───────────────────────── */
 
-type TabId = (typeof tabs)[number]['id'];
+type StationId = 'wizard' | 'check' | 'academy' | 'management';
 
-/* ── Visualisations ─────────────────────────────────────── */
+const stations: {
+  id: StationId;
+  icon: typeof FileText;
+  eyebrow: string;
+  title: string;
+  sub: string;
+  ctaHref: string;
+  isAcademy?: boolean;
+}[] = [
+  {
+    id: 'wizard',
+    icon: FileText,
+    eyebrow: 'Station 1',
+    title: 'Lebenslauf erstellen',
+    sub: 'Vom leeren Blatt zum fertigen CV',
+    ctaHref: '/cv-wizard',
+  },
+  {
+    id: 'check',
+    icon: Target,
+    eyebrow: 'Station 2',
+    title: 'CV-Check',
+    sub: 'ATS-Score in unter einer Minute',
+    ctaHref: '/cv-check',
+  },
+  {
+    id: 'academy',
+    icon: GraduationCap,
+    eyebrow: 'Station 3',
+    title: 'Career Academy',
+    sub: 'Skill-Gaps schließen, Zertifikat sichern',
+    ctaHref: '/career-vision',
+    isAcademy: true,
+  },
+  {
+    id: 'management',
+    icon: Briefcase,
+    eyebrow: 'Station 4',
+    title: 'Bewerbungsmanagement',
+    sub: 'Jede Bewerbung im Blick',
+    ctaHref: '/dashboard',
+  },
+];
 
-function WizardVisual() {
+/* ───────────────────────── Campus sub-modules ───────────────────────── */
+
+type CampusId = 'skillgap' | 'lernpfade' | 'zertifikate';
+
+const campusModules: {
+  id: CampusId;
+  icon: typeof TrendingUp;
+  code: string;
+  title: string;
+  sub: string;
+  bullets: string[];
+  color: string;
+}[] = [
+  {
+    id: 'skillgap',
+    icon: TrendingUp,
+    code: 'Diagnostik',
+    title: 'Skill-Gap-Analyse',
+    sub: 'Erkenne exakt, was dich vom Zieljob trennt',
+    bullets: [
+      'KI vergleicht dein Profil mit echten Stellenanforderungen.',
+      'Lücken werden nach Wirkung sortiert – Top-Hebel zuerst.',
+      'ESCO-validiert nach europäischem Qualifikationsrahmen.',
+    ],
+    color: '#f97316',
+  },
+  {
+    id: 'lernpfade',
+    icon: Map,
+    code: 'Studio',
+    title: 'Lernpfade',
+    sub: 'Strukturierte Module statt zielloses Suchen',
+    bullets: [
+      'Für jede Lücke ein konkreter, personalisierter Lernpfad.',
+      'Fortschritt live verfolgbar – immer klar, was als Nächstes kommt.',
+      'Aufgebaut wie ein echter Online-Campus, in deinem Tempo.',
+    ],
+    color: ACCENT2,
+  },
+  {
+    id: 'zertifikate',
+    icon: Award,
+    code: 'Prüfungszentrum',
+    title: 'Zertifikate',
+    sub: 'Dein Abschluss, einsetzbar in jeder Bewerbung',
+    bullets: [
+      'Abschlussprüfung nach jedem Lernpfad.',
+      'Offizielles, personalisiertes PDF-Zertifikat.',
+      'Direkt im Lebenslauf und auf LinkedIn nutzbar.',
+    ],
+    color: GOLD,
+  },
+];
+
+/* ───────────────────────── Small visuals ───────────────────────── */
+
+function MiniRing({ pct, color }: { pct: number; color: string }) {
+  const r = 19;
+  const c = 2 * Math.PI * r;
   return (
-    <div className="relative h-full flex items-center justify-center p-4">
-      <motion.div
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.5 }}
-        className="w-full max-w-xs bg-[#0d1117] border border-white/10 rounded-2xl overflow-hidden shadow-2xl"
-      >
-        <div className="h-2 w-full" style={{ background: `linear-gradient(90deg, ${ACCENT}, ${ACCENT2})` }} />
-        <div className="flex items-center gap-3 px-5 py-4 border-b border-white/10">
-          <div className="w-10 h-10 rounded-full flex-shrink-0" style={{ background: `linear-gradient(135deg, ${ACCENT}, ${ACCENT2})` }} />
-          <div className="space-y-1.5 flex-1">
-            {[{ width: '80%' }, { width: '60%' }].map((f, i) => (
-              <motion.div key={i} initial={{ width: 0 }} animate={{ width: f.width }} transition={{ delay: 0.3 + i * 0.15, duration: 0.6 }} className="h-2 rounded-full bg-white/20" />
-            ))}
-          </div>
-        </div>
-        {['Berufserfahrung', 'Ausbildung', 'Skills'].map((section, si) => (
-          <div key={si} className="px-5 py-3 border-b border-white/5">
-            <p className="text-[10px] font-semibold uppercase tracking-widest mb-2" style={{ color: ACCENT }}>{section}</p>
-            <div className="space-y-1.5">
-              {[65, 45, 55].slice(0, 2 - (si % 2)).map((w, li) => (
-                <motion.div key={li} initial={{ width: 0 }} animate={{ width: `${w + si * 8}%` }} transition={{ delay: 0.6 + si * 0.2 + li * 0.1, duration: 0.5 }} className="h-1.5 rounded-full bg-white/15" />
-              ))}
-            </div>
-          </div>
-        ))}
-        <div className="px-5 py-3 flex items-center gap-2">
-          <div className="w-2 h-2 rounded-full" style={{ background: ACCENT }} />
-          <span className="text-[11px] text-white/50">Template: Professional</span>
-          <motion.span animate={{ opacity: [0.4, 1, 0.4] }} transition={{ duration: 2, repeat: Infinity }} className="ml-auto text-[10px] font-medium" style={{ color: ACCENT }}>Live-Vorschau</motion.span>
-        </div>
-      </motion.div>
+    <div className="relative w-12 h-12 flex-shrink-0">
+      <svg className="w-full h-full -rotate-90" viewBox="0 0 48 48">
+        <circle cx="24" cy="24" r={r} fill="none" stroke="rgba(255,255,255,0.08)" strokeWidth="4" />
+        <motion.circle
+          cx="24" cy="24" r={r} fill="none" stroke={color} strokeWidth="4" strokeLinecap="round"
+          strokeDasharray={c}
+          initial={{ strokeDashoffset: c }}
+          whileInView={{ strokeDashoffset: c * (1 - pct / 100) }}
+          viewport={{ once: true }}
+          transition={{ duration: 1.1, ease: 'easeOut' }}
+        />
+      </svg>
+      <div className="absolute inset-0 flex items-center justify-center">
+        <span className="text-[10px] font-black" style={{ color }}>{pct}%</span>
+      </div>
     </div>
   );
 }
 
-function CheckVisual() {
-  const [score, setScore] = useState(38);
-  const target = 94;
-  useState(() => { const t = setTimeout(() => setScore(target), 600); return () => clearTimeout(t); });
-  const circumference = 2 * Math.PI * 54;
-  const offset = circumference - (score / 100) * circumference;
-  const color = score >= 80 ? ACCENT : score >= 50 ? '#f59e0b' : '#ef4444';
-  const criteria = [
-    { label: 'ATS-Kompatibilität', score: 96 },
-    { label: 'Keywords & Sprache', score: 91 },
-    { label: 'Format & Struktur', score: 88 },
-    { label: 'Quantifizierung', score: 79 },
-  ];
+function CampusCard({
+  module, index,
+}: { module: typeof campusModules[number]; index: number }) {
+  const Icon = module.icon;
+  const navigate = useNavigate();
   return (
-    <div className="h-full flex flex-col items-center justify-center gap-5 p-4">
-      <div className="relative w-36 h-36">
-        <svg className="w-full h-full -rotate-90" viewBox="0 0 120 120">
-          <circle cx="60" cy="60" r="54" fill="none" stroke="rgba(255,255,255,0.07)" strokeWidth="8" />
-          <motion.circle cx="60" cy="60" r="54" fill="none" stroke={color} strokeWidth="8" strokeLinecap="round" strokeDasharray={circumference} initial={{ strokeDashoffset: circumference }} animate={{ strokeDashoffset: offset }} transition={{ duration: 1.4, delay: 0.5, ease: 'easeOut' }} />
-        </svg>
-        <div className="absolute inset-0 flex flex-col items-center justify-center">
-          <motion.span className="text-3xl font-bold text-white" initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.8 }}>{target}</motion.span>
-          <span className="text-[11px] text-white/50 -mt-0.5">ATS-Score</span>
-        </div>
-      </div>
-      <div className="w-full max-w-xs space-y-2.5">
-        {criteria.map((c, i) => (
-          <div key={i} className="space-y-1">
-            <div className="flex justify-between text-[11px]">
-              <span className="text-white/60">{c.label}</span>
-              <span style={{ color: ACCENT }} className="font-semibold">{c.score}</span>
-            </div>
-            <div className="h-1.5 rounded-full bg-white/10">
-              <motion.div className="h-full rounded-full" style={{ background: `linear-gradient(90deg, ${ACCENT}, ${ACCENT2})` }} initial={{ width: 0 }} animate={{ width: `${c.score}%` }} transition={{ delay: 0.6 + i * 0.12, duration: 0.7 }} />
-            </div>
+    <motion.div
+      initial={{ opacity: 0, y: 18 }}
+      whileInView={{ opacity: 1, y: 0 }}
+      viewport={{ once: true }}
+      transition={{ delay: index * 0.1, duration: 0.45 }}
+      className="relative rounded-2xl overflow-hidden flex flex-col"
+      style={{ background: 'linear-gradient(160deg,rgba(255,255,255,0.05),rgba(255,255,255,0.02))', border: '1px solid rgba(255,255,255,0.09)' }}
+    >
+      <div className="h-[3px] w-full" style={{ background: `linear-gradient(90deg,${module.color},transparent)` }} />
+      <div className="p-5 sm:p-6 flex flex-col flex-1 gap-4">
+        <div className="flex items-center justify-between">
+          <div className="w-11 h-11 rounded-xl flex items-center justify-center" style={{ background: `${module.color}18`, border: `1px solid ${module.color}35` }}>
+            <Icon className="w-5 h-5" style={{ color: module.color }} />
           </div>
-        ))}
-      </div>
-      <motion.div className="absolute inset-0 pointer-events-none rounded-2xl overflow-hidden" style={{ zIndex: 0 }}>
-        <motion.div className="absolute left-0 right-0 h-0.5 opacity-20" style={{ background: `linear-gradient(90deg, transparent, ${ACCENT}, transparent)` }} animate={{ top: ['0%', '100%', '0%'] }} transition={{ duration: 3, repeat: Infinity, ease: 'linear' }} />
-      </motion.div>
-    </div>
-  );
-}
+          <span className="text-[10px] font-black uppercase tracking-widest px-2.5 py-1 rounded-full" style={{ color: module.color, background: `${module.color}14`, border: `1px solid ${module.color}30` }}>
+            {module.code}
+          </span>
+        </div>
 
-function SkillGapVisual() {
-  // Mimics the CompactCard from the dashboard
-  const skills = [
-    { name: 'Talent Sourcing',     sev: 5, color: '#f97316', bg: 'rgba(249,115,22,0.1)',  border: 'rgba(249,115,22,0.25)',  tier: '🚀 Top-Hebel',    hard: true  },
-    { name: 'People Analytics',    sev: 4, color: ACCENT2,   bg: 'rgba(48,227,202,0.08)', border: 'rgba(48,227,202,0.22)',  tier: '⚡ Hoher Impact', hard: true  },
-    { name: 'KI im Recruiting',    sev: 4, color: ACCENT2,   bg: 'rgba(48,227,202,0.08)', border: 'rgba(48,227,202,0.22)',  tier: '⚡ Hoher Impact', hard: true  },
-    { name: 'ATS-Systeme',         sev: 3, color: '#f97316', bg: 'rgba(249,115,22,0.07)', border: 'rgba(249,115,22,0.18)',  tier: '🚀 Top-Hebel',    hard: false },
-  ];
+        <div>
+          <h4 className="text-lg font-bold text-white leading-tight">{module.title}</h4>
+          <p className="text-sm text-white/50 mt-1">{module.sub}</p>
+        </div>
 
-  return (
-    <div className="h-full flex items-center justify-center p-4">
-      <motion.div
-        initial={{ opacity: 0, y: 16 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.45 }}
-        className="w-full max-w-xs rounded-2xl overflow-hidden"
-        style={{ background: 'linear-gradient(160deg,rgba(10,14,30,0.98),rgba(15,20,40,0.99))', border: `1px solid ${ACCENT2}25` }}
-      >
-        {/* Top accent stripe */}
-        <div className="h-[3px]" style={{ background: `linear-gradient(90deg,#f97316,${ACCENT2},${ACCENT})` }} />
+        <ul className="space-y-2.5 flex-1">
+          {module.bullets.map((b, i) => (
+            <li key={i} className="flex items-start gap-2.5">
+              <div className="mt-0.5 w-4 h-4 rounded-full flex items-center justify-center flex-shrink-0" style={{ background: `${module.color}1c`, border: `1px solid ${module.color}40` }}>
+                <Check className="w-2.5 h-2.5" style={{ color: module.color }} />
+              </div>
+              <p className="text-[13px] text-white/70 leading-relaxed">{b}</p>
+            </li>
+          ))}
+        </ul>
 
-        <div className="p-4 space-y-4">
-          {/* Header: ring + title */}
-          <div className="flex items-start gap-3">
-            {/* Readiness ring */}
-            <div className="relative w-12 h-12 flex-shrink-0">
-              <svg className="w-full h-full -rotate-90" viewBox="0 0 48 48">
-                <circle cx="24" cy="24" r="20" fill="none" stroke="rgba(255,255,255,0.07)" strokeWidth="4" />
-                <motion.circle
-                  cx="24" cy="24" r="20" fill="none" stroke={ACCENT2} strokeWidth="4"
-                  strokeLinecap="round"
-                  strokeDasharray={2 * Math.PI * 20}
-                  initial={{ strokeDashoffset: 2 * Math.PI * 20 }}
-                  animate={{ strokeDashoffset: 2 * Math.PI * 20 * (1 - 0.30) }}
-                  transition={{ duration: 1.2, delay: 0.4, ease: 'easeOut' }}
-                />
-              </svg>
-              <div className="absolute inset-0 flex flex-col items-center justify-center">
-                <span className="text-[11px] font-black leading-none" style={{ color: ACCENT2 }}>30%</span>
+        {module.id === 'skillgap' && (
+          <div className="flex items-center gap-3 pt-1">
+            <MiniRing pct={30} color={module.color} />
+            <div className="flex-1">
+              <p className="text-[11px] text-white/40">Job-Readiness Beispiel</p>
+              <div className="flex gap-1 mt-1.5">
+                {Array.from({ length: 5 }).map((_, j) => (
+                  <div key={j} className="flex-1 h-1.5 rounded-full" style={{ background: j < 2 ? module.color : 'rgba(255,255,255,0.08)' }} />
+                ))}
               </div>
             </div>
-            <div className="flex-1 min-w-0 pt-0.5">
-              <p className="text-[9px] font-black uppercase tracking-widest" style={{ color: `${ACCENT2}99` }}>Deine Vision</p>
-              <h3 className="text-sm font-black text-white leading-tight">Senior Consultant</h3>
-              <span className="text-[10px] text-white/40">YER · Deutschland</span>
-            </div>
           </div>
+        )}
 
-          {/* Market insight */}
-          <div className="flex gap-2 p-2.5 rounded-xl" style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.07)' }}>
-            <span className="text-[10px] leading-relaxed text-white/50">KI-gestützte Prozesse werden 2026 zum Standard im Recruiting. Frühzeitiger Aufbau dieser Skills sichert Wettbewerbsvorteile.</span>
-          </div>
-
-          {/* Skill tiles 2×2 */}
-          <div className="space-y-1.5">
-            <div className="flex items-center gap-1.5">
-              <span className="text-[8px] font-black uppercase tracking-widest text-white/30">5 Lernpfade verfügbar</span>
-              <span className="text-[8px] text-white/20 ml-auto">+1 weitere</span>
-            </div>
-            <div className="grid grid-cols-2 gap-1.5">
-              {skills.map((skill, i) => (
-                <motion.div
-                  key={i}
-                  initial={{ opacity: 0, scale: 0.92 }}
-                  animate={{ opacity: 1, scale: 1 }}
-                  transition={{ delay: 0.3 + i * 0.09 }}
-                  className="rounded-xl p-2.5 space-y-2"
-                  style={{ background: skill.bg, border: `1px solid ${skill.border}` }}
-                >
-                  <div className="flex items-center justify-between gap-1">
-                    <span className="text-[8px] font-black uppercase tracking-wider leading-tight" style={{ color: skill.color }}>
-                      {skill.tier}
-                    </span>
-                    <span className="text-[8px] text-white/30">{skill.hard ? '🔧 Hard' : '🧠 Soft'}</span>
-                  </div>
-                  <p className="text-[10px] font-black text-white leading-tight">{skill.name}</p>
-                  <div className="flex gap-0.5">
-                    {Array.from({ length: 5 }).map((_, j) => (
-                      <div key={j} className="flex-1 h-1.5 rounded-sm" style={{ background: j < skill.sev ? skill.color : 'rgba(255,255,255,0.06)' }} />
-                    ))}
-                  </div>
-                  <div className="flex items-center gap-1 px-2 py-1 rounded-lg" style={{ background: 'rgba(0,0,0,0.25)', border: '1px solid rgba(255,255,255,0.08)' }}>
-                    <svg width="8" height="8" viewBox="0 0 8 8"><rect x="1" y="1" width="6" height="6" rx="1" fill="none" stroke="rgba(255,255,255,0.3)" strokeWidth="1"/><line x1="1" y1="3" x2="7" y2="3" stroke="rgba(255,255,255,0.3)" strokeWidth="0.8"/></svg>
-                    <span className="text-[8px] text-white/35">Lernpfad freischalten</span>
-                  </div>
-                </motion.div>
-              ))}
-            </div>
-          </div>
-
-          {/* Stats row */}
-          <div className="grid grid-cols-3 gap-1.5">
-            {[
-              { val: '5', label: 'Lernpfade', color: ACCENT2 },
-              { val: '3', label: 'Top-Hebel',  color: '#f97316' },
-              { val: '0', label: 'Basis',       color: ACCENT   },
-            ].map(({ val, label, color }) => (
-              <div key={label} className="flex flex-col items-center py-2 rounded-xl" style={{ background: `${color}09`, border: `1px solid ${color}18` }}>
-                <span className="text-base font-black leading-none" style={{ color }}>{val}</span>
-                <span className="text-[8px] text-white/30 mt-0.5 font-bold">{label}</span>
+        {module.id === 'lernpfade' && (
+          <div className="space-y-1.5 pt-1">
+            {[{ t: 'Modul 1', done: true }, { t: 'Modul 2', done: true }, { t: 'Modul 3', done: false }].map((m, i) => (
+              <div key={i} className="flex items-center gap-2 text-[11px]">
+                <div className="w-3.5 h-3.5 rounded-full flex items-center justify-center flex-shrink-0" style={{ background: m.done ? 'rgba(34,197,94,0.18)' : 'rgba(255,255,255,0.06)', border: `1px solid ${m.done ? '#22c55e' : 'rgba(255,255,255,0.15)'}` }}>
+                  {m.done && <Check className="w-2 h-2 text-emerald-400" />}
+                </div>
+                <span className={m.done ? 'text-white/35 line-through' : 'text-white/60'}>{m.t}</span>
               </div>
             ))}
           </div>
+        )}
 
-          {/* CTA */}
-          <div className="w-full py-2.5 rounded-xl font-black text-[11px] text-black flex items-center justify-center gap-1.5"
-            style={{ background: `linear-gradient(135deg,${ACCENT},${ACCENT2})` }}>
-            <svg width="10" height="10" viewBox="0 0 10 10"><rect x="1" y="1" width="8" height="8" rx="1.5" fill="none" stroke="black" strokeWidth="1.2"/><line x1="1" y1="3.5" x2="9" y2="3.5" stroke="black" strokeWidth="1"/></svg>
-            Lernpfade freischalten
+        {module.id === 'zertifikate' && (
+          <div className="flex items-center gap-2.5 px-3 py-2.5 rounded-xl pt-1" style={{ background: `${module.color}10`, border: `1px solid ${module.color}28` }}>
+            <Award className="w-4 h-4 flex-shrink-0" style={{ color: module.color }} />
+            <span className="text-[11px] font-semibold" style={{ color: `${module.color}cc` }}>IHK-nahes Prüfungsformat</span>
           </div>
-        </div>
-      </motion.div>
-    </div>
+        )}
+
+        <button
+          onClick={() => navigate('/career-vision')}
+          className="mt-1 inline-flex items-center gap-1.5 text-[13px] font-semibold transition-colors group"
+          style={{ color: module.color }}
+        >
+          Mehr erfahren
+          <ArrowRight className="w-3.5 h-3.5 group-hover:translate-x-0.5 transition-transform" />
+        </button>
+      </div>
+    </motion.div>
   );
 }
 
-function LernpfadeVisual() {
-  const modules = [
-    { label: 'Modul 1', title: 'Talent Sourcing Grundlagen',   done: true,   active: false, tier: '🚀', color: '#f97316' },
-    { label: 'Modul 2', title: 'Boolean Search & Active Sourcing', done: true, active: false, tier: '🚀', color: '#f97316' },
-    { label: 'Modul 3', title: 'KI-Tools im Recruiting-Alltag', done: false,  active: true,  tier: '⚡', color: ACCENT2  },
-    { label: 'Modul 4', title: 'People Analytics & Kennzahlen', done: false,  active: false, tier: '⚡', color: ACCENT2  },
-    { label: 'Modul 5', title: 'Abschlussprojekt & Zertifikat', done: false,  active: false, tier: '🏆', color: '#fbbf24' },
-  ];
-  const doneCount = modules.filter(m => m.done).length;
-  const pct = Math.round((doneCount / modules.length) * 100);
+/* ───────────────────────── Station card ───────────────────────── */
+
+function StationCard({
+  station, isOpen, onToggle, index,
+}: {
+  station: typeof stations[number];
+  isOpen: boolean;
+  onToggle: () => void;
+  index: number;
+}) {
+  const navigate = useNavigate();
+  const Icon = station.icon;
 
   return (
-    <div className="h-full flex flex-col justify-center gap-3 p-5">
-      {/* Path header */}
-      <motion.div
-        initial={{ opacity: 0, y: -8 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ delay: 0.1 }}
-        className="rounded-xl p-3"
-        style={{ background: 'rgba(48,227,202,0.06)', border: '1px solid rgba(48,227,202,0.18)' }}
-      >
-        <div className="flex items-center justify-between mb-2">
-          <div>
-            <p className="text-[9px] font-black uppercase tracking-widest text-[#30E3CA]/60">Dein Lernpfad</p>
-            <p className="text-[12px] font-black text-white leading-tight">Talent Sourcing Techniken</p>
-          </div>
-          <div className="flex flex-col items-end gap-0.5">
-            <span className="text-[14px] font-black tabular-nums" style={{ color: ACCENT2 }}>{pct}%</span>
-            <span className="text-[9px] text-white/30">{doneCount}/{modules.length} Module</span>
-          </div>
-        </div>
-        <div className="h-2 rounded-full overflow-hidden" style={{ background: 'rgba(255,255,255,0.07)' }}>
+    <motion.div
+      initial={{ opacity: 0, y: 24 }}
+      whileInView={{ opacity: 1, y: 0 }}
+      viewport={{ once: true }}
+      transition={{ delay: index * 0.08, duration: 0.5 }}
+      className={`relative rounded-3xl overflow-hidden ${station.isAcademy ? 'sm:col-span-2 lg:col-span-1' : ''}`}
+      style={{
+        background: station.isAcademy
+          ? 'linear-gradient(150deg,rgba(48,227,202,0.10) 0%,rgba(10,16,22,0.97) 60%)'
+          : 'linear-gradient(150deg,rgba(255,255,255,0.06),rgba(255,255,255,0.02))',
+        border: station.isAcademy ? '1px solid rgba(48,227,202,0.35)' : '1px solid rgba(255,255,255,0.09)',
+        boxShadow: station.isAcademy ? '0 0 0 1px rgba(48,227,202,0.08), 0 20px 60px -20px rgba(48,227,202,0.25)' : undefined,
+      }}
+    >
+      {station.isAcademy && (
+        <div className="absolute inset-0 pointer-events-none overflow-hidden">
           <motion.div
-            className="h-full rounded-full"
-            style={{ background: `linear-gradient(90deg, ${ACCENT}, ${ACCENT2})` }}
-            initial={{ width: 0 }}
-            animate={{ width: `${pct}%` }}
-            transition={{ delay: 0.4, duration: 0.9, ease: 'easeOut' }}
+            className="absolute -top-10 -right-10 w-40 h-40 rounded-full blur-3xl"
+            style={{ background: ACCENT2 }}
+            animate={{ opacity: [0.12, 0.22, 0.12] }}
+            transition={{ duration: 4, repeat: Infinity, ease: 'easeInOut' }}
           />
         </div>
-      </motion.div>
+      )}
 
-      {/* Module list */}
-      <div className="space-y-1.5">
-        {modules.map((mod, i) => (
-          <motion.div
-            key={i}
-            initial={{ opacity: 0, x: -12 }}
-            animate={{ opacity: 1, x: 0 }}
-            transition={{ delay: 0.2 + i * 0.09 }}
-            className="flex items-center gap-2.5 px-3 py-2 rounded-xl"
-            style={{
-              background: mod.active ? 'rgba(48,227,202,0.07)' : mod.done ? 'rgba(255,255,255,0.03)' : 'rgba(255,255,255,0.02)',
-              border: mod.active ? '1px solid rgba(48,227,202,0.22)' : mod.done ? '1px solid rgba(255,255,255,0.07)' : '1px solid rgba(255,255,255,0.04)',
-            }}
+      <div className="relative z-10 p-6 sm:p-7">
+        <div className="flex items-start justify-between gap-3 mb-5">
+          <div
+            className="w-12 h-12 rounded-2xl flex items-center justify-center flex-shrink-0"
+            style={{ background: station.isAcademy ? `linear-gradient(135deg,${ACCENT},${ACCENT2})` : 'rgba(255,255,255,0.07)', border: station.isAcademy ? 'none' : '1px solid rgba(255,255,255,0.12)' }}
           >
-            <div className="w-5 h-5 rounded-full flex items-center justify-center flex-shrink-0"
-              style={{
-                background: mod.done ? 'rgba(34,197,94,0.15)' : mod.active ? `rgba(48,227,202,0.15)` : 'rgba(255,255,255,0.05)',
-                border: `1px solid ${mod.done ? '#22c55e' : mod.active ? ACCENT2 : 'rgba(255,255,255,0.1)'}`,
-              }}>
-              {mod.done ? (
-                <svg width="8" height="8" viewBox="0 0 8 8"><polyline points="1,4 3,6 7,2" fill="none" stroke="#22c55e" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" /></svg>
-              ) : mod.active ? (
-                <div className="w-1.5 h-1.5 rounded-full animate-pulse" style={{ background: ACCENT2 }} />
-              ) : (
-                <div className="w-1 h-1 rounded-full bg-white/20" />
-              )}
-            </div>
+            <Icon className={`w-6 h-6 ${station.isAcademy ? 'text-black' : 'text-white/70'}`} />
+          </div>
 
-            <div className="flex-1 min-w-0">
-              <div className="flex items-center gap-1">
-                <span className="text-[10px] leading-none">{mod.tier}</span>
-                <p className={`text-[11px] font-bold leading-tight truncate ${mod.done ? 'text-white/30 line-through decoration-white/20' : mod.active ? 'text-white' : 'text-white/45'}`}>
-                  {mod.title}
-                </p>
-              </div>
-              <p className="text-[9px] text-white/25 mt-0.5">{mod.label}</p>
-            </div>
-
-            {mod.active && (
+          {station.isAcademy ? (
+            <motion.div
+              className="flex items-center gap-1.5 px-2.5 py-1 rounded-full"
+              style={{ background: 'rgba(239,68,68,0.12)', border: '1px solid rgba(239,68,68,0.35)' }}
+              animate={{ boxShadow: ['0 0 0px rgba(239,68,68,0.0)', '0 0 14px rgba(239,68,68,0.35)', '0 0 0px rgba(239,68,68,0.0)'] }}
+              transition={{ duration: 2, repeat: Infinity, ease: 'easeInOut' }}
+            >
               <motion.span
-                animate={{ opacity: [0.5, 1, 0.5] }}
-                transition={{ duration: 1.8, repeat: Infinity }}
-                className="text-[9px] font-black px-1.5 py-0.5 rounded-full flex-shrink-0"
-                style={{ background: 'rgba(48,227,202,0.12)', color: ACCENT2, border: '1px solid rgba(48,227,202,0.28)' }}
-              >
-                Aktiv
-              </motion.span>
-            )}
-          </motion.div>
-        ))}
-      </div>
+                className="w-1.5 h-1.5 rounded-full bg-red-500"
+                animate={{ opacity: [1, 0.3, 1] }}
+                transition={{ duration: 1.4, repeat: Infinity }}
+              />
+              <span className="text-[10px] font-black uppercase tracking-widest text-red-400">Jetzt live</span>
+            </motion.div>
+          ) : (
+            <span className="text-[10px] font-black uppercase tracking-widest text-white/30 pt-1.5">{station.eyebrow}</span>
+          )}
+        </div>
 
-      {/* Certificate */}
-      <motion.div
-        initial={{ opacity: 0 }}
-        animate={{ opacity: 1 }}
-        transition={{ delay: 0.85 }}
-        className="flex items-center gap-2 px-3 py-2 rounded-xl"
-        style={{ background: 'rgba(251,191,36,0.06)', border: '1px solid rgba(251,191,36,0.15)' }}
-      >
-        <span className="text-sm">🏆</span>
-        <span className="text-[10px] text-amber-300/65 font-bold">Offizielles Zertifikat nach Abschluss</span>
-      </motion.div>
-    </div>
-  );
-}
+        <h3 className="text-xl sm:text-2xl font-bold text-white leading-tight mb-1.5">{station.title}</h3>
+        <p className="text-sm text-white/50 mb-6">{station.sub}</p>
 
-function ManagementVisual() {
-  const columns = [
-    {
-      title: 'Offen', color: 'text-white/50', dot: 'bg-white/30',
-      cards: [
-        { company: 'Siemens AG', role: 'Product Manager', date: 'Heute' },
-        { company: 'BMW Group', role: 'Strategy Analyst', date: 'Gestern' },
-      ],
-    },
-    {
-      title: 'Eingeladen', color: 'text-amber-400', dot: 'bg-amber-400',
-      cards: [{ company: 'SAP SE', role: 'UX Designer', date: 'Mo, 28.04.' }],
-    },
-    {
-      title: 'Zusage', color: 'text-emerald-400', dot: 'bg-emerald-400',
-      cards: [{ company: 'Zalando', role: 'Growth Lead', date: 'Fr, 25.04.' }],
-    },
-  ];
-  return (
-    <div className="h-full flex items-center justify-center p-3">
-      <div className="w-full max-w-sm grid grid-cols-3 gap-2">
-        {columns.map((col, ci) => (
-          <motion.div key={ci} initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: ci * 0.15 }} className="bg-white/5 border border-white/10 rounded-xl p-2.5 space-y-2">
-            <div className="flex items-center gap-1.5">
-              <div className={`w-2 h-2 rounded-full flex-shrink-0 ${col.dot}`} />
-              <span className={`text-[10px] font-semibold uppercase tracking-wide ${col.color}`}>{col.title}</span>
-            </div>
-            {col.cards.map((card, ki) => (
-              <motion.div key={ki} initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} transition={{ delay: 0.3 + ci * 0.15 + ki * 0.1 }} className="bg-white/8 border border-white/10 rounded-lg p-2 space-y-0.5">
-                <p className="text-[11px] font-semibold text-white leading-tight">{card.company}</p>
-                <p className="text-[10px] text-white/50 leading-tight">{card.role}</p>
-                <p className="text-[9px] text-white/30">{card.date}</p>
+        <div className="flex items-center gap-2">
+          <button
+            onClick={() => navigate(station.ctaHref)}
+            className={`flex-1 inline-flex items-center justify-center gap-2 py-3 rounded-xl font-bold text-sm transition-all ${
+              station.isAcademy ? 'text-black' : 'text-white/85 border border-white/15 hover:bg-white/8'
+            }`}
+            style={station.isAcademy ? { background: `linear-gradient(135deg,${ACCENT},${ACCENT2})` } : {}}
+          >
+            {station.isAcademy ? 'Campus betreten' : 'Loslegen'}
+            <ArrowRight className="w-4 h-4" />
+          </button>
+
+          {station.isAcademy && (
+            <button
+              onClick={onToggle}
+              aria-expanded={isOpen}
+              aria-label="Career Academy Bereiche anzeigen"
+              className="flex-shrink-0 w-11 h-11 rounded-xl flex items-center justify-center transition-all"
+              style={{ background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.14)' }}
+            >
+              <motion.div animate={{ rotate: isOpen ? 180 : 0 }} transition={{ duration: 0.25 }}>
+                <ChevronDown className="w-4 h-4 text-white/60" />
               </motion.div>
-            ))}
-          </motion.div>
-        ))}
+            </button>
+          )}
+        </div>
       </div>
-    </div>
+    </motion.div>
   );
 }
 
-/* ── Tab content data ───────────────────────────────────── */
-
-const tabContent = {
-  wizard: {
-    icon: FileText,
-    heading: 'Der CV-Wizard',
-    sub: 'Vom leeren Blatt zum Top-Lebenslauf',
-    bullets: [
-      'Ich führe dich Schritt für Schritt: Persönliche Daten, Erfahrung, Skills.',
-      'Kein Design-Stress: Du wählst ein Profi-Template, ich kümmere mich um das Layout.',
-      'Echtzeit-Vorschau im Live-Editor – sieh sofort, wie dein CV aussieht.',
-      'Am Ende lädst du eine professionelle PDF herunter.',
-    ],
-    cta: 'CV jetzt erstellen',
-    ctaHref: '/cv-wizard',
-    solid: true,
-    Visual: WizardVisual,
-  },
-  check: {
-    icon: Target,
-    heading: 'Der CV-Check',
-    sub: 'Dein Lebenslauf gegen den Algorithmus',
-    bullets: [
-      'Ich analysiere deinen bestehenden Lebenslauf mit KI auf über 50 Kriterien.',
-      'Du erhältst einen glasklaren ATS-Score von 0–100 Punkten.',
-      'Konkrete Verbesserungsvorschläge, um die Algorithmen der Recruiter zu schlagen.',
-      'Optional: Direkt im Live-Editor optimieren und als PDF speichern.',
-    ],
-    cta: 'CV jetzt checken',
-    ctaHref: '/cv-check',
-    solid: false,
-    Visual: CheckVisual,
-  },
-  skillgap: {
-    icon: TrendingUp,
-    heading: 'Skill-Gap-Analyse',
-    sub: 'Erkenne exakt, was dich von deinem Traumjob trennt',
-    bullets: [
-      'KI vergleicht dein CV mit echten Stellenanforderungen – kein Rätselraten mehr.',
-      'Jede Lücke wird nach Impact priorisiert: Top-Hebel zuerst, Quick Wins danach.',
-      'Du siehst genau, welche 3–5 Skills den größten Unterschied für dich machen.',
-      'ESCO-validiert nach europäischem Qualifikationsrahmen – präzise, nicht pauschal.',
-    ],
-    cta: 'Meine Skills analysieren',
-    ctaHref: '/career-vision',
-    solid: true,
-    Visual: SkillGapVisual,
-  },
-  lernpfade: {
-    icon: Map,
-    heading: 'Personalisierte Lernpfade',
-    sub: 'Von der Lücke zum gefragten Experten',
-    bullets: [
-      'Für jeden identifizierten Skill-Gap erstellt die KI einen konkreten Lernpfad.',
-      'Strukturierte Module mit klarem Ziel – kein zielloses Durchklicken mehr.',
-      'Du verfolgst deinen Fortschritt live und weißt immer, was als nächstes kommt.',
-      'Nach Abschluss erhältst du ein Zertifikat, das du direkt in Bewerbungen einsetzt.',
-    ],
-    cta: 'Lernpfad starten',
-    ctaHref: '/career-vision',
-    solid: false,
-    Visual: LernpfadeVisual,
-  },
-  management: {
-    icon: Briefcase,
-    heading: 'Bewerbungsmanagement',
-    sub: 'Überblick statt Chaos',
-    bullets: [
-      'Behalte den Überblick: Alle Bewerbungen, Status und Deadlines an einem Ort.',
-      'Nie wieder Chaos: Alle Dokumente im Dashboard sicher gespeichert.',
-      'Strategisches Vorgehen statt blindes Abschicken.',
-      'Vom ersten Klick bis zur Zusage – ich tracke jeden Schritt für dich.',
-    ],
-    cta: 'Zum Dashboard',
-    ctaHref: '/dashboard',
-    solid: false,
-    Visual: ManagementVisual,
-  },
-} as const;
-
-/* ── Main component ─────────────────────────────────────── */
+/* ───────────────────────── Main section ───────────────────────── */
 
 export function ProcessTimeline() {
-  const [active, setActive] = useState<TabId>('wizard');
-  const navigate = useNavigate();
-  const content = tabContent[active];
-  const Icon = content.icon;
-  const Visual = content.Visual;
+  const [campusOpen, setCampusOpen] = useState(true);
 
   return (
-    <section id="prozess" className="py-12 sm:py-20 px-4 sm:px-6 lg:px-8">
-      <div className="max-w-7xl mx-auto">
+    <section id="prozess" className="py-16 sm:py-24 px-4 sm:px-6 lg:px-8 relative overflow-hidden">
+      <div className="absolute inset-0 pointer-events-none">
+        <div className="absolute top-1/3 left-0 w-72 h-72 rounded-full blur-3xl opacity-[0.05]" style={{ background: ACCENT2 }} />
+      </div>
+
+      <div className="max-w-7xl mx-auto relative z-10">
         {/* Heading */}
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           whileInView={{ opacity: 1, y: 0 }}
           viewport={{ once: true }}
-          className="text-center mb-10 sm:mb-14"
+          className="text-center mb-12 sm:mb-16"
         >
+          <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full mb-4" style={{ background: 'rgba(48,227,202,0.08)', border: '1px solid rgba(48,227,202,0.22)' }}>
+            <Radio className="w-3.5 h-3.5 text-[#30E3CA]" />
+            <span className="text-[11px] font-bold uppercase tracking-widest text-[#30E3CA]/80">Eine Plattform · vier Stationen</span>
+          </div>
           <h2 className="text-3xl sm:text-4xl md:text-6xl font-bold mb-3">
             So funktioniert&apos;s
           </h2>
-          <p className="text-lg sm:text-xl text-white/60">
-            Fünf Wege – ein Ziel: dein Traumjob
+          <p className="text-lg sm:text-xl text-white/60 max-w-2xl mx-auto">
+            Vom ersten CV bis zum nächsten Karrieresprung – alles an einem Ort.
           </p>
         </motion.div>
 
-        {/* Tab bar */}
-        <div className="flex flex-wrap items-center justify-center gap-2 sm:gap-3 mb-8 sm:mb-12">
-          {tabs.map((tab) => {
-            const TabIcon = tab.icon;
-            const isActive = active === tab.id;
-            return (
-              <button
-                key={tab.id}
-                type="button"
-                onClick={() => setActive(tab.id)}
-                className={`relative flex items-center gap-2 px-4 sm:px-5 py-2.5 rounded-xl font-semibold text-sm transition-all duration-300 border ${
-                  isActive
-                    ? 'text-black border-transparent shadow-lg shadow-[#66c0b6]/25'
-                    : 'text-white/60 border-white/10 hover:border-[#66c0b6]/30 hover:text-white bg-white/5'
-                }`}
-                style={isActive ? { background: `linear-gradient(135deg, ${ACCENT}, ${ACCENT2})` } : {}}
-              >
-                <TabIcon className="w-4 h-4 flex-shrink-0" />
-                <span className="whitespace-nowrap">{tab.label}</span>
-                {isActive && (
-                  <motion.span layoutId="tab-dot" className="ml-auto sm:hidden">
-                    <ChevronRight className="w-4 h-4" />
-                  </motion.span>
-                )}
-              </button>
-            );
-          })}
+        {/* Station grid */}
+        <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-5">
+          {stations.map((station, i) => (
+            <StationCard
+              key={station.id}
+              station={station}
+              index={i}
+              isOpen={campusOpen}
+              onToggle={() => setCampusOpen((v) => !v)}
+            />
+          ))}
         </div>
 
-        {/* Content panel */}
-        <AnimatePresence mode="wait">
-          <motion.div
-            key={active}
-            initial={{ opacity: 0, y: 24 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -12 }}
-            transition={{ duration: 0.35 }}
-            className="grid lg:grid-cols-2 gap-6 sm:gap-10 items-stretch"
-          >
-            {/* Left – text */}
-            <div className="bg-gradient-to-br from-white/10 to-white/5 backdrop-blur-xl border border-white/10 rounded-3xl p-6 sm:p-8 flex flex-col">
-              <div className="flex items-start gap-4 mb-6">
-                <div
-                  className="w-14 h-14 rounded-2xl flex items-center justify-center flex-shrink-0"
-                  style={{ background: `linear-gradient(135deg, ${ACCENT}, ${ACCENT2})` }}
-                >
-                  <Icon className="w-7 h-7 text-black" />
+        {/* Career Academy campus expansion */}
+        <AnimatePresence>
+          {campusOpen && (
+            <motion.div
+              initial={{ opacity: 0, height: 0 }}
+              animate={{ opacity: 1, height: 'auto' }}
+              exit={{ opacity: 0, height: 0 }}
+              transition={{ duration: 0.4, ease: [0.22, 1, 0.36, 1] }}
+              className="overflow-hidden"
+            >
+              <div
+                className="mt-6 rounded-3xl p-6 sm:p-9 relative overflow-hidden"
+                style={{ background: 'linear-gradient(160deg,rgba(48,227,202,0.06) 0%,rgba(8,12,18,0.96) 55%)', border: '1px solid rgba(48,227,202,0.18)' }}
+              >
+                <div className="absolute top-0 right-0 w-64 h-64 rounded-full blur-3xl opacity-[0.08] pointer-events-none" style={{ background: ACCENT2 }} />
+
+                <div className="relative z-10 flex flex-col sm:flex-row sm:items-end sm:justify-between gap-3 mb-8">
+                  <div>
+                    <div className="flex items-center gap-2 mb-2">
+                      <GraduationCap className="w-4 h-4 text-[#30E3CA]" />
+                      <span className="text-[11px] font-black uppercase tracking-widest text-[#30E3CA]/70">Der Career Academy Campus</span>
+                    </div>
+                    <h3 className="text-2xl sm:text-3xl font-bold text-white leading-tight">
+                      Drei Fakultäten, ein Ziel: dein nächster Karriereschritt
+                    </h3>
+                  </div>
+                  <div className="flex items-center gap-1.5 text-[12px] text-white/40 flex-shrink-0">
+                    <Sparkles className="w-3.5 h-3.5 text-[#30E3CA]/70" />
+                    Neu seit diesem Monat
+                  </div>
                 </div>
-                <div>
-                  <h3 className="text-xl sm:text-2xl font-bold text-white">{content.heading}</h3>
-                  <p className="text-sm text-white/50 mt-0.5">{content.sub}</p>
+
+                <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-5 relative z-10">
+                  {campusModules.map((mod, i) => (
+                    <CampusCard key={mod.id} module={mod} index={i} />
+                  ))}
                 </div>
               </div>
-
-              <ul className="space-y-4 flex-1">
-                {content.bullets.map((bullet, i) => (
-                  <motion.li
-                    key={i}
-                    initial={{ opacity: 0, x: -12 }}
-                    animate={{ opacity: 1, x: 0 }}
-                    transition={{ delay: i * 0.08 }}
-                    className="flex items-start gap-3"
-                  >
-                    <div
-                      className="mt-0.5 w-5 h-5 rounded-full flex items-center justify-center flex-shrink-0"
-                      style={{ background: `${ACCENT}22`, border: `1px solid ${ACCENT}55` }}
-                    >
-                      <Check className="w-3 h-3" style={{ color: ACCENT }} />
-                    </div>
-                    <p className="text-sm sm:text-base text-white/80 leading-relaxed">{bullet}</p>
-                  </motion.li>
-                ))}
-              </ul>
-
-              <motion.button
-                onClick={() => navigate(content.ctaHref)}
-                whileHover={{ scale: 1.02 }}
-                whileTap={{ scale: 0.98 }}
-                className={`mt-8 w-full py-3.5 rounded-xl font-bold text-base flex items-center justify-center gap-2 transition-all ${
-                  content.solid
-                    ? 'text-black shadow-lg shadow-[#66c0b6]/25'
-                    : 'text-white border-2 border-[#66c0b6]/50 hover:bg-[#66c0b6]/10'
-                }`}
-                style={content.solid ? { background: `linear-gradient(135deg, ${ACCENT}, ${ACCENT2})` } : {}}
-              >
-                {content.cta}
-                <ArrowRight className="w-4 h-4" />
-              </motion.button>
-            </div>
-
-            {/* Right – visual */}
-            <div className="relative bg-gradient-to-br from-white/8 to-white/3 backdrop-blur-xl border border-white/10 rounded-3xl overflow-hidden min-h-[360px]">
-              <div
-                className="absolute -top-16 -right-16 w-48 h-48 rounded-full opacity-20 blur-3xl pointer-events-none"
-                style={{ background: ACCENT }}
-              />
-              <Visual />
-            </div>
-          </motion.div>
+            </motion.div>
+          )}
         </AnimatePresence>
 
         {/* Bottom note */}
@@ -580,9 +417,9 @@ export function ProcessTimeline() {
           initial={{ opacity: 0 }}
           whileInView={{ opacity: 1 }}
           viewport={{ once: true }}
-          className="text-center text-white/40 text-sm mt-10"
+          className="text-center text-white/40 text-sm mt-12"
         >
-          Alle Wege führen zu einem ATS-optimierten, professionellen Lebenslauf.
+          Alle Stationen führen zu einem ATS-optimierten Lebenslauf und einem klaren Plan für deinen Traumjob.
         </motion.p>
       </div>
     </section>
