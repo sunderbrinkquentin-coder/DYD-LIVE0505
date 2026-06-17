@@ -40,6 +40,7 @@ import { CareerVisionSection } from '../components/landing/CareerVisionSection';
 import { AboutSection } from '../components/landing/AboutSection';
 import { ProcessTimeline } from '../components/landing/ProcessTimeline';
 import FestivalPopup from '../components/FestivalPopup';
+import { FollowRewardPopup, shouldShowFollowPopup } from '../components/landing/FollowRewardPopup';
 
 const FESTIVAL_SECTIONS = [
   { label: 'Programm',   anchor: 'programm',  emoji: '🎶' },
@@ -55,6 +56,26 @@ export default function LandingPage() {
   const [expandedFAQ, setExpandedFAQ] = useState<number | null>(null);
   const [festivalOpen, setFestivalOpen] = useState(false);
   const { scrollYProgress } = useScroll();
+
+  // Follow-reward popup: shown once per session before CV-Check, CV-Wizard, or Career Vision
+  const [followPopupOpen, setFollowPopupOpen] = useState(false);
+  const [pendingNavTarget, setPendingNavTarget] = useState<string | null>(null);
+
+  const goWithFollowGate = (target: string) => {
+    if (shouldShowFollowPopup()) {
+      setPendingNavTarget(target);
+      setFollowPopupOpen(true);
+    } else {
+      navigate(target);
+    }
+  };
+
+  const handleFollowPopupContinue = () => {
+    if (pendingNavTarget) {
+      navigate(pendingNavTarget);
+      setPendingNavTarget(null);
+    }
+  };
 
   const scrollToId = (id: string) => {
     const el = document.getElementById(id);
@@ -102,6 +123,11 @@ export default function LandingPage() {
   return (
     <div className="min-h-screen bg-gradient-to-br from-[#050507] via-[#0a0a0f] to-[#050507] text-white relative overflow-hidden">
       <FestivalPopup />
+      <FollowRewardPopup
+        open={followPopupOpen}
+        onClose={() => setFollowPopupOpen(false)}
+        onContinue={handleFollowPopupContinue}
+      />
       {/* Dynamisches Background Logo - mehrere Ebenen mit innovativen Effekten */}
       <div className="fixed inset-0 pointer-events-none z-0 overflow-hidden">
         {/* Hauptlogo - subtil und elegant */}
@@ -372,7 +398,7 @@ export default function LandingPage() {
                 </motion.button>
 
                 <motion.button
-                  onClick={() => navigate('/cv-check')}
+                  onClick={() => goWithFollowGate('/cv-check')}
                   className="px-6 py-2 rounded-xl bg-gradient-to-r from-[#66c0b6] to-[#30E3CA] text-black font-semibold shadow-lg shadow-[#66c0b6]/20 relative overflow-hidden group"
                   whileHover={{ scale: 1.05, y: -2 }}
                   whileTap={{ scale: 0.98 }}
@@ -481,7 +507,7 @@ export default function LandingPage() {
               >
                 <div className="relative">
                 <motion.button
-                  onClick={() => navigate('/cv-wizard')}
+                  onClick={() => goWithFollowGate('/cv-wizard')}
                   className="group relative px-12 py-6 rounded-2xl bg-gradient-to-r from-[#66c0b6] to-[#30E3CA] text-black font-bold text-lg shadow-2xl shadow-[#66c0b6]/30 flex items-center gap-3 overflow-hidden"
                   whileHover={{ scale: 1.05, y: -5 }}
                   whileTap={{ scale: 0.98 }}
@@ -515,7 +541,7 @@ export default function LandingPage() {
                 </motion.button>
                 </div>
                 <motion.button
-                  onClick={() => navigate('/cv-check')}
+                  onClick={() => goWithFollowGate('/cv-check')}
                   className="group relative px-10 py-5 rounded-2xl border border-white/10 bg-white/5 text-white/70 font-medium text-base backdrop-blur-sm flex items-center gap-2 hover:text-white hover:border-white/20 transition-colors"
                   whileHover={{ scale: 1.02, y: -2 }}
                   whileTap={{ scale: 0.98 }}
@@ -1506,7 +1532,7 @@ export default function LandingPage() {
                 Nicht in deiner Nähe? Kein Problem – nutze DYD jederzeit mobil!
               </div>
               <button
-                onClick={() => navigate('/cv-check')}
+                onClick={() => goWithFollowGate('/cv-check')}
                 className="px-8 sm:px-12 py-4 sm:py-5 rounded-2xl bg-gradient-to-r from-[#66c0b6] to-[#30E3CA] text-black font-bold text-base sm:text-lg hover:opacity-90 transition-all shadow-2xl"
               >
                 Jetzt online starten
@@ -1643,13 +1669,13 @@ export default function LandingPage() {
                 </div>
                 <div className="flex flex-col sm:flex-row gap-4 justify-center">
                   <button
-                    onClick={() => navigate('/cv-wizard')}
+                    onClick={() => goWithFollowGate('/cv-wizard')}
                     className="px-12 py-6 rounded-2xl bg-black text-white font-bold text-lg hover:bg-black/90 transition-all shadow-2xl"
                   >
                     CV erstellen
                   </button>
                   <button
-                    onClick={() => navigate('/cv-check')}
+                    onClick={() => goWithFollowGate('/cv-check')}
                     className="px-10 py-5 rounded-2xl border border-black/20 bg-black/5 text-black/70 font-medium text-base hover:text-black hover:border-black/30 transition-all"
                   >
                     CV checken
@@ -1699,20 +1725,67 @@ export default function LandingPage() {
                   Dein persönlicher KI-Assistent für die perfekte Bewerbung.
                   Kostenlos, professionell, erfolgreich.
                 </div>
-                <div className="flex items-center gap-4">
-                  <a
-                    href="https://www.instagram.com/dyd_harmony"
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="group w-10 h-10 rounded-lg bg-white/5 hover:bg-gradient-to-br hover:from-[#f09433] hover:via-[#e6683c] hover:to-[#dc2743] border border-white/10 hover:border-transparent flex items-center justify-center transition-all"
-                    title="@dyd_harmony auf Instagram"
-                  >
-                    <svg viewBox="0 0 24 24" fill="none" className="w-4 h-4 text-white/70 group-hover:text-white transition-colors" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
-                      <rect x="2" y="2" width="20" height="20" rx="5" ry="5"/>
-                      <circle cx="12" cy="12" r="4"/>
-                      <circle cx="17.5" cy="6.5" r="0.5" fill="currentColor" stroke="none"/>
-                    </svg>
-                  </a>
+
+                {/* DYD channels */}
+                <div className="mb-5">
+                  <p className="text-[10px] font-black uppercase tracking-widest text-white/30 mb-2.5">DYD</p>
+                  <div className="flex items-center gap-3">
+                    <a
+                      href="https://www.instagram.com/dyd_harmony"
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="group w-10 h-10 rounded-lg bg-white/5 hover:bg-gradient-to-br hover:from-[#f09433] hover:via-[#e6683c] hover:to-[#dc2743] border border-white/10 hover:border-transparent flex items-center justify-center transition-all"
+                      title="@dyd_harmony auf Instagram"
+                    >
+                      <svg viewBox="0 0 24 24" fill="none" className="w-4 h-4 text-white/70 group-hover:text-white transition-colors" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+                        <rect x="2" y="2" width="20" height="20" rx="5" ry="5"/>
+                        <circle cx="12" cy="12" r="4"/>
+                        <circle cx="17.5" cy="6.5" r="0.5" fill="currentColor" stroke="none"/>
+                      </svg>
+                    </a>
+                    <a
+                      href="https://www.linkedin.com/company/decideyourdream"
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="group w-10 h-10 rounded-lg bg-white/5 hover:bg-[#0a66c2] border border-white/10 hover:border-transparent flex items-center justify-center transition-all"
+                      title="DYD – Decide your Dream auf LinkedIn"
+                    >
+                      <svg viewBox="0 0 24 24" fill="currentColor" className="w-4 h-4 text-white/70 group-hover:text-white transition-colors">
+                        <path d="M20.447 20.452h-3.554v-5.569c0-1.328-.027-3.037-1.852-3.037-1.853 0-2.136 1.445-2.136 2.939v5.667H9.351V9h3.414v1.561h.046c.477-.9 1.637-1.85 3.37-1.85 3.601 0 4.267 2.37 4.267 5.455v6.286zM5.337 7.433a2.062 2.062 0 01-2.063-2.065 2.064 2.064 0 112.063 2.065zm1.782 13.019H3.555V9h3.564v11.452zM22.225 0H1.771C.792 0 0 .774 0 1.729v20.542C0 23.227.792 24 1.771 24h20.451C23.2 24 24 23.227 24 22.271V1.729C24 .774 23.2 0 22.222 0h.003z"/>
+                      </svg>
+                    </a>
+                  </div>
+                </div>
+
+                {/* Harmony Festival channels */}
+                <div>
+                  <p className="text-[10px] font-black uppercase tracking-widest text-white/30 mb-2.5">Harmony Festival</p>
+                  <div className="flex items-center gap-3">
+                    <a
+                      href="https://www.instagram.com/harmonyfestivaldus"
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="group w-10 h-10 rounded-lg bg-white/5 hover:bg-gradient-to-br hover:from-[#f09433] hover:via-[#e6683c] hover:to-[#dc2743] border border-white/10 hover:border-transparent flex items-center justify-center transition-all"
+                      title="@harmonyfestivaldus auf Instagram"
+                    >
+                      <svg viewBox="0 0 24 24" fill="none" className="w-4 h-4 text-white/70 group-hover:text-white transition-colors" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+                        <rect x="2" y="2" width="20" height="20" rx="5" ry="5"/>
+                        <circle cx="12" cy="12" r="4"/>
+                        <circle cx="17.5" cy="6.5" r="0.5" fill="currentColor" stroke="none"/>
+                      </svg>
+                    </a>
+                    <a
+                      href="https://www.tiktok.com/@harmonyfestival2026"
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="group w-10 h-10 rounded-lg bg-white/5 hover:bg-black border border-white/10 hover:border-white/20 flex items-center justify-center transition-all"
+                      title="@harmonyfestival2026 auf TikTok"
+                    >
+                      <svg viewBox="0 0 24 24" fill="currentColor" className="w-4 h-4 text-white/70 group-hover:text-white transition-colors">
+                        <path d="M16.6 5.82s.51.5 0 0A4.278 4.278 0 0 1 15.54 3h-3.09v12.4a2.59 2.59 0 0 1-2.59 2.5c-1.42 0-2.6-1.16-2.6-2.6 0-1.72 1.66-3.01 3.37-2.48V9.66c-3.45-.46-6.47 2.22-6.47 5.64 0 3.33 2.76 5.7 5.69 5.7 3.14 0 5.69-2.55 5.69-5.7V9.01a7.35 7.35 0 0 0 4.3 1.38V7.3s-1.88.09-3.24-1.48z"/>
+                      </svg>
+                    </a>
+                  </div>
                 </div>
               </div>
 
@@ -1732,7 +1805,7 @@ export default function LandingPage() {
                     Preise
                   </button>
                   <button
-                    onClick={() => navigate('/cv-check')}
+                    onClick={() => goWithFollowGate('/cv-check')}
                     className="block hover:text-[#66c0b6] transition-colors text-left"
                   >
                     CV-Check starten
@@ -1785,7 +1858,7 @@ export default function LandingPage() {
           transition={{ delay: 2, type: 'spring', stiffness: 200 }}
         >
           <motion.button
-            onClick={() => navigate('/cv-check')}
+            onClick={() => goWithFollowGate('/cv-check')}
             className="relative group w-16 h-16 rounded-full bg-gradient-to-r from-[#66c0b6] to-[#30E3CA] shadow-2xl flex items-center justify-center overflow-hidden"
             whileHover={{ scale: 1.15, rotate: 90 }}
             whileTap={{ scale: 0.95 }}
