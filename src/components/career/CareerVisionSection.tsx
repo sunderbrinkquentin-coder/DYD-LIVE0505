@@ -12,6 +12,7 @@ import { supabase } from '../../lib/supabase';
 import { uploadCvAndCreateRecord } from '../../services/cvUploadService';
 import { LearningPathPaywall } from './LearningPathPaywall';
 import { SkillGapPaywall } from './SkillGapPaywall';
+import { FollowRewardPopup, shouldShowFollowPopup } from '../landing/FollowRewardPopup';
 
 // ── Constants ──────────────────────────────────────────────────────────────────
 
@@ -892,6 +893,15 @@ export function CareerVisionSection({ cvId: initialCvId, onAnalysisComplete, res
   const [result, setResult] = useState<AnalysisResult | null>(null);
   const [cvUploadFileName, setCvUploadFileName] = useState<string>('');
 
+  // Follow-reward popup: shown once per session as soon as this section mounts
+  const [followPopupOpen, setFollowPopupOpen] = useState(false);
+
+  useEffect(() => {
+    if (shouldShowFollowPopup()) {
+      setFollowPopupOpen(true);
+    }
+  }, []);
+
   // Refs
   const channelRef     = useRef<ReturnType<typeof supabase.channel> | null>(null);
   const pollTimerRef   = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -1423,6 +1433,12 @@ export function CareerVisionSection({ cvId: initialCvId, onAnalysisComplete, res
 
   return (
     <div className="space-y-6">
+      <FollowRewardPopup
+        open={followPopupOpen}
+        onClose={() => setFollowPopupOpen(false)}
+        onContinue={() => setFollowPopupOpen(false)}
+      />
+
       {/* CV uploading loader */}
       {isCvUploading && <CvUploadLoader fileName={cvUploadFileName} />}
 
