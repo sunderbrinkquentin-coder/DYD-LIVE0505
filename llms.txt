@@ -1,0 +1,10 @@
+# DYD - Decide Your Dream
+
+> KI-gestütztes Bewerbungs-Tool aus Düsseldorf für Studierende und Berufseinsteiger:innen: kostenloser ATS-Check, CV-Wizard mit automatisierter One-Click-Optimierung, Bewerbungsmanagement sowie eine ESCO-basierte Skill-Gap-Analyse mit persönlichem Lernpfad. Offizieller Kooperationspartner der Hochschule Fresenius, DSGVO-konform.
+
+## Core Navigation
+- [ATS-Check](https://decide-your-dream.de/#/cv-check): Kostenloser Lebenslauf-Check nach 50+ Kriterien, ohne Anmeldung erforderlich.
+- [CV-Wizard](https://decide-your-dream.de/#/cv-wizard): Erstellung eines optimierten Lebenslaufs in unter 30 Minuten, inklusive automatisierter One-Click-Optimierung ab 5 Euro.
+- [Bewerbungsmanagement](https://decide-your-dream.de/#/dashboard): Verwaltung und Überblick laufender Bewerbungen.
+- [Skill-Gap-Analysator](https://decide-your-dream.de/#/career-vision): Berechnet einen Match-Score gegen die europäische ESCO-Taxonomie und identifiziert individuelle Kompetenzlücken.
+- [IHK-Lernpfade](https://decide-your-dream.de/#/learning-path): Didaktisch reduzierte Micro-Learning-Module zur Schließung identifizierter Skill-Gaps.
