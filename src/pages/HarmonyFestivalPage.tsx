@@ -38,6 +38,8 @@ const ACTS = [
   { num: '03', icon: Mic,    label: 'Zirkel.WTF Live',  sub: 'Pop-Punk aus Hamburg',          time: '20:30', color: C.cyan   },
   { num: '04', icon: Disc3,  label: 'DJ Sets',           sub: 'House & Techno bis 02:00',     time: '22:00', color: C.blue   },
 ];
+const [selectedShirtSize, setSelectedShirtSize] = useState<string>('');
+const [sizeError, setSizeError] = useState<string>('');
 
 function GraffitiCanvas() {
   const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -2178,7 +2180,7 @@ Jeder Cent Gewinn geht direkt an{' '}
   style={{ color: '#dc3232', textDecoration: 'underline', textUnderlineOffset: '3px' }}
 >
   KeinBockAufNazis e.V.
-</a>
+
        Ich verdiene keinen Euro daran — das ist kein Produkt, das ist eine Haltung.
     </p>
   </div>
