@@ -1102,7 +1102,63 @@ useEffect(() => {
       `}</style>
 
       <GraffitiCanvas />
-
+{/* ── SIDEBAR NAV (Desktop only) ── */}
+<div className="hidden lg:flex fixed left-6 top-1/2 -translate-y-1/2 z-40 flex-col gap-4">
+  {NAV_SECTIONS.map((section) => {
+    const isActive = activeSection === section.id;
+    return (
+      <div key={section.id} className="group relative flex items-center">
+        {/* Punkt */}
+        <button
+          type="button"
+          onClick={() => {
+            const el = document.getElementById(section.id);
+            if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+          }}
+          style={{
+            width: isActive ? '10px' : '7px',
+            height: isActive ? '10px' : '7px',
+            borderRadius: '50%',
+            background: isActive ? C.cyan : 'rgba(255,255,255,0.25)',
+            border: isActive ? `2px solid ${C.cyan}` : '2px solid rgba(255,255,255,0.2)',
+            boxShadow: isActive ? `0 0 10px ${C.cyan}` : 'none',
+            cursor: 'pointer',
+            transition: 'all 0.2s ease',
+            flexShrink: 0,
+          }}
+        />
+        {/* Tooltip beim Hover */}
+        <div
+          style={{
+            position: 'absolute',
+            left: '20px',
+            whiteSpace: 'nowrap',
+            background: 'rgba(8,12,16,0.92)',
+            border: `1px solid ${isActive ? 'rgba(0,212,212,0.4)' : 'rgba(255,255,255,0.1)'}`,
+            borderRadius: '8px',
+            padding: '5px 10px',
+            opacity: 0,
+            pointerEvents: 'none',
+            transition: 'opacity 0.18s ease',
+            backdropFilter: 'blur(12px)',
+          }}
+          className="group-hover:opacity-100"
+        >
+          <span style={{
+            fontFamily: "'Barlow Condensed', sans-serif",
+            fontWeight: 700,
+            fontSize: '11px',
+            letterSpacing: '0.18em',
+            textTransform: 'uppercase',
+            color: isActive ? C.cyan : 'rgba(255,255,255,0.6)',
+          }}>
+            {section.emoji} {section.label}
+          </span>
+        </div>
+      </div>
+    );
+  })}
+</div>
       {/* ── NAV ─────────────────────────────────────────────────── */}
       <nav className="fixed top-0 w-full z-50 glass" style={{ borderBottom: '1px solid rgba(0,212,212,0.1)' }}>
         <div className="max-w-6xl mx-auto px-6 sm:px-10">
