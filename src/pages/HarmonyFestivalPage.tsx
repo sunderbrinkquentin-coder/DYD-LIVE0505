@@ -657,6 +657,15 @@ useEffect(() => {
             success_url: ticket.id === 'support'
               ? `${window.location.origin}/#/festival?support_success=1&session_id={CHECKOUT_SESSION_ID}`
               : `${window.location.origin}/#/festival-success?session_id={CHECKOUT_SESSION_ID}&type=${ticket.id}`,
+
+
+// ✅ Ersetzen mit:
+            success_url: ticket.id === 'support'
+              ? `${window.location.origin}/#/festival?support_success=1&session_id={CHECKOUT_SESSION_ID}`
+  : ticket.id === 'soli_shirt'
+              ? `${window.location.origin}/#/festival?payment=success&type=soli_shirt`
+  : `${window.location.origin}/#/festival-success?session_id={CHECKOUT_SESSION_ID}&type=${ticket.id}`,
+            
             cancel_url: `${window.location.origin}/#/festival?payment=cancelled`,
             mode: 'payment',
             metadata: { ticket_type: ticket.id },
