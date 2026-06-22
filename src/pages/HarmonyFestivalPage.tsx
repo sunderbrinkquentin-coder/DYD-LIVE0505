@@ -2169,18 +2169,15 @@ useEffect(() => {
         maxWidth: '560px',
       }}
     >
-      Harmony steht für Zusammenhalt — und gegen das, was uns spaltet. Jeder Cent Gewinn geht direkt an{' '}
+      Harmony steht für Zusammenhalt — und gegen das, was uns spaltet. 
+Jeder Cent Gewinn geht direkt an{' '}
 
   href="https://www.keinbockaufnazis.de"
   target="_blank"
   rel="noopener noreferrer"
-  style={{
-    color: '#dc3232',
-    textDecoration: 'underline',
-    textUnderlineOffset: '3px',
-  }}
+  style={{ color: '#dc3232', textDecoration: 'underline', textUnderlineOffset: '3px' }}
 >
-  keinbockaufnazis.de →
+  KeinBockAufNazis e.V.
 </a>
        Ich verdiene keinen Euro daran — das ist kein Produkt, das ist eine Haltung.
     </p>
@@ -2382,18 +2379,18 @@ useEffect(() => {
               Der gemeinnützige Verein kämpft seit Jahren gegen Rechtsextremismus und
               für eine offene, demokratische Gesellschaft — genau das, wofür Harmony
               steht.{' '}
-              
-                href="https://www.keinbockaufnazis.de"
-                target="_blank"
-                rel="noopener noreferrer"
-                style={{
-                  color: '#dc3232',
-                  textDecoration: 'underline',
-                  textUnderlineOffset: '3px',
-                }}
-              >
-                keinbockaufnazis.de →
-              </a>
+
+  href="https://www.keinbockaufnazis.de"
+  target="_blank"
+  rel="noopener noreferrer"
+  style={{
+    color: '#dc3232',
+    textDecoration: 'underline',
+    textUnderlineOffset: '3px',
+  }}
+>
+  keinbockaufnazis.de →
+</a>
             </p>
           </div>
         </div>
