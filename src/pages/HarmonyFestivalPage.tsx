@@ -2136,7 +2136,311 @@ useEffect(() => {
               ))}
             </div>
           </section>
+{/* ── SOLI-SHIRTS ── */}
+<div className="divider"/>
+<motion.section
+  id="shirts"
+  initial={{ opacity: 0, y: 28 }}
+  whileInView={{ opacity: 1, y: 0 }}
+  viewport={{ once: true }}
+  transition={{ duration: 0.65, ease: [0.22, 1, 0.36, 1] }}
+>
+  {/* Header */}
+  <div className="mb-12">
+    <div className="tag-label mb-4" style={{ color: '#dc3232', opacity: 0.85 }}>
+      Solidarität
+    </div>
+    <h2
+      className="graffiti"
+      style={{ fontSize: 'clamp(48px, 8vw, 88px)', color: '#fff', lineHeight: 0.9 }}
+    >
+      Zeig Haltung —<br />
+      <span style={{ color: '#dc3232', textShadow: '0 0 40px rgba(220,50,50,0.55)' }}>
+        Kauf ein Soli-Shirt
+      </span>
+    </h2>
+    <p
+      style={{
+        fontFamily: "'Inter', sans-serif",
+        fontSize: '15px',
+        color: 'rgba(180,210,210,0.55)',
+        marginTop: '16px',
+        lineHeight: 1.7,
+        maxWidth: '560px',
+      }}
+    >
+      Harmony steht für Zusammenhalt — und gegen das, was uns spaltet. Jeder Cent Gewinn geht direkt an{' '}
 
+  href="https://www.keinbockaufnazis.de"
+  target="_blank"
+  rel="noopener noreferrer"
+  style={{ color: '#dc3232', textDecoration: 'underline', textUnderlineOffset: '3px' }}
+>
+        KeinBockAufNazis e.V.
+      </a>
+       Ich verdiene keinen Euro daran — das ist kein Produkt, das ist eine Haltung.
+    </p>
+  </div>
+
+  {/* Card */}
+  <div
+    className="relative rounded-3xl overflow-hidden"
+    style={{
+      background: 'linear-gradient(135deg, rgba(220,50,50,0.10) 0%, rgba(0,18,22,0.97) 60%)',
+      border: '1px solid rgba(220,50,50,0.32)',
+      boxShadow: '0 8px 50px rgba(0,0,0,0.5), 0 0 60px rgba(220,50,50,0.08)',
+    }}
+  >
+    <div
+      className="absolute inset-x-0 top-0 h-[3px]"
+      style={{ background: 'linear-gradient(to right, transparent, #dc3232, transparent)' }}
+    />
+
+    <div className="relative z-10 p-7 sm:p-10">
+      {/* Shirt images */}
+      <div className="grid grid-cols-2 gap-4 mb-10 max-w-lg mx-auto">
+        {[
+          { src: '/shirt_back.jpg', label: 'Rückseite' },
+          { src: '/shirt_front.jpg', label: 'Vorderseite' },
+        ].map((img) => (
+          <div
+            key={img.label}
+            className="rounded-2xl overflow-hidden"
+            style={{ border: '1px solid rgba(220,50,50,0.18)', background: 'rgba(255,255,255,0.03)' }}
+          >
+            <img
+              src={img.src}
+              alt={`Harmony Soli-Shirt – ${img.label}`}
+              style={{ display: 'block', width: '100%', height: 'auto', objectFit: 'cover' }}
+            />
+            <p
+              style={{
+                fontFamily: "'Inter', sans-serif",
+                fontSize: '10px',
+                fontWeight: 700,
+                letterSpacing: '0.2em',
+                textTransform: 'uppercase',
+                color: 'rgba(220,120,120,0.5)',
+                textAlign: 'center',
+                padding: '8px',
+              }}
+            >
+              {img.label}
+            </p>
+          </div>
+        ))}
+      </div>
+
+      {/* Price + Info */}
+      <div className="flex flex-col sm:flex-row sm:items-end gap-6 mb-8">
+        <div className="flex-1">
+          <div
+            className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full mb-4"
+            style={{ background: 'rgba(220,50,50,0.12)', border: '1px solid rgba(220,50,50,0.3)' }}
+          >
+            <span style={{ fontFamily: "'Inter', sans-serif", fontSize: '11px', fontWeight: 700, color: '#dc3232' }}>
+              ❤️ 100% Gewinn geht an KeinBockAufNazis e.V.
+            </span>
+          </div>
+          <p
+            style={{
+              fontFamily: "'Inter', sans-serif",
+              fontSize: '14px',
+              color: 'rgba(180,210,210,0.5)',
+              lineHeight: 1.7,
+              maxWidth: '440px',
+            }}
+          >
+            Weißes Shirt mit Harmony-Graffiti-Print auf der Rückseite und dem
+            DYD-Logo vorne. Unisex-Schnitt, hochwertig bedruckt. Größen XS bis XXL.
+          </p>
+        </div>
+        <div className="flex-shrink-0 text-right">
+          <div
+            style={{
+              fontFamily: "'Inter', sans-serif",
+              fontSize: '10px',
+              fontWeight: 600,
+              letterSpacing: '0.22em',
+              textTransform: 'uppercase',
+              color: 'rgba(220,80,80,0.45)',
+              marginBottom: '2px',
+            }}
+          >
+            Stückpreis
+          </div>
+          <span
+            className="price-num"
+            style={{ fontSize: 'clamp(36px, 6vw, 58px)', color: '#dc3232', lineHeight: 1 }}
+          >
+            25,00 €
+          </span>
+        </div>
+      </div>
+
+      {/* Size picker */}
+      <div className="mb-8">
+        <p
+          style={{
+            fontFamily: "'Inter', sans-serif",
+            fontSize: '11px',
+            fontWeight: 700,
+            letterSpacing: '0.2em',
+            textTransform: 'uppercase',
+            color: 'rgba(220,120,120,0.55)',
+            marginBottom: '12px',
+          }}
+        >
+          Größe wählen
+        </p>
+        <div className="flex flex-wrap gap-2">
+          {(['XS', 'S', 'M', 'L', 'XL', 'XXL'] as const).map((size) => (
+            <button
+              key={size}
+              type="button"
+              onClick={() => setSelectedShirtSize(size)}
+              style={{
+                fontFamily: "'Bebas Neue', sans-serif",
+                fontSize: '17px',
+                letterSpacing: '0.1em',
+                padding: '10px 18px',
+                borderRadius: '12px',
+                background:
+                  selectedShirtSize === size
+                    ? 'rgba(220,50,50,0.22)'
+                    : 'rgba(255,255,255,0.04)',
+                border: `1px solid ${
+                  selectedShirtSize === size
+                    ? 'rgba(220,50,50,0.6)'
+                    : 'rgba(255,255,255,0.1)'
+                }`,
+                color:
+                  selectedShirtSize === size ? '#dc3232' : 'rgba(255,255,255,0.45)',
+                cursor: 'pointer',
+                transition: 'all 0.15s ease',
+                transform: selectedShirtSize === size ? 'scale(1.06)' : 'scale(1)',
+                boxShadow:
+                  selectedShirtSize === size
+                    ? '0 0 14px rgba(220,50,50,0.22)'
+                    : 'none',
+              }}
+            >
+              {size}
+            </button>
+          ))}
+        </div>
+        {sizeError && (
+          <p
+            style={{
+              fontFamily: "'Inter', sans-serif",
+              fontSize: '12px',
+              color: C.orange,
+              marginTop: '8px',
+            }}
+          >
+            {sizeError}
+          </p>
+        )}
+      </div>
+
+      {/* KeinBockAufNazis info box */}
+      <div
+        className="rounded-2xl p-5 mb-8"
+        style={{ background: 'rgba(220,50,50,0.06)', border: '1px solid rgba(220,50,50,0.18)' }}
+      >
+        <div className="flex items-start gap-3">
+          <div
+            className="w-2 h-2 rounded-full flex-shrink-0 mt-2"
+            style={{ background: '#dc3232', boxShadow: '0 0 8px rgba(220,50,50,0.7)' }}
+          />
+          <div>
+            <p
+              style={{
+                fontFamily: "'Barlow Condensed', sans-serif",
+                fontWeight: 700,
+                fontSize: '14px',
+                letterSpacing: '0.14em',
+                textTransform: 'uppercase',
+                color: 'rgba(220,80,80,0.85)',
+                marginBottom: '6px',
+              }}
+            >
+              KeinBockAufNazis e.V.
+            </p>
+            <p
+              style={{
+                fontFamily: "'Inter', sans-serif",
+                fontSize: '14px',
+                color: 'rgba(200,180,180,0.6)',
+                lineHeight: 1.7,
+              }}
+            >
+              Der gemeinnützige Verein kämpft seit Jahren gegen Rechtsextremismus und
+              für eine offene, demokratische Gesellschaft — genau das, wofür Harmony
+              steht.{' '}
+              
+                href="https://www.keinbockaufnazis.de"
+                target="_blank"
+                rel="noopener noreferrer"
+                style={{
+                  color: '#dc3232',
+                  textDecoration: 'underline',
+                  textUnderlineOffset: '3px',
+                }}
+              >
+                keinbockaufnazis.de →
+              </a>
+            </p>
+          </div>
+        </div>
+      </div>
+
+      {/* CTA */}
+      <motion.button
+        whileHover={{ scale: 1.015 }}
+        whileTap={{ scale: 0.97 }}
+        onClick={() => {
+          if (!selectedShirtSize) {
+            setSizeError('Bitte wähle zuerst eine Größe.');
+            return;
+          }
+          setSizeError('');
+          const shirtTicket = TICKETS.find((t) => t.id === 'soli_shirt')!;
+          handleBuy(shirtTicket, selectedShirtSize);
+        }}
+        disabled={loadingId !== null}
+        className="w-full flex items-center justify-center gap-3 py-4 rounded-2xl disabled:opacity-40 disabled:cursor-not-allowed"
+        style={{
+          background: 'linear-gradient(90deg, #dc3232 0%, #b02020 100%)',
+          color: '#fff',
+          fontFamily: "'Bebas Neue', sans-serif",
+          fontSize: '22px',
+          letterSpacing: '0.2em',
+          boxShadow: '0 4px 36px rgba(220,50,50,0.4)',
+        }}
+      >
+        {loadingId === 'soli_shirt' ? (
+          <><Loader2 className="w-5 h-5 animate-spin" /> Weiterleitung...</>
+        ) : (
+          <><Heart className="w-5 h-5" /> Shirt sichern — 25,00 € für KeinBockAufNazis</>
+        )}
+      </motion.button>
+
+      <p
+        style={{
+          fontFamily: "'Inter', sans-serif",
+          fontSize: '11px',
+          color: 'rgba(180,200,200,0.3)',
+          textAlign: 'center',
+          marginTop: '12px',
+          letterSpacing: '0.04em',
+        }}
+      >
+        Kein Gewinn für mich · 100% geht direkt an den Verein · Verteilung am Festival (Versand möglich)
+      </p>
+    </div>
+  </div>
+</motion.section>
           <div className="divider" />
 
           {/* ── HARD FACTS ───────────────────────────────────────── */}
