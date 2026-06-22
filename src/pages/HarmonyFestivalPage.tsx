@@ -2370,27 +2370,18 @@ Jeder Cent Gewinn geht direkt an{' '}
             >
               KeinBockAufNazis e.V.
             </p>
-            <p
-              style={{
-                fontFamily: "'Inter', sans-serif",
-                fontSize: '14px',
-                color: 'rgba(200,180,180,0.6)',
-                lineHeight: 1.7,
-              }}
-            
-     Der gemeinnützige Verein kämpft seit Jahren gegen Rechtsextremismu
-       für eine offene, demokratische Gesellschaft – genau das, wofür Harmony steht.{' '}
-   href="https://www.keinbockaufnazis.de"
-  target="_blank"
-  rel="noopener noreferrer"
-  style={{
-    color: '#dc3232',
-    textDecoration: 'underline',
-    textUnderlineOffset: '3px',
-  }}
-
-  keinbockaufnazis.de →
-            </p>
+            <p>
+  Der gemeinnützige Verein kämpft seit Jahren gegen Rechtsextremismus und 
+  für eine offene, demokratische Gesellschaft – genau das, wofür Harmony steht.{' '}
+  <a 
+    href="https://www.keinbockaufnazis.de" 
+    target="_blank" 
+    rel="noopener noreferrer"
+    className="text-cyan font-bold hover:underline"
+  >
+    Mehr erfahren
+  </a>
+</p>
           </div>
         </div>
       </div>
