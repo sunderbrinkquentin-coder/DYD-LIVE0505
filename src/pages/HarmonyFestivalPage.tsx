@@ -38,8 +38,6 @@ const ACTS = [
   { num: '03', icon: Mic,    label: 'Zirkel.WTF Live',  sub: 'Pop-Punk aus Hamburg',          time: '20:30', color: C.cyan   },
   { num: '04', icon: Disc3,  label: 'DJ Sets',           sub: 'House & Techno bis 02:00',     time: '22:00', color: C.blue   },
 ];
-const [selectedShirtSize, setSelectedShirtSize] = useState<string>('');
-const [sizeError, setSizeError] = useState<string>('');
 
 function GraffitiCanvas() {
   const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -497,6 +495,8 @@ export default function HarmonyFestivalPage() {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const { user, profile } = useAuth();
+  const [selectedShirtSize, setSelectedShirtSize] = useState<string>('');
+  const [sizeError, setSizeError] = useState<string>('');
   const [loadingId, setLoadingId] = useState<string | null>(null);
   const [error,     setError]     = useState<string | null>(null);
   const [showSlowHint, setShowSlowHint] = useState(false);
