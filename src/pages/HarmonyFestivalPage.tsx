@@ -817,6 +817,7 @@ useEffect(() => {
 
   return (
     <div className="min-h-screen relative overflow-x-hidden" style={{ backgroundColor: C.bg, color: '#fff' }}> {/* ── SECTION TAB BAR (Desktop) ── */}
+{/* ── SECTION TAB BAR (Desktop) ── */}
 <div
   className="hidden lg:flex fixed top-16 inset-x-0 z-40 items-center overflow-x-auto"
   style={{
