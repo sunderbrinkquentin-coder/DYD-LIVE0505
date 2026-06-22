@@ -869,10 +869,13 @@ useEffect(() => {
       >
         {section.label}
       </button>
-    );
+    );<style>{`
+    nav[aria-label="Schnellnavigation"]::-webkit-scrollbar { display: none; }
+  `}</style>
   })}
 </div>
-      <style>{`
+
+    <style>{`
         @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&family=Barlow+Condensed:ital,wght@0,400;0,600;0,700;0,900;1,700;1,900&family=Bebas+Neue&display=swap');
 
         :root {
