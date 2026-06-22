@@ -489,6 +489,7 @@ const NAV_SECTIONS = [
   { id: 'tickets',       label: 'Tickets',     emoji: '🎟️' },
   { id: 'crew',          label: 'Crew-Deal',   emoji: '🤝' },
   { id: 'sponsoren',     label: 'Sponsoren',   emoji: '🏢' },
+  { id: 'shirts',        label: 'Soli-Shirts', emoji: '👕' },
   { id: 'hardfacts',     label: 'Hard Facts',  emoji: '📍' },
   { id: 'unterstuetzen', label: 'Unterstützen', emoji: '💛' },
 ] as const;
