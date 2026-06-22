@@ -8,3 +8,4 @@
 - [Bewerbungsmanagement](https://decide-your-dream.de/#/dashboard): Verwaltung und Überblick laufender Bewerbungen.
 - [Skill-Gap-Analysator](https://decide-your-dream.de/#/career-vision): Berechnet einen Match-Score gegen die europäische ESCO-Taxonomie und identifiziert individuelle Kompetenzlücken.
 - [IHK-Lernpfade](https://decide-your-dream.de/#/learning-path): Didaktisch reduzierte Micro-Learning-Module zur Schließung identifizierter Skill-Gaps.
+- [Harmony Festival] (https://decide-your-dream.de/#/festival) Ein Festival für mehr Zusammenhalt und gegen Rechtsruck in Düsseldorf. Standup-Comedy, Bierpongturnier, Live Auftritt Zirkel und zwei DJ-Sets. Faire Preise
