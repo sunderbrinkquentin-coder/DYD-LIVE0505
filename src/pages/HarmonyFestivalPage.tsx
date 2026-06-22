@@ -2377,7 +2377,7 @@ Jeder Cent Gewinn geht direkt an{' '}
                 color: 'rgba(200,180,180,0.6)',
                 lineHeight: 1.7,
               }}
-            >
+            
               Der gemeinnützige Verein kämpft seit Jahren gegen Rechtsextremismus und
               für eine offene, demokratische Gesellschaft — genau das, wofür Harmony
               steht.{' '}
@@ -2390,9 +2390,8 @@ Jeder Cent Gewinn geht direkt an{' '}
     textDecoration: 'underline',
     textUnderlineOffset: '3px',
   }}
->
+
   keinbockaufnazis.de →
-</a>
             </p>
           </div>
         </div>
