@@ -2203,38 +2203,21 @@ useEffect(() => {
 
     <div className="relative z-10 p-7 sm:p-10">
       {/* Shirt images */}
-      <div className="grid grid-cols-2 gap-4 mb-10 max-w-lg mx-auto">
-        {[
-          { src: '/shirt_back.jpg', label: 'Rückseite' },
-          { src: '/shirt_front.jpg', label: 'Vorderseite' },
-        ].map((img) => (
-          <div
-            key={img.label}
-            className="rounded-2xl overflow-hidden"
-            style={{ border: '1px solid rgba(220,50,50,0.18)', background: 'rgba(255,255,255,0.03)' }}
-          >
-            <img
-              src={img.src}
-              alt={`Harmony Soli-Shirt – ${img.label}`}
-              style={{ display: 'block', width: '100%', height: 'auto', objectFit: 'cover' }}
-            />
-            <p
-              style={{
-                fontFamily: "'Inter', sans-serif",
-                fontSize: '10px',
-                fontWeight: 700,
-                letterSpacing: '0.2em',
-                textTransform: 'uppercase',
-                color: 'rgba(220,120,120,0.5)',
-                textAlign: 'center',
-                padding: '8px',
-              }}
-            >
-              {img.label}
-            </p>
-          </div>
-        ))}
-      </div>
+<div className="flex items-center gap-3 mb-10 px-2 py-4 rounded-2xl"
+  style={{ background: 'rgba(220,50,50,0.06)', border: '1px solid rgba(220,50,50,0.18)' }}>
+  <div className="w-2 h-2 rounded-full flex-shrink-0"
+    style={{ background: '#dc3232', boxShadow: '0 0 8px rgba(220,50,50,0.7)' }}/>
+  <p style={{
+    fontFamily: "'Barlow Condensed', sans-serif",
+    fontWeight: 700,
+    fontSize: '16px',
+    letterSpacing: '0.08em',
+    textTransform: 'uppercase',
+    color: 'rgba(220,120,120,0.9)',
+  }}>
+    Bilder folgen in Kürze
+  </p>
+</div>
 
       {/* Price + Info */}
       <div className="flex flex-col sm:flex-row sm:items-end gap-6 mb-8">
