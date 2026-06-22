@@ -2161,28 +2161,27 @@ useEffect(() => {
         Kauf ein Soli-Shirt
       </span>
     </h2>
-    <p
-      style={{
-        fontFamily: "'Inter', sans-serif",
-        fontSize: '15px',
-        color: 'rgba(180,210,210,0.55)',
-        marginTop: '16px',
-        lineHeight: 1.7,
-        maxWidth: '560px',
-      }}
-    >
-      Harmony steht für Zusammenhalt — und gegen das, was uns spaltet. 
-Jeder Cent Gewinn geht direkt an{' '}
-
-  href="https://www.keinbockaufnazis.de"
-  target="_blank"
-  rel="noopener noreferrer"
-  style={{ color: '#dc3232', textDecoration: 'underline', textUnderlineOffset: '3px' }}
+<p
+  style={{
+    fontFamily: "'Inter', sans-serif",
+    fontSize: '15px',
+    color: 'rgba(180,210,210,0.55)',
+    marginTop: '16px',
+    lineHeight: 1.7,
+    maxWidth: '560px',
+  }}
 >
-  KeinBockAufNazis e.V.
-
-       Ich verdiene keinen Euro daran — das ist kein Produkt, das ist eine Haltung.
-    </p>
+  {"Harmony steht für Zusammenhalt — und gegen das, was uns spaltet. Jeder Cent Gewinn geht direkt an "}
+  <a
+    href="https://www.keinbockaufnazis.de"
+    target="_blank"
+    rel="noopener noreferrer"
+    style={{ color: '#dc3232', textDecoration: 'underline', textUnderlineOffset: '3px' }}
+  >
+    KeinBockAufNazis e.V.
+  </a>
+  {" — ich verdiene keinen Euro daran — das ist kein Produkt, das ist eine Haltung."}
+</p>
   </div>
 
   {/* Card */}
