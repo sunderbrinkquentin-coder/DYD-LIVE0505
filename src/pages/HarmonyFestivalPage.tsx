@@ -1343,7 +1343,7 @@ useEffect(() => {
       {/* ── HERO ────────────────────────────────────────────────── */}
       <section className="relative z-10">
         {/* Banner — fully visible, pushed below nav */}
-        <motion.div className="relative w-full" style={{ paddingTop: '64px', y: bannerY, opacity: bannerOp }}>
+        <motion.div className="relative w-full" style={{ paddingTop: '106px', y: bannerY, opacity: bannerOp }}
           <img src="/22.08.2026_(2).jpg" alt="Harmony Festival 2026"
             style={{ display: 'block', width: '100%', height: 'auto', objectFit: 'cover', objectPosition: 'center top' }} />
           {/* subtle cyan tint at top of banner */}
