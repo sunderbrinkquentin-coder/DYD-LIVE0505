@@ -30,7 +30,9 @@ const TICKETS = [
   { id: 'standup',     priceId: import.meta.env.VITE_STRIPE_HARMONY_STANDUP,      label: 'Stand-Up Comedy',       price: 17.50, description: '5–6 Newcomer aus der lokalen Stand-Up Comedy Szene.',                               highlight: false, badge: null,        perk: '',                                     accent: 'rgba(210,110,50,0.85)',  accentAlpha: 'rgba(200,100,40,0.1)',  accentShadow: 'rgba(180,85,30,0.06)'  },
   { id: 'dj',          priceId: import.meta.env.VITE_STRIPE_HARMONY_DJ,           label: 'DJ Sets House / Techno', price:  8.50, description: 'Lokale DJs für die Club Night – House & Techno bis in den Morgen.',                 highlight: false, badge: null,        perk: '',                                     accent: 'rgba(160,120,200,0.8)', accentAlpha: 'rgba(145,105,185,0.1)', accentShadow: 'rgba(130,90,170,0.06)' },
   { id: 'bierpong',    priceId: import.meta.env.VITE_STRIPE_HARMONY_BIERPONG,     label: 'Bierpong-Turnier',      price: 10.00, description: 'Tritt gegen andere Teams an und sichere dir deinen Platz im Turnier.',              highlight: false, badge: 'LIMITIERT', perk: 'Gewinnen = den ganzen Abend free trinken', accent: 'rgba(185,215,55,0.8)', accentAlpha: 'rgba(175,205,50,0.1)', accentShadow: 'rgba(155,185,40,0.06)' },
+  { id: 'soli_shirt', priceId: import.meta.env.VITE_STRIPE_HARMONY_SOLI_SHIRT, label: 'Soli-Shirt', price: 25.00, description: '100% Gewinn an KeinBockAufNazis e.V.', highlight: false, badge: 'SOLI', perk: '', accent: 'rgba(220,50,50,0.85)', accentAlpha: 'rgba(200,40,40,0.1)', accentShadow: 'rgba(180,30,30,0.06)' },
 ];
+
 
 const ACTS = [
   { num: '01', icon: Laugh,  label: 'Stand-Up Comedy',  sub: 'Newcomer der lokalen Szene',  time: '16:30', color: C.orange },
@@ -2254,7 +2256,7 @@ useEffect(() => {
             }}
           >
             Weißes Shirt mit Harmony-Graffiti-Print auf der Rückseite und dem
-            DYD-Logo vorne. Unisex-Schnitt, hochwertig bedruckt. Größen XS bis XXL.
+            Harmony-Logo vorne. Hochwertig bedruckt. Größen XS bis XXL.
           </p>
         </div>
         <div className="flex-shrink-0 text-right">
