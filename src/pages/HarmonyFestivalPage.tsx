@@ -2378,11 +2378,9 @@ Jeder Cent Gewinn geht direkt an{' '}
                 lineHeight: 1.7,
               }}
             
-              Der gemeinnützige Verein kämpft seit Jahren gegen Rechtsextremismus und
-              für eine offene, demokratische Gesellschaft — genau das, wofür Harmony
-              steht.{' '}
-
-  href="https://www.keinbockaufnazis.de"
+     Der gemeinnützige Verein kämpft seit Jahren gegen Rechtsextremismu
+       für eine offene, demokratische Gesellschaft – genau das, wofür Harmony steht.{' '}
+   href="https://www.keinbockaufnazis.de"
   target="_blank"
   rel="noopener noreferrer"
   style={{
