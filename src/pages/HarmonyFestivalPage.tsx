@@ -2174,10 +2174,14 @@ useEffect(() => {
   href="https://www.keinbockaufnazis.de"
   target="_blank"
   rel="noopener noreferrer"
-  style={{ color: '#dc3232', textDecoration: 'underline', textUnderlineOffset: '3px' }}
+  style={{
+    color: '#dc3232',
+    textDecoration: 'underline',
+    textUnderlineOffset: '3px',
+  }}
 >
-        KeinBockAufNazis e.V.
-      </a>
+  keinbockaufnazis.de →
+</a>
        Ich verdiene keinen Euro daran — das ist kein Produkt, das ist eine Haltung.
     </p>
   </div>
