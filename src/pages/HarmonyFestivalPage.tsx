@@ -815,7 +815,61 @@ useEffect(() => {
   const fadeUp = { initial: { opacity: 0, y: 28 }, whileInView: { opacity: 1, y: 0 }, viewport: { once: true, margin: '-50px' }, transition: { duration: 0.65, ease: [0.22, 1, 0.36, 1] } };
 
   return (
-    <div className="min-h-screen relative overflow-x-hidden" style={{ backgroundColor: C.bg, color: '#fff' }}>
+    <div className="min-h-screen relative overflow-x-hidden" style={{ backgroundColor: C.bg, color: '#fff' }}> {/* ── SECTION TAB BAR (Desktop) ── */}
+<div
+  className="hidden lg:flex fixed top-16 inset-x-0 z-40 items-center overflow-x-auto"
+  style={{
+    background: 'rgba(8,12,16,0.92)',
+    borderBottom: '1px solid rgba(0,212,212,0.12)',
+    backdropFilter: 'blur(20px)',
+    WebkitBackdropFilter: 'blur(20px)',
+    scrollbarWidth: 'none',
+  }}
+>
+  {NAV_SECTIONS.map((section) => {
+    const isActive = activeSection === section.id;
+    return (
+      <button
+        key={section.id}
+        type="button"
+        onClick={() => {
+          const el = document.getElementById(section.id);
+          if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        }}
+        style={{
+          flexShrink: 0,
+          padding: '11px 20px',
+          background: 'transparent',
+          border: 'none',
+          borderBottom: isActive
+            ? `2px solid ${C.cyan}`
+            : '2px solid transparent',
+          color: isActive ? C.cyan : 'rgba(255,255,255,0.38)',
+          fontFamily: "'Barlow Condensed', sans-serif",
+          fontWeight: 700,
+          fontSize: '11px',
+          letterSpacing: '0.18em',
+          textTransform: 'uppercase',
+          cursor: 'pointer',
+          whiteSpace: 'nowrap',
+          transition: 'all 0.18s ease',
+        }}
+        onMouseEnter={e => {
+          if (!isActive) {
+            (e.currentTarget as HTMLButtonElement).style.color = 'rgba(255,255,255,0.7)';
+          }
+        }}
+        onMouseLeave={e => {
+          if (!isActive) {
+            (e.currentTarget as HTMLButtonElement).style.color = 'rgba(255,255,255,0.38)';
+          }
+        }}
+      >
+        {section.label}
+      </button>
+    );
+  })}
+</div>
       <style>{`
         @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&family=Barlow+Condensed:ital,wght@0,400;0,600;0,700;0,900;1,700;1,900&family=Bebas+Neue&display=swap');
 
