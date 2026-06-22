@@ -620,7 +620,7 @@ useEffect(() => {
   return () => window.removeEventListener('scroll', handleScroll);
 }, []);
 
-  const doCheckout = async (ticket: typeof TICKETS[0], name: string, bpTeam?: string, bpPartner?: string) => {
+  const doCheckout = async (ticket: typeof TICKETS[0], name: string, bpTeam?: string, bpPartner?: string, shirtSize?: string,) => {
     setError(null);
     setLoadingId(ticket.id);
     setShowSlowHint(false);
@@ -664,6 +664,7 @@ useEffect(() => {
             buyer_name: name,
             ...(bpTeam ? { bierpong_team_name: bpTeam } : {}),
             ...(bpPartner ? { bierpong_partner_name: bpPartner } : {}),
+            ...(shirtSize ? { shirt_size: shirtSize } : {}),
           }),
           signal: controller.signal,
         });
@@ -2392,14 +2393,14 @@ useEffect(() => {
         whileHover={{ scale: 1.015 }}
         whileTap={{ scale: 0.97 }}
         onClick={() => {
-          if (!selectedShirtSize) {
-            setSizeError('Bitte wähle zuerst eine Größe.');
-            return;
-          }
-          setSizeError('');
-          const shirtTicket = TICKETS.find((t) => t.id === 'soli_shirt')!;
-          handleBuy(shirtTicket, selectedShirtSize);
-        }}
+        if (!selectedShirtSize) {
+        setSizeError('Bitte wähle zuerst eine Größe.');
+        return;
+        }
+        setSizeError('');
+        const shirtTicket = TICKETS.find((t) => t.id === 'soli_shirt')!;
+        doCheckout(shirtTicket, profile?.full_name || '', undefined, undefined, selectedShirtSize);
+    }}
         disabled={loadingId !== null}
         className="w-full flex items-center justify-center gap-3 py-4 rounded-2xl disabled:opacity-40 disabled:cursor-not-allowed"
         style={{
