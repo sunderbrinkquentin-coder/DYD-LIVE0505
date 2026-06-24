@@ -2053,6 +2053,7 @@ useEffect(() => {
             {(() => {
               const hero = TICKETS[0];
               return (
+                <React.Fragment>
                 <motion.div key={hero.id} initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }}
                   transition={{ duration: 0.55 }} className="tr-hero mb-5">
                   <div className="relative z-10 p-7 sm:p-10">
@@ -2178,6 +2179,22 @@ useEffect(() => {
                     </motion.button>
                   </div>
                 </motion.div>
+                <div className="flex items-start gap-3 px-5 py-4 rounded-2xl mb-5"
+                  style={{ background: 'rgba(185,215,55,0.05)', border: '1px solid rgba(185,215,55,0.15)' }}>
+                  <div className="flex-shrink-0 w-7 h-7 rounded-lg flex items-center justify-center mt-0.5"
+                    style={{ background: 'rgba(185,215,55,0.10)', border: '1px solid rgba(185,215,55,0.22)' }}>
+                    <Trophy className="w-3.5 h-3.5" style={{ color: 'rgba(200,232,64,0.85)' }} />
+                  </div>
+                  <div>
+                    <p style={{ fontFamily: "'Inter', sans-serif", fontSize: '13px', fontWeight: 700, color: 'rgba(200,232,64,0.85)', marginBottom: '3px' }}>
+                      Bierpong zuschauen ist inklusive – aktiv mitspielen nicht
+                    </p>
+                    <p style={{ fontFamily: "'Inter', sans-serif", fontSize: '12px', color: 'rgba(180,210,180,0.55)', lineHeight: 1.6 }}>
+                      Das Bundle enthält Konzert, Stand-Up & DJ Night. Beim Bierpong-Turnier dürfen alle zuschauen & feiern – kein Extra-Ticket nötig. Wer <em>als Team aktiv mitspielen</em> will, bucht zusätzlich das Bierpong-Ticket.
+                    </p>
+                  </div>
+                </div>
+              </React.Fragment>
               );
             })()}
 
@@ -2251,10 +2268,10 @@ useEffect(() => {
                     </div>
                     <div>
                       <p style={{ fontFamily: "'Inter', sans-serif", fontSize: '13px', fontWeight: 700, color: 'rgba(200,232,64,0.9)', marginBottom: '3px' }}>
-                        Alle dürfen bleiben – kein Extra-Ticket nötig
+                        Zuschauen & feiern ist für alle kostenlos
                       </p>
                       <p style={{ fontFamily: "'Inter', sans-serif", fontSize: '12px', color: 'rgba(180,210,180,0.6)', lineHeight: 1.6 }}>
-                        Das Turnier ist Teil des Abends für alle. Musik läuft, Drinks fließen – wer zuschauen & feiern will, braucht kein separates Ticket. Dieses Ticket ist nur für Teams, die <em>aktiv mitspielen</em> möchten.
+                        Kein Extra-Ticket nötig – Musik läuft, Drinks fließen, alle dürfen bleiben. Dieses Ticket berechtigt nur zum <em>aktiven Mitspielen</em> als angemeldetes Team.
                       </p>
                     </div>
                   </div>
