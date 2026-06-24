@@ -1,7 +1,7 @@
 import React from 'react';
 import {
   Document, Page, Text, View, StyleSheet, pdf, Image,
-  Svg, Line, Polygon,
+  Svg, Line,
 } from '@react-pdf/renderer';
 
 import logoSskdd        from '/SSKDD_Logo3.png?url';
@@ -215,12 +215,7 @@ function FrontPage({ ticket }: { ticket: FestivalTicketPDFProps }) {
             HARMONY
           </Text>
 
-          {/* Spotlight – KORRIGIERT: Opacity 0.004 statt 0.016 */}
-          <Svg style={s.absoluteFill} viewBox="0 0 420 300">
-            <Polygon points="181,0 239,0 318,300 103,300" fill="rgba(255,255,230,0.004)" />
-            <Polygon points="59,0 92,0 143,300 8,300"     fill="rgba(196,122,60,0.005)" />
-            <Polygon points="286,0 319,0 378,300 227,300" fill="rgba(125,184,200,0.005)" />
-          </Svg>
+          {/* Spotlight entfernt */}
 
           {/* Farb-Drips */}
           {DRIPS.map((d, i) => (
