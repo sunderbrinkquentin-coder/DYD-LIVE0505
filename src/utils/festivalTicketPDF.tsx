@@ -75,21 +75,21 @@ const WAVE_HEIGHTS = [4,7,11,15,9,17,12,20,16,10,18,13,7,23,14,18,11,20,13,17,22
 const WAVE_COLORS  = ['#c47a3c','#a8b84a',C.teal,C.gold];
 
 const DRIPS = [
-  {left:'9%',  h:32, c:'#c47a3c', op:0.11}, {left:'14%', h:48, c:'#c47a3c', op:0.08},
-  {left:'20%', h:24, c:'#c47a3c', op:0.09}, {left:'30%', h:36, c:'#a8b84a', op:0.10},
-  {left:'37%', h:22, c:'#a8b84a', op:0.08}, {left:'44%', h:50, c:'#a8b84a', op:0.07},
-  {left:'52%', h:28, c:'#7db8c8', op:0.10}, {left:'59%', h:42, c:'#7db8c8', op:0.08},
-  {left:'65%', h:20, c:'#7db8c8', op:0.09}, {left:'73%', h:34, c:'#d4a843', op:0.10},
-  {left:'79%', h:24, c:'#d4a843', op:0.08},
+  {left:'9%',  h:32, c:'#c47a3c', op:0.04}, {left:'14%', h:48, c:'#c47a3c', op:0.03},
+  {left:'20%', h:24, c:'#c47a3c', op:0.035},{left:'30%', h:36, c:'#a8b84a', op:0.04},
+  {left:'37%', h:22, c:'#a8b84a', op:0.03}, {left:'44%', h:50, c:'#a8b84a', op:0.03},
+  {left:'52%', h:28, c:'#7db8c8', op:0.04}, {left:'59%', h:42, c:'#7db8c8', op:0.03},
+  {left:'65%', h:20, c:'#7db8c8', op:0.035},{left:'73%', h:34, c:'#d4a843', op:0.04},
+  {left:'79%', h:24, c:'#d4a843', op:0.03},
 ];
 
 // Graffiti als heller Fill-Text (kein SVG-Stroke – pdfkit rendert das unzuverlässig)
 const GRAFFITI = [
-  { txt:'2026', top:55,   right:8,   sz:58, col:'rgba(125,184,200,0.10)', rot:-7  },
-  { txt:'LIVE', top:105,  left:22,   sz:36, col:'rgba(196,122,60,0.08)',  rot:13  },
-  { txt:'DUS',  bottom:30,left:140,  sz:30, col:'rgba(168,184,74,0.09)',  rot:-11 },
-  { txt:'HRM',  top:150,  left:210,  sz:26, col:'rgba(212,168,67,0.07)',  rot:16  },
-  { txt:'KULB', bottom:48, right:18, sz:19, col:'rgba(212,168,67,0.07)',  rot:-18 },
+  { txt:'2026', top:55,   right:8,   sz:58, col:'rgba(125,184,200,0.04)', rot:-7  },
+  { txt:'LIVE', top:105,  left:22,   sz:36, col:'rgba(196,122,60,0.03)',  rot:13  },
+  { txt:'DUS',  bottom:30,left:140,  sz:30, col:'rgba(168,184,74,0.035)', rot:-11 },
+  { txt:'HRM',  top:150,  left:210,  sz:26, col:'rgba(212,168,67,0.03)',  rot:16  },
+  { txt:'KULB', bottom:48, right:18, sz:19, col:'rgba(212,168,67,0.03)',  rot:-18 },
 ];
 
 const FEATURES = [
@@ -211,7 +211,7 @@ function FrontPage({ ticket }: { ticket: FestivalTicketPDFProps }) {
         <View style={s.mainTicket}>
 
           {/* HARMONY Wasserzeichen */}
-          <Text style={{ position:'absolute', bottom:8, left:0, right:0, textAlign:'center', fontSize:112, fontFamily:'Helvetica-Bold', color:'rgba(212,168,67,0.05)', letterSpacing:8 }}>
+          <Text style={{ position:'absolute', bottom:8, left:0, right:0, textAlign:'center', fontSize:112, fontFamily:'Helvetica-Bold', color:'rgba(212,168,67,0.022)', letterSpacing:8 }}>
             HARMONY
           </Text>
 
@@ -238,7 +238,7 @@ function FrontPage({ ticket }: { ticket: FestivalTicketPDFProps }) {
           {/* Soundwave-Equalizer */}
           <View style={{ position:'absolute', bottom:0, left:0, right:0, height:26, flexDirection:'row', alignItems:'flex-end', paddingHorizontal:8 }}>
             {WAVE_HEIGHTS.map((h, i) => (
-              <View key={i} style={{ flex:1, height:h, backgroundColor:WAVE_COLORS[i%4], opacity:0.08, borderTopLeftRadius:1, borderTopRightRadius:1, marginHorizontal:0.8 }} />
+              <View key={i} style={{ flex:1, height:h, backgroundColor:WAVE_COLORS[i%4], opacity:0.035, borderTopLeftRadius:1, borderTopRightRadius:1, marginHorizontal:0.8 }} />
             ))}
           </View>
 
@@ -505,7 +505,7 @@ function BackPage() {
     watermark:   {
       position: 'absolute', bottom: 10, left: 0, right: 0,
       textAlign: 'center', fontSize: 112, fontFamily: 'Helvetica-Bold',
-      color: 'rgba(212,168,67,0.04)', letterSpacing: 8,
+      color: 'rgba(212,168,67,0.018)', letterSpacing: 8,
     },
 
     // Footer
