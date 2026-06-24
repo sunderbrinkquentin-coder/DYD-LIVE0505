@@ -29,7 +29,7 @@ const TICKETS = [
   { id: 'concert',     priceId: import.meta.env.VITE_STRIPE_HARMONY_CONCERT,      label: 'Live Konzert Zirkel.WTF',price: 17.50, description: 'Norddeutschlands Pop-Punk-Hoffnung hautnah. Moderne Beats, Skater-Vibe, ehrliche Texte.', highlight: false, badge: null,        perk: '',                                     accent: 'rgba(60,140,200,0.8)',   accentAlpha: 'rgba(50,130,190,0.1)',  accentShadow: 'rgba(40,110,170,0.06)' },
   { id: 'standup',     priceId: import.meta.env.VITE_STRIPE_HARMONY_STANDUP,      label: 'Stand-Up Comedy',       price: 17.50, description: '5–6 Newcomer aus der lokalen Stand-Up Comedy Szene.',                               highlight: false, badge: null,        perk: '',                                     accent: 'rgba(210,110,50,0.85)',  accentAlpha: 'rgba(200,100,40,0.1)',  accentShadow: 'rgba(180,85,30,0.06)'  },
   { id: 'dj',          priceId: import.meta.env.VITE_STRIPE_HARMONY_DJ,           label: 'DJ Sets House / Techno', price:  8.50, description: 'Lokale DJs für die Club Night – House & Techno bis in den Morgen.',                 highlight: false, badge: null,        perk: '',                                     accent: 'rgba(160,120,200,0.8)', accentAlpha: 'rgba(145,105,185,0.1)', accentShadow: 'rgba(130,90,170,0.06)' },
-  { id: 'bierpong',    priceId: import.meta.env.VITE_STRIPE_HARMONY_BIERPONG,     label: 'Bierpong-Turnier',      price: 10.00, description: 'Tritt gegen andere Teams an und sichere dir deinen Platz im Turnier.',              highlight: false, badge: 'LIMITIERT', perk: 'Gewinnen = den ganzen Abend free trinken', accent: 'rgba(185,215,55,0.8)', accentAlpha: 'rgba(175,205,50,0.1)', accentShadow: 'rgba(155,185,40,0.06)' },
+  { id: 'bierpong',    priceId: import.meta.env.VITE_STRIPE_HARMONY_BIERPONG,     label: 'Bierpong-Turnier',      price: 10.00, description: 'Das Turnier läuft für alle – Musik, Stimmung & Drinks inklusive. Wer als Team aktiv mitspielen will, sichert sich hier seinen Startplatz.', highlight: false, badge: 'LIMITIERT', perk: 'Gewinnen = den ganzen Abend free trinken', accent: 'rgba(185,215,55,0.8)', accentAlpha: 'rgba(175,205,50,0.1)', accentShadow: 'rgba(155,185,40,0.06)' },
   { id: 'soli_shirt', priceId: import.meta.env.VITE_STRIPE_HARMONY_SOLI_SHIRT, label: 'Soli-Shirt', price: 25.00, description: '100% Gewinn an KeinBockAufNazis e.V.', highlight: false, badge: 'SOLI', perk: '', accent: 'rgba(220,50,50,0.85)', accentAlpha: 'rgba(200,40,40,0.1)', accentShadow: 'rgba(180,30,30,0.06)' },
 ];
 
@@ -2184,7 +2184,8 @@ useEffect(() => {
             {/* ── SINGLE TICKETS LIST ── */}
             <div className="space-y-3 mb-6">
               {TICKETS.slice(1).map((ticket, i) => (
-                <motion.div key={ticket.id} initial={{ opacity: 0, x: -12 }} whileInView={{ opacity: 1, x: 0 }} viewport={{ once: true }}
+                <React.Fragment key={ticket.id}>
+                <motion.div initial={{ opacity: 0, x: -12 }} whileInView={{ opacity: 1, x: 0 }} viewport={{ once: true }}
                   transition={{ duration: 0.4, delay: i * 0.06 }}
                   className="tr-card"
                   style={{
@@ -2241,6 +2242,24 @@ useEffect(() => {
                     </div>
                   </div>
                 </motion.div>
+                {ticket.id === 'bierpong' && (
+                  <div className="flex items-start gap-3 px-5 py-4 rounded-2xl"
+                    style={{ background: 'rgba(185,215,55,0.05)', border: '1px solid rgba(185,215,55,0.18)', marginTop: '-4px' }}>
+                    <div className="flex-shrink-0 w-7 h-7 rounded-lg flex items-center justify-center mt-0.5"
+                      style={{ background: 'rgba(185,215,55,0.12)', border: '1px solid rgba(185,215,55,0.25)' }}>
+                      <Trophy className="w-3.5 h-3.5" style={{ color: 'rgba(200,232,64,0.9)' }} />
+                    </div>
+                    <div>
+                      <p style={{ fontFamily: "'Inter', sans-serif", fontSize: '13px', fontWeight: 700, color: 'rgba(200,232,64,0.9)', marginBottom: '3px' }}>
+                        Alle dürfen bleiben – kein Extra-Ticket nötig
+                      </p>
+                      <p style={{ fontFamily: "'Inter', sans-serif", fontSize: '12px', color: 'rgba(180,210,180,0.6)', lineHeight: 1.6 }}>
+                        Das Turnier ist Teil des Abends für alle. Musik läuft, Drinks fließen – wer zuschauen & feiern will, braucht kein separates Ticket. Dieses Ticket ist nur für Teams, die <em>aktiv mitspielen</em> möchten.
+                      </p>
+                    </div>
+                  </div>
+                )}
+                </React.Fragment>
               ))}
             </div>
 
