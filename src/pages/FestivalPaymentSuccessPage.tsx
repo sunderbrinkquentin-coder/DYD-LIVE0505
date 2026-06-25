@@ -24,6 +24,7 @@ const TICKET_LABEL_MAP: Record<string, string> = {
   standup:    'Stand-Up Comedy',
   dj:         'DJ Sets House / Techno',
   bierpong:   'Bierpong-Turnier',
+  soli_shirt: 'Soli-Shirt',
 };
 
 const TICKET_ACCENT_MAP: Record<string, string> = {
@@ -32,6 +33,7 @@ const TICKET_ACCENT_MAP: Record<string, string> = {
   standup:    C.orange,
   dj:         '#4dc8e8',
   bierpong:   C.lime,
+  soli_shirt: '#dc3232',
 };
 
 const GOLD = '#c89b4a';

@@ -25,6 +25,7 @@ const FESTIVAL_TICKET_MAPPING: Record<string, { type: string; label: string }> =
   price_1T9NPE3Sd9dZl64S5l8dCMJg: { type: "concert", label: "Live Konzert Zirkel.WTF" },
   price_1T9NLf3Sd9dZl64Sdp05jz2i: { type: "bierpong", label: "Bierpong-Turnier" },
   price_1T9NKn3Sd9dZl64SsyJls5J3: { type: "standup", label: "Stand-Up Comedy" },
+  price_1TGwcF3Sd9dZl64Sk7sd5nNM: { type: "soli_shirt", label: "Soli-Shirt" },
 };
 
 function generateTicketNumber(type: string): string {
