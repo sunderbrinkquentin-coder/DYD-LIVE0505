@@ -538,6 +538,17 @@ export default function HarmonyFestivalPage() {
   const [showSupportPopup, setShowSupportPopup] = useState(false);
   const [supportSessionId, setSupportSessionId] = useState<string | undefined>(undefined);
 
+  const [quantities, setQuantities] = useState<Record<string, number>>(
+    Object.fromEntries(TICKETS.map(t => [t.id, 1]))
+  );
+
+  const updateQty = (id: string, delta: number) => {
+    setQuantities(prev => ({
+      ...prev,
+      [id]: Math.max(1, Math.min(10, (prev[id] ?? 1) + delta)),
+    }));
+  };
+
   useEffect(() => {
     setLoadingId(null);
     setShowSlowHint(false);
@@ -621,7 +632,7 @@ useEffect(() => {
   return () => window.removeEventListener('scroll', handleScroll);
 }, []);
 
-  const doCheckout = async (ticket: typeof TICKETS[0], name: string, bpTeam?: string, bpPartner?: string, shirtSize?: string,) => {
+  const doCheckout = async (ticket: typeof TICKETS[0], name: string, bpTeam?: string, bpPartner?: string, shirtSize?: string, quantity = 1) => {
     setError(null);
     setLoadingId(ticket.id);
     setShowSlowHint(false);
@@ -643,7 +654,12 @@ useEffect(() => {
       const timeoutId = setTimeout(() => controller.abort(), 15000);
 
       try {
-        const { data: { session: authSession } } = await supabase.auth.getSession();
+        const { data: { session: authSession } } = await Promise.race([
+          supabase.auth.getSession(),
+          new Promise<never>((_, reject) =>
+            setTimeout(() => reject(new Error('Session-Timeout. Bitte Seite neu laden.')), 5000)
+          ),
+        ]);
         const authToken = authSession?.access_token || anonKey;
 
         const response = await fetch(checkoutUrl, {
@@ -655,18 +671,12 @@ useEffect(() => {
           },
           body: JSON.stringify({
             price_id: ticket.priceId,
+            quantity,
             success_url: ticket.id === 'support'
               ? `${window.location.origin}/#/festival?support_success=1&session_id={CHECKOUT_SESSION_ID}`
-              : `${window.location.origin}/#/festival-success?session_id={CHECKOUT_SESSION_ID}&type=${ticket.id}`,
-
-
-// ✅ Ersetzen mit:
-            success_url: ticket.id === 'support'
-              ? `${window.location.origin}/#/festival?support_success=1&session_id={CHECKOUT_SESSION_ID}`
-  : ticket.id === 'soli_shirt'
+              : ticket.id === 'soli_shirt'
               ? `${window.location.origin}/#/festival?payment=success&type=soli_shirt`
-  : `${window.location.origin}/#/festival-success?session_id={CHECKOUT_SESSION_ID}&type=${ticket.id}`,
-            
+              : `${window.location.origin}/#/festival-success?session_id={CHECKOUT_SESSION_ID}&type=${ticket.id}`,
             cancel_url: `${window.location.origin}/#/festival?payment=cancelled`,
             mode: 'payment',
             metadata: { ticket_type: ticket.id },
@@ -777,7 +787,7 @@ useEffect(() => {
     if (!agbConfirmed) return;
     const ticket = nameModal!.ticket;
     setNameModal(null);
-    doCheckout(ticket, buyerName.trim());
+    doCheckout(ticket, buyerName.trim(), undefined, undefined, undefined, quantities[ticket.id]);
   };
 
   const handleBierpongConfirm = () => {
@@ -787,7 +797,7 @@ useEffect(() => {
     if (!bierpongAgbConfirmed) return;
     const ticket = bierpongModal!.ticket;
     setBierpongModal(null);
-    doCheckout(ticket, bierpongBuyerName.trim(), teamName.trim(), partnerName.trim() || undefined);
+    doCheckout(ticket, bierpongBuyerName.trim(), teamName.trim(), partnerName.trim() || undefined, undefined, quantities[ticket.id]);
   };
 
   const payStatus = new URLSearchParams(window.location.search).get('payment');
@@ -2163,6 +2173,26 @@ useEffect(() => {
                       </span>
                     </div>
                     {/* CTA */}
+                    <div className="flex items-center gap-4 mb-4">
+                      <span style={{ fontFamily: "'Inter', sans-serif", fontSize: '13px', color: 'rgba(160,230,230,0.5)' }}>
+                        Anzahl Tickets
+                      </span>
+                      <div className="flex items-center gap-3 rounded-xl px-4 py-2"
+                        style={{ background: 'rgba(0,212,212,0.06)', border: '1px solid rgba(0,212,212,0.18)' }}>
+                        <button onClick={() => updateQty(hero.id, -1)}
+                          style={{ color: '#00d4d4', fontSize: '20px', lineHeight: 1, background: 'none', border: 'none', cursor: 'pointer', opacity: quantities[hero.id] <= 1 ? 0.3 : 1 }}>−</button>
+                        <span style={{ fontFamily: "'Bebas Neue', sans-serif", fontSize: '22px', color: '#fff', minWidth: '24px', textAlign: 'center' }}>
+                          {quantities[hero.id]}
+                        </span>
+                        <button onClick={() => updateQty(hero.id, 1)}
+                          style={{ color: '#00d4d4', fontSize: '20px', lineHeight: 1, background: 'none', border: 'none', cursor: 'pointer', opacity: quantities[hero.id] >= 10 ? 0.3 : 1 }}>+</button>
+                      </div>
+                      {quantities[hero.id] > 1 && (
+                        <span style={{ fontFamily: "'Inter', sans-serif", fontSize: '13px', color: 'rgba(0,212,212,0.7)' }}>
+                          = {(hero.price * quantities[hero.id]).toLocaleString('de-DE', { minimumFractionDigits: 2 })} €
+                        </span>
+                      )}
+                    </div>
                     <motion.button whileHover={{ scale: 1.015 }} whileTap={{ scale: 0.97 }}
                       onClick={() => handleBuy(hero)} disabled={loadingId !== null}
                       className="w-full flex items-center justify-center gap-3 py-4 rounded-2xl disabled:opacity-40 disabled:cursor-not-allowed"
@@ -2242,6 +2272,15 @@ useEffect(() => {
                       <span className="price-num" style={{ fontSize: '24px', color: ticket.accent, lineHeight: 1 }}>
                         {ticket.price.toLocaleString('de-DE', { minimumFractionDigits: 2 })} €
                       </span>
+                      <div className="flex items-center gap-2 my-1">
+                        <button onClick={(e) => { e.stopPropagation(); updateQty(ticket.id, -1); }}
+                          style={{ color: ticket.accent, fontSize: '18px', background: 'none', border: 'none', cursor: 'pointer', opacity: quantities[ticket.id] <= 1 ? 0.3 : 1 }}>−</button>
+                        <span style={{ fontFamily: "'Bebas Neue', sans-serif", fontSize: '18px', color: '#fff', minWidth: '20px', textAlign: 'center' }}>
+                          {quantities[ticket.id]}
+                        </span>
+                        <button onClick={(e) => { e.stopPropagation(); updateQty(ticket.id, 1); }}
+                          style={{ color: ticket.accent, fontSize: '18px', background: 'none', border: 'none', cursor: 'pointer', opacity: quantities[ticket.id] >= 10 ? 0.3 : 1 }}>+</button>
+                      </div>
                       <motion.button whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}
                         onClick={() => handleBuy(ticket)} disabled={loadingId !== null}
                         className="flex items-center gap-1.5 px-4 py-2 rounded-xl disabled:opacity-40 disabled:cursor-not-allowed whitespace-nowrap"
