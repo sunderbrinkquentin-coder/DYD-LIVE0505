@@ -5,12 +5,17 @@ import { useNavigate, useLocation } from 'react-router-dom';
 import { supabase } from '../lib/supabase';
 import { ArrowRight, ArrowLeft, Check, Loader2, AlertTriangle, X as XIcon } from 'lucide-react';
 
-function CVWizardLoadingScreen() {
+function CVWizardLoadingScreen({ onTimeout }: { onTimeout?: () => void }) {
   const [showHint, setShowHint] = useState(false);
   useEffect(() => {
     const t = setTimeout(() => setShowHint(true), 5000);
     return () => clearTimeout(t);
   }, []);
+  useEffect(() => {
+    if (!onTimeout) return;
+    const t = setTimeout(onTimeout, 20_000);
+    return () => clearTimeout(t);
+  }, [onTimeout]);
   return (
     <div className="min-h-screen bg-[#020617] flex items-center justify-center">
       <div className="flex flex-col items-center gap-4 text-center px-6">
@@ -18,7 +23,7 @@ function CVWizardLoadingScreen() {
         <p className="text-white/70 font-medium">Dein Profil wird vorbereitet...</p>
         {showHint && (
           <p className="text-white/40 text-sm max-w-xs mt-2">
-            Das dauert ungewohnlich lang. Bitte drucke <strong className="text-white/60">STRG + F5</strong> um die Seite neu zu laden und starte den Prozess nochmal.
+            Das dauert ungewohnlich lang. Bitte drücke <strong className="text-white/60">STRG + F5</strong> um die Seite neu zu laden und starte den Prozess nochmal.
           </p>
         )}
       </div>
@@ -283,7 +288,7 @@ const [cvData, setCVData] = useState<CVBuilderData>({
         }
 
         try {
-          const { data: newRecord, error: insertError } = await supabase
+          const insertPromise = supabase
             .from('stored_cvs')
             .insert({
               user_id: userId,
@@ -295,10 +300,17 @@ const [cvData, setCVData] = useState<CVBuilderData>({
             })
             .select('id')
             .single();
+          const timeoutPromise = new Promise<never>((_, reject) =>
+            setTimeout(() => reject(new Error('DB insert timed out')), 15_000)
+          );
+          const { data: newRecord, error: insertError } = await Promise.race([insertPromise, timeoutPromise]);
 
           if (insertError || !newRecord) {
             console.error('[CVWizard] Failed to create draft record:', insertError);
+            setLoadError('Dein Profil konnte nicht erstellt werden. Bitte lade die Seite neu.');
+            setIsHydrated(true);
             isInitialLoadRef.current = false;
+            setIsLoading(false);
           } else {
             console.log('[CVWizard] Created new draft record with cvId:', newRecord.id);
             setCvId(newRecord.id);
@@ -327,6 +339,7 @@ const [cvData, setCVData] = useState<CVBuilderData>({
           }
         } catch (err: any) {
           console.error('[CVWizard] Init error:', err.message);
+          setLoadError('Dein Profil konnte nicht erstellt werden. Bitte lade die Seite neu.');
           setIsHydrated(true);
           isInitialLoadRef.current = false;
           setIsLoading(false);
@@ -338,11 +351,15 @@ const [cvData, setCVData] = useState<CVBuilderData>({
         setIsLoading(true);
         console.log('[CVWizard] Loading CV data for cvId:', cvId);
 
-        const { data, error } = await supabase
+        const loadPromise = supabase
           .from('stored_cvs')
           .select('cv_data, status, source')
           .eq('id', cvId)
           .single();
+        const loadTimeoutPromise = new Promise<never>((_, reject) =>
+          setTimeout(() => reject(new Error('DB load timed out')), 15_000)
+        );
+        const { data, error } = await Promise.race([loadPromise, loadTimeoutPromise]);
 
         if (error) {
           console.error('[CVWizard] Load error:', error);
@@ -822,7 +839,10 @@ const finalData: CVBuilderData = {
 
   // ---- Loading State ----
   if (isLoading) {
-    return <CVWizardLoadingScreen />;
+    return <CVWizardLoadingScreen onTimeout={() => {
+      setLoadError('Das Laden dauerte zu lange. Bitte lade die Seite neu.');
+      setIsLoading(false);
+    }} />;
   }
 
   // ---- Error State ----

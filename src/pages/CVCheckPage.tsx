@@ -208,9 +208,17 @@ export default function CVCheckPage() {
       }
 
       setProgress(100);
+
+      if (result.triggerFailed) {
+        setUploadState('error');
+        setProgress(0);
+        setError('Die Analyse konnte nicht gestartet werden. Bitte versuche den Upload erneut oder lade die Seite neu.');
+        return;
+      }
+
       setUploadState('success');
 
-      navigate(`/cv-result/${result.uploadId}${result.triggerFailed ? '?retry=1' : ''}`);
+      navigate(`/cv-result/${result.uploadId}`);
 
     } catch (err: any) {
       if (progressTimer) clearInterval(progressTimer);
