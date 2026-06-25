@@ -47,28 +47,33 @@ Deno.serve(async (req: Request) => {
 
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
+    // Check for existing tickets for this session
     const { data: existing } = await supabase
       .from("festival_ticket_sales")
-      .select("id, ticket_number, ticket_type, ticket_label, buyer_name, buyer_email, amount_paid, currency, bierpong_team_name, bierpong_partner_name, payment_status, user_id, created_at")
+      .select("id, ticket_number, ticket_type, ticket_label, buyer_name, buyer_email, amount_paid, currency, bierpong_team_name, bierpong_partner_name, payment_status, user_id, created_at, stripe_session_id")
       .eq("stripe_session_id", session_id)
-      .maybeSingle();
+      .order("created_at", { ascending: true });
 
-    if (existing) {
-      if (user_id && !existing.user_id) {
-        await supabase
-          .from("festival_ticket_sales")
-          .update({ user_id })
-          .eq("stripe_session_id", session_id);
-        existing.user_id = user_id;
+    if (existing && existing.length > 0) {
+      // Backfill user_id on all tickets if missing
+      if (user_id) {
+        const needsUpdate = existing.some((t: any) => !t.user_id);
+        if (needsUpdate) {
+          await supabase
+            .from("festival_ticket_sales")
+            .update({ user_id })
+            .eq("stripe_session_id", session_id)
+            .is("user_id", null);
+        }
       }
       return new Response(
-        JSON.stringify({ ticket: existing }),
+        JSON.stringify({ tickets: existing }),
         { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
 
+    // No tickets yet — retrieve session from Stripe and create them
     const stripe = new Stripe(stripeKey, { apiVersion: "2024-12-18.acacia" });
-
     const session = await stripe.checkout.sessions.retrieve(session_id);
 
     const isFullyCovered = session.payment_status === "paid" || session.payment_status === "no_payment_required";
@@ -80,7 +85,8 @@ Deno.serve(async (req: Request) => {
     }
 
     const lineItems = await stripe.checkout.sessions.listLineItems(session_id);
-    const priceId = lineItems.data[0]?.price?.id;
+    const lineItem = lineItems.data[0];
+    const priceId = lineItem?.price?.id;
 
     if (!priceId) {
       return new Response(
@@ -97,33 +103,33 @@ Deno.serve(async (req: Request) => {
       );
     }
 
+    const quantity = Math.max(1, Math.min(10, parseInt(session.metadata?.quantity || String(lineItem?.quantity ?? 1), 10)));
     const metaUserId = user_id || session.metadata?.user_id || null;
     const bierpongTeamName = session.metadata?.bierpong_team_name || null;
     const bierpongPartnerName = session.metadata?.bierpong_partner_name || null;
     const buyerName = session.customer_details?.name || session.metadata?.buyer_name || null;
-    const ticketNumber = generateTicketNumber(festivalTicket.type);
+    const amountPerTicket = Math.round((session.amount_total ?? 0) / quantity);
 
-    const newTicket = {
+    const ticketsToInsert = Array.from({ length: quantity }, () => ({
       stripe_session_id: session.id,
       stripe_payment_intent_id: (session.payment_intent as string) || null,
       ticket_type: festivalTicket.type,
       ticket_label: festivalTicket.label,
-      amount_paid: session.amount_total,
+      amount_paid: amountPerTicket,
       currency: session.currency,
       buyer_email: session.customer_details?.email || session.customer_email || null,
       buyer_name: buyerName,
       payment_status: session.payment_status,
       user_id: metaUserId,
-      ticket_number: ticketNumber,
+      ticket_number: generateTicketNumber(festivalTicket.type),
       bierpong_team_name: bierpongTeamName,
       bierpong_partner_name: bierpongPartnerName,
-    };
+    }));
 
     const { data: inserted, error: insertError } = await supabase
       .from("festival_ticket_sales")
-      .insert(newTicket)
-      .select()
-      .maybeSingle();
+      .insert(ticketsToInsert)
+      .select();
 
     if (insertError) {
       console.error("[confirm-festival-ticket] Insert error:", insertError);
@@ -131,7 +137,7 @@ Deno.serve(async (req: Request) => {
     }
 
     return new Response(
-      JSON.stringify({ ticket: inserted }),
+      JSON.stringify({ tickets: inserted }),
       { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
   } catch (error: any) {

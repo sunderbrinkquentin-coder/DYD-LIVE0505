@@ -63,7 +63,6 @@ function ThankYouPopup({ onClose, ticketType, accent }: { onClose: () => void; t
           onClick={(e) => e.stopPropagation()}
         >
           <div style={{ height: '3px', background: `linear-gradient(to right, transparent, ${accent}, ${GOLD}, transparent)` }} />
-
           <div className="px-8 pt-8 pb-7">
             <button
               onClick={onClose}
@@ -72,7 +71,6 @@ function ThankYouPopup({ onClose, ticketType, accent }: { onClose: () => void; t
             >
               <X size={16} />
             </button>
-
             <motion.div
               initial={{ scale: 0 }}
               animate={{ scale: 1 }}
@@ -89,114 +87,47 @@ function ThankYouPopup({ onClose, ticketType, accent }: { onClose: () => void; t
                 <Heart size={30} style={{ color: GOLD }} fill="rgba(200,155,74,0.3)" />
               </div>
             </motion.div>
-
-            <motion.div
-              initial={{ opacity: 0, y: 8 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.22, duration: 0.45 }}
-            >
-              <p
-                className="text-center mb-1"
-                style={{
-                  fontFamily: "'Inter', sans-serif",
-                  fontSize: '10px',
-                  fontWeight: 700,
-                  letterSpacing: '0.3em',
-                  textTransform: 'uppercase',
-                  color: GOLD,
-                  opacity: 0.7,
-                }}
-              >
+            <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.22, duration: 0.45 }}>
+              <p className="text-center mb-1" style={{ fontFamily: "'Inter', sans-serif", fontSize: '10px', fontWeight: 700, letterSpacing: '0.3em', textTransform: 'uppercase', color: GOLD, opacity: 0.7 }}>
                 HARMONY FESTIVAL 2026
               </p>
-              <h2
-                className="text-center mb-3"
-                style={{
-                  fontFamily: "'Bebas Neue', 'Barlow Condensed', sans-serif",
-                  fontSize: '38px',
-                  color: '#f0e8d8',
-                  lineHeight: 0.95,
-                  letterSpacing: '0.04em',
-                }}
-              >
+              <h2 className="text-center mb-3" style={{ fontFamily: "'Bebas Neue', 'Barlow Condensed', sans-serif", fontSize: '38px', color: '#f0e8d8', lineHeight: 0.95, letterSpacing: '0.04em' }}>
                 Danke – du bist dabei!
               </h2>
-              <p
-                className="text-center mb-6"
-                style={{
-                  fontFamily: "'Inter', sans-serif",
-                  fontSize: '14px',
-                  color: 'rgba(240,232,216,0.5)',
-                  lineHeight: 1.65,
-                }}
-              >
+              <p className="text-center mb-6" style={{ fontFamily: "'Inter', sans-serif", fontSize: '14px', color: 'rgba(240,232,216,0.5)', lineHeight: 1.65 }}>
                 Wir freuen uns riesig, dich am{' '}
                 <span style={{ color: 'rgba(240,232,216,0.82)', fontWeight: 600 }}>22. August 2026</span>{' '}
-                im Klub Kulb begrüßen zu dürfen. Es wird ein unvergesslicher Abend.
+                im Klub Kulb begrüßen zu dürfen.
               </p>
             </motion.div>
-
             {isEarlyBird && (
-              <motion.div
-                initial={{ opacity: 0, y: 8 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: 0.32, duration: 0.4 }}
+              <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.32, duration: 0.4 }}
                 className="rounded-xl px-4 py-3.5 mb-5 flex items-start gap-3"
-                style={{
-                  background: 'rgba(200,155,74,0.07)',
-                  border: '1px solid rgba(200,155,74,0.22)',
-                }}
+                style={{ background: 'rgba(200,155,74,0.07)', border: '1px solid rgba(200,155,74,0.22)' }}
               >
                 <Beer size={18} style={{ color: GOLD, flexShrink: 0, marginTop: 1 }} />
                 <div>
-                  <p style={{ fontFamily: "'Inter', sans-serif", fontSize: '13px', fontWeight: 700, color: '#dbb96a', marginBottom: '2px' }}>
-                    Dein Freigetränk wartet
-                  </p>
-                  <p style={{ fontFamily: "'Inter', sans-serif", fontSize: '12px', color: 'rgba(200,155,74,0.65)', lineHeight: 1.5 }}>
-                    Als Early Bird hast du ein Getränk frei – einfach Ticket an der Bar vorzeigen.
-                  </p>
+                  <p style={{ fontFamily: "'Inter', sans-serif", fontSize: '13px', fontWeight: 700, color: '#dbb96a', marginBottom: '2px' }}>Dein Freigetränk wartet</p>
+                  <p style={{ fontFamily: "'Inter', sans-serif", fontSize: '12px', color: 'rgba(200,155,74,0.65)', lineHeight: 1.5 }}>Als Early Bird hast du ein Getränk frei – einfach Ticket an der Bar vorzeigen.</p>
                 </div>
               </motion.div>
             )}
-
-            <motion.div
-              initial={{ opacity: 0, y: 8 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: isEarlyBird ? 0.4 : 0.35, duration: 0.4 }}
+            <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: isEarlyBird ? 0.4 : 0.35, duration: 0.4 }}
               className="grid grid-cols-3 gap-2 mb-6"
             >
-              {[
-                { icon: <Music size={15} />, label: 'Zirkel.WTF' },
-                { icon: <Star size={15} />, label: 'Stand-Up' },
-                { icon: <Beer size={15} />, label: 'Bierpong' },
-              ].map(({ icon, label }) => (
-                <div
-                  key={label}
-                  className="flex flex-col items-center gap-1.5 rounded-xl py-3"
-                  style={{ background: 'rgba(240,232,216,0.03)', border: '1px solid rgba(240,232,216,0.07)' }}
-                >
+              {[{ icon: <Music size={15} />, label: 'Zirkel.WTF' }, { icon: <Star size={15} />, label: 'Stand-Up' }, { icon: <Beer size={15} />, label: 'Bierpong' }].map(({ icon, label }) => (
+                <div key={label} className="flex flex-col items-center gap-1.5 rounded-xl py-3" style={{ background: 'rgba(240,232,216,0.03)', border: '1px solid rgba(240,232,216,0.07)' }}>
                   <span style={{ color: 'rgba(200,155,74,0.7)' }}>{icon}</span>
                   <span style={{ fontFamily: "'Inter', sans-serif", fontSize: '10px', fontWeight: 600, color: 'rgba(240,232,216,0.45)', letterSpacing: '0.04em' }}>{label}</span>
                 </div>
               ))}
             </motion.div>
-
             <motion.button
-              initial={{ opacity: 0, y: 8 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: isEarlyBird ? 0.48 : 0.42, duration: 0.4 }}
-              whileHover={{ scale: 1.02 }}
-              whileTap={{ scale: 0.97 }}
+              initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: isEarlyBird ? 0.48 : 0.42, duration: 0.4 }}
+              whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.97 }}
               onClick={onClose}
               className="w-full py-3.5 rounded-xl font-bold flex items-center justify-center gap-2"
-              style={{
-                background: `linear-gradient(135deg, ${GOLD}dd, #a07a32)`,
-                color: '#0e0b07',
-                fontFamily: "'Bebas Neue', sans-serif",
-                fontSize: '17px',
-                letterSpacing: '0.12em',
-                boxShadow: `0 4px 20px rgba(200,155,74,0.22)`,
-              }}
+              style={{ background: `linear-gradient(135deg, ${GOLD}dd, #a07a32)`, color: '#0e0b07', fontFamily: "'Bebas Neue', sans-serif", fontSize: '17px', letterSpacing: '0.12em', boxShadow: `0 4px 20px rgba(200,155,74,0.22)` }}
             >
               Bis zum 22. August! <ArrowRight size={16} />
             </motion.button>
@@ -207,39 +138,52 @@ function ThankYouPopup({ onClose, ticketType, accent }: { onClose: () => void; t
   );
 }
 
-function DownloadButton({ ticket, accent }: { ticket: any; accent: string }) {
+function DownloadButton({ ticket, accent, label }: { ticket: any; accent: string; label?: string }) {
   const [downloading, setDownloading] = useState(false);
-
-  const handleDownload = async () => {
-    setDownloading(true);
-    try {
-      await downloadFestivalTicketPDF(ticket);
-    } finally {
-      setDownloading(false);
-    }
-  };
-
   return (
     <motion.button
-      whileHover={{ scale: 1.02 }}
-      whileTap={{ scale: 0.97 }}
-      onClick={handleDownload}
+      whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.97 }}
+      onClick={async () => { setDownloading(true); try { await downloadFestivalTicketPDF(ticket); } finally { setDownloading(false); } }}
       disabled={downloading}
-      className="w-full flex items-center justify-center gap-2.5 py-4 rounded-2xl font-bold"
-      style={{
-        background: `linear-gradient(135deg, ${C.cyan}, ${C.blue})`,
-        color: '#080c10',
-        fontFamily: "'Bebas Neue', sans-serif",
-        fontSize: '18px',
-        letterSpacing: '0.12em',
-        boxShadow: `0 4px 24px ${C.cyan}35`,
-        opacity: downloading ? 0.7 : 1,
-        cursor: downloading ? 'not-allowed' : 'pointer',
-      }}
+      className="flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl font-bold"
+      style={{ background: `${accent}18`, border: `1px solid ${accent}40`, color: accent, fontFamily: "'Bebas Neue', sans-serif", fontSize: '15px', letterSpacing: '0.1em', opacity: downloading ? 0.7 : 1, cursor: downloading ? 'not-allowed' : 'pointer', whiteSpace: 'nowrap' }}
     >
-      <Download size={18} />
-      {downloading ? 'Wird erstellt...' : 'Ticket herunterladen'}
+      <Download size={14} />
+      {downloading ? 'Wird erstellt...' : (label || 'Ticket PDF')}
     </motion.button>
+  );
+}
+
+function TicketRow({ ticket, accent, index }: { ticket: any; accent: string; index: number }) {
+  return (
+    <div className="rounded-xl overflow-hidden" style={{ background: 'rgba(255,255,255,0.03)', border: `1px solid ${accent}20` }}>
+      <div className="h-px" style={{ background: `linear-gradient(to right, transparent, ${accent}60, transparent)` }} />
+      <div className="p-4">
+        <div className="flex items-start justify-between gap-3 mb-3">
+          <div className="flex items-center gap-2.5">
+            <div className="w-7 h-7 rounded-lg flex items-center justify-center flex-shrink-0" style={{ background: `${accent}14`, border: `1px solid ${accent}28` }}>
+              <Ticket size={13} style={{ color: accent }} />
+            </div>
+            <div>
+              <p style={{ fontFamily: "'Inter', sans-serif", fontSize: '11px', fontWeight: 600, color: 'rgba(255,255,255,0.45)', marginBottom: '1px' }}>
+                Ticket {index + 1}
+              </p>
+              {ticket.ticket_number && (
+                <p style={{ fontFamily: "'Inter', sans-serif", fontSize: '11px', fontWeight: 700, color: accent, letterSpacing: '0.06em' }}>
+                  {ticket.ticket_number}
+                </p>
+              )}
+            </div>
+          </div>
+          <DownloadButton ticket={ticket} accent={accent} label="PDF" />
+        </div>
+        {ticket.buyer_name && (
+          <p style={{ fontFamily: "'Inter', sans-serif", fontSize: '12px', color: 'rgba(255,255,255,0.6)' }}>
+            {ticket.buyer_name}
+          </p>
+        )}
+      </div>
+    </div>
   );
 }
 
@@ -251,8 +195,8 @@ export default function FestivalPaymentSuccessPage() {
   const ticketType = searchParams.get('type') || '';
   const sessionId  = searchParams.get('session_id') || '';
 
-  const [ticketData, setTicketData] = useState<any>(null);
-  const [loadingTicket, setLoadingTicket] = useState(true);
+  const [tickets, setTickets] = useState<any[]>([]);
+  const [loadingTickets, setLoadingTickets] = useState(true);
   const [showThankYou, setShowThankYou] = useState(false);
   const resolvedRef = useRef(false);
   const fallbackTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -260,101 +204,83 @@ export default function FestivalPaymentSuccessPage() {
   const label  = TICKET_LABEL_MAP[ticketType] || 'Festival Ticket';
   const accent = TICKET_ACCENT_MAP[ticketType] || C.cyan;
 
-  const callFallback = async (): Promise<boolean> => {
-    try {
-      const res = await fetch(`${SUPABASE_URL}/functions/v1/confirm-festival-ticket`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${SUPABASE_ANON_KEY}`,
-        },
-        body: JSON.stringify({ session_id: sessionId, user_id: user?.id || undefined }),
-      });
-      if (res.ok) {
-        const json = await res.json();
-        if (json.ticket) {
-          handleTicketFound(json.ticket);
-          return true;
-        }
-      }
-    } catch {
-      // fallback failed silently
-    }
-    return false;
-  };
-
-  const handleTicketFound = (ticket: any) => {
+  const handleTicketsFound = (found: any[]) => {
     if (resolvedRef.current) return;
     resolvedRef.current = true;
     if (fallbackTimerRef.current) clearTimeout(fallbackTimerRef.current);
-    setTicketData(ticket);
-    setLoadingTicket(false);
+    setTickets(found);
+    setLoadingTickets(false);
     setTimeout(() => setShowThankYou(true), 400);
   };
 
-  const checkDbOnce = async (): Promise<any | null> => {
+  const checkDbAll = async (): Promise<any[]> => {
     try {
       const { data } = await supabase
         .from('festival_ticket_sales')
         .select('*')
         .eq('stripe_session_id', sessionId)
-        .maybeSingle();
-      return data || null;
+        .order('created_at', { ascending: true });
+      return data || [];
     } catch {
-      return null;
+      return [];
     }
   };
 
-  useEffect(() => {
-    if (sessionId) {
-      localStorage.setItem('harmony_festival_session_id', sessionId);
-    }
-
-    if (!sessionId) {
-      setLoadingTicket(false);
-      return;
-    }
-
-    checkDbOnce().then((existing) => {
-      if (existing) {
-        handleTicketFound(existing);
-        return;
+  const callFallback = async (): Promise<boolean> => {
+    try {
+      const res = await fetch(`${SUPABASE_URL}/functions/v1/confirm-festival-ticket`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${SUPABASE_ANON_KEY}` },
+        body: JSON.stringify({ session_id: sessionId, user_id: user?.id || undefined }),
+      });
+      if (res.ok) {
+        const json = await res.json();
+        const found = json.tickets || (json.ticket ? [json.ticket] : []);
+        if (found.length > 0) {
+          handleTicketsFound(found);
+          return true;
+        }
       }
+    } catch {
+      // silent
+    }
+    return false;
+  };
 
+  useEffect(() => {
+    if (sessionId) localStorage.setItem('harmony_festival_session_id', sessionId);
+    if (!sessionId) { setLoadingTickets(false); return; }
+
+    checkDbAll().then((existing) => {
+      if (existing.length > 0) { handleTicketsFound(existing); return; }
+
+      // Listen for any new inserts for this session
       const channel = supabase
-        .channel(`festival-ticket-${sessionId}`)
-        .on(
-          'postgres_changes',
-          {
-            event: 'INSERT',
-            schema: 'public',
-            table: 'festival_ticket_sales',
-            filter: `stripe_session_id=eq.${sessionId}`,
-          },
-          (payload) => {
-            if (payload.new) {
-              handleTicketFound(payload.new);
-            }
+        .channel(`festival-tickets-${sessionId}`)
+        .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'festival_ticket_sales', filter: `stripe_session_id=eq.${sessionId}` },
+          async () => {
+            if (resolvedRef.current) return;
+            // Fetch all tickets now (may be multiple)
+            const all = await checkDbAll();
+            if (all.length > 0) handleTicketsFound(all);
           }
         )
         .subscribe();
 
       const attemptResolve = async () => {
         if (resolvedRef.current) return;
-        const [ticket, confirmed] = await Promise.all([checkDbOnce(), callFallback()]);
+        const [fromDb, confirmed] = await Promise.all([checkDbAll(), callFallback()]);
         if (resolvedRef.current) return;
-        if (ticket) { handleTicketFound(ticket); return; }
-        if (!confirmed) setLoadingTicket(false);
+        if (fromDb.length > 0) { handleTicketsFound(fromDb); return; }
+        if (!confirmed) setLoadingTickets(false);
       };
 
       fallbackTimerRef.current = setTimeout(async () => {
         if (resolvedRef.current) return;
-        const ticket = await checkDbOnce();
-        if (ticket) { handleTicketFound(ticket); return; }
+        const fromDb = await checkDbAll();
+        if (fromDb.length > 0) { handleTicketsFound(fromDb); return; }
         const confirmed = await callFallback();
-        if (!confirmed) {
-          setTimeout(attemptResolve, 2000);
-        }
+        if (!confirmed) setTimeout(attemptResolve, 2000);
       }, 800);
 
       return () => {
@@ -365,25 +291,13 @@ export default function FestivalPaymentSuccessPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [sessionId]);
 
-  const goToDashboard = () => {
-    navigate('/dashboard?ticket_success=1');
-  };
-
-  const goToFestival = () => {
-    navigate('/festival');
-  };
+  const firstTicket = tickets[0];
+  const isMulti = tickets.length > 1;
 
   return (
-    <div
-      className="min-h-screen flex flex-col items-center justify-center px-4 py-12 relative overflow-hidden"
-      style={{ backgroundColor: C.bg, color: '#fff' }}
-    >
+    <div className="min-h-screen flex flex-col items-center justify-center px-4 py-12 relative overflow-hidden" style={{ backgroundColor: C.bg, color: '#fff' }}>
       {showThankYou && (
-        <ThankYouPopup
-          onClose={() => setShowThankYou(false)}
-          ticketType={ticketType}
-          accent={accent}
-        />
+        <ThankYouPopup onClose={() => setShowThankYou(false)} ticketType={ticketType} accent={accent} />
       )}
       <style>{`
         @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&family=Bebas+Neue&family=Barlow+Condensed:ital,wght@0,700;0,900&display=swap');
@@ -392,16 +306,8 @@ export default function FestivalPaymentSuccessPage() {
 
       <div className="absolute inset-0 pointer-events-none overflow-hidden">
         {[...Array(6)].map((_, i) => (
-          <motion.div
-            key={i}
-            className="absolute rounded-full"
-            style={{
-              width: `${120 + i * 60}px`,
-              height: `${120 + i * 60}px`,
-              background: `radial-gradient(circle, ${accent}08 0%, transparent 70%)`,
-              top: `${10 + i * 14}%`,
-              left: `${5 + i * 16}%`,
-            }}
+          <motion.div key={i} className="absolute rounded-full"
+            style={{ width: `${120 + i * 60}px`, height: `${120 + i * 60}px`, background: `radial-gradient(circle, ${accent}08 0%, transparent 70%)`, top: `${10 + i * 14}%`, left: `${5 + i * 16}%` }}
             animate={{ scale: [1, 1.15, 1], opacity: [0.4, 0.7, 0.4] }}
             transition={{ duration: 3 + i * 0.5, repeat: Infinity, ease: 'easeInOut' }}
           />
@@ -409,97 +315,54 @@ export default function FestivalPaymentSuccessPage() {
       </div>
 
       <motion.div
-        initial={{ opacity: 0, y: 30 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.65, ease: [0.22, 1, 0.36, 1] }}
+        initial={{ opacity: 0, y: 30 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.65, ease: [0.22, 1, 0.36, 1] }}
         className="relative z-10 w-full max-w-md"
       >
+        {/* Header */}
         <div className="text-center mb-8">
           <motion.div
-            initial={{ scale: 0 }}
-            animate={{ scale: 1 }}
-            transition={{ delay: 0.2, type: 'spring', stiffness: 180, damping: 14 }}
+            initial={{ scale: 0 }} animate={{ scale: 1 }} transition={{ delay: 0.2, type: 'spring', stiffness: 180, damping: 14 }}
             className="inline-flex items-center justify-center w-20 h-20 rounded-full mb-6"
             style={{ background: `${accent}14`, border: `1px solid ${accent}40` }}
           >
             <CheckCircle size={40} style={{ color: accent }} />
           </motion.div>
-
-          <p
-            style={{
-              fontFamily: "'Inter', sans-serif",
-              fontSize: '11px',
-              fontWeight: 700,
-              letterSpacing: '0.3em',
-              textTransform: 'uppercase',
-              color: accent,
-              opacity: 0.7,
-              marginBottom: '10px',
-            }}
-          >
+          <p style={{ fontFamily: "'Inter', sans-serif", fontSize: '11px', fontWeight: 700, letterSpacing: '0.3em', textTransform: 'uppercase', color: accent, opacity: 0.7, marginBottom: '10px' }}>
             HARMONY FESTIVAL 2026
           </p>
-
-          <h1
-            className="graffiti"
-            style={{ fontSize: 'clamp(36px, 8vw, 60px)', color: '#fff', lineHeight: 0.95, marginBottom: '12px' }}
-          >
-            Ticket gesichert!
+          <h1 className="graffiti" style={{ fontSize: 'clamp(36px, 8vw, 60px)', color: '#fff', lineHeight: 0.95, marginBottom: '12px' }}>
+            {isMulti ? `${tickets.length} Tickets gesichert!` : 'Ticket gesichert!'}
           </h1>
-
-          <p
-            style={{
-              fontFamily: "'Inter', sans-serif",
-              fontSize: '15px',
-              color: 'rgba(160,230,230,0.6)',
-              lineHeight: 1.7,
-            }}
-          >
-            Deine Zahlung war erfolgreich. Lade dir dein Ticket herunter und zeige es am 22.08. vor.
+          <p style={{ fontFamily: "'Inter', sans-serif", fontSize: '15px', color: 'rgba(160,230,230,0.6)', lineHeight: 1.7 }}>
+            {isMulti
+              ? `Deine ${tickets.length} Tickets wurden erfolgreich bezahlt. Lade sie unten einzeln herunter.`
+              : 'Deine Zahlung war erfolgreich. Lade dir dein Ticket herunter und zeige es am 22.08. vor.'}
           </p>
         </div>
 
+        {/* Ticket info card */}
         <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.35, duration: 0.55 }}
-          className="rounded-2xl overflow-hidden mb-6"
+          initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.35, duration: 0.55 }}
+          className="rounded-2xl overflow-hidden mb-4"
           style={{ background: 'rgba(0,212,212,0.04)', border: `1px solid ${accent}22` }}
         >
           <div className="h-0.5" style={{ background: `linear-gradient(to right, transparent, ${accent}80, transparent)` }} />
           <div className="p-6">
             <div className="flex items-start gap-4 mb-4">
-              <div
-                className="w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0"
-                style={{ background: `${accent}12`, border: `1px solid ${accent}28` }}
-              >
+              <div className="w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0" style={{ background: `${accent}12`, border: `1px solid ${accent}28` }}>
                 <Ticket size={18} style={{ color: accent }} />
               </div>
               <div>
-                <p
-                  style={{
-                    fontFamily: "'Inter', sans-serif",
-                    fontSize: '10px',
-                    fontWeight: 700,
-                    letterSpacing: '0.26em',
-                    textTransform: 'uppercase',
-                    color: accent,
-                    opacity: 0.7,
-                    marginBottom: '4px',
-                  }}
-                >
-                  DEIN TICKET
+                <p style={{ fontFamily: "'Inter', sans-serif", fontSize: '10px', fontWeight: 700, letterSpacing: '0.26em', textTransform: 'uppercase', color: accent, opacity: 0.7, marginBottom: '4px' }}>
+                  {isMulti ? `${tickets.length}x DEIN TICKET` : 'DEIN TICKET'}
                 </p>
-                <h3
-                  className="graffiti"
-                  style={{ fontSize: '24px', color: '#fff', lineHeight: 1 }}
-                >
-                  {ticketData?.ticket_label || label}
+                <h3 className="graffiti" style={{ fontSize: '24px', color: '#fff', lineHeight: 1 }}>
+                  {firstTicket?.ticket_label || label}
                 </h3>
               </div>
             </div>
 
-            <div className="grid grid-cols-2 gap-3 text-sm">
+            <div className="grid grid-cols-2 gap-3 text-sm mb-3">
               <div>
                 <p style={{ fontFamily: "'Inter', sans-serif", fontSize: '10px', fontWeight: 600, letterSpacing: '0.2em', textTransform: 'uppercase', color: 'rgba(160,230,230,0.4)', marginBottom: '3px' }}>Datum</p>
                 <p style={{ fontFamily: "'Inter', sans-serif", fontWeight: 600, color: 'rgba(255,255,255,0.85)' }}>22. August 2026</p>
@@ -508,169 +371,111 @@ export default function FestivalPaymentSuccessPage() {
                 <p style={{ fontFamily: "'Inter', sans-serif", fontSize: '10px', fontWeight: 600, letterSpacing: '0.2em', textTransform: 'uppercase', color: 'rgba(160,230,230,0.4)', marginBottom: '3px' }}>Location</p>
                 <p style={{ fontFamily: "'Inter', sans-serif", fontWeight: 600, color: 'rgba(255,255,255,0.85)' }}>Burgplatz, Düsseldorf</p>
               </div>
-              {ticketData?.buyer_name && (
+              {firstTicket?.buyer_name && (
                 <div>
                   <p style={{ fontFamily: "'Inter', sans-serif", fontSize: '10px', fontWeight: 600, letterSpacing: '0.2em', textTransform: 'uppercase', color: 'rgba(160,230,230,0.4)', marginBottom: '3px' }}>Name</p>
-                  <p style={{ fontFamily: "'Inter', sans-serif", fontWeight: 600, color: 'rgba(255,255,255,0.85)' }}>{ticketData.buyer_name}</p>
+                  <p style={{ fontFamily: "'Inter', sans-serif", fontWeight: 600, color: 'rgba(255,255,255,0.85)' }}>{firstTicket.buyer_name}</p>
                 </div>
               )}
-              {ticketData?.ticket_number && (
+              {!isMulti && firstTicket?.ticket_number && (
                 <div>
                   <p style={{ fontFamily: "'Inter', sans-serif", fontSize: '10px', fontWeight: 600, letterSpacing: '0.2em', textTransform: 'uppercase', color: 'rgba(160,230,230,0.4)', marginBottom: '3px' }}>Ticket-Nr.</p>
-                  <p style={{ fontFamily: "'Inter', sans-serif", fontWeight: 700, fontSize: '12px', color: accent, letterSpacing: '0.08em' }}>{ticketData.ticket_number}</p>
+                  <p style={{ fontFamily: "'Inter', sans-serif", fontWeight: 700, fontSize: '12px', color: accent, letterSpacing: '0.08em' }}>{firstTicket.ticket_number}</p>
                 </div>
               )}
             </div>
 
-            {ticketData?.bierpong_team_name && (
-              <div
-                className="mt-4 rounded-xl p-3"
-                style={{ background: 'rgba(200,232,64,0.05)', border: '1px solid rgba(200,232,64,0.18)' }}
-              >
+            {firstTicket?.bierpong_team_name && (
+              <div className="mt-4 rounded-xl p-3" style={{ background: 'rgba(200,232,64,0.05)', border: '1px solid rgba(200,232,64,0.18)' }}>
                 <p style={{ fontFamily: "'Inter', sans-serif", fontSize: '10px', fontWeight: 700, letterSpacing: '0.26em', textTransform: 'uppercase', color: C.lime, opacity: 0.7, marginBottom: '6px' }}>
                   Bierpong-Team
                 </p>
                 <p style={{ fontFamily: "'Barlow Condensed', sans-serif", fontWeight: 700, fontSize: '18px', color: C.lime }}>
-                  {ticketData.bierpong_team_name}
+                  {firstTicket.bierpong_team_name}
                 </p>
-                {ticketData.bierpong_partner_name && (
+                {firstTicket.bierpong_partner_name && (
                   <p style={{ fontFamily: "'Inter', sans-serif", fontSize: '13px', color: 'rgba(255,255,255,0.7)', marginTop: '2px' }}>
-                    mit {ticketData.bierpong_partner_name}
+                    mit {firstTicket.bierpong_partner_name}
                   </p>
                 )}
               </div>
             )}
 
-            {loadingTicket && (
-              <div
-                className="mt-3 flex items-center gap-2"
-                style={{ fontFamily: "'Inter', sans-serif", fontSize: '12px', color: 'rgba(160,230,230,0.4)' }}
-              >
-                <motion.div
-                  animate={{ rotate: 360 }}
-                  transition={{ duration: 1.5, repeat: Infinity, ease: 'linear' }}
-                  className="w-3 h-3 rounded-full border-t-2"
-                  style={{ borderColor: accent }}
-                />
+            {loadingTickets && (
+              <div className="mt-3 flex items-center gap-2" style={{ fontFamily: "'Inter', sans-serif", fontSize: '12px', color: 'rgba(160,230,230,0.4)' }}>
+                <motion.div animate={{ rotate: 360 }} transition={{ duration: 1.5, repeat: Infinity, ease: 'linear' }} className="w-3 h-3 rounded-full border-t-2" style={{ borderColor: accent }} />
                 Ticket-Details werden geladen...
               </div>
             )}
           </div>
         </motion.div>
 
-        <motion.a
-          href="https://www.instagram.com/dyd_harmony"
-          target="_blank"
-          rel="noopener noreferrer"
-          initial={{ opacity: 0, y: 12 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.75, duration: 0.55, ease: [0.22, 1, 0.36, 1] }}
-          className="flex items-center gap-3.5 rounded-2xl px-5 py-4 mb-4 group"
-          style={{
-            background: 'rgba(255,255,255,0.03)',
-            border: '1px solid rgba(255,255,255,0.08)',
-            textDecoration: 'none',
-          }}
-          whileHover={{ borderColor: 'rgba(255,255,255,0.15)', background: 'rgba(255,255,255,0.05)' }}
-        >
-          <div
-            className="w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0"
-            style={{
-              background: 'linear-gradient(135deg, #f09433 0%, #e6683c 25%, #dc2743 50%, #cc2366 75%, #bc1888 100%)',
-              boxShadow: '0 2px 12px rgba(220,39,67,0.35)',
-            }}
-          >
-            <Instagram size={17} color="#fff" />
-          </div>
-          <div className="flex-1 min-w-0">
-            <p
-              style={{
-                fontFamily: "'Inter', sans-serif",
-                fontSize: '13px',
-                color: 'rgba(255,255,255,0.55)',
-                lineHeight: 1.45,
-                marginBottom: '2px',
-              }}
-            >
-              Nichts mehr verpassen?
+        {/* Individual ticket rows for multi-ticket */}
+        {isMulti && tickets.length > 0 && (
+          <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.45, duration: 0.5 }} className="mb-4">
+            <p style={{ fontFamily: "'Inter', sans-serif", fontSize: '10px', fontWeight: 700, letterSpacing: '0.24em', textTransform: 'uppercase', color: 'rgba(160,230,230,0.45)', marginBottom: '10px' }}>
+              Einzelne Tickets herunterladen
             </p>
-            <p
-              style={{
-                fontFamily: "'Inter', sans-serif",
-                fontSize: '14px',
-                fontWeight: 600,
-                color: 'rgba(255,255,255,0.88)',
-              }}
-            >
-              @dyd_harmony
-            </p>
-          </div>
-          <ArrowRight size={14} style={{ color: 'rgba(255,255,255,0.25)', flexShrink: 0, transition: 'transform 0.18s' }} className="group-hover:translate-x-0.5" />
-        </motion.a>
-
-        {ticketData && (
-          <motion.div
-            initial={{ opacity: 0, y: 12 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.45, duration: 0.5 }}
-            className="mb-3"
-          >
-            <DownloadButton ticket={ticketData} accent={accent} />
+            <div className="flex flex-col gap-2">
+              {tickets.map((t, i) => (
+                <TicketRow key={t.id} ticket={t} accent={accent} index={i} />
+              ))}
+            </div>
           </motion.div>
         )}
 
-        <motion.div
-          initial={{ opacity: 0, y: 16 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.5, duration: 0.5 }}
-          className="flex flex-col gap-3"
-        >
-          {user && (
+        {/* Single ticket download */}
+        {!isMulti && firstTicket && (
+          <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.45, duration: 0.5 }} className="mb-4">
             <motion.button
-              whileHover={{ scale: 1.02 }}
-              whileTap={{ scale: 0.97 }}
-              onClick={goToDashboard}
+              whileHover={{ scale: 1.015 }} whileTap={{ scale: 0.97 }}
+              onClick={async () => { await downloadFestivalTicketPDF(firstTicket); }}
               className="w-full flex items-center justify-center gap-2.5 py-4 rounded-2xl font-bold"
-              style={{
-                background: `linear-gradient(135deg, ${C.cyan}, ${C.blue})`,
-                color: '#080c10',
-                fontFamily: "'Bebas Neue', sans-serif",
-                fontSize: '18px',
-                letterSpacing: '0.12em',
-                boxShadow: `0 4px 24px ${C.cyan}35`,
-              }}
+              style={{ background: `linear-gradient(135deg, ${C.cyan}, ${C.blue})`, color: '#080c10', fontFamily: "'Bebas Neue', sans-serif", fontSize: '18px', letterSpacing: '0.12em', boxShadow: `0 4px 24px ${C.cyan}35` }}
+            >
+              <Download size={18} />
+              Ticket herunterladen
+            </motion.button>
+          </motion.div>
+        )}
+
+        {/* Instagram */}
+        <motion.a
+          href="https://www.instagram.com/dyd_harmony" target="_blank" rel="noopener noreferrer"
+          initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.55, duration: 0.55 }}
+          className="flex items-center gap-3.5 rounded-2xl px-5 py-4 mb-4 group"
+          style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.08)', textDecoration: 'none' }}
+          whileHover={{ borderColor: 'rgba(255,255,255,0.15)', background: 'rgba(255,255,255,0.05)' }}
+        >
+          <div className="w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0" style={{ background: 'linear-gradient(135deg, #f09433 0%, #e6683c 25%, #dc2743 50%, #cc2366 75%, #bc1888 100%)', boxShadow: '0 2px 12px rgba(220,39,67,0.35)' }}>
+            <Instagram size={17} color="#fff" />
+          </div>
+          <div className="flex-1 min-w-0">
+            <p style={{ fontFamily: "'Inter', sans-serif", fontSize: '13px', color: 'rgba(255,255,255,0.55)', lineHeight: 1.45, marginBottom: '2px' }}>Nichts mehr verpassen?</p>
+            <p style={{ fontFamily: "'Inter', sans-serif", fontSize: '14px', fontWeight: 600, color: 'rgba(255,255,255,0.88)' }}>@dyd_harmony</p>
+          </div>
+          <ArrowRight size={14} style={{ color: 'rgba(255,255,255,0.25)', flexShrink: 0 }} />
+        </motion.a>
+
+        {/* Nav buttons */}
+        <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.6, duration: 0.5 }} className="flex flex-col gap-3">
+          {user && (
+            <motion.button whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.97 }} onClick={() => navigate('/dashboard?ticket_success=1')}
+              className="w-full flex items-center justify-center gap-2.5 py-4 rounded-2xl font-bold"
+              style={{ background: `linear-gradient(135deg, ${C.cyan}, ${C.blue})`, color: '#080c10', fontFamily: "'Bebas Neue', sans-serif", fontSize: '18px', letterSpacing: '0.12em', boxShadow: `0 4px 24px ${C.cyan}35` }}
             >
               Zum Dashboard <ArrowRight size={18} />
             </motion.button>
           )}
-
-          <motion.button
-            whileHover={{ scale: 1.02 }}
-            whileTap={{ scale: 0.97 }}
-            onClick={goToFestival}
+          <motion.button whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.97 }} onClick={() => navigate('/festival')}
             className="w-full flex items-center justify-center gap-2.5 py-3.5 rounded-2xl"
-            style={{
-              background: 'rgba(0,212,212,0.06)',
-              border: `1px solid rgba(0,212,212,0.2)`,
-              color: C.cyan,
-              fontFamily: "'Bebas Neue', sans-serif",
-              fontSize: '16px',
-              letterSpacing: '0.12em',
-            }}
+            style={{ background: 'rgba(0,212,212,0.06)', border: `1px solid rgba(0,212,212,0.2)`, color: C.cyan, fontFamily: "'Bebas Neue', sans-serif", fontSize: '16px', letterSpacing: '0.12em' }}
           >
             <Music size={16} /> Zurück zum Festival
           </motion.button>
         </motion.div>
 
-        <p
-          className="text-center mt-6"
-          style={{
-            fontFamily: "'Inter', sans-serif",
-            fontSize: '12px',
-            color: `rgba(160,230,230,0.3)`,
-            letterSpacing: '0.04em',
-          }}
-        >
+        <p className="text-center mt-6" style={{ fontFamily: "'Inter', sans-serif", fontSize: '12px', color: `rgba(160,230,230,0.3)`, letterSpacing: '0.04em' }}>
           22.08.2026 · Burgplatz, Düsseldorf · 17:00–02:00 Uhr
         </p>
       </motion.div>
