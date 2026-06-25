@@ -23,6 +23,7 @@ const NO_PROMO_PRICE_IDS = new Set([
 
 interface CheckoutRequest {
   price_id: string;
+  quantity?: number;
   success_url: string;
   cancel_url: string;
   mode?: "payment" | "subscription";
@@ -52,7 +53,7 @@ Deno.serve(async (req: Request) => {
     });
 
     const body: CheckoutRequest = await req.json();
-    const { price_id, success_url, cancel_url, mode = "payment", metadata = {}, bierpong_team_name, bierpong_partner_name, buyer_name, user_id: bodyUserId } = body;
+    const { price_id, quantity = 1, success_url, cancel_url, mode = "payment", metadata = {}, bierpong_team_name, bierpong_partner_name, buyer_name, user_id: bodyUserId } = body;
 
     if (!price_id || !success_url || !cancel_url) {
       return new Response(
@@ -118,11 +119,12 @@ Deno.serve(async (req: Request) => {
       if (bierpong_partner_name) festivalMeta.bierpong_partner_name = bierpong_partner_name;
       if (buyer_name) festivalMeta.buyer_name = buyer_name;
       if (bodyUserId) festivalMeta.user_id = bodyUserId;
+      festivalMeta.quantity = String(Math.max(1, Math.min(10, quantity)));
     }
 
     const sessionParams: Stripe.Checkout.SessionCreateParams = {
       mode,
-      line_items: [{ price: price_id, quantity: 1 }],
+      line_items: [{ price: price_id, quantity: Math.max(1, Math.min(10, quantity)) }],
       success_url,
       cancel_url,
       metadata: {

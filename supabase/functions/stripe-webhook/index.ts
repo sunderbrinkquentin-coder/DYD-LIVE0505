@@ -133,39 +133,42 @@ Deno.serve(async (req: Request) => {
         const bierpongTeamName = session.metadata?.bierpong_team_name || null;
         const bierpongPartnerName = session.metadata?.bierpong_partner_name || null;
         const buyerName = session.customer_details?.name || session.metadata?.buyer_name || null;
-        const ticketNumber = generateTicketNumber(festivalTicket.type);
+        const quantity = Math.max(1, parseInt(session.metadata?.quantity || "1", 10));
 
-        const { data: existingTicket } = await supabase
+        const { data: existingTickets } = await supabase
           .from("festival_ticket_sales")
           .select("id")
-          .eq("stripe_session_id", session.id)
-          .maybeSingle();
+          .eq("stripe_session_id", session.id);
 
-        if (existingTicket) {
-          console.log("[Stripe Webhook] Festival ticket already exists, skipping insert");
+        const existingCount = existingTickets?.length ?? 0;
+
+        if (existingCount >= quantity) {
+          console.log("[Stripe Webhook] Festival tickets already exist, skipping insert");
         } else {
+          const ticketsToInsert = Array.from({ length: quantity - existingCount }, (_, i) => ({
+            stripe_session_id: session.id,
+            stripe_payment_intent_id: session.payment_intent as string || null,
+            ticket_type: festivalTicket.type,
+            ticket_label: festivalTicket.label,
+            amount_paid: Math.round(session.amount_total / quantity),
+            currency: session.currency,
+            buyer_email: session.customer_details?.email || session.customer_email || null,
+            buyer_name: buyerName,
+            payment_status: session.payment_status,
+            user_id: metaUserId,
+            ticket_number: generateTicketNumber(festivalTicket.type),
+            bierpong_team_name: bierpongTeamName,
+            bierpong_partner_name: bierpongPartnerName,
+          }));
+
           const { error: festivalError } = await supabase
             .from("festival_ticket_sales")
-            .insert({
-              stripe_session_id: session.id,
-              stripe_payment_intent_id: session.payment_intent as string || null,
-              ticket_type: festivalTicket.type,
-              ticket_label: festivalTicket.label,
-              amount_paid: session.amount_total,
-              currency: session.currency,
-              buyer_email: session.customer_details?.email || session.customer_email || null,
-              buyer_name: buyerName,
-              payment_status: session.payment_status,
-              user_id: metaUserId,
-              ticket_number: ticketNumber,
-              bierpong_team_name: bierpongTeamName,
-              bierpong_partner_name: bierpongPartnerName,
-            });
+            .insert(ticketsToInsert);
 
           if (festivalError) {
-            console.error("[Stripe Webhook] Error saving festival ticket:", festivalError);
+            console.error("[Stripe Webhook] Error saving festival tickets:", festivalError);
           } else {
-            console.log("[Stripe Webhook] Festival ticket saved:", ticketNumber);
+            console.log(`[Stripe Webhook] ${ticketsToInsert.length} festival ticket(s) saved`);
           }
         }
 
