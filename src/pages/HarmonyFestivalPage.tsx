@@ -494,6 +494,59 @@ const NAV_SECTIONS = [
   { id: 'unterstuetzen', label: 'Unterstützen', emoji: '💛' },
 ] as const;
 
+function FaqSection() {
+  const [open, setOpen] = React.useState<number | null>(null);
+  const items = [
+    {
+      q: 'Wie bekomme ich mein Ticket?',
+      a: 'Nach dem Kauf erhältst du sofort eine E-Mail mit deinem digitalen Ticket. Zeig es einfach am Einlass auf deinem Handy vor – kein Ausdruck nötig.',
+    },
+    {
+      q: 'Für wen ist das Festival geeignet?',
+      a: 'Das Harmony Festival ist ab 18 Jahren. Es richtet sich an alle, die Lust auf Live-Musik, Comedy und gute Vibes haben – unabhängig von Hintergrund oder Szene.',
+    },
+    {
+      q: 'Was ist im Early Bird Bundle enthalten?',
+      a: 'Das Bundle umfasst den Einlass für alle drei Programmpunkte: Zirkel.WTF Live-Konzert, Stand-Up Comedy Show und DJ Night – plus 1 Freigetränk nach Wahl beim Einlass.',
+    },
+    {
+      q: 'Kann ich mehrere Tickets für Freunde kaufen?',
+      a: 'Ja! Im Checkout kannst du die Anzahl einfach anpassen. Jede Person bekommt ein eigenes Ticket per E-Mail.',
+    },
+    {
+      q: 'Was passiert wenn ich nicht kommen kann?',
+      a: 'Tickets sind grundsätzlich nicht erstattbar. Du kannst dein Ticket aber an jemand anderen weitergeben – schick uns dafür einfach eine Nachricht über Instagram.',
+    },
+  ];
+  return (
+    <motion.section initial={{ opacity: 0, y: 24 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} transition={{ duration: 0.5 }} className="mt-16">
+      <div className="tag-label mb-6">FAQ</div>
+      <h2 className="graffiti mb-8" style={{ fontSize: 'clamp(32px, 5vw, 52px)', color: '#fff', lineHeight: 0.95 }}>
+        Häufige Fragen
+      </h2>
+      <div className="space-y-3">
+        {items.map((item, i) => (
+          <div key={i} className="rounded-2xl overflow-hidden"
+            style={{ background: open === i ? 'rgba(0,212,212,0.06)' : 'rgba(255,255,255,0.03)', border: `1px solid ${open === i ? 'rgba(0,212,212,0.22)' : 'rgba(255,255,255,0.07)'}`, transition: 'all 0.2s' }}>
+            <button onClick={() => setOpen(open === i ? null : i)}
+              className="w-full flex items-center justify-between gap-4 px-6 py-5 text-left"
+              style={{ fontFamily: "'Inter', sans-serif", fontSize: '15px', fontWeight: 600, color: open === i ? '#e0f4f4' : 'rgba(200,230,230,0.75)', cursor: 'pointer', background: 'none', border: 'none' }}>
+              <span>{item.q}</span>
+              <ChevronDown className="w-4 h-4 flex-shrink-0 transition-transform duration-200" style={{ color: 'rgba(0,212,212,0.6)', transform: open === i ? 'rotate(180deg)' : 'rotate(0deg)' }} />
+            </button>
+            {open === i && (
+              <div className="px-6 pb-5"
+                style={{ fontFamily: "'Inter', sans-serif", fontSize: '14px', color: 'rgba(170,215,215,0.65)', lineHeight: 1.75 }}>
+                {item.a}
+              </div>
+            )}
+          </div>
+        ))}
+      </div>
+    </motion.section>
+  );
+}
+
 export default function HarmonyFestivalPage() {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
@@ -539,7 +592,7 @@ export default function HarmonyFestivalPage() {
   const [supportSessionId, setSupportSessionId] = useState<string | undefined>(undefined);
 
   const [quantities, setQuantities] = useState<Record<string, number>>(
-    Object.fromEntries(TICKETS.map(t => [t.id, 1]))
+    Object.fromEntries(TICKETS.map(t => [t.id, t.id === 'early_bird' ? 2 : 1]))
   );
 
   const updateQty = (id: string, delta: number) => {
@@ -784,7 +837,6 @@ useEffect(() => {
   const handleNameConfirm = () => {
     if (!buyerName.trim()) { setBuyerNameError('Bitte gib deinen Namen ein.'); return; }
     if (!ageConfirmed) return;
-    if (!agbConfirmed) return;
     const ticket = nameModal!.ticket;
     setNameModal(null);
     doCheckout(ticket, buyerName.trim(), undefined, undefined, undefined, quantities[ticket.id]);
@@ -2039,6 +2091,29 @@ useEffect(() => {
             </>
           )}
 
+          {/* ── HOW IT WORKS ─────────────────────────────────────── */}
+          <motion.section {...fadeUp} className="mb-16">
+            <div className="grid grid-cols-3 gap-3 sm:gap-6">
+              {[
+                { step: '1', icon: Ticket,      title: 'Ticket kaufen',       desc: 'Online bezahlen · dauert 60 Sekunden' },
+                { step: '2', icon: Mail,         title: 'E-Mail erhalten',     desc: 'Dein Ticket landet sofort im Postfach' },
+                { step: '3', icon: CheckCircle,  title: 'Am Einlass vorzeigen', desc: 'Digital auf dem Handy – kein Ausdruck nötig' },
+              ].map((item) => (
+                <div key={item.step} className="flex flex-col items-center text-center gap-3 p-4 sm:p-6 rounded-2xl"
+                  style={{ background: 'rgba(0,212,212,0.04)', border: '1px solid rgba(0,212,212,0.1)' }}>
+                  <div className="w-9 h-9 sm:w-11 sm:h-11 rounded-xl flex items-center justify-center flex-shrink-0"
+                    style={{ background: 'rgba(0,212,212,0.1)', border: '1px solid rgba(0,212,212,0.2)' }}>
+                    <item.icon className="w-4 h-4 sm:w-5 sm:h-5" style={{ color: C.cyan }} />
+                  </div>
+                  <div>
+                    <p style={{ fontFamily: "'Bebas Neue', sans-serif", fontSize: '16px', letterSpacing: '0.1em', color: '#fff', marginBottom: '4px' }}>{item.title}</p>
+                    <p style={{ fontFamily: "'Inter', sans-serif", fontSize: '12px', color: 'rgba(160,210,210,0.5)', lineHeight: 1.5 }}>{item.desc}</p>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </motion.section>
+
           {/* ── TICKETS ──────────────────────────────────────────── */}
           <section id="tickets">
             {/* Header */}
@@ -2646,6 +2721,9 @@ useEffect(() => {
             </motion.button>
           </motion.section>
 
+          {/* ── FAQ ──────────────────────────────────────────────── */}
+          <FaqSection />
+
         </div>
       </div>
 
@@ -2679,7 +2757,7 @@ useEffect(() => {
       </footer>
 
       {/* ── MOBILE STICKY CTA ───────────────────────────────────── */}
-      <motion.div initial={{ y: 80 }} animate={{ y: 0 }} transition={{ delay: 2.5, duration: 0.55, ease: [0.22, 1, 0.36, 1] }}
+      <motion.div initial={{ y: 80 }} animate={{ y: 0 }} transition={{ delay: 0.8, duration: 0.55, ease: [0.22, 1, 0.36, 1] }}
         className="fixed bottom-0 inset-x-0 z-40 sm:hidden p-4"
         style={{ background: `linear-gradient(to top, rgba(8,12,16,0.98) 55%, transparent)` }}>
         <button onClick={() => document.getElementById('tickets')?.scrollIntoView({ behavior: 'smooth' })}
@@ -2755,40 +2833,28 @@ useEffect(() => {
                 </span>
               </label>
 
-              <label className="flex items-start gap-3 mt-3 cursor-pointer select-none"
-                style={{ padding: '14px', borderRadius: '12px', background: agbConfirmed ? 'rgba(0,212,212,0.06)' : 'rgba(255,255,255,0.02)', border: `1px solid ${agbConfirmed ? 'rgba(0,212,212,0.3)' : 'rgba(255,255,255,0.08)'}`, transition: 'all 0.2s' }}>
-                <div className="flex-shrink-0 mt-0.5">
-                  <div className="w-5 h-5 rounded-md flex items-center justify-center transition-all"
-                    style={{ background: agbConfirmed ? C.cyan : 'transparent', border: `2px solid ${agbConfirmed ? C.cyan : 'rgba(160,230,230,0.3)'}` }}>
-                    {agbConfirmed && <CheckCircle className="w-3 h-3" style={{ color: '#080c10' }} />}
-                  </div>
-                </div>
-                <input type="checkbox" className="sr-only" checked={agbConfirmed} onChange={(e) => setAgbConfirmed(e.target.checked)} />
-                <span style={{ fontFamily: "'Inter', sans-serif", fontSize: '13px', color: 'rgba(160,230,230,0.7)', lineHeight: 1.5 }}>
-                  Ich habe die{' '}
-                  <a href="/#/agb" target="_blank" rel="noopener noreferrer"
-                    style={{ color: C.cyan, textDecoration: 'underline', textUnderlineOffset: '3px' }}
-                    onClick={(e) => e.stopPropagation()}>
-                    Allgemeinen Geschaftsbedingungen
-                  </a>{' '}
-                  gelesen und stimme ihnen zu. <span style={{ color: C.cyan }}>*</span>
-                </span>
-              </label>
-
               <div className="flex gap-3 mt-4">
                 <button onClick={() => setNameModal(null)}
                   className="flex-1 py-3 rounded-xl transition-colors"
                   style={{ background: 'rgba(0,212,212,0.04)', border: `1px solid rgba(0,212,212,0.12)`, color: 'rgba(160,230,230,0.5)', fontFamily: "'Bebas Neue', sans-serif", fontSize: '15px', letterSpacing: '0.14em' }}>
                   Abbrechen
                 </button>
-                <motion.button whileHover={ageConfirmed && agbConfirmed && !!buyerName.trim() ? { scale: 1.03 } : {}} whileTap={ageConfirmed && agbConfirmed && !!buyerName.trim() ? { scale: 0.97 } : {}}
+                <motion.button whileHover={ageConfirmed && !!buyerName.trim() ? { scale: 1.03 } : {}} whileTap={ageConfirmed && !!buyerName.trim() ? { scale: 0.97 } : {}}
                   onClick={handleNameConfirm}
-                  disabled={!ageConfirmed || !agbConfirmed || !buyerName.trim()}
+                  disabled={!ageConfirmed || !buyerName.trim()}
                   className="flex-1 flex items-center justify-center gap-2 py-3 rounded-xl transition-all"
-                  style={ageConfirmed && agbConfirmed && buyerName.trim() ? { background: `linear-gradient(135deg, ${C.cyan}, rgba(0,168,168,0.9))`, color: '#080c10', fontFamily: "'Bebas Neue', sans-serif", fontSize: '15px', letterSpacing: '0.14em', fontWeight: 700, boxShadow: `0 3px 16px rgba(0,212,212,0.3)`, cursor: 'pointer' } : { background: 'rgba(255,255,255,0.05)', color: 'rgba(255,255,255,0.3)', fontFamily: "'Bebas Neue', sans-serif", fontSize: '15px', letterSpacing: '0.14em', cursor: 'not-allowed' }}>
-                  <Ticket className="w-4 h-4" /> Weiter zum Kauf
+                  style={ageConfirmed && buyerName.trim() ? { background: `linear-gradient(135deg, ${C.cyan}, rgba(0,168,168,0.9))`, color: '#080c10', fontFamily: "'Bebas Neue', sans-serif", fontSize: '15px', letterSpacing: '0.14em', fontWeight: 700, boxShadow: `0 3px 16px rgba(0,212,212,0.3)`, cursor: 'pointer' } : { background: 'rgba(255,255,255,0.05)', color: 'rgba(255,255,255,0.3)', fontFamily: "'Bebas Neue', sans-serif", fontSize: '15px', letterSpacing: '0.14em', cursor: 'not-allowed' }}>
+                  <Lock className="w-3.5 h-3.5" /> Sicher kaufen · Stripe
                 </motion.button>
               </div>
+              <p style={{ fontFamily: "'Inter', sans-serif", fontSize: '11px', color: 'rgba(140,190,190,0.4)', textAlign: 'center', marginTop: '12px', lineHeight: 1.5 }}>
+                Mit dem Kauf stimmst du den{' '}
+                <a href="/#/agb" target="_blank" rel="noopener noreferrer"
+                  style={{ color: 'rgba(0,212,212,0.55)', textDecoration: 'underline', textUnderlineOffset: '3px' }}
+                  onClick={(e) => e.stopPropagation()}>
+                  AGB
+                </a>{' '}zu.
+              </p>
             </motion.div>
           </motion.div>
         )}
