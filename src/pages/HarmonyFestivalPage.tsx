@@ -25,12 +25,12 @@ const C = {
 };
 
 const TICKETS = [
-  { id: 'early_bird',  priceId: import.meta.env.VITE_STRIPE_HARMONY_EARLY_BIRD,  label: 'Bundle',      price: 37.99, description: 'Das volle Programm: Live-Konzert mit Zirkel.WTF, Stand-Up Comedy Show & DJ Night in einem Paket – zum günstigsten Preis.', highlight: true,  badge: 'BELIEBT',   perk: '',                                     accent: 'rgba(0,175,175,0.85)',   accentAlpha: 'rgba(0,160,160,0.1)',   accentShadow: 'rgba(0,140,140,0.06)'  },
-  { id: 'concert',     priceId: import.meta.env.VITE_STRIPE_HARMONY_CONCERT,      label: 'Live Konzert Zirkel.WTF',price: 17.50, description: 'Norddeutschlands Pop-Punk-Hoffnung hautnah. Moderne Beats, Skater-Vibe, ehrliche Texte.', highlight: false, badge: null,        perk: '',                                     accent: 'rgba(60,140,200,0.8)',   accentAlpha: 'rgba(50,130,190,0.1)',  accentShadow: 'rgba(40,110,170,0.06)' },
-  { id: 'standup',     priceId: import.meta.env.VITE_STRIPE_HARMONY_STANDUP,      label: 'Stand-Up Comedy',       price: 17.50, description: '5–6 Newcomer aus der lokalen Stand-Up Comedy Szene.',                               highlight: false, badge: null,        perk: '',                                     accent: 'rgba(210,110,50,0.85)',  accentAlpha: 'rgba(200,100,40,0.1)',  accentShadow: 'rgba(180,85,30,0.06)'  },
-  { id: 'dj',          priceId: import.meta.env.VITE_STRIPE_HARMONY_DJ,           label: 'DJ Sets House / Techno', price:  8.50, description: 'Lokale DJs für die Club Night – House & Techno bis in den Morgen.',                 highlight: false, badge: null,        perk: '',                                     accent: 'rgba(160,120,200,0.8)', accentAlpha: 'rgba(145,105,185,0.1)', accentShadow: 'rgba(130,90,170,0.06)' },
-  { id: 'bierpong',    priceId: import.meta.env.VITE_STRIPE_HARMONY_BIERPONG,     label: 'Bierpong-Turnier',      price: 10.00, description: 'Das Turnier läuft für alle – Musik, Stimmung & Drinks inklusive. Wer als Team aktiv mitspielen will, sichert sich hier seinen Startplatz.', highlight: false, badge: 'LIMITIERT', perk: 'Gewinnen = den ganzen Abend free trinken', accent: 'rgba(185,215,55,0.8)', accentAlpha: 'rgba(175,205,50,0.1)', accentShadow: 'rgba(155,185,40,0.06)' },
-  { id: 'soli_shirt', priceId: import.meta.env.VITE_STRIPE_HARMONY_SOLI_SHIRT, label: 'Soli-Shirt', price: 25.00, description: '100% Gewinn an KeinBockAufNazis e.V.', highlight: false, badge: 'SOLI', perk: '', accent: 'rgba(220,50,50,0.85)', accentAlpha: 'rgba(200,40,40,0.1)', accentShadow: 'rgba(180,30,30,0.06)' },
+  { id: 'early_bird',  priceId: import.meta.env.VITE_STRIPE_HARMONY_EARLY_BIRD,  label: 'Bundle',      price: 37.99, description: 'Das volle Programm: Live-Konzert mit Zirkel.WTF, Stand-Up Comedy Show & DJ Night in einem Paket – zum günstigsten Preis.', highlight: true,  badge: 'BELIEBT',   perk: '',                                     accent: 'rgba(0,175,175,0.85)',   accentAlpha: 'rgba(0,160,160,0.1)',   accentShadow: 'rgba(0,140,140,0.06)', time: null         },
+  { id: 'concert',     priceId: import.meta.env.VITE_STRIPE_HARMONY_CONCERT,      label: 'Live Konzert Zirkel.WTF',price: 17.50, description: 'Norddeutschlands Pop-Punk-Hoffnung hautnah. Moderne Beats, Skater-Vibe, ehrliche Texte.', highlight: false, badge: null,        perk: '',                                     accent: 'rgba(60,140,200,0.8)',   accentAlpha: 'rgba(50,130,190,0.1)',  accentShadow: 'rgba(40,110,170,0.06)', time: '20:30 Uhr'  },
+  { id: 'standup',     priceId: import.meta.env.VITE_STRIPE_HARMONY_STANDUP,      label: 'Stand-Up Comedy',       price: 17.50, description: '5–6 Newcomer aus der lokalen Stand-Up Comedy Szene.',                               highlight: false, badge: null,        perk: '',                                     accent: 'rgba(210,110,50,0.85)',  accentAlpha: 'rgba(200,100,40,0.1)',  accentShadow: 'rgba(180,85,30,0.06)', time: '16:30 Uhr'  },
+  { id: 'dj',          priceId: import.meta.env.VITE_STRIPE_HARMONY_DJ,           label: 'DJ Sets House / Techno', price:  8.50, description: 'Lokale DJs für die Club Night – House & Techno bis in den Morgen.',                 highlight: false, badge: null,        perk: '',                                     accent: 'rgba(160,120,200,0.8)', accentAlpha: 'rgba(145,105,185,0.1)', accentShadow: 'rgba(130,90,170,0.06)', time: '22:00 Uhr'  },
+  { id: 'bierpong',    priceId: import.meta.env.VITE_STRIPE_HARMONY_BIERPONG,     label: 'Bierpong-Turnier',      price: 10.00, description: 'Das Turnier läuft für alle – Musik, Stimmung & Drinks inklusive. Wer als Team aktiv mitspielen will, sichert sich hier seinen Startplatz.', highlight: false, badge: 'LIMITIERT', perk: 'Gewinnen = den ganzen Abend free trinken', accent: 'rgba(185,215,55,0.8)', accentAlpha: 'rgba(175,205,50,0.1)', accentShadow: 'rgba(155,185,40,0.06)', time: '18:00 Uhr' },
+  { id: 'soli_shirt', priceId: import.meta.env.VITE_STRIPE_HARMONY_SOLI_SHIRT, label: 'Soli-Shirt', price: 25.00, description: '100% Gewinn an KeinBockAufNazis e.V.', highlight: false, badge: 'SOLI', perk: '', accent: 'rgba(220,50,50,0.85)', accentAlpha: 'rgba(200,40,40,0.1)', accentShadow: 'rgba(180,30,30,0.06)', time: null },
 ];
 
 
@@ -2314,15 +2314,26 @@ useEffect(() => {
                     '--ticket-accent-shadow': ticket.accentShadow,
                   } as React.CSSProperties}>
                   {/* left accent bar handled by ::before */}
-                  <div className="relative z-10 flex items-center gap-4 sm:gap-6 w-full px-6 py-5">
-                    {/* index number */}
-                    <div className="flex-shrink-0 w-10 h-10 rounded-xl flex items-center justify-center"
-                      style={{ background: `${ticket.accent}12`, border: `1px solid ${ticket.accent}22` }}>
-                      <span style={{ fontFamily: "'Bebas Neue', sans-serif", fontSize: '18px', color: ticket.accent, lineHeight: 1 }}>{String(i + 2).padStart(2, '0')}</span>
+                  <div className="relative z-10 flex items-start gap-4 sm:gap-6 w-full px-6 py-5">
+                    {/* index number + time */}
+                    <div className="flex flex-col items-center gap-1.5 flex-shrink-0">
+                      <div className="w-10 h-10 rounded-xl flex items-center justify-center"
+                        style={{ background: `${ticket.accent}12`, border: `1px solid ${ticket.accent}22` }}>
+                        <span style={{ fontFamily: "'Bebas Neue', sans-serif", fontSize: '18px', color: ticket.accent, lineHeight: 1 }}>{String(i + 2).padStart(2, '0')}</span>
+                      </div>
+                      {ticket.time && (
+                        <div className="flex items-center gap-1 px-2 py-0.5 rounded-md"
+                          style={{ background: `${ticket.accent}10`, border: `1px solid ${ticket.accent}20` }}>
+                          <Clock className="w-2.5 h-2.5 flex-shrink-0" style={{ color: ticket.accent, opacity: 0.7 }} />
+                          <span style={{ fontFamily: "'Bebas Neue', sans-serif", fontSize: '11px', color: ticket.accent, opacity: 0.8, letterSpacing: '0.08em', whiteSpace: 'nowrap' }}>
+                            {ticket.time}
+                          </span>
+                        </div>
+                      )}
                     </div>
                     {/* label + desc */}
                     <div className="flex-1 min-w-0">
-                      <div className="flex items-center gap-2 flex-wrap">
+                      <div className="flex items-center gap-2 flex-wrap mb-1">
                         <h3 className="graffiti" style={{ fontSize: 'clamp(17px, 2.2vw, 22px)', color: '#fff', lineHeight: 1 }}>{ticket.label}</h3>
                         {ticket.badge && (
                           <span className="sticker relative" style={{ backgroundColor: ticket.accent, color: '#080c10', fontSize: '9px', padding: '2px 8px', transform: 'rotate(0deg)', top: 0 }}>
@@ -2330,7 +2341,7 @@ useEffect(() => {
                           </span>
                         )}
                       </div>
-                      <p style={{ fontFamily: "'Inter', sans-serif", fontSize: '12px', color: 'rgba(180,210,210,0.48)', lineHeight: 1.55, marginTop: '3px' }}>{ticket.description}</p>
+                      <p style={{ fontFamily: "'Inter', sans-serif", fontSize: '12px', color: 'rgba(180,210,210,0.48)', lineHeight: 1.55 }}>{ticket.description}</p>
                       {ticket.perk && (
                         <div className="mt-2 inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg"
                           style={{ background: ticket.accentAlpha, border: `1px solid ${ticket.accent}25` }}>
@@ -2354,19 +2365,19 @@ useEffect(() => {
                         <button onClick={(e) => { e.stopPropagation(); updateQty(ticket.id, 1); }}
                           style={{ color: ticket.accent, fontSize: '18px', background: 'none', border: 'none', cursor: 'pointer', opacity: quantities[ticket.id] >= 10 ? 0.3 : 1 }}>+</button>
                       </div>
-                      <motion.button whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}
+                      <motion.button whileHover={{ scale: 1.05, filter: 'brightness(1.1)' }} whileTap={{ scale: 0.95 }}
                         onClick={() => handleBuy(ticket)} disabled={loadingId !== null}
                         className="flex items-center gap-1.5 px-4 py-2 rounded-xl disabled:opacity-40 disabled:cursor-not-allowed whitespace-nowrap"
                         style={{
-                          background: `${ticket.accent}18`,
-                          border: `1px solid ${ticket.accent}40`,
-                          color: ticket.accent,
+                          background: `linear-gradient(135deg, ${ticket.accent}, ${ticket.accent.replace('0.8', '0.6').replace('0.85', '0.65')})`,
+                          color: '#060c0c',
                           fontFamily: "'Bebas Neue', sans-serif",
                           fontSize: '13px', letterSpacing: '0.16em',
+                          boxShadow: `0 2px 12px ${ticket.accentShadow}`,
                         }}>
                         {loadingId === ticket.id
                           ? <><Loader2 className="w-3.5 h-3.5 animate-spin" />Laden</>
-                          : <>Kaufen<ArrowRight className="w-3.5 h-3.5" /></>}
+                          : <>Ticket sichern<ArrowRight className="w-3.5 h-3.5" /></>}
                       </motion.button>
                     </div>
                   </div>
