@@ -25,7 +25,7 @@ const C = {
 };
 
 const TICKETS = [
-  { id: 'early_bird',  priceId: import.meta.env.VITE_STRIPE_HARMONY_EARLY_BIRD,  label: 'Early Bird Bundle',      price: 37.99, description: 'Das volle Programm: Live-Konzert mit Zirkel.WTF, Stand-Up Comedy Show & DJ Night in einem Paket – zum günstigsten Preis.', highlight: true,  badge: 'BELIEBT',   perk: '',                                     accent: 'rgba(0,175,175,0.85)',   accentAlpha: 'rgba(0,160,160,0.1)',   accentShadow: 'rgba(0,140,140,0.06)'  },
+  { id: 'early_bird',  priceId: import.meta.env.VITE_STRIPE_HARMONY_EARLY_BIRD,  label: 'Bundle',      price: 37.99, description: 'Das volle Programm: Live-Konzert mit Zirkel.WTF, Stand-Up Comedy Show & DJ Night in einem Paket – zum günstigsten Preis.', highlight: true,  badge: 'BELIEBT',   perk: '',                                     accent: 'rgba(0,175,175,0.85)',   accentAlpha: 'rgba(0,160,160,0.1)',   accentShadow: 'rgba(0,140,140,0.06)'  },
   { id: 'concert',     priceId: import.meta.env.VITE_STRIPE_HARMONY_CONCERT,      label: 'Live Konzert Zirkel.WTF',price: 17.50, description: 'Norddeutschlands Pop-Punk-Hoffnung hautnah. Moderne Beats, Skater-Vibe, ehrliche Texte.', highlight: false, badge: null,        perk: '',                                     accent: 'rgba(60,140,200,0.8)',   accentAlpha: 'rgba(50,130,190,0.1)',  accentShadow: 'rgba(40,110,170,0.06)' },
   { id: 'standup',     priceId: import.meta.env.VITE_STRIPE_HARMONY_STANDUP,      label: 'Stand-Up Comedy',       price: 17.50, description: '5–6 Newcomer aus der lokalen Stand-Up Comedy Szene.',                               highlight: false, badge: null,        perk: '',                                     accent: 'rgba(210,110,50,0.85)',  accentAlpha: 'rgba(200,100,40,0.1)',  accentShadow: 'rgba(180,85,30,0.06)'  },
   { id: 'dj',          priceId: import.meta.env.VITE_STRIPE_HARMONY_DJ,           label: 'DJ Sets House / Techno', price:  8.50, description: 'Lokale DJs für die Club Night – House & Techno bis in den Morgen.',                 highlight: false, badge: null,        perk: '',                                     accent: 'rgba(160,120,200,0.8)', accentAlpha: 'rgba(145,105,185,0.1)', accentShadow: 'rgba(130,90,170,0.06)' },
@@ -2171,6 +2171,10 @@ useEffect(() => {
                         <p style={{ fontFamily: "'Inter', sans-serif", fontSize: '14px', color: 'rgba(180,230,230,0.55)', lineHeight: 1.7, maxWidth: '480px' }}>
                           {hero.description}
                         </p>
+                        {/* conversion claim */}
+                        <p style={{ fontFamily: "'Inter', sans-serif", fontSize: '13px', fontWeight: 600, color: 'rgba(0,212,212,0.75)', marginTop: '10px', lineHeight: 1.5 }}>
+                          Vermutlich das günstigste Festival, auf dem du diesen Sommer in Düsseldorf sein wirst.
+                        </p>
                       </div>
                       {/* price block */}
                       <div className="flex-shrink-0 text-right">
@@ -2205,36 +2209,30 @@ useEffect(() => {
                         <span style={{ fontFamily: "'Inter', sans-serif", fontSize: '12px', fontWeight: 500, color: 'rgba(160,210,210,0.45)' }}>Alles in einem Ticket</span>
                       </div>
                     </div>
-                    {/* Early Bird urgency bar */}
-                    <div className="rounded-xl mb-4 overflow-hidden" style={{ border: '1px solid rgba(0,200,200,0.2)', background: 'rgba(0,18,22,0.7)' }}>
-                      <div className="flex items-center gap-3 px-4 py-2.5" style={{ borderBottom: '1px solid rgba(0,200,200,0.1)', background: 'rgba(0,200,200,0.07)' }}>
-                        <span style={{ fontFamily: "'Bebas Neue', sans-serif", fontSize: '11px', letterSpacing: '0.22em', color: '#00c8c8' }}>EARLY BIRD ENDET AM 30.06.2026</span>
-                        <span className="ml-auto" style={{ fontFamily: "'Inter', sans-serif", fontSize: '11px', fontWeight: 700, color: 'rgba(255,120,80,0.9)', letterSpacing: '0.04em' }}>
-                          Nur noch 120 Tickets
-                        </span>
+                    {/* Instagram follow CTA */}
+                    <a href="https://www.instagram.com/harmonyfestivaldus" target="_blank" rel="noopener noreferrer"
+                      className="flex items-center gap-4 rounded-xl mb-4 px-5 py-4 group transition-all"
+                      style={{ background: 'rgba(0,212,212,0.07)', border: '1px solid rgba(0,212,212,0.22)', textDecoration: 'none' }}
+                      onMouseEnter={e => (e.currentTarget.style.background = 'rgba(0,212,212,0.13)')}
+                      onMouseLeave={e => (e.currentTarget.style.background = 'rgba(0,212,212,0.07)')}>
+                      <div className="flex-shrink-0 w-10 h-10 rounded-xl flex items-center justify-center"
+                        style={{ background: 'rgba(0,212,212,0.12)', border: '1px solid rgba(0,212,212,0.3)' }}>
+                        <svg viewBox="0 0 24 24" fill="none" style={{ width: '18px', height: '18px', color: C.cyan }} stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+                          <rect x="2" y="2" width="20" height="20" rx="5" ry="5"/>
+                          <circle cx="12" cy="12" r="4"/>
+                          <circle cx="17.5" cy="6.5" r="0.5" fill="currentColor" stroke="none"/>
+                        </svg>
                       </div>
-                      <div className="flex items-center justify-center gap-5 px-4 py-3">
-                        {[
-                          { val: ebCd.d, label: 'Tage' },
-                          { val: ebCd.h, label: 'Std' },
-                          { val: ebCd.m, label: 'Min' },
-                          { val: ebCd.s, label: 'Sek' },
-                        ].map(({ val, label }, i) => (
-                          <div key={label} className="flex items-center gap-5">
-                            <div className="flex flex-col items-center" style={{ minWidth: '40px' }}>
-                              <AnimatePresence mode="popLayout">
-                                <motion.span key={val} initial={{ y: -12, opacity: 0 }} animate={{ y: 0, opacity: 1 }} exit={{ y: 12, opacity: 0 }} transition={{ duration: 0.15 }}
-                                  style={{ display: 'block', fontFamily: "'Bebas Neue', sans-serif", fontSize: '28px', color: '#fff', lineHeight: 1, letterSpacing: '0.04em' }}>
-                                  {String(val).padStart(2, '0')}
-                                </motion.span>
-                              </AnimatePresence>
-                              <span style={{ fontFamily: "'Inter', sans-serif", fontSize: '9px', letterSpacing: '0.24em', color: 'rgba(0,200,200,0.55)', fontWeight: 600, textTransform: 'uppercase', marginTop: '1px' }}>{label}</span>
-                            </div>
-                            {i < 3 && <span style={{ color: 'rgba(0,200,200,0.3)', fontFamily: "'Bebas Neue', sans-serif", fontSize: '22px', lineHeight: 1, marginTop: '-6px' }}>:</span>}
-                          </div>
-                        ))}
+                      <div className="flex-1 min-w-0">
+                        <p style={{ fontFamily: "'Bebas Neue', sans-serif", fontSize: '14px', letterSpacing: '0.18em', color: '#fff', marginBottom: '2px' }}>
+                          Folge uns auf Instagram &amp; spare 20 %
+                        </p>
+                        <p style={{ fontFamily: "'Inter', sans-serif", fontSize: '12px', color: 'rgba(0,212,212,0.6)', letterSpacing: '0.02em' }}>
+                          @harmonyfestivaldus · DM uns nach dem Follow für deinen Code
+                        </p>
                       </div>
-                    </div>
+                      <ArrowRight className="w-4 h-4 flex-shrink-0 transition-transform group-hover:translate-x-1" style={{ color: 'rgba(0,212,212,0.55)' }} />
+                    </a>
 
                     {/* free drink bonus */}
                     <div className="flex items-center gap-3 px-4 py-3 rounded-xl mb-7"
