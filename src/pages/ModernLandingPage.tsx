@@ -1,6 +1,6 @@
 import { motion, useScroll, useTransform } from "framer-motion";
 import { useNavigate } from "react-router-dom";
-import { Sparkles, CheckCircle, FileText, ArrowRight, Clipboard as ClipboardEdit, Zap, RefreshCcw } from "lucide-react";
+import { Sparkles, CheckCircle, FileText, ArrowRight, Clipboard as ClipboardEdit, Zap, RefreshCcw, GraduationCap } from "lucide-react";
 import { useState } from "react";
 import { useAuth } from "../contexts/AuthContext";
 
@@ -144,22 +144,45 @@ export default function LandingPage() {
             {/* BUTTONS */}
             <motion.div
               variants={fadeInUp}
-              className="flex flex-col sm:flex-row gap-4 justify-center mt-10"
+              className="flex flex-col gap-3 justify-center mt-10 max-w-xl mx-auto"
             >
-              <motion.button
-                onClick={() => navigate("/cv-wizard")}
-                className="px-10 py-5 rounded-2xl bg-gradient-to-r from-[#66c0b6] to-[#30E3CA] text-black font-bold shadow-xl flex items-center gap-3"
-              >
-                <FileText className="w-5 h-5" />
-                CV erstellen
-                <ArrowRight className="w-5 h-5" />
-              </motion.button>
+              {/* top row: CV-tools */}
+              <div className="flex flex-col sm:flex-row gap-3">
+                <motion.button
+                  whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}
+                  onClick={() => navigate("/cv-wizard")}
+                  className="flex-1 px-8 py-4 rounded-2xl bg-gradient-to-r from-[#66c0b6] to-[#30E3CA] text-black font-bold shadow-xl flex items-center justify-center gap-2"
+                >
+                  <FileText className="w-5 h-5" />
+                  CV erstellen
+                  <ArrowRight className="w-4 h-4" />
+                </motion.button>
 
+                <motion.button
+                  whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}
+                  onClick={() => navigate("/cv-check")}
+                  className="flex-1 px-8 py-4 rounded-2xl border border-white/20 text-white/80 hover:text-white hover:border-white/35 transition-colors flex items-center justify-center gap-2"
+                >
+                  <ClipboardEdit className="w-5 h-5" />
+                  CV checken
+                </motion.button>
+              </div>
+
+              {/* Career Academy — full-width highlight */}
               <motion.button
-                onClick={() => navigate("/cv-check")}
-                className="px-10 py-5 rounded-2xl border border-white/20 text-white/80 hover:text-white"
+                whileHover={{ scale: 1.02, filter: 'brightness(1.08)' }} whileTap={{ scale: 0.98 }}
+                onClick={() => navigate("/career-vision")}
+                className="w-full px-8 py-4 rounded-2xl flex items-center justify-center gap-3 relative overflow-hidden"
+                style={{
+                  background: 'linear-gradient(135deg, rgba(120,80,220,0.22) 0%, rgba(80,160,220,0.18) 100%)',
+                  border: '1px solid rgba(160,120,255,0.35)',
+                  boxShadow: '0 0 32px rgba(140,100,240,0.12)',
+                }}
               >
-                Kostenlos CV checken
+                <GraduationCap className="w-5 h-5 flex-shrink-0" style={{ color: 'rgba(190,160,255,0.9)' }} />
+                <span className="font-bold text-white text-base tracking-wide">Career Academy starten</span>
+                <span className="text-sm font-normal ml-1" style={{ color: 'rgba(190,160,255,0.65)' }}>– Lernpfad, Skills & Karriereziel</span>
+                <ArrowRight className="w-4 h-4 ml-auto flex-shrink-0" style={{ color: 'rgba(190,160,255,0.7)' }} />
               </motion.button>
             </motion.div>
 
