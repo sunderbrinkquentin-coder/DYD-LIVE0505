@@ -25,7 +25,7 @@ const C = {
 };
 
 const TICKETS = [
-  { id: 'early_bird',  priceId: import.meta.env.VITE_STRIPE_HARMONY_EARLY_BIRD,  label: 'Bundle',      price: 37.99, description: 'Das volle Programm: Live-Konzert mit Zirkel.WTF, Stand-Up Comedy Show & DJ Night in einem Paket – zum günstigsten Preis.', highlight: true,  badge: 'BELIEBT',   perk: '',                                     accent: 'rgba(0,175,175,0.85)',   accentAlpha: 'rgba(0,160,160,0.1)',   accentShadow: 'rgba(0,140,140,0.06)', time: null         },
+  { id: 'early_bird',  priceId: import.meta.env.VITE_STRIPE_HARMONY_EARLY_BIRD,  label: 'Bundle',      price: 39.99, description: 'Das volle Programm: Live-Konzert mit Zirkel.WTF, Stand-Up Comedy Show & DJ Night in einem Paket – zum günstigsten Preis.', highlight: true,  badge: 'BELIEBT',   perk: '',                                     accent: 'rgba(0,175,175,0.85)',   accentAlpha: 'rgba(0,160,160,0.1)',   accentShadow: 'rgba(0,140,140,0.06)', time: null         },
   { id: 'concert',     priceId: import.meta.env.VITE_STRIPE_HARMONY_CONCERT,      label: 'Live Konzert Zirkel.WTF',price: 17.50, description: 'Norddeutschlands Pop-Punk-Hoffnung hautnah. Moderne Beats, Skater-Vibe, ehrliche Texte.', highlight: false, badge: null,        perk: '',                                     accent: 'rgba(60,140,200,0.8)',   accentAlpha: 'rgba(50,130,190,0.1)',  accentShadow: 'rgba(40,110,170,0.06)', time: '20:30 Uhr'  },
   { id: 'standup',     priceId: import.meta.env.VITE_STRIPE_HARMONY_STANDUP,      label: 'Stand-Up Comedy',       price: 17.50, description: '5–6 Newcomer aus der lokalen Stand-Up Comedy Szene.',                               highlight: false, badge: null,        perk: '',                                     accent: 'rgba(210,110,50,0.85)',  accentAlpha: 'rgba(200,100,40,0.1)',  accentShadow: 'rgba(180,85,30,0.06)', time: '16:30 Uhr'  },
   { id: 'dj',          priceId: import.meta.env.VITE_STRIPE_HARMONY_DJ,           label: 'DJ Sets House / Techno', price:  8.50, description: 'Lokale DJs für die Club Night – House & Techno bis in den Morgen.',                 highlight: false, badge: null,        perk: '',                                     accent: 'rgba(160,120,200,0.8)', accentAlpha: 'rgba(145,105,185,0.1)', accentShadow: 'rgba(130,90,170,0.06)', time: '22:00 Uhr'  },
@@ -2181,7 +2181,7 @@ useEffect(() => {
                         <div className="flex items-center justify-end gap-2 mb-1">
                           <span style={{ fontFamily: "'Inter', sans-serif", fontSize: '12px', color: 'rgba(180,210,210,0.4)', textDecoration: 'line-through', letterSpacing: '0.04em' }}>43,50 €</span>
                           <span className="px-2 py-0.5 rounded-md" style={{ fontFamily: "'Inter', sans-serif", fontSize: '11px', fontWeight: 600, letterSpacing: '0.1em', background: 'rgba(0,160,160,0.1)', color: 'rgba(0,185,185,0.75)', border: '1px solid rgba(0,160,160,0.2)' }}>
-                            −5,51 € sparen
+                            −3,51 € sparen
                           </span>
                         </div>
                         <div style={{ fontFamily: "'Inter', sans-serif", fontSize: '10px', fontWeight: 600, letterSpacing: '0.22em', textTransform: 'uppercase', color: 'rgba(0,175,175,0.35)', marginBottom: '2px' }}>Bundlepreis</div>
@@ -2235,15 +2235,27 @@ useEffect(() => {
                     </a>
 
                     {/* free drink bonus */}
-                    <div className="flex items-center gap-3 px-4 py-3 rounded-xl mb-7"
-                      style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.09)' }}>
-                      <Beer className="w-4 h-4 flex-shrink-0" style={{ color: 'rgba(200,220,100,0.7)' }} />
-                      <span style={{ fontFamily: "'Inter', sans-serif", fontSize: '13px', fontWeight: 500, color: 'rgba(210,230,160,0.7)' }}>
-                        + 1 Getränk nach Wahl gratis beim Einlass
-                      </span>
-                      <span className="ml-auto px-2 py-0.5 rounded-md flex-shrink-0" style={{ fontFamily: "'Inter', sans-serif", fontSize: '10px', fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase', background: 'rgba(200,220,80,0.1)', color: 'rgba(210,230,130,0.7)', border: '1px solid rgba(200,220,80,0.18)' }}>
-                        GRATIS
-                      </span>
+                    <div className="rounded-xl mb-7 overflow-hidden"
+                      style={{ background: 'rgba(185,215,55,0.06)', border: '1px solid rgba(185,215,55,0.28)', boxShadow: '0 0 24px rgba(185,215,55,0.06)' }}>
+                      <div className="flex items-center gap-3 px-4 py-2" style={{ borderBottom: '1px solid rgba(185,215,55,0.15)', background: 'rgba(185,215,55,0.08)' }}>
+                        <Beer className="w-4 h-4 flex-shrink-0" style={{ color: 'rgba(210,235,80,0.9)' }} />
+                        <span style={{ fontFamily: "'Bebas Neue', sans-serif", fontSize: '13px', letterSpacing: '0.22em', color: 'rgba(210,235,80,0.9)' }}>
+                          EXKLUSIV IM BUNDLE
+                        </span>
+                        <span className="ml-auto px-2 py-0.5 rounded-md flex-shrink-0" style={{ fontFamily: "'Bebas Neue', sans-serif", fontSize: '10px', fontWeight: 700, letterSpacing: '0.18em', background: 'rgba(185,215,55,0.18)', color: 'rgba(220,245,90,0.95)', border: '1px solid rgba(185,215,55,0.35)' }}>
+                          GRATIS · ~5 € WERT
+                        </span>
+                      </div>
+                      <div className="flex items-center gap-3 px-4 py-3">
+                        <div>
+                          <p style={{ fontFamily: "'Inter', sans-serif", fontSize: '14px', fontWeight: 700, color: 'rgba(220,245,140,0.9)', marginBottom: '2px' }}>
+                            1 Getränk nach Wahl beim Einlass
+                          </p>
+                          <p style={{ fontFamily: "'Inter', sans-serif", fontSize: '12px', color: 'rgba(190,220,120,0.55)', lineHeight: 1.5 }}>
+                            Bier, Softdrink oder Wasser – direkt beim Betreten. Zeig dein Ticket, hol dir deinen Drink.
+                          </p>
+                        </div>
+                      </div>
                     </div>
                     {/* CTA */}
                     <div className="flex items-center gap-4 mb-4">
