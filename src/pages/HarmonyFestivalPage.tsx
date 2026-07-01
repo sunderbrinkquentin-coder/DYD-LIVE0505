@@ -26,10 +26,10 @@ const C = {
 
 const TICKETS = [
   { id: 'early_bird',  priceId: import.meta.env.VITE_STRIPE_HARMONY_EARLY_BIRD,  label: 'Bundle',      price: 39.99, description: 'Das volle Programm: Live-Konzert mit Zirkel.WTF, Stand-Up Comedy Show & DJ Night in einem Paket – zum günstigsten Preis.', highlight: true,  badge: 'BELIEBT',   perk: '',                                     accent: 'rgba(0,175,175,0.85)',   accentAlpha: 'rgba(0,160,160,0.1)',   accentShadow: 'rgba(0,140,140,0.06)', time: null         },
-  { id: 'concert',     priceId: import.meta.env.VITE_STRIPE_HARMONY_CONCERT,      label: 'Live Konzert Zirkel.WTF',price: 17.50, description: 'Norddeutschlands Pop-Punk-Hoffnung hautnah. Moderne Beats, Skater-Vibe, ehrliche Texte.', highlight: false, badge: null,        perk: '',                                     accent: 'rgba(60,140,200,0.8)',   accentAlpha: 'rgba(50,130,190,0.1)',  accentShadow: 'rgba(40,110,170,0.06)', time: '20:30 Uhr'  },
-  { id: 'standup',     priceId: import.meta.env.VITE_STRIPE_HARMONY_STANDUP,      label: 'Stand-Up Comedy',       price: 17.50, description: '5–6 Newcomer aus der lokalen Stand-Up Comedy Szene.',                               highlight: false, badge: null,        perk: '',                                     accent: 'rgba(210,110,50,0.85)',  accentAlpha: 'rgba(200,100,40,0.1)',  accentShadow: 'rgba(180,85,30,0.06)', time: '16:30 Uhr'  },
-  { id: 'dj',          priceId: import.meta.env.VITE_STRIPE_HARMONY_DJ,           label: 'DJ Sets House / Techno', price:  8.50, description: 'Lokale DJs für die Club Night – House & Techno bis in den Morgen.',                 highlight: false, badge: null,        perk: '',                                     accent: 'rgba(160,120,200,0.8)', accentAlpha: 'rgba(145,105,185,0.1)', accentShadow: 'rgba(130,90,170,0.06)', time: '22:00 Uhr'  },
+  { id: 'standup',     priceId: import.meta.env.VITE_STRIPE_HARMONY_STANDUP,      label: 'Stand-Up Comedy',       price: 17.50, description: 'Kevin Küster, Larissa Magnus, Alex Graf, Jahn Boie, Leon Blokesch & Julian Deters – frisch, direkt, aus der lokalen Szene.',                               highlight: false, badge: null,        perk: '',                                     accent: 'rgba(210,110,50,0.85)',  accentAlpha: 'rgba(200,100,40,0.1)',  accentShadow: 'rgba(180,85,30,0.06)', time: '16:30 Uhr'  },
   { id: 'bierpong',    priceId: import.meta.env.VITE_STRIPE_HARMONY_BIERPONG,     label: 'Bierpong-Turnier',      price: 10.00, description: 'Das Turnier läuft für alle – Musik, Stimmung & Drinks inklusive. Wer als Team aktiv mitspielen will, sichert sich hier seinen Startplatz.', highlight: false, badge: 'LIMITIERT', perk: 'Gewinnen = den ganzen Abend free trinken', accent: 'rgba(185,215,55,0.8)', accentAlpha: 'rgba(175,205,50,0.1)', accentShadow: 'rgba(155,185,40,0.06)', time: '18:00 Uhr' },
+  { id: 'concert',     priceId: import.meta.env.VITE_STRIPE_HARMONY_CONCERT,      label: 'Live Konzert Zirkel.WTF',price: 17.50, description: 'Norddeutschlands Pop-Punk-Hoffnung hautnah. Moderne Beats, Skater-Vibe, ehrliche Texte.', highlight: false, badge: null,        perk: '',                                     accent: 'rgba(60,140,200,0.8)',   accentAlpha: 'rgba(50,130,190,0.1)',  accentShadow: 'rgba(40,110,170,0.06)', time: '20:30 Uhr'  },
+  { id: 'dj',          priceId: import.meta.env.VITE_STRIPE_HARMONY_DJ,           label: 'DJ Sets House / Techno', price:  8.50, description: 'Justyn Maxx & Vio Leen – House & Techno bis in den Morgen.',                 highlight: false, badge: null,        perk: '',                                     accent: 'rgba(160,120,200,0.8)', accentAlpha: 'rgba(145,105,185,0.1)', accentShadow: 'rgba(130,90,170,0.06)', time: '22:00 Uhr'  },
   { id: 'soli_shirt', priceId: import.meta.env.VITE_STRIPE_HARMONY_SOLI_SHIRT, label: 'Soli-Shirt', price: 25.00, description: '100% Gewinn an KeinBockAufNazis e.V.', highlight: false, badge: 'SOLI', perk: '', accent: 'rgba(220,50,50,0.85)', accentAlpha: 'rgba(200,40,40,0.1)', accentShadow: 'rgba(180,30,30,0.06)', time: null },
 ];
 
@@ -2326,22 +2326,11 @@ useEffect(() => {
                     '--ticket-accent-shadow': ticket.accentShadow,
                   } as React.CSSProperties}>
                   {/* left accent bar handled by ::before */}
-                  <div className="relative z-10 flex items-start gap-4 sm:gap-6 w-full px-6 py-5">
-                    {/* index number + time */}
-                    <div className="flex flex-col items-center gap-1.5 flex-shrink-0">
-                      <div className="w-10 h-10 rounded-xl flex items-center justify-center"
-                        style={{ background: `${ticket.accent}12`, border: `1px solid ${ticket.accent}22` }}>
-                        <span style={{ fontFamily: "'Bebas Neue', sans-serif", fontSize: '18px', color: ticket.accent, lineHeight: 1 }}>{String(i + 2).padStart(2, '0')}</span>
-                      </div>
-                      {ticket.time && (
-                        <div className="flex items-center gap-1 px-2 py-0.5 rounded-md"
-                          style={{ background: `${ticket.accent}10`, border: `1px solid ${ticket.accent}20` }}>
-                          <Clock className="w-2.5 h-2.5 flex-shrink-0" style={{ color: ticket.accent, opacity: 0.7 }} />
-                          <span style={{ fontFamily: "'Bebas Neue', sans-serif", fontSize: '11px', color: ticket.accent, opacity: 0.8, letterSpacing: '0.08em', whiteSpace: 'nowrap' }}>
-                            {ticket.time}
-                          </span>
-                        </div>
-                      )}
+                  <div className="relative z-10 flex items-center gap-4 sm:gap-6 w-full px-6 py-5">
+                    {/* index number */}
+                    <div className="flex-shrink-0 w-10 h-10 rounded-xl flex items-center justify-center"
+                      style={{ background: `${ticket.accent}12`, border: `1px solid ${ticket.accent}22` }}>
+                      <span style={{ fontFamily: "'Bebas Neue', sans-serif", fontSize: '18px', color: ticket.accent, lineHeight: 1 }}>{String(i + 2).padStart(2, '0')}</span>
                     </div>
                     {/* label + desc */}
                     <div className="flex-1 min-w-0">
@@ -2351,6 +2340,15 @@ useEffect(() => {
                           <span className="sticker relative" style={{ backgroundColor: ticket.accent, color: '#080c10', fontSize: '9px', padding: '2px 8px', transform: 'rotate(0deg)', top: 0 }}>
                             {ticket.badge}
                           </span>
+                        )}
+                        {ticket.time && (
+                          <div className="flex items-center gap-1 px-2.5 py-1 rounded-full"
+                            style={{ background: `${ticket.accent}18`, border: `1px solid ${ticket.accent}40` }}>
+                            <Clock className="w-3 h-3 flex-shrink-0" style={{ color: ticket.accent }} />
+                            <span style={{ fontFamily: "'Bebas Neue', sans-serif", fontSize: '13px', color: ticket.accent, letterSpacing: '0.1em', lineHeight: 1 }}>
+                              {ticket.time}
+                            </span>
+                          </div>
                         )}
                       </div>
                       <p style={{ fontFamily: "'Inter', sans-serif", fontSize: '12px', color: 'rgba(180,210,210,0.48)', lineHeight: 1.55 }}>{ticket.description}</p>
