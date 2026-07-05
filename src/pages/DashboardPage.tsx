@@ -22,6 +22,56 @@ import { useAuth } from '../contexts/AuthContext';
 import { LearningPath } from '../types/learningPath';
 import { mapEditorDataToWizard } from '../utils/cvDataMapper';
 
+// ---------- FIX 2: Zentrale Helper — EINE Format-Erkennung für alle Flows ----------
+// Vorher war die Wizard/Optimizer-Prüfung 4x kopiert und im Payment-Flow
+// fehlte die Optimizer→Wizard-Konvertierung. Jetzt gibt es genau eine Wahrheit.
+
+function hasWizardContent(data: any): boolean {
+  return !!(
+    data &&
+    typeof data === 'object' &&
+    (data.personalData?.firstName ||
+      (data.workExperiences?.length ?? 0) > 0 ||
+      (data.hardSkills?.length ?? 0) > 0 ||
+      (data.schoolEducation?.length ?? 0) > 0 ||
+      (data.professionalEducation?.length ?? 0) > 0)
+  );
+}
+
+/** Nimmt rohes cv_data (String oder Objekt, Wizard- oder Optimizer-Format)
+ *  und gibt garantiert Wizard-Format zurück — oder null, wenn nichts Brauchbares da ist. */
+function normalizeCvData(raw: any): any | null {
+  let data = raw;
+  if (typeof data === 'string') {
+    try {
+      data = JSON.parse(data);
+    } catch {
+      return null;
+    }
+  }
+  if (!data || typeof data !== 'object') return null;
+
+  if (hasWizardContent(data)) return data;
+
+  const isOptimizerFormat = Array.isArray(data.sections) || data.contact || data.experience;
+  if (isOptimizerFormat) {
+    try {
+      const mapped = mapEditorDataToWizard(data);
+      return hasWizardContent(mapped) ? mapped : null;
+    } catch {
+      return null;
+    }
+  }
+  return null;
+}
+
+/** Wählt aus einer CV-Liste den Datensatz mit dem meisten Inhalt (source !== 'check'). */
+function pickRichestCv(cvs: any[]): any | null {
+  const candidates = cvs.filter((cv) => cv.source !== 'check' && cv.cv_data);
+  if (candidates.length === 0) return null;
+  return candidates.find((cv) => hasWizardContent(cv.cv_data)) ?? candidates[0];
+}
+
 export function DashboardPage() {
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
@@ -62,6 +112,16 @@ export function DashboardPage() {
 
   // ---------- Ladefunktionen ----------
 
+  // FIX 1: Frische Daten immer per ID aus der DB holen statt aus dem React-State.
+  // Damit gibt es EINE Quelle der Wahrheit (stored_cvs), keine wandernden Kopien.
+  async function fetchFreshCvData(cvId: string, fallback: any): Promise<any | null> {
+    const { data: freshRow } = await supabase
+      .from('stored_cvs')
+      .select('cv_data')
+      .eq('id', cvId)
+      .maybeSingle();
+    return normalizeCvData(freshRow?.cv_data ?? fallback);
+  }
 
   async function loadCVs() {
     try {
@@ -107,25 +167,22 @@ export function DashboardPage() {
       const {
         data: { user },
       } = await supabase.auth.getUser();
-      const {
-        data: { session },
-      } = await supabase.auth.getSession();
 
-      console.log(
-        '[Dashboard] Loading CV checks - User:',
-        user?.id,
-        'Session:',
-        session?.user?.id
-      );
+      // FIX 7: Guard wie in loadCVs — vorher lief der Query mit user_id=undefined
+      if (!user) {
+        setCvChecks([]);
+        return;
+      }
 
-      let query = supabase
+      console.log('[Dashboard] Loading CV checks - User:', user.id);
+
+      const { data, error } = await supabase
         .from('stored_cvs')
         .select('id, created_at, status, file_name, ats_json, error_message, is_paid')
-        .eq('user_id', user?.id)
+        .eq('user_id', user.id)
         .eq('source', 'check')
         .order('created_at', { ascending: false });
 
-      const { data, error } = await query;
       if (error) {
         console.error('[Dashboard] Error loading CV checks:', error);
         return;
@@ -377,6 +434,44 @@ export function DashboardPage() {
         setTimeout(() => pollTokens(retries - 1, prevCredits), 3000);
       };
 
+      // FIX 3: Prefill nach Zahlung wird gepollt statt einmalig nach 1s gelesen.
+      // Der Stripe-Webhook darf jetzt bis zu ~11s brauchen, ohne dass der Flow bricht.
+      // FIX 2: Nutzt dieselben Helper wie handleCreateCV — inkl. Optimizer→Wizard-Mapping,
+      // das hier vorher fehlte (Bug: Prefill vor Zahlung ok, nach Zahlung leer).
+      const resolveCreateCvPrefill = async (retries: number): Promise<void> => {
+        const { data: { user } } = await supabase.auth.getUser();
+        if (!user) return;
+        const { data: cvs } = await supabase
+          .from('stored_cvs')
+          .select('id, cv_data, source, updated_at')
+          .eq('user_id', user.id)
+          .order('updated_at', { ascending: false });
+
+        const richest = pickRichestCv(cvs || []);
+        const mapped = richest ? normalizeCvData(richest.cv_data) : null;
+
+        if (mapped) {
+          setExistingCvDataForQuick(mapped);
+          setExistingWizardCvId(richest.id ?? null);
+          setShowCreateCVChoice(true);
+          return;
+        }
+        if (retries > 0) {
+          setTimeout(() => { resolveCreateCvPrefill(retries - 1); }, 2500);
+          return;
+        }
+        // Webhook zu langsam oder wirklich keine brauchbaren Daten
+        if (richest) {
+          setExistingCvDataForQuick(null);
+          setExistingWizardCvId(richest.id ?? null);
+          setShowCreateCVChoice(true);
+        } else {
+          navigate('/job-targeting', {
+            state: { fromDashboard: true, isPaidFlow: true },
+          });
+        }
+      };
+
       setTimeout(async () => {
         await loadCVs();
         const freshCvs = await (async () => {
@@ -387,47 +482,7 @@ export function DashboardPage() {
         })();
 
         if (postPaymentAction === 'create-cv') {
-          const optimizedCvs = freshCvs.filter((cv: any) => cv.source !== 'check' && cv.cv_data);
-          if (optimizedCvs.length > 0) {
-            const richestCv = optimizedCvs.find((cv: any) =>
-              cv.cv_data?.personalData?.firstName ||
-              (cv.cv_data?.workExperiences?.length ?? 0) > 0 ||
-              (cv.cv_data?.hardSkills?.length ?? 0) > 0 ||
-              (cv.cv_data?.schoolEducation?.length ?? 0) > 0 ||
-              (cv.cv_data?.professionalEducation?.length ?? 0) > 0
-            ) ?? optimizedCvs[0];
-
-            const { data: freshRow } = await supabase
-              .from('stored_cvs')
-              .select('cv_data')
-              .eq('id', richestCv.id)
-              .maybeSingle();
-
-            let rawData = freshRow?.cv_data ?? richestCv.cv_data;
-            if (typeof rawData === 'string') {
-              try { rawData = JSON.parse(rawData); } catch { rawData = richestCv.cv_data; }
-            }
-
-            const hasRealData =
-              rawData &&
-              typeof rawData === 'object' &&
-              (rawData.personalData?.firstName ||
-                (rawData.workExperiences?.length ?? 0) > 0 ||
-                (rawData.hardSkills?.length ?? 0) > 0 ||
-                (rawData.schoolEducation?.length ?? 0) > 0 ||
-                (rawData.professionalEducation?.length ?? 0) > 0);
-
-            if (hasRealData) {
-              setExistingCvDataForQuick(rawData);
-            } else {
-              setExistingCvDataForQuick(null);
-            }
-            setShowCreateCVChoice(true);
-          } else {
-            navigate('/job-targeting', {
-              state: { fromDashboard: true, isPaidFlow: true },
-            });
-          }
+          await resolveCreateCvPrefill(4);
         }
 
         setTimeout(() => showNewCvToast(freshCvs, highlightCvParam || undefined), 800);
@@ -516,41 +571,39 @@ export function DashboardPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // Realtime: update lpResults as soon as Make writes content to learning_results
+  // FIX 4: Realtime als SIGNAL behandeln, nie den Payload-Inhalt auswerten.
+  // Große JSONB-Spalten (content) fehlen ohne REPLICA IDENTITY FULL im Payload —
+  // die alte Prüfung `row?.content != null` konnte deshalb nie feuern und die UI
+  // blieb auf "Wird erstellt" hängen. Jetzt: Event auf relevante ID → Refetch.
+  // Außerdem: stabiler Channel-Key statt [learningPaths]-Dependency — vorher wurde
+  // der Channel bei jedem State-Update ab- und wieder aufgebaut.
+  const lpIdsKey = learningPaths.map((p) => p.id).sort().join(',');
+
   useEffect(() => {
-    if (learningPaths.length === 0) return;
-    const allIds = learningPaths.map(p => p.id);
-    if (allIds.length === 0) return;
+    if (!lpIdsKey) return;
+    const relevantIds = new Set(lpIdsKey.split(','));
 
     const ch = supabase
-      .channel(`dashboard_lp_results_${Date.now()}`)
-      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'learning_results' },
+      .channel('dashboard_lp_results')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'learning_results' },
         (payload) => {
-          const row = payload.new as any;
-          if (row?.content != null && row.learning_path_id && allIds.includes(row.learning_path_id)) {
-            setLpResults(prev => ({ ...prev, [row.learning_path_id]: true }));
-            // Also reload learning paths to pick up is_paid changes
+          const row = (payload.new ?? payload.old) as any;
+          if (row?.learning_path_id && relevantIds.has(row.learning_path_id)) {
             loadLearningPaths();
-          }
-        })
-      .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'learning_results' },
-        (payload) => {
-          const row = payload.new as any;
-          if (row?.content != null && row.learning_path_id && allIds.includes(row.learning_path_id)) {
-            setLpResults(prev => ({ ...prev, [row.learning_path_id]: true }));
           }
         })
       .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'learning_paths' },
         (payload) => {
           const row = payload.new as any;
-          if (row?.is_paid && allIds.includes(row.id)) {
+          if (row?.id && relevantIds.has(row.id)) {
             loadLearningPaths();
           }
         })
       .subscribe();
 
     return () => { supabase.removeChannel(ch); };
-  }, [learningPaths]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [lpIdsKey]);
 
   useEffect(() => {
     if (!localStorage.getItem('dyd_optimize_tip_seen')) {
@@ -559,15 +612,17 @@ export function DashboardPage() {
     }
   }, []);
 
-  // Auto-Refresh für Entwürfe ohne PDF (alle 10 Sekunden)
+  // FIX 7: Auto-Refresh für Entwürfe ohne PDF (alle 10 Sekunden).
+  // Dependency ist jetzt ein Boolean statt [userCVs] — vorher wurde das Intervall
+  // bei JEDEM Fetch zerstört und neu erstellt (loadCVs → setUserCVs → Effect-Neustart).
+  const hasDraftsWaitingForPdf = userCVs.some(
+    (cv) => (cv.download_unlocked || cv.is_paid) && !cv.pdf_url
+  );
+
   useEffect(() => {
-    const draftsWithoutPdf = userCVs.filter(
-      (cv) => (cv.download_unlocked || cv.is_paid) && !cv.pdf_url
-    );
+    if (!hasDraftsWaitingForPdf) return;
 
-    if (draftsWithoutPdf.length === 0) return;
-
-    console.log('[Dashboard] Auto-refresh aktiv:', draftsWithoutPdf.length, 'Entwürfe warten auf PDF');
+    console.log('[Dashboard] Auto-refresh aktiv: Entwürfe warten auf PDF');
 
     const intervalId = setInterval(async () => {
       console.log('[Dashboard] Refreshing CVs...');
@@ -575,7 +630,8 @@ export function DashboardPage() {
     }, 10000);
 
     return () => clearInterval(intervalId);
-  }, [userCVs]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [hasDraftsWaitingForPdf]);
 
   // ---------- Actions ----------
 
@@ -590,7 +646,18 @@ export function DashboardPage() {
       return;
     }
 
-    if (userTokens <= 0) {
+    // FIX 5: Credits vor der Entscheidung frisch aus der DB holen (wie in handleCreateCV).
+    // Vorher entschied hier stale React-State über Paywall vs. Modal.
+    let currentTokens = userTokens;
+    try {
+      const tokens = await tokenService.getUserTokens(user.id);
+      currentTokens = tokens?.credits ?? 0;
+      setUserTokens(currentTokens);
+    } catch {
+      // Fallback auf State-Wert
+    }
+
+    if (currentTokens <= 0) {
       setShowPaywall(true);
     } else {
       setShowOptimizeModal(true);
@@ -622,6 +689,9 @@ export function DashboardPage() {
 
       setOptimizedJobData(jobData);
       await loadUserTokens();
+      // FIX 6: Dashboard-Liste nach dem Speichern neu laden — vorher zeigte das
+      // Dashboard bis zum nächsten Mount den alten Stand des optimierten CVs.
+      await loadCVs();
 
       setShowOptimizeModal(false);
       setShowAdjustmentModal(true);
@@ -679,64 +749,13 @@ export function DashboardPage() {
       // Fall back to existing state value
     }
 
-    const existingOptimized = userCVs.filter(
-      (cv) => cv.source !== 'check' && cv.cv_data
-    );
+    // FIX 1+2: Richest CV über zentrale Helper bestimmen, dann frische Daten
+    // per ID aus der DB laden. normalizeCvData übernimmt String-Parsing,
+    // Wizard-Erkennung UND Optimizer→Wizard-Mapping an einer Stelle.
+    const richestCv = pickRichestCv(userCVs);
 
-    if (existingOptimized.length > 0) {
-      const wizardCv = existingOptimized.find(
-        (cv) =>
-          cv.cv_data?.personalData?.firstName ||
-          (cv.cv_data?.workExperiences?.length ?? 0) > 0 ||
-          (cv.cv_data?.hardSkills?.length ?? 0) > 0 ||
-          (cv.cv_data?.schoolEducation?.length ?? 0) > 0 ||
-          (cv.cv_data?.professionalEducation?.length ?? 0) > 0
-      );
-
-      const richestCv = wizardCv ?? existingOptimized[0];
-
-      const { data: latestRow } = await supabase
-        .from('stored_cvs')
-        .select('cv_data')
-        .eq('id', richestCv.id)
-        .maybeSingle();
-
-      let rawData = latestRow?.cv_data ?? richestCv.cv_data;
-      if (typeof rawData === 'string') {
-        try {
-          rawData = JSON.parse(rawData);
-        } catch {
-          rawData = richestCv.cv_data;
-        }
-      }
-
-      // Check if this is wizard-format data (has personalData / workExperiences etc.)
-      const isWizardFormat =
-        rawData &&
-        typeof rawData === 'object' &&
-        (rawData.personalData?.firstName ||
-          (rawData.workExperiences?.length ?? 0) > 0 ||
-          (rawData.hardSkills?.length ?? 0) > 0 ||
-          (rawData.schoolEducation?.length ?? 0) > 0 ||
-          (rawData.professionalEducation?.length ?? 0) > 0);
-
-      // For optimizer/sections format, convert to wizard format for display
-      const isOptimizerFormat =
-        !isWizardFormat &&
-        rawData &&
-        typeof rawData === 'object' &&
-        (Array.isArray(rawData.sections) || rawData.contact || rawData.experience);
-
-      let mappedData: any = null;
-      if (isWizardFormat) {
-        mappedData = rawData;
-      } else if (isOptimizerFormat) {
-        try {
-          mappedData = mapEditorDataToWizard(rawData);
-        } catch {
-          mappedData = null;
-        }
-      }
+    if (richestCv) {
+      const mappedData = await fetchFreshCvData(richestCv.id, richestCv.cv_data);
 
       setExistingCvDataForQuick(mappedData);
       setExistingWizardCvId(richestCv.id ?? null);
@@ -759,17 +778,14 @@ export function DashboardPage() {
     } else {
       // Use the user-confirmed (possibly edited) data from the Status Quo screen
       const dataToUse = updatedData ?? existingCvDataForQuick;
-      const hasValidData =
-        dataToUse &&
-        typeof dataToUse === 'object' &&
-        (dataToUse.personalData?.firstName ||
-          (dataToUse.workExperiences?.length ?? 0) > 0 ||
-          (dataToUse.hardSkills?.length ?? 0) > 0 ||
-          (dataToUse.schoolEducation?.length ?? 0) > 0 ||
-          (dataToUse.professionalEducation?.length ?? 0) > 0);
+      const hasValidData = hasWizardContent(dataToUse);
+      // FIX 1: cvId mitgeben — die Zielseite soll sich die Daten per ID frisch
+      // aus stored_cvs holen können, statt nur mit dem Snapshot zu arbeiten.
+      // cvData bleibt als Fallback erhalten (Abwärtskompatibilität + vom User
+      // im Status-Quo-Screen editierte Daten).
       navigate('/job-targeting', {
         state: hasValidData
-          ? { cvData: dataToUse, fromDashboard: true, isPaidFlow: true }
+          ? { cvId: existingWizardCvId, cvData: dataToUse, fromDashboard: true, isPaidFlow: true }
           : { fromDashboard: true, isPaidFlow: true },
       });
     }
@@ -777,14 +793,7 @@ export function DashboardPage() {
 
   const handleOneClickCV = () => {
     setShowCreateCVChoice(false);
-    const hasValidData =
-      existingCvDataForQuick &&
-      typeof existingCvDataForQuick === 'object' &&
-      (existingCvDataForQuick.personalData?.firstName ||
-        (existingCvDataForQuick.workExperiences?.length ?? 0) > 0 ||
-        (existingCvDataForQuick.hardSkills?.length ?? 0) > 0 ||
-        (existingCvDataForQuick.schoolEducation?.length ?? 0) > 0 ||
-        (existingCvDataForQuick.professionalEducation?.length ?? 0) > 0);
+    const hasValidData = hasWizardContent(existingCvDataForQuick);
 
     if (!hasValidData) {
       console.warn('[Dashboard] No valid CV data found – navigating without prefill');
@@ -794,8 +803,9 @@ export function DashboardPage() {
       return;
     }
 
+    // FIX 1: cvId mitgeben (siehe handleWizardOverviewContinue)
     navigate('/job-targeting', {
-      state: { cvData: existingCvDataForQuick, fromDashboard: true, isPaidFlow: true },
+      state: { cvId: existingWizardCvId, cvData: existingCvDataForQuick, fromDashboard: true, isPaidFlow: true },
     });
   };
 
