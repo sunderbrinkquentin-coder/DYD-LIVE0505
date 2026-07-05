@@ -622,7 +622,12 @@ const finalData: CVBuilderData = {
       .catch(err => console.warn('[CVWizard] Final save exception:', err));
 
     await Promise.race([saveAttempt, saveTimeout]);
-
+// NEU: Status Quo aktualisieren — der Wizard-Abschluss definiert die Grunddaten
+    if (user?.id) {
+      cvProfileService
+        .saveProfile(user.id, finalData, 'wizard')
+        .catch(err => console.warn('[CVWizard] Profil-Update fehlgeschlagen:', err));
+    }
     setIsNavigating(false);
     console.log('[CVWizard] Navigating to job-targeting with cvId:', resolvedCvId);
     navigate(`/job-targeting?cvId=${resolvedCvId}`, {
