@@ -63,6 +63,7 @@ import { checkStepCompleteness, getIncompleteRequiredSteps } from '../utils/wiza
 import { useAuth } from '../contexts/AuthContext';
 import { sessionManager } from '../utils/sessionManager';
 import { getOrCreateTempId, clearTempId } from '../utils/tempIdManager';
+import { cvProfileService } from '../services/cvProfileService';
 
 function adaptParsedCvToBuilderData(parsed: any): CVBuilderData {
   if (!parsed || typeof parsed !== 'object') return {};
@@ -225,68 +226,83 @@ const [cvData, setCVData] = useState<CVBuilderData>({
           } catch (importErr) {
             console.warn('[CVWizard] Could not import from CV:', importErr);
           }
-        } else if (!importFromId && userId && !modeIsNew) {
+      } else if (!importFromId && userId && !modeIsNew) {
+          // NEU: cv_profiles ist die primäre Quelle für den Status Quo
           try {
-            const { data: existingCvs } = await supabase
-              .from('stored_cvs')
-              .select('cv_data, status, source, updated_at')
-              .eq('user_id', userId)
-              .not('cv_data', 'is', null)
-              .neq('cv_data', '{}')
-              .order('updated_at', { ascending: false })
-              .limit(10);
-
-            console.log('[CVWizard] Prefill candidates (all sources):', existingCvs?.length ?? 0);
-
-            if (existingCvs && existingCvs.length > 0) {
-              const isNonEmpty = (d: any) => d && typeof d === 'object' && Object.keys(d).length > 0;
-
-              const hasRealWizardData = (d: any) => {
-                if (!isNonEmpty(d)) return false;
-                if (d?.personalData == null && d?.workExperiences == null && d?.professionalEducation == null) return false;
-                const pd = d?.personalData;
-                const hasName = pd?.firstName?.trim() || pd?.lastName?.trim();
-                const hasExp = Array.isArray(d?.workExperiences) && d.workExperiences.length > 0;
-                const hasEdu = Array.isArray(d?.professionalEducation) && d.professionalEducation.length > 0;
-                return !!(hasName || hasExp || hasEdu);
-              };
-
-              const hasRealCheckData = (d: any) => {
-                if (!isNonEmpty(d)) return false;
-                const hasPersonal = d?.personal_data && (d.personal_data?.full_name || d.personal_data?.email);
-                const hasExp = Array.isArray(d?.experiences) && d.experiences.length > 0;
-                return !!(hasPersonal || hasExp);
-              };
-
-              const withWizardData = existingCvs.find(cv => {
-                const d = deepParseCvData(cv.cv_data);
-                return hasRealWizardData(d);
-              });
-
-              const withCheckData = existingCvs.find(cv => {
-                const d = deepParseCvData(cv.cv_data);
-                return hasRealCheckData(d);
-              });
-
-              const withEditorData = existingCvs.find(cv => {
-                const d = deepParseCvData(cv.cv_data);
-                return isNonEmpty(d) && (d?.contact || d?.experience || d?.experiences);
-              });
-
-              const best = withWizardData || withCheckData || withEditorData;
-
-              if (best?.cv_data) {
-                const effectiveData = deepParseCvData(best.cv_data);
-                prefillMapped = adaptParsedCvToBuilderData(effectiveData);
-                prefillCvData = prefillMapped;
-                console.log('[CVWizard] Pre-filling from existing user CV data, source:', best.source, 'firstName:', prefillMapped?.personalData?.firstName, 'workExp:', prefillMapped?.workExperiences?.length ?? 0);
-              }
+            const profile = await cvProfileService.ensureProfile(userId);
+            if (profile?.cv_data && Object.keys(profile.cv_data).length > 0) {
+              prefillMapped = adaptParsedCvToBuilderData(profile.cv_data);
+              prefillCvData = prefillMapped;
+              console.log('[CVWizard] Prefill aus cv_profiles – firstName:', prefillMapped?.personalData?.firstName);
             }
-          } catch (prefillErr) {
-            console.warn('[CVWizard] Could not load prefill data:', prefillErr);
+          } catch (e) {
+            console.warn('[CVWizard] Profil-Prefill fehlgeschlagen:', e);
+          }
+
+          // Fallback: alte stored_cvs-Heuristik NUR wenn das Profil (noch) leer ist
+          const profileWasEmpty =
+            !prefillMapped ||
+            !(prefillMapped.personalData?.firstName || (prefillMapped.workExperiences?.length ?? 0) > 0);
+
+          if (profileWasEmpty) {
+            try {
+              const { data: existingCvs } = await supabase
+                .from('stored_cvs')
+                .select('cv_data, status, source, updated_at')
+                .eq('user_id', userId)
+                .not('cv_data', 'is', null)
+                .neq('cv_data', '{}')
+                .order('updated_at', { ascending: false })
+                .limit(10);
+
+              console.log('[CVWizard] Prefill candidates (all sources):', existingCvs?.length ?? 0);
+
+              if (existingCvs && existingCvs.length > 0) {
+                const isNonEmpty = (d: any) => d && typeof d === 'object' && Object.keys(d).length > 0;
+
+                const hasRealWizardData = (d: any) => {
+                  if (!isNonEmpty(d)) return false;
+                  if (d?.personalData == null && d?.workExperiences == null && d?.professionalEducation == null) return false;
+                  const pd = d?.personalData;
+                  const hasName = pd?.firstName?.trim() || pd?.lastName?.trim();
+                  const hasExp = Array.isArray(d?.workExperiences) && d.workExperiences.length > 0;
+                  const hasEdu = Array.isArray(d?.professionalEducation) && d.professionalEducation.length > 0;
+                  return !!(hasName || hasExp || hasEdu);
+                };
+
+                const hasRealCheckData = (d: any) => {
+                  if (!isNonEmpty(d)) return false;
+                  const hasPersonal = d?.personal_data && (d.personal_data?.full_name || d.personal_data?.email);
+                  const hasExp = Array.isArray(d?.experiences) && d.experiences.length > 0;
+                  return !!(hasPersonal || hasExp);
+                };
+
+                const withWizardData = existingCvs.find(cv => hasRealWizardData(deepParseCvData(cv.cv_data)));
+                const withCheckData = existingCvs.find(cv => hasRealCheckData(deepParseCvData(cv.cv_data)));
+                const withEditorData = existingCvs.find(cv => {
+                  const d = deepParseCvData(cv.cv_data);
+                  return isNonEmpty(d) && (d?.contact || d?.experience || d?.experiences);
+                });
+
+                const best = withWizardData || withCheckData || withEditorData;
+
+                if (best?.cv_data) {
+                  const effectiveData = deepParseCvData(best.cv_data);
+                  prefillMapped = adaptParsedCvToBuilderData(effectiveData);
+                  prefillCvData = prefillMapped;
+                  console.log('[CVWizard] Pre-filling from stored_cvs fallback, source:', best.source);
+
+                  // Einmalig ins Profil migrieren — ab jetzt greift oben immer cv_profiles
+                  cvProfileService
+                    .saveProfile(userId, prefillMapped, 'migrated')
+                    .catch(err => console.warn('[CVWizard] Profil-Migration fehlgeschlagen:', err));
+                }
+              }
+            } catch (prefillErr) {
+              console.warn('[CVWizard] Could not load prefill data:', prefillErr);
+            }
           }
         }
-
         try {
           const insertPromise = supabase
             .from('stored_cvs')
