@@ -8,13 +8,26 @@ export class CertificateService {
     learningPath: LearningPath,
     recipientName: string
   ): Promise<string> {
-    // Guard: final exam must be passed with 100% before certificate can be issued
-    const { data: lpCheck } = await supabase
+    // Guard: Abschlussprüfung muss mit mindestens 80% bestanden sein
+    const { data: lpCheck, error: lpCheckError } = await supabase
       .from('learning_paths')
       .select('final_exam_score')
       .eq('id', learningPath.id)
       .maybeSingle();
-    if ((lpCheck?.final_exam_score ?? 0) < 80) {
+
+    // FIX: Aussagekräftige Fehler statt stillem Fehlschlagen — so sehen wir
+    // sofort, ob RLS den Lese-Zugriff blockiert oder der Score nie ankam.
+    if (lpCheckError) {
+      throw new Error(`Prüfungs-Score konnte nicht gelesen werden: ${lpCheckError.message}`);
+    }
+    if (lpCheck?.final_exam_score == null) {
+      throw new Error(
+        'Dein Prüfungsergebnis wurde noch nicht gespeichert. ' +
+        'Das deutet auf eine fehlende UPDATE-Policy auf learning_paths hin. ' +
+        'Bitte versuche es in wenigen Sekunden erneut.'
+      );
+    }
+    if (lpCheck.final_exam_score < 80) {
       throw new Error('Die Abschlussprüfung muss mit mindestens 80% bestanden werden, um das Zertifikat zu erhalten.');
     }
 
@@ -39,20 +52,33 @@ export class CertificateService {
       verification_footer?: string;
     } | null = null;
     try {
+      // FIX (Bug 1): vorher .eq('id', learningPath.id) — das verglich die
+      // learning_results-Zeilen-ID mit der learning_path-ID und fand NIE etwas.
+      // Richtig: über learning_path_id joinen und die Zeile mit Metadaten nehmen.
       const { data: resultRow } = await supabase
         .from('learning_results')
         .select('certificate_metadata')
-        .eq('id', learningPath.id)
+        .eq('learning_path_id', learningPath.id)
+        .not('certificate_metadata', 'is', null)
+        .order('created_at', { ascending: false })
+        .limit(1)
         .maybeSingle();
       if (resultRow?.certificate_metadata) {
-        certMeta = resultRow.certificate_metadata;
+        let meta: any = resultRow.certificate_metadata;
+        // Make liefert JSONB manchmal doppelt serialisiert — defensiv parsen
+        if (typeof meta === 'string') {
+          try { meta = JSON.parse(meta); } catch { meta = null; }
+        }
+        if (meta && typeof meta === 'object') certMeta = meta;
       }
     } catch { /* non-fatal, fall back to learning_path data */ }
 
     const certificateId = `DYD-${Date.now()}-${Math.random().toString(36).substring(2, 7).toUpperCase()}`;
 
     // Use competency_profile from learning_results if available, otherwise fall back to missing_skills
-    const masteredSkills = certMeta?.competency_profile?.length
+    // FIX: Skills strikt zu Strings mappen — ein Objekt ohne skill_name/name landete
+    // vorher als Objekt im PDF-Renderer und ließ react-pdf crashen.
+    const masteredSkills: string[] = (certMeta?.competency_profile?.length
       ? certMeta.competency_profile
       : (() => {
           const raw = learningPath.missing_skills;
@@ -60,8 +86,12 @@ export class CertificateService {
           const arr = Array.isArray(raw) ? raw
             : typeof raw === 'string' ? (() => { try { return JSON.parse(raw); } catch { return []; } })()
             : [];
-          return arr.map((s: any) => s.skill_name || s.name || s);
-        })();
+          return arr.map((s: any) =>
+            typeof s === 'string' ? s : (s?.skill_name || s?.name || null)
+          );
+        })()
+    )
+      .filter((s: any): s is string => typeof s === 'string' && s.trim().length > 0);
 
     // Use official_title from learning_results if available
     const certTitle = certMeta?.official_title || learningPath.target_job;
@@ -100,9 +130,17 @@ export class CertificateService {
       verification_footer: certMeta?.verification_footer,
     };
 
-    const blob = await pdf(
-      <CertificatePDF certificate={certificate} modules={moduleTitles} />
-    ).toBlob();
+    // FIX: PDF-Fehler separat fangen, damit die Fehlermeldung verrät,
+    // ob es am Rendern oder am Upload liegt.
+    let blob: Blob;
+    try {
+      blob = await pdf(
+        <CertificatePDF certificate={certificate} modules={moduleTitles} />
+      ).toBlob();
+    } catch (err: any) {
+      console.error('[Certificate] PDF-Render-Fehler:', err, { certificate, moduleTitles });
+      throw new Error(`PDF-Erstellung fehlgeschlagen: ${err.message}`);
+    }
 
     const fileName = `certificate_${certificateId}.pdf`;
 
@@ -110,7 +148,7 @@ export class CertificateService {
       .from('cv-files')
       .upload(`certificates/${fileName}`, blob, {
         contentType: 'application/pdf',
-        upsert: false,
+        upsert: true, // FIX: Retries dürfen nicht an einer Namenskollision scheitern
       });
 
     if (uploadError) throw new Error(`Upload fehlgeschlagen: ${uploadError.message}`);
