@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Plus, Trash2 } from 'lucide-react';
+import { Plus, Trash2, AlertTriangle } from 'lucide-react';
 import { WizardStepLayout } from '../WizardStepLayout';
 import { ProfessionalEducation, EducationType } from '../../../types/cvBuilder';
 
@@ -28,7 +28,33 @@ const CURRENT_YEAR = new Date().getFullYear();
 const YEARS = Array.from({ length: 30 }, (_, i) => (CURRENT_YEAR - i).toString());
 
 const inputClass = 'w-full px-3 py-2.5 rounded-xl border-2 border-white/10 bg-white/5 text-white placeholder:text-white/40 focus:outline-none focus:border-[#66c0b6] focus:bg-white/10 transition-all';
-const selectClass = 'w-full px-2 py-2.5 rounded-xl border-2 border-white/10 bg-white/5 text-white focus:outline-none focus:border-[#66c0b6] focus:bg-white/10 transition-all text-sm';
+
+// FIX: Ein Eintrag ist "aktiv", sobald IRGENDEIN inhaltliches Feld gefüllt ist —
+// vorher zählten nur Institution/Abschluss. Folge: Einträge mit nur ausgewählten
+// Zeiten wurden beim Weiterklicken stillschweigend GELÖSCHT.
+function hasAnyContent(e: ProfessionalEducation): boolean {
+  return !!(
+    e.institution?.trim() ||
+    e.degree?.trim() ||
+    e.startYear ||
+    e.endYear ||
+    e.startMonth ||
+    e.endMonth ||
+    e.location?.trim() ||
+    e.grades?.trim()
+  );
+}
+
+// FIX: Pro Eintrag prüfen, WAS fehlt — damit die Fehlermeldung sagen kann,
+// welche Karte blockiert, statt generisch "Zeitraum fehlt" zu behaupten.
+function getMissingFields(e: ProfessionalEducation): string[] {
+  const missing: string[] = [];
+  if (!e.institution?.trim()) missing.push('Institution');
+  if (!e.degree?.trim()) missing.push('Abschluss');
+  if (!e.startYear) missing.push('Von-Jahr');
+  if (!e.endYear) missing.push('Bis-Jahr');
+  return missing;
+}
 
 export function ProfessionalEducationStep({ data = [], experienceLevel, onChange, onNext, onBack, onSkip }: ProfessionalEducationStepProps) {
   const isBeginner = experienceLevel === 'beginner';
@@ -83,37 +109,52 @@ export function ProfessionalEducationStep({ data = [], experienceLevel, onChange
     }
   };
 
-// Filtert leere Geister-Einträge heraus, bei denen nichts eingetippt wurde
-  const activeEntries = entries.filter(e => e.institution?.trim() || e.degree?.trim());
+  // Aktive Einträge = alles mit irgendeinem Inhalt (siehe hasAnyContent)
+  const activeEntries = entries.filter(hasAnyContent);
 
-  // Validiert nur die Einträge, die auch wirklich Daten enthalten
-  const isValid = activeEntries.every(e => 
-    e.type && 
-    e.institution?.trim() && 
-    e.degree?.trim() && 
-    e.startYear && 
-    e.endYear
-  );
+  // FIX: Karten-genaue Validierung — wir wissen jetzt pro Index, was fehlt
+  const entryProblems: Map<number, string[]> = new Map();
+  entries.forEach((e, i) => {
+    if (!hasAnyContent(e)) return; // komplett leere Karten blockieren nie
+    const missing = getMissingFields(e);
+    if (missing.length > 0) entryProblems.set(i, missing);
+  });
+
+  const isValid = entryProblems.size === 0;
+
+  // FIX: Dynamische Fehlermeldung, die die konkrete Karte + Felder benennt —
+  // vorher stand pauschal "Zeitraum fehlt", auch wenn Karte 1 perfekt war
+  // und nur eine halb ausgefüllte Karte 2 blockierte.
+  const validationMessage = (() => {
+    if (isValid) return 'Bitte fülle Institution, Abschluss und Zeitraum aus – diese Informationen sind auf deinem Lebenslauf sichtbar.';
+    const [firstIdx, missing] = [...entryProblems.entries()][0];
+    const cardLabel = entries.length > 1 ? `In Ausbildung ${firstIdx + 1} fehlt: ` : 'Es fehlt noch: ';
+    return cardLabel + missing.join(', ') + '. Leere Karten kannst du einfach löschen.';
+  })();
 
   const handleNext = () => {
     if (!isValid) {
       setAttempted(true);
       return;
     }
-    // Bereinigt die Daten vor dem Speichern, damit keine leeren Dummys in der Datenbank landen
+    setAttempted(false); // FIX: Fehlerzustand zurücksetzen, sobald alles passt
+    // Bereinigt: nur inhaltlich gefüllte Einträge werden gespeichert
     const cleanedEntries = activeEntries.length > 0 ? activeEntries : [];
     onChange(cleanedEntries);
     onNext();
   };
 
-  const dynInput = (value: string | undefined) =>
+  // FIX: Rote Ränder nur auf Karten, die wirklich ein Problem haben —
+  // vorher wurden nach einem Klick ALLE leeren Pflichtfelder rot, auch
+  // in Karten, die den Nutzer gar nicht blockierten.
+  const dynInput = (value: string | undefined, entryIndex: number) =>
     `w-full px-3 py-2.5 rounded-xl border-2 bg-white/5 text-white placeholder:text-white/40 focus:outline-none focus:bg-white/10 transition-all ${
-      attempted && !value ? 'border-red-500/70 focus:border-red-400' : 'border-white/10 focus:border-[#66c0b6]'
+      attempted && entryProblems.has(entryIndex) && !value ? 'border-red-500/70 focus:border-red-400' : 'border-white/10 focus:border-[#66c0b6]'
     }`;
 
-  const dynSelect = (value: string | undefined) =>
+  const dynSelect = (value: string | undefined, entryIndex: number) =>
     `w-full px-2 py-2.5 rounded-xl border-2 bg-white/5 text-white focus:outline-none focus:bg-white/10 transition-all text-sm ${
-      attempted && !value ? 'border-red-500/70 focus:border-red-400' : 'border-white/10 focus:border-[#66c0b6]'
+      attempted && entryProblems.has(entryIndex) && !value ? 'border-red-500/70 focus:border-red-400' : 'border-white/10 focus:border-[#66c0b6]'
     }`;
 
   return (
@@ -131,15 +172,30 @@ export function ProfessionalEducationStep({ data = [], experienceLevel, onChange
       onNext={handleNext}
       onSkip={onSkip}
       isNextDisabled={!isValid}
-      validationMessage="Bitte fülle Institution, Abschluss und Zeitraum aus – diese Informationen sind auf deinem Lebenslauf sichtbar."
+      validationMessage={validationMessage}
       hideProgress
     >
       <div className="space-y-4">
-        {entries.map((entry, index) => (
+        {entries.map((entry, index) => {
+          const problems = entryProblems.get(index);
+          return (
           <div
             key={index}
-            className="relative p-4 rounded-2xl bg-white/5 border border-white/10 space-y-3"
+            className={`relative p-4 rounded-2xl bg-white/5 border space-y-3 ${
+              attempted && problems ? 'border-red-500/40' : 'border-white/10'
+            }`}
           >
+            {/* FIX: Karten-genauer Hinweis direkt an der betroffenen Karte */}
+            {attempted && problems && (
+              <div className="flex items-center gap-2 px-3 py-2 rounded-lg bg-red-500/10 border border-red-500/25">
+                <AlertTriangle size={13} className="text-red-400 flex-shrink-0" />
+                <p className="text-xs text-red-300/90">
+                  Hier fehlt noch: <span className="font-semibold">{problems.join(', ')}</span>
+                  {entries.length > 1 && ' — oder lösche diese Karte, falls du sie nicht brauchst.'}
+                </p>
+              </div>
+            )}
+
             {entries.length > 1 && (
               <button
                 onClick={() => removeEntry(index)}
@@ -158,7 +214,7 @@ export function ProfessionalEducationStep({ data = [], experienceLevel, onChange
                 <select
                   value={entry.type}
                   onChange={(e) => updateEntry(index, 'type', e.target.value as EducationType)}
-                  className={dynInput(entry.type)}
+                  className={dynInput(entry.type, index)}
                 >
                   {EDUCATION_TYPES.map((type) => (
                     <option key={type.value} value={type.value} className="bg-slate-900">
@@ -181,7 +237,7 @@ export function ProfessionalEducationStep({ data = [], experienceLevel, onChange
                     value={entry.institution}
                     onChange={(e) => updateEntry(index, 'institution', e.target.value)}
                     placeholder="z.B. TU München, IHK München"
-                    className={dynInput(entry.institution)}
+                    className={dynInput(entry.institution, index)}
                   />
                 </div>
                 <div>
@@ -207,7 +263,7 @@ export function ProfessionalEducationStep({ data = [], experienceLevel, onChange
                   value={entry.degree}
                   onChange={(e) => updateEntry(index, 'degree', e.target.value)}
                   placeholder="z.B. Bachelor Informatik, Kaufmann für Büromanagement"
-                  className={dynInput(entry.degree)}
+                  className={dynInput(entry.degree, index)}
                 />
               </div>
 
@@ -220,7 +276,7 @@ export function ProfessionalEducationStep({ data = [], experienceLevel, onChange
                     <select
                       value={entry.startMonth || ''}
                       onChange={(e) => updateEntry(index, 'startMonth', e.target.value)}
-                      className={dynSelect(entry.startMonth || 'optional')}
+                      className={dynSelect(entry.startMonth || 'optional', index)}
                     >
                       <option value="">Monat</option>
                       {MONTHS.map((m) => (
@@ -232,7 +288,7 @@ export function ProfessionalEducationStep({ data = [], experienceLevel, onChange
                     <select
                       value={entry.startYear}
                       onChange={(e) => updateEntry(index, 'startYear', e.target.value)}
-                      className={dynSelect(entry.startYear)}
+                      className={dynSelect(entry.startYear, index)}
                     >
                       <option value="">Jahr *</option>
                       {YEARS.map((year) => (
@@ -251,7 +307,7 @@ export function ProfessionalEducationStep({ data = [], experienceLevel, onChange
                     <select
                       value={entry.endMonth || ''}
                       onChange={(e) => updateEntry(index, 'endMonth', e.target.value)}
-                      className={dynSelect(entry.endMonth || 'optional')}
+                      className={dynSelect(entry.endMonth || 'optional', index)}
                     >
                       <option value="">Monat</option>
                       {MONTHS.map((m) => (
@@ -263,7 +319,7 @@ export function ProfessionalEducationStep({ data = [], experienceLevel, onChange
                     <select
                       value={entry.endYear}
                       onChange={(e) => updateEntry(index, 'endYear', e.target.value)}
-                      className={dynSelect(entry.endYear)}
+                      className={dynSelect(entry.endYear, index)}
                     >
                       <option value="">Jahr *</option>
                       <option value="present" className="bg-slate-900">Aktuell</option>
@@ -291,7 +347,8 @@ export function ProfessionalEducationStep({ data = [], experienceLevel, onChange
               </div>
             </div>
           </div>
-        ))}
+          );
+        })}
 
         <button
           onClick={addEntry}
