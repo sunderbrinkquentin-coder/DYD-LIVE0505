@@ -692,7 +692,13 @@ export function CVLiveEditorPage() {
         }
 
     // 2. ZERTIFIKATE & STIPENDIEN (separate Sektionen für bessere Darstellung)
-        const certItems = findArray(['certificates', 'zertifikate']);
+        const certItems = findArray(['certificates', 'zertifikate'])
+  .concat(
+    // FIX: Wizard-Format direkt lesen, falls findArray nichts findet
+    findArray(['certificates', 'zertifikate']).length === 0 && Array.isArray(editorPayload.certificates)
+      ? editorPayload.certificates
+      : []
+  );
         const scholItems = findArray(['scholarships', 'stipendien']);
         const awardItems = findArray(['awards', 'auszeichnungen']);
 
