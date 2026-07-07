@@ -1,3 +1,9 @@
+// src/utils/cvDataMapper.ts
+// Vollständige Datei — alle Fixes integriert:
+// FIX 1: CVDataForPDF bekommt stipendien, volunteerWork, certificates
+// FIX 2: mapCVBuilderDataToPDF übergibt alle neuen Felder
+// FIX 3: education bekommt grades + focus separat
+
 export interface CVDataFromEditor {
   contact?: {
     vorname?: string;
@@ -138,19 +144,12 @@ export function mapCVDataFromDatabase(dbData: any): CVDataFromEditor {
 
   return {
     contact: dbData.optimized_contact || dbData.original_contact || {},
-
     education: (dbData.optimized_education?.entries || dbData.original_education?.entries || []),
-
     experience: migratedExperience,
-
     skills: (dbData.optimized_skills?.list || dbData.original_skills?.list || []),
-
     projects: (dbData.optimized_projects?.entries || dbData.original_projects?.entries || []),
-
     languages: (dbData.optimized_languages?.entries || dbData.original_languages?.entries || []),
-
     certificates: (dbData.optimized_certificates?.entries || dbData.original_certificates?.entries || []),
-
     additional: dbData.optimized_additional || dbData.original_additional || '',
   };
 }
@@ -171,11 +170,28 @@ export interface CVBuilderData {
     portfolio?: string;
     photoUrl?: string;
   };
-  schoolEducation?: {
+  schoolEducation?: Array<{
     type: string;
     school: string;
     graduation: string;
     year: string;
+    startYear?: string;
+    startMonth?: string;
+    endYear?: string;
+    endMonth?: string;
+    location?: string;
+    focus?: string[];
+    projects?: string[];
+  }> | {
+    type: string;
+    school: string;
+    graduation: string;
+    year: string;
+    startYear?: string;
+    startMonth?: string;
+    endYear?: string;
+    endMonth?: string;
+    location?: string;
     focus?: string[];
     projects?: string[];
   };
@@ -185,6 +201,9 @@ export interface CVBuilderData {
     degree: string;
     startYear: string;
     endYear: string;
+    startMonth?: string;
+    endMonth?: string;
+    location?: string;
     focus?: string[];
     projects?: string[];
     grades?: string;
@@ -239,8 +258,34 @@ export interface CVBuilderData {
     variant?: string;
     text: string;
   };
+  stipendien?: Array<{
+    name: string;
+    organization: string;
+    year?: string;
+    description?: string;
+  }>;
+  volunteerWork?: Array<{
+    role: string;
+    organization: string;
+    startDate?: string;
+    endDate?: string;
+    current?: boolean;
+    description?: string;
+    bulletPoints?: string[];
+  }>;
+  certificates?: Array<{
+    name: string;
+    issuer: string;
+    year?: string;
+    description?: string;
+  }>;
+  workValues?: {
+    values: string[];
+    workStyle: string[];
+  };
 }
 
+// FIX 1+2: CVDataForPDF mit allen neuen Feldern
 export interface CVDataForPDF {
   name: string;
   jobTitle: string;
@@ -259,7 +304,8 @@ export interface CVDataForPDF {
     degree: string;
     institution: string;
     timeframe: string;
-    details?: string;
+    details?: string;   // Schwerpunkte / Focus
+    grades?: string;    // FIX: vorher nie befüllt
     city?: string;
     country?: string;
   }>;
@@ -273,6 +319,25 @@ export interface CVDataForPDF {
     description: string;
   }>;
   interests?: string;
+  // FIX: diese drei waren nie im Typ — alle Templates haben sie ignoriert
+  stipendien?: Array<{
+    name: string;
+    organization: string;
+    year?: string;
+    description?: string;
+  }>;
+  volunteerWork?: Array<{
+    role: string;
+    organization: string;
+    timeframe?: string;
+    description?: string;
+  }>;
+  certificates?: Array<{
+    name: string;
+    issuer: string;
+    year?: string;
+    description?: string;
+  }>;
 }
 
 function formatTimeframe(startDate: string, endDate: string, current?: boolean): string {
@@ -280,14 +345,10 @@ function formatTimeframe(startDate: string, endDate: string, current?: boolean):
 
   const formatDate = (dateStr: string) => {
     if (!dateStr) return '';
-    // YYYY-MM format (canonical): convert to MM/YYYY
     const isoMatch = dateStr.match(/^(\d{4})-(\d{2})$/);
     if (isoMatch) return `${isoMatch[2]}/${isoMatch[1]}`;
-    // MM/YYYY or MM.YYYY already — return as-is
     if (/^\d{2}[./]\d{4}$/.test(dateStr)) return dateStr.replace('.', '/');
-    // YYYY only
     if (/^\d{4}$/.test(dateStr)) return dateStr;
-    // Legacy split-by-dash fallback (original behavior)
     const parts = dateStr.split('-');
     if (parts.length >= 2) return `${parts[1]}/${parts[0]}`;
     return dateStr;
@@ -312,6 +373,7 @@ export function sortExperiencesNewestFirst<T extends { startDate?: string; start
   return [...items].sort((a, b) => getSortYear(b) - getSortYear(a));
 }
 
+// FIX 2+3: mapCVBuilderDataToPDF übergibt jetzt alle Felder
 export function mapCVBuilderDataToPDF(data: CVBuilderData): CVDataForPDF {
   const pd = data.personalData || {};
 
@@ -325,24 +387,43 @@ export function mapCVBuilderDataToPDF(data: CVBuilderData): CVDataForPDF {
     bullets: exp.bullets || exp.achievements || exp.responsibilities || exp.tasks || []
   }));
 
-  const education: Array<any> = [];
+  const education: CVDataForPDF['education'] = [];
 
+  // FIX 3: schoolEducation — Array oder Objekt, focus als details
   if (data.schoolEducation) {
-    education.push({
-      degree: data.schoolEducation.graduation || 'Schulabschluss',
-      institution: data.schoolEducation.school || 'Schule',
-      timeframe: data.schoolEducation.year || '',
-      details: data.schoolEducation.focus?.join(', ')
+    const schoolArr = Array.isArray(data.schoolEducation)
+      ? data.schoolEducation
+      : [data.schoolEducation];
+
+    schoolArr.forEach((school: any) => {
+      if (!school) return;
+      education.push({
+        degree: school.graduation || 'Schulabschluss',
+        institution: school.school || 'Schule',
+        timeframe: formatTimeframe(
+          school.startYear || school.year || '',
+          school.endYear || school.year || ''
+        ),
+        details: Array.isArray(school.focus) && school.focus.length > 0
+          ? school.focus.join(', ')
+          : undefined,
+        city: school.location || undefined,
+      });
     });
   }
 
+  // FIX 3: professionalEducation — focus UND grades beide übergeben
   if (data.professionalEducation && data.professionalEducation.length > 0) {
     data.professionalEducation.forEach(edu => {
       education.push({
         degree: edu.degree || 'Abschluss',
         institution: edu.institution || 'Institution',
         timeframe: formatTimeframe(edu.startYear, edu.endYear),
-        details: edu.focus?.join(', ')
+        details: Array.isArray(edu.focus) && edu.focus.length > 0
+          ? edu.focus.join(', ')
+          : undefined,
+        grades: edu.grades || undefined,
+        city: edu.location || undefined,
       });
     });
   }
@@ -364,6 +445,36 @@ export function mapCVBuilderDataToPDF(data: CVBuilderData): CVDataForPDF {
 
   const hobbiesText = data.hobbies?.hobbies?.join(', ') || '';
 
+  // FIX 1: stipendien, volunteerWork, certificates werden jetzt übergeben
+  const stipendien = (data.stipendien || [])
+    .map(s => ({
+      name: s.name || '',
+      organization: s.organization || '',
+      year: s.year || undefined,
+      description: s.description || undefined,
+    }))
+    .filter(s => s.name);
+
+  const volunteerWork = (data.volunteerWork || [])
+    .map(v => ({
+      role: v.role || '',
+      organization: v.organization || '',
+      timeframe: v.startDate
+        ? `${v.startDate} – ${v.current ? 'Heute' : (v.endDate || '')}`
+        : undefined,
+      description: v.description || undefined,
+    }))
+    .filter(v => v.role);
+
+  const certificates = (data.certificates || [])
+    .map(c => ({
+      name: c.name || '',
+      issuer: c.issuer || '',
+      year: c.year || undefined,
+      description: c.description || undefined,
+    }))
+    .filter(c => c.name);
+
   return {
     name,
     jobTitle: data.targetRole || 'Gewünschte Position',
@@ -376,24 +487,15 @@ export function mapCVBuilderDataToPDF(data: CVBuilderData): CVDataForPDF {
     skills: allSkills,
     languages: languages.length > 0 ? languages : undefined,
     projects: projects.length > 0 ? projects : undefined,
-    interests: hobbiesText || undefined
+    interests: hobbiesText || undefined,
+    stipendien: stipendien.length > 0 ? stipendien : undefined,
+    volunteerWork: volunteerWork.length > 0 ? volunteerWork : undefined,
+    certificates: certificates.length > 0 ? certificates : undefined,
   };
 }
 
-/**
- * Maps cv_data.editor_data (from CVLiveEditor / Make.com webhook output)
- * into the CVBuilderData wizard format.
- *
- * editor_data shape example:
- * {
- *   contact: { vorname, nachname, email, telefon, ort, plz, linkedin, website },
- *   experience: [{ position, firma, von, bis, aktuell, aufgaben, bullets }],
- *   education: [{ institution, abschluss, von, bis, note }],
- *   skills: string[],
- *   languages: [{ sprache, niveau }],
- *   projects: [...],
- * }
- */
+// ── mapEditorDataToWizard ─────────────────────────────────────────────────────
+
 const MONTH_MAP: Record<string, string> = {
   january: '01', januar: '01', jan: '01',
   february: '02', februar: '02', feb: '02',
@@ -435,8 +537,6 @@ export function mapEditorDataToWizard(editorData: any): CVBuilderData {
 
   const safe = (v: any) => (v == null ? '' : String(v).trim());
 
-  // Support both German field names (vorname/nachname) and English (firstName/first_name)
-  // contact can also be stored as personal_data
   const contact = editorData.contact || editorData.personal_data || editorData.personalInfo || {};
 
   const firstName =
@@ -470,7 +570,6 @@ export function mapEditorDataToWizard(editorData: any): CVBuilderData {
     photoUrl: safe(contact.photoUrl || contact.photo_url || contact.avatar),
   };
 
-  // Support experience / experiences / work_experience / workExperiences
   const rawExperience: any[] =
     Array.isArray(editorData.experience) ? editorData.experience :
     Array.isArray(editorData.experiences) ? editorData.experiences :
@@ -500,88 +599,6 @@ export function mapEditorDataToWizard(editorData: any): CVBuilderData {
     const startParsed = parseDateToMonthYear(rawStartDate);
     const endParsed = isCurrent ? { month: '', year: '' } : parseDateToMonthYear(rawEndDate);
 
-    // School Education
-const rawSchoolEducation: any[] =
-  Array.isArray(editorData.schoolEducation) ? editorData.schoolEducation :
-  Array.isArray(editorData.schule) ? editorData.schule :
-  [];
-
-const schoolEducation = rawSchoolEducation.map((s: any) => ({
-  type: safe(s.type || 'school'),
-  school: safe(s.school || s.schule || s.institution || ''),
-  graduation: safe(s.graduation || s.abschluss || s.degree || ''),
-  year: safe(s.year || s.jahr || s.endYear || ''),
-  startYear: safe(s.startYear || s.von || ''),
-  startMonth: safe(s.startMonth || ''),
-  endYear: safe(s.endYear || s.bis || ''),
-  endMonth: safe(s.endMonth || ''),
-  location: safe(s.location || s.ort || ''),
-  focus: Array.isArray(s.focus) ? s.focus : [],
-  projects: [],
-}));
-
-// Stipendien
-const rawStipendien: any[] =
-  Array.isArray(editorData.stipendien) ? editorData.stipendien :
-  Array.isArray(editorData.scholarships) ? editorData.scholarships :
-  [];
-
-const stipendien = rawStipendien.map((s: any) => ({
-  name: safe(s.name || s.titel || ''),
-  organization: safe(s.organization || s.organisation || s.issuer || ''),
-  year: safe(s.year || s.jahr || ''),
-  description: safe(s.description || s.beschreibung || ''),
-})).filter((s: any) => s.name);
-
-// Volunteer Work
-const rawVolunteerWork: any[] =
-  Array.isArray(editorData.volunteerWork) ? editorData.volunteerWork :
-  Array.isArray(editorData.ehrenamt) ? editorData.ehrenamt :
-  [];
-
-const volunteerWork = rawVolunteerWork.map((v: any) => {
-  const rawVolStart = safe(v.startDate || v.von || '');
-  const rawVolEnd = safe(v.endDate || v.bis || '');
-  const volEndIsPresent = PRESENT_STRINGS.has(rawVolEnd.toLowerCase().trim());
-  const volIsCurrent = !!(v.current || v.aktuell) || volEndIsPresent;
-  const volStartParsed = parseDateToMonthYear(rawVolStart);
-  const volEndParsed = volIsCurrent ? { month: '', year: '' } : parseDateToMonthYear(rawVolEnd);
-  const normalizedVolStart = volStartParsed.year && volStartParsed.month
-    ? `${volStartParsed.year}-${volStartParsed.month}`
-    : volStartParsed.year || rawVolStart;
-  const normalizedVolEnd = volIsCurrent ? 'Heute'
-    : (volEndParsed.year && volEndParsed.month ? `${volEndParsed.year}-${volEndParsed.month}` : volEndParsed.year || rawVolEnd);
-  return {
-    role: safe(v.role || v.rolle || v.position || ''),
-    organization: safe(v.organization || v.organisation || ''),
-    startDate: normalizedVolStart,
-    endDate: normalizedVolEnd,
-    current: volIsCurrent,
-    description: safe(v.description || v.beschreibung || ''),
-    bulletPoints: Array.isArray(v.bulletPoints) ? v.bulletPoints : [],
-  };
-}).filter((v: any) => v.role);
-
-// Certificates
-const rawCertificates: any[] =
-  Array.isArray(editorData.certificates) ? editorData.certificates :
-  Array.isArray(editorData.zertifikate) ? editorData.zertifikate :
-  [];
-
-const certificates = rawCertificates.map((c: any) => {
-  // Extract just the year from various date formats (e.g. "15.03.2023" → "2023")
-  const rawYear = safe(c.year || c.datum || c.jahr || c.date || '');
-  const yearMatch = rawYear.match(/\b(\d{4})\b/);
-  const certYear = yearMatch ? yearMatch[1] : rawYear;
-  return {
-    name: safe(c.name || c.titel || c.title || ''),
-    issuer: safe(c.issuer || c.organisation || c.organization || c.aussteller || ''),
-    year: certYear,
-    description: safe(c.description || c.beschreibung || ''),
-  };
-}).filter((c: any) => c.name);
-
-    // Normalize startDate/endDate to YYYY-MM format (required by formatTimeframe)
     const normalizedStartDate = startParsed.year && startParsed.month
       ? `${startParsed.year}-${startParsed.month}`
       : startParsed.year || rawStartDate;
@@ -617,7 +634,27 @@ const certificates = rawCertificates.map((c: any) => {
     };
   });
 
-  // Support education / educations / ausbildung
+  // School Education
+  const rawSchoolEducation: any[] =
+    Array.isArray(editorData.schoolEducation) ? editorData.schoolEducation :
+    Array.isArray(editorData.schule) ? editorData.schule :
+    [];
+
+  const schoolEducation = rawSchoolEducation.map((s: any) => ({
+    type: safe(s.type || 'school'),
+    school: safe(s.school || s.schule || s.institution || ''),
+    graduation: safe(s.graduation || s.abschluss || s.degree || ''),
+    year: safe(s.year || s.jahr || s.endYear || ''),
+    startYear: safe(s.startYear || s.von || ''),
+    startMonth: safe(s.startMonth || ''),
+    endYear: safe(s.endYear || s.bis || ''),
+    endMonth: safe(s.endMonth || ''),
+    location: safe(s.location || s.ort || ''),
+    focus: Array.isArray(s.focus) ? s.focus : [],
+    projects: [],
+  }));
+
+  // Professional Education
   const rawEducation: any[] =
     Array.isArray(editorData.education) ? editorData.education :
     Array.isArray(editorData.educations) ? editorData.educations :
@@ -639,13 +676,14 @@ const certificates = rawCertificates.map((c: any) => {
       startMonth: eduStartParsed.month || safe(edu.startMonth || edu.start_month),
       endMonth: eduEndParsed.month || safe(edu.endMonth || edu.end_month),
       location: safe(edu.location || edu.ort),
-      focus: Array.isArray(edu.focus) ? edu.focus : Array.isArray(edu.schwerpunkte) ? edu.schwerpunkte : [],
+      focus: Array.isArray(edu.focus) ? edu.focus
+        : Array.isArray(edu.schwerpunkte) ? edu.schwerpunkte : [],
       projects: [],
       grades: safe(edu.note || edu.grade || edu.grades || edu.gpa),
     };
   });
 
-  // Support skills / hard_skills / hardSkills
+  // Hard Skills
   const rawSkills: any[] =
     Array.isArray(editorData.skills) ? editorData.skills :
     Array.isArray(editorData.hard_skills) ? editorData.hard_skills :
@@ -662,7 +700,7 @@ const certificates = rawCertificates.map((c: any) => {
     }))
     .filter((s: any) => s.skill);
 
-  // Support soft_skills / softSkills
+  // Soft Skills
   const rawSoftSkills: any[] =
     Array.isArray(editorData.soft_skills) ? editorData.soft_skills :
     Array.isArray(editorData.softSkills) ? editorData.softSkills :
@@ -709,6 +747,68 @@ const certificates = rawCertificates.map((c: any) => {
     }))
     .filter((p: any) => p.title);
 
+  // Stipendien
+  const rawStipendien: any[] =
+    Array.isArray(editorData.stipendien) ? editorData.stipendien :
+    Array.isArray(editorData.scholarships) ? editorData.scholarships :
+    [];
+
+  const stipendien = rawStipendien.map((s: any) => ({
+    name: safe(s.name || s.titel || ''),
+    organization: safe(s.organization || s.organisation || s.issuer || ''),
+    year: safe(s.year || s.jahr || ''),
+    description: safe(s.description || s.beschreibung || ''),
+  })).filter((s: any) => s.name);
+
+  // Volunteer Work
+  const rawVolunteerWork: any[] =
+    Array.isArray(editorData.volunteerWork) ? editorData.volunteerWork :
+    Array.isArray(editorData.ehrenamt) ? editorData.ehrenamt :
+    [];
+
+  const volunteerWork = rawVolunteerWork.map((v: any) => {
+    const rawVolStart = safe(v.startDate || v.von || '');
+    const rawVolEnd = safe(v.endDate || v.bis || '');
+    const volEndIsPresent = PRESENT_STRINGS.has(rawVolEnd.toLowerCase().trim());
+    const volIsCurrent = !!(v.current || v.aktuell) || volEndIsPresent;
+    const volStartParsed = parseDateToMonthYear(rawVolStart);
+    const volEndParsed = volIsCurrent ? { month: '', year: '' } : parseDateToMonthYear(rawVolEnd);
+    const normalizedVolStart = volStartParsed.year && volStartParsed.month
+      ? `${volStartParsed.year}-${volStartParsed.month}`
+      : volStartParsed.year || rawVolStart;
+    const normalizedVolEnd = volIsCurrent ? 'Heute'
+      : (volEndParsed.year && volEndParsed.month
+        ? `${volEndParsed.year}-${volEndParsed.month}`
+        : volEndParsed.year || rawVolEnd);
+    return {
+      role: safe(v.role || v.rolle || v.position || ''),
+      organization: safe(v.organization || v.organisation || ''),
+      startDate: normalizedVolStart,
+      endDate: normalizedVolEnd,
+      current: volIsCurrent,
+      description: safe(v.description || v.beschreibung || ''),
+      bulletPoints: Array.isArray(v.bulletPoints) ? v.bulletPoints : [],
+    };
+  }).filter((v: any) => v.role);
+
+  // Certificates
+  const rawCertificates: any[] =
+    Array.isArray(editorData.certificates) ? editorData.certificates :
+    Array.isArray(editorData.zertifikate) ? editorData.zertifikate :
+    [];
+
+  const certificates = rawCertificates.map((c: any) => {
+    const rawYear = safe(c.year || c.datum || c.jahr || c.date || '');
+    const yearMatch = rawYear.match(/\b(\d{4})\b/);
+    const certYear = yearMatch ? yearMatch[1] : rawYear;
+    return {
+      name: safe(c.name || c.titel || c.title || ''),
+      issuer: safe(c.issuer || c.organisation || c.organization || c.aussteller || ''),
+      year: certYear,
+      description: safe(c.description || c.beschreibung || ''),
+    };
+  }).filter((c: any) => c.name);
+
   const experienceCount = workExperiences.length;
   const experienceLevel: CVBuilderData['experienceLevel'] =
     experienceCount >= 2 ? 'experienced' : experienceCount === 1 ? 'some-experience' : 'beginner';
@@ -720,21 +820,21 @@ const certificates = rawCertificates.map((c: any) => {
     ? { variant: typeof rawSummary?.variant === 'string' ? rawSummary.variant : 'professional', text: summaryText }
     : undefined;
 
-return {
-  experienceLevel,
-  personalData,
-  workExperiences,
-  professionalEducation,
-  schoolEducation,       // ✅ NEU
-  hardSkills,
-  softSkills: softSkills.length > 0 ? softSkills : [],
-  languages,
-  projects,
-  stipendien,            // ✅ NEU
-  volunteerWork,         // ✅ NEU
-  certificates,          // ✅ NEU
-  workValues: { values: [], workStyle: [] },
-  hobbies: { hobbies: [], details: '' },
-  summary,
-};
+  return {
+    experienceLevel,
+    personalData,
+    workExperiences,
+    professionalEducation,
+    schoolEducation,
+    hardSkills,
+    softSkills: softSkills.length > 0 ? softSkills : [],
+    languages,
+    projects,
+    stipendien,
+    volunteerWork,
+    certificates,
+    workValues: { values: [], workStyle: [] },
+    hobbies: { hobbies: [], details: '' },
+    summary,
+  };
 }
