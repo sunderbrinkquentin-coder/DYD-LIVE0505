@@ -699,7 +699,12 @@ export function CVLiveEditorPage() {
       ? editorPayload.certificates
       : []
   );
-        const scholItems = findArray(['scholarships', 'stipendien']);
+        const scholItems = findArray(['scholarships', 'stipendien'])
+  .concat(
+    findArray(['scholarships', 'stipendien']).length === 0 && Array.isArray(editorPayload.stipendien)
+      ? editorPayload.stipendien
+      : []
+  );
         const awardItems = findArray(['awards', 'auszeichnungen']);
 
         if (certItems.length > 0) {
