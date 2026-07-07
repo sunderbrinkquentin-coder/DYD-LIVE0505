@@ -745,7 +745,12 @@ export function CVLiveEditorPage() {
         }
 
         // 3. EHRENAMT
-        const volItems = findArray(['volunteerWork', 'ehrenamt', 'volunteering']);
+        const volItems = findArray(['volunteerWork', 'ehrenamt', 'volunteering'])
+  .concat(
+    findArray(['volunteerWork', 'ehrenamt', 'volunteering']).length === 0 && Array.isArray(editorPayload.volunteerWork)
+      ? editorPayload.volunteerWork
+      : []
+  );
         if (volItems.length > 0) {
           const items = volItems.map((vol: any, index: number) => ({
             id: index, // Eindeutige ID für den Lösch-Vorgang
