@@ -1011,7 +1011,36 @@ const finalData: CVBuilderData = {
           </button>
         </div>
       )}
-
+{/* Level-Switcher: jederzeit zwischen den Erfahrungsstufen wechseln */}
+{currentStep > 0 && currentStep < 13 && (
+  <div
+    className="fixed z-30 right-4"
+    style={{ top: progressBarHeight + (dataWasImported && importBannerIncomplete.length > 0 ? 40 : 8) }}
+  >
+    <div className="inline-flex items-center gap-1 p-1 rounded-full bg-[#0a1220]/90 backdrop-blur border border-white/10 shadow-lg">
+      {([
+        { value: 'beginner',         label: 'Einsteiger'       },
+        { value: 'some-experience',  label: 'Erste Erfahrung'  },
+        { value: 'experienced',      label: 'Berufserfahren'   },
+      ] as const).map((lvl) => {
+        const isActive = cvData.experienceLevel === lvl.value;
+        return (
+          <button
+            key={lvl.value}
+            onClick={() => updateCVData('experienceLevel', lvl.value)}
+            className={`px-3 py-1.5 rounded-full text-[11px] font-bold transition-all ${
+              isActive
+                ? 'bg-gradient-to-r from-[#66c0b6] to-[#30E3CA] text-black'
+                : 'text-white/50 hover:text-white'
+            }`}
+          >
+            {lvl.label}
+          </button>
+        );
+      })}
+    </div>
+  </div>
+)}
       {/* Step Content – padding-top matches actual progress bar height */}
       <div
         style={{ paddingTop: progressBarHeight + (dataWasImported && importBannerIncomplete.length > 0 ? 32 : 0) }}
