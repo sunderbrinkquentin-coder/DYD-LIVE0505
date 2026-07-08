@@ -691,6 +691,14 @@ const allEduItemsMapped = allEduItems.map((edu: any) => ({
   // FIX: focus auch direkt übergeben, damit Templates es per edu.focus lesen können
   focus: Array.isArray(edu.focus) ? edu.focus : [],
 }));
+        // 🔥 DIESER BLOCK FEHLT VERMUTLICH ODER WAR FEHLERHAFT:
+        if (allEduItemsMapped.length > 0) {
+          sections.push({
+            type: 'education',
+            title: 'Ausbildung',
+            items: allEduItemsMapped
+          });
+        }
 
     // 2. ZERTIFIKATE & STIPENDIEN (separate Sektionen für bessere Darstellung)
         const certItems = findArray(['certificates', 'zertifikate'])
