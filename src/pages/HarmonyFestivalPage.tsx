@@ -2786,7 +2786,6 @@ useEffect(() => {
               <circle cx="17.5" cy="6.5" r="0.5" fill="currentColor" stroke="none"/>
             </svg>
             <span style={{ fontFamily: "'Inter', sans-serif", fontSize: '13px', letterSpacing: '0.04em' }}>@dyd_harmony</span>
-          </a>
         </div>
         <button onClick={() => navigate('/')} className="transition-opacity hover:opacity-50"
           style={{ fontFamily: "'Inter', sans-serif", fontSize: '13px', color: 'rgba(255,255,255,0.22)', letterSpacing: '0.04em' }}>
