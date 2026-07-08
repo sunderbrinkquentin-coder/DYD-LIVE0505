@@ -692,15 +692,6 @@ const allEduItemsMapped = allEduItems.map((edu: any) => ({
   focus: Array.isArray(edu.focus) ? edu.focus : [],
 }));
 
-  // FIX: focus als description, ABER auch grade separat übergeben
-  description: edu.description
-    || (Array.isArray(edu.focus) ? edu.focus.join(', ') : edu.focus)
-    || '',
-  grade: edu.grade || edu.grades || edu.note || edu.gpa || '',
-  // FIX: focus auch direkt übergeben, damit Templates es per edu.focus lesen können
-  focus: Array.isArray(edu.focus) ? edu.focus : [],
-}));
-
     // 2. ZERTIFIKATE & STIPENDIEN (separate Sektionen für bessere Darstellung)
         const certItems = findArray(['certificates', 'zertifikate'])
   .concat(
