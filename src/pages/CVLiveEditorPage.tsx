@@ -692,12 +692,6 @@ const allEduItemsMapped = allEduItems.map((edu: any) => ({
   focus: Array.isArray(edu.focus) ? edu.focus : [],
 }));
 
-        const allEduItemsMapped = allEduItems.map((edu: any) => ({
-  degree: edu.degree || edu.title || edu.qualification || edu.type || '',
-  institution: edu.institution || edu.school || edu.university || '',
-  date_from: formatDate(edu.date_from || edu.startDate || edu.startYear || ''),
-  date_to: formatDate(edu.date_to || edu.endDate || edu.endYear || edu.year || ''),
-  location: edu.location || edu.ort || '',
   // FIX: focus als description, ABER auch grade separat übergeben
   description: edu.description
     || (Array.isArray(edu.focus) ? edu.focus.join(', ') : edu.focus)
