@@ -2727,6 +2727,7 @@ useEffect(() => {
       </p>
     </div>
   </div>
+  </div>  
 </motion.section>
           <div className="divider" />
 
