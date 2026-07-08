@@ -2472,15 +2472,6 @@ useEffect(() => {
     <div className="tag-label mb-4" style={{ color: '#dc3232', opacity: 0.85 }}>
       Solidarität
     </div>
-    <h2
-      className="graffiti"
-      style={{ fontSize: 'clamp(48px, 8vw, 88px)', color: '#fff', lineHeight: 0.9 }}
-    >
-      Zeig Haltung —<br />
-      <span style={{ color: '#dc3232', textShadow: '0 0 40px rgba(220,50,50,0.55)' }}>
-        Kauf ein Soli-Shirt
-      </span>
-    </h2>
 <p
   style={{
     fontFamily: "'Inter', sans-serif",
@@ -2492,17 +2483,20 @@ useEffect(() => {
   }}
 >
   {"Harmony steht für Zusammenhalt — und gegen das, was uns spaltet. Jeder Cent Gewinn geht direkt an "}
-  
+  <a
     href="https://www.keinbockaufnazis.de"
     target="_blank"
     rel="noopener noreferrer"
-    style={{ color: '#dc3232', textDecoration: 'underline', textUnderlineOffset: '3px' }}
+    style={{
+      color: '#dc3232',
+      textDecoration: 'underline',
+      textUnderlineOffset: '3px',
+    }}
   >
     KeinBockAufNazis e.V.
   </a>
   {" — ich verdiene keinen Euro daran — das ist kein Produkt, das ist eine Haltung."}
 </p>
-  </div>
 
   {/* Card */}
   <div
