@@ -2801,7 +2801,6 @@ useEffect(() => {
           className="btn-cyan w-full flex items-center justify-center gap-2.5 py-4 rounded-2xl" style={{ fontSize: '16px' }}
           Ticket className="w-4 h-4" /> Ticket sichern – ab 8,50 €
         </button>
-      </motion.div>
 
       {/* ── NAME MODAL ───────────────────────────────────────────── */}
       <AnimatePresence>
