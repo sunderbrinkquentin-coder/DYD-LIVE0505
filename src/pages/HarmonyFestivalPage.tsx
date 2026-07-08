@@ -2799,7 +2799,7 @@ useEffect(() => {
         style={{ background: `linear-gradient(to top, rgba(8,12,16,0.98) 55%, transparent)` }}>
         <button onClick={() => document.getElementById('tickets')?.scrollIntoView({ behavior: 'smooth' })}
           className="btn-cyan w-full flex items-center justify-center gap-2.5 py-4 rounded-2xl" style={{ fontSize: '16px' }}
-          Ticket className="w-4 h-4" /> Ticket sichern – ab 8,50 €
+          Ticket className="w-4 h-4" /> Ticket sichern – ab 8,50 €>
         </button>
 
       {/* ── NAME MODAL ───────────────────────────────────────────── */}
