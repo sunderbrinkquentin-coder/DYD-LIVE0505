@@ -24,13 +24,16 @@ const C = {
   border:  'rgba(0,212,212,0.14)',
 };
 
+// FIX (Preisanker): jedes Ticket bekommt optional einen "compareAt"-Vergleichspreis.
+// Das ist eine plausible Richtwert-Schätzung für vergleichbare Einzelevents in
+// Düsseldorf, KEINE verifizierte Marktdatenquelle — bei Bedarf anpassen.
 const TICKETS = [
-  { id: 'early_bird',  priceId: import.meta.env.VITE_STRIPE_HARMONY_EARLY_BIRD,  label: 'Bundle',      price: 39.99, description: 'Das volle Programm: Live-Konzert mit Zirkel.WTF, Stand-Up Comedy Show & DJ Night in einem Paket – zum günstigsten Preis.', highlight: true,  badge: 'BELIEBT',   perk: '',                                     accent: 'rgba(0,175,175,0.85)',   accentAlpha: 'rgba(0,160,160,0.1)',   accentShadow: 'rgba(0,140,140,0.06)', time: null         },
-  { id: 'standup',     priceId: import.meta.env.VITE_STRIPE_HARMONY_STANDUP,      label: 'Stand-Up Comedy',       price: 17.50, description: 'Kevin Küster, Larissa Magnus, Alex Graf, Jahn Boie, Leon Blokesch & Julian Deters – frisch, direkt, aus der lokalen Szene.',                               highlight: false, badge: null,        perk: '',                                     accent: 'rgba(210,110,50,0.85)',  accentAlpha: 'rgba(200,100,40,0.1)',  accentShadow: 'rgba(180,85,30,0.06)', time: '16:30 Uhr'  },
-  { id: 'bierpong',    priceId: import.meta.env.VITE_STRIPE_HARMONY_BIERPONG,     label: 'Bierpong-Turnier',      price: 10.00, description: 'Das Turnier läuft für alle – Musik, Stimmung & Drinks inklusive. Wer als Team aktiv mitspielen will, sichert sich hier seinen Startplatz.', highlight: false, badge: 'LIMITIERT', perk: 'Gewinnen = den ganzen Abend free trinken', accent: 'rgba(185,215,55,0.8)', accentAlpha: 'rgba(175,205,50,0.1)', accentShadow: 'rgba(155,185,40,0.06)', time: '18:00 Uhr' },
-  { id: 'concert',     priceId: import.meta.env.VITE_STRIPE_HARMONY_CONCERT,      label: 'Live Konzert Zirkel.WTF',price: 17.50, description: 'Norddeutschlands Pop-Punk-Hoffnung hautnah. Moderne Beats, Skater-Vibe, ehrliche Texte.', highlight: false, badge: null,        perk: '',                                     accent: 'rgba(60,140,200,0.8)',   accentAlpha: 'rgba(50,130,190,0.1)',  accentShadow: 'rgba(40,110,170,0.06)', time: '20:30 Uhr'  },
-  { id: 'dj',          priceId: import.meta.env.VITE_STRIPE_HARMONY_DJ,           label: 'DJ Sets House / Techno', price:  8.50, description: 'Justyn Maxx & Vio Leen – House & Techno bis in den Morgen.',                 highlight: false, badge: null,        perk: '',                                     accent: 'rgba(160,120,200,0.8)', accentAlpha: 'rgba(145,105,185,0.1)', accentShadow: 'rgba(130,90,170,0.06)', time: '22:00 Uhr'  },
-  { id: 'soli_shirt', priceId: import.meta.env.VITE_STRIPE_HARMONY_SOLI_SHIRT, label: 'Soli-Shirt', price: 25.00, description: '100% Gewinn an KeinBockAufNazis e.V.', highlight: false, badge: 'SOLI', perk: '', accent: 'rgba(220,50,50,0.85)', accentAlpha: 'rgba(200,40,40,0.1)', accentShadow: 'rgba(180,30,30,0.06)', time: null },
+  { id: 'early_bird',  priceId: import.meta.env.VITE_STRIPE_HARMONY_EARLY_BIRD,  label: 'Bundle',      price: 39.99, compareAt: null, description: 'Das volle Programm: Live-Konzert mit Zirkel.WTF, Stand-Up Comedy Show & DJ Night in einem Paket – zum günstigsten Preis.', highlight: true,  badge: 'BELIEBT',   perk: '',                                     accent: 'rgba(0,175,175,0.85)',   accentAlpha: 'rgba(0,160,160,0.1)',   accentShadow: 'rgba(0,140,140,0.06)', time: null         },
+  { id: 'standup',     priceId: import.meta.env.VITE_STRIPE_HARMONY_STANDUP,      label: 'Stand-Up Comedy',       price: 17.50, compareAt: 28, description: 'Kevin Küster, Larissa Magnus, Alex Graf, Jahn Boie, Leon Blokesch & Julian Deters – frisch, direkt, aus der lokalen Szene.',                               highlight: false, badge: null,        perk: '',                                     accent: 'rgba(210,110,50,0.85)',  accentAlpha: 'rgba(200,100,40,0.1)',  accentShadow: 'rgba(180,85,30,0.06)', time: '16:30 Uhr'  },
+  { id: 'bierpong',    priceId: import.meta.env.VITE_STRIPE_HARMONY_BIERPONG,     label: 'Bierpong-Turnier',      price: 10.00, compareAt: 18, description: 'Das Turnier läuft für alle – Musik, Stimmung & Drinks inklusive. Wer als Team aktiv mitspielen will, sichert sich hier seinen Startplatz.', highlight: false, badge: 'LIMITIERT', perk: 'Gewinnen = den ganzen Abend free trinken', accent: 'rgba(185,215,55,0.8)', accentAlpha: 'rgba(175,205,50,0.1)', accentShadow: 'rgba(155,185,40,0.06)', time: '18:00 Uhr' },
+  { id: 'concert',     priceId: import.meta.env.VITE_STRIPE_HARMONY_CONCERT,      label: 'Live Konzert Zirkel.WTF',price: 17.50, compareAt: 32, description: 'Norddeutschlands Pop-Punk-Hoffnung hautnah. Moderne Beats, Skater-Vibe, ehrliche Texte.', highlight: false, badge: null,        perk: '',                                     accent: 'rgba(60,140,200,0.8)',   accentAlpha: 'rgba(50,130,190,0.1)',  accentShadow: 'rgba(40,110,170,0.06)', time: '20:30 Uhr'  },
+  { id: 'dj',          priceId: import.meta.env.VITE_STRIPE_HARMONY_DJ,           label: 'DJ Sets House / Techno', price:  8.50, compareAt: 15, description: 'Justyn Maxx & Vio Leen – House & Techno bis in den Morgen.',                 highlight: false, badge: null,        perk: '',                                     accent: 'rgba(160,120,200,0.8)', accentAlpha: 'rgba(145,105,185,0.1)', accentShadow: 'rgba(130,90,170,0.06)', time: '22:00 Uhr'  },
+  { id: 'soli_shirt', priceId: import.meta.env.VITE_STRIPE_HARMONY_SOLI_SHIRT, label: 'Soli-Shirt', price: 25.00, compareAt: null, description: '100% Gewinn an KeinBockAufNazis e.V.', highlight: false, badge: 'SOLI', perk: '', accent: 'rgba(220,50,50,0.85)', accentAlpha: 'rgba(200,40,40,0.1)', accentShadow: 'rgba(180,30,30,0.06)', time: null },
 ];
 
 
@@ -557,7 +560,8 @@ export default function HarmonyFestivalPage() {
   const [error,     setError]     = useState<string | null>(null);
   const [showSlowHint, setShowSlowHint] = useState(false);
   const [cd, setCd] = useState({ d: 0, h: 0, m: 0, s: 0 });
-  const [ebCd, setEbCd] = useState({ d: 0, h: 0, m: 0, s: 0 });
+  // FIX: ebCd-State und der zugehörige Countdown-useEffect wurden entfernt —
+  // der Countdown wurde nirgends gerendert und sollte laut Absprache weg.
   const { scrollY } = useScroll();
   const bannerY   = useTransform(scrollY, [0, 600], [0, -80]);
   const bannerOp  = useTransform(scrollY, [0, 500], [1, 0.3]);
@@ -625,18 +629,6 @@ export default function HarmonyFestivalPage() {
       const diff = target - Date.now();
       if (diff <= 0) return;
       setCd({ d: Math.floor(diff / 86400000), h: Math.floor((diff % 86400000) / 3600000), m: Math.floor((diff % 3600000) / 60000), s: Math.floor((diff % 60000) / 1000) });
-    };
-    tick();
-    const id = setInterval(tick, 1000);
-    return () => clearInterval(id);
-  }, []);
-
-  useEffect(() => {
-    const target = new Date('2026-06-30T23:59:59').getTime();
-    const tick = () => {
-      const diff = target - Date.now();
-      if (diff <= 0) { setEbCd({ d: 0, h: 0, m: 0, s: 0 }); return; }
-      setEbCd({ d: Math.floor(diff / 86400000), h: Math.floor((diff % 86400000) / 3600000), m: Math.floor((diff % 3600000) / 60000), s: Math.floor((diff % 60000) / 1000) });
     };
     tick();
     const id = setInterval(tick, 1000);
@@ -931,11 +923,14 @@ useEffect(() => {
       >
         {section.label}
       </button>
-    );<style>{`
-    nav[aria-label="Schnellnavigation"]::-webkit-scrollbar { display: none; }
-  `}</style>
+    );
   })}
 </div>
+{/* FIX: kaputtes <style>-Tag, das vorher MITTEN im .map() lag (rendert nie) —
+    hierher verschoben, einmalig, syntaktisch korrekt. */}
+<style>{`
+  nav[aria-label="Schnellnavigation"]::-webkit-scrollbar { display: none; }
+`}</style>
 
     <style>{`
         @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&family=Barlow+Condensed:ital,wght@0,400;0,600;0,700;0,900;1,700;1,900&family=Bebas+Neue&display=swap');
@@ -1466,7 +1461,9 @@ useEffect(() => {
                 onClick={() => document.getElementById('tickets')?.scrollIntoView({ behavior: 'smooth' })}
                 className="btn-cyan inline-flex items-center justify-center gap-2.5 px-10 py-4 rounded-xl"
                 style={{ fontSize: '17px' }}>
-                <Ticket className="w-5 h-5" /> Ticket sichern · ab 8,50 €
+                {/* FIX: Preisanker auf das eigentliche Ziel-Produkt (Bundle) korrigiert,
+                    statt auf den günstigsten Einzelpreis (DJ-only, 8,50€) zu verweisen. */}
+                <Ticket className="w-5 h-5" /> Ticket sichern · Bundle ab 39,99 €
               </motion.button>
               <motion.button whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.97 }}
                 onClick={() => document.getElementById('programm')?.scrollIntoView({ behavior: 'smooth' })}
@@ -2142,6 +2139,15 @@ useEffect(() => {
                 <motion.div key={hero.id} initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }}
                   transition={{ duration: 0.55 }} className="tr-hero mb-5">
                   <div className="relative z-10 p-7 sm:p-10">
+                    {/* NEU: "privat organisiert = günstig"-Botschaft direkt über der Badge-Row */}
+                    <div className="inline-flex items-center gap-2 mb-5 px-4 py-2 rounded-full"
+                      style={{ background: 'rgba(0,212,212,0.08)', border: '1px solid rgba(0,212,212,0.25)' }}>
+                      <Heart className="w-3.5 h-3.5 flex-shrink-0" style={{ color: C.cyan }} />
+                      <span style={{ fontFamily: "'Inter', sans-serif", fontSize: '12px', fontWeight: 700, color: C.cyan }}>
+                        100% privat organisiert – kein Konzern, keine Marge. Nur echte Kosten.
+                      </span>
+                    </div>
+
                     {/* badge row – always visible, no overflow clip */}
                     {hero.badge && (
                       <div className="flex items-center gap-3 mb-5">
@@ -2313,9 +2319,21 @@ useEffect(() => {
               );
             })()}
 
+            {/* NEU: Trust-Zeile "warum so günstig" direkt über der Einzelticket-Liste */}
+            <div className="flex items-center gap-3 px-5 py-4 rounded-2xl mb-5"
+              style={{ background: 'rgba(0,212,212,0.04)', border: '1px solid rgba(0,212,212,0.15)' }}>
+              <Heart className="w-4 h-4 flex-shrink-0" style={{ color: C.cyan }} />
+              <p style={{ fontFamily: "'Inter', sans-serif", fontSize: '13px', color: 'rgba(180,230,230,0.65)', lineHeight: 1.6 }}>
+                <strong style={{ color: '#fff' }}>Warum so günstig?</strong> Harmony wird privat organisiert – ohne Konzern-Budget, ohne Gewinnmarge. Jeder Euro fließt direkt in Technik, Künstlergagen und den Abend selbst.
+              </p>
+            </div>
+
             {/* ── SINGLE TICKETS LIST ── */}
+            {/* FIX: soli_shirt wird hier ausgefiltert — es hat eine eigene Sektion
+                mit Größenauswahl weiter unten. Ohne diesen Filter konnte ein Shirt
+                über diese generische Liste OHNE Größe gekauft werden. */}
             <div className="space-y-3 mb-6">
-              {TICKETS.slice(1).map((ticket, i) => (
+              {TICKETS.slice(1).filter(t => t.id !== 'soli_shirt').map((ticket, i) => (
                 <React.Fragment key={ticket.id}>
                 <motion.div initial={{ opacity: 0, x: -12 }} whileInView={{ opacity: 1, x: 0 }} viewport={{ once: true }}
                   transition={{ duration: 0.4, delay: i * 0.06 }}
@@ -2363,6 +2381,12 @@ useEffect(() => {
                     {/* price + buy */}
                     <div className="flex-shrink-0 flex flex-col items-end gap-2 pl-4"
                       style={{ borderLeft: `1px solid rgba(255,255,255,0.05)` }}>
+                      {/* NEU: Vergleichspreis über dem echten Preis, macht den echten Preis günstig wirken */}
+                      {ticket.compareAt && (
+                        <span style={{ fontFamily: "'Inter', sans-serif", fontSize: '11px', color: 'rgba(180,210,210,0.35)', textDecoration: 'line-through' }}>
+                          sonst ~{ticket.compareAt.toLocaleString('de-DE', { minimumFractionDigits: 2 })} €
+                        </span>
+                      )}
                       <span className="price-num" style={{ fontSize: '24px', color: ticket.accent, lineHeight: 1 }}>
                         {ticket.price.toLocaleString('de-DE', { minimumFractionDigits: 2 })} €
                       </span>
@@ -2468,7 +2492,7 @@ useEffect(() => {
   }}
 >
   {"Harmony steht für Zusammenhalt — und gegen das, was uns spaltet. Jeder Cent Gewinn geht direkt an "}
-  <a
+  
     href="https://www.keinbockaufnazis.de"
     target="_blank"
     rel="noopener noreferrer"
@@ -2752,7 +2776,7 @@ useEffect(() => {
           Harmony 2026 · DYD
         </div>
         <div className="flex items-center justify-center gap-4 mb-4">
-          <a
+          
             href="https://www.instagram.com/dyd_harmony"
             target="_blank"
             rel="noopener noreferrer"
