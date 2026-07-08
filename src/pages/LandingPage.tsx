@@ -33,6 +33,10 @@ import {
   Handshake,
   Mic,
   Mail,
+  Upload,
+  Search,
+  Kanban,
+  Layers,
 } from 'lucide-react';
 import { useState } from 'react';
 import { useAuth } from '../contexts/AuthContext';
@@ -57,7 +61,6 @@ export default function LandingPage() {
   const [festivalOpen, setFestivalOpen] = useState(false);
   const { scrollYProgress } = useScroll();
 
-  // Follow-reward popup: shown once per session before CV-Check, CV-Wizard, or Career Vision
   const [followPopupOpen, setFollowPopupOpen] = useState(false);
   const [pendingNavTarget, setPendingNavTarget] = useState<string | null>(null);
 
@@ -84,7 +87,6 @@ export default function LandingPage() {
     window.scrollTo({ top: y, behavior: 'smooth' });
   };
 
-  // Handle pricing button clicks for optimization packages
   const handleOptimizationClick = (plan: 'single' | 'bundle-5' | 'bundle-10' = 'single') => {
     if (!user) {
       const redirectTarget = encodeURIComponent(`/dashboard?action=buy-tokens&plan=${plan}`);
@@ -95,7 +97,6 @@ export default function LandingPage() {
     navigate(`/dashboard?action=buy-tokens&plan=${plan}`);
   };
 
-  // Dynamisches Background-Logo mit mehr Sichtbarkeit
   const logoOpacity = useTransform(
     scrollYProgress,
     [0, 0.2, 0.5, 0.8, 1],
@@ -128,9 +129,7 @@ export default function LandingPage() {
         onClose={() => setFollowPopupOpen(false)}
         onContinue={handleFollowPopupContinue}
       />
-      {/* Dynamisches Background Logo - mehrere Ebenen mit innovativen Effekten */}
       <div className="fixed inset-0 pointer-events-none z-0 overflow-hidden">
-        {/* Hauptlogo - subtil und elegant */}
         <motion.div
           className="absolute inset-0 flex items-center justify-center"
           style={{ opacity: logoOpacity }}
@@ -151,7 +150,6 @@ export default function LandingPage() {
           />
         </motion.div>
 
-        {/* Zweites Logo - dynamischer Effekt mit Parallax */}
         <motion.div
           className="absolute inset-0 flex items-center justify-center"
           style={{
@@ -178,7 +176,6 @@ export default function LandingPage() {
           />
         </motion.div>
 
-        {/* Drittes Logo - gegenläufige Bewegung */}
         <motion.div
           className="absolute inset-0 flex items-center justify-center"
           style={{
@@ -205,7 +202,6 @@ export default function LandingPage() {
           />
         </motion.div>
 
-        {/* Animierte Partikel-Effekte */}
         {[...Array(15)].map((_, i) => (
           <motion.div
             key={i}
@@ -229,7 +225,6 @@ export default function LandingPage() {
           />
         ))}
 
-        {/* Gradient Overlays mit Puls-Effekt */}
         <div className="absolute inset-0 bg-gradient-to-b from-[#050507]/85 via-transparent to-[#050507]/90"></div>
         <motion.div
           className="absolute inset-0 bg-gradient-to-r from-[#66c0b6]/8 via-[#30E3CA]/5 to-[#2d5365]/8"
@@ -243,14 +238,11 @@ export default function LandingPage() {
           }}
         ></motion.div>
 
-        {/* Radial Gradient für Tiefe */}
         <div className="absolute inset-0 bg-[radial-gradient(circle_at_30%_20%,rgba(102,192,182,0.06),transparent_50%),radial-gradient(circle_at_70%_80%,rgba(45,83,101,0.08),transparent_50%)]"></div>
       </div>
 
-      {/* Content Container */}
       <div className="relative z-10">
-        {/* Navigation */}
-<nav className="fixed top-0 w-full z-50 bg-black/40 backdrop-blur-xl border-b border-white/10">
+        <nav className="fixed top-0 w-full z-50 bg-black/40 backdrop-blur-xl border-b border-white/10">
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             <div className="flex items-center justify-between h-16">
               <motion.div
@@ -288,6 +280,16 @@ export default function LandingPage() {
 
                 <motion.button
                   type="button"
+                  onClick={() => scrollToId('career-academy')}
+                  className="text-white/70 hover:text-white transition-colors"
+                  whileHover={{ scale: 1.05, y: -2 }}
+                  whileTap={{ scale: 0.95 }}
+                >
+                  Career Academy
+                </motion.button>
+
+                <motion.button
+                  type="button"
                   onClick={() => scrollToId('preise')}
                   className="text-white/70 hover:text-white transition-colors"
                   whileHover={{ scale: 1.05, y: -2 }}
@@ -296,7 +298,6 @@ export default function LandingPage() {
                   Preise
                 </motion.button>
 
-                {/* ── FESTIVAL MIT HOVER-DROPDOWN ── */}
                 <div
                   className="relative"
                   onMouseEnter={() => setFestivalOpen(true)}
@@ -386,7 +387,6 @@ export default function LandingPage() {
                     )}
                   </AnimatePresence>
                 </div>
-                {/* ── ENDE FESTIVAL DROPDOWN ── */}
 
                 <motion.button
                   onClick={() => navigate(user ? '/dashboard' : '/login')}
@@ -404,25 +404,24 @@ export default function LandingPage() {
                   whileTap={{ scale: 0.98 }}
                 >
                   <span className="absolute inset-0 bg-gradient-to-r from-white/0 via-white/30 to-white/0 translate-x-[-100%] group-hover:translate-x-[100%] transition-transform duration-500"></span>
-                  <span className="relative">Jetzt starten</span>
+                  <span className="relative">Kostenlos checken</span>
                 </motion.button>
               </div>
 
               <button
-                onClick={() => navigate('/login?redirect=/dashboard')}
+                onClick={() => goWithFollowGate('/cv-check')}
                 className="md:hidden px-4 py-2 rounded-lg bg-gradient-to-r from-[#66c0b6] to-[#30E3CA] text-black font-semibold text-sm"
               >
-                Login
+                Kostenlos checken
               </button>
             </div>
           </div>
         </nav>
         <main id="main-content" aria-label="DYD Hauptinhalt – KI-Lebenslauf-Optimierung für Deutschland">
 
-        {/* Hero Section */}
         <section
-          className="relative pt-32 pb-20 px-4 sm:px-6 lg:px-8"
-          aria-label="Hero – KI-Lebenslauf-Optimierung"
+          className="relative pt-32 pb-16 px-4 sm:px-6 lg:px-8"
+          aria-label="Hero – kostenloser KI-CV-Check und Bewerbermanagement"
           itemScope itemType="https://schema.org/WebPageElement"
         >
           <div className="max-w-6xl mx-auto">
@@ -430,11 +429,11 @@ export default function LandingPage() {
               initial="initial"
               animate="animate"
               variants={stagger}
-              className="text-center space-y-8"
+              className="text-center space-y-7"
             >
               <motion.div
                 variants={fadeInUp}
-                className="inline-block px-6 py-3 rounded-full bg-gradient-to-r from-[#66c0b6]/20 to-[#30E3CA]/20 border border-[#66c0b6]/40 text-[#66c0b6] text-sm font-semibold mb-6 shadow-lg shadow-[#66c0b6]/20 backdrop-blur-sm relative overflow-hidden"
+                className="inline-block px-6 py-3 rounded-full bg-gradient-to-r from-[#66c0b6]/20 to-[#30E3CA]/20 border border-[#66c0b6]/40 text-[#66c0b6] text-sm font-semibold mb-2 shadow-lg shadow-[#66c0b6]/20 backdrop-blur-sm relative overflow-hidden"
                 animate={{
                   boxShadow: [
                     '0 10px 25px rgba(102,192,182,0.2)',
@@ -451,7 +450,7 @@ export default function LandingPage() {
                 />
                 <Sparkles className="inline w-4 h-4 mr-2 animate-pulse" />
                 <span className="relative z-10">
-                  KI-basiert • Sofort einsatzbereit
+                  CV-Check & Bewerbermanagement: 100% kostenlos
                 </span>
               </motion.div>
 
@@ -459,7 +458,7 @@ export default function LandingPage() {
                 variants={fadeInUp}
                 className="text-5xl md:text-7xl lg:text-8xl font-bold leading-tight"
                 itemProp="headline"
-                aria-label="DYD – Dein CV perfekt optimiert mit KI"
+                aria-label="DYD – Dein CV perfekt optimiert mit KI, kostenloser CV-Check und Bewerbermanagement"
               >
                 <motion.span
                   animate={{ y: [0, -5, 0] }}
@@ -496,63 +495,66 @@ export default function LandingPage() {
                 itemProp="description"
                 data-ai-fact="hero-value-prop"
               >
-                ATS-Check mit Score. CV erstellen mit KI-Wizard.
+                Kostenloser ATS-Check mit Score. Kostenloses Bewerbermanagement im Kanban.
                 <br />
-                One-Klick-Optimierung für jede Stellenanzeige.
+                One-Klick-CV-Optimierung für jede Stellenanzeige.
               </motion.p>
 
               <motion.div
                 variants={fadeInUp}
-                className="flex flex-col sm:flex-row gap-4 justify-center items-center pt-6"
+                className="grid grid-cols-1 sm:grid-cols-3 gap-3 max-w-4xl mx-auto pt-4"
               >
-                <div className="relative">
                 <motion.button
-                  onClick={() => goWithFollowGate('/cv-wizard')}
-                  className="group relative px-12 py-6 rounded-2xl bg-gradient-to-r from-[#66c0b6] to-[#30E3CA] text-black font-bold text-lg shadow-2xl shadow-[#66c0b6]/30 flex items-center gap-3 overflow-hidden"
-                  whileHover={{ scale: 1.05, y: -5 }}
+                  onClick={() => goWithFollowGate('/cv-check')}
+                  className="group relative px-6 py-6 rounded-2xl bg-gradient-to-br from-[#66c0b6] to-[#30E3CA] text-black shadow-2xl shadow-[#66c0b6]/30 flex flex-col items-center gap-2 overflow-hidden"
+                  whileHover={{ scale: 1.04, y: -4 }}
                   whileTap={{ scale: 0.98 }}
                   animate={{
                     boxShadow: [
-                      '0 20px 40px rgba(102,192,182,0.3)',
-                      '0 25px 50px rgba(102,192,182,0.5)',
-                      '0 20px 40px rgba(102,192,182,0.3)',
+                      '0 15px 35px rgba(102,192,182,0.3)',
+                      '0 20px 45px rgba(102,192,182,0.5)',
+                      '0 15px 35px rgba(102,192,182,0.3)',
                     ],
                   }}
                   transition={{ duration: 2, repeat: Infinity }}
                 >
                   <motion.span
-                    className="absolute inset-0 bg-gradient-to-r from-white/0 via-white/30 to-white/0"
+                    className="absolute inset-0 bg-gradient-to-r from-white/0 via-white/25 to-white/0"
                     animate={{ x: ['-100%', '100%'] }}
-                    transition={{ duration: 2, repeat: Infinity, ease: 'linear' }}
+                    transition={{ duration: 2.2, repeat: Infinity, ease: 'linear' }}
                   />
-                  <motion.div
-                    whileHover={{ rotate: 12, scale: 1.1 }}
-                    transition={{ type: 'spring', stiffness: 300 }}
-                  >
-                    <FileText className="relative w-5 h-5" />
-                  </motion.div>
-                  <span className="relative">CV erstellen</span>
-                  <motion.div
-                    animate={{ x: [0, 3, 0] }}
-                    transition={{ duration: 1.5, repeat: Infinity }}
-                  >
-                    <ArrowRight className="relative w-5 h-5" />
-                  </motion.div>
+                  <span className="absolute top-2 right-2 text-[9px] font-black uppercase tracking-widest bg-black/15 px-2 py-0.5 rounded-full">Kostenlos</span>
+                  <Search className="relative w-6 h-6" />
+                  <span className="relative font-bold text-base">CV kostenlos checken</span>
+                  <span className="relative text-xs font-medium opacity-70">ATS-Score in Sekunden</span>
                 </motion.button>
-                </div>
+
                 <motion.button
-                  onClick={() => goWithFollowGate('/cv-check')}
-                  className="group relative px-10 py-5 rounded-2xl border border-white/10 bg-white/5 text-white/70 font-medium text-base backdrop-blur-sm flex items-center gap-2 hover:text-white hover:border-white/20 transition-colors"
-                  whileHover={{ scale: 1.02, y: -2 }}
+                  onClick={() => goWithFollowGate('/cv-wizard')}
+                  className="group relative px-6 py-6 rounded-2xl border border-white/15 bg-white/5 text-white backdrop-blur-sm flex flex-col items-center gap-2 hover:border-[#66c0b6]/40 hover:bg-white/10 transition-colors"
+                  whileHover={{ scale: 1.03, y: -3 }}
                   whileTap={{ scale: 0.98 }}
                 >
-                  <span className="relative text-sm">CV checken</span>
+                  <FileText className="w-6 h-6 text-[#66c0b6]" />
+                  <span className="font-bold text-base">CV erstellen</span>
+                  <span className="text-xs font-medium text-white/50">Mit KI-Wizard in 10 Min.</span>
+                </motion.button>
+
+                <motion.button
+                  onClick={() => goWithFollowGate('/career-vision')}
+                  className="group relative px-6 py-6 rounded-2xl border border-purple-400/25 bg-purple-500/5 text-white backdrop-blur-sm flex flex-col items-center gap-2 hover:border-purple-400/50 hover:bg-purple-500/10 transition-colors"
+                  whileHover={{ scale: 1.03, y: -3 }}
+                  whileTap={{ scale: 0.98 }}
+                >
+                  <GraduationCap className="w-6 h-6 text-purple-300" />
+                  <span className="font-bold text-base">Career Academy</span>
+                  <span className="text-xs font-medium text-white/50">Skill-Gaps & Lernpfade</span>
                 </motion.button>
               </motion.div>
 
               <motion.div
                 variants={fadeInUp}
-                className="text-sm text-white/50 pt-4 flex flex-wrap justify-center gap-4"
+                className="text-sm text-white/50 pt-2 flex flex-wrap justify-center gap-4"
               >
                 <motion.span
                   className="flex items-center gap-1"
@@ -617,14 +619,13 @@ export default function LandingPage() {
                   >
                     <Handshake className="w-4 h-4 text-[#66c0b6]" />
                   </motion.div>
-                  <span data-ai-fact="partnership" title="DYD ist offizieller Kooperationspartner der Carl Remigius Fresenius Education AG">Kooperationspartner Carl Remigius Fresenius Education AG</span>
+                  <span data-ai-fact="partnership">Kooperationspartner Carl Remigius Fresenius Education AG</span>
                 </motion.span>
               </motion.div>
             </motion.div>
 
-            {/* Scroll Indicator */}
             <motion.div
-              className="flex justify-center mt-12"
+              className="flex justify-center mt-10"
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               transition={{ delay: 1.5 }}
@@ -648,17 +649,88 @@ export default function LandingPage() {
           </div>
         </section>
 
-        {/* Process Section - So funktioniert's */}
         <ProcessTimeline />
 
-        {/* Features Section */}
+        <section
+          className="py-16 px-4 sm:px-6 lg:px-8"
+          aria-label="Kostenloses Bewerbermanagement: Kanban-Board für alle Bewerbungen"
+        >
+          <div className="max-w-6xl mx-auto">
+            <motion.div
+              initial={{ opacity: 0, y: 24 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: true }}
+              className="relative overflow-hidden rounded-3xl border border-[#66c0b6]/25"
+              style={{ background: 'linear-gradient(135deg, rgba(102,192,182,0.08) 0%, rgba(10,10,15,0.97) 55%)' }}
+            >
+              <div className="absolute top-0 right-0 w-72 h-72 rounded-full opacity-[0.08] pointer-events-none"
+                style={{ background: 'radial-gradient(circle,#30E3CA,transparent)', transform: 'translate(25%,-25%)' }} />
+
+              <div className="relative z-10 flex flex-col lg:flex-row items-center gap-8 p-8 sm:p-12">
+                <div className="flex-1 space-y-5 text-center lg:text-left">
+                  <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-[#66c0b6]/15 border border-[#66c0b6]/30 text-[#66c0b6] text-xs font-bold uppercase tracking-widest">
+                    <Sparkles className="w-3 h-3" /> Kostenlos, unbegrenzt
+                  </div>
+                  <h2 className="text-3xl sm:text-4xl font-black text-white leading-tight">
+                    Dein <span className="bg-gradient-to-r from-[#66c0b6] to-[#30E3CA] bg-clip-text text-transparent">Bewerbungs-Cockpit</span> – kostenlos
+                  </h2>
+                  <p className="text-white/60 leading-relaxed max-w-xl mx-auto lg:mx-0">
+                    Behalte jede Bewerbung im Blick: Kanban-Board mit den Spalten Beworben, Interview, Zusage & Absage.
+                    Fristen, Ansprechpartner und Status auf einen Blick – ganz ohne Excel-Chaos oder Kosten.
+                  </p>
+                  <div className="flex flex-wrap justify-center lg:justify-start gap-4 pt-1">
+                    {[
+                      { icon: Kanban, label: 'Kanban-Board' },
+                      { icon: Clock, label: 'Fristen im Blick' },
+                      { icon: Layers, label: 'Alle CVs an einem Ort' },
+                    ].map((item, i) => (
+                      <span key={i} className="flex items-center gap-2 text-sm text-white/70">
+                        <item.icon className="w-4 h-4 text-[#66c0b6]" />
+                        {item.label}
+                      </span>
+                    ))}
+                  </div>
+                  <div className="pt-2">
+                    <button
+                      onClick={() => navigate(user ? '/dashboard' : '/login?redirect=/dashboard')}
+                      className="inline-flex items-center gap-2 px-6 py-3 rounded-xl bg-gradient-to-r from-[#66c0b6] to-[#30E3CA] text-black font-bold hover:opacity-90 transition-all shadow-lg"
+                    >
+                      Kostenlos Bewerbungen organisieren
+                      <ArrowRight className="w-4 h-4" />
+                    </button>
+                  </div>
+                </div>
+
+                <div className="flex-shrink-0 w-full lg:w-[380px] grid grid-cols-3 gap-2">
+                  {[
+                    { label: 'Beworben', color: '#66c0b6', count: 4 },
+                    { label: 'Interview', color: '#f59e0b', count: 2 },
+                    { label: 'Zusage', color: '#22c55e', count: 1 },
+                  ].map((col, i) => (
+                    <div key={i} className="rounded-xl bg-white/5 border border-white/10 p-2.5">
+                      <div className="flex items-center gap-1.5 mb-2">
+                        <span className="w-1.5 h-1.5 rounded-full" style={{ background: col.color }} />
+                        <span className="text-[10px] font-bold text-white/60 uppercase tracking-wide">{col.label}</span>
+                      </div>
+                      <div className="space-y-1.5">
+                        {Array.from({ length: col.count }).map((_, j) => (
+                          <div key={j} className="h-6 rounded-md bg-white/8 border border-white/10" />
+                        ))}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </motion.div>
+          </div>
+        </section>
+
         <section
           id="features"
           className="py-20 px-4 sm:px-6 lg:px-8 bg-white/5 relative"
-          aria-label="DYD Funktionen – KI-CV-Check, Wizard, ATS-Optimierung"
+          aria-label="DYD Funktionen – KI-CV-Check, Wizard, ATS-Optimierung, Bewerbermanagement"
           itemScope itemType="https://schema.org/ItemList"
         >
-          {/* Animated background elements */}
           <motion.div
             className="absolute top-20 left-10 w-2 h-2 bg-[#66c0b6] rounded-full"
             animate={{
@@ -744,12 +816,14 @@ export default function LandingPage() {
                   title: 'Kostenloser CV-Check',
                   description:
                     'Erhalte sofort einen detaillierten ATS-Score und konkrete Verbesserungsvorschläge – komplett kostenlos.',
+                  badge: 'Kostenlos',
                 },
                 {
-                  icon: Brain,
-                  title: 'KI-basierte Analyse',
+                  icon: Kanban,
+                  title: 'Kostenloses Bewerbermanagement',
                   description:
-                    'Unsere KI analysiert deinen CV nach 50+ Kriterien und vergleicht ihn mit erfolgreichen Bewerbungen.',
+                    'Kanban-Board für alle deine Bewerbungen: Status, Fristen und Ansprechpartner immer im Überblick.',
+                  badge: 'Kostenlos',
                 },
                 {
                   icon: Target,
@@ -770,10 +844,10 @@ export default function LandingPage() {
                     'Optimiere deinen CV automatisch für jede Stellenanzeige – perfekt angepasst in Sekunden.',
                 },
                 {
-                  icon: Smartphone,
-                  title: 'Mobil perfekt',
+                  icon: GraduationCap,
+                  title: 'Career Academy',
                   description:
-                    'Alle Funktionen optimiert für Smartphone, Tablet und Desktop – überall und jederzeit nutzbar.',
+                    'Finde deine Skill-Gaps zum Traumjob und bekomme einen personalisierten Lernpfad mit Zertifikat.',
                 },
               ].map((feature, index) => (
                 <motion.div
@@ -803,6 +877,11 @@ export default function LandingPage() {
                       ease: 'easeInOut',
                     }}
                   />
+                  {(feature as any).badge && (
+                    <div className="absolute top-4 right-4 px-2.5 py-1 rounded-full text-[10px] font-black text-black bg-gradient-to-r from-[#66c0b6] to-[#30E3CA]">
+                      {(feature as any).badge}
+                    </div>
+                  )}
                   <div className="relative z-10">
                     <motion.div
                       className="w-16 h-16 rounded-2xl bg-gradient-to-br from-[#66c0b6]/30 to-[#30E3CA]/30 flex items-center justify-center mb-6 shadow-lg shadow-[#66c0b6]/20"
@@ -851,24 +930,92 @@ export default function LandingPage() {
           </div>
         </section>
 
-        {/* About Section */}
         <AboutSection />
 
-        {/* Pricing Section */}
+        <section
+          id="career-academy"
+          className="py-20 px-4 sm:px-6 lg:px-8 relative overflow-hidden"
+          aria-label="Career Academy: Skill-Gap-Analyse und persönlicher Lernpfad"
+        >
+          <div className="absolute inset-0 pointer-events-none">
+            <div className="absolute top-1/3 right-0 w-96 h-96 bg-purple-500/8 rounded-full blur-3xl" />
+            <div className="absolute bottom-0 left-1/4 w-80 h-80 bg-[#66c0b6]/6 rounded-full blur-3xl" />
+          </div>
+
+          <div className="max-w-6xl mx-auto relative z-10">
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: true }}
+              className="text-center mb-12"
+            >
+              <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-purple-500/15 border border-purple-400/30 text-purple-300 text-sm font-bold mb-5">
+                <GraduationCap className="w-4 h-4" /> Career Academy
+              </div>
+              <h2 className="text-3xl sm:text-5xl font-black mb-4">
+                Welche Skills fehlen dir zu{' '}
+                <span className="bg-gradient-to-r from-purple-400 to-[#66c0b6] bg-clip-text text-transparent">deinem Traumjob?</span>
+              </h2>
+              <p className="text-lg text-white/60 max-w-2xl mx-auto">
+                Gib deine Wunschposition ein – unsere KI zeigt dir genau, welche Kompetenzen dir fehlen,
+                und erstellt dir einen persönlichen Lernpfad mit Zertifikat.
+              </p>
+            </motion.div>
+
+            <div className="grid sm:grid-cols-3 gap-5 mb-10">
+              {[
+                { icon: Search, title: 'Skill-Gap-Analyse', desc: 'KI vergleicht dein Profil mit den Anforderungen deiner Zielposition.' },
+                { icon: Layers, title: 'Individueller Lernpfad', desc: '5 kompakte Lerneinheiten, zugeschnitten auf genau deine Lücken.' },
+                { icon: Award, title: 'Anerkanntes Zertifikat', desc: 'Bestehe die Abschlussprüfung und sichere dir dein Zertifikat.' },
+              ].map((item, i) => (
+                <motion.div
+                  key={i}
+                  initial={{ opacity: 0, y: 20 }}
+                  whileInView={{ opacity: 1, y: 0 }}
+                  viewport={{ once: true }}
+                  transition={{ delay: i * 0.12 }}
+                  whileHover={{ y: -5 }}
+                  className="bg-white/5 border border-white/10 rounded-3xl p-7 hover:border-purple-400/30 transition-all"
+                >
+                  <div className="w-12 h-12 rounded-2xl bg-purple-500/15 border border-purple-400/25 flex items-center justify-center mb-5">
+                    <item.icon className="w-6 h-6 text-purple-300" />
+                  </div>
+                  <h3 className="text-lg font-bold mb-2">{item.title}</h3>
+                  <p className="text-white/60 text-sm leading-relaxed">{item.desc}</p>
+                </motion.div>
+              ))}
+            </div>
+
+            <motion.div
+              initial={{ opacity: 0 }}
+              whileInView={{ opacity: 1 }}
+              viewport={{ once: true }}
+              className="text-center"
+            >
+              <button
+                onClick={() => goWithFollowGate('/career-vision')}
+                className="inline-flex items-center gap-2 px-8 py-4 rounded-2xl bg-gradient-to-r from-purple-500 to-[#66c0b6] text-black font-bold hover:opacity-90 transition-all shadow-xl"
+              >
+                Skill-Gap kostenlos analysieren
+                <ArrowRight className="w-4 h-4" />
+              </button>
+              <p className="text-xs text-white/30 mt-3">Analyse kostenlos · Lernpfad ab 5 € · Zertifikat inklusive</p>
+            </motion.div>
+          </div>
+        </section>
+
         <section
           id="preise"
           className="py-12 sm:py-20 px-4 sm:px-6 lg:px-8 bg-gradient-to-b from-transparent via-white/5 to-transparent relative overflow-hidden"
           aria-label="CV-Optimierung Preise – ab 5 Euro, kein Abo"
           itemScope itemType="https://schema.org/OfferCatalog"
         >
-          {/* Background decoration */}
           <div className="absolute inset-0 pointer-events-none">
             <div className="absolute top-1/4 left-0 w-96 h-96 bg-[#66c0b6]/5 rounded-full blur-3xl"></div>
             <div className="absolute bottom-1/4 right-0 w-96 h-96 bg-[#30E3CA]/5 rounded-full blur-3xl"></div>
           </div>
 
           <div className="max-w-7xl mx-auto relative z-10">
-            {/* CV Optimization Packages */}
             <motion.div
               initial={{ opacity: 0, y: 20 }}
               whileInView={{ opacity: 1, y: 0 }}
@@ -886,13 +1033,12 @@ export default function LandingPage() {
                   CV-Optimierung Pakete
                 </h2>
                 <p className="text-base sm:text-lg text-white/70 max-w-2xl mx-auto">
-                  Einmalige Optimierungen ohne Abo – perfekt für gezieltes
-                  Bewerbungs-Tuning
+                  Der CV-Check und das Bewerbermanagement bleiben immer kostenlos –
+                  nur für die vollständige KI-Optimierung zahlst du Pay-per-Use.
                 </p>
               </div>
 
               <div className="grid grid-cols-1 md:grid-cols-3 gap-6 sm:gap-8">
-                {/* Einsteiger */}
                 <motion.div
                   initial={{ opacity: 0, y: 20 }}
                   whileInView={{ opacity: 1, y: 0 }}
@@ -923,9 +1069,9 @@ export default function LandingPage() {
                         '1× CV-Optimierung',
                         'PDF-Download',
                         'Sofort verfügbar',
-                        'Alle 3 Premium-Layouts',
+                        'Alle Premium-Layouts',
                         'STAR-Bullets & Keywords',
-                        'Dashboard-Zugang',
+                        'Kostenloses Bewerbermanagement',
                       ].map((feature, i) => (
                         <div key={i} className="flex items-center gap-3">
                           <div className="w-5 h-5 rounded-full bg-cyan-500/30 flex items-center justify-center flex-shrink-0">
@@ -947,7 +1093,6 @@ export default function LandingPage() {
                   </div>
                 </motion.div>
 
-                {/* Beliebteste Wahl */}
                 <motion.div
                   initial={{ opacity: 0, y: 20 }}
                   whileInView={{ opacity: 1, y: 0 }}
@@ -981,9 +1126,9 @@ export default function LandingPage() {
                         '5× CV-Optimierung',
                         'PDF-Download',
                         'Sofort verfügbar',
-                        'Alle 3 Premium-Layouts',
+                        'Alle Premium-Layouts',
                         'STAR-Bullets & Keywords',
-                        'Dashboard-Zugang',
+                        'Kostenloses Bewerbermanagement',
                       ].map((feature, i) => (
                         <div key={i} className="flex items-center gap-3">
                           <div className="w-5 h-5 rounded-full bg-[#66c0b6] flex items-center justify-center flex-shrink-0 shadow-lg shadow-[#66c0b6]/30">
@@ -1006,7 +1151,6 @@ export default function LandingPage() {
                   </div>
                 </motion.div>
 
-                {/* Karriere-Paket */}
                 <motion.div
                   initial={{ opacity: 0, y: 20 }}
                   whileInView={{ opacity: 1, y: 0 }}
@@ -1039,9 +1183,9 @@ export default function LandingPage() {
                         '10× CV-Optimierung',
                         'PDF-Download',
                         'Sofort verfügbar',
-                        'Alle 3 Premium-Layouts',
+                        'Alle Premium-Layouts',
                         'STAR-Bullets & Keywords',
-                        'Dashboard-Zugang',
+                        'Kostenloses Bewerbermanagement',
                       ].map((feature, i) => (
                         <div key={i} className="flex items-center gap-3">
                           <div className="w-5 h-5 rounded-full bg-purple-500/30 flex items-center justify-center flex-shrink-0">
@@ -1063,11 +1207,25 @@ export default function LandingPage() {
                   </div>
                 </motion.div>
               </div>
+
+              <motion.div
+                initial={{ opacity: 0 }}
+                whileInView={{ opacity: 1 }}
+                viewport={{ once: true }}
+                className="mt-8 text-center p-5 rounded-2xl bg-white/3 border border-white/8"
+              >
+                <p className="text-white/60 text-sm">
+                  Noch unsicher?{' '}
+                  <button onClick={() => goWithFollowGate('/cv-check')} className="text-[#66c0b6] font-bold hover:underline">
+                    Starte kostenlos mit dem CV-Check
+                  </button>{' '}
+                  – kein Kauf nötig, kein Risiko.
+                </p>
+              </motion.div>
             </motion.div>
           </div>
         </section>
 
-        {/* Mission Section - Persönlichkeit & Werte */}
         <section
           className="py-12 sm:py-20 px-4 sm:px-6 lg:px-8 bg-gradient-to-b from-transparent via-[#66c0b6]/5 to-transparent"
           aria-label="Mission: Chancengleichheit bei Bewerbungen – Made in Düsseldorf"
@@ -1147,7 +1305,7 @@ export default function LandingPage() {
           </div>
         </section>
 
-        {/* Partnership Section */}
+        {/* Partnership Section - nur Text, kein Logo */}
         <section
           className="py-12 sm:py-16 px-4 sm:px-6 lg:px-8"
           aria-label="DYD – Offizieller Kooperationspartner der Hochschule Fresenius"
@@ -1175,8 +1333,7 @@ export default function LandingPage() {
                     Carl Remigius Fresenius Education AG
                   </h3>
                   <p className="text-white/70 text-sm sm:text-base leading-relaxed max-w-2xl"
-                    data-ai-fact="partnership-statement"
-                    title="DYD ist offizieller Kooperationspartner der Carl Remigius Fresenius Education AG – einer der größten privaten Hochschulen Deutschlands">
+                    data-ai-fact="partnership-statement">
                     DYD ist offizieller Kooperationspartner der Carl Remigius Fresenius Education AG – einer der größten privaten Hochschulen Deutschlands. Gemeinsam stärken wir die Karrierechancen von Studierenden und Absolventen.
                   </p>
                 </div>
@@ -1185,10 +1342,8 @@ export default function LandingPage() {
           </div>
         </section>
 
-        {/* Career Vision Section */}
         <CareerVisionSection />
 
-        {/* Events & Messen Section */}
         <section
           className="py-12 sm:py-20 px-4 sm:px-6 lg:px-8 bg-gradient-to-r from-[#66c0b6]/10 via-purple-500/10 to-[#30E3CA]/10"
           aria-label="DYD Live-Events: Karrieremessen und Workshops in Deutschland"
@@ -1215,7 +1370,6 @@ export default function LandingPage() {
               </p>
             </motion.div>
 
-            {/* Featured Workshop: Hochschule Fresenius */}
             <motion.div
               initial={{ opacity: 0, y: 24 }}
               whileInView={{ opacity: 1, y: 0 }}
@@ -1224,19 +1378,15 @@ export default function LandingPage() {
               className="mb-8 sm:mb-10"
             >
               <div className="relative overflow-hidden rounded-3xl border border-[#30E3CA]/25 bg-gradient-to-br from-[#0a1a20] via-[#081218] to-[#050d14]">
-                {/* Top accent line */}
                 <div className="h-[3px]" style={{ background: 'linear-gradient(90deg,#30E3CA,#66c0b6,transparent)' }} />
 
-                {/* Ambient glow */}
                 <div className="absolute top-0 right-0 w-80 h-80 rounded-full opacity-[0.07] pointer-events-none"
                   style={{ background: 'radial-gradient(circle,#30E3CA,transparent)', transform: 'translate(30%,-30%)' }} />
                 <div className="absolute bottom-0 left-0 w-48 h-48 rounded-full opacity-[0.04] pointer-events-none"
                   style={{ background: 'radial-gradient(circle,#f59e0b,transparent)', transform: 'translate(-30%,30%)' }} />
 
                 <div className="relative z-10 flex flex-col lg:flex-row gap-0">
-                  {/* Left: content */}
                   <div className="flex-1 p-6 sm:p-8 lg:p-10 space-y-5">
-                    {/* Badge row */}
                     <div className="flex flex-wrap items-center gap-2">
                       <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-[11px] font-black uppercase tracking-widest text-amber-300 border border-amber-400/30"
                         style={{ background: 'rgba(245,158,11,0.10)' }}>
@@ -1249,19 +1399,16 @@ export default function LandingPage() {
                       </span>
                     </div>
 
-                    {/* Title */}
                     <div>
                       <p className="text-[11px] font-black uppercase tracking-widest text-[#30E3CA]/60 mb-2">Workshop · Hochschule Fresenius</p>
                       <h3 className="text-2xl sm:text-3xl font-black text-white leading-tight"
                         itemProp="name"
-                        data-ai-fact="workshop-title"
-                        title="Workshop am 28. Mai 2026 an der Hochschule Fresenius: KI-gestützte CV-Optimierung, ATS, Personal Branding">
+                        data-ai-fact="workshop-title">
                         Beyond the Template:<br />
                         <span className="text-[#30E3CA]">Dein CV-Boost</span> im KI-Zeitalter
                       </h3>
                     </div>
 
-                    {/* Details */}
                     <div className="space-y-3">
                       <div className="flex items-start gap-3">
                         <Calendar className="w-4 h-4 text-[#66c0b6] flex-shrink-0 mt-0.5" />
@@ -1293,7 +1440,6 @@ export default function LandingPage() {
                     </div>
                   </div>
 
-                  {/* Right: lineup image */}
                   <div className="lg:w-[320px] flex-shrink-0 flex items-end justify-center lg:justify-end overflow-hidden">
                     <img
                       src="/Workshop_LineUP_Quentin.png"
@@ -1435,7 +1581,6 @@ export default function LandingPage() {
               ))}
             </div>
 
-            {/* Workshop buchen CTA */}
             <motion.div
               initial={{ opacity: 0, y: 24 }}
               whileInView={{ opacity: 1, y: 0 }}
@@ -1452,7 +1597,6 @@ export default function LandingPage() {
                     style={{ background: 'radial-gradient(circle,#66c0b6,transparent)', bottom: '-30px', right: '-30px' }} />
                 </div>
                 <div className="relative z-10 p-6 sm:p-10 flex flex-col sm:flex-row items-start sm:items-center gap-8">
-                  {/* Left */}
                   <div className="flex-1 space-y-4">
                     <div>
                       <p className="text-[11px] font-black uppercase tracking-widest text-[#30E3CA]/60 mb-2">Für Hochschulen &amp; Unternehmen</p>
@@ -1466,7 +1610,6 @@ export default function LandingPage() {
                     <p className="text-sm text-white/60 leading-relaxed max-w-md">
                       Quentin bringt praxisnahes Know-how zu KI-gestützter Bewerbungsoptimierung, ATS und Personal Branding direkt zu deiner Zielgruppe.
                     </p>
-                    {/* Contact options */}
                     <div className="flex flex-col sm:flex-row gap-3">
                       <a
                         href="mailto:kontakt.dyd@googlemail.com?subject=Workshop-Anfrage"
@@ -1504,7 +1647,6 @@ export default function LandingPage() {
                     </p>
                   </div>
 
-                  {/* Right: speaker card */}
                   <div className="flex-shrink-0 w-full sm:w-56 rounded-2xl overflow-hidden border border-white/10"
                     style={{ background: 'rgba(255,255,255,0.03)' }}>
                     <img
@@ -1541,7 +1683,6 @@ export default function LandingPage() {
           </div>
         </section>
 
-        {/* Harmony Festival Section - compact teaser */}
         <section
           id="festival"
           className="relative py-16 sm:py-20 px-4 sm:px-6 lg:px-8 overflow-hidden"
@@ -1648,7 +1789,6 @@ export default function LandingPage() {
           </div>
         </section>
 
-        {/* CTA Section */}
         <section className="py-20 px-4 sm:px-6 lg:px-8">
           <div className="max-w-4xl mx-auto">
             <motion.div
@@ -1664,21 +1804,27 @@ export default function LandingPage() {
                   Bereit für deinen Traumjob?
                 </h2>
                 <div className="text-xl text-black/80 mb-8 max-w-2xl mx-auto">
-                  Starte jetzt kostenlos und erhalte in wenigen Minuten deinen
-                  optimierten CV mit ATS-Score.
+                  Starte jetzt kostenlos mit CV-Check und Bewerbermanagement –
+                  danach optimiert die KI deinen CV für jede Stellenanzeige.
                 </div>
-                <div className="flex flex-col sm:flex-row gap-4 justify-center">
-                  <button
-                    onClick={() => goWithFollowGate('/cv-wizard')}
-                    className="px-12 py-6 rounded-2xl bg-black text-white font-bold text-lg hover:bg-black/90 transition-all shadow-2xl"
-                  >
-                    CV erstellen
-                  </button>
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 max-w-2xl mx-auto">
                   <button
                     onClick={() => goWithFollowGate('/cv-check')}
-                    className="px-10 py-5 rounded-2xl border border-black/20 bg-black/5 text-black/70 font-medium text-base hover:text-black hover:border-black/30 transition-all"
+                    className="px-6 py-5 rounded-2xl bg-black text-white font-bold hover:bg-black/90 transition-all shadow-2xl flex flex-col items-center gap-1"
                   >
-                    CV checken
+                    <span>CV kostenlos checken</span>
+                  </button>
+                  <button
+                    onClick={() => goWithFollowGate('/cv-wizard')}
+                    className="px-6 py-5 rounded-2xl border border-black/20 bg-black/5 text-black/70 font-semibold hover:text-black hover:border-black/30 transition-all flex flex-col items-center gap-1"
+                  >
+                    <span>CV erstellen</span>
+                  </button>
+                  <button
+                    onClick={() => goWithFollowGate('/career-vision')}
+                    className="px-6 py-5 rounded-2xl border border-black/20 bg-black/5 text-black/70 font-semibold hover:text-black hover:border-black/30 transition-all flex flex-col items-center gap-1"
+                  >
+                    <span>Career Academy</span>
                   </button>
                 </div>
                 <div className="mt-8 text-sm text-black/60 flex flex-wrap justify-center gap-4">
@@ -1688,7 +1834,7 @@ export default function LandingPage() {
                   </span>
                   <span className="flex items-center gap-1">
                     <CheckCircle className="w-4 h-4" />
-                    Keine Anmeldung
+                    Keine Anmeldung nötig
                   </span>
                   <span className="flex items-center gap-1">
                     <CheckCircle className="w-4 h-4" />
@@ -1700,9 +1846,8 @@ export default function LandingPage() {
           </div>
         </section>
 
-        </main>{/* end #main-content */}
+        </main>
 
-        {/* Footer */}
         <footer
           className="bg-black/40 border-t border-white/10 py-16 px-4 sm:px-6 lg:px-8"
           aria-label="DYD Footer – Navigation, Social Media, Rechtliches"
@@ -1726,7 +1871,6 @@ export default function LandingPage() {
                   Kostenlos, professionell, erfolgreich.
                 </div>
 
-                {/* DYD channels */}
                 <div className="mb-5">
                   <p className="text-[10px] font-black uppercase tracking-widest text-white/30 mb-2.5">DYD</p>
                   <div className="flex items-center gap-3">
@@ -1757,7 +1901,6 @@ export default function LandingPage() {
                   </div>
                 </div>
 
-                {/* Harmony Festival channels */}
                 <div>
                   <p className="text-[10px] font-black uppercase tracking-widest text-white/30 mb-2.5">Harmony Festival</p>
                   <div className="flex items-center gap-3">
@@ -1793,22 +1936,28 @@ export default function LandingPage() {
                 <h4 className="font-bold mb-4 text-white">Produkt</h4>
                 <div className="space-y-3 text-white/60 text-sm">
                   <button
-                    onClick={() => scrollToId('prozess')}
+                    onClick={() => goWithFollowGate('/cv-check')}
                     className="block hover:text-[#66c0b6] transition-colors text-left"
                   >
-                    So funktioniert&apos;s
+                    CV-Check – kostenlos
+                  </button>
+                  <button
+                    onClick={() => navigate(user ? '/dashboard' : '/login?redirect=/dashboard')}
+                    className="block hover:text-[#66c0b6] transition-colors text-left"
+                  >
+                    Bewerbermanagement – kostenlos
+                  </button>
+                  <button
+                    onClick={() => scrollToId('career-academy')}
+                    className="block hover:text-[#66c0b6] transition-colors text-left"
+                  >
+                    Career Academy
                   </button>
                   <button
                     onClick={() => scrollToId('preise')}
                     className="block hover:text-[#66c0b6] transition-colors text-left"
                   >
                     Preise
-                  </button>
-                  <button
-                    onClick={() => goWithFollowGate('/cv-check')}
-                    className="block hover:text-[#66c0b6] transition-colors text-left"
-                  >
-                    CV-Check starten
                   </button>
                 </div>
               </nav>
@@ -1850,7 +1999,6 @@ export default function LandingPage() {
           </div>
         </footer>
 
-        {/* Floating Action Button */}
         <motion.div
           className="fixed bottom-8 right-8 z-50"
           initial={{ scale: 0, rotate: -180 }}
@@ -1876,25 +2024,19 @@ export default function LandingPage() {
               animate={{ rotate: [0, 360] }}
               transition={{ duration: 3, repeat: Infinity, ease: 'linear' }}
             />
-            <motion.div
-              animate={{ rotate: [0, 360] }}
-              transition={{ duration: 20, repeat: Infinity, ease: 'linear' }}
-            >
-              <Rocket className="w-7 h-7 text-black relative z-10" />
-            </motion.div>
+            <Upload className="w-6 h-6 text-black relative z-10" />
           </motion.button>
           <motion.div
-            className="absolute -top-2 -right-2 w-5 h-5 bg-red-500 rounded-full flex items-center justify-center text-xs font-bold text-white border-2 border-[#050507]"
+            className="absolute -top-2 -right-2 px-2 py-0.5 bg-[#66c0b6] rounded-full text-black text-[9px] font-black whitespace-nowrap border-2 border-[#050507]"
             animate={{
-              scale: [1, 1.2, 1],
+              scale: [1, 1.1, 1],
             }}
-            transition={{ duration: 1, repeat: Infinity }}
+            transition={{ duration: 1.5, repeat: Infinity }}
           >
-            <Sparkles className="w-3 h-3" />
+            KOSTENLOS
           </motion.div>
         </motion.div>
 
-        {/* Scroll to top button */}
         <motion.button
           className="fixed bottom-8 left-8 z-50 w-12 h-12 rounded-full bg-white/10 backdrop-blur-xl border border-white/20 flex items-center justify-center hover:bg-white/20 transition-all"
           initial={{ opacity: 0, y: 20 }}
