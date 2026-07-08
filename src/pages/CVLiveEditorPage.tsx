@@ -674,6 +674,24 @@ export function CVLiveEditorPage() {
         const professionalEduItems = findArray(['professionalEducation', 'professional_education']);
         const basicEduItems = findArray(['education', 'cv_education']);
 
+// 🔥 HIER FEHLTE DIE DEFINITION: Die Arrays zusammenführen
+const allEduItems = [...schoolEduItems, ...professionalEduItems, ...basicEduItems];
+
+const allEduItemsMapped = allEduItems.map((edu: any) => ({
+  degree: edu.degree || edu.title || edu.qualification || edu.type || '',
+  institution: edu.institution || edu.school || edu.university || '',
+  date_from: formatDate(edu.date_from || edu.startDate || edu.startYear || ''),
+  date_to: formatDate(edu.date_to || edu.endDate || edu.endYear || edu.year || ''),
+  location: edu.location || edu.ort || '',
+  // FIX: focus als description, ABER auch grade separat übergeben
+  description: edu.description
+    || (Array.isArray(edu.focus) ? edu.focus.join(', ') : edu.focus)
+    || '',
+  grade: edu.grade || edu.grades || edu.note || edu.gpa || '',
+  // FIX: focus auch direkt übergeben, damit Templates es per edu.focus lesen können
+  focus: Array.isArray(edu.focus) ? edu.focus : [],
+}));
+
         const allEduItemsMapped = allEduItems.map((edu: any) => ({
   degree: edu.degree || edu.title || edu.qualification || edu.type || '',
   institution: edu.institution || edu.school || edu.university || '',
