@@ -2236,28 +2236,21 @@ export default function HarmonyFestivalPage() {
 
             {/* EINZELTICKETS */}
             <div className="space-y-3 mb-6">
-  {SINGLE_TICKETS.map((ticket, i) => (
-    // HIER: Das "return (" wurde entfernt, da die obige Klammer bereits den Return einleitet!
-    <React.Fragment key={ticket.id}>
-      <motion.div initial={{ opacity: 0, x: -12 }} whileInView={{ opacity: 1, x: 0 }} viewport={{ once: true }}
-        transition={{ duration: 0.4, delay: i * 0.06 }}
-        className="tr-card"
-        style={{
-          '--ticket-accent': ticket.accent,
-          '--ticket-accent-alpha': ticket.accentAlpha,
-          '--ticket-accent-shadow': ticket.accentShadow,
-        } as React.CSSProperties}>
-        <div className="relative z-10 flex flex-col sm:flex-row sm:items-center gap-4 sm:gap-6 w-full px-6 py-5">
-          <div className="hidden sm:flex flex-shrink-0 w-10 h-10 rounded-xl items-center justify-center"
-            style={{ background: `${ticket.accent}12`, border: `1px solid ${ticket.accent}22` }}>
-            <span style={{ fontFamily: "'Bebas Neue', sans-serif", fontSize: '18px', color: ticket.accent, lineHeight: 1 }}>{String(i + 2).padStart(2, '0')}</span>
-          </div>
-          {/* ... Rest deines Codes ... */}
-        </div>
-      </motion.div>
-    </React.Fragment>
-  ))} {/* HIER: Schließen der map-Funktion */}
-</div>
+              {SINGLE_TICKETS.map((ticket, i) => (
+                  <React.Fragment key={ticket.id}>
+                    <motion.div initial={{ opacity: 0, x: -12 }} whileInView={{ opacity: 1, x: 0 }} viewport={{ once: true }}
+                      transition={{ duration: 0.4, delay: i * 0.06 }}
+                      className="tr-card"
+                      style={{
+                        '--ticket-accent': ticket.accent,
+                        '--ticket-accent-alpha': ticket.accentAlpha,
+                        '--ticket-accent-shadow': ticket.accentShadow,
+                      } as React.CSSProperties}>
+                      <div className="relative z-10 flex flex-col sm:flex-row sm:items-center gap-4 sm:gap-6 w-full px-6 py-5">
+                        <div className="hidden sm:flex flex-shrink-0 w-10 h-10 rounded-xl items-center justify-center"
+                          style={{ background: `${ticket.accent}12`, border: `1px solid ${ticket.accent}22` }}>
+                          <span style={{ fontFamily: "'Bebas Neue', sans-serif", fontSize: '18px', color: ticket.accent, lineHeight: 1 }}>{String(i + 2).padStart(2, '0')}</span>
+                        </div>
 
                         <div className="flex-1 min-w-0">
                           <div className="flex items-center gap-2 flex-wrap mb-1">
