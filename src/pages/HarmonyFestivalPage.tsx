@@ -74,7 +74,7 @@ marketPrice: null,   // war: compareAt: 43.50  ← das war die eigene Summe, kei
     priceId: import.meta.env.VITE_STRIPE_HARMONY_STANDUP,
     label: 'Stand-Up Comedy',
     price: 17.50,
-    marketPrice: 28;
+    marketPrice: 28,
     description: 'Kevin Küster, Larissa Magnus, Alex Graf, Jahn Boie, Leon Blokesch & Julian Deters – frisch, direkt, aus der lokalen Szene.',
     badge: null,
     perk: '',
@@ -88,7 +88,7 @@ marketPrice: null,   // war: compareAt: 43.50  ← das war die eigene Summe, kei
     priceId: import.meta.env.VITE_STRIPE_HARMONY_BIERPONG,
     label: 'Bierpong-Turnier',
     price: 10.00,
-    marketPrice: 18;
+    marketPrice: 18,
     description: 'Das Turnier läuft für alle – Musik, Stimmung & Drinks inklusive. Wer als Team aktiv mitspielen will, sichert sich hier seinen Startplatz.',
     badge: 'LIMITIERT',
     perk: 'Gewinnen = den ganzen Abend free trinken',
@@ -102,7 +102,7 @@ marketPrice: null,   // war: compareAt: 43.50  ← das war die eigene Summe, kei
     priceId: import.meta.env.VITE_STRIPE_HARMONY_CONCERT,
     label: 'Live Konzert Zirkel.WTF',
     price: 17.50,
-    marketPrice: 32;
+    marketPrice: 32,
     description: 'Norddeutschlands Pop-Punk-Hoffnung hautnah. Moderne Beats, Skater-Vibe, ehrliche Texte.',
     badge: null,
     perk: '',
@@ -116,7 +116,7 @@ marketPrice: null,   // war: compareAt: 43.50  ← das war die eigene Summe, kei
     priceId: import.meta.env.VITE_STRIPE_HARMONY_DJ,
     label: 'DJ Sets House / Techno',
     price: 8.50,
-    marketPrice: 15;
+    marketPrice: 15,
     description: 'Justyn Maxx & Vio Leen – House & Techno bis in den Morgen.',
     badge: null,
     perk: '',
