@@ -165,7 +165,6 @@ const pctOff = (price: number, market: number) => Math.floor(((market - price) /
 const HERO_PCT = pctOff(HERO.price, HERO_MARKET); // 46
 
 const MAX_PCT = Math.max(
-  HERO_PCT,
   ...SINGLE_TICKETS.filter(t => t.marketPrice).map(t => pctOff(t.price, t.marketPrice!)),
 ); // 46
 
