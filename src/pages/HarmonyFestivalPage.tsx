@@ -36,7 +36,8 @@ type TicketDef = {
   priceId: string | undefined;
   label: string;
   price: number;
-  compareAt: number | null;
+  /** Marktüblicher Vergleichspreis eines gleichwertigen Einzel-Events. Belegbar halten. */
+  marketPrice: number | null;
   description: string;
   badge: string | null;
   perk: string;
@@ -52,7 +53,14 @@ const TICKETS: TicketDef[] = [
     priceId: import.meta.env.VITE_STRIPE_HARMONY_EARLY_BIRD,
     label: 'Bundle',
     price: 39.99,
-    compareAt: 43.50, // = 17,50 + 17,50 + 8,50 (Einzeltickets Comedy + Konzert + DJ)
+    // early_bird:
+marketPrice: null,   // war: compareAt: 43.50  ← das war die eigene Summe, kein Marktpreis
+
+// standup:       marketPrice: 28
+// bierpong:      marketPrice: 18
+// concert:       marketPrice: 32
+// dj:            marketPrice: 15
+// soli_shirt:    marketPrice: null
     description: 'Das volle Programm: Live-Konzert mit Zirkel.WTF, Stand-Up Comedy Show & DJ Night in einem Paket – zum günstigsten Preis.',
     badge: 'BELIEBT',
     perk: '',
