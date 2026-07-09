@@ -1416,7 +1416,7 @@ export default function HarmonyFestivalPage() {
               </motion.button>
             </div>
             <p style={{ fontFamily: "'Inter', sans-serif", fontSize: '13px', color: 'rgba(160,210,210,0.45)', marginTop: '14px' }}>
-              Einzeltickets ab {eur(CHEAPEST_SINGLE)} · Bundle spart {eur(HERO_SAVINGS)} gegenüber Einzelkauf
+              Einzeltickets ab {eur(CHEAPEST_SINGLE)} · Bundle spart {eur(HERO_MARKET_SAVINGS)} gegenüber Einzelkauf
             </p>
           </motion.div>
         </div>
