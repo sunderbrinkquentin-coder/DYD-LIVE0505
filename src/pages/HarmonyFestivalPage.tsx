@@ -986,7 +986,7 @@ export default function HarmonyFestivalPage() {
       priceId: import.meta.env.VITE_STRIPE_HARMONY_SUPPORT,
       label: 'Community Support',
       price: 0,
-      marketPrice: number | null;
+      marketPrice: number | null,
       description: '',
       badge: null,
       perk: '',
