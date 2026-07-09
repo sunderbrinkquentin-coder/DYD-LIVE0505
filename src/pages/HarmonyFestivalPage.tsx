@@ -2082,22 +2082,7 @@ export default function HarmonyFestivalPage() {
                   </div>
 
                   {/* Preisblock: Vergleichspreis berechnet, nicht hardcodiert */}
-                  <div className="flex-shrink-0 sm:text-right">
-                    {HERO.compareAt && (
-                      <div className="flex items-center sm:justify-end gap-2 mb-1 flex-wrap">
-                        <span className="price-old" style={{ fontSize: '12px' }}>{eur(HERO.compareAt)}</span>
-                        <span className="save-pill px-2 py-0.5"
-                          style={{ fontSize: '11px', background: 'rgba(0,160,160,0.1)', color: 'rgba(0,185,185,0.85)', border: '1px solid rgba(0,160,160,0.25)' }}>
-                          −{eur(HERO_SAVINGS)} sparen
-                        </span>
-                      </div>
-                    )}
-                    <div style={{ fontFamily: "'Inter', sans-serif", fontSize: '10px', fontWeight: 600, letterSpacing: '0.22em', textTransform: 'uppercase', color: 'rgba(0,175,175,0.35)', marginBottom: '2px' }}>Bundlepreis</div>
-                    <span className="price-num" style={{ fontSize: 'clamp(36px, 6vw, 58px)', color: '#00c8c8', lineHeight: 1 }}>
-                      {eur(HERO.price)}
-                    </span>
-                  </div>
-                </div>
+<HeroPriceBlock />
 
                 <div className="flex flex-wrap gap-2 mb-4">
                   {[
