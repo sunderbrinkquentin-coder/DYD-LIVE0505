@@ -2178,8 +2178,6 @@ export default function HarmonyFestivalPage() {
     </strong>
   </span>
 )}
-                      )}
-                    </span>
                   )}
                 </div>
 
