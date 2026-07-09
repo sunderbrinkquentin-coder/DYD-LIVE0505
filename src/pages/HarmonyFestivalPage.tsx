@@ -2400,6 +2400,53 @@ useEffect(() => {
                       </div>
                       
                       {/* Bundle Preis & Ersparnis im Vordergrund */}
+                      {/* ── BUNDLE HIGHLIGHT & SINGLE TICKETS LIST ── */}
+            <div className="space-y-3 mb-6">
+              
+              {/* 1. DER GROSSE HERO BUNDLE BEREICH (MAXIMALE CONVERSION & VALUE FRAMING) */}
+              {(() => {
+                const bundle = TICKETS[0];
+                if (!bundle) return null;
+                
+                const marketPrice = 70.00; // Konzert (30) + Stand-Up (25) + DJ (15)
+                const savingsEuro = marketPrice - bundle.price;
+                const savingsPercent = Math.round((savingsEuro / marketPrice) * 100);
+
+                return (
+                  <motion.div initial={{ opacity: 0, y: 15 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }}
+                    transition={{ duration: 0.5 }}
+                    className="tr-card mb-6"
+                    style={{
+                      '--ticket-accent': '#00ffff',
+                      '--ticket-accent-alpha': 'rgba(0,255,255,0.1)',
+                      '--ticket-accent-shadow': 'rgba(0,255,255,0.25)',
+                      border: '2px solid #00ffff',
+                      boxShadow: '0 0 25px rgba(0,255,255,0.15)'
+                    } as React.CSSProperties}>
+                    <div className="relative z-10 flex flex-col md:flex-row md:items-center gap-4 sm:gap-6 w-full px-6 py-5">
+                      
+                      {/* Label + Content */}
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-2 flex-wrap mb-1">
+                          <span className="px-2 py-0.5 rounded text-black font-black text-[10px] tracking-wider uppercase bg-[#00ffff] animate-pulse">
+                            MEISTGEWÄHLT
+                          </span>
+                          <h3 className="graffiti" style={{ fontSize: 'clamp(22px, 3vw, 32px)', color: '#fff', lineHeight: 1 }}>{bundle.label}</h3>
+                        </div>
+                        <p style={{ fontFamily: "'Inter', sans-serif", fontSize: '13px', color: 'rgba(180,230,230,0.7)', lineHeight: 1.5 }}>{bundle.description}</p>
+                        
+                        {/* Brutal transparentes Value-Framing */}
+                        <div className="mt-3 px-3 py-2 rounded-lg bg-black/40 border border-cyan-500/20 inline-block">
+                          <span style={{ fontFamily: "'Inter', sans-serif", fontSize: '12px', fontWeight: 700, color: '#00ffff' }}>
+                            🔥 Das unschlagbare Düsseldorf-Bundle beinhaltet:
+                          </span>
+                          <div className="text-white/60 text-xs mt-1 space-x-2">
+                            <span>Konzert (Wert 30€)</span> • <span>Stand-Up Comedy (Wert 25€)</span> • <span>DJ Session (Wert 15€)</span>
+                          </div>
+                        </div>
+                      </div>
+                      
+                      {/* Bundle Preis & Ersparnis im Vordergrund */}
                       <div className="flex-shrink-0 flex flex-col items-end justify-center gap-1 pl-0 md:pl-4 pt-3 md:pt-0"
                         style={{ borderLeft: typeof window !== 'undefined' && window.innerWidth > 768 ? '1px solid rgba(255,255,255,0.05)' : 'none', minWidth: '170px' }}>
                         
