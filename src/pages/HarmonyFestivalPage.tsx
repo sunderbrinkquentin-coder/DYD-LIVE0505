@@ -2235,37 +2235,50 @@ export default function HarmonyFestivalPage() {
             </div>
 
             {/* EINZELTICKETS */}
-          <div className="space-y-3 mb-6">
+{/* EINZELTICKETS */}
+<div className="space-y-3 mb-6">
   {SINGLE_TICKETS.map((ticket, i) => (
     <React.Fragment key={ticket.id}>
-      <motion.div initial={{ opacity: 0, x: -12 }} whileInView={{ opacity: 1, x: 0 }} viewport={{ once: true }}
+      <motion.div 
+        initial={{ opacity: 0, x: -12 }} 
+        whileInView={{ opacity: 1, x: 0 }} 
+        viewport={{ once: true }}
         transition={{ duration: 0.4, delay: i * 0.06 }}
         className="tr-card"
         style={{
           '--ticket-accent': ticket.accent,
           '--ticket-accent-alpha': ticket.accentAlpha,
           '--ticket-accent-shadow': ticket.accentShadow,
-        } as React.CSSProperties}>
+        } as React.CSSProperties}
+      >
         <div className="relative z-10 flex flex-col sm:flex-row sm:items-center gap-4 sm:gap-6 w-full px-6 py-5">
           
           {/* Linker Block: Ticket-Nummer */}
-          <div className="hidden sm:flex flex-shrink-0 w-10 h-10 rounded-xl items-center justify-center"
-            style={{ background: `${ticket.accent}12`, border: `1px solid ${ticket.accent}22` }}>
-            <span style={{ fontFamily: "'Bebas Neue', sans-serif", fontSize: '18px', color: ticket.accent, lineHeight: 1 }}>{String(i + 2).padStart(2, '0')}</span>
+          <div 
+            className="hidden sm:flex flex-shrink-0 w-10 h-10 rounded-xl items-center justify-center"
+            style={{ background: `${ticket.accent}12`, border: `1px solid ${ticket.accent}22` }}
+          >
+            <span style={{ fontFamily: "'Bebas Neue', sans-serif", fontSize: '18px', color: ticket.accent, lineHeight: 1 }}>
+              {String(i + 2).padStart(2, '0')}
+            </span>
           </div>
 
           {/* Mittlerer Block: Titel, Badges & Beschreibung */}
           <div className="flex-1 min-w-0">
             <div className="flex items-center gap-2 flex-wrap mb-1">
-              <h3 className="graffiti" style={{ fontSize: 'clamp(17px, 2.2vw, 22px)', color: '#fff', lineHeight: 1 }}>{ticket.label}</h3>
+              <h3 className="graffiti" style={{ fontSize: 'clamp(17px, 2.2vw, 22px)', color: '#fff', lineHeight: 1 }}>
+                {ticket.label}
+              </h3>
               {ticket.badge && (
                 <span className="sticker" style={{ backgroundColor: ticket.accent, color: '#080c10', fontSize: '9px', padding: '2px 8px' }}>
                   {ticket.badge}
                 </span>
               )}
               {ticket.time && (
-                <div className="flex items-center gap-1 px-2.5 py-1 rounded-full"
-                  style={{ background: `${ticket.accent}18`, border: `1px solid ${ticket.accent}40` }}>
+                <div 
+                  className="flex items-center gap-1 px-2.5 py-1 rounded-full"
+                  style={{ background: `${ticket.accent}18`, border: `1px solid ${ticket.accent}40` }}
+                >
                   <Clock className="w-3 h-3 flex-shrink-0" style={{ color: ticket.accent }} />
                   <span style={{ fontFamily: "'Bebas Neue', sans-serif", fontSize: '13px', color: ticket.accent, letterSpacing: '0.1em', lineHeight: 1 }}>
                     {ticket.time}
@@ -2273,17 +2286,23 @@ export default function HarmonyFestivalPage() {
                 </div>
               )}
             </div>
-            <p style={{ fontFamily: "'Inter', sans-serif", fontSize: '12px', color: 'rgba(180,210,210,0.48)', lineHeight: 1.55 }}>{ticket.description}</p>
+            <p style={{ fontFamily: "'Inter', sans-serif", fontSize: '12px', color: 'rgba(180,210,210,0.48)', lineHeight: 1.55 }}>
+              {ticket.description}
+            </p>
             {ticket.perk && (
-              <div className="mt-2 inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg"
-                style={{ background: ticket.accentAlpha, border: `1px solid ${ticket.accent}25` }}>
+              <div 
+                className="mt-2 inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg"
+                style={{ background: ticket.accentAlpha, border: `1px solid ${ticket.accent}25` }}
+              >
                 <Trophy className="w-3 h-3 flex-shrink-0" style={{ color: ticket.accent }} />
-                <span style={{ fontFamily: "'Inter', sans-serif", fontSize: '11px', fontWeight: 600, color: ticket.accent }}>{ticket.perk}</span>
+                <span style={{ fontFamily: "'Inter', sans-serif", fontSize: '11px', fontWeight: 600, color: ticket.accent }}>
+                  {ticket.perk}
+                </span>
               </div>
             )}
           </div>
 
-          {/* RECHTER BLOCK (Anforderung b): Komplett ersetzt durch SinglePriceBlock */}
+          {/* RECHTER BLOCK: Komplett ersetzt durch SinglePriceBlock */}
           <SinglePriceBlock  
             ticket={ticket}  
             qty={quantities[ticket.id]}  
@@ -2296,10 +2315,14 @@ export default function HarmonyFestivalPage() {
       </motion.div>
 
       {ticket.id === 'bierpong' && (
-        <div className="flex items-start gap-3 px-5 py-4 rounded-2xl"
-          style={{ background: 'rgba(185,215,55,0.05)', border: '1px solid rgba(185,215,55,0.18)' }}>
-          <div className="flex-shrink-0 w-7 h-7 rounded-lg flex items-center justify-center mt-0.5"
-            style={{ background: 'rgba(185,215,55,0.12)', border: '1px solid rgba(185,215,55,0.25)' }}>
+        <div 
+          className="flex items-start gap-3 px-5 py-4 rounded-2xl"
+          style={{ background: 'rgba(185,215,55,0.05)', border: '1px solid rgba(185,215,55,0.18)' }}
+        >
+          <div 
+            className="flex-shrink-0 w-7 h-7 rounded-lg flex items-center justify-center mt-0.5"
+            style={{ background: 'rgba(185,215,55,0.12)', border: '1px solid rgba(185,215,55,0.25)' }}
+          >
             <Trophy className="w-3.5 h-3.5" style={{ color: 'rgba(200,232,64,0.9)' }} />
           </div>
           <div>
@@ -2315,7 +2338,6 @@ export default function HarmonyFestivalPage() {
     </React.Fragment>
   ))}
 </div>
-
             {loadingId !== null && showSlowHint && (
               <p className="text-center mt-2 mb-4" style={{ fontFamily: "'Inter', sans-serif", fontSize: '12px', color: 'rgba(160,200,200,0.35)', letterSpacing: '0.05em' }}>
                 Beim ersten Mal kann das etwas länger dauern…
