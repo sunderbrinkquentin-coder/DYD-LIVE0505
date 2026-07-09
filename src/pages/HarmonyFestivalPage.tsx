@@ -130,7 +130,7 @@ marketPrice: null,   // war: compareAt: 43.50  ← das war die eigene Summe, kei
     priceId: import.meta.env.VITE_STRIPE_HARMONY_SOLI_SHIRT,
     label: 'Soli-Shirt',
     price: 25.00,
-    marketPrice: number | null;
+    marketPrice: number | null,
     description: '100% Gewinn an KeinBockAufNazis e.V.',
     badge: 'SOLI',
     perk: '',
