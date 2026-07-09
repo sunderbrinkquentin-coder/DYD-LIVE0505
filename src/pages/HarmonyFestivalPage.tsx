@@ -2235,7 +2235,7 @@ export default function HarmonyFestivalPage() {
             </div>
 
             {/* EINZELTICKETS */}
-           <div className="space-y-3 mb-6">
+          <div className="space-y-3 mb-6">
   {SINGLE_TICKETS.map((ticket, i) => (
     <React.Fragment key={ticket.id}>
       <motion.div initial={{ opacity: 0, x: -12 }} whileInView={{ opacity: 1, x: 0 }} viewport={{ once: true }}
@@ -2247,11 +2247,14 @@ export default function HarmonyFestivalPage() {
           '--ticket-accent-shadow': ticket.accentShadow,
         } as React.CSSProperties}>
         <div className="relative z-10 flex flex-col sm:flex-row sm:items-center gap-4 sm:gap-6 w-full px-6 py-5">
+          
+          {/* Linker Block: Ticket-Nummer */}
           <div className="hidden sm:flex flex-shrink-0 w-10 h-10 rounded-xl items-center justify-center"
             style={{ background: `${ticket.accent}12`, border: `1px solid ${ticket.accent}22` }}>
             <span style={{ fontFamily: "'Bebas Neue', sans-serif", fontSize: '18px', color: ticket.accent, lineHeight: 1 }}>{String(i + 2).padStart(2, '0')}</span>
           </div>
 
+          {/* Mittlerer Block: Titel, Badges & Beschreibung */}
           <div className="flex-1 min-w-0">
             <div className="flex items-center gap-2 flex-wrap mb-1">
               <h3 className="graffiti" style={{ fontSize: 'clamp(17px, 2.2vw, 22px)', color: '#fff', lineHeight: 1 }}>{ticket.label}</h3>
@@ -2280,39 +2283,15 @@ export default function HarmonyFestivalPage() {
             )}
           </div>
 
-          <div className="flex-shrink-0 flex flex-col items-start sm:items-end gap-2 sm:pl-4"
-            style={{ borderLeft: '1px solid rgba(255,255,255,0.05)' }}>
-            
-            {/* HIER: Die neue Komponente berechnet Rabatt & Old-Price nun autonom */}
-            <SinglePriceBlock 
-              price={eur(ticket.price)} 
-              oldPrice={ticket.compareAt ? eur(ticket.compareAt) : undefined}
-              discountPct={ticket.compareAt ? Math.round(((ticket.compareAt - ticket.price) / ticket.compareAt) * 100) : undefined}
-            />
+          {/* RECHTER BLOCK (Anforderung b): Komplett ersetzt durch SinglePriceBlock */}
+          <SinglePriceBlock  
+            ticket={ticket}  
+            qty={quantities[ticket.id]}  
+            onQty={d => updateQty(ticket.id, d)}  
+            onBuy={() => handleBuy(ticket)}  
+            loadingId={loadingId}
+          />
 
-            <div className="flex items-center gap-2 my-1">
-              <button type="button" className="qty-btn" aria-label="Weniger" onClick={e => { e.stopPropagation(); updateQty(ticket.id, -1); }}
-                style={{ color: ticket.accent, fontSize: '18px', opacity: (quantities[ticket.id] || 0) <= 1 ? 0.3 : 1 }}>-</button>
-              <span style={{ fontFamily: "'Bebas Neue', sans-serif", fontSize: '18px', color: '#fff', minWidth: '20px', textAlign: 'center' }}>
-                {quantities[ticket.id] || 0}
-              </span>
-              <button type="button" className="qty-btn" aria-label="Mehr" onClick={e => { e.stopPropagation(); updateQty(ticket.id, 1); }}
-                style={{ color: ticket.accent, fontSize: '18px', opacity: (quantities[ticket.id] || 0) >= 10 ? 0.3 : 1 }}>+</button>
-            </div>
-
-            <motion.button whileHover={{ scale: 1.05, filter: 'brightness(1.1)' }} whileTap={{ scale: 0.95 }}
-              onClick={() => handleBuy(ticket)} disabled={loadingId !== null}
-              className="flex items-center gap-1.5 px-4 py-2 rounded-xl disabled:opacity-40 disabled:cursor-not-allowed whitespace-nowrap"
-              style={{
-                background: ticket.accent, color: '#060c0c',
-                fontFamily: "'Bebas Neue', sans-serif", fontSize: '13px', letterSpacing: '0.16em',
-                border: 'none', boxShadow: `0 2px 12px ${ticket.accentShadow}`,
-              }}>
-              {loadingId === ticket.id
-                ? <><Loader2 className="w-3.5 h-3.5 animate-spin" />Laden</>
-                : <>Ticket sichern<ArrowRight className="w-3.5 h-3.5" /></>}
-            </motion.button>
-          </div>
         </div>
       </motion.div>
 
