@@ -2178,6 +2178,9 @@ export default function HarmonyFestivalPage() {
     </strong>
   </span>
 )}
+                      )}
+                    </span>
+                  )}
                 </div>
 
                 <motion.button whileHover={{ scale: 1.015 }} whileTap={{ scale: 0.97 }}
