@@ -589,7 +589,64 @@ function ConsentBox({ checked, onChange, color, children }: {
     </label>
   );
 }
+/* ------------------------------------------------------------------ */
+/* Patch-File Komponenten                                            */
+/* ------------------------------------------------------------------ */
 
+interface PriceBlockProps {
+  price: string | number;
+  oldPrice?: string | number;
+  discountPct?: number;
+  label?: string;
+}
+
+// 1. SavingsBand Komponente
+function SavingsBand({ price, oldPrice, discountPct }: PriceBlockProps) {
+  return (
+    <div className="savings-band">
+      <div className="stat-cell">
+        <span className="stat-label">Du sparst</span>
+        <span className="stat-value">{discountPct}%</span>
+      </div>
+      <div className="stat-cell">
+        <span className="stat-label">Statt</span>
+        <span className="price-old">{oldPrice}</span>
+      </div>
+      {discountPct && discountPct > 20 && (
+        <span className="pct-badge">Mega Deal</span>
+      )}
+    </div>
+  );
+}
+
+// 2. HeroPriceBlock Komponente (für prominente Platzierung)
+function HeroPriceBlock({ price, oldPrice, discountPct, label }: PriceBlockProps) {
+  return (
+    <div className="flex flex-col items-center justify-center p-4">
+      {label && <span className="tag-label mb-1">{label}</span>}
+      <div className="flex items-baseline gap-3">
+        {oldPrice && <span className="price-old text-lg">{oldPrice}</span>}
+        <span className="price-num text-4xl font-bold">{price}</span>
+      </div>
+      {discountPct && (
+        <div className="ribbon mt-2">-{discountPct}% RABATT</div>
+      )}
+    </div>
+  );
+}
+
+// 3. SinglePriceBlock Komponente (für Standard-Karten)
+function SinglePriceBlock({ price, oldPrice, discountPct }: PriceBlockProps) {
+  return (
+    <div className="flex items-center gap-2">
+      <span className="price-num text-2xl">{price}</span>
+      {oldPrice && <span className="price-old text-sm">{oldPrice}</span>}
+      {discountPct && <span className="pct-badge">-{discountPct}%</span>}
+    </div>
+  );
+}
+
+}
 /* ------------------------------------------------------------------ */
 /*  Hauptkomponente                                                    */
 /* ------------------------------------------------------------------ */
