@@ -2344,7 +2344,6 @@ export default function HarmonyFestivalPage() {
                       </div>
                     )}
                   </React.Fragment>
-                );
               })}
             </div>
 
