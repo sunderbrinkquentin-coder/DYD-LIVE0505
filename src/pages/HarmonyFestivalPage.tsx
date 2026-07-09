@@ -2084,7 +2084,7 @@ export default function HarmonyFestivalPage() {
                   {/* Preisblock: Vergleichspreis berechnet, nicht hardcodiert */}
                   <div className="flex-shrink-0 sm:text-right">
  <HeroPriceBlock />
-                    )}
+                    )
                     <div style={{ fontFamily: "'Inter', sans-serif", fontSize: '10px', fontWeight: 600, letterSpacing: '0.22em', textTransform: 'uppercase', color: 'rgba(0,175,175,0.35)', marginBottom: '2px' }}>Bundlepreis</div>
                     <span className="price-num" style={{ fontSize: 'clamp(36px, 6vw, 58px)', color: '#00c8c8', lineHeight: 1 }}>
                       {eur(HERO.price)}
