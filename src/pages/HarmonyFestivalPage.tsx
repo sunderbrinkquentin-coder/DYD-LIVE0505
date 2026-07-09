@@ -969,10 +969,16 @@ export default function HarmonyFestivalPage() {
   return (
     <div className="min-h-screen relative overflow-x-hidden" style={{ backgroundColor: C.bg, color: '#fff' }}>
 
-      <style>{`
+<style>{`
         @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Barlow+Condensed:ital,wght@0,400;0,600;0,700;0,900;1,700;1,900&family=Bebas+Neue&display=swap');
 
         @keyframes hfProgress { from { width: 0%; } to { width: 100%; } }
+        
+        @keyframes hfPulse {
+          0% { transform: scale(1); box-shadow: 0 0 0 0 rgba(0,212,212,0.4); }
+          70% { transform: scale(1.05); box-shadow: 0 0 0 8px rgba(0,212,212,0); }
+          100% { transform: scale(1); box-shadow: 0 0 0 0 rgba(0,212,212,0); }
+        }
 
         .hf-scroll-x { scrollbar-width: none; -ms-overflow-style: none; }
         .hf-scroll-x::-webkit-scrollbar { display: none; }
@@ -1039,14 +1045,45 @@ export default function HarmonyFestivalPage() {
           font-family: 'Bebas Neue', 'Barlow Condensed', sans-serif;
           font-weight: 400; letter-spacing: 0.02em; line-height: 1;
         }
+        
+        /* --- PATCH EXTRA_CSS START --- */
+        .savings-band {
+          display: flex; align-items: center; justify-content: space-between;
+          background: rgba(0,212,212,0.06); padding: 6px 12px; border-radius: 8px;
+          border: 1px solid rgba(0,212,212,0.15); margin: 12px 0;
+        }
+        .pct-mega {
+          font-family: 'Bebas Neue', sans-serif; font-size: 2.2rem;
+          font-weight: 400; color: #fff; line-height: 1; letter-spacing: 0.02em;
+        }
+        .stat-cell {
+          display: flex; flex-direction: column; padding: 0 16px;
+          border-right: 1px solid rgba(0,212,212,0.15);
+        }
+        .stat-cell:last-child { border-right: none; }
+        .stat-label {
+          font-family: 'Barlow Condensed', sans-serif; font-size: 11px;
+          text-transform: uppercase; color: rgba(180,210,210,0.5); letter-spacing: 0.15em;
+        }
+        .stat-value {
+          font-family: 'Inter', sans-serif; font-size: 14px; font-weight: 700; color: #fff;
+        }
+        .pct-badge {
+          font-family: 'Inter', sans-serif; font-weight: 700; font-size: 12px;
+          letter-spacing: 0.04em; border-radius: 6px; white-space: nowrap;
+          padding: 4px 8px; background: ${C.cyan}; color: #080c10;
+          animation: hfPulse 2s infinite;
+        }
         .price-old {
           font-family: 'Inter', sans-serif; text-decoration: line-through;
           color: rgba(180,210,210,0.38); letter-spacing: 0.02em;
         }
-        .save-pill {
-          font-family: 'Inter', sans-serif; font-weight: 700;
-          letter-spacing: 0.06em; border-radius: 6px; white-space: nowrap;
+        .ribbon {
+          position: relative; background: linear-gradient(135deg, ${C.cyan} 0%, ${C.blue} 100%);
+          color: #080c10; padding: 2px 6px; font-family: 'Barlow Condensed', sans-serif;
+          font-weight: 700; font-size: 11px; text-transform: uppercase; letter-spacing: 0.05em;
         }
+        /* --- PATCH EXTRA_CSS END --- */
 
         .tr-card {
           background: rgba(10,16,22,0.9);
