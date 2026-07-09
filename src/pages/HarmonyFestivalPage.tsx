@@ -2102,7 +2102,7 @@ export default function HarmonyFestivalPage() {
                       <item.icon className="w-3.5 h-3.5 flex-shrink-0" style={{ color: 'rgba(180,220,220,0.6)' }} />
                       <span style={{ fontFamily: "'Inter', sans-serif", fontSize: '12px', fontWeight: 500, color: 'rgba(190,220,220,0.65)' }}>{item.label}</span>
                     </div>
-                  )
+                  )}
                   <div className="flex items-center gap-2 px-3.5 py-2 rounded-full"
                     style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.07)' }}>
                     <CheckCircle className="w-3.5 h-3.5 flex-shrink-0" style={{ color: 'rgba(160,210,210,0.4)' }} />
