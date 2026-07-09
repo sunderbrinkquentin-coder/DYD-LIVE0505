@@ -2159,26 +2159,41 @@ export default function HarmonyFestivalPage() {
                 </div>
 
                 <div className="flex items-center gap-4 mb-4 flex-wrap">
-                  <span style={{ fontFamily: "'Inter', sans-serif", fontSize: '13px', color: 'rgba(160,230,230,0.5)' }}>Anzahl Tickets</span>
-                  <div className="flex items-center gap-3 rounded-xl px-4 py-2"
-                    style={{ background: 'rgba(0,212,212,0.06)', border: '1px solid rgba(0,212,212,0.18)' }}>
-                    <button type="button" className="qty-btn" aria-label="Weniger" onClick={() => updateQty(HERO.id, -1)}
-                      style={{ color: C.cyan, fontSize: '20px', opacity: quantities[HERO.id] <= 1 ? 0.3 : 1 }}>−</button>
-                    <span style={{ fontFamily: "'Bebas Neue', sans-serif", fontSize: '22px', color: '#fff', minWidth: '24px', textAlign: 'center' }}>
-                      {quantities[HERO.id]}
-                    </span>
-                    <button type="button" className="qty-btn" aria-label="Mehr" onClick={() => updateQty(HERO.id, 1)}
-                      style={{ color: C.cyan, fontSize: '20px', opacity: quantities[HERO.id] >= 10 ? 0.3 : 1 }}>+</button>
-                  </div>
-                  {quantities[HERO.id] > 1 && (
-  <span style={{ fontFamily: "'Inter', sans-serif", fontSize: '13px', color: 'rgba(0,212,212,0.75)' }}>
-    = {eur(HERO.price * quantities[HERO.id])}
-    <strong style={{ color: '#00e0e0' }}>
-      {' · '}{eur(HERO_MARKET_SAVING * quantities[HERO.id])} gespart
-    </strong>
+  <span style={{ fontFamily: "'Inter', sans-serif", fontSize: '13px', color: 'rgba(160,230,230,0.5)' }}>
+    Anzahl Tickets
   </span>
-                  )}
-                </div>
+  
+  <div className="flex items-center gap-3 rounded-xl px-4 py-2"
+       style={{ background: 'rgba(0,212,212,0.06)', border: '1px solid rgba(0,212,212,0.18)' }}>
+    
+    {/* HIER: Normales Minus '-' genutzt und C.cyan abgesichert */}
+    <button type="button" className="qty-btn" aria-label="Weniger" 
+            onClick={() => updateQty(HERO.id, -1)}
+            style={{ color: C?.cyan || '#00d4d4', fontSize: '20px', opacity: (quantities[HERO.id] || 0) <= 1 ? 0.3 : 1 }}>
+      -
+    </button>
+    
+    {/* HIER: Fallback für quantities[HERO.id] eingebaut, falls es beim ersten Laden undefined ist */}
+    <span style={{ fontFamily: "'Bebas Neue', sans-serif", fontSize: '22px', color: '#fff', minWidth: '24px', textAlign: 'center' }}>
+      {quantities[HERO.id] || 0}
+    </span>
+    
+    <button type="button" className="qty-btn" aria-label="Mehr" 
+            onClick={() => updateQty(HERO.id, 1)}
+            style={{ color: C?.cyan || '#00d4d4', fontSize: '20px', opacity: (quantities[HERO.id] || 0) >= 10 ? 0.3 : 1 }}>
+      +
+    </button>
+  </div>
+
+  {quantities[HERO.id] > 1 && (
+    <span style={{ fontFamily: "'Inter', sans-serif", fontSize: '13px', color: 'rgba(0,212,212,0.75)' }}>
+      = {eur(HERO.price * quantities[HERO.id])}
+      <strong style={{ color: '#00e0e0' }}>
+        {' · '}{eur(HERO_MARKET_SAVING * quantities[HERO.id])} gespart
+      </strong>
+    </span>
+  )}
+</div>
 
                 <motion.button whileHover={{ scale: 1.015 }} whileTap={{ scale: 0.97 }}
                   onClick={() => handleBuy(HERO)} disabled={loadingId !== null}
