@@ -2177,7 +2177,6 @@ export default function HarmonyFestivalPage() {
       {' · '}{eur(HERO_MARKET_SAVING * quantities[HERO.id])} gespart
     </strong>
   </span>
-)}
                   )}
                 </div>
 
