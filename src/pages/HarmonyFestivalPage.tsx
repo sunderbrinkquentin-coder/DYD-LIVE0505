@@ -2237,7 +2237,6 @@ export default function HarmonyFestivalPage() {
             {/* EINZELTICKETS */}
             <div className="space-y-3 mb-6">
               {SINGLE_TICKETS.map((ticket, i) => (
-                return (
                   <React.Fragment key={ticket.id}>
                     <motion.div initial={{ opacity: 0, x: -12 }} whileInView={{ opacity: 1, x: 0 }} viewport={{ once: true }}
                       transition={{ duration: 0.4, delay: i * 0.06 }}
@@ -2260,7 +2259,7 @@ export default function HarmonyFestivalPage() {
                               <span className="sticker" style={{ backgroundColor: ticket.accent, color: '#080c10', fontSize: '9px', padding: '2px 8px' }}>
                                 {ticket.badge}
                               </span>
-                            ))}
+                            )}
                             {ticket.time && (
                               <div className="flex items-center gap-1 px-2.5 py-1 rounded-full"
                                 style={{ background: `${ticket.accent}18`, border: `1px solid ${ticket.accent}40` }}>
