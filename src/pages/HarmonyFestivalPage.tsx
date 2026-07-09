@@ -11,7 +11,6 @@ import { supabase } from '../lib/supabase';
 import { useAuth } from '../contexts/AuthContext';
 import SupportThankYouPopup from '../components/festival/SupportThankYouPopup';
 
-
 const C = {
   cyan:    '#00d4d4',
   teal:    '#00a8a8',
