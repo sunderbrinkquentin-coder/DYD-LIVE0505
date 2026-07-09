@@ -2023,9 +2023,10 @@ export default function HarmonyFestivalPage() {
               <h2 className="graffiti" style={{ fontSize: 'clamp(48px, 8vw, 88px)', color: '#fff', lineHeight: 0.9 }}>
                 Sei dabei am<br /><span style={{ color: 'rgba(0,195,195,0.85)' }}>22.08.2026</span>
               </h2>
-              <p style={{ fontFamily: "'Inter', sans-serif", fontSize: '15px', color: 'rgba(180,210,210,0.45)', marginTop: '16px', lineHeight: 1.7, maxWidth: '520px' }}>
-                Mit deinem Kauf unterstützt du direkt DYD und faire Ausbildungschancen.
-              </p>
+              <p style={{ fontFamily: "'Inter', sans-serif", fontSize: '15px', color: 'rgba(180,210,210,0.5)', marginTop: '16px', lineHeight: 1.7, maxWidth: '540px' }}>
+  Einzeltickets ab {eur(CHEAPEST_SINGLE)} · Bundle {eur(HERO.price)} statt {eur(HERO_MARKET)}.
+  Mit deinem Kauf unterstützt du direkt DYD und faire Ausbildungschancen.
+</p>
             </motion.div>
 
             {error && (
