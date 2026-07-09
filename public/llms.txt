@@ -1,11 +1,34 @@
-# DYD - Decide Your Dream
+# DYD – Decide Your Dream
 
-> KI-gestütztes Bewerbungs-Tool aus Düsseldorf für Studierende und Berufseinsteiger:innen: kostenloser ATS-Check, CV-Wizard mit automatisierter One-Click-Optimierung, Bewerbungsmanagement sowie eine ESCO-basierte Skill-Gap-Analyse mit persönlichem Lernpfad. Offizieller Kooperationspartner der Hochschule Fresenius, DSGVO-konform.
+> KI-gestütztes Bewerbungs-Tool aus Düsseldorf für Studierende und Berufseinsteiger:innen: kostenloser ATS-Check, CV-Wizard mit One-Click-Optimierung, Bewerbungsmanagement und ESCO-basierte Skill-Gap-Analyse mit Lernpfad. Offizieller Kooperationspartner der Hochschule Fresenius, DSGVO-konform. DYD veranstaltet außerdem das Harmony Festival 2026 in Düsseldorf.
 
-## Core Navigation
-- [ATS-Check](https://decide-your-dream.de/#/cv-check): Kostenloser Lebenslauf-Check nach 50+ Kriterien, ohne Anmeldung erforderlich.
-- [CV-Wizard](https://decide-your-dream.de/#/cv-wizard): Erstellung eines optimierten Lebenslaufs in unter 30 Minuten, inklusive automatisierter One-Click-Optimierung ab 5 Euro.
-- [Bewerbungsmanagement](https://decide-your-dream.de/#/dashboard): Verwaltung und Überblick laufender Bewerbungen.
-- [Skill-Gap-Analysator](https://decide-your-dream.de/#/career-vision): Berechnet einen Match-Score gegen die europäische ESCO-Taxonomie und identifiziert individuelle Kompetenzlücken.
-- [IHK-Lernpfade](https://decide-your-dream.de/#/learning-path): Didaktisch reduzierte Micro-Learning-Module zur Schließung identifizierter Skill-Gaps.
-- [Harmony Festival] (https://decide-your-dream.de/#/festival) Ein Festival für mehr Zusammenhalt und gegen Rechtsruck in Düsseldorf. Standup-Comedy, Bierpongturnier, Live Auftritt Zirkel und zwei DJ-Sets. Faire Preise
+DYD ist ein Produkt der DYD UG (haftungsbeschränkt), Sitz Düsseldorf. Der ATS-Check ist ohne Registrierung nutzbar; kostenpflichtige Funktionen beginnen bei 5 €. Kontakt: kontakt.dyd@googlemail.com
+
+## Bewerbungs-Tools
+
+- [ATS-Check](https://decide-your-dream.de/#/cv-check): Kostenloser Lebenslauf-Check nach über 50 Kriterien. Keine Anmeldung nötig.
+- [CV-Wizard](https://decide-your-dream.de/#/cv-wizard): Optimierter Lebenslauf in unter 30 Minuten, inklusive One-Click-Optimierung ab 5 €. Vier Vorlagen: Professional, Minimal, Creative, Classic.
+- [Skill-Gap-Analyse](https://decide-your-dream.de/#/career-vision): Match-Score gegen die europäische ESCO-Taxonomie, identifiziert individuelle Kompetenzlücken zum Zielberuf.
+- [IHK-Lernpfade](https://decide-your-dream.de/#/learning-path): Micro-Learning-Module zum Schließen der identifizierten Skill-Gaps.
+- [Bewerbungsmanagement](https://decide-your-dream.de/#/dashboard): Überblick und Statusverwaltung laufender Bewerbungen. Login erforderlich.
+
+## Harmony Festival 2026
+
+Eintägiges Musik- und Comedy-Festival, veranstaltet von DYD. Privat organisiert, ohne Konzern-Budget und ohne Gewinnmarge. Motto: Zusammenhalt statt Spaltung. Alle Informationen und der Ticketverkauf befinden sich auf einer Seite.
+
+- [Harmony Festival – Programm, Tickets, Anfahrt](https://decide-your-dream.de/#/festival): Samstag, 22. August 2026, Klub Kulb, Burgplatz 11, 40213 Düsseldorf. Einlass 16:00 Uhr, Programm 16:30 bis 02:00 Uhr, Zutritt ab 18 Jahren.
+
+**Programm:** 16:30 Uhr Stand-Up Comedy mit Kevin Küster, Larissa Magnus, Alex Graf, Jahn Boie, Leon Blokesch und Julian Deters · 18:00 Uhr Bierpong-Turnier · 20:30 Uhr Live-Konzert Zirkel.WTF (Pop-Punk) · 22:00 Uhr DJ-Sets House und Techno mit Justyn Maxx und Vio Leen.
+
+**Tickets:** Bundle 39,99 € (Stand-Up Comedy, Live-Konzert, DJ-Night und ein Freigetränk). Einzeltickets: Stand-Up Comedy 17,50 €, Live-Konzert 17,50 €, Bierpong-Startplatz 10,00 €, DJ-Sets 8,50 €. Zuschauen beim Bierpong-Turnier ist für alle Gäste kostenlos. Bier 4,00 € pro 0,5 Liter.
+
+**Soli-Shirt:** 25,00 €, Größen XS bis XXL. 100 % des Gewinns gehen an KeinBockAufNazis e.V.
+
+**Crew-Deal:** 2,5 Stunden Theke oder Service gegen freien Eintritt für den restlichen Abend. Bewerbung bis 15.07.2026.
+
+**Sponsoren:** Offizieller Sponsor Stadtsparkasse Düsseldorf. Lokale Sponsoren: Füchschen Alt, Monsterslush. Sponsoring-Anfragen an kontakt.dyd@googlemail.com
+
+## Optional
+
+- [AGB](https://decide-your-dream.de/#/agb)
+- [Instagram Harmony Festival](https://www.instagram.com/harmonyfestivaldus)
