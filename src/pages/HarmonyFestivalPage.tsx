@@ -645,8 +645,6 @@ function SinglePriceBlock({ price, oldPrice, discountPct }: PriceBlockProps) {
     </div>
   );
 }
-
-}
 /* ------------------------------------------------------------------ */
 /*  Hauptkomponente                                                    */
 /* ------------------------------------------------------------------ */
