@@ -2171,13 +2171,13 @@ export default function HarmonyFestivalPage() {
                       style={{ color: C.cyan, fontSize: '20px', opacity: quantities[HERO.id] >= 10 ? 0.3 : 1 }}>+</button>
                   </div>
                   {quantities[HERO.id] > 1 && (
-                    <span style={{ fontFamily: "'Inter', sans-serif", fontSize: '13px', color: 'rgba(0,212,212,0.7)' }}>
-                      = {eur(HERO.price * quantities[HERO.id])}
-                      {HERO.compareAt && (
-                        <span style={{ color: 'rgba(0,185,185,0.55)' }}> · {eur(HERO_SAVINGS * quantities[HERO.id])} gespart</span>
-                      )}
-                    </span>
-                  )}
+  <span style={{ fontFamily: "'Inter', sans-serif", fontSize: '13px', color: 'rgba(0,212,212,0.75)' }}>
+    = {eur(HERO.price * quantities[HERO.id])}
+    <strong style={{ color: '#00e0e0' }}>
+      {' · '}{eur(HERO_MARKET_SAVING * quantities[HERO.id])} gespart
+    </strong>
+  </span>
+)}
                 </div>
 
                 <motion.button whileHover={{ scale: 1.015 }} whileTap={{ scale: 0.97 }}
