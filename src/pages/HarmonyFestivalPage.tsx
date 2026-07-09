@@ -145,10 +145,39 @@ const HERO = TICKETS[0];
 const SINGLE_TICKETS = TICKETS.filter(t => t.id !== 'early_bird' && t.id !== 'soli_shirt');
 const SHIRT = TICKETS.find(t => t.id === 'soli_shirt')!;
 
-const HERO_SAVINGS = HERO.compareAt ? HERO.compareAt - HERO.price : 0;
+/** Im Bundle enthalten: Comedy, Konzert, DJ. Bierpong NICHT. */
+const BUNDLE_CONTENT_IDS = ['standup', 'concert', 'dj'] as const;
+
+const HERO_MARKET = BUNDLE_CONTENT_IDS.reduce(
+  (sum, id) => sum + (TICKETS.find(t => t.id === id)?.marketPrice ?? 0), 0,
+); // 75.00
+
+const HERO_OWN_SUM = BUNDLE_CONTENT_IDS.reduce(
+  (sum, id) => sum + (TICKETS.find(t => t.id === id)?.price ?? 0), 0,
+); // 43.50
+
+const HERO_MARKET_SAVING = HERO_MARKET - HERO.price;   // 35.01
+const HERO_OWN_SAVING    = HERO_OWN_SUM - HERO.price;  //  3.51
+
+/** Abrunden, nie aufrunden. */
+const pctOff = (price: number, market: number) => Math.floor(((market - price) / market) * 100);
+
+const HERO_PCT = pctOff(HERO.price, HERO_MARKET); // 46
+
+const MAX_PCT = Math.max(
+  HERO_PCT,
+  ...SINGLE_TICKETS.filter(t => t.marketPrice).map(t => pctOff(t.price, t.marketPrice!)),
+); // 46
+
 const CHEAPEST_SINGLE = Math.min(...SINGLE_TICKETS.map(t => t.price));
 
 const eur = (n: number) => n.toLocaleString('de-DE', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + ' €';
+
+/** ⚠️ An deine echte Recherche anpassen — siehe Hinweis unten. */
+const MARKET_BASIS =
+  'Vergleichswerte: Durchschnittliche Eintrittspreise vergleichbarer Einzel-Veranstaltungen ' +
+  'in Düsseldorf (Comedy-Club-Abend, Club-Konzert, Techno-Nacht), erhoben im Juli 2026. ' +
+  'Der Bundle-Vergleichswert ist die Summe dieser drei Einzelwerte.';
 
 const ACTS = [
   { num: '01', icon: Laugh,  label: 'Stand-Up Comedy', sub: 'Newcomer der lokalen Szene', time: '16:30', color: C.orange },
