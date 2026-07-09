@@ -2040,7 +2040,8 @@ export default function HarmonyFestivalPage() {
             {/* HERO BUNDLE */}
             <motion.div initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }}
               transition={{ duration: 0.55 }} className="tr-hero mb-5">
-              <div className="relative z-10 p-7 sm:p-10">
+  <div className="ribbon">−{HERO_PCT} %</div>
+  <div className="relative z-10 p-7 sm:p-10">
                 <div className="inline-flex items-center gap-2 mb-5 px-4 py-2 rounded-full"
                   style={{ background: 'rgba(0,212,212,0.08)', border: '1px solid rgba(0,212,212,0.25)' }}>
                   <Heart className="w-3.5 h-3.5 flex-shrink-0" style={{ color: C.cyan }} />
