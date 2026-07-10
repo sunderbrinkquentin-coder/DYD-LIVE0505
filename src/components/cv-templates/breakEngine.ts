@@ -86,6 +86,8 @@ export interface BreakResult {
   cuts: number[];
   /** Höhe des Inhalts ohne Footer, in CSS-Pixeln. */
   contentHeight: number;
+  /** Höhe des Footers, falls vorhanden. Der Exporter setzt ihn separat an den Blattfuß. */
+  footerHeight: number;
   /** Anzahl der Seiten. Entspricht cuts.length. */
   pageCount: number;
 }
@@ -310,6 +312,13 @@ function findContentEnd(root: HTMLElement): number {
   return end > 0 ? end : root.scrollHeight;
 }
 
+/** Höhe des Footers, oder 0 wenn keiner existiert. */
+function measureFooterHeight(root: HTMLElement): number {
+  const footer = root.querySelector<HTMLElement>('[data-pdf-footer]');
+  if (!footer || !isRendered(footer)) return 0;
+  return makeMeasure(root)(footer).height;
+}
+
 /**
  * Berechnet die Seitenanfänge für ein CV-Layout.
  *
@@ -324,10 +333,16 @@ export function computeBreakPoints(
   const { pageHeight, minFill, tolerancePx, maxPages } = opts;
 
   const contentHeight = findContentEnd(root);
+  const footerHeight = measureFooterHeight(root);
+
+  // Der Footer belegt den Fuß der LETZTEN Seite. Für die Frage "reicht der
+  // Platz noch?" muss er deshalb mitgezählt werden — sonst schiebt sich der
+  // Inhalt der letzten Seite unter den Footer.
+  const paginationEnd = contentHeight + footerHeight;
 
   // Passt alles auf eine Seite? Dann gibt es nichts zu schneiden.
-  if (contentHeight <= pageHeight + tolerancePx) {
-    return { cuts: [0], contentHeight, pageCount: 1 };
+  if (paginationEnd <= pageHeight + tolerancePx) {
+    return { cuts: [0], contentHeight, footerHeight, pageCount: 1 };
   }
 
   const zones = collectZones(root, opts);
@@ -336,7 +351,7 @@ export function computeBreakPoints(
   const cuts: number[] = [0];
   let cursor = 0;
 
-  while (contentHeight - cursor > pageHeight + tolerancePx && cuts.length < maxPages) {
+  while (paginationEnd - cursor > pageHeight + tolerancePx && cuts.length < maxPages) {
     const hardMax = cursor + pageHeight;
     const softMin = cursor + pageHeight * minFill;
 
@@ -380,7 +395,7 @@ export function computeBreakPoints(
     cursor = best;
   }
 
-  return { cuts, contentHeight, pageCount: cuts.length };
+  return { cuts, contentHeight, footerHeight, pageCount: cuts.length };
 }
 
 // ─── Hilfen für die Aufrufer ────────────────────────────────────────────────
