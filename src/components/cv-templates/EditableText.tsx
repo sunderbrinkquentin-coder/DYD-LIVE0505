@@ -13,6 +13,13 @@ export interface EditableTextProps {
   placeholder?: string;
   multiline?: boolean;
   style?: React.CSSProperties;
+  /**
+   * Element-Tag. Default `div`.
+   *
+   * ModernCVTemplate rendert Editables teils inline (in Chips, Date-Badges,
+   * Kontaktzeilen). Ein `div` würde dort den Flex-/Inline-Fluss brechen.
+   */
+  as?: 'div' | 'span' | 'p' | 'h1' | 'h2';
 }
 
 export const EditableText: React.FC<EditableTextProps> = ({
@@ -22,9 +29,10 @@ export const EditableText: React.FC<EditableTextProps> = ({
   placeholder = '',
   multiline = false,
   style,
+  as = 'div',
 }) => {
   const v = value ?? '';
-  const ref = useRef<HTMLDivElement>(null);
+  const ref = useRef<HTMLElement>(null);
   const isComposing = useRef(false);
   const isFocused = useRef(false);
   const lastValue = useRef(v);
@@ -64,39 +72,46 @@ export const EditableText: React.FC<EditableTextProps> = ({
     setRenderKey(ref.current?.textContent ?? v);
   }, [handleInput, v]);
 
-  const handleKeyDown = useCallback((e: React.KeyboardEvent<HTMLDivElement>) => {
+  const handleKeyDown = useCallback((e: React.KeyboardEvent<HTMLElement>) => {
     if (!multiline && e.key === 'Enter') {
       e.preventDefault();
-      e.currentTarget.blur();
+      (e.currentTarget as HTMLElement).blur();
     }
   }, [multiline]);
 
-  return (
-    <div
-      key={renderKey}
-      ref={ref}
-      contentEditable
-      suppressContentEditableWarning
-      onInput={handleInput}
-      onFocus={handleFocus}
-      onBlur={handleBlur}
-      onKeyDown={handleKeyDown}
-      onCompositionStart={() => { isComposing.current = true; }}
-      onCompositionEnd={() => { isComposing.current = false; handleInput(); }}
-      data-placeholder={placeholder}
-      className={[
-        'outline-none focus:ring-0 cursor-text w-full',
-        'empty:before:content-[attr(data-placeholder)] empty:before:text-slate-300',
-        className,
-      ].join(' ')}
-      style={{
+  // `w-full` gehört nur an Block-Elemente. Auf einem inline gerenderten Chip
+  // oder Date-Badge würde es die Breite sprengen.
+  const baseClasses = [
+    'outline-none focus:ring-0 cursor-text',
+    as === 'div' || as === 'p' ? 'w-full' : '',
+    'empty:before:content-[attr(data-placeholder)] empty:before:text-slate-300',
+    className,
+  ].filter(Boolean).join(' ');
+
+  return React.createElement(
+    as,
+    {
+      key: renderKey,
+      ref,
+      contentEditable: true,
+      suppressContentEditableWarning: true,
+      onInput: handleInput,
+      onFocus: handleFocus,
+      onBlur: handleBlur,
+      onKeyDown: handleKeyDown,
+      onCompositionStart: () => { isComposing.current = true; },
+      onCompositionEnd: () => { isComposing.current = false; handleInput(); },
+      'data-placeholder': placeholder,
+      className: baseClasses,
+      style: {
         whiteSpace: multiline ? 'pre-wrap' : 'nowrap',
         wordBreak: multiline ? 'break-word' : 'normal',
         overflow: multiline ? 'visible' : 'hidden',
         textOverflow: multiline ? 'unset' : 'ellipsis',
         ...style,
-      }}
-    >{renderKey}</div>
+      },
+    },
+    renderKey
   );
 };
 
