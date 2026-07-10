@@ -1557,10 +1557,7 @@ export function CVLiveEditorPage() {
             white-space: nowrap;
           }
 
-          /* Positionsanker für die absolut gesetzten Controls.
-             `[data-spacer-id]` ist der Übergangs-Anker: die Templates tragen es
-             noch, bis Schritt 6 sie auf `[data-break-item]` umstellt. Danach
-             kann die Zeile weg. */
+
           [data-break-item],
           [data-spacer-id],
           [data-chip-row] > span,
