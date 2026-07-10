@@ -291,25 +291,46 @@ function straddlingZone(pos: number, zones: Zone[], tol: number): Zone | null {
  * größeres Inhaltsende, die Seitenzahl wächst, der Container wächst, und die
  * Rechnung läuft sich selbst hinterher.
  *
- * Deshalb messen wir die Unterkante des letzten Inhalts-Kindes. Die ist von der
- * Container-Höhe unabhängig und damit ein Fixpunkt.
+ * Ebenso wenig taugt `root.scrollHeight` als Rückfall: das IST die Höhe, die
+ * der Aufrufer gerade gesetzt hat. Wer darauf zurückfällt, baut sich exakt die
+ * Rückkopplung, die er vermeiden wollte — Seitenzahl wächst bis `maxPages`,
+ * das Ergebnis sind dutzende leere Seiten.
+ *
+ * Richtig ist: die Unterkante des letzten Geschwisterelements des Footers. Die
+ * hängt nicht an der Container-Höhe und ist damit ein Fixpunkt.
+ *
+ * Der Footer liegt typischerweise NICHT direkt unter `root` — `root` ist der
+ * `data-pdf-root`-Wrapper, darunter kommt erst der Template-Root. Wir gehen
+ * deshalb vom Footer aus nach oben, statt von `root` nach unten.
  */
 function findContentEnd(root: HTMLElement): number {
   const footer = root.querySelector<HTMLElement>('[data-pdf-footer]');
   if (!footer) return root.scrollHeight;
 
+  const flowParent = footer.parentElement;
+  if (!flowParent) return root.scrollHeight;
+
   const measure = makeMeasure(root);
   let end = 0;
 
-  for (const child of Array.from(root.children)) {
-    if (!(child instanceof HTMLElement)) continue;
-    if (child === footer || child.contains(footer)) continue;
-    if (!isInFlow(child) || !isRendered(child)) continue;
-    const b = measure(child);
+  for (const sibling of Array.from(flowParent.children)) {
+    if (!(sibling instanceof HTMLElement)) continue;
+    if (sibling === footer) continue;
+    if (!isInFlow(sibling) || !isRendered(sibling)) continue;
+    const b = measure(sibling);
     if (b.bottom > end) end = b.bottom;
   }
 
-  return end > 0 ? end : root.scrollHeight;
+  if (end <= 0) {
+    console.warn(
+      '[breakEngine] Kein Inhalt neben dem Footer gefunden. Fallback auf scrollHeight — ' +
+      'die Seitenzahl kann dadurch zu groß werden. Prüfe, ob [data-pdf-footer] ein ' +
+      'direktes Geschwisterelement des Inhalts ist.'
+    );
+    return root.scrollHeight;
+  }
+
+  return end;
 }
 
 /** Höhe des Footers, oder 0 wenn keiner existiert. */
@@ -393,6 +414,15 @@ export function computeBreakPoints(
 
     cuts.push(best);
     cursor = best;
+  }
+
+  if (cuts.length >= maxPages) {
+    console.warn(
+      `[breakEngine] Notbremse bei ${maxPages} Seiten gezogen. Das ist praktisch immer ` +
+      `ein Messfehler, kein echter Lebenslauf: contentHeight=${Math.round(contentHeight)}px, ` +
+      `footerHeight=${Math.round(footerHeight)}px. Häufigste Ursache: contentHeight hängt ` +
+      `an der Container-Höhe und wächst mit der Seitenzahl mit.`
+    );
   }
 
   return { cuts, contentHeight, footerHeight, pageCount: cuts.length };
