@@ -279,16 +279,35 @@ function straddlingZone(pos: number, zones: Zone[], tol: number): Zone | null {
   return found;
 }
 
-/** Ende des paginierten Inhalts: der Footer wird separat auf die letzte Seite gesetzt. */
+/**
+ * Ende des paginierten Inhalts. Der Footer zählt nicht dazu — er wird per
+ * `marginTop: auto` an den Fuß der letzten Seite gedrückt.
+ *
+ * ACHTUNG, subtile Falle: Man könnte `footer.top` als Inhaltsende nehmen. Das
+ * wäre instabil. Sobald der Aufrufer die Container-Höhe auf das Ergebnis dieser
+ * Engine setzt, rutscht der Footer nach unten — die nächste Messung liefert ein
+ * größeres Inhaltsende, die Seitenzahl wächst, der Container wächst, und die
+ * Rechnung läuft sich selbst hinterher.
+ *
+ * Deshalb messen wir die Unterkante des letzten Inhalts-Kindes. Die ist von der
+ * Container-Höhe unabhängig und damit ein Fixpunkt.
+ */
 function findContentEnd(root: HTMLElement): number {
-  const measure = makeMeasure(root);
   const footer = root.querySelector<HTMLElement>('[data-pdf-footer]');
-  if (footer && isRendered(footer)) {
-    const b = measure(footer);
-    if (b.top > 0) return b.top;
+  if (!footer) return root.scrollHeight;
+
+  const measure = makeMeasure(root);
+  let end = 0;
+
+  for (const child of Array.from(root.children)) {
+    if (!(child instanceof HTMLElement)) continue;
+    if (child === footer || child.contains(footer)) continue;
+    if (!isInFlow(child) || !isRendered(child)) continue;
+    const b = measure(child);
+    if (b.bottom > end) end = b.bottom;
   }
-  // scrollHeight ist bereits ein Layout-Wert und von Transforms unberührt.
-  return root.scrollHeight;
+
+  return end > 0 ? end : root.scrollHeight;
 }
 
 /**
@@ -375,6 +394,24 @@ export function pageSliceHeight(result: BreakResult, index: number): number {
   const start = cuts[index];
   const end = index + 1 < cuts.length ? cuts[index + 1] : contentHeight;
   return Math.max(0, end - start);
+}
+
+/**
+ * Höhe, die der Template-Container mindestens haben muss, damit der Footer
+ * exakt am Fuß der LETZTEN Seite sitzt.
+ *
+ * Nicht `pageCount × pageHeight` verwenden. Beginnt die letzte Seite bei y=980
+ * (weil ein atomarer Block nach unten geschoben wurde), muss der Container
+ * 980 + 1122 = 2102px hoch sein — nicht 2244px. Sonst rutscht der per
+ * `marginTop: auto` positionierte Footer unter den sichtbaren Blattbereich
+ * und fehlt im Export.
+ */
+export function containerHeightFor(
+  result: BreakResult,
+  pageHeight: number = PAGE_HEIGHT_PX
+): number {
+  const lastPageStart = result.cuts[result.cuts.length - 1] ?? 0;
+  return lastPageStart + pageHeight;
 }
 
 /**
