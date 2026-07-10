@@ -1,169 +1,153 @@
 // src/components/cv-templates/templates/CreativeCVTemplate.tsx
-import React, { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react';
 
-type EditorSection = {
-  type: string;
-  title?: string;
-  items?: any[];
-  [key: string]: any;
-};
+import React from 'react';
+import {
+  EditableText,
+  dragProps,
+  type CVTemplateProps,
+  type EditorSection,
+} from '../EditableText';
+import { getTokens, FONT_STACK } from '../tokens';
 
-interface PersonalInfo {
-  name?: string;
-  title?: string;
-  email?: string;
-  phone?: string;
-  location?: string;
-  linkedin?: string;
-  [key: string]: any;
-}
+const t = getTokens('creative');
 
-interface CreativeCVTemplateProps {
-  personalInfo: PersonalInfo;
-  summary?: string;
-  sections: EditorSection[];
-  photoUrl?: string;
-  photoPosition?: { x: number; y: number };
-  onUpdatePersonalInfo: (field: string, value: string) => void;
-  onUpdateSummary: (value: string) => void;
-  onUpdateSection: (sectionIndex: number, updates: Partial<EditorSection>) => void;
-  onUpdateSectionItem: (
-    sectionIndex: number,
-    itemIndex: number,
-    field: string,
-    value: any
-  ) => void;
-  onAddSectionItem?: (sectionIndex: number, defaultItem: any) => void;
-  onDeleteSectionItem?: (sectionIndex: number, itemIndex: number) => void;
-  onDeleteBullet?: (sectionIndex: number, itemIndex: number, bulletIndex: number) => void;
-  onReorderSections?: (fromIndex: number, toIndex: number) => void;
-  pageBreakItems?: Map<string, number>;
-  pageCount?: number; // 🔥 NEU: Prop statt lokalem State
-}
-
+/**
+ * Sektionsüberschrift.
+ *
+ * `data-break-keep-next` sorgt dafür, dass zwischen dieser Überschrift und dem
+ * folgenden Inhalt nicht umgebrochen wird. Eine Überschrift allein am Seitenfuß
+ * ist der klassische Layoutfehler, den die Break-Engine damit ausschließt.
+ */
 const SectionTitle: React.FC<{ children: React.ReactNode }> = ({ children }) => (
-  <h2 className="mt-3 mb-1.5 !text-[9px] font-bold tracking-[0.16em] text-slate-600 uppercase flex items-center gap-1.5">
-    <span className="w-1.5 h-1.5 rounded-full bg-[#22c1c3]" />
+  <h2
+    data-break-keep-next
+    className="mt-3 mb-1.5 font-bold tracking-[0.16em] uppercase flex items-center gap-1.5"
+    style={{ fontSize: '9px', color: t.muted }}
+  >
+    <span className="w-1.5 h-1.5 rounded-full" style={{ background: t.accent }} />
     {children}
   </h2>
 );
 
-const PAGE_HEIGHT_PX = 1122;
+/** Kleinere Zwischenüberschrift innerhalb eines Blocks (z. B. "Fachlich"). */
+const SubTitle: React.FC<{ children: React.ReactNode }> = ({ children }) => (
+  <div
+    style={{
+      marginBottom: '6px',
+      fontSize: '9px',
+      fontWeight: 600,
+      letterSpacing: '0.05em',
+      color: t.muted,
+      textTransform: 'uppercase',
+    }}
+  >
+    {children}
+  </div>
+);
 
-const EditableText: React.FC<{
-  value?: string;
-  onChange: (value: string) => void;
-  className?: string;
-  placeholder?: string;
-  multiline?: boolean;
-  style?: React.CSSProperties;
-}> = ({ value, onChange, className = '', placeholder = '', multiline = false, style }) => {
-  const v = value ?? '';
-  const ref = useRef<HTMLDivElement>(null);
-  const isComposing = useRef(false);
-  const isFocused = useRef(false);
-  const lastValue = useRef(v);
-  // `renderKey` is rendered as JSX children, so the correct text is present
-  // from the FIRST render/paint — no need to wait for an effect (which could
-  // run after a PDF clone is taken, leaving the clone empty). It mirrors `v`
-  // except while focused, where it's frozen so React doesn't remount the
-  // node mid-keystroke (which would reset the cursor position).
-  const [renderKey, setRenderKey] = useState(v);
+/** Sektionen, die niemals über eine Seitengrenze getrennt werden dürfen. */
+const ATOMIC_TYPES = new Set([
+  'languages',
+  'skills',
+  'soft_skills',
+  'work_values',
+  'values',
+  'hobbies',
+  'interests',
+  'certifications',
+  'courses',
+  'awards',
+  'volunteering',
+  'stipendien',
+  'scholarships',
+]);
 
-  useEffect(() => {
-    if (!isFocused.current) {
-      setRenderKey(v);
-      lastValue.current = v;
-    }
-  }, [v]);
+/** Sektionen, die pro Eintrag eine eigene Karte bekommen (trennbar zwischen Karten). */
+const DETAILED_TYPES = new Set([
+  'certifications',
+  'courses',
+  'awards',
+  'volunteering',
+  'stipendien',
+  'scholarships',
+]);
 
-  const handleInput = useCallback(() => {
-    if (isComposing.current) return;
-    const text = ref.current?.textContent ?? '';
-    if (text !== lastValue.current) {
-      lastValue.current = text;
-      onChange(text);
-    }
-  }, [onChange]);
-
-  const handleFocus = useCallback(() => {
-    isFocused.current = true;
-  }, []);
-
-  const handleBlur = useCallback(() => {
-    isFocused.current = false;
-    handleInput();
-    setRenderKey(ref.current?.textContent ?? v);
-  }, [handleInput, v]);
-
-  const handleKeyDown = useCallback((e: React.KeyboardEvent<HTMLDivElement>) => {
-    if (!multiline && e.key === 'Enter') {
-      e.preventDefault();
-      e.currentTarget.blur();
-    }
-  }, [multiline]);
-
-  return (
-    <div
-      key={renderKey}
-      ref={ref}
-      contentEditable
-      suppressContentEditableWarning
-      onInput={handleInput}
-      onFocus={handleFocus}
-      onBlur={handleBlur}
-      onKeyDown={handleKeyDown}
-      onCompositionStart={() => { isComposing.current = true; }}
-      onCompositionEnd={() => { isComposing.current = false; handleInput(); }}
-      data-placeholder={placeholder}
-      className={[
-        'outline-none focus:ring-0 cursor-text w-full',
-        'empty:before:content-[attr(data-placeholder)] empty:before:text-slate-300',
-        className,
-      ].join(' ')}
-      style={{
-        whiteSpace: multiline ? 'pre-wrap' : 'nowrap',
-        wordBreak: multiline ? 'break-word' : 'normal',
-        overflow: multiline ? 'visible' : 'hidden',
-        textOverflow: multiline ? 'unset' : 'ellipsis',
-        ...style,
-      }}
-    >{renderKey}</div>
-  );
+const TYPE_LABELS: Record<string, string> = {
+  experience: 'Berufserfahrung',
+  projects: 'Projekte',
+  education: 'Ausbildung & Studium',
+  languages: 'Sprachen',
+  work_values: 'Arbeitsweise & Werte',
+  values: 'Arbeitsweise & Werte',
+  hobbies: 'Hobbys & Interessen',
+  interests: 'Interessen',
+  skills: 'Fähigkeiten',
+  soft_skills: 'Soft Skills',
+  hard_skills: 'Fachliche Skills',
+  tools: 'Tools & Software',
+  certifications: 'Zertifikate',
+  courses: 'Weiterbildung',
+  awards: 'Auszeichnungen',
+  volunteering: 'Ehrenamt',
+  stipendien: 'Stipendien',
+  scholarships: 'Scholarships',
 };
 
-export const CreativeCVTemplate: React.FC<CreativeCVTemplateProps> = ({
+const chipStyle = (bg: string, border: string): React.CSSProperties => ({
+  display: 'inline-flex',
+  alignItems: 'center',
+  justifyContent: 'center',
+  marginRight: '4px',
+  marginBottom: '4px',
+  verticalAlign: 'middle',
+  padding: '2px 6px',
+  borderRadius: '9999px',
+  background: bg,
+  border: `1px solid ${border}`,
+  lineHeight: 1.4,
+  whiteSpace: 'nowrap',
+});
+
+const chipTextStyle: React.CSSProperties = {
+  fontSize: '9px',
+  color: t.chipText,
+  lineHeight: 1.4,
+  display: 'inline-block',
+  verticalAlign: 'middle',
+  textAlign: 'center',
+  width: 'auto',
+};
+
+const cardStyle: React.CSSProperties = {
+  display: 'block',
+  marginBottom: '10px',
+  borderRadius: '12px',
+  background: t.surface,
+  border: `1px solid ${t.border}`,
+  padding: '8px 12px',
+  boxShadow: '0 1px 2px rgba(15,23,42,0.05)',
+  width: '100%',
+};
+
+export const CreativeCVTemplate: React.FC<CVTemplateProps> = ({
   personalInfo,
   summary,
   sections,
   photoUrl,
   photoPosition = { x: 50, y: 50 },
+  minHeightPx,
   onUpdatePersonalInfo,
   onUpdateSummary,
   onUpdateSectionItem,
   onDeleteSectionItem = () => {},
   onDeleteBullet,
   onReorderSections,
-  pageBreakItems,
-  pageCount, // 🔥 direkt als Prop
 }) => {
-  const contentRef = useRef<HTMLDivElement | null>(null);
-  const [containerMinHeight, setContainerMinHeight] = useState(PAGE_HEIGHT_PX);
+  // Kein lokaler ResizeObserver und kein eigenes `containerMinHeight` mehr.
+  // Die Höhe kommt aus der Break-Engine über den Parent. Vorher gab es vier
+  // Instanzen, die unabhängig voneinander Seitenhöhen bestimmten.
+  const containerMinHeight = minHeightPx ?? 1122;
 
-  useLayoutEffect(() => {
-    const el = contentRef.current;
-    if (!el) return;
-    const update = () => {
-      const h = el.offsetHeight;
-      setContainerMinHeight(Math.max(PAGE_HEIGHT_PX, Math.ceil(h / PAGE_HEIGHT_PX) * PAGE_HEIGHT_PX));
-    };
-    update();
-    const ro = new ResizeObserver(update);
-    ro.observe(el);
-    return () => ro.disconnect();
-  }, []);
-
-  // ─────────── Bullet-Helper ───────────
   const getBullets = (item: any): string[] => {
     if (Array.isArray(item?.bulletPoints) && item.bulletPoints.length > 0) {
       return item.bulletPoints;
@@ -190,11 +174,7 @@ export const CreativeCVTemplate: React.FC<CreativeCVTemplateProps> = ({
     onUpdateSectionItem(sectionIndex, itemIndex, 'bulletPoints', newBullets);
   };
 
-  const handleAddBullet = (
-    sectionIndex: number,
-    itemIndex: number,
-    currentItem: any
-  ) => {
+  const handleAddBullet = (sectionIndex: number, itemIndex: number, currentItem: any) => {
     const currentBullets = getBullets(currentItem);
     onUpdateSectionItem(sectionIndex, itemIndex, 'bulletPoints', [
       ...currentBullets,
@@ -204,20 +184,9 @@ export const CreativeCVTemplate: React.FC<CreativeCVTemplateProps> = ({
 
   const leftColumnTypes = ['experience', 'projects'];
   const rightColumnTypes = [
-    'education',
-    'languages',
-    'skills',
-    'soft_skills',
-    'work_values',
-    'values',
-    'hobbies',
-    'interests',
-    'certifications',
-    'courses',
-    'awards',
-    'volunteering',
-    'stipendien',
-    'scholarships',
+    'education', 'languages', 'skills', 'soft_skills', 'work_values', 'values',
+    'hobbies', 'interests', 'certifications', 'courses', 'awards',
+    'volunteering', 'stipendien', 'scholarships',
   ];
 
   const leftSections = sections.filter((s) => leftColumnTypes.includes(s.type));
@@ -226,384 +195,281 @@ export const CreativeCVTemplate: React.FC<CreativeCVTemplateProps> = ({
     (s) => !leftColumnTypes.includes(s.type) && !rightColumnTypes.includes(s.type)
   );
 
-  const renderSection = (section: EditorSection, sectionIndex: number) => {
+  // ─── Bullet-Liste ──────────────────────────────────────────────────────────
+  const renderBullets = (
+    bullets: string[],
+    sectionIndex: number,
+    itemIndex: number,
+    item: any,
+    placeholder: string
+  ) => (
+    <ul
+      className="mt-1"
+      style={{ listStyle: 'none', padding: 0, display: 'flex', flexDirection: 'column', gap: '4px' }}
+    >
+      {bullets.map((bp: string, bIdx: number) => (
+        <li
+          key={bIdx}
+          data-break-line
+          style={{ display: 'flex', alignItems: 'flex-start', gap: '4px' }}
+        >
+          <span style={{ flexShrink: 0, color: t.bullet, fontSize: '9.5px', lineHeight: '1.375', userSelect: 'none' }}>•</span>
+          <EditableText
+            multiline
+            className="flex-1 leading-snug"
+            style={{ fontSize: '9.5px', color: t.muted }}
+            value={bp}
+            onChange={(val) => handleBulletChange(sectionIndex, itemIndex, bIdx, val, item)}
+            placeholder={placeholder}
+          />
+          {onDeleteBullet && (
+            <button
+              type="button"
+              className="pdf-hidden flex-shrink-0 text-red-400 hover:text-red-600 transition-colors"
+              style={{ lineHeight: 1, padding: '1px 3px', fontSize: '11px', background: 'none', border: 'none', cursor: 'pointer' }}
+              onClick={() => onDeleteBullet(sectionIndex, itemIndex, bIdx)}
+              title="Bullet löschen"
+            >×</button>
+          )}
+        </li>
+      ))}
+    </ul>
+  );
+
+  const renderCardControls = (sectionIndex: number, itemIndex: number, item: any) => (
+    <div className="pdf-hidden">
+      <button
+        type="button"
+        style={{ fontSize: '9px', color: t.accent, border: `1px solid ${t.accentSoft}`, borderRadius: '4px', padding: '2px 7px', background: t.surface, cursor: 'pointer', lineHeight: '1.5' }}
+        onClick={() => handleAddBullet(sectionIndex, itemIndex, item)}
+      >
+        + Bullet
+      </button>
+      <button
+        type="button"
+        style={{ fontSize: '9px', color: '#dc2626', border: '1px solid #fecaca', borderRadius: '4px', padding: '2px 7px', background: t.surface, cursor: 'pointer', lineHeight: '1.5' }}
+        onClick={() => onDeleteSectionItem(sectionIndex, itemIndex)}
+      >
+        Station löschen
+      </button>
+    </div>
+  );
+
+  const renderDateRange = (sectionIndex: number, idx: number, item: any) => (
+    <div
+      className="whitespace-nowrap flex-shrink-0 flex items-center gap-0.5"
+      style={{ fontSize: '9px', color: t.muted }}
+    >
+      <EditableText
+        className="text-right"
+        style={{ width: '40px' }}
+        value={item.date_from || ''}
+        onChange={(val) => onUpdateSectionItem(sectionIndex, idx, 'date_from', val)}
+        placeholder="Von"
+      />
+      –
+      <EditableText
+        style={{ width: '40px' }}
+        value={item.date_to || ''}
+        onChange={(val) => onUpdateSectionItem(sectionIndex, idx, 'date_to', val)}
+        placeholder="Bis"
+      />
+    </div>
+  );
+
+  // ─── Sektions-Renderer ─────────────────────────────────────────────────────
+  const renderSection = (section: EditorSection, sectionIndex: number): React.ReactNode => {
     const items = Array.isArray(section.items) ? section.items : [];
-    const TYPE_LABELS: Record<string, string> = {
-      experience: 'Berufserfahrung',
-      projects: 'Projekte',
-      education: 'Ausbildung & Studium',
-      languages: 'Sprachen',
-      work_values: 'Arbeitsweise & Werte',
-      values: 'Arbeitsweise & Werte',
-      hobbies: 'Hobbys & Interessen',
-      interests: 'Interessen',
-      skills: 'Fähigkeiten',
-      soft_skills: 'Soft Skills',
-      hard_skills: 'Fachliche Skills',
-      tools: 'Tools & Software',
-      certifications: 'Zertifikate',
-      courses: 'Weiterbildung',
-      awards: 'Auszeichnungen',
-      volunteering: 'Ehrenamt',
-      stipendien: 'Stipendien',
-      scholarships: 'Scholarships',
-    };
     const sectionTitle = section.title || TYPE_LABELS[section.type] || section.type;
 
     const mustShow = section.type === 'experience' || section.type === 'projects';
     if (items.length === 0 && !mustShow) return null;
 
     switch (section.type) {
+      // ── Berufserfahrung ──────────────────────────────────────────────────
       case 'experience':
         return (
-          <div key={sectionIndex}>
+          <div>
             <SectionTitle>{sectionTitle}</SectionTitle>
             {items.map((exp: any, idx: number) => {
-              // 🔥 Konsistente ID: section.type + sectionIndex + idx
-              const itemKey = `${section.type}-${sectionIndex}-${idx}`;
-              const spacer = pageBreakItems?.get(itemKey) ?? 0;
               const bullets = getBullets(exp);
               return (
-                <div
-                  key={idx}
-                  data-pdf-section
-                  data-spacer-id={itemKey}
-                  className="mb-2.5 rounded-xl bg-white border border-slate-200 px-3 py-2 shadow-sm w-full split-box-fix"
-                  style={{ display: 'block', breakInside: 'auto', pageBreakInside: 'auto', ...(spacer > 0 ? { marginTop: `${spacer}px` } : {}) }}
-                >
-                  <div className="flex justify-between items-start gap-2" style={{ breakInside: 'avoid', pageBreakInside: 'avoid' }}>
+                // `data-break-item`: die Karte wird zusammengehalten, solange sie
+                // kürzer ist als 70 % einer Seite. Zwischen zwei Karten darf die
+                // Engine trennen — das ist genau das gewünschte Verhalten.
+                <div key={idx} data-pdf-section data-break-item style={cardStyle}>
+                  <div className="flex justify-between items-start gap-2">
                     <div className="flex-1 min-w-0">
                       <EditableText
-                        className="font-bold text-[11px] text-slate-900"
+                        className="font-bold"
+                        style={{ fontSize: '11px', color: t.text }}
                         value={exp.title || exp.position || ''}
-                        onChange={(val) =>
-                          onUpdateSectionItem(sectionIndex, idx, 'title', val)
-                        }
+                        onChange={(val) => onUpdateSectionItem(sectionIndex, idx, 'title', val)}
                         placeholder="Position"
                       />
                       <EditableText
-                        className="text-[10px] text-slate-500 mt-0.5"
+                        className="mt-0.5"
+                        style={{ fontSize: '10px', color: t.muted }}
                         value={exp.company || ''}
-                        onChange={(val) =>
-                          onUpdateSectionItem(sectionIndex, idx, 'company', val)
-                        }
+                        onChange={(val) => onUpdateSectionItem(sectionIndex, idx, 'company', val)}
                         placeholder="Unternehmen"
                       />
                       {(exp.location || exp.ort) && (
                         <EditableText
-                          className="text-[9.5px] text-slate-400 mt-0.5"
+                          className="mt-0.5"
+                          style={{ fontSize: '9.5px', color: t.faint }}
                           value={exp.location || exp.ort || ''}
-                          onChange={(val) =>
-                            onUpdateSectionItem(sectionIndex, idx, 'location', val)
-                          }
-                          placeholder="Ort"
-                        />
-                      )}
-                    </div>
-                    <div className="text-[9px] text-slate-500 whitespace-nowrap flex-shrink-0 flex items-center gap-0.5">
-                      <EditableText
-                        className="text-right"
-                        style={{ width: '40px' }}
-                        value={exp.date_from || ''}
-                        onChange={(val) =>
-                          onUpdateSectionItem(sectionIndex, idx, 'date_from', val)
-                        }
-                        placeholder="Von"
-                      />
-                      –
-                      <EditableText
-                        style={{ width: '40px' }}
-                        value={exp.date_to || ''}
-                        onChange={(val) =>
-                          onUpdateSectionItem(sectionIndex, idx, 'date_to', val)
-                        }
-                        placeholder="Bis"
-                      />
-                    </div>
-                  </div>
-
-                  {bullets.length > 0 ? (
-                    <ul className="mt-1 !text-[9.5px] text-slate-700" style={{ listStyle: 'none', padding: 0, display: 'flex', flexDirection: 'column', gap: '4px' }}>
-                      {bullets.map((bp: string, bIdx: number) => (
-                        <li key={bIdx} style={{ display: 'flex', alignItems: 'flex-start', gap: '4px', breakInside: 'avoid', pageBreakInside: 'avoid' }}>
-                          <span style={{ flexShrink: 0, color: '#22c1c3', fontSize: '9.5px', lineHeight: '1.375', userSelect: 'none' }}>•</span>
-                          <EditableText
-                            multiline
-                            className="flex-1 leading-snug text-slate-700 !text-[9.5px]"
-                            value={bp}
-                            onChange={(val) => {
-                              handleBulletChange(sectionIndex, idx, bIdx, val, exp);
-                            }}
-                            placeholder="Aufgabe / Erfolg"
-                          />
-                          {onDeleteBullet && (
-                            <button
-                              type="button"
-                              className="pdf-hidden flex-shrink-0 text-red-400 hover:text-red-600 transition-colors"
-                              style={{ lineHeight: 1, padding: '1px 3px', fontSize: '11px', background: 'none', border: 'none', cursor: 'pointer' }}
-                              onClick={() => onDeleteBullet(sectionIndex, idx, bIdx)}
-                              title="Bullet löschen"
-                            >×</button>
-                          )}
-                        </li>
-                      ))}
-                    </ul>
-                  ) : (
-                    <div style={{ breakInside: 'avoid', pageBreakInside: 'avoid' }}>
-                      <EditableText
-                        multiline
-                        className="mt-0.5 text-[9.5px] text-slate-700 leading-snug"
-                        style={{ minHeight: '20px' }}
-                        value={exp.description || ''}
-                        onChange={(val) => {
-                          onUpdateSectionItem(sectionIndex, idx, 'description', val);
-                        }}
-                        placeholder="Aufgaben und Erfolge (jede Zeile = eigener Punkt)"
-                      />
-                    </div>
-                  )}
-
-                  <div style={{ breakInside: 'avoid', pageBreakInside: 'avoid' }} className="pdf-hidden">
-                    <button
-                      type="button"
-                      className="mt-0.5 text-[9px] text-[#22c1c3]"
-                      style={{ border: '1px solid #a5f3fc', borderRadius: '4px', padding: '2px 7px', background: 'none', cursor: 'pointer', lineHeight: '1.5' }}
-                      onClick={() => handleAddBullet(sectionIndex, idx, exp)}
-                    >
-                      + Bullet
-                    </button>
-                    <button
-                      type="button"
-                      className="mt-0.5 ml-3 text-[9px] text-red-500"
-                      style={{ border: '1px solid #fecaca', borderRadius: '4px', padding: '2px 7px', background: 'none', cursor: 'pointer', lineHeight: '1.5' }}
-                      onClick={() => onDeleteSectionItem(sectionIndex, idx)}
-                    >
-                      Station löschen
-                    </button>
-                  </div>
-                </div>
-              );
-            })}
-          </div>
-        );
-
-      case 'projects':
-        return (
-          <div key={sectionIndex}>
-            <SectionTitle>{sectionTitle}</SectionTitle>
-            {items.map((proj: any, idx: number) => {
-              // 🔥 Konsistente ID: section.type + sectionIndex + idx
-              const itemKey = `${section.type}-${sectionIndex}-${idx}`;
-              const spacer = pageBreakItems?.get(itemKey) ?? 0;
-              const bullets = getBullets(proj);
-              return (
-                <div
-                  key={idx}
-                  data-pdf-section
-                  data-spacer-id={itemKey}
-                  className="mb-2 rounded-xl bg-white border border-slate-200 px-3 py-2 shadow-sm w-full split-box-fix"
-                  style={{ display: 'block', breakInside: 'auto', pageBreakInside: 'auto', ...(spacer > 0 ? { marginTop: `${spacer}px` } : {}) }}
-                >
-                  <div style={{ breakInside: 'avoid', pageBreakInside: 'avoid' }}>
-                    <EditableText
-                      className="font-bold text-[11px] text-slate-900"
-                      value={proj.title || proj.name || ''}
-                      onChange={(val) =>
-                        onUpdateSectionItem(sectionIndex, idx, 'title', val)
-                      }
-                      placeholder="Projekt"
-                    />
-                  </div>
-
-                  {bullets.length > 0 ? (
-                    <ul className="mt-1 !text-[9.5px] text-slate-700" style={{ listStyle: 'none', padding: 0, display: 'flex', flexDirection: 'column', gap: '4px' }}>
-                      {bullets.map((bp: string, bIdx: number) => (
-                        <li key={bIdx} style={{ display: 'flex', alignItems: 'flex-start', gap: '4px', breakInside: 'avoid', pageBreakInside: 'avoid' }}>
-                          <span style={{ flexShrink: 0, color: '#22c1c3', fontSize: '9.5px', lineHeight: '1.375', userSelect: 'none' }}>•</span>
-                          <EditableText
-                            multiline
-                            className="flex-1 leading-snug text-slate-700 !text-[9.5px]"
-                            value={bp}
-                            onChange={(val) => {
-                              handleBulletChange(sectionIndex, idx, bIdx, val, proj);
-                            }}
-                            placeholder="Detail / Ergebnis"
-                          />
-                          {onDeleteBullet && (
-                            <button
-                              type="button"
-                              className="pdf-hidden flex-shrink-0 text-red-400 hover:text-red-600 transition-colors"
-                              style={{ lineHeight: 1, padding: '1px 3px', fontSize: '11px', background: 'none', border: 'none', cursor: 'pointer' }}
-                              onClick={() => onDeleteBullet(sectionIndex, idx, bIdx)}
-                              title="Bullet löschen"
-                            >×</button>
-                          )}
-                        </li>
-                      ))}
-                    </ul>
-                  ) : (
-                    <div style={{ breakInside: 'avoid', pageBreakInside: 'avoid' }}>
-                      <EditableText
-                        multiline
-                        className="mt-0.5 text-[9.5px] text-slate-700 leading-snug"
-                        style={{ minHeight: '20px' }}
-                        value={proj.description || ''}
-                        onChange={(val) => {
-                          onUpdateSectionItem(sectionIndex, idx, 'description', val);
-                        }}
-                        placeholder="Kurzbeschreibung des Projekts"
-                      />
-                    </div>
-                  )}
-
-                  <div style={{ breakInside: 'avoid', pageBreakInside: 'avoid' }} className="pdf-hidden">
-                    <button
-                      type="button"
-                      className="mt-0.5 text-[9px] text-[#22c1c3] hover:underline"
-                      onClick={() => handleAddBullet(sectionIndex, idx, proj)}
-                    >
-                      + Bullet
-                    </button>
-                    <button
-                      type="button"
-                      className="mt-0.5 ml-3 text-[9px] text-red-500 hover:underline"
-                      onClick={() => onDeleteSectionItem(sectionIndex, idx)}
-                    >
-                      Station löschen
-                    </button>
-                  </div>
-                </div>
-              );
-            })}
-          </div>
-        );
-
-      case 'education':
-        return (
-          <div key={sectionIndex}>
-            <SectionTitle>Ausbildung & Studium</SectionTitle>
-            {items.map((edu: any, idx: number) => {
-              // 🔥 Konsistente ID: section.type + sectionIndex + idx
-              const itemKey = `${section.type}-${sectionIndex}-${idx}`;
-              const spacer = pageBreakItems?.get(itemKey) ?? 0;
-              return (
-                <div
-                  key={idx}
-                  data-pdf-section
-                  data-spacer-id={itemKey}
-                  className="mb-2 rounded-xl bg-white border border-slate-200 px-3 py-2 shadow-sm w-full split-box-fix"
-                  style={{ display: 'block', breakInside: 'avoid', pageBreakInside: 'avoid', ...(spacer > 0 ? { marginTop: `${spacer}px` } : {}) }}
-                >
-                  <div className="flex justify-between items-start gap-2">
-                    <div className="flex-1 min-w-0">
-                      <EditableText
-                        className="font-bold text-[11px] text-slate-900"
-                        value={edu.degree || ''}
-                        onChange={(val) =>
-                          onUpdateSectionItem(sectionIndex, idx, 'degree', val)
-                        }
-                        placeholder="Abschluss"
-                      />
-                      <EditableText
-                        className="text-[10px] text-slate-500 mt-0.5"
-                        value={edu.institution || ''}
-                        onChange={(val) =>
-                          onUpdateSectionItem(sectionIndex, idx, 'institution', val)
-                        }
-                        placeholder="Institution"
-                      />
-                      {edu.location && (
-                        <EditableText
-                          className="text-[9.5px] text-slate-400 mt-0.5"
-                          value={edu.location || ''}
                           onChange={(val) => onUpdateSectionItem(sectionIndex, idx, 'location', val)}
                           placeholder="Ort"
                         />
                       )}
                     </div>
-                    <div className="text-[9.5px] text-slate-500 whitespace-nowrap flex-shrink-0 flex items-center gap-0.5">
-                      <EditableText
-                        className="text-right"
-                        style={{ width: '40px' }}
-                        value={edu.date_from || ''}
-                        onChange={(val) =>
-                          onUpdateSectionItem(sectionIndex, idx, 'date_from', val)
-                        }
-                        placeholder="Von"
-                      />
-                      –
-                      <EditableText
-                        style={{ width: '40px' }}
-                        value={edu.date_to || ''}
-                        onChange={(val) =>
-                          onUpdateSectionItem(sectionIndex, idx, 'date_to', val)
-                        }
-                        placeholder="Bis"
-                      />
-                    </div>
+                    {renderDateRange(sectionIndex, idx, exp)}
                   </div>
-                  {(edu.grade || edu.grades || edu.note) && (
-                    <div className="mt-1 flex items-center gap-1 text-[9.5px] text-slate-500">
-                      <span className="font-semibold text-[#22c1c3]">Note:</span>
-                      <EditableText
-                        className="flex-1 text-[9.5px] text-slate-500"
-                        value={edu.grade || edu.grades || edu.note || ''}
-                        onChange={(val) => onUpdateSectionItem(sectionIndex, idx, 'grade', val)}
-                        placeholder="Note"
-                      />
-                    </div>
-                  )}
-                  {(edu.description || edu.focus) && (
+
+                  {bullets.length > 0 ? (
+                    renderBullets(bullets, sectionIndex, idx, exp, 'Aufgabe / Erfolg')
+                  ) : (
                     <EditableText
                       multiline
-                      className="mt-1 text-[9.5px] text-slate-600 leading-snug"
-                      style={{ minHeight: '16px' }}
-                      value={edu.description || (Array.isArray(edu.focus) ? edu.focus.join(', ') : edu.focus) || ''}
+                      className="mt-0.5 leading-snug"
+                      style={{ fontSize: '9.5px', color: t.muted, minHeight: '20px' }}
+                      value={exp.description || ''}
                       onChange={(val) => onUpdateSectionItem(sectionIndex, idx, 'description', val)}
-                      placeholder="Schwerpunkte / Beschreibung"
+                      placeholder="Aufgaben und Erfolge (jede Zeile = eigener Punkt)"
                     />
                   )}
+
+                  {renderCardControls(sectionIndex, idx, exp)}
                 </div>
               );
             })}
           </div>
         );
 
+      // ── Projekte ─────────────────────────────────────────────────────────
+      case 'projects':
+        return (
+          <div>
+            <SectionTitle>{sectionTitle}</SectionTitle>
+            {items.map((proj: any, idx: number) => {
+              const bullets = getBullets(proj);
+              return (
+                <div key={idx} data-pdf-section data-break-item style={cardStyle}>
+                  <EditableText
+                    className="font-bold"
+                    style={{ fontSize: '11px', color: t.text }}
+                    value={proj.title || proj.name || ''}
+                    onChange={(val) => onUpdateSectionItem(sectionIndex, idx, 'title', val)}
+                    placeholder="Projekt"
+                  />
+
+                  {bullets.length > 0 ? (
+                    renderBullets(bullets, sectionIndex, idx, proj, 'Detail / Ergebnis')
+                  ) : (
+                    <EditableText
+                      multiline
+                      className="mt-0.5 leading-snug"
+                      style={{ fontSize: '9.5px', color: t.muted, minHeight: '20px' }}
+                      value={proj.description || ''}
+                      onChange={(val) => onUpdateSectionItem(sectionIndex, idx, 'description', val)}
+                      placeholder="Kurzbeschreibung des Projekts"
+                    />
+                  )}
+
+                  {renderCardControls(sectionIndex, idx, proj)}
+                </div>
+              );
+            })}
+          </div>
+        );
+
+      // ── Ausbildung ───────────────────────────────────────────────────────
+      case 'education':
+        return (
+          <div>
+            <SectionTitle>Ausbildung &amp; Studium</SectionTitle>
+            {items.map((edu: any, idx: number) => (
+              <div key={idx} data-pdf-section data-break-item style={cardStyle}>
+                <div className="flex justify-between items-start gap-2">
+                  <div className="flex-1 min-w-0">
+                    <EditableText
+                      className="font-bold"
+                      style={{ fontSize: '11px', color: t.text }}
+                      value={edu.degree || ''}
+                      onChange={(val) => onUpdateSectionItem(sectionIndex, idx, 'degree', val)}
+                      placeholder="Abschluss"
+                    />
+                    <EditableText
+                      className="mt-0.5"
+                      style={{ fontSize: '10px', color: t.muted }}
+                      value={edu.institution || ''}
+                      onChange={(val) => onUpdateSectionItem(sectionIndex, idx, 'institution', val)}
+                      placeholder="Institution"
+                    />
+                    {edu.location && (
+                      <EditableText
+                        className="mt-0.5"
+                        style={{ fontSize: '9.5px', color: t.faint }}
+                        value={edu.location || ''}
+                        onChange={(val) => onUpdateSectionItem(sectionIndex, idx, 'location', val)}
+                        placeholder="Ort"
+                      />
+                    )}
+                  </div>
+                  {renderDateRange(sectionIndex, idx, edu)}
+                </div>
+
+                {(edu.grade || edu.grades || edu.note) && (
+                  <div className="mt-1 flex items-center gap-1" style={{ fontSize: '9.5px', color: t.muted }}>
+                    <span className="font-semibold" style={{ color: t.accent }}>Note:</span>
+                    <EditableText
+                      className="flex-1"
+                      style={{ fontSize: '9.5px', color: t.muted }}
+                      value={edu.grade || edu.grades || edu.note || ''}
+                      onChange={(val) => onUpdateSectionItem(sectionIndex, idx, 'grade', val)}
+                      placeholder="Note"
+                    />
+                  </div>
+                )}
+
+                {(edu.description || edu.focus) && (
+                  <EditableText
+                    multiline
+                    className="mt-1 leading-snug"
+                    style={{ fontSize: '9.5px', color: t.muted, minHeight: '16px' }}
+                    value={edu.description || (Array.isArray(edu.focus) ? edu.focus.join(', ') : edu.focus) || ''}
+                    onChange={(val) => onUpdateSectionItem(sectionIndex, idx, 'description', val)}
+                    placeholder="Schwerpunkte / Beschreibung"
+                  />
+                )}
+              </div>
+            ))}
+          </div>
+        );
+
+      // ── Sprachen ─────────────────────────────────────────────────────────
+      // `data-break-atomic`: Sprachen bleiben immer zusammen. Passt der Block
+      // nicht mehr auf die Seite, wandert er komplett auf die nächste.
       case 'languages':
         return (
-          <div key={sectionIndex} style={{ breakInside: 'avoid', pageBreakInside: 'avoid' }}>
+          <div data-pdf-section data-break-atomic>
             <SectionTitle>Sprachen</SectionTitle>
             <div className="space-y-0.5">
               {items.map((lang: any, idx: number) => (
-                <div
-                  key={idx}
-                  className="flex justify-between items-center text-[9.5px] text-slate-700"
-                  style={{ breakInside: 'avoid', pageBreakInside: 'avoid' }}
-                >
+                <div key={idx} className="flex justify-between items-center" style={{ fontSize: '9.5px' }}>
                   <EditableText
                     className="font-medium"
-                    style={{ width: '50%' }}
-                    value={
-                      typeof lang === 'string'
-                        ? lang
-                        : lang.language || lang.name || ''
-                    }
-                    onChange={(val) =>
-                      onUpdateSectionItem(sectionIndex, idx, 'language', val)
-                    }
+                    style={{ width: '50%', color: t.text }}
+                    value={typeof lang === 'string' ? lang : lang.language || lang.name || ''}
+                    onChange={(val) => onUpdateSectionItem(sectionIndex, idx, 'language', val)}
                     placeholder="Sprache"
                   />
                   <EditableText
-                    className="text-slate-500 text-right text-[9px]"
-                    style={{ width: '50%' }}
-                    value={
-                      typeof lang === 'object'
-                        ? lang.level || lang.proficiency || ''
-                        : ''
-                    }
-                    onChange={(val) =>
-                      onUpdateSectionItem(sectionIndex, idx, 'level', val)
-                    }
+                    className="text-right"
+                    style={{ width: '50%', fontSize: '9px', color: t.muted }}
+                    value={typeof lang === 'object' ? lang.level || lang.proficiency || '' : ''}
+                    onChange={(val) => onUpdateSectionItem(sectionIndex, idx, 'level', val)}
                     placeholder="Niveau"
                   />
                 </div>
@@ -612,27 +478,34 @@ export const CreativeCVTemplate: React.FC<CreativeCVTemplateProps> = ({
           </div>
         );
 
+      // ── Chips ────────────────────────────────────────────────────────────
       case 'skills':
+      case 'soft_skills': {
+        const isSoft = section.type === 'soft_skills';
         return (
-          <div key={sectionIndex} style={{ breakInside: 'avoid', pageBreakInside: 'avoid' }}>
-            <div style={{ marginBottom: '6px', fontSize: '9px', fontWeight: 600, letterSpacing: '0.05em', color: '#64748b', textTransform: 'uppercase' }}>
-              Fachlich
-            </div>
+          <div>
+            <SubTitle>{isSoft ? 'Persönlich' : 'Fachlich'}</SubTitle>
             <div data-chip-row style={{ display: 'block', overflow: 'visible' }}>
               {items.map((skill: any, idx: number) => {
                 if (!skill) return null;
                 const raw = typeof skill === 'string' ? skill : skill.skill || skill.name || '';
-                const cleanedVal = raw.replace(/\s*\(?Otherskill\)?/gi, '').replace(/\s*\($/, '').trim();
-                if (!cleanedVal) return null;
+                const cleaned = raw.replace(/\s*\(?Otherskill\)?/gi, '').replace(/\s*\($/, '').trim();
+                if (!cleaned) return null;
                 const level = typeof skill === 'object' && skill !== null ? skill.level || skill.niveau || '' : '';
-                const display = level ? `${cleanedVal} (${level.trim()})` : cleanedVal;
+                const display = level ? `${cleaned} (${level.trim()})` : cleaned;
                 return (
-                  <span key={idx} style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', marginRight: '4px', marginBottom: '4px', verticalAlign: 'middle', padding: '2px 6px', borderRadius: '9999px', background: '#f0fdfe', border: '1px solid #38bdf8', lineHeight: 1.4, whiteSpace: 'nowrap', breakInside: 'avoid', pageBreakInside: 'avoid' }}>
+                  <span
+                    key={idx}
+                    style={chipStyle(
+                      isSoft ? t.chipAltBg : t.chipBg,
+                      isSoft ? t.chipAltBorder : t.chipBorder
+                    )}
+                  >
                     <EditableText
-                      style={{ fontSize: '9px', color: '#1e293b', lineHeight: 1.4, display: 'inline-block', verticalAlign: 'middle', textAlign: 'center', width: 'auto' }}
+                      style={chipTextStyle}
                       value={display}
                       onChange={(val) => onUpdateSectionItem(sectionIndex, idx, 'skill', val)}
-                      placeholder="Skill"
+                      placeholder={isSoft ? 'Stärke' : 'Skill'}
                     />
                   </span>
                 );
@@ -640,48 +513,21 @@ export const CreativeCVTemplate: React.FC<CreativeCVTemplateProps> = ({
             </div>
           </div>
         );
-
-      case 'soft_skills':
-        return (
-          <div key={sectionIndex} style={{ breakInside: 'avoid', pageBreakInside: 'avoid' }}>
-            <div style={{ marginBottom: '6px', fontSize: '9px', fontWeight: 600, letterSpacing: '0.05em', color: '#64748b', textTransform: 'uppercase' }}>
-              Persönlich
-            </div>
-            <div data-chip-row style={{ display: 'block', overflow: 'visible' }}>
-              {items.map((skill: any, idx: number) => {
-                if (!skill) return null;
-                const raw = typeof skill === 'string' ? skill : skill.skill || skill.name || '';
-                const cleanedVal = raw.replace(/\s*\(?Otherskill\)?/gi, '').replace(/\s*\($/, '').trim();
-                if (!cleanedVal) return null;
-                const level = typeof skill === 'object' && skill !== null ? skill.level || skill.niveau || '' : '';
-                const display = level ? `${cleanedVal} (${level.trim()})` : cleanedVal;
-                return (
-                  <span key={idx} style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', marginRight: '4px', marginBottom: '4px', verticalAlign: 'middle', padding: '2px 6px', borderRadius: '9999px', background: '#f5f3ff', border: '1px solid #a855f7', lineHeight: 1.4, whiteSpace: 'nowrap', breakInside: 'avoid', pageBreakInside: 'avoid' }}>
-                    <EditableText
-                      style={{ fontSize: '9px', color: '#1e293b', lineHeight: 1.4, display: 'inline-block', verticalAlign: 'middle', textAlign: 'center', width: 'auto' }}
-                      value={display}
-                      onChange={(val) => onUpdateSectionItem(sectionIndex, idx, 'skill', val)}
-                      placeholder="Stärke"
-                    />
-                  </span>
-                );
-              })}
-            </div>
-          </div>
-        );
+      }
 
       case 'work_values':
       case 'values':
         return (
-          <div key={sectionIndex}>
-            <SectionTitle>Arbeitsweise & Werte</SectionTitle>
+          <div data-pdf-section data-break-atomic>
+            <SectionTitle>Arbeitsweise &amp; Werte</SectionTitle>
             <div data-chip-row style={{ display: 'block', overflow: 'visible' }}>
-              {items.map((val: any, idx: number) => {
-                const v = typeof val === 'string' ? val : val.label || '';
+              {items.map((item: any, idx: number) => {
+                const v = typeof item === 'string' ? item : item.label || item.name || '';
+                if (!v) return null;
                 return (
-                  <span key={idx} style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', marginRight: '4px', marginBottom: '4px', verticalAlign: 'middle', padding: '2px 6px', borderRadius: '9999px', background: '#f0fdfe', border: '1px solid #22c1c3', lineHeight: 1.4, whiteSpace: 'nowrap', breakInside: 'avoid', pageBreakInside: 'avoid' }}>
+                  <span key={idx} style={chipStyle(t.chipBg, t.accent)}>
                     <EditableText
-                      style={{ fontSize: '9px', color: '#1e293b', lineHeight: 1.4, display: 'inline-block', verticalAlign: 'middle', textAlign: 'center', width: 'auto' }}
+                      style={chipTextStyle}
                       value={v}
                       onChange={(val) => onUpdateSectionItem(sectionIndex, idx, 'label', val)}
                       placeholder="Wert"
@@ -696,15 +542,16 @@ export const CreativeCVTemplate: React.FC<CreativeCVTemplateProps> = ({
       case 'hobbies':
       case 'interests':
         return (
-          <div key={sectionIndex}>
-            <SectionTitle>Hobbys & Interessen</SectionTitle>
+          <div data-pdf-section data-break-atomic>
+            <SectionTitle>Hobbys &amp; Interessen</SectionTitle>
             <div data-chip-row style={{ display: 'block', overflow: 'visible' }}>
-              {items.map((hob: any, idx: number) => {
-                const v = typeof hob === 'string' ? hob : hob.label || '';
+              {items.map((item: any, idx: number) => {
+                const v = typeof item === 'string' ? item : item.label || item.name || '';
+                if (!v) return null;
                 return (
-                  <span key={idx} style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', marginRight: '4px', marginBottom: '4px', verticalAlign: 'middle', padding: '2px 6px', borderRadius: '9999px', background: '#fff7ed', border: '1px solid #f97316', lineHeight: 1.4, whiteSpace: 'nowrap', breakInside: 'avoid', pageBreakInside: 'avoid' }}>
+                  <span key={idx} style={chipStyle('#fff7ed', '#f97316')}>
                     <EditableText
-                      style={{ fontSize: '9px', color: '#1e293b', lineHeight: 1.4, display: 'inline-block', verticalAlign: 'middle', textAlign: 'center', width: 'auto' }}
+                      style={chipTextStyle}
                       value={v}
                       onChange={(val) => onUpdateSectionItem(sectionIndex, idx, 'label', val)}
                       placeholder="Hobby"
@@ -716,56 +563,60 @@ export const CreativeCVTemplate: React.FC<CreativeCVTemplateProps> = ({
           </div>
         );
 
-      default:
-        return (
-          <div key={sectionIndex}>
-            <SectionTitle>{sectionTitle}</SectionTitle>
-            <ul className="space-y-1 text-[9.5px] text-slate-700">
-              {items.map((item: any, idx: number) => {
-                // Check if this is a detailed section (certifications, courses, awards, volunteering, stipendien, scholarships)
-                const detailedTypes = ['certifications', 'courses', 'awards', 'volunteering', 'stipendien', 'scholarships'];
+      // ── Zertifikate, Stipendien, Auszeichnungen, Ehrenamt ────────────────
+      //
+      // HIER LAG DER BUG. Diese Sektionen wurden mit `text-[#f9fafb]` und
+      // `color: '#e2e8f0'` gerendert — nahezu weiß, auf weißem Grund. Die
+      // Trennlinien waren `border-white/30`, also ebenfalls unsichtbar.
+      //
+      // Vermutlich ein Überbleibsel aus einer Version mit dunkler Seitenspalte.
+      // Die Daten waren immer da, sie waren nur nicht zu sehen. Mit Tokens ist
+      // dieser Fehler nicht mehr möglich: das Template kennt keine Hex-Werte.
+      default: {
+        const isDetailed = DETAILED_TYPES.has(section.type);
+        const isAtomic = ATOMIC_TYPES.has(section.type);
 
-                if (detailedTypes.includes(section.type)) {
+        return (
+          <div data-pdf-section {...(isAtomic ? { 'data-break-atomic': '' } : {})}>
+            <SectionTitle>{sectionTitle}</SectionTitle>
+            <ul className="space-y-1" style={{ fontSize: '9.5px' }}>
+              {items.map((item: any, idx: number) => {
+                if (isDetailed) {
                   const name = item.name || item.title || item.label || item.degree || '';
                   const institution = item.institution || item.company || item.issuer || item.organization || '';
                   const date = item.date || item.date_from || item.year || '';
+
                   return (
                     <li
                       key={idx}
-                      className="py-0.5 border-b border-white/30 last:border-b-0"
-                      style={{ breakInside: 'avoid', pageBreakInside: 'avoid' }}
+                      className="py-0.5 last:border-b-0"
+                      style={{ borderBottom: `1px solid ${t.border}` }}
                     >
                       <div style={{ fontWeight: 600, marginBottom: institution || date ? '2px' : '0' }}>
                         <EditableText
-                          className="text-[#f9fafb]"
+                          style={{ color: t.text }}
                           value={name}
-                          onChange={(val) =>
-                            onUpdateSectionItem(sectionIndex, idx, 'name', val)
-                          }
+                          onChange={(val) => onUpdateSectionItem(sectionIndex, idx, 'name', val)}
                           placeholder="Name/Titel"
                         />
                       </div>
                       {institution && (
-                        <div style={{ fontSize: '9px', color: '#e2e8f0', marginBottom: date ? '2px' : '0' }}>
+                        <div style={{ marginBottom: date ? '2px' : '0' }}>
                           <EditableText
+                            style={{ fontSize: '9px', color: t.muted }}
                             value={institution}
-                            onChange={(val) =>
-                              onUpdateSectionItem(sectionIndex, idx, 'institution', val)
-                            }
+                            onChange={(val) => onUpdateSectionItem(sectionIndex, idx, 'institution', val)}
                             placeholder="Institution"
                           />
                         </div>
                       )}
                       {date && (
-                        <div style={{ fontSize: '9px', color: '#e2e8f0' }}>
-                          <EditableText
-                            value={date}
-                            onChange={(val) =>
-                              onUpdateSectionItem(sectionIndex, idx, 'date', val)
-                            }
-                            placeholder="Datum"
-                          />
-                        </div>
+                        <EditableText
+                          style={{ fontSize: '9px', color: t.muted }}
+                          value={date}
+                          onChange={(val) => onUpdateSectionItem(sectionIndex, idx, 'date', val)}
+                          placeholder="Datum"
+                        />
                       )}
                     </li>
                   );
@@ -774,19 +625,19 @@ export const CreativeCVTemplate: React.FC<CreativeCVTemplateProps> = ({
                 const displayValue =
                   typeof item === 'string'
                     ? item
-                    : item.name || item.title || item.label || JSON.stringify(item);
+                    : item.name || item.title || item.label || '';
+                if (!displayValue) return null;
+
                 return (
                   <li
                     key={idx}
-                    className="py-0.5 border-b border-white/30 last:border-b-0"
-                    style={{ breakInside: 'avoid', pageBreakInside: 'avoid' }}
+                    className="py-0.5 last:border-b-0"
+                    style={{ borderBottom: `1px solid ${t.border}` }}
                   >
                     <EditableText
-                      className="text-[#f9fafb]"
+                      style={{ color: t.text }}
                       value={displayValue}
-                      onChange={(val) =>
-                        onUpdateSectionItem(sectionIndex, idx, 'name', val)
-                      }
+                      onChange={(val) => onUpdateSectionItem(sectionIndex, idx, 'name', val)}
                       placeholder="Eintrag"
                     />
                   </li>
@@ -795,13 +646,60 @@ export const CreativeCVTemplate: React.FC<CreativeCVTemplateProps> = ({
             </ul>
           </div>
         );
+      }
     }
+  };
+
+  // ─── Rechte Spalte: Skills und Soft Skills als ein Block ───────────────────
+  //
+  // Beide gehören zusammen unter "Skills & Tools" und dürfen als Einheit nicht
+  // getrennt werden — daher ein gemeinsames `data-break-atomic`.
+  //
+  // Nebenbei: Der alte Code gab bei `soft_skills` immer `null` zurück und
+  // rechnete darauf, dass die `skills`-Sektion den Block mitrendert. Existierten
+  // nur Soft Skills, verschwanden sie komplett. Behoben.
+  const renderRightSection = (section: EditorSection): React.ReactNode => {
+    const sectionIndex = sections.findIndex((s) => s === section);
+
+    if (section.type === 'soft_skills') {
+      const hasSkills = rightSections.some((s) => s.type === 'skills');
+      if (hasSkills) return null; // wird im skills-Block mitgerendert
+      return (
+        <div key="skills-tools-block" data-pdf-section data-break-atomic>
+          <SectionTitle>Skills &amp; Tools</SectionTitle>
+          {renderSection(section, sectionIndex)}
+        </div>
+      );
+    }
+
+    if (section.type === 'skills') {
+      const softSkillsSection = rightSections.find((s) => s.type === 'soft_skills');
+      return (
+        <div key="skills-tools-block" data-pdf-section data-break-atomic>
+          <SectionTitle>Skills &amp; Tools</SectionTitle>
+          {renderSection(section, sectionIndex)}
+          {softSkillsSection &&
+            renderSection(softSkillsSection, sections.findIndex((s) => s === softSkillsSection))}
+        </div>
+      );
+    }
+
+    const content = renderSection(section, sectionIndex);
+    if (!content) return null;
+    return (
+      <div key={sectionIndex} {...dragProps(sectionIndex, onReorderSections)}>
+        {content}
+      </div>
+    );
   };
 
   return (
     <div
-      className="relative bg-white text-slate-900 font-sans flex flex-col w-full"
+      className="relative flex flex-col w-full"
       style={{
+        fontFamily: FONT_STACK,
+        color: t.text,
+        backgroundColor: t.surface,
         wordBreak: 'break-word',
         overflowWrap: 'anywhere',
         minHeight: `${containerMinHeight}px`,
@@ -809,214 +707,180 @@ export const CreativeCVTemplate: React.FC<CreativeCVTemplateProps> = ({
         printColorAdjust: 'exact',
       }}
     >
-      <style>{`
-        @media print {
-          @page { margin: 0 !important; }
-          body, html, #root {
-            background-color: #ffffff !important;
-            -webkit-print-color-adjust: exact !important;
-            print-color-adjust: exact !important;
-          }
-          * {
-            -webkit-print-color-adjust: exact !important;
-            print-color-adjust: exact !important;
-            color-adjust: exact !important;
-          }
-          .split-box-fix {
-            box-decoration-break: clone !important;
-            -webkit-box-decoration-break: clone !important;
-          }
-        }
-      `}</style>
+      {/*
+        Der frühere `@media print`-Block mit `.split-box-fix` ist entfallen.
+        Der Export läuft über html2canvas — ein Screenshot des DOM, kein
+        Druckvorgang. Print-Media-Queries greifen dabei nie. Toter Code, der
+        Sicherheit vortäuschte.
+      */}
 
-      {/* Glow-Hintergrund */}
-      <div className="pointer-events-none absolute inset-0 opacity-40">
-        <div className="absolute -top-10 -left-16 w-52 h-52 bg-[#22c1c3] blur-3xl rounded-full" />
-        <div className="absolute -bottom-20 right-0 w-64 h-64 bg-[#66c0b6] blur-3xl rounded-full" />
+      {/* Dekorativer Verlauf. `position: absolute` — trägt nichts zur Höhe bei
+          und wird von der Break-Engine korrekt ignoriert. */}
+      <div className="pointer-events-none absolute inset-0" style={{ opacity: 0.35 }}>
+        <div className="absolute -top-10 -left-16 w-52 h-52 blur-3xl rounded-full" style={{ background: t.accent }} />
+        <div className="absolute -bottom-20 right-0 w-64 h-64 blur-3xl rounded-full" style={{ background: '#66c0b6' }} />
       </div>
 
-      {/* Header */}
-      <div ref={contentRef}>
-      <header className="relative px-6 pt-4 pb-2.5 flex items-center justify-between border-b border-slate-200 bg-slate-50 gap-3 flex-shrink-0">
-        <div className="relative flex-1 min-w-0">
-          <EditableText
-            className="text-[22px] font-extrabold tracking-[0.12em] uppercase text-slate-900"
-            value={personalInfo.name || ''}
-            onChange={(val) => onUpdatePersonalInfo('name', val)}
-            placeholder="Name"
-          />
-          <EditableText
-            className="mt-0.5 text-[12px] font-bold text-slate-600"
-            value={personalInfo.title || ''}
-            onChange={(val) => onUpdatePersonalInfo('title', val)}
-            placeholder="Titel"
-          />
-          <div className="mt-2 grid grid-cols-2 gap-x-3 gap-y-0.5 text-[9.5px] text-slate-700">
-            <div className="flex items-center gap-1.5">
-              <span>📍</span>
-              <EditableText
-                value={personalInfo.location || ''}
-                onChange={(val) => onUpdatePersonalInfo('location', val)}
-                placeholder="Ort"
-              />
-            </div>
-            <div className="flex items-center gap-1.5">
-              <span>☎</span>
-              <EditableText
-                value={personalInfo.phone || ''}
-                onChange={(val) => onUpdatePersonalInfo('phone', val)}
-                placeholder="Telefon"
-              />
-            </div>
-            <div className="flex items-center gap-1.5">
-              <span>✉</span>
-              <EditableText
-                value={personalInfo.email || ''}
-                onChange={(val) => onUpdatePersonalInfo('email', val)}
-                placeholder="E-Mail"
-              />
-            </div>
-            <div className="flex items-center gap-1.5">
-              <span>in</span>
-              <EditableText
-                value={personalInfo.linkedin || ''}
-                onChange={(val) => onUpdatePersonalInfo('linkedin', val)}
-                placeholder="LinkedIn"
-              />
+      {/* Alles zwischen Header und Footer zählt als Inhalt. */}
+      <div>
+        <header
+          className="relative px-6 pt-4 pb-2.5 flex items-center justify-between gap-3 flex-shrink-0"
+          style={{ borderBottom: `1px solid ${t.border}`, background: t.surfaceAlt }}
+        >
+          <div className="relative flex-1 min-w-0">
+            <EditableText
+              className="font-extrabold tracking-[0.12em] uppercase"
+              style={{ fontSize: '22px', color: t.text }}
+              value={personalInfo.name || ''}
+              onChange={(val) => onUpdatePersonalInfo('name', val)}
+              placeholder="Name"
+            />
+            <EditableText
+              className="mt-0.5 font-bold"
+              style={{ fontSize: '12px', color: t.muted }}
+              value={personalInfo.title || ''}
+              onChange={(val) => onUpdatePersonalInfo('title', val)}
+              placeholder="Titel"
+            />
+            <div className="mt-2 grid grid-cols-2 gap-x-3 gap-y-0.5" style={{ fontSize: '9.5px', color: t.muted }}>
+              <div className="flex items-center gap-1.5">
+                <span>📍</span>
+                <EditableText
+                  value={personalInfo.location || ''}
+                  onChange={(val) => onUpdatePersonalInfo('location', val)}
+                  placeholder="Ort"
+                />
+              </div>
+              <div className="flex items-center gap-1.5">
+                <span>☎</span>
+                <EditableText
+                  value={personalInfo.phone || ''}
+                  onChange={(val) => onUpdatePersonalInfo('phone', val)}
+                  placeholder="Telefon"
+                />
+              </div>
+              <div className="flex items-center gap-1.5">
+                <span>✉</span>
+                <EditableText
+                  value={personalInfo.email || ''}
+                  onChange={(val) => onUpdatePersonalInfo('email', val)}
+                  placeholder="E-Mail"
+                />
+              </div>
+              <div className="flex items-center gap-1.5">
+                <span>in</span>
+                <EditableText
+                  value={personalInfo.linkedin || ''}
+                  onChange={(val) => onUpdatePersonalInfo('linkedin', val)}
+                  placeholder="LinkedIn"
+                />
+              </div>
             </div>
           </div>
-        </div>
 
-        {photoUrl && (
-          <div className="relative flex-shrink-0">
-            <div className="w-20 h-20 rounded-3xl overflow-hidden border-2 border-slate-200 bg-slate-100 shadow-md">
-              <img
-                src={photoUrl}
-                alt="Foto"
-                className="w-full h-full"
-                style={{ objectFit: 'cover', objectPosition: `${photoPosition.x}% ${photoPosition.y}%`, width: '80px', height: '80px', display: 'block' }}
+          {photoUrl && (
+            <div className="relative flex-shrink-0">
+              <div
+                className="w-20 h-20 rounded-3xl overflow-hidden shadow-md"
+                style={{ border: `2px solid ${t.border}`, background: t.surfaceAlt }}
+              >
+                <img
+                  src={photoUrl}
+                  alt="Foto"
+                  className="w-full h-full"
+                  style={{
+                    objectFit: 'cover',
+                    objectPosition: `${photoPosition.x}% ${photoPosition.y}%`,
+                    width: '80px',
+                    height: '80px',
+                    display: 'block',
+                  }}
+                />
+              </div>
+            </div>
+          )}
+        </header>
+
+        <main
+          className="relative px-6 py-3 grid grid-cols-12 gap-4"
+          style={{ flex: 'none', background: t.surface }}
+        >
+          <section className="col-span-7 space-y-3">
+            <div data-break-atomic>
+              <SectionTitle>Profil &amp; Story</SectionTitle>
+              <EditableText
+                multiline
+                className="mt-0.5 leading-relaxed rounded-lg px-2 py-1.5"
+                style={{
+                  fontSize: '9.5px',
+                  color: t.text,
+                  background: t.surfaceAlt,
+                  border: `1px solid ${t.border}`,
+                  minHeight: '60px',
+                }}
+                value={summary || ''}
+                onChange={onUpdateSummary}
+                placeholder="Beschreibe kurz deinen Werdegang, dein Profil und was dich ausmacht."
               />
             </div>
+
+            {leftSections.map((section) => {
+              const sectionIndex = sections.findIndex((s) => s === section);
+              const content = renderSection(section, sectionIndex);
+              if (!content) return null;
+              return (
+                <div key={sectionIndex} {...dragProps(sectionIndex, onReorderSections)}>
+                  {content}
+                </div>
+              );
+            })}
+          </section>
+
+          <aside className="col-span-5 space-y-3">
+            {rightSections.map(renderRightSection)}
+          </aside>
+        </main>
+
+        {otherSections.length > 0 && (
+          <div className="relative px-6 pb-3 space-y-3" style={{ background: t.surface }}>
+            {otherSections.map((section) => {
+              const sectionIndex = sections.findIndex((s) => s === section);
+              const content = renderSection(section, sectionIndex);
+              if (!content) return null;
+              return (
+                <div key={sectionIndex} {...dragProps(sectionIndex, onReorderSections)}>
+                  {content}
+                </div>
+              );
+            })}
           </div>
         )}
-      </header>
-
-      {/* Content */}
-      <main className="relative px-6 py-3 grid grid-cols-12 gap-4 text-slate-800 bg-white" style={{ flex: 'none' }}>
-        <section className="col-span-7 space-y-3">
-          <div>
-            <SectionTitle>Profil & Story</SectionTitle>
-            <EditableText
-              multiline
-              className="mt-0.5 text-[9.5px] leading-relaxed text-slate-800 bg-slate-50 rounded-lg border border-slate-200 px-2 py-1.5"
-              style={{ minHeight: '60px' }}
-              value={summary || ''}
-              onChange={onUpdateSummary}
-              placeholder="Beschreibe kurz deinen Werdegang, dein Profil und was dich ausmacht."
-            />
-          </div>
-
-          {leftSections.map((section) => {
-            const sectionIndex = sections.findIndex((s) => s === section);
-            const content = renderSection(section, sectionIndex);
-            if (!content) return null;
-            return (
-              <div key={sectionIndex} draggable={!!onReorderSections}
-                onDragStart={(e) => { e.dataTransfer.setData('text/plain', String(sectionIndex)); e.dataTransfer.effectAllowed = 'move'; }}
-                onDragOver={(e) => e.preventDefault()}
-                onDrop={(e) => { e.preventDefault(); const from = parseInt(e.dataTransfer.getData('text/plain')); if (from !== sectionIndex) onReorderSections?.(from, sectionIndex); }}
-                style={{ cursor: onReorderSections ? 'grab' : undefined }}
-              >{content}</div>
-            );
-          })}
-        </section>
-
-        <aside className="col-span-5 space-y-3">
-          {rightSections.map((section) => {
-            const sectionIndex = sections.findIndex((s) => s === section);
-
-            // Skills + Soft Skills zusammen als Block "Skills & Tools"
-            if (section.type === 'skills' || section.type === 'soft_skills') {
-              const skillsSection = rightSections.find((s) => s.type === 'skills');
-              const softSkillsSection = rightSections.find((s) => s.type === 'soft_skills');
-
-              if (section.type === 'skills' && (skillsSection || softSkillsSection)) {
-                return (
-                  <div key="skills-tools-block">
-                    <SectionTitle>Skills & Tools</SectionTitle>
-                    {skillsSection &&
-                      renderSection(
-                        skillsSection,
-                        sections.findIndex((s) => s === skillsSection)
-                      )}
-                    {softSkillsSection &&
-                      renderSection(
-                        softSkillsSection,
-                        sections.findIndex((s) => s === softSkillsSection)
-                      )}
-                  </div>
-                );
-              }
-
-              if (section.type === 'soft_skills') {
-                return null;
-              }
-            }
-
-            return (
-              <div key={sectionIndex} draggable={!!onReorderSections}
-                onDragStart={(e) => { e.dataTransfer.setData('text/plain', String(sectionIndex)); e.dataTransfer.effectAllowed = 'move'; }}
-                onDragOver={(e) => e.preventDefault()}
-                onDrop={(e) => { e.preventDefault(); const from = parseInt(e.dataTransfer.getData('text/plain')); if (from !== sectionIndex) onReorderSections?.(from, sectionIndex); }}
-                style={{ cursor: onReorderSections ? 'grab' : undefined }}
-              >{renderSection(section, sectionIndex)}</div>
-            );
-          })}
-        </aside>
-      </main>
-
-      {otherSections.length > 0 && (
-        <div className="relative px-6 pb-3 space-y-3 bg-white">
-          {otherSections.map((section) => {
-            const sectionIndex = sections.findIndex((s) => s === section);
-            const content = renderSection(section, sectionIndex);
-            if (!content) return null;
-            return (
-              <div key={sectionIndex} draggable={!!onReorderSections}
-                onDragStart={(e) => { e.dataTransfer.setData('text/plain', String(sectionIndex)); e.dataTransfer.effectAllowed = 'move'; }}
-                onDragOver={(e) => e.preventDefault()}
-                onDrop={(e) => { e.preventDefault(); const from = parseInt(e.dataTransfer.getData('text/plain')); if (from !== sectionIndex) onReorderSections?.(from, sectionIndex); }}
-                style={{ cursor: onReorderSections ? 'grab' : undefined }}
-              >{content}</div>
-            );
-          })}
-        </div>
-      )}
-
-      {/* 🔥 Footer mit marginTop: 'auto' — geht an den Boden der berechneten Seite */}
       </div>
+
+      {/* Footer: `marginTop: auto` drückt ihn an die Unterkante des Containers,
+          also exakt an den Fuß der letzten Seite. Die Break-Engine reserviert
+          seine Höhe bei der Paginierung. */}
       <footer
         data-pdf-footer
         className="relative flex-shrink-0"
         style={{
           marginTop: 'auto',
           padding: '10px 24px',
-          borderTop: '1px solid #cbd5e1',
+          borderTop: `1px solid ${t.border}`,
           display: 'flex',
           flexDirection: 'row',
           justifyContent: 'space-between',
           alignItems: 'center',
           gap: '8px',
           fontSize: '9px',
-          color: '#64748b',
-          backgroundColor: '#f8fafc',
+          color: t.muted,
+          backgroundColor: t.surfaceAlt,
         }}
       >
         <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
           <span>Ort:</span>
           <EditableText
-            className="border-b border-dashed border-slate-300 px-1 text-slate-700"
-            style={{ width: '128px' }}
+            style={{ width: '128px', color: t.text, borderBottom: `1px dashed ${t.border}`, paddingLeft: '4px', paddingRight: '4px' }}
             placeholder="Stadt"
             value={personalInfo.location || ''}
             onChange={(val) => onUpdatePersonalInfo('location', val)}
