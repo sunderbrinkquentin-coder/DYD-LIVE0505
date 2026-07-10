@@ -13,6 +13,7 @@ import {
 const INITIAL: BreakResult = {
   cuts: [0],
   contentHeight: PAGE_HEIGHT_PX,
+  footerHeight: 0,
   pageCount: 1,
 };
 
