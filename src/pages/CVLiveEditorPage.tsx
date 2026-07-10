@@ -1584,11 +1584,6 @@ export function CVLiveEditorPage() {
             white-space: nowrap;
           }
 
-          /* Positionsanker für die absolut gesetzten Controls.
-             `[data-spacer-id]` bleibt als Anker, solange ModernCVTemplate und
-             ProfessionalCVTemplate noch nicht auf `[data-break-item]` migriert
-             sind. Classic, Minimal und Kreativ tragen bereits das neue Attribut.
-             Nach der Migration der letzten zwei Templates kann die Zeile weg. */
           [data-break-item],
           [data-spacer-id],
           [data-chip-row] > span,
