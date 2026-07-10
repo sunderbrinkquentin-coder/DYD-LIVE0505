@@ -1392,6 +1392,29 @@ export function CVLiveEditorPage() {
   const isPostPaymentFlow = searchParams.get('payment') === 'success';
   const showFullscreenSelect = isPostPaymentFlow || showTemplateSelectForExport;
 
+  /**
+   * Die Paywall muss in JEDEM Return-Zweig gemountet sein.
+   *
+   * BUG, der hier lag: Der Fullscreen-Picker unten ist ein early return. Die
+   * Paywall stand nur im Haupt-Return darunter. Klickte jemand dort auf
+   * "PDF erstellen", ohne freigeschaltet zu sein, wurde `showPaywallModal`
+   * zwar gesetzt — die Komponente war aber nicht im Baum. Der Button tat
+   * nichts.
+   *
+   * Erreichbar war das über `?payment=success`, während der Stripe-Webhook
+   * `download_unlocked` noch nicht geschrieben hatte. Der Nutzer hatte also
+   * bezahlt und sah einen toten Button.
+   */
+  const paywallOverlay = (
+    <CVOptimizerPaywall
+      isOpen={showPaywallModal}
+      onClose={() => setShowPaywallModal(false)}
+      onSuccess={handlePaywallSuccess}
+      cvId={cvId}
+      userId={user?.id}
+    />
+  );
+
   if (showFullscreenSelect && editorData && !templateConfirmed) {
     return (
       <div className="fixed inset-0 z-[999] bg-[#06060e] text-white flex flex-col items-center justify-center px-4 py-12">
@@ -1442,6 +1465,8 @@ export function CVLiveEditorPage() {
             <button
               onClick={async () => {
                 if (!isDownloadUnlocked) {
+                  // Die Paywall ist jetzt in diesem Zweig gemountet (siehe
+                  // `paywallOverlay` unten) und öffnet sich tatsächlich.
                   setShowPaywallModal(true);
                   return;
                 }
@@ -1456,6 +1481,8 @@ export function CVLiveEditorPage() {
             </button>
           </div>
         </div>
+
+        {paywallOverlay}
       </div>
     );
   }
@@ -1557,7 +1584,11 @@ export function CVLiveEditorPage() {
             white-space: nowrap;
           }
 
-
+          /* Positionsanker für die absolut gesetzten Controls.
+             `[data-spacer-id]` bleibt als Anker, solange ModernCVTemplate und
+             ProfessionalCVTemplate noch nicht auf `[data-break-item]` migriert
+             sind. Classic, Minimal und Kreativ tragen bereits das neue Attribut.
+             Nach der Migration der letzten zwei Templates kann die Zeile weg. */
           [data-break-item],
           [data-spacer-id],
           [data-chip-row] > span,
@@ -1741,36 +1772,16 @@ export function CVLiveEditorPage() {
       </main>
 
       {/* CONFIGURATION & PAYMENT OVERLAYS */}
-      <CVOptimizerPaywall
-        isOpen={showPaywallModal}
-        onClose={() => setShowPaywallModal(false)}
-        onSuccess={handlePaywallSuccess}
-        cvId={cvId}
-        userId={user?.id}
-      />
+      {paywallOverlay}
 
-      {showTemplateSelectForExport && (
-        <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4">
-          <div className="bg-[#111] border border-white/10 rounded-2xl p-8 max-w-lg w-full shadow-2xl">
-            <div className="text-center mb-6">
-              <h2 className="text-2xl font-bold text-white mb-2">Design auswählen</h2>
-              <p className="text-white/50 text-sm">Wähle das Template für deinen PDF-Download.</p>
-            </div>
-            <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 mb-6">
-              {templates.map((t) => (
-                <button key={t.id} onClick={() => handleTemplateChange(t.id)} className={`relative flex flex-col items-center gap-3 p-4 rounded-2xl border-2 transition-all duration-200 ${selectedTemplate === t.id ? 'border-[#66c0b6] bg-[#66c0b6]/10' : 'border-white/10 bg-white/5 hover:border-white/25'}`}>
-                  {selectedTemplate === t.id && <div className="absolute top-2.5 right-2.5 w-5 h-5 rounded-full bg-[#66c0b6] flex items-center justify-center"><Check size={11} className="text-black" /></div>}
-                  <span className="text-3xl">{t.icon}</span> <span className={`text-sm font-semibold ${selectedTemplate === t.id ? 'text-[#66c0b6]' : 'text-white/80'}`}>{t.name}</span>
-                </button>
-              ))}
-            </div>
-            <div className="flex gap-3">
-              <button onClick={() => setShowTemplateSelectForExport(false)} className="flex-1 py-3 rounded-xl bg-white/5 border border-white/10 text-white font-semibold hover:bg-white/10 transition-all">Abbrechen</button>
-              <button onClick={() => { setShowTemplateSelectForExport(false); triggerDirectExport(); }} className="flex-1 py-3 rounded-xl bg-gradient-to-r from-[#66c0b6] to-[#30E3CA] text-black font-bold transition-all flex items-center justify-center gap-2"><Download size={18} /> PDF erstellen</button>
-            </div>
-          </div>
-        </div>
-      )}
+      {/*
+        Der frühere zweite Template-Picker stand hier — gesteuert von
+        `showTemplateSelectForExport`, also von genau demselben State wie der
+        Fullscreen-Picker oben. Da der Fullscreen-Picker ein early return ist,
+        war dieses Modal unerreichbar: entweder greift der early return, oder
+        der State ist bereits `false`. Rund 80 Zeilen toter Code, der bei jedem
+        Refactor mitgeschleppt wurde. Entfernt.
+      */}
 
       {pendingDeleteItem && (
         <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4">
