@@ -326,7 +326,24 @@ function ResultView({
   result, learningPath, onPaywallClose, onGoToDashboard,
 }: { result: AnalysisResult; learningPath: LearningPath; onPaywallClose: () => void; onGoToDashboard?: () => void }) {
   const [showPaywall, setShowPaywall] = useState(false);
+const [showAllCurrent, setShowAllCurrent] = useState(false);
 
+  // ── SICHERS AUSLESEN (Fängt Änderungen an der DB ab) ──────────────────
+  const missingSkills = result.missingSkills || (result as any).missing_skills || [];
+  const currentSkills = result.currentSkills || (result as any).current_skills || [];
+  const strategicOutlook = result.strategicOutlook || (result as any).strategic_outlook || '';
+  const matchScore = result.matchScore ?? (result as any).match_score ?? 0;
+  const targetJob = result.targetJob || (result as any).target_job || '';
+  const targetCompany = result.targetCompany || (result as any).target_company || '';
+  const industry = result.industry || (result as any).industry || '';
+  // ──────────────────────────────────────────────────────────────────────
+
+  const visibleSkills = missingSkills
+    .filter((s) => skillDisplayName(s) !== '(unbenannt)')
+    .sort((a, b) => (b?.gap_severity ?? 0) - (a?.gap_severity ?? 0));
+    
+  const visibleCurrent = currentSkills.filter((s) => skillDisplayName(s) !== '(unbenannt)');
+  const scoreColor = matchScore >= 70 ? '#22c55e' : matchScore >= 40 ? '#f59e0b' : '#30E3CA';
   // Access is granted by exactly one thing: is_paid, written only by the Stripe
   // webhook with the service role. The presence of a curriculum proves nothing —
   // Make can write one before payment settles.
