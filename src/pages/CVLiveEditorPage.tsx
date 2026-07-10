@@ -618,24 +618,41 @@ export function CVLiveEditorPage() {
 
         const allEduItems = [...schoolEduItems, ...professionalEduItems, ...basicEduItems];
 
-        const allEduItemsMapped = allEduItems.map((edu: any) => ({
-          degree: edu.degree || edu.title || edu.qualification || edu.type || '',
-          institution: edu.institution || edu.school || edu.university || '',
-          date_from: formatDate(edu.date_from || edu.startDate || edu.startYear || ''),
-          date_to: formatDate(edu.date_to || edu.endDate || edu.endYear || edu.year || ''),
-          location: edu.location || edu.ort || '',
-          description: edu.description
-            || (Array.isArray(edu.focus) ? edu.focus.join(', ') : edu.focus)
-            || '',
-          grade: edu.grade || edu.grades || edu.note || edu.gpa || '',
-          focus: Array.isArray(edu.focus) ? edu.focus : [],
-        }));
+        const allEduItemsMapped = allEduItems
+          .map((edu: any) => ({
+            degree: edu.degree || edu.title || edu.qualification || edu.type || '',
+            institution: edu.institution || edu.school || edu.university || '',
+            date_from: formatDate(edu.date_from || edu.startDate || edu.startYear || ''),
+            date_to: formatDate(edu.date_to || edu.endDate || edu.endYear || edu.year || ''),
+            location: edu.location || edu.ort || '',
+            description: edu.description
+              || (Array.isArray(edu.focus) ? edu.focus.join(', ') : edu.focus)
+              || '',
+            grade: edu.grade || edu.grades || edu.note || edu.gpa || '',
+            focus: Array.isArray(edu.focus) ? edu.focus : [],
+          }))
+          // Ein Eintrag ohne Abschluss UND ohne Institution ist keine Station,
+          // sondern ein leeres Objekt aus einer der drei zusammengeführten
+          // Quellen. Vorher wurde daraus eine leere Karte mit einem einsamen
+          // "–" im Datumsfeld — im Editor als Platzhalter sichtbar, im PDF als
+          // rätselhafter leerer Kasten.
+          .filter((edu) => edu.degree.trim() || edu.institution.trim());
 
-        if (allEduItemsMapped.length > 0) {
+        // Dieselbe Station kann in `schoolEducation` und `education` stehen.
+        // Ohne Deduplizierung erscheint sie doppelt.
+        const eduSeen = new Set<string>();
+        const allEduItemsDeduped = allEduItemsMapped.filter((edu) => {
+          const key = `${edu.degree}|${edu.institution}|${edu.date_from}`.toLowerCase();
+          if (eduSeen.has(key)) return false;
+          eduSeen.add(key);
+          return true;
+        });
+
+        if (allEduItemsDeduped.length > 0) {
           sections.push({
             type: 'education',
             title: 'Ausbildung',
-            items: allEduItemsMapped
+            items: allEduItemsDeduped
           });
         }
 
@@ -770,14 +787,50 @@ export function CVLiveEditorPage() {
         if (!sections.some((s) => s.type === 'languages')) {
           const langRaw = rawCvData?.languages || editorPayload.languages || editorPayload.language || editorPayload.languageSkills || editorPayload.language_skills || editorPayload.cv_languages || editorPayload.sprachkenntnisse || [];
           const allLangs = [...(Array.isArray(langRaw) ? langRaw : []), ...collectedLanguagesFallback];
+
           if (allLangs.length > 0) {
-            const normalized = allLangs.map((item: any) => {
-              if (typeof item === 'string') return { language: item, level: '' };
-              if (typeof item === 'object' && item !== null) return { language: item.language || item.name || item.sprache || String(item), level: item.level || item.niveau || item.proficiency || '' };
-              return { language: String(item), level: '' };
-            }).filter((l) => l.language && l.language.trim());
+            // Sprachen erreichen uns aus mindestens vier Quellen: dem Wizard
+            // (`{language, level}`), der KI (`{name, proficiency}`), dem
+            // Skill-Fallback (`{skill, level}` — weil `isLanguageItem` sie aus
+            // den Hard Skills herausfischt) und als nackte Strings.
+            //
+            // Vorher las die Normalisierung nur `language || name || sprache`.
+            // Kam eine Sprache als `{skill: 'Deutsch'}` an, fiel sie durch und
+            // landete via `String(item)` als "[object Object]" — oder als leerer
+            // String, wenn das Template den Wert nochmal säuberte. Sichtbar war
+            // dann nur die Überschrift "SPRACHEN" über einer leeren Liste.
+            const pickLanguage = (item: any): string => {
+              if (typeof item === 'string') return item;
+              if (typeof item !== 'object' || item === null) return '';
+              return (
+                item.language ?? item.name ?? item.sprache ??
+                item.skill ?? item.label ?? item.title ?? ''
+              );
+            };
+
+            const pickLevel = (item: any): string => {
+              if (typeof item !== 'object' || item === null) return '';
+              return item.level ?? item.niveau ?? item.proficiency ?? item.stufe ?? '';
+            };
+
+            const normalized = allLangs
+              .map((item: any) => ({
+                language: String(pickLanguage(item) ?? '').trim(),
+                level: String(pickLevel(item) ?? '').trim(),
+              }))
+              // "[object Object]" entsteht, wenn keine der Feldnamen passt.
+              // Solche Einträge gehören nicht in den Lebenslauf — und sie
+              // stillschweigend als leeren Text durchzulassen ist schlimmer,
+              // als sie hier zu verwerfen.
+              .filter((l) => l.language && l.language !== '[object Object]');
+
             if (normalized.length > 0) {
               sections.push({ type: 'languages', title: 'Sprachen', items: normalized });
+            } else if (allLangs.length > 0) {
+              console.warn(
+                '[cvMapper] Sprach-Einträge gefunden, aber kein Feld erkannt. Rohdaten:',
+                allLangs
+              );
             }
           }
         }
@@ -1584,6 +1637,11 @@ export function CVLiveEditorPage() {
             white-space: nowrap;
           }
 
+          /* Positionsanker für die absolut gesetzten Controls.
+             `[data-spacer-id]` bleibt als Anker, solange ModernCVTemplate und
+             ProfessionalCVTemplate noch nicht auf `[data-break-item]` migriert
+             sind. Classic, Minimal und Kreativ tragen bereits das neue Attribut.
+             Nach der Migration der letzten zwei Templates kann die Zeile weg. */
           [data-break-item],
           [data-spacer-id],
           [data-chip-row] > span,
