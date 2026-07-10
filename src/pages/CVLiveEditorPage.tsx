@@ -9,10 +9,15 @@ import { ClassicCVTemplate } from '../components/cv-templates/templates/ClassicC
 import { MinimalCVTemplate } from '../components/cv-templates/templates/MinimalCVTemplate';
 import { CreativeCVTemplate } from '../components/cv-templates/templates/CreativeCVTemplate';
 import { ProfessionalCVTemplate } from '../components/cv-templates/templates/ProfessionalCVTemplate';
+import { useBreakPoints } from '../components/cv-templates/useBreakPoints';
+import { PAGE_HEIGHT_PX, pageSliceHeight, debugBreaks } from '../components/cv-templates/breakEngine';
 import PhotoUpload from '../components/PhotoUpload';
 import { CVOptimizerPaywall } from '../components/dashboard/CVOptimizerPaywall';
 import { supabase } from '../lib/supabase';
 import { useCvOptimizationStatus } from '../hooks/useCvOptimizationStatus';
+
+/** Abstand zwischen zwei sichtbaren A4-Blättern in der Vorschau. */
+const SHEET_GAP_PX = 32;
 
 interface EditorSection {
   type: string;
@@ -230,10 +235,6 @@ export function CVLiveEditorPage() {
 
   const [templateConfirmed, setTemplateConfirmed] = useState(false);
 
-  // 🔥 DIE ENGINE: Misst im Hintergrund und pusht die Boxen nach unten!
-  // 🔥 DIE ENGINE STATE
-  const [pageBreakItems, setPageBreakItems] = useState<Map<string, number>>(new Map());
-
   const cvPreviewRef = useRef<HTMLDivElement | null>(null);
   const mainAreaRef = useRef<HTMLDivElement | null>(null);
   const scaleObserverRef = useRef<ResizeObserver | null>(null);
@@ -241,7 +242,20 @@ export function CVLiveEditorPage() {
   const autoDownloadTriggeredRef = useRef(false);
 
   const [scale, setScale] = useState(1);
-  const [cvHeight, setCvHeight] = useState(1122);
+
+  // ───────────────────────────────────────────────────────────────────────────
+  // DIE UMBRUCH-ENGINE
+  //
+  // Gemessen wird der versteckte, unskalierte `data-pdf-root`. Der PDF-Exporter
+  // ruft später dieselbe Funktion auf demselben Layout auf. Deshalb stimmen
+  // Vorschau und PDF überein — nicht weil sie sich zufällig ähneln, sondern
+  // weil sie dieselben Zahlen benutzen.
+  //
+  // Die alte "Smart-Break Engine" mit `pageBreakItems` und `data-spacer-id` ist
+  // ersatzlos entfallen. Sie hat gerechnet, aber ihr Ergebnis wurde nie
+  // angewendet: an beiden Aufrufstellen ging eine leere Map an die Templates.
+  // ───────────────────────────────────────────────────────────────────────────
+  const breaks = useBreakPoints(cvPreviewRef, [editorData, selectedTemplate, photoUrl, photoPosition]);
 
   const mainRefCallback = (el: HTMLDivElement | null) => {
     mainAreaRef.current = el;
@@ -262,7 +276,13 @@ export function CVLiveEditorPage() {
 
   useEffect(() => {
     (window as any).__debugPdfHtml = () => debugLogPDFHtml(cvPreviewRef);
-    return () => { delete (window as any).__debugPdfHtml; };
+    (window as any).__debugBreaks = () => {
+      if (cvPreviewRef.current) debugBreaks(cvPreviewRef.current);
+    };
+    return () => {
+      delete (window as any).__debugPdfHtml;
+      delete (window as any).__debugBreaks;
+    };
   }, []);
 
   // Set viewport to 794px (CV width) on mobile so the browser scales
@@ -280,84 +300,6 @@ export function CVLiveEditorPage() {
     };
   }, []);
 
-  // ── DIE UNZERSTÖRBARE SMART-BREAK ENGINE ──
-// ── DIE UNZERSTÖRBARE SMART-BREAK ENGINE ──
-  useEffect(() => {
-    const timer = setTimeout(() => {
-      const container = cvPreviewRef.current;
-      if (!container) return;
-
-      const PAGE_H = 1122;
-      const newMap = new Map<string, number>();
-
-      const elements = Array.from(container.querySelectorAll<HTMLElement>('[data-spacer-id]'));
-      
-      let runningOffset = 0;
-      let maxBottom = 0;
-      const parentTop = container.getBoundingClientRect().top;
-
-      elements.forEach((el, index) => {
-        const box = el.getBoundingClientRect();
-        const rawTop = box.top - parentTop;
-        const height = box.height;
-        
-        // Den aktuell angewendeten Abstand abziehen, um die echte Position zu ermitteln
-        const spacerId = el.getAttribute('data-spacer-id') || `spacer-${index}`;
-        const currentSpacer = pageBreakItems.get(spacerId) || 0;
-        const unspacedTop = rawTop - currentSpacer;
-        
-        const actualTop = unspacedTop + runningOffset;
-        const actualBottom = actualTop + height;
-
-        const pageStart = Math.floor(actualTop / PAGE_H);
-        const pageEnd = Math.floor((actualBottom - 1) / PAGE_H);
-
-        // Wenn Element geschnitten wird -> Push berechnen
-        // Nur schieben wenn das Element WIRKLICH durchgeschnitten wird
-        // (nicht nur nahe der Grenze) — verhindert große weiße Gaps
-        if (pageEnd > pageStart && height < PAGE_H) {
-          const pageBottom = (pageStart + 1) * PAGE_H;
-          const overflowIntoNextPage = actualBottom - pageBottom;
-          const remainingOnCurrentPage = pageBottom - actualTop;
-
-          // Nur schieben wenn mehr als 30% des Elements auf der nächsten Seite landet
-          // ODER wenn weniger als 60px des Elements auf der aktuellen Seite sichtbar wären
-          const shouldPush = overflowIntoNextPage > height * 0.3 || remainingOnCurrentPage < 60;
-
-          if (shouldPush) {
-            const pushDown = pageBottom - actualTop;
-            runningOffset += pushDown;
-            newMap.set(spacerId, pushDown);
-          }
-        }
-        
-        if (actualBottom + runningOffset > maxBottom) {
-          maxBottom = actualBottom + runningOffset;
-        }
-      });
-
-      // Exakte Höhe berechnen — kein leeres Blatt wenn Overflow < 40px
-      const rawHeight = maxBottom + 20;
-      const pages = Math.ceil(rawHeight / PAGE_H);
-      const lastPageContent = rawHeight - (pages - 1) * PAGE_H;
-      // Wenn die letzte Seite weniger als 40px Inhalt hat, diese Seite weglassen
-      const finalHeight = lastPageContent < 40 && pages > 1
-        ? (pages - 1) * PAGE_H
-        : rawHeight;
-      setCvHeight(Math.max(PAGE_H, finalHeight));
-
-      setPageBreakItems(prev => {
-        if (prev.size !== newMap.size) return newMap;
-        for (const [k, v] of newMap.entries()) {
-          if (prev.get(k) !== v) return newMap;
-        }
-        return prev;
-      });
-    }, 150);
-
-    return () => clearTimeout(timer);
-  }, [editorData, selectedTemplate, pageBreakItems]);
-  
   const isInitialLoadRef = useRef(true);
   const saveTimeoutRef = useRef<number | null>(null);
 
@@ -669,29 +611,26 @@ export function CVLiveEditorPage() {
           sections.push(sortSectionNewestFirst(expSection));
         }
 
-// 1. BILDUNGSSTATIONEN (Studium + Schule)
+        // 1. BILDUNGSSTATIONEN (Studium + Schule)
         const schoolEduItems = findArray(['schoolEducation', 'school_education']);
         const professionalEduItems = findArray(['professionalEducation', 'professional_education']);
         const basicEduItems = findArray(['education', 'cv_education']);
 
-// 🔥 HIER FEHLTE DIE DEFINITION: Die Arrays zusammenführen
-const allEduItems = [...schoolEduItems, ...professionalEduItems, ...basicEduItems];
+        const allEduItems = [...schoolEduItems, ...professionalEduItems, ...basicEduItems];
 
-const allEduItemsMapped = allEduItems.map((edu: any) => ({
-  degree: edu.degree || edu.title || edu.qualification || edu.type || '',
-  institution: edu.institution || edu.school || edu.university || '',
-  date_from: formatDate(edu.date_from || edu.startDate || edu.startYear || ''),
-  date_to: formatDate(edu.date_to || edu.endDate || edu.endYear || edu.year || ''),
-  location: edu.location || edu.ort || '',
-  // FIX: focus als description, ABER auch grade separat übergeben
-  description: edu.description
-    || (Array.isArray(edu.focus) ? edu.focus.join(', ') : edu.focus)
-    || '',
-  grade: edu.grade || edu.grades || edu.note || edu.gpa || '',
-  // FIX: focus auch direkt übergeben, damit Templates es per edu.focus lesen können
-  focus: Array.isArray(edu.focus) ? edu.focus : [],
-}));
-        // 🔥 DIESER BLOCK FEHLT VERMUTLICH ODER WAR FEHLERHAFT:
+        const allEduItemsMapped = allEduItems.map((edu: any) => ({
+          degree: edu.degree || edu.title || edu.qualification || edu.type || '',
+          institution: edu.institution || edu.school || edu.university || '',
+          date_from: formatDate(edu.date_from || edu.startDate || edu.startYear || ''),
+          date_to: formatDate(edu.date_to || edu.endDate || edu.endYear || edu.year || ''),
+          location: edu.location || edu.ort || '',
+          description: edu.description
+            || (Array.isArray(edu.focus) ? edu.focus.join(', ') : edu.focus)
+            || '',
+          grade: edu.grade || edu.grades || edu.note || edu.gpa || '',
+          focus: Array.isArray(edu.focus) ? edu.focus : [],
+        }));
+
         if (allEduItemsMapped.length > 0) {
           sections.push({
             type: 'education',
@@ -700,32 +639,36 @@ const allEduItemsMapped = allEduItems.map((edu: any) => ({
           });
         }
 
-    // 2. ZERTIFIKATE & STIPENDIEN (separate Sektionen für bessere Darstellung)
-        const certItems = findArray(['certificates', 'zertifikate'])
-  .concat(
-    // FIX: Wizard-Format direkt lesen, falls findArray nichts findet
-    findArray(['certificates', 'zertifikate']).length === 0 && Array.isArray(editorPayload.certificates)
-      ? editorPayload.certificates
-      : []
-  );
-        const scholItems = findArray(['scholarships', 'stipendien'])
-  .concat(
-    findArray(['scholarships', 'stipendien']).length === 0 && Array.isArray(editorPayload.stipendien)
-      ? editorPayload.stipendien
-      : []
-  );
+        // 2. ZERTIFIKATE & STIPENDIEN
+        //
+        // Hinweis: `findArray` durchsucht bereits `rawCvData` UND `editorPayload`
+        // (die in den meisten Fällen dasselbe Objekt sind). Der frühere
+        // `.concat(...)`-Fallback auf `editorPayload.certificates` war deshalb
+        // toter Code, der Sicherheit vortäuschte. Entfernt.
+        const certItems = findArray(['certificates', 'zertifikate']);
+        const scholItems = findArray(['scholarships', 'stipendien']);
         const awardItems = findArray(['awards', 'auszeichnungen']);
+
+        // Einheitliches Item-Schema für alle drei Listen. `issuer` wird MIT
+        // gespeichert, weil `cvDataMapper` dieses Feld erwartet — die Templates
+        // lesen `institution`. Beide Namen zu führen kostet nichts und verhindert
+        // leere Felder, sobald Daten zwischen Wizard- und Editor-Pfad wandern.
+        const mapCredential = (aw: any) => {
+          const institution = aw.issuer || aw.institution || aw.organization || '';
+          return {
+            name: aw.name || aw.title || aw.degree || '',
+            institution,
+            issuer: institution,
+            date: aw.year || aw.date || aw.date_from || '',
+            description: aw.description || '',
+          };
+        };
 
         if (certItems.length > 0) {
           sections.push({
             type: 'certifications',
             title: 'Zertifikate',
-            items: certItems.map((aw: any) => ({
-              name: aw.name || aw.title || aw.degree || '',
-              institution: aw.issuer || aw.institution || aw.organization || '',
-              date: aw.year || aw.date || aw.date_from || '',
-              description: aw.description || '',
-            })).filter(i => i.name || i.institution),
+            items: certItems.map(mapCredential).filter(i => i.name || i.institution),
           });
         }
 
@@ -733,12 +676,7 @@ const allEduItemsMapped = allEduItems.map((edu: any) => ({
           sections.push({
             type: 'stipendien',
             title: 'Stipendien',
-            items: scholItems.map((aw: any) => ({
-              name: aw.name || aw.title || aw.degree || '',
-              institution: aw.issuer || aw.institution || aw.organization || '',
-              date: aw.year || aw.date || aw.date_from || '',
-              description: aw.description || '',
-            })).filter(i => i.name || i.institution),
+            items: scholItems.map(mapCredential).filter(i => i.name || i.institution),
           });
         }
 
@@ -746,25 +684,15 @@ const allEduItemsMapped = allEduItems.map((edu: any) => ({
           sections.push({
             type: 'awards',
             title: 'Auszeichnungen',
-            items: awardItems.map((aw: any) => ({
-              name: aw.name || aw.title || aw.degree || '',
-              institution: aw.issuer || aw.institution || aw.organization || '',
-              date: aw.year || aw.date || aw.date_from || '',
-              description: aw.description || '',
-            })).filter(i => i.name || i.institution),
+            items: awardItems.map(mapCredential).filter(i => i.name || i.institution),
           });
         }
 
         // 3. EHRENAMT
-        const volItems = findArray(['volunteerWork', 'ehrenamt', 'volunteering'])
-  .concat(
-    findArray(['volunteerWork', 'ehrenamt', 'volunteering']).length === 0 && Array.isArray(editorPayload.volunteerWork)
-      ? editorPayload.volunteerWork
-      : []
-  );
+        const volItems = findArray(['volunteerWork', 'ehrenamt', 'volunteering']);
         if (volItems.length > 0) {
           const items = volItems.map((vol: any, index: number) => ({
-            id: index, // Eindeutige ID für den Lösch-Vorgang
+            id: index,
             title: vol.role || vol.title || '',
             company: vol.organization || vol.company || '',
             date_from: formatDate(vol.date_from || ''),
@@ -781,6 +709,7 @@ const allEduItemsMapped = allEduItems.map((edu: any) => ({
             });
           }
         }
+
         // 4. PROJEKTE
         const projectItems = findArray(['projects', 'project', 'cv_projects']);
         if (projectItems.length > 0) {
@@ -795,6 +724,7 @@ const allEduItemsMapped = allEduItems.map((edu: any) => ({
             })),
           });
         }
+
         const isLanguageItem = (item: any): boolean => {
           const langs = ['deutsch', 'englisch', 'französisch', 'spanisch', 'italienisch', 'portugiesisch', 'russisch', 'chinesisch', 'japanisch', 'arabisch', 'türkisch', 'polnisch', 'niederländisch', 'schwedisch', 'norwegian', 'dänisch', 'finnisch', 'griechisch', 'german', 'english', 'french', 'spanish', 'italian', 'portuguese', 'russian', 'chinese', 'japanese', 'arabic', 'turkish', 'polish', 'dutch', 'swedish', 'danish', 'finnish', 'greek'];
           if (typeof item === 'string') return langs.some(l => item.toLowerCase().includes(l));
@@ -962,10 +892,6 @@ const allEduItemsMapped = allEduItems.map((edu: any) => ({
     const isAutoExportFlow = searchParams.get('autoExport') === '1';
     if ((!paymentSuccess && !isAutoExportFlow) || !editorData || !user || !cvId) return;
     if (!isTemplateReady) return;
-    // Post-payment requires the user to confirm the template in the
-    // fullscreen picker first. The "PDF nachträglich erstellen"-flow
-    // (autoExport=1, for existing CVs that don't have a pdf_url yet) reuses
-    // the already-saved template, so no confirmation step is needed.
     if (paymentSuccess && !templateConfirmed) return;
 
     if (autoDownloadTriggeredRef.current || exportInProgressRef.current) return;
@@ -1032,21 +958,10 @@ const allEduItemsMapped = allEduItems.map((edu: any) => ({
           ? `Lebenslauf_${toSlug(lastName)}_${toSlug(co)}`
           : lastName ? `Lebenslauf_${toSlug(lastName)}` : 'Lebenslauf_Optimiert';
 
-        const liveTextareas = cvPreviewRef.current?.querySelectorAll('textarea');
-        liveTextareas?.forEach((ta: any) => {
-          ta.setAttribute('defaultValue', ta.value);
-        });
-        
-        const savedTransform = el.style.transform;
-        el.style.transform = 'none';
-
+        // Der versteckte Render trägt keinen Transform mehr — die alte
+        // `el.style.transform = 'none'`-Akrobatik entfällt.
         await new Promise((resolve) => setTimeout(resolve, 300));
-        let pdfBlob: Blob;
-        try {
-          pdfBlob = await exportCVToPDFBlob(cvPreviewRef, editorData, { quality: 0.95, scale: 2 });
-        } finally {
-          el.style.transform = savedTransform;
-        }
+        const pdfBlob = await exportCVToPDFBlob(cvPreviewRef, editorData, { quality: 0.95, scale: 2 });
 
         const blobUrl = URL.createObjectURL(pdfBlob);
         const a = document.createElement('a');
@@ -1134,43 +1049,39 @@ const allEduItemsMapped = allEduItems.map((edu: any) => ({
     };
   };
 
-  // Paywall-Check: Token/Bezahlstatus prüfen, dann Paywall oder direkt Export
-const handleDownloadClick = async () => {
-  if (!user) {
-    const redirectTarget = cvId ? `/cv/${cvId}` : '/dashboard';
-    sessionStorage.setItem('pending_download_cv_id', cvId || '');
-    navigate(`/login?redirect=${encodeURIComponent(redirectTarget)}`);
-    return;
-  }
-
-  // Bereits freigeschaltet → direkt zur Template-Auswahl
-  if (isDownloadUnlocked) {
-    setTemplateConfirmed(false);
-    setShowTemplateSelectForExport(true);
-    return;
-  }
-
-  // Prüfe ob CV in DB bereits bezahlt/freigeschaltet
-  try {
-    if (cvId) {
-      const { data: stored } = await supabase
-        .from('stored_cvs')
-        .select('is_paid, download_unlocked')
-        .eq('id', cvId)
-        .maybeSingle();
-
-      if (stored?.is_paid || stored?.download_unlocked) {
-        setIsDownloadUnlocked(true);
-        setTemplateConfirmed(false);
-        setShowTemplateSelectForExport(true);
-        return;
-      }
+  const handleDownloadClick = async () => {
+    if (!user) {
+      const redirectTarget = cvId ? `/cv/${cvId}` : '/dashboard';
+      sessionStorage.setItem('pending_download_cv_id', cvId || '');
+      navigate(`/login?redirect=${encodeURIComponent(redirectTarget)}`);
+      return;
     }
-  } catch (_) {}
 
-  // Nicht freigeschaltet → Paywall öffnen
-  setShowPaywallModal(true);
-};
+    if (isDownloadUnlocked) {
+      setTemplateConfirmed(false);
+      setShowTemplateSelectForExport(true);
+      return;
+    }
+
+    try {
+      if (cvId) {
+        const { data: stored } = await supabase
+          .from('stored_cvs')
+          .select('is_paid, download_unlocked')
+          .eq('id', cvId)
+          .maybeSingle();
+
+        if (stored?.is_paid || stored?.download_unlocked) {
+          setIsDownloadUnlocked(true);
+          setTemplateConfirmed(false);
+          setShowTemplateSelectForExport(true);
+          return;
+        }
+      }
+    } catch (_) {}
+
+    setShowPaywallModal(true);
+  };
 
   const handlePaywallSuccess = () => {
     setShowPaywallModal(false);
@@ -1179,7 +1090,7 @@ const handleDownloadClick = async () => {
     setShowTemplateSelectForExport(true);
   };
 
-const triggerDirectExport = async () => {
+  const triggerDirectExport = async () => {
     if (!cvPreviewRef.current || !cvId || !user) return;
     try {
       setIsExportingPDF(true);
@@ -1191,30 +1102,12 @@ const triggerDirectExport = async () => {
         ? `Lebenslauf_${toSlug(lastName)}_${toSlug(co)}.pdf`
         : lastName ? `Lebenslauf_${toSlug(lastName)}.pdf` : 'Lebenslauf.pdf';
 
-      const el = cvPreviewRef.current;
-      
-      // 1. Sichtbarkeit erzwingen
-      const parent = el.parentElement;
-      if (parent) parent.style.opacity = '1';
-// NEU: Warte, bis das Overlay "PDF wird generiert" sichtbar ist
-      await new Promise(resolve => setTimeout(resolve, 500));
-      // 2. Höhe erzwingen (Deine existierende Logik ist hier gut)
-      const PAGE_H = 1122;
-      const pageCountExport = Math.max(1, Math.ceil(cvHeight / PAGE_H));
-      const rootEl = el.querySelector('.cv-render-root') as HTMLElement;
-      if (rootEl) {
-        rootEl.style.setProperty('min-height', `${pageCountExport * PAGE_H}px`, 'important');
-      }
+      // Die frühere `min-height`-Erzwingung auf `.cv-render-root` entfällt.
+      // Der Container bekommt seine Höhe jetzt deklarativ über `minHeightPx`
+      // aus der Break-Engine — im Preview und im Export identisch.
+      await new Promise(resolve => setTimeout(resolve, 400));
 
-      // 3. WICHTIG: Kurze Pause, damit React das DOM wirklich rendert
-      await new Promise(resolve => setTimeout(resolve, 300));
-
-      // 4. Export mit Übergabe der editorData (falls dein Exporter das braucht)
       const blob = await exportCVToPDFBlob(cvPreviewRef, editorData);
-
-      // 5. Cleanup
-      if (rootEl) rootEl.style.removeProperty('min-height');
-      if (parent) parent.style.opacity = '0.001';
 
       const url = URL.createObjectURL(blob);
       const a = document.createElement('a');
@@ -1225,8 +1118,6 @@ const triggerDirectExport = async () => {
       a.remove();
       URL.revokeObjectURL(url);
 
-      // 6. PDF zusätzlich in Storage hochladen + stored_cvs aktualisieren,
-      //    damit es im Kanban-Board (Karte + Popup) verfügbar ist
       try {
         const filePath = `${user.id}/${cvId}.pdf`;
         const { error: uploadError } = await supabase.storage.from('cv-pdfs').upload(filePath, blob, {
@@ -1249,7 +1140,7 @@ const triggerDirectExport = async () => {
         const preservedStatus = currentRow?.status && currentRow.status !== 'completed' ? currentRow.status : 'completed';
 
         await supabase.from('stored_cvs').update({
-          cv_data: prepareCvDataForSave(editorData),
+          cv_data: prepareCvDataForSave(editorData!),
           download_unlocked: true,
           status: preservedStatus,
           ...(pdfPublicUrl ? { pdf_url: pdfPublicUrl } : {}),
@@ -1340,9 +1231,6 @@ const triggerDirectExport = async () => {
     });
   };
 
-  // Chip-type sections (skills, hobbies, etc.) — single tag removal, no confirmation needed.
-  // Everything else (experience, education, projects, ...) is a "Station" with multiple
-  // fields/bullets — deleting it loses real data, so confirm first.
   const CHIP_SECTION_TYPES = new Set([
     'skills', 'soft_skills', 'hobbies', 'interests', 'work_values', 'values', 'languages', 'tools',
   ]);
@@ -1351,11 +1239,6 @@ const triggerDirectExport = async () => {
     const section = editorData?.sections?.[sectionIndex];
     const isChip = !!section && CHIP_SECTION_TYPES.has(section.type);
     if (!isChip) {
-      // Show our own Corporate-Design confirm modal instead of
-      // window.confirm. Deletion happens only on explicit confirmation
-      // (confirmDeleteItem); "Abbrechen" (cancelDeleteItem) just closes the
-      // modal and changes nothing else — the editor continues exactly as
-      // before, no other part of the flow is affected.
       setPendingDeleteItem({ sectionIndex, itemIndex });
       return;
     }
@@ -1439,8 +1322,9 @@ const triggerDirectExport = async () => {
         return prev;
       }
     });
-  }
-const addSectionItem = (sectionIndex: number, defaultItem: any) => {
+  };
+
+  const addSectionItem = (sectionIndex: number, defaultItem: any) => {
     setHasEditorChanges(true);
     setEditorData((prev: any) => {
       if (!prev?.sections?.[sectionIndex]) return prev;
@@ -1450,10 +1334,10 @@ const addSectionItem = (sectionIndex: number, defaultItem: any) => {
       newSections[sectionIndex] = section;
       return { ...prev, sections: newSections };
     });
-  }; // <--- DIESE ZEILE HAT GEFEHLT! (Schließt die Funktion)
+  };
 
   if (error) {
-  return (
+    return (
       <div className="min-h-screen bg-gradient-to-br from-[#050507] via-[#0a0a0f] to-[#050507] text-white flex items-center justify-center">
         <div className="text-center space-y-6 max-w-md px-4">
           <AlertTriangle size={64} className="text-red-500 mx-auto" />
@@ -1505,7 +1389,7 @@ const addSectionItem = (sectionIndex: number, defaultItem: any) => {
     return <LoadingPageContent elapsedSeconds={elapsedSeconds} activeStep={activeStep} PROCESSING_STEPS={PROCESSING_STEPS} INFOS={INFOS} />;
   }
 
-const isPostPaymentFlow = searchParams.get('payment') === 'success';
+  const isPostPaymentFlow = searchParams.get('payment') === 'success';
   const showFullscreenSelect = isPostPaymentFlow || showTemplateSelectForExport;
 
   if (showFullscreenSelect && editorData && !templateConfirmed) {
@@ -1555,28 +1439,27 @@ const isPostPaymentFlow = searchParams.get('payment') === 'success';
             >
               Abbrechen
             </button>
-<button
-onClick={async () => {
-  if (!isDownloadUnlocked) {
-    // Erst Paywall öffnen, Modal offen lassen
-    setShowPaywallModal(true);
-    return; // ← sofort raus, kein setShowTemplateSelectForExport(false)
-  }
-  
-  setShowTemplateSelectForExport(false);
-  setTemplateConfirmed(true);
-  await new Promise(r => setTimeout(r, 200));
-  triggerDirectExport();
-}}
-  className="flex-[2] py-4 rounded-2xl bg-gradient-to-r from-[#66c0b6] to-[#30E3CA] text-black font-bold text-lg"
->
-  PDF erstellen
-</button>
+            <button
+              onClick={async () => {
+                if (!isDownloadUnlocked) {
+                  setShowPaywallModal(true);
+                  return;
+                }
+                setShowTemplateSelectForExport(false);
+                setTemplateConfirmed(true);
+                await new Promise(r => setTimeout(r, 200));
+                triggerDirectExport();
+              }}
+              className="flex-[2] py-4 rounded-2xl bg-gradient-to-r from-[#66c0b6] to-[#30E3CA] text-black font-bold text-lg"
+            >
+              PDF erstellen
+            </button>
           </div>
         </div>
       </div>
     );
   }
+
   return (
     <div className="h-screen bg-[#050507] flex flex-col overflow-hidden font-sans w-full">
       {isPostPaymentFlow && templateConfirmed && (
@@ -1586,7 +1469,7 @@ onClick={async () => {
           <p className="text-white/60 max-w-sm text-center">Bitte schließe dieses Fenster nicht.</p>
         </div>
       )}
-      
+
       {showPaymentSuccessBanner && (
         <div className="bg-[#66c0b6] text-black px-4 py-3 flex items-center justify-between flex-shrink-0 z-[60]">
           <div className="flex items-center gap-3">
@@ -1646,35 +1529,77 @@ onClick={async () => {
         </div>
       </header>
 
-      {/* MAIN CONTENT AREA MIT PHYSISCHEN A4-BLÄTTERN */}
-{/* MAIN CONTENT AREA MIT PHYSISCHEN A4-BLÄTTERN */}
-     {/* MAIN CONTENT AREA MIT PHYSISCHEN A4-BLÄTTERN */}
       <main ref={mainRefCallback} className="flex-1 overflow-y-auto bg-[#1e1e24] w-full py-12 flex flex-col items-center">
-        
+
         <style>{`
-          /* Add/Remove-Controls: standardmäßig auf 0 kollabiert (kein Puffer),
-             unabhängig vom jeweiligen display-Wert (flex/block/inline-block).
-             max-height/max-width statt display vermeidet Konflikte mit
-             Inline-Styles wie style={{display:'flex'}}. Beim Hover über die
-             Station/Zeile/Chip expandieren die Controls wieder. */
+          /* ─────────────────────────────────────────────────────────────────
+             .pdf-hidden — Editor-Controls, die nicht ins PDF gehören.
+
+             KRITISCH: Diese Elemente müssen AUS DEM FLUSS sein, nicht nur
+             kollabiert. Vorher hat max-height:0 sie zwar unsichtbar gemacht,
+             aber ihre Wrapper trugen weiter margin/padding zum Layout bei.
+             Der PDF-Klon entfernt sie dagegen komplett. Ergebnis: der Klon war
+             pro Station ~6px flacher als die Vorschau, über zehn Stationen
+             60px — und der Seitenumbruch saß woanders.
+
+             Mit position:absolute ist ihr Layout-Beitrag exakt null. Entfernen
+             im Klon ändert die Höhen dann nicht mehr. Genau das ist die
+             Voraussetzung dafür, dass die Break-Engine auf beiden DOMs
+             dasselbe Ergebnis liefert.
+             ───────────────────────────────────────────────────────────────── */
           .pdf-hidden {
-            max-height: 0 !important;
-            max-width: 0 !important;
-            overflow: hidden !important;
+            position: absolute !important;
+            margin: 0 !important;
+            z-index: 5;
             opacity: 0;
             pointer-events: none;
-            transition: max-height 0.12s ease, max-width 0.12s ease, opacity 0.12s ease;
+            transition: opacity 0.12s ease;
+            white-space: nowrap;
           }
-          [data-spacer-id]:hover .pdf-hidden,
-          [data-pdf-section]:hover .pdf-hidden,
-          li:hover .pdf-hidden,
-          [data-chip-row] > span:hover .pdf-hidden {
-            max-height: 120px !important;
-            max-width: 100% !important;
-            overflow: visible !important;
+
+          /* Positionsanker für die absolut gesetzten Controls.
+             `[data-spacer-id]` ist der Übergangs-Anker: die Templates tragen es
+             noch, bis Schritt 6 sie auf `[data-break-item]` umstellt. Danach
+             kann die Zeile weg. */
+          [data-break-item],
+          [data-spacer-id],
+          [data-chip-row] > span,
+          [data-pdf-root] li,
+          .a4-page-frame li {
+            position: relative;
+          }
+
+          /* Steuerzeile einer Station: unten rechts in die Karte. */
+          [data-break-item] > .pdf-hidden,
+          [data-spacer-id] > .pdf-hidden {
+            right: 6px;
+            bottom: 4px;
+            display: flex !important;
+            gap: 8px;
+            align-items: center;
+          }
+
+          /* Bullet-Löschen: rechts oben in der Zeile. */
+          li > .pdf-hidden {
+            right: 0;
+            top: 0;
+          }
+
+          /* Chip-Löschen: an der rechten Kante des Chips. */
+          [data-chip-row] > span > .pdf-hidden {
+            right: 2px;
+            top: 50%;
+            transform: translateY(-50%);
+          }
+
+          [data-break-item]:hover > .pdf-hidden,
+          [data-spacer-id]:hover > .pdf-hidden,
+          li:hover > .pdf-hidden,
+          [data-chip-row] > span:hover > .pdf-hidden {
             opacity: 1;
             pointer-events: auto;
           }
+
           .nonce-export { display: none !important; }
 
           .a4-page-frame {
@@ -1687,10 +1612,8 @@ onClick={async () => {
             overflow: hidden !important;
           }
 
-          /* text-size-adjust:none verhindert iOS-Text-Boosting global, ohne
-             font-size zu ändern — gilt für sichtbare A4-Frames UND das versteckte
-             PDF-Export-Element (data-pdf-root), da html2canvas die tatsächlich
-             gerenderten Pixel des versteckten Elements fotografiert. */
+          /* text-size-adjust:none verhindert iOS-Text-Boosting, ohne font-size
+             zu ändern — für sichtbare Frames UND den versteckten PDF-Render. */
           .a4-page-frame,
           .a4-page-frame *,
           [data-pdf-root],
@@ -1699,18 +1622,13 @@ onClick={async () => {
             text-size-adjust: none !important;
           }
 
-          /* Skill-/Soft-Skill-/Werte-/Hobby-Chips: iOS zwingt input/contenteditable
-             sonst auf min. 16-17px — hier GEZIELT auf 9px fixieren.
-             Nur Form-Controls/Editable-Elemente innerhalb [data-chip-row],
-             damit Name/Titel/Beschreibungen ihre eigene (größere) font-size behalten. */
-          .a4-page-frame [data-chip-row] input,
+          /* Chips: iOS zwingt contenteditable sonst auf min. 16px. */
           .a4-page-frame [data-chip-row] [contenteditable],
-          [data-pdf-root] [data-chip-row] input,
           [data-pdf-root] [data-chip-row] [contenteditable] {
             font-size: 9px !important;
             transform: none !important;
           }
-          /* Skill chips dürfen nicht aus der Spalte laufen */
+
           [data-chip-row] {
             overflow: hidden !important;
             max-width: 100% !important;
@@ -1718,13 +1636,19 @@ onClick={async () => {
         `}</style>
 
         {(() => {
-          const PAGE_H = 1122;
-          const GAP = 32; // Exakt 1cm Lücke
-          const pageCountRender = Math.max(1, Math.ceil(cvHeight / PAGE_H));
+          // Höhe des Template-Containers: die letzte Seite beginnt bei cuts[last],
+          // also muss der Container bis cuts[last] + 1122 reichen. Der Footer sitzt
+          // per marginTop:auto dann exakt auf dessen Unterkante.
+          const minHeightPx = breaks.containerHeight;
+          const pageCount = breaks.pageCount;
 
           const templateProps = {
-            pageBreakItems,
-            pageCount: pageCountRender,
+            /**
+             * Ab Schritt 6 lesen die Templates diese Prop und setzen sie als
+             * `minHeight`. Bis dahin ignorieren sie sie und nutzen ihren eigenen
+             * ResizeObserver — funktioniert, ist aber eine zweite Höhen-Autorität.
+             */
+            minHeightPx,
             personalInfo: editorData.personalInfo!,
             summary: editorData.summary,
             sections: editorData.sections!,
@@ -1740,49 +1664,55 @@ onClick={async () => {
             onReorderSections: reorderSections,
           };
 
-          // Visible frames use emptyBreaks — no artificial gaps in preview
-          // PDF exporter handles clean page breaks via findBreak()
-          const emptyBreaksForFrames = new Map<string, number>();
-          const frameProps = { ...templateProps, pageBreakItems: emptyBreaksForFrames };
-
           const renderTemplate = () => {
-            if (selectedTemplate === 'modern') return <ModernCVTemplate {...frameProps} />;
-            if (selectedTemplate === 'classic') return <ClassicCVTemplate {...frameProps} />;
-            if (selectedTemplate === 'minimal') return <MinimalCVTemplate {...frameProps} />;
-            if (selectedTemplate === 'creative') return <CreativeCVTemplate {...frameProps} />;
-            if (selectedTemplate === 'professional') return <ProfessionalCVTemplate {...frameProps} />;
+            if (selectedTemplate === 'modern') return <ModernCVTemplate {...templateProps} />;
+            if (selectedTemplate === 'classic') return <ClassicCVTemplate {...templateProps} />;
+            if (selectedTemplate === 'minimal') return <MinimalCVTemplate {...templateProps} />;
+            if (selectedTemplate === 'creative') return <CreativeCVTemplate {...templateProps} />;
+            if (selectedTemplate === 'professional') return <ProfessionalCVTemplate {...templateProps} />;
             return null;
           };
 
-          const containerHeight = (pageCountRender * PAGE_H * scale) + ((pageCountRender - 1) * GAP * scale);
+          const containerHeight =
+            (pageCount * PAGE_HEIGHT_PX * scale) + ((pageCount - 1) * SHEET_GAP_PX * scale);
 
           return (
             <div style={{ width: `${794 * scale}px`, height: `${containerHeight}px`, position: 'relative', margin: '0 auto', flexShrink: 0 }}>
-              
-              {/* PDF export element — NO spacers so PDF has natural flow without gaps */}
+
+              {/* ── Der gemessene Render ──────────────────────────────────────
+                  Unskaliert, 794px breit, außerhalb des Sichtfelds. Die
+                  Break-Engine misst ihn, der PDF-Exporter klont ihn. Er ist die
+                  einzige Quelle für Geometrie — die sichtbaren Blätter unten
+                  sind nur Ausschnitte davon.                                   */}
               <div style={{ position: 'absolute', top: 0, left: 0, opacity: 0.001, zIndex: -100, pointerEvents: 'none' }}>
                 <div ref={cvPreviewRef} data-pdf-root style={{ width: '794px', backgroundColor: '#ffffff' }}>
-                  {(() => {
-                    const emptyBreaks = new Map<string, number>();
-                    if (selectedTemplate === 'modern') return <ModernCVTemplate {...templateProps} pageBreakItems={emptyBreaks} />;
-                    if (selectedTemplate === 'classic') return <ClassicCVTemplate {...templateProps} pageBreakItems={emptyBreaks} />;
-                    if (selectedTemplate === 'minimal') return <MinimalCVTemplate {...templateProps} pageBreakItems={emptyBreaks} />;
-                    if (selectedTemplate === 'creative') return <CreativeCVTemplate {...templateProps} pageBreakItems={emptyBreaks} />;
-                    if (selectedTemplate === 'professional') return <ProfessionalCVTemplate {...templateProps} pageBreakItems={emptyBreaks} />;
-                    return null;
-                  })()}
+                  {renderTemplate()}
                 </div>
               </div>
 
-              {/* Sichtbare physische A4-Blätter mit exakt 1cm Lücke */}
-              {Array.from({ length: pageCountRender }).map((_, pageIdx) => {
-                const frameTop = pageIdx * (PAGE_H + GAP) * scale;
-                const contentOffset = -(pageIdx * PAGE_H);
+              {/* ── Sichtbare A4-Blätter ──────────────────────────────────────
+                  Blatt i zeigt den Inhalt von cuts[i] bis cuts[i+1]. Der
+                  Ausschnitt wird per overflow:hidden begrenzt, damit kein
+                  Inhalt der Folgeseite durchscheint. Das letzte Blatt zeigt bis
+                  zum Blattende, damit der Footer sichtbar bleibt.               */}
+              {Array.from({ length: pageCount }).map((_, pageIdx) => {
+                const pageStart = breaks.cuts[pageIdx];
+                const isLastPage = pageIdx === pageCount - 1;
+                const visibleHeight = isLastPage
+                  ? PAGE_HEIGHT_PX
+                  : Math.min(PAGE_HEIGHT_PX, pageSliceHeight(breaks, pageIdx));
+                const frameTop = pageIdx * (PAGE_HEIGHT_PX + SHEET_GAP_PX) * scale;
 
                 return (
-                  <div key={pageIdx} className="a4-page-frame" style={{ top: `${frameTop}px`, left: 0, transform: `scale(${scale})`, transformOrigin: 'top left' }}>
-                    <div style={{ position: 'absolute', top: `${contentOffset}px`, left: 0, width: '794px' }}>
-                      {renderTemplate()}
+                  <div
+                    key={pageIdx}
+                    className="a4-page-frame"
+                    style={{ top: `${frameTop}px`, left: 0, transform: `scale(${scale})`, transformOrigin: 'top left' }}
+                  >
+                    <div style={{ position: 'relative', width: '794px', height: `${visibleHeight}px`, overflow: 'hidden' }}>
+                      <div style={{ position: 'absolute', top: `${-pageStart}px`, left: 0, width: '794px' }}>
+                        {renderTemplate()}
+                      </div>
                     </div>
                   </div>
                 );
@@ -1790,6 +1720,7 @@ onClick={async () => {
             </div>
           );
         })()}
+
         {/* METADATA SECTION */}
         {jobData && (jobData.jobTitle || jobData.company) && (
           <div className="mt-12 px-4 w-full" style={{ width: `${794 * scale}px` }}>
@@ -1811,14 +1742,15 @@ onClick={async () => {
           </div>
         )}
       </main>
+
       {/* CONFIGURATION & PAYMENT OVERLAYS */}
-<CVOptimizerPaywall
-  isOpen={showPaywallModal}
-  onClose={() => setShowPaywallModal(false)}
-  onSuccess={handlePaywallSuccess}
-  cvId={cvId}
-  userId={user?.id}
-/>
+      <CVOptimizerPaywall
+        isOpen={showPaywallModal}
+        onClose={() => setShowPaywallModal(false)}
+        onSuccess={handlePaywallSuccess}
+        cvId={cvId}
+        userId={user?.id}
+      />
 
       {showTemplateSelectForExport && (
         <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4">
