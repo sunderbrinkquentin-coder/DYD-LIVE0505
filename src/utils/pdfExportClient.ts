@@ -1,5 +1,7 @@
 import html2canvas from 'html2canvas';
 import jsPDF from 'jspdf';
+import { computeBreakPoints, PAGE_HEIGHT_PX } from '../components/cv-templates/breakEngine';
+import { CHIP_MAX_FONT_PX } from '../components/cv-templates/tokens';
 
 export interface PDFExportOptions {
   filename?: string;
@@ -26,16 +28,29 @@ function isPlaceholder(v: string): boolean {
   return v.trim() === '' || PLACEHOLDERS.has(v.trim().toLowerCase());
 }
 
+/**
+ * Schriften laden, BEVOR gemessen wird.
+ *
+ * Wichtig: Diese Liste muss zur `FONT_STACK`-Konstante in tokens.ts passen.
+ * Bekommt ein Template eine neue Schriftfamilie, gehört sie hierher — sonst
+ * misst html2canvas Fallback-Zeilenhöhen und der Export weicht von der
+ * Vorschau ab. Das war einer der Gründe, warum das Kreativ-Template im PDF
+ * eine andere Schrift zeigte als im Editor.
+ */
 async function waitForFonts(): Promise<void> {
-  if ((document as any).fonts) {
-    await (document as any).fonts.ready;
-    await Promise.all([
-      '400 12px Inter', '500 12px Inter', '600 12px Inter', '700 12px Inter',
-      '400 12px Roboto', '700 12px Roboto',
-    ].map(f => (document as any).fonts.load(f).catch(() => {})));
-    await (document as any).fonts.ready;
+  const fonts = (document as any).fonts;
+  if (fonts) {
+    await fonts.ready;
+    const faces = [
+      '400 12px Inter', '500 12px Inter', '600 12px Inter',
+      '700 12px Inter', '800 12px Inter',
+    ];
+    await Promise.all(faces.map((f: string) => fonts.load(f).catch(() => {})));
+    await fonts.ready;
   }
-  await new Promise<void>(r => requestAnimationFrame(() => requestAnimationFrame(() => setTimeout(r, 200))));
+  await new Promise<void>(r =>
+    requestAnimationFrame(() => requestAnimationFrame(() => setTimeout(r, 200)))
+  );
 }
 
 async function toBase64(src: string): Promise<string> {
@@ -54,33 +69,22 @@ async function toBase64(src: string): Promise<string> {
 }
 
 // ─── Style baking ─────────────────────────────────────────────────────────────
-// Walk live+clone trees simultaneously, copying every computed style as inline.
-// The clone becomes fully self-contained (no CSS classes required).
-//
-// Height policy:
-//   - Block containers that contain flex/grid children: bake the computed height
-//     so columns don't collapse off-screen.
-//   - Inputs, textareas, content-sized inline elements: height: auto so text
-//     can flow without clipping.
-//   - SVG root: bake exact pixel dimensions; preserve verticalAlign for
-//     inline-flex icon alignment.
+// Live- und Klon-Baum parallel durchlaufen und jeden Computed Style inline
+// schreiben. Der Klon wird dadurch vollständig eigenständig — keine CSS-Klassen
+// mehr nötig, was html2canvas' Rendering deterministisch macht.
 
 const INLINE_TAGS = new Set(['span', 'a', 'strong', 'em', 'b', 'i', 'label', 'small', 'code']);
 
 function bakeComputedStyles(liveEl: HTMLElement, cloneEl: HTMLElement): void {
   const tag = liveEl.tagName.toLowerCase();
   const cs = window.getComputedStyle(liveEl);
-// Position — convert fixed/sticky to relative so off-screen layout works
+
+  // Position — fixed/sticky auf relative umschreiben, damit Off-Screen-Layout stimmt.
   const pos = cs.position;
   cloneEl.style.position = (pos === 'fixed' || pos === 'sticky') ? 'relative' : pos;
-  
-  // 🔥 NEU: z-index sichern, damit Ebenen nicht kollabieren
   cloneEl.style.zIndex = cs.zIndex;
 
-  // 🔥 NEU: Wenn es ein reines Textelement ist, radikal in den Vordergrund zwingen
-  // Note: we intentionally do NOT set zIndex:999 on inline elements as this
-  // causes html2canvas to misrender text at incorrect scale
-  // ── SVG root ──────────────────────────────────────────────────────────────
+  // ── SVG-Wurzel ────────────────────────────────────────────────────────────
   if (tag === 'svg') {
     const r = liveEl.getBoundingClientRect();
     cloneEl.style.width = `${r.width}px`;
@@ -88,8 +92,6 @@ function bakeComputedStyles(liveEl: HTMLElement, cloneEl: HTMLElement): void {
     cloneEl.style.minWidth = `${r.width}px`;
     cloneEl.style.minHeight = `${r.height}px`;
     cloneEl.style.flexShrink = '0';
-    // Use inline-block so it participates in the flex row of its parent.
-    // verticalAlign: middle ensures it sits on the same baseline as adjacent text.
     cloneEl.style.display = 'inline-block';
     cloneEl.style.verticalAlign = 'middle';
     cloneEl.style.overflow = 'visible';
@@ -98,13 +100,10 @@ function bakeComputedStyles(liveEl: HTMLElement, cloneEl: HTMLElement): void {
     return;
   }
 
-  // ── SVG children (path, circle, polyline …) ───────────────────────────────
-  // Do not touch these — they use SVG attributes (d, cx, stroke…), not CSS.
+  // SVG-Kinder (path, circle, …) nutzen Attribute, kein CSS. Nicht anfassen.
   if (liveEl.closest('svg')) return;
 
-  // ── Everything else ───────────────────────────────────────────────────────
-
-  // Typography
+  // Typografie
   cloneEl.style.fontFamily = cs.fontFamily;
   cloneEl.style.fontSize = cs.fontSize;
   cloneEl.style.fontWeight = cs.fontWeight;
@@ -119,7 +118,7 @@ function bakeComputedStyles(liveEl: HTMLElement, cloneEl: HTMLElement): void {
   cloneEl.style.wordBreak = cs.wordBreak;
   cloneEl.style.verticalAlign = cs.verticalAlign;
 
-  // Background & borders
+  // Hintergrund & Rahmen
   cloneEl.style.backgroundColor = cs.backgroundColor;
   if (cs.backgroundImage && cs.backgroundImage !== 'none') {
     cloneEl.style.backgroundImage = cs.backgroundImage;
@@ -141,7 +140,7 @@ function bakeComputedStyles(liveEl: HTMLElement, cloneEl: HTMLElement): void {
   cloneEl.style.borderLeftColor = cs.borderLeftColor;
   cloneEl.style.borderRadius = cs.borderRadius;
 
-  // Box model
+  // Box-Modell
   cloneEl.style.boxSizing = cs.boxSizing;
   cloneEl.style.paddingTop = cs.paddingTop;
   cloneEl.style.paddingRight = cs.paddingRight;
@@ -152,20 +151,15 @@ function bakeComputedStyles(liveEl: HTMLElement, cloneEl: HTMLElement): void {
   cloneEl.style.marginBottom = cs.marginBottom;
   cloneEl.style.marginLeft = cs.marginLeft;
 
-  // Keep natural z-index stacking — forced zIndex:999 breaks html2canvas scale
-
-  // Display
   cloneEl.style.display = cs.display;
 
-  // Width — always bake to preserve column layouts
+  // Breite immer festschreiben, damit Spaltenlayouts erhalten bleiben.
   cloneEl.style.width = cs.width;
   cloneEl.style.maxWidth = cs.maxWidth;
   cloneEl.style.minWidth = cs.minWidth;
 
-  // Height — only bake for block containers, not for content-sized elements.
-  // Inputs/textareas need height:auto so replaced divs can size to their text.
-  // Inline elements size from content naturally.
-  // li, p — always auto so bullet content can wrap.
+  // Höhe nur für Block-Container festschreiben. Inhaltsgetriebene Elemente
+  // (Inputs, Textareas, li, p) brauchen height:auto, sonst wird Text abgeschnitten.
   const isContentSized =
     INLINE_TAGS.has(tag) ||
     tag === 'textarea' ||
@@ -181,12 +175,9 @@ function bakeComputedStyles(liveEl: HTMLElement, cloneEl: HTMLElement): void {
     cloneEl.style.minHeight = cs.minHeight !== 'auto' ? cs.minHeight : '0';
     cloneEl.style.maxHeight = 'none';
   } else {
-    // For flex/grid containers that might contain text, let height grow.
-    // Only bake explicit px heights for containers that layout their children.
     const isFlex = cs.display === 'flex' || cs.display === 'inline-flex';
     const isGrid = cs.display === 'grid' || cs.display === 'inline-grid';
     if (isFlex || isGrid) {
-      // Use minHeight so the container can grow if text wraps
       cloneEl.style.height = 'auto';
       cloneEl.style.minHeight = cs.minHeight !== 'auto' && cs.minHeight !== '0px' ? cs.minHeight : '0';
     } else {
@@ -196,14 +187,12 @@ function bakeComputedStyles(liveEl: HTMLElement, cloneEl: HTMLElement): void {
     cloneEl.style.maxHeight = 'none';
   }
 
-  // Overflow — never clip content in the PDF clone.
-  // In the live editor overflow:hidden hides scrollbars, but in the PDF
-  // it clips text that wraps to additional lines.
+  // Im Klon darf nichts geclippt werden. overflow:hidden versteckt im Editor
+  // nur Scrollbalken, im PDF schneidet es umbrochenen Text ab.
   cloneEl.style.overflow = 'visible';
   cloneEl.style.overflowX = 'visible';
   cloneEl.style.overflowY = 'visible';
 
-  // Flex container
   if (cs.display === 'flex' || cs.display === 'inline-flex') {
     cloneEl.style.flexDirection = cs.flexDirection;
     cloneEl.style.flexWrap = cs.flexWrap;
@@ -215,14 +204,12 @@ function bakeComputedStyles(liveEl: HTMLElement, cloneEl: HTMLElement): void {
     cloneEl.style.columnGap = cs.columnGap;
   }
 
-  // Flex child
   cloneEl.style.flexShrink = cs.flexShrink;
   cloneEl.style.flexGrow = cs.flexGrow;
   cloneEl.style.flexBasis = cs.flexBasis;
   cloneEl.style.alignSelf = cs.alignSelf;
   cloneEl.style.order = cs.order;
 
-  // Grid container
   if (cs.display === 'grid' || cs.display === 'inline-grid') {
     cloneEl.style.gridTemplateColumns = cs.gridTemplateColumns;
     cloneEl.style.gridTemplateRows = cs.gridTemplateRows;
@@ -233,19 +220,15 @@ function bakeComputedStyles(liveEl: HTMLElement, cloneEl: HTMLElement): void {
   cloneEl.style.gridColumn = cs.gridColumn;
   cloneEl.style.gridRow = cs.gridRow;
 
-  // Misc
-// Misc
   cloneEl.style.opacity = cs.opacity;
   cloneEl.style.visibility = cs.visibility;
-  
-  // 🛠️ Geändert: Erlaubt dem PDF-Klon, CSS-Transformationen der Boxen zu behalten
-  cloneEl.style.transform = cs.transform !== 'none' ? cs.transform : 'none'; 
-  
+  cloneEl.style.transform = cs.transform !== 'none' ? cs.transform : 'none';
   cloneEl.style.transition = 'none';
   cloneEl.style.animation = 'none';
   cloneEl.style.caretColor = 'transparent';
 
-  // Remove Tailwind class list — all needed styles are now inline
+  // Tailwind-Klassen entfernen — alles Nötige steht jetzt inline.
+  // ACHTUNG: Das passiert NACH der Klassen-basierten Entfernung in prepareClone.
   cloneEl.removeAttribute('class');
 }
 
@@ -257,19 +240,28 @@ function bakeAll(liveRoot: HTMLElement, cloneRoot: HTMLElement): void {
   }
 }
 
-// ─── Prepare clone for capture ───────────────────────────────────────────────
+// ─── Klon für die Aufnahme vorbereiten ───────────────────────────────────────
 
 function prepareClone(clone: HTMLElement, liveRoot: HTMLElement): void {
-  // Remove editor-only UI
-  clone.querySelectorAll<HTMLElement>('button, [data-pdf-hidden]').forEach(el => el.remove());
+  // Editor-Only-UI entfernen.
+  //
+  // FIX: Bisher wurde nur nach `[data-pdf-hidden]` (Attribut) gesucht — die
+  // Templates verwenden aber `.pdf-hidden` (Klasse). Die Buttons flogen zwar
+  // raus (weil auch `button` selektiert wurde), ihre Wrapper-Divs blieben mit
+  // margin/padding stehen. Jetzt beides.
+  //
+  // Seit die Controls in der Vorschau `position: absolute` sind, trägt ihr
+  // Entfernen ohnehin nichts mehr zur Höhe bei. Der Selektor bleibt trotzdem
+  // korrekt — Gürtel und Hosenträger.
+  clone.querySelectorAll<HTMLElement>('button, .pdf-hidden, [data-pdf-hidden]').forEach(el => el.remove());
 
-  // Snapshot live input/textarea values BEFORE any DOM changes
+  // Live-Werte von Inputs/Textareas sichern, BEVOR am DOM geschraubt wird.
   const liveInputs = Array.from(liveRoot.querySelectorAll<HTMLInputElement>('input'));
   const liveTAs = Array.from(liveRoot.querySelectorAll<HTMLTextAreaElement>('textarea'));
   const cloneInputs = Array.from(clone.querySelectorAll<HTMLInputElement>('input'));
   const cloneTAs = Array.from(clone.querySelectorAll<HTMLTextAreaElement>('textarea'));
 
-  // Replace <input> → <div>
+  // <input> → <div>
   for (let i = 0; i < cloneInputs.length; i++) {
     const ci = cloneInputs[i];
     const val = (liveInputs[i]?.value ?? ci.value ?? '').trim();
@@ -283,7 +275,6 @@ function prepareClone(clone: HTMLElement, liveRoot: HTMLElement): void {
     const div = clone.ownerDocument.createElement('div');
     div.textContent = val;
     div.style.cssText = ci.style.cssText;
-    // Let the div size to its content — fixed-width inputs would clip text
     div.style.display = 'inline';
     div.style.width = 'auto';
     div.style.minWidth = '0';
@@ -291,11 +282,7 @@ function prepareClone(clone: HTMLElement, liveRoot: HTMLElement): void {
     div.style.overflow = 'visible';
     div.style.whiteSpace = 'nowrap';
     div.style.wordBreak = 'normal';
-    // Determine the TRUE intended font-size, ignoring potentially device-skewed
-    // computed styles entirely. Source of truth, in order of preference:
-    //   1. Tailwind text-[Npx] class on the input itself (desktop-authored size)
-    //   2. Inline style.fontSize set via React (e.g. skill chips)
-    //   3. Fall back to whatever was baked from computed style
+
     const liveInputEl = liveInputs[i];
     const classFontSize = liveInputEl?.className?.match(/text-\[([\d.]+)px\]/)?.[1];
     const liveFontSize = liveInputEl?.style?.fontSize;
@@ -311,16 +298,12 @@ function prepareClone(clone: HTMLElement, liveRoot: HTMLElement): void {
     ci.parentNode?.replaceChild(div, ci);
   }
 
-// Replace <textarea> → <div>
+  // <textarea> → <div>
   for (let i = 0; i < cloneTAs.length; i++) {
     const ct = cloneTAs[i];
     const lt = liveTAs[i];
-
-    // Zieht den Wert direkt aus der echten Textarea des Editors
     const val = (lt?.value || lt?.textContent || ct.value || '').trim();
 
-    // 🛠️ WICHTIG: Wir deaktivieren das Löschen von "Platzhaltern" für den Export,
-    // damit KI-generierte Bullets nicht versehentlich gelöscht werden.
     if (val === '') {
       const row = ct.closest('[data-pdf-field-wrap]') ?? ct.closest('li');
       (row ?? ct).remove();
@@ -330,7 +313,6 @@ function prepareClone(clone: HTMLElement, liveRoot: HTMLElement): void {
     const div = clone.ownerDocument.createElement('div');
     div.textContent = val;
     div.style.cssText = ct.style.cssText;
-    // Always auto-height — fixed rows=N bakes a px height that clips content
     div.style.height = 'auto';
     div.style.minHeight = '0';
     div.style.maxHeight = 'none';
@@ -338,8 +320,7 @@ function prepareClone(clone: HTMLElement, liveRoot: HTMLElement): void {
     div.style.whiteSpace = 'pre-wrap';
     div.style.wordBreak = 'break-word';
     div.style.resize = 'none';
-    // Same source-of-truth fontSize logic as <input> — desktop-authored
-    // Tailwind class wins over (potentially device-skewed) computed style.
+
     const classFontSizeTA = lt?.className?.match(/text-\[([\d.]+)px\]/)?.[1];
     if (classFontSizeTA) {
       div.style.fontSize = `${classFontSizeTA}px`;
@@ -348,7 +329,6 @@ function prepareClone(clone: HTMLElement, liveRoot: HTMLElement): void {
     }
     ct.parentNode?.replaceChild(div, ct);
 
-    // Unlock parent chain so they can grow with the content
     let ancestor = div.parentElement;
     let depth = 0;
     while (ancestor && ancestor !== clone && depth < 6) {
@@ -363,14 +343,9 @@ function prepareClone(clone: HTMLElement, liveRoot: HTMLElement): void {
     }
   }
 
-  // contentEditable spans (ModernCVTemplate)
+  // contentEditable-Felder
   const liveContentEditables = liveRoot.querySelectorAll<HTMLElement>('[contenteditable]');
   clone.querySelectorAll<HTMLElement>('[contenteditable]').forEach((el, idx) => {
-    // Preserve font-size from live element before removing contenteditable.
-    // clone is a deep-clone of liveRoot taken just before this loop, so
-    // [contenteditable] elements appear in the same order with the same
-    // count in both trees — match by index (NOT indexOf, which would search
-    // for the clone node inside the live list and always return -1).
     const liveEl = liveContentEditables[idx] as HTMLElement | undefined;
     const preservedFontSize = liveEl?.style?.fontSize || el.style.fontSize || '';
     const preservedFontWeight = liveEl?.style?.fontWeight || el.style.fontWeight || '';
@@ -381,35 +356,23 @@ function prepareClone(clone: HTMLElement, liveRoot: HTMLElement): void {
     el.style.outline = 'none';
     el.style.cursor = 'default';
     el.style.caretColor = 'transparent';
-    // Ensure text can wrap freely
     el.style.height = 'auto';
     el.style.minHeight = '0';
     el.style.maxHeight = 'none';
     el.style.overflow = 'visible';
-    // Respect each field's OWN white-space/word-break (already baked from its live
-    // inline style by bakeComputedStyles): single-line fields (titles, dates,
-    // company names) use 'nowrap' and must NOT be forced to wrap; only multiline
-    // fields (bullet points, descriptions) use 'pre-wrap'/'break-word'. Forcing
-    // pre-wrap on a narrow flex:1 single-line field causes one-character-per-line
-    // vertical text stacking.
-    // Re-apply font properties from live element (baking may have lost them)
+
     if (preservedFontSize) el.style.fontSize = preservedFontSize;
     if (preservedFontWeight) el.style.fontWeight = preservedFontWeight;
     if (preservedColor) el.style.color = preservedColor;
 
-    // Skill/value/hobby chips have their own empty-filtering in React (return null
-    // before render) — never hide them here, even if textContent looks like a
-    // placeholder word (e.g. a skill literally named "Tools").
     const insideChip = el.closest('[data-chip-row]') !== null;
     if (!insideChip) {
       const text = (el.textContent ?? '').trim();
       if (isPlaceholder(text) || text === '') {
         el.textContent = '';
         const d = el.style.display || 'inline';
-        // Header contact fields are rendered as <div><span>Icon</span><EditableText/></div>.
-        // If the field is empty, hiding only the EditableText leaves the icon/badge
-        // (e.g. "in" for LinkedIn, 📍/☎/✉) orphaned in the PDF. Hide the whole
-        // icon+field pair instead so nothing is left behind.
+        // Kontaktfelder im Header sind <div><span>Icon</span><EditableText/></div>.
+        // Nur das Textfeld zu verstecken ließe das Icon verwaist stehen.
         const parent = el.parentElement;
         if (
           parent &&
@@ -424,15 +387,9 @@ function prepareClone(clone: HTMLElement, liveRoot: HTMLElement): void {
         }
       }
     } else {
-      // Chip text: rather than guessing which combination of
-      // display/align-items/vertical-align html2canvas honors, measure
-      // exactly where this text sits inside its chip in the LIVE editor
-      // (which renders correctly) and replicate that geometry on the clone.
-      // offsetWidth/offsetHeight/offsetTop are unaffected by the
-      // .cv-scale-wrapper transform (mobile scaling), so they're already in
-      // the same 794px-page coordinate space as the clone. getBoundingClientRect
-      // IS affected by that transform, so differences from it are divided by
-      // K (visual size / layout size) to undo the scale.
+      // Chip-Text: statt zu raten, welche display/align-Kombination html2canvas
+      // ehrt, messen wir die exakte Geometrie im LIVE-Editor (der korrekt
+      // rendert) und replizieren sie absolut auf dem Klon.
       const chipSpan = el.parentElement;
       const liveChipSpan = liveEl?.parentElement as HTMLElement | null | undefined;
       if (liveEl && chipSpan && liveChipSpan) {
@@ -469,7 +426,7 @@ function prepareClone(clone: HTMLElement, liveRoot: HTMLElement): void {
     }
   });
 
-  // img with object-fit → background-image div
+  // <img> mit object-fit → background-image-Div
   clone.querySelectorAll<HTMLImageElement>('img').forEach(img => {
     const src = img.getAttribute('src') || '';
     if (!src) { img.remove(); return; }
@@ -485,12 +442,9 @@ function prepareClone(clone: HTMLElement, liveRoot: HTMLElement): void {
     img.parentNode?.replaceChild(div, img);
   });
 
-  // Final pass: ensure no element clips its content in the PDF clone.
-  // This catches any containers whose overflow:hidden was baked before
-  // textarea/input replacement expanded the content.
-  // All content-bearing elements must grow with their text.
+  // Kein Element darf im Klon seinen Inhalt clippen.
   clone.querySelectorAll<HTMLElement>(
-    'li, ul, ol, p, [data-pdf-section], [data-pdf-bullet-row]'
+    'li, ul, ol, p, [data-pdf-section], [data-break-item], [data-pdf-bullet-row]'
   ).forEach(el => {
     el.style.overflow = 'visible';
     el.style.overflowX = 'visible';
@@ -499,15 +453,7 @@ function prepareClone(clone: HTMLElement, liveRoot: HTMLElement): void {
     el.style.maxHeight = 'none';
   });
 
-  // Skill chips: constrain horizontal overflow only. Do NOT clip vertically —
-  // `height` was baked as a fixed px value from the live DOM in an earlier
-  // pass, and that live measurement can be smaller than the chips actually
-  // need (e.g. due to live-editor layout quirks). With overflow:hidden + a
-  // stale small height, chip text gets clipped in the PDF while the chip
-  // background/border (which fits within the small height) stays visible —
-  // looking like "boxes covering the text". Letting height grow (auto) while
-  // still capping horizontal overflow keeps chips from overflowing the page
-  // width without clipping their content vertically.
+  // Skill-Chips: nur horizontal begrenzen, niemals vertikal clippen.
   clone.querySelectorAll<HTMLElement>('[data-chip-row]').forEach(el => {
     el.style.overflow = 'visible';
     el.style.overflowX = 'hidden';
@@ -518,19 +464,23 @@ function prepareClone(clone: HTMLElement, liveRoot: HTMLElement): void {
     el.style.maxHeight = 'none';
   });
 
-  // Final safety pass: cap any element with font > 13px that is inside a skill/chip section
-  // This catches edge cases where baking produces wrong font sizes
-  clone.querySelectorAll<HTMLElement>('[data-pdf-section] *, [data-chip-row] *').forEach(el => {
+  // ── Chip-Font-Guard ───────────────────────────────────────────────────────
+  //
+  // ALT: Diese Regel lief über `[data-pdf-section] *` UND `[data-chip-row] *`
+  // und zwang JEDES Element über 13px auf 9px — also auch Positionstitel und
+  // Firmennamen, sofern sie nicht h1–h4 waren. Ein "Sicherheitsnetz", das
+  // reihenweise Überschriften zerstörte.
+  //
+  // NEU: Nur noch Chips. Dort ist der Grund real (iOS zwingt contenteditable
+  // auf min. 16px), und nur dort greifen wir ein.
+  clone.querySelectorAll<HTMLElement>('[data-chip-row] *').forEach(el => {
     const fs = parseFloat(el.style.fontSize);
-    if (!isNaN(fs) && fs > 13) {
-      const tag = el.tagName.toLowerCase();
-      if (!['h1','h2','h3','h4'].includes(tag)) {
-        el.style.fontSize = '9px';
-      }
+    if (!isNaN(fs) && fs > CHIP_MAX_FONT_PX) {
+      el.style.fontSize = `${CHIP_MAX_FONT_PX - 1}px`;
     }
   });
 
-  // Also unlock any div that directly contains an li or replaced textarea-div
+  // Container, die Listen enthalten, dürfen ebenfalls nicht clippen.
   clone.querySelectorAll<HTMLElement>('div').forEach(el => {
     if (el.querySelector('li, ul') || el.getAttribute('data-pdf-section') !== null) {
       el.style.overflow = 'visible';
@@ -540,85 +490,7 @@ function prepareClone(clone: HTMLElement, liveRoot: HTMLElement): void {
   });
 }
 
-// ─── Page break detection (measured from the CLONE after baking) ─────────────
-// This is critical: we measure break candidates from the CLONE DOM (while it's
-// attached to the document), not the live DOM. This guarantees that the CSS
-// pixel positions match the canvas pixel positions after html2canvas renders.
-
-interface BreakCandidate {
-  topPx: number;
-  bottomPx: number;
-  priority: number;
-}
-
-function collectBreaksFromClone(cloneRoot: HTMLElement): BreakCandidate[] {
-  const rootTop = cloneRoot.getBoundingClientRect().top;
-  const list: BreakCandidate[] = [];
-
-  const add = (el: HTMLElement, prio: number) => {
-    const r = el.getBoundingClientRect();
-    if (r.height < 5 || r.width < 5) return;
-    if (el.style.display === 'none' || el.style.visibility === 'hidden') return;
-    list.push({ topPx: r.top - rootTop, bottomPx: r.bottom - rootTop, priority: prio });
-  };
-
-  cloneRoot.querySelectorAll<HTMLElement>('[data-pdf-section]').forEach(el => add(el, 300));
-  cloneRoot.querySelectorAll<HTMLElement>('section, article').forEach(el => add(el, 200));
-  cloneRoot.querySelectorAll<HTMLElement>('h1,h2,h3,h4').forEach(el => add(el, 150));
-  cloneRoot.querySelectorAll<HTMLElement>('li').forEach(el => add(el, 100));
-  cloneRoot.querySelectorAll<HTMLElement>('p').forEach(el => add(el, 70));
-  cloneRoot.querySelectorAll<HTMLElement>('div').forEach(el => {
-    const mt = parseFloat(el.style.marginTop || '0') || 0;
-    const pt = parseFloat(el.style.paddingTop || '0') || 0;
-    if (mt + pt >= 10) add(el, 60);
-  });
-
-  // Deduplicate — keep highest priority at each bottom position
-  const map = new Map<number, BreakCandidate>();
-  for (const c of list) {
-    const k = Math.round(c.bottomPx);
-    const prev = map.get(k);
-    if (!prev || c.priority > prev.priority) map.set(k, c);
-  }
-  return Array.from(map.values()).sort((a, b) => a.topPx - b.topPx);
-}
-
-// Find the best slice height (in CSS/clone pixels) for a page.
-// Rules:
-//   1. Only break at element TOP or BOTTOM — never mid-element.
-//   2. Prefer breaks that fill the page as much as possible.
-//   3. Minimum fill: 55% of page height.
-function findBreak(
-  candidates: BreakCandidate[],
-  pageStart: number,
-  pageH: number,
-  contentEnd: number,
-): number {
-  const maxPos = Math.min(pageStart + pageH, contentEnd);
-  const minPos = pageStart + pageH * 0.55;
-
-  const opts: { pos: number; score: number }[] = [];
-
-  for (const c of candidates) {
-    // Break BEFORE this element (element starts next page)
-    if (c.topPx > minPos && c.topPx <= maxPos) {
-      const fill = (c.topPx - pageStart) / pageH;
-      opts.push({ pos: c.topPx, score: c.priority * 2 + fill * 400 });
-    }
-    // Break AFTER this element (element stays on this page)
-    if (c.bottomPx > minPos && c.bottomPx <= maxPos) {
-      const fill = (c.bottomPx - pageStart) / pageH;
-      opts.push({ pos: c.bottomPx, score: c.priority + fill * 400 });
-    }
-    if (c.topPx > maxPos + 100) break;
-  }
-
-  if (opts.length === 0) return Math.min(pageH, contentEnd - pageStart);
-  opts.sort((a, b) => b.score - a.score);
-  return Math.max(pageH * 0.5, opts[0].pos - pageStart);
-}
-
-// ─── Core render ─────────────────────────────────────────────────────────────
+// ─── Kern-Render ─────────────────────────────────────────────────────────────
 
 async function renderElementToPDFBlob(
   element: HTMLElement,
@@ -628,7 +500,7 @@ async function renderElementToPDFBlob(
 
   await waitForFonts();
 
-  // Pre-convert images to base64
+  // Bilder vorab zu base64 — html2canvas kann sonst an CORS scheitern.
   const liveImgs = Array.from(element.querySelectorAll<HTMLImageElement>('img'));
   const origSrcs = liveImgs.map(img => img.getAttribute('src') || '');
   await Promise.all(liveImgs.map(async (img, i) => {
@@ -644,37 +516,22 @@ async function renderElementToPDFBlob(
   await new Promise<void>(r => requestAnimationFrame(() => requestAnimationFrame(() => r())));
   window.scrollTo(0, 0);
 
-  // Measure footer ratio in live DOM
-  const liveRect = element.getBoundingClientRect();
-  const liveH = liveRect.height;
-  const footerEl = element.querySelector<HTMLElement>('[data-pdf-footer]');
-  let footerTopRatio = 1;
-  let footerHRatio = 0;
-  if (footerEl) {
-    const fr = footerEl.getBoundingClientRect();
-    footerTopRatio = (fr.top - liveRect.top) / liveH;
-    footerHRatio = fr.height / liveH;
-  }
-
-  // Stamp img dimensions for img→div conversion
+  // Bild-Maße für die img→div-Konvertierung festhalten.
   liveImgs.forEach(img => {
     const cs = window.getComputedStyle(img);
     img.setAttribute('data-pdf-w', cs.width || `${img.offsetWidth}px`);
     img.setAttribute('data-pdf-h', cs.height || `${img.offsetHeight}px`);
   });
 
-  // Build baked clone
   const clone = element.cloneNode(true) as HTMLElement;
   bakeAll(element, clone);
 
-  // Restore live images & cleanup attrs
   liveImgs.forEach((img, i) => {
     img.setAttribute('src', origSrcs[i]);
     img.removeAttribute('data-pdf-w');
     img.removeAttribute('data-pdf-h');
   });
 
-  // Apply baked img dimensions to clone
   const cloneImgs = Array.from(clone.querySelectorAll<HTMLImageElement>('img'));
   liveImgs.forEach((lImg, i) => {
     if (!cloneImgs[i]) return;
@@ -682,7 +539,6 @@ async function renderElementToPDFBlob(
     cloneImgs[i].style.height = lImg.getAttribute('data-pdf-h') || cloneImgs[i].style.height;
   });
 
-  // Root clone styles
   clone.style.position = 'absolute';
   clone.style.left = '-9999px';
   clone.style.top = '0';
@@ -700,29 +556,33 @@ async function renderElementToPDFBlob(
   document.body.appendChild(clone);
   prepareClone(clone, element);
 
-  // Let browser fully reflow the clone (two frames + microtask for auto-height elements)
+  // Zwei Frames für den Reflow — Auto-Height-Elemente brauchen ihn.
   await new Promise<void>(r => requestAnimationFrame(() => requestAnimationFrame(() => setTimeout(r, 50))));
 
   const cloneH = clone.scrollHeight;
 
-  // ── Measure break candidates from the CLONE (not live DOM) ───────────────
-  const breakCandidates = collectBreaksFromClone(clone);
-  // Measure footer position from clone
-  const cloneFooter = clone.querySelector<HTMLElement>('[data-pdf-footer]');
-  let cloneFooterTopPx = cloneH;
-  let cloneFooterHPx = 0;
-  if (cloneFooter) {
+  // ── Die Umbrüche kommen aus DERSELBEN Engine wie die Vorschau ─────────────
+  //
+  // Kein eigenes `findBreak()` mehr, kein eigenes Kandidaten-Scoring. Der Klon
+  // hat dieselben Höhen wie der sichtbare Render (weil `.pdf-hidden` dort schon
+  // aus dem Fluss ist), also liefert `computeBreakPoints` dieselben Zahlen.
+  // Das ist die einzige Garantie, dass Editor und PDF übereinstimmen.
+  const breaks = computeBreakPoints(clone);
+  const { cuts, contentHeight, footerHeight, pageCount } = breaks;
+
+  const footerEl = clone.querySelector<HTMLElement>('[data-pdf-footer]');
+  const hasFooter = !!footerEl && footerHeight > 5;
+  let footerTopCss = contentHeight;
+  if (hasFooter && footerEl) {
     const cr = clone.getBoundingClientRect();
-    const fr = cloneFooter.getBoundingClientRect();
-    cloneFooterTopPx = fr.top - cr.top;
-    cloneFooterHPx = fr.height;
+    footerTopCss = footerEl.getBoundingClientRect().top - cr.top;
   }
-  const hasFooter = cloneFooter != null && cloneFooterHPx > 5;
 
-  console.log('[PDF] Clone:', clone.scrollWidth, 'x', cloneH,
-    hasFooter ? `  footer at ${cloneFooterTopPx.toFixed(0)}+${cloneFooterHPx.toFixed(0)}px` : '');
+  console.log(
+    `[PDF] Klon ${clone.scrollWidth}×${cloneH}px · ${pageCount} Seite(n) · Schnitte:`,
+    cuts.map(c => Math.round(c))
+  );
 
-  // Render
   let canvas: HTMLCanvasElement;
   try {
     canvas = await (html2canvas as any)(clone, {
@@ -742,88 +602,61 @@ async function renderElementToPDFBlob(
     document.body.removeChild(clone);
   }
 
-  console.log('[PDF] Canvas:', canvas.width, 'x', canvas.height);
-
-  // ── Page geometry ─────────────────────────────────────────────────────────
+  // ── Geometrie ─────────────────────────────────────────────────────────────
   const cssToCanvas = canvas.height / cloneH;
-  // A4 page height in canvas pixels
-  const canvasPageH = Math.round(A4_HEIGHT_MM * canvas.width / A4_WIDTH_MM);
-  // Clone-CSS pixels per A4 page
-  const clonePageHCss = canvasPageH / cssToCanvas;
+  // Eine Seite in Canvas-Pixeln. Bewusst aus PAGE_HEIGHT_PX abgeleitet und
+  // nicht aus dem A4-mm-Verhältnis: die Engine rechnet in 1122px-Seiten, und
+  // beide müssen dieselbe Einheit benutzen.
+  const canvasPageH = Math.round(PAGE_HEIGHT_PX * cssToCanvas);
 
-  // Footer in canvas pixels
-  const footerStartCanvas = hasFooter ? Math.round(cloneFooterTopPx * cssToCanvas) : canvas.height;
-  const footerHCanvas = hasFooter ? Math.round(cloneFooterHPx * cssToCanvas) : 0;
-  // Content (without footer)
-  const contentEndCss = hasFooter ? cloneFooterTopPx : cloneH;
-  const contentEndCanvas = hasFooter ? footerStartCanvas : canvas.height;
+  const footerTopCanvas = Math.round(footerTopCss * cssToCanvas);
+  const footerHCanvas = hasFooter ? Math.round(footerHeight * cssToCanvas) : 0;
 
   const pdfDoc = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4', compress: true });
 
-  // Draw one PDF page
-  const drawPage = (srcY: number, srcH: number, addFooter: boolean, isFirst: boolean) => {
-    // Last page (with footer) is always full A4; other pages are sized to content
-    const dstH = addFooter ? canvasPageH : srcH;
+  /**
+   * Zeichnet eine PDF-Seite.
+   *
+   * Jede Seite ist ein volles A4-Blatt. Der Inhaltsausschnitt wird oben
+   * platziert, der Footer (nur auf der letzten Seite) an der Unterkante —
+   * exakt so, wie der Editor die A4-Frames darstellt.
+   */
+  const drawPage = (srcYCanvas: number, srcHCanvas: number, withFooter: boolean, isFirst: boolean) => {
     const pc = document.createElement('canvas');
     pc.width = canvas.width;
-    pc.height = dstH;
+    pc.height = canvasPageH;
     const ctx = pc.getContext('2d')!;
     ctx.fillStyle = '#ffffff';
     ctx.fillRect(0, 0, pc.width, pc.height);
-    // Content slice
-    ctx.drawImage(canvas, 0, srcY, canvas.width, srcH, 0, 0, canvas.width, srcH);
-    // Footer at very bottom of last page
-    if (addFooter && footerHCanvas > 0) {
-      const fy = dstH - footerHCanvas;
-      ctx.drawImage(canvas, 0, footerStartCanvas, canvas.width, footerHCanvas, 0, fy, canvas.width, footerHCanvas);
+
+    const clippedH = Math.min(srcHCanvas, canvasPageH);
+    ctx.drawImage(canvas, 0, srcYCanvas, canvas.width, clippedH, 0, 0, canvas.width, clippedH);
+
+    if (withFooter && footerHCanvas > 0) {
+      const fy = canvasPageH - footerHCanvas;
+      ctx.drawImage(canvas, 0, footerTopCanvas, canvas.width, footerHCanvas, 0, fy, canvas.width, footerHCanvas);
     }
+
     if (!isFirst) pdfDoc.addPage();
-    const mmH = (dstH / scale) * (A4_WIDTH_MM / A4_WIDTH_PX);
-    pdfDoc.addImage(pc.toDataURL('image/jpeg', quality), 'JPEG', 0, 0, A4_WIDTH_MM, mmH, undefined, 'FAST');
+    pdfDoc.addImage(pc.toDataURL('image/jpeg', quality), 'JPEG', 0, 0, A4_WIDTH_MM, A4_HEIGHT_MM, undefined, 'FAST');
   };
 
-  // Single page?
-  const totalH = contentEndCanvas + footerHCanvas;
-  if (totalH <= canvasPageH * 1.02) {
-    drawPage(0, contentEndCanvas, hasFooter, true);
-    console.log('[PDF] Single page');
-    return pdfDoc.output('blob') as Blob;
-  }
+  for (let p = 0; p < pageCount; p++) {
+    const startCss = cuts[p];
+    const endCss = p + 1 < pageCount ? cuts[p + 1] : contentHeight;
+    const isLast = p === pageCount - 1;
 
-  // Multi-page: slice content using CLONE CSS coordinates
-  const footerHCss = hasFooter ? cloneFooterHPx : 0;
-  let cursor = 0;
-  const slicesCss: number[] = [];
+    const srcY = Math.round(startCss * cssToCanvas);
+    const srcH = Math.round((endCss - startCss) * cssToCanvas);
 
-  while (cursor < contentEndCss && slicesCss.length < 30) {
-    const remaining = contentEndCss - cursor;
-    // If rest + footer fits on one page → final slice
-    if (remaining + footerHCss <= clonePageHCss * 1.02) {
-      slicesCss.push(remaining);
-      break;
-    }
-    if (remaining <= clonePageHCss * 1.02) {
-      slicesCss.push(remaining);
-      break;
-    }
-    slicesCss.push(findBreak(breakCandidates, cursor, clonePageHCss, contentEndCss));
-    cursor += slicesCss[slicesCss.length - 1];
+    drawPage(srcY, srcH, isLast && hasFooter, p === 0);
+    console.log(`[PDF] Seite ${p + 1}: ${Math.round(startCss)}–${Math.round(endCss)}px` + (isLast && hasFooter ? ' + Footer' : ''));
   }
-
-  let canvasCursor = 0;
-  for (let p = 0; p < slicesCss.length; p++) {
-    const sliceH = Math.round(slicesCss[p] * cssToCanvas);
-    const isLast = p === slicesCss.length - 1;
-    drawPage(canvasCursor, sliceH, isLast && hasFooter, p === 0);
-    console.log(`[PDF] p${p + 1}: ${canvasCursor}–${canvasCursor + sliceH}px` + (isLast && hasFooter ? ' +footer' : ''));
-    canvasCursor += sliceH;
-  }
-  console.log('[PDF] Total pages:', slicesCss.length);
 
   return pdfDoc.output('blob') as Blob;
 }
 
-// ─── Public API ──────────────────────────────────────────────────────────────
+// ─── Öffentliche API ─────────────────────────────────────────────────────────
 
 export async function exportElementToPDF(
   element: HTMLElement,
@@ -855,7 +688,7 @@ export async function exportCVToPDF(
 
 export async function exportCVToPDFBlob(
   cvRef: React.RefObject<HTMLElement>,
-  _personalInfo?: { name?: string },
+  _personalInfo?: unknown,
   options?: PDFExportOptions
 ): Promise<Blob> {
   if (!cvRef.current) throw new Error('CV-Element nicht gefunden');
@@ -864,6 +697,6 @@ export async function exportCVToPDFBlob(
 
 export function debugLogPDFHtml(cvRef: React.RefObject<HTMLElement> | HTMLElement | null): void {
   const el = cvRef instanceof HTMLElement ? cvRef : cvRef?.current;
-  if (!el) { console.warn('[PDF Debug] No element.'); return; }
+  if (!el) { console.warn('[PDF Debug] Kein Element.'); return; }
   console.log('[PDF Debug]', el.offsetWidth, 'x', el.scrollHeight);
 }
