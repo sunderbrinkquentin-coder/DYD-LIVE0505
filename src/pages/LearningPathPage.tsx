@@ -325,9 +325,15 @@ interface AnalysisResult {
 function ResultView({
   result, learningPath, onPaywallClose, onGoToDashboard,
 }: { result: AnalysisResult; learningPath: LearningPath; onPaywallClose: () => void; onGoToDashboard?: () => void }) {
-const [showAllCurrent, setShowAllCurrent] = useState(false);
+  const [showPaywall, setShowPaywall] = useState(false);
+  const [showAllCurrent, setShowAllCurrent] = useState(false);
 
-  // ── SICHERS AUSLESEN (Fängt Änderungen an der DB ab) ──────────────────
+  // 1. ZUERST: isPaid definieren (Wichtig für alle nachfolgenden Funktionen!)
+  // Access is granted by exactly one thing: is_paid, written only by the Stripe
+  // webhook with the service role.
+  const isPaid = !!learningPath.is_paid;
+
+  // 2. DANACH: Fehlersicheres Auslesen der Spalten (Fängt Snake_Case und CamelCase ab)
   const missingSkills = result.missingSkills || (result as any).missing_skills || [];
   const currentSkills = result.currentSkills || (result as any).current_skills || [];
   const strategicOutlook = result.strategicOutlook || (result as any).strategic_outlook || '';
@@ -335,8 +341,8 @@ const [showAllCurrent, setShowAllCurrent] = useState(false);
   const targetJob = result.targetJob || (result as any).target_job || '';
   const targetCompany = result.targetCompany || (result as any).target_company || '';
   const industry = result.industry || (result as any).industry || '';
-  // ──────────────────────────────────────────────────────────────────────
 
+  // 3. Listen-Verarbeitung
   const visibleSkills = missingSkills
     .filter((s) => skillDisplayName(s) !== '(unbenannt)')
     .sort((a, b) => (b?.gap_severity ?? 0) - (a?.gap_severity ?? 0));
@@ -347,15 +353,13 @@ const [showAllCurrent, setShowAllCurrent] = useState(false);
   const criticalSkills = visibleSkills.filter(s => (s?.gap_severity ?? 0) >= 4);
   const buildSkills    = visibleSkills.filter(s => (s?.gap_severity ?? 0) >= 2 && (s?.gap_severity ?? 0) < 4);
 
-  const initialSkill = skillFromPath(learningPath)
-    ?? (visibleSkills[0] ? skillDisplayName(visibleSkills[0]) : null);
+  const initialSkill = (learningPath as any).skill || (visibleSkills[0] ? skillDisplayName(visibleSkills[0]) : null);
 
   const [selectedSkillName, setSelectedSkillName] = useState<string | null>(initialSkill);
   const [isSavingSkill, setIsSavingSkill] = useState(false);
   const [skillSaveError, setSkillSaveError] = useState<string | null>(null);
 
-  // The skill column is frozen by a DB trigger once is_paid is true. Before
-  // payment it stays writable so the user can change their mind.
+  // 4. State-Funktionen (Nutzt jetzt sicher das oben definierte isPaid)
   const selectSkill = async (name: string) => {
     if (name === selectedSkillName || isPaid) return;
     const previous = selectedSkillName;
@@ -380,7 +384,7 @@ const [showAllCurrent, setShowAllCurrent] = useState(false);
   return (
     <div className="space-y-5 max-w-2xl mx-auto" style={{ animation: 'lp_fadeUp 0.5s ease' }}>
       <style>{GLOBAL_STYLES}</style>
-
+      {/* ... Dein restliches HTML/JSX ab hier unverändert belassen ... */}
       {/* ── 1. Orientierung: Ziel + Match-Score ──────────────────────── */}
       <div
         className="rounded-2xl p-5"
