@@ -326,40 +326,33 @@ function ResultView({
   result, learningPath, onPaywallClose, onGoToDashboard,
 }: { result: AnalysisResult; learningPath: LearningPath; onPaywallClose: () => void; onGoToDashboard?: () => void }) {
   const [showPaywall, setShowPaywall] = useState(false);
-  const [showAllCurrent, setShowAllCurrent] = useState(false);
 
-  // 1. ZUERST: isPaid definieren (Wichtig für alle nachfolgenden Funktionen!)
   // Access is granted by exactly one thing: is_paid, written only by the Stripe
-  // webhook with the service role.
+  // webhook with the service role. The presence of a curriculum proves nothing —
+  // Make can write one before payment settles.
   const isPaid = !!learningPath.is_paid;
 
-  // 2. DANACH: Fehlersicheres Auslesen der Spalten (Fängt Snake_Case und CamelCase ab)
-  const missingSkills = result.missingSkills || (result as any).missing_skills || [];
-  const currentSkills = result.currentSkills || (result as any).current_skills || [];
-  const strategicOutlook = result.strategicOutlook || (result as any).strategic_outlook || '';
-  const matchScore = result.matchScore ?? (result as any).match_score ?? 0;
-  const targetJob = result.targetJob || (result as any).target_job || '';
-  const targetCompany = result.targetCompany || (result as any).target_company || '';
-  const industry = result.industry || (result as any).industry || '';
+  const [showAllCurrent, setShowAllCurrent] = useState(false);
+  const { missingSkills, currentSkills, strategicOutlook, matchScore, targetJob, targetCompany, industry } = result;
 
-  // 3. Listen-Verarbeitung
   const visibleSkills = missingSkills
     .filter((s) => skillDisplayName(s) !== '(unbenannt)')
     .sort((a, b) => (b?.gap_severity ?? 0) - (a?.gap_severity ?? 0));
-    
   const visibleCurrent = currentSkills.filter((s) => skillDisplayName(s) !== '(unbenannt)');
   const scoreColor = matchScore >= 70 ? '#22c55e' : matchScore >= 40 ? '#f59e0b' : '#30E3CA';
 
   const criticalSkills = visibleSkills.filter(s => (s?.gap_severity ?? 0) >= 4);
   const buildSkills    = visibleSkills.filter(s => (s?.gap_severity ?? 0) >= 2 && (s?.gap_severity ?? 0) < 4);
 
-  const initialSkill = (learningPath as any).skill || (visibleSkills[0] ? skillDisplayName(visibleSkills[0]) : null);
+  const initialSkill = skillFromPath(learningPath)
+    ?? (visibleSkills[0] ? skillDisplayName(visibleSkills[0]) : null);
 
   const [selectedSkillName, setSelectedSkillName] = useState<string | null>(initialSkill);
   const [isSavingSkill, setIsSavingSkill] = useState(false);
   const [skillSaveError, setSkillSaveError] = useState<string | null>(null);
 
-  // 4. State-Funktionen (Nutzt jetzt sicher das oben definierte isPaid)
+  // The skill column is frozen by a DB trigger once is_paid is true. Before
+  // payment it stays writable so the user can change their mind.
   const selectSkill = async (name: string) => {
     if (name === selectedSkillName || isPaid) return;
     const previous = selectedSkillName;
@@ -384,7 +377,7 @@ function ResultView({
   return (
     <div className="space-y-5 max-w-2xl mx-auto" style={{ animation: 'lp_fadeUp 0.5s ease' }}>
       <style>{GLOBAL_STYLES}</style>
-      {/* ... Dein restliches HTML/JSX ab hier unverändert belassen ... */}
+
       {/* ── 1. Orientierung: Ziel + Match-Score ──────────────────────── */}
       <div
         className="rounded-2xl p-5"
@@ -706,6 +699,66 @@ function toQuizQuestion(q: any, i: number): QuizQuestion {
     correct_key: correctKey,
     rationale: q.rationale || q.explanation_if_wrong || '',
     clt_rating: q.clt_rating || '',
+  };
+}
+
+/**
+ * Pulls unit objects out of one `content` value, whatever shape Make used:
+ * a JS array, a JSON string, a double-encoded JSON string, or a single object.
+ */
+function extractUnits(content: unknown): any[] {
+  if (!content) return [];
+  try {
+    if (Array.isArray(content)) return content;
+    if (typeof content === 'string') {
+      let s = content.trim();
+      if (s.startsWith('"')) s = JSON.parse(s) as string;
+      if (!s.startsWith('[')) s = `[${s}]`;
+      const p = JSON.parse(s);
+      return Array.isArray(p) ? p : [p];
+    }
+    if (typeof content === 'object') return [content];
+  } catch { /* */ }
+  return [];
+}
+
+/**
+ * Merges every learning_results row for a path into ONE synthetic row whose
+ * `content` is a flat, de-duplicated, unit_id-sorted array of units.
+ *
+ * This is deliberately shape-agnostic: whether Make writes one row with an
+ * array of 5 units, or 5 rows each holding one unit, the result is identical.
+ * Downstream code (parseContentUnit / countContentUnits) then works unchanged.
+ */
+function mergeUnitRows(rows: LearningResultRow[] | null): LearningResultRow | null {
+  if (!rows || rows.length === 0) return null;
+
+  const unitsById = new Map<number, any>();
+  let positional = 0;
+
+  for (const row of rows) {
+    for (const unit of extractUnits(row.content)) {
+      const id = typeof unit?.unit_id === 'number' ? unit.unit_id : ++positional;
+      const existing = unitsById.get(id);
+      // First row wins on conflicts; later rows fill in missing fields
+      // (e.g. one row carries variant_a, another variant_b).
+      unitsById.set(id, existing ? { ...unit, ...existing } : unit);
+    }
+  }
+
+  const units = [...unitsById.entries()]
+    .sort((a, b) => a[0] - b[0])
+    .map(([, u]) => u);
+
+  const examRow = rows.find(r => r.final_exam != null);
+  const certRow = rows.find(r => r.certificate_metadata != null);
+
+  return {
+    id: rows[0].id,                       // any real row id is fine for FK use
+    content: units,
+    status: rows[0].status ?? null,
+    final_exam: examRow?.final_exam ?? null,
+    certificate_metadata: certRow?.certificate_metadata ?? null,
   };
 }
 
@@ -1942,15 +1995,17 @@ export default function LearningPathPage() {
   }, [pathId]);
 
   const loadLearningResult = useCallback(async (id: string): Promise<LearningResultRow | null> => {
+    // Load ALL rows for the path — Make may write several — and merge them.
+    // No .maybeSingle() here: it throws when more than one row matches, which
+    // was a direct cause of the endless-loading state.
     const { data } = await supabase
       .from('learning_results')
-      .select('id, content, status, final_exam, certificate_metadata')
+      .select('id, content, status, final_exam, certificate_metadata, created_at')
       .eq('learning_path_id', id)
-      .not('content', 'is', null)
-      .maybeSingle();
-    const row = (data as LearningResultRow | null) ?? null;
-    if (row) setLearningResult(row);
-    return row;
+      .order('created_at', { ascending: true });
+    const merged = mergeUnitRows((data as LearningResultRow[] | null) ?? null);
+    setLearningResult(merged);
+    return merged;
   }, []);
 
   // ── Curriculum generation ───────────────────────────────────────────────────
@@ -2082,8 +2137,9 @@ export default function LearningPathPage() {
       }
 
       const row = await loadLearningResult(path.id);
+      const hasContent = Array.isArray(row?.content) && row!.content.length > 0;
 
-      if (row) {
+      if (hasContent) {
         setShowDashboard(true);
         setPhase('done');
         loadCompletedUnits();
@@ -2198,16 +2254,19 @@ export default function LearningPathPage() {
       }
 
       // Only ever look at rows that belong to this path. The old fallback that
-      // adopted orphan rows is what leaked content between paths.
+      // adopted orphan rows is what leaked content between paths. No maybeSingle
+      // here either — take the first row that carries an exam.
       const { data } = await supabase
         .from('learning_results')
         .select('final_exam')
         .eq('learning_path_id', lpId)
         .not('final_exam', 'is', null)
-        .maybeSingle();
+        .order('created_at', { ascending: false })
+        .limit(1);
 
-      if (data?.final_exam) {
-        const qs = parseFinalExamQuestions(data.final_exam);
+      const examRaw = data?.[0]?.final_exam;
+      if (examRaw) {
+        const qs = parseFinalExamQuestions(examRaw);
         if (qs.length > 0) {
           cleanupFinalExamListeners();
           setFinalExamQuestions(qs);
