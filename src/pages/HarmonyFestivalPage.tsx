@@ -700,14 +700,18 @@ useEffect(() => {
       const controller = new AbortController();
       const timeoutId = setTimeout(() => controller.abort(), 15000);
 
-      try {
-        const { data: { session: authSession } } = await Promise.race([
-          supabase.auth.getSession(),
-          new Promise<never>((_, reject) =>
-            setTimeout(() => reject(new Error('Session-Timeout. Bitte Seite neu laden.')), 5000)
-          ),
-        ]);
-        const authToken = authSession?.access_token || anonKey;
+let authToken = anonKey;
+        try {
+          const { data: { session: authSession } } = await Promise.race([
+            supabase.auth.getSession(),
+            new Promise<never>((_, reject) =>
+              setTimeout(() => reject(new Error('session-timeout')), 4000)
+            ),
+          ]);
+          if (authSession?.access_token) authToken = authSession.access_token;
+        } catch {
+          // getSession hakt beim ersten Laden – mit anonKey weiter statt abbrechen
+        }
 
         const response = await fetch(checkoutUrl, {
           method: 'POST',
