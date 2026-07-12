@@ -600,22 +600,17 @@ export default function HarmonyFestivalPage() {
       [id]: Math.max(1, Math.min(10, (prev[id] ?? 1) + delta)),
     }));
   };
-
+// bfcache-Restore abfangen (Zurück von Stripe)
   useEffect(() => {
-    setLoadingId(null);
-    setShowSlowHint(false);
-    if (searchParams.get('payment') === 'cancelled') {
-      setError('Zahlung wurde abgebrochen. Du kannst es jederzeit erneut versuchen.');
-      setCancelledHint(true);
-    }
-    if (searchParams.get('payment') === 'success') {
-      setShowThankYou(true);
-    }
-    if (searchParams.get('support_success') === '1') {
-      const sid = searchParams.get('session_id') || undefined;
-      setSupportSessionId(sid);
-      setShowSupportPopup(true);
-    }
+    const onPageShow = (e: PageTransitionEvent) => {
+      if (e.persisted) {
+        setLoadingId(null);
+        setShowSlowHint(false);
+        setError(null);
+      }
+    };
+    window.addEventListener('pageshow', onPageShow);
+    return () => window.removeEventListener('pageshow', onPageShow);
   }, []);
 
   useEffect(() => {
