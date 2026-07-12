@@ -700,7 +700,6 @@ useEffect(() => {
       const controller = new AbortController();
       const timeoutId = setTimeout(() => controller.abort(), 15000);
 
-let authToken = anonKey;
         try {
           const { data: { session: authSession } } = await Promise.race([
             supabase.auth.getSession(),
