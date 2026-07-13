@@ -202,18 +202,80 @@ export default function FestivalPaymentSuccessPage() {
   const [loadingTickets, setLoadingTickets] = useState(true);
   const [showThankYou, setShowThankYou] = useState(false);
   const resolvedRef = useRef(false);
+  const isUploadingRef = useRef(false); // Verhindert doppelte Uploads
   const fallbackTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const label  = TICKET_LABEL_MAP[ticketType] || 'Festival Ticket';
   const accent = TICKET_ACCENT_MAP[ticketType] || C.cyan;
 
+  // ── NEU: DIE HINTERGRUND-UPLOAD LOGIK ──────────────────────────────────────
+  const uploadTicketsAndSaveUrls = async (foundTickets: any[]) => {
+    if (isUploadingRef.current) return;
+    isUploadingRef.current = true;
+
+    for (const ticket of foundTickets) {
+      // Wenn das Ticket in der DB bereits eine URL hat, überspringen
+      if (ticket.ticket_url) continue;
+
+      try {
+        // 1. PDF-Blob im Hintergrund generieren
+        const ticketBlob = await generateFestivalTicketBlob(ticket);
+        
+        // Speicherpfad im Storage-Bucket strukturieren
+        const filePath = `${ticket.stripe_session_id}/${ticket.ticket_number}.pdf`;
+
+        // 2. In den Supabase Storage Bucket 'tickets' hochladen
+        const { error: storageError } = await supabase.storage
+          .from('tickets')
+          .upload(filePath, ticketBlob, {
+            contentType: 'application/pdf',
+            upsert: true,
+          });
+
+        if (storageError) {
+          console.error(`[Upload] Fehler für Ticket ${ticket.ticket_number}:`, storageError);
+          continue;
+        }
+
+        // 3. Die öffentliche URL generieren
+        const { data: { publicUrl } } = supabase.storage
+          .from('tickets')
+          .getPublicUrl(filePath);
+
+        // 4. Die URL in der Datenbank-Tabelle updaten
+        const { error: updateError } = await supabase
+          .from('festival_ticket_sales')
+          .update({ ticket_url: publicUrl })
+          .eq('id', ticket.id);
+
+        if (updateError) {
+          console.error(`[DB-Update] Fehler für Ticket ${ticket.ticket_number}:`, updateError);
+        } else {
+          console.log(`[Success] Ticket-URL gespeichert:`, publicUrl);
+          
+          // Lokalen State updaten, damit die App die neue URL kennt
+          setTickets((prev) =>
+            prev.map((t) => (t.id === ticket.id ? { ...t, ticket_url: publicUrl } : t))
+          );
+        }
+      } catch (err) {
+        console.error("Automatischer Ticket-Upload fehlgeschlagen:", err);
+      }
+    }
+    isUploadingRef.current = false;
+  };
+
   const handleTicketsFound = (found: any[]) => {
     if (resolvedRef.current) return;
     resolvedRef.current = true;
     if (fallbackTimerRef.current) clearTimeout(fallbackTimerRef.current);
+    
     setTickets(found);
     setLoadingTickets(false);
     setTimeout(() => setShowThankYou(true), 400);
+
+    // Starte den Upload im Hintergrund direkt nach dem Finden
+    uploadTicketsAndSaveUrls(found);
   };
 
   const checkDbAll = async (): Promise<any[]> => {
@@ -263,7 +325,6 @@ export default function FestivalPaymentSuccessPage() {
         .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'festival_ticket_sales', filter: `stripe_session_id=eq.${sessionId}` },
           async () => {
             if (resolvedRef.current) return;
-            // Fetch all tickets now (may be multiple)
             const all = await checkDbAll();
             if (all.length > 0) handleTicketsFound(all);
           }
@@ -297,6 +358,7 @@ export default function FestivalPaymentSuccessPage() {
   const firstTicket = tickets[0];
   const isMulti = tickets.length > 1;
 
+  // ... Rest deiner Komponente (das return () mit dem JSX bleibt komplett identisch)
   return (
     <div className="min-h-screen flex flex-col items-center justify-center px-4 py-12 relative overflow-hidden" style={{ backgroundColor: C.bg, color: '#fff' }}>
       {showThankYou && (
