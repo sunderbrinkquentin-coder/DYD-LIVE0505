@@ -2466,6 +2466,7 @@ export default function LearningPathPage() {
             learningPath={learningPath}
             onPaywallClose={() => loadLearningPath(false)}
             onGoToDashboard={() => setShowDashboard(true)}
+            preselectSkill={searchParams.get('unlock_skill') ?? undefined}
           />
         )}
 
