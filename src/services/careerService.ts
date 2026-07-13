@@ -65,23 +65,26 @@ export class CareerVisionService {
  * eigenes is_paid + eigenes learning_results bekommt. Überschreibt niemals die
  * Analyse-Zeile.
  */
-static async getOrCreateSkillPath(
-  analysisPath: LearningPath,
-  skillName: string
-): Promise<string> {
-  // Eltern-Analyse: bei der Analyse-Zeile ist analysis_id null → sie selbst ist
-  // die Eltern-id; bei einer Skill-Zeile zeigt analysis_id auf die Analyse.
-  const analysisId = (analysisPath as any).analysis_id ?? analysisPath.id;
+static async getOrCreateSkillPath(analysisPathId: string, skillName: string): Promise<string> {
+  if (!analysisPathId) throw new Error('Keine Analyse-id übergeben');
 
-  // 1) Schon für diesen Skill angelegt? Wiederverwenden (verhindert Duplikate).
+  const { data: analysis, error: loadErr } = await supabase
+    .from('learning_paths').select('*').eq('id', analysisPathId).maybeSingle();
+  if (loadErr) throw new Error(`Analyse konnte nicht geladen werden: ${loadErr.message}`);
+  if (!analysis) throw new Error('Analyse-Zeile nicht gefunden');
+
+  // Fallback auf die eigene id, NIE undefined weitergeben:
+  const analysisId: string = (analysis as any).analysis_id ?? analysis.id;
+  if (!analysisId) throw new Error('Analyse-Zeile ohne gültige id');
+
   const { data: existing } = await supabase
-    .from('learning_paths')
-    .select('id')
-    .eq('analysis_id', analysisId)
-    .eq('skill', skillName)
-    .limit(1)
-    .maybeSingle();
+    .from('learning_paths').select('id')
+    .eq('analysis_id', analysisId).eq('skill', skillName)
+    .limit(1).maybeSingle();
   if (existing?.id) return existing.id;
+
+  // ... (insert bleibt wie gehabt) ...
+}
 
   // 2) Sonst neue Skill-Zeile mit dem kompletten Analyse-Kontext.
   const { data: created, error } = await supabase
