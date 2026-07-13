@@ -59,6 +59,59 @@ export class CareerVisionService {
       ];
     }
   }
+  /**
+ * Legt eine eigene learning_paths-Zeile für EINEN Skill einer Analyse an
+ * (oder gibt die bestehende zurück), sodass jeder freigeschaltete Skill sein
+ * eigenes is_paid + eigenes learning_results bekommt. Überschreibt niemals die
+ * Analyse-Zeile.
+ */
+static async getOrCreateSkillPath(
+  analysisPath: LearningPath,
+  skillName: string
+): Promise<string> {
+  // Eltern-Analyse: bei der Analyse-Zeile ist analysis_id null → sie selbst ist
+  // die Eltern-id; bei einer Skill-Zeile zeigt analysis_id auf die Analyse.
+  const analysisId = (analysisPath as any).analysis_id ?? analysisPath.id;
+
+  // 1) Schon für diesen Skill angelegt? Wiederverwenden (verhindert Duplikate).
+  const { data: existing } = await supabase
+    .from('learning_paths')
+    .select('id')
+    .eq('analysis_id', analysisId)
+    .eq('skill', skillName)
+    .limit(1)
+    .maybeSingle();
+  if (existing?.id) return existing.id;
+
+  // 2) Sonst neue Skill-Zeile mit dem kompletten Analyse-Kontext.
+  const { data: created, error } = await supabase
+    .from('learning_paths')
+    .insert({
+      user_id: analysisPath.user_id ?? null,
+      session_id: (analysisPath as any).session_id ?? null,
+      cv_id: (analysisPath as any).cv_id ?? null,
+      analysis_id: analysisId,
+      skill: skillName,
+      target_job: analysisPath.target_job,
+      target_company: (analysisPath as any).target_company ?? null,
+      vision_description: (analysisPath as any).vision_description ?? null,
+      industry: (analysisPath as any).industry ?? null,
+      match_score: (analysisPath as any).match_score ?? null,
+      missing_skills: analysisPath.missing_skills,
+      current_skills: (analysisPath as any).current_skills ?? [],
+      strategic_outlook_2026: (analysisPath as any).strategic_outlook_2026 ?? null,
+      status: 'pending',
+      is_paid: false,
+      progress: {},
+    })
+    .select('id')
+    .single();
+
+  if (error || !created?.id) {
+    throw new Error(error?.message ?? 'Skill-Pfad konnte nicht angelegt werden');
+  }
+  return created.id;
+}
   static async analyzeVision(
     request: VisionAnalysisRequest
   ): Promise<VisionAnalysisResponse> {
