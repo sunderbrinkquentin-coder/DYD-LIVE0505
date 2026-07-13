@@ -209,61 +209,87 @@ export default function FestivalPaymentSuccessPage() {
   const accent = TICKET_ACCENT_MAP[ticketType] || C.cyan;
 
   // ── NEU: DIE HINTERGRUND-UPLOAD LOGIK ──────────────────────────────────────
-  const uploadTicketsAndSaveUrls = async (foundTickets: any[]) => {
-    if (isUploadingRef.current) return;
-    isUploadingRef.current = true;
+ const uploadTicketsAndSaveUrls = async (foundTickets: any[]) => {
+  if (isUploadingRef.current) {
+    console.log("[Upload] Bereits aktiv, blockiert.");
+    return;
+  }
+  isUploadingRef.current = true;
 
-    for (const ticket of foundTickets) {
-      // Wenn das Ticket in der DB bereits eine URL hat, überspringen
-      if (ticket.ticket_url) continue;
+  console.log("[Upload] Starte Hintergrundprozess für Tickets:", foundTickets);
 
-      try {
-        // 1. PDF-Blob im Hintergrund generieren
-        const ticketBlob = await generateFestivalTicketBlob(ticket);
-        
-        // Speicherpfad im Storage-Bucket strukturieren
-        const filePath = `${ticket.stripe_session_id}/${ticket.ticket_number}.pdf`;
-
-        // 2. In den Supabase Storage Bucket 'tickets' hochladen
-        const { error: storageError } = await supabase.storage
-          .from('tickets')
-          .upload(filePath, ticketBlob, {
-            contentType: 'application/pdf',
-            upsert: true,
-          });
-
-        if (storageError) {
-          console.error(`[Upload] Fehler für Ticket ${ticket.ticket_number}:`, storageError);
-          continue;
-        }
-
-        // 3. Die öffentliche URL generieren
-        const { data: { publicUrl } } = supabase.storage
-          .from('tickets')
-          .getPublicUrl(filePath);
-
-        // 4. Die URL in der Datenbank-Tabelle updaten
-        const { error: updateError } = await supabase
-          .from('festival_ticket_sales')
-          .update({ ticket_url: publicUrl })
-          .eq('id', ticket.id);
-
-        if (updateError) {
-          console.error(`[DB-Update] Fehler für Ticket ${ticket.ticket_number}:`, updateError);
-        } else {
-          console.log(`[Success] Ticket-URL gespeichert:`, publicUrl);
-          
-          // Lokalen State updaten, damit die App die neue URL kennt
-          setTickets((prev) =>
-            prev.map((t) => (t.id === ticket.id ? { ...t, ticket_url: publicUrl } : t))
-          );
-        }
-      } catch (err) {
-        console.error("Automatischer Ticket-Upload fehlgeschlagen:", err);
-      }
+  for (const ticket of foundTickets) {
+    if (ticket.ticket_url) {
+      console.log(`[Upload] Ticket ${ticket.ticket_number} hat bereits eine URL.`);
+      continue;
     }
-    isUploadingRef.current = false;
-  };
+
+    // --- SICHERHEITSBLOCK FÜR DIE PDF-GENERIERUNG ---
+    let ticketBlob;
+    try {
+      console.log(`[Upload] Versuche PDF-Blob zu generieren für Ticket-Nr: ${ticket.ticket_number}`);
+      
+      if (typeof generateFestivalTicketBlob !== 'function') {
+        throw new Error("Die Funktion 'generateFestivalTicketBlob' existiert nicht oder ist kein valider Import!");
+      }
+
+      ticketBlob = await generateFestivalTicketBlob(ticket);
+      
+      if (!ticketBlob) {
+        throw new Error("Die Funktion hat 'undefined' oder 'null' statt eines Blobs zurückgegeben!");
+      }
+      
+      console.log(`[Upload] PDF erfolgreich generiert (Größe: ${ticketBlob.size} Bytes)`);
+    } catch (pdfError: any) {
+      console.error("❌ FEHLER BEI DER PDF-GENERIERUNG:", pdfError.message || pdfError);
+      // Wir springen zum nächsten Ticket, damit die Seite nicht einfriert
+      continue; 
+    }
+
+    // --- AB HIER VERSUCHEN WIR DEN UPLOAD ---
+    try {
+      const filePath = `${ticket.stripe_session_id}/${ticket.ticket_number}.pdf`;
+      console.log(`[Upload] Starte Supabase Storage Upload nach: tickets/${filePath}`);
+
+      const { error: storageError } = await supabase.storage
+        .from('tickets')
+        .upload(filePath, ticketBlob, {
+          contentType: 'application/pdf',
+          upsert: true,
+        });
+
+      if (storageError) {
+        console.error("❌ FEHLER BEIM STORAGE-UPLOAD:", storageError);
+        continue;
+      }
+
+      console.log("[Upload] Storage-Upload erfolgreich. Hole Public URL...");
+      const { data: { publicUrl } } = supabase.storage
+        .from('tickets')
+        .getPublicUrl(filePath);
+
+      // --- AB HIER SCHREIBEN WIR IN DIE DATENBANK ---
+      console.log(`[DB] Versuche URL in festival_ticket_sales für ID ${ticket.id} zu speichern...`);
+      const { error: updateError } = await supabase
+        .from('festival_ticket_sales')
+        .update({ ticket_url: publicUrl })
+        .eq('id', ticket.id);
+
+      if (updateError) {
+        console.error("❌ FEHLER BEIM DATENBANK-UPDATE:", updateError);
+      } else {
+        console.log(`✅ ERFOLG! Ticket ${ticket.ticket_number} wurde upgedatet:`, publicUrl);
+        
+        setTickets((prev) =>
+          prev.map((t) => (t.id === ticket.id ? { ...t, ticket_url: publicUrl } : t))
+        );
+      }
+    } catch (generalError) {
+      console.error("❌ UNERWARTETER FEHLER IM UPLOAD-ABLAUF:", generalError);
+    }
+  }
+  isUploadingRef.current = false;
+};
 
   const handleTicketsFound = (found: any[]) => {
     if (resolvedRef.current) return;
