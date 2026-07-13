@@ -103,57 +103,80 @@ export function LearningPathPaywall({
   const priceId = isAllPlan ? PRICE_ID_ALL : PRICE_ID_SINGLE;
   const benefits = isAllPlan ? BENEFITS_ALL : BENEFITS_SINGLE;
 
-  const handleCheckout = async () => {
-    setIsLoading(true);
-    setError(null);
+const [chosenSkill, setChosenSkill] = useState<string | undefined>(selectedSkill);
 
-    try {
-      const { data: { session } } = await supabase.auth.getSession();
-      const token = session?.access_token || import.meta.env.VITE_SUPABASE_ANON_KEY;
-      const origin = window.location.origin;
+const skillOptions = (missingSkills ?? [])
+  .map(s => s.skill_name || s.name)
+  .filter((s): s is string => !!s)
+  .slice(0, 8);
 
-      // Fetch source path data to copy into new skill rows
-      const { data: sourcePath } = await supabase
-        .from('learning_paths')
-        .select('user_id, target_job, target_company, missing_skills, vision_description, industry, match_score, current_skills')
-        .eq('id', learningPathId)
-        .maybeSingle();
+const handleCheckout = async () => {
+  setIsLoading(true);
+  setError(null);
+  try {
+    const { data: { session } } = await supabase.auth.getSession();
+    const token = session?.access_token || import.meta.env.VITE_SUPABASE_ANON_KEY;
+    const origin = window.location.origin;
 
-      let primaryPathId = learningPathId;
-      let allPathIds: string | undefined;
+    let primaryPathId = learningPathId;
+    let allPathIds: string | undefined;
 
-      if (isAllPlan && missingSkills && missingSkills.length > 0 && sourcePath) {
-        // Create one row per skill
-        const skillNames = missingSkills
-          .map(s => s.skill_name || s.name)
-          .filter((s): s is string => !!s)
-          .slice(0, 5);
+    if (isAllPlan) {
+      // Eine Zeile pro Skill (mit analysis_id, dedupt). Webhook muss ALLE paid setzen.
+      const ids: string[] = [];
+      for (const name of skillOptions) {
+        ids.push(await careerService.getOrCreateSkillPath(learningPathId, name));
+      }
+      if (ids.length > 0) {
+        primaryPathId = chosenSkill
+          ? await careerService.getOrCreateSkillPath(learningPathId, chosenSkill)
+          : ids[0];
+        allPathIds = Array.from(new Set([...ids, primaryPathId])).join(',');
+      }
+    } else {
+      // Single: Skill ist Pflicht (= "welchen Skill zuerst?")
+      if (!chosenSkill) {
+        setError('Bitte wähle den Skill, mit dem du starten möchtest.');
+        setIsLoading(false);
+        return;
+      }
+      primaryPathId = await careerService.getOrCreateSkillPath(learningPathId, chosenSkill);
+    }
 
-        const rows = skillNames.map(skill => ({
-          user_id: sourcePath.user_id,
-          target_job: sourcePath.target_job,
-          target_company: sourcePath.target_company,
-          skill,
-          missing_skills: sourcePath.missing_skills,
-          vision_description: sourcePath.vision_description,
-          industry: sourcePath.industry,
-          match_score: sourcePath.match_score,
-          current_skills: sourcePath.current_skills,
-          status: 'gap_analysis_complete',
-          is_paid: false,
-        }));
+    const skillParam = chosenSkill ? `&skill=${encodeURIComponent(chosenSkill)}` : '';
+    const successUrl = `${origin}/#/learning-path-waiting/${primaryPathId}?session_id={CHECKOUT_SESSION_ID}${skillParam}`;
+    const cancelUrl  = `${origin}/#/learning-path/${learningPathId}?payment=cancelled`;
 
-        const { data: newRows, error: insertErr } = await supabase
-          .from('learning_paths')
-          .insert(rows)
-          .select('id, skill');
+    const resp = await fetch(STRIPE_CHECKOUT_URL, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${token}`,
+        'apikey': import.meta.env.VITE_SUPABASE_ANON_KEY,
+      },
+      body: JSON.stringify({
+        price_id: priceId,
+        success_url: successUrl,
+        cancel_url: cancelUrl,
+        metadata: {
+          learning_path_id: primaryPathId,
+          target_job: targetJob,
+          source: isAllPlan ? 'learning_path_all' : 'learning_path',
+          unlock_all: isAllPlan ? 'true' : 'false',
+          ...(chosenSkill ? { selected_skill: chosenSkill } : {}),
+          ...(allPathIds ? { all_path_ids: allPathIds } : {}),
+        },
+      }),
+    });
 
-        if (!insertErr && newRows && newRows.length > 0) {
-          const primary = newRows.find((r: any) => r.skill === selectedSkill) || newRows[0];
-          primaryPathId = primary.id;
-          allPathIds = newRows.map((r: any) => r.id).join(',');
-        }
-      } else if (!isAllPlan && selectedSkill) {
+    const data = await resp.json();
+    if (!resp.ok || !data.url) throw new Error(data.error || 'Checkout konnte nicht gestartet werden.');
+    window.location.href = data.url;
+  } catch (e: any) {
+    setError(e.message || 'Ein Fehler ist aufgetreten. Bitte versuche es erneut.');
+    setIsLoading(false);
+  }
+}; else if (!isAllPlan && selectedSkill) {
   // Eigene Skill-Zeile anlegen/wiederverwenden — die Analyse-Zeile bleibt unberührt.
   
         await supabase
