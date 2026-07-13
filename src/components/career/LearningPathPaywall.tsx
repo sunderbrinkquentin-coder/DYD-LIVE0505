@@ -96,6 +96,8 @@ export function LearningPathPaywall({
   const [selectedPlan, setSelectedPlan] = useState<Plan>('single');
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  // Welchen Skill startet der User zuerst? (die "welchen Skill?"-Frage)
+  const [chosenSkill, setChosenSkill] = useState<string | undefined>(selectedSkill);
 
   if (!isOpen) return null;
 
@@ -103,90 +105,56 @@ export function LearningPathPaywall({
   const priceId = isAllPlan ? PRICE_ID_ALL : PRICE_ID_SINGLE;
   const benefits = isAllPlan ? BENEFITS_ALL : BENEFITS_SINGLE;
 
-const [chosenSkill, setChosenSkill] = useState<string | undefined>(selectedSkill);
+  // Auswählbare Skills aus der Analyse (für Picker + All-Plan Row-Erzeugung)
+  const skillOptions = (missingSkills ?? [])
+    .map((s) => s.skill_name || s.name)
+    .filter((s): s is string => !!s)
+    .slice(0, 8);
 
-const skillOptions = (missingSkills ?? [])
-  .map(s => s.skill_name || s.name)
-  .filter((s): s is string => !!s)
-  .slice(0, 8);
+  // Single-Plan braucht eine Skill-Wahl. Wenn keine Optionen da sind (z.B. Aufruf
+  // ohne missingSkills), lassen wir den Kauf zu und fallen auf selectedSkill zurück.
+  const singleNeedsChoice = !isAllPlan && skillOptions.length > 0 && !chosenSkill;
 
-const handleCheckout = async () => {
-  setIsLoading(true);
-  setError(null);
-  try {
-    const { data: { session } } = await supabase.auth.getSession();
-    const token = session?.access_token || import.meta.env.VITE_SUPABASE_ANON_KEY;
-    const origin = window.location.origin;
+  const handleCheckout = async () => {
+    setIsLoading(true);
+    setError(null);
 
-    let primaryPathId = learningPathId;
-    let allPathIds: string | undefined;
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      const token = session?.access_token || import.meta.env.VITE_SUPABASE_ANON_KEY;
+      const origin = window.location.origin;
 
-    if (isAllPlan) {
-      // Eine Zeile pro Skill (mit analysis_id, dedupt). Webhook muss ALLE paid setzen.
-      const ids: string[] = [];
-      for (const name of skillOptions) {
-        ids.push(await careerService.getOrCreateSkillPath(learningPathId, name));
-      }
-      if (ids.length > 0) {
-        primaryPathId = chosenSkill
-          ? await careerService.getOrCreateSkillPath(learningPathId, chosenSkill)
-          : ids[0];
-        allPathIds = Array.from(new Set([...ids, primaryPathId])).join(',');
-      }
-    } else {
-      // Single: Skill ist Pflicht (= "welchen Skill zuerst?")
-      if (!chosenSkill) {
-        setError('Bitte wähle den Skill, mit dem du starten möchtest.');
-        setIsLoading(false);
-        return;
-      }
-      primaryPathId = await careerService.getOrCreateSkillPath(learningPathId, chosenSkill);
-    }
+      let primaryPathId = learningPathId;
+      let allPathIds: string | undefined;
 
-    const skillParam = chosenSkill ? `&skill=${encodeURIComponent(chosenSkill)}` : '';
-    const successUrl = `${origin}/#/learning-path-waiting/${primaryPathId}?session_id={CHECKOUT_SESSION_ID}${skillParam}`;
-    const cancelUrl  = `${origin}/#/learning-path/${learningPathId}?payment=cancelled`;
-
-    const resp = await fetch(STRIPE_CHECKOUT_URL, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${token}`,
-        'apikey': import.meta.env.VITE_SUPABASE_ANON_KEY,
-      },
-      body: JSON.stringify({
-        price_id: priceId,
-        success_url: successUrl,
-        cancel_url: cancelUrl,
-        metadata: {
-          learning_path_id: primaryPathId,
-          target_job: targetJob,
-          source: isAllPlan ? 'learning_path_all' : 'learning_path',
-          unlock_all: isAllPlan ? 'true' : 'false',
-          ...(chosenSkill ? { selected_skill: chosenSkill } : {}),
-          ...(allPathIds ? { all_path_ids: allPathIds } : {}),
-        },
-      }),
-    });
-
-    const data = await resp.json();
-    if (!resp.ok || !data.url) throw new Error(data.error || 'Checkout konnte nicht gestartet werden.');
-    window.location.href = data.url;
-  } catch (e: any) {
-    setError(e.message || 'Ein Fehler ist aufgetreten. Bitte versuche es erneut.');
-    setIsLoading(false);
-  }
-}; else if (!isAllPlan && selectedSkill) {
-  // Eigene Skill-Zeile anlegen/wiederverwenden — die Analyse-Zeile bleibt unberührt.
-  
-        await supabase
-          .from('learning_paths')
-          .update({ skill: selectedSkill, updated_at: new Date().toISOString() })
-          .eq('id', learningPathId);
-      primaryPathId = await careerService.getOrCreateSkillPath(learningPathId, selectedSkill)
+      if (isAllPlan) {
+        // Eine eigene Zeile pro Skill anlegen (mit analysis_id, dedupt über
+        // getOrCreateSkillPath). Der Stripe-Webhook muss ALLE über all_path_ids
+        // auf is_paid=true setzen.
+        const ids: string[] = [];
+        for (const name of skillOptions) {
+          ids.push(await careerService.getOrCreateSkillPath(learningPathId, name));
+        }
+        if (ids.length > 0) {
+          primaryPathId = chosenSkill
+            ? await careerService.getOrCreateSkillPath(learningPathId, chosenSkill)
+            : ids[0];
+          allPathIds = Array.from(new Set([...ids, primaryPathId])).join(',');
+        }
+      } else {
+        // Single: der gewählte Skill ist Pflicht.
+        const skillForSingle = chosenSkill ?? selectedSkill;
+        if (!skillForSingle) {
+          setError('Bitte wähle den Skill, mit dem du starten möchtest.');
+          setIsLoading(false);
+          return;
+        }
+        // Eigene Skill-Zeile anlegen/wiederverwenden — Analyse-Zeile bleibt unberührt.
+        primaryPathId = await careerService.getOrCreateSkillPath(learningPathId, skillForSingle);
       }
 
-      const skillParam = selectedSkill ? `&skill=${encodeURIComponent(selectedSkill)}` : '';
+      const activeSkill = chosenSkill ?? selectedSkill;
+      const skillParam = activeSkill ? `&skill=${encodeURIComponent(activeSkill)}` : '';
       const successUrl = `${origin}/#/learning-path-waiting/${primaryPathId}?session_id={CHECKOUT_SESSION_ID}${skillParam}`;
       const cancelUrl  = `${origin}/#/learning-path/${learningPathId}?payment=cancelled`;
 
@@ -206,7 +174,7 @@ const handleCheckout = async () => {
             target_job: targetJob,
             source: isAllPlan ? 'learning_path_all' : 'learning_path',
             unlock_all: isAllPlan ? 'true' : 'false',
-            ...(selectedSkill ? { selected_skill: selectedSkill } : {}),
+            ...(activeSkill ? { selected_skill: activeSkill } : {}),
             ...(allPathIds ? { all_path_ids: allPathIds } : {}),
           },
         }),
@@ -334,6 +302,39 @@ const handleCheckout = async () => {
             </p>
           </div>
 
+          {/* Skill-Picker — nur beim Einzelpfad: welchen Skill zuerst? */}
+          {!isAllPlan && skillOptions.length > 0 && (
+            <div className="px-6 pb-4 space-y-2">
+              <p className="text-[10px] font-black uppercase tracking-widest text-white/35">
+                Mit welchem Skill startest du?
+              </p>
+              <div className="flex flex-wrap gap-2">
+                {skillOptions.map((name) => {
+                  const active = chosenSkill === name;
+                  return (
+                    <button
+                      key={name}
+                      onClick={() => setChosenSkill(name)}
+                      className="px-3 py-1.5 rounded-xl text-xs font-bold transition-all hover:scale-[1.03] active:scale-95"
+                      style={{
+                        background: active ? 'rgba(48,227,202,0.15)' : 'rgba(255,255,255,0.04)',
+                        border: `1px solid ${active ? 'rgba(48,227,202,0.4)' : 'rgba(255,255,255,0.1)'}`,
+                        color: active ? '#30E3CA' : 'rgba(255,255,255,0.6)',
+                      }}
+                    >
+                      {name}
+                    </button>
+                  );
+                })}
+              </div>
+              {singleNeedsChoice && (
+                <p className="text-[11px] text-white/30 px-0.5">
+                  Wähle einen Skill, um fortzufahren.
+                </p>
+              )}
+            </div>
+          )}
+
           {/* Benefits list */}
           <div className="px-6 pb-4 space-y-2">
             <p className="text-[10px] font-black uppercase tracking-widest text-white/35 mb-3">Was du bekommst</p>
@@ -381,7 +382,7 @@ const handleCheckout = async () => {
           <div className="p-6 pt-0 space-y-3">
             <button
               onClick={handleCheckout}
-              disabled={isLoading}
+              disabled={isLoading || singleNeedsChoice}
               className="group relative w-full py-4 rounded-2xl font-black text-[16px] text-black flex items-center justify-center gap-3 overflow-hidden transition-all duration-200 hover:scale-[1.015] active:scale-[0.98] disabled:opacity-60 disabled:cursor-not-allowed disabled:hover:scale-100"
               style={{
                 background: isAllPlan
