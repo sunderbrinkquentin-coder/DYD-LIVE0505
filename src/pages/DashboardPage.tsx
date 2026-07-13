@@ -1255,7 +1255,8 @@ export function DashboardPage() {
                 {/* Locked skills — skills from missing_skills not yet paid */}
                 {(() => {
                   // Get all skills from the gap analysis
-                  const gapPath = learningPaths.find(p => !p.is_paid && (p as any).missing_skills);
+                  const gapPath = learningPaths.find(p => !p.is_paid && !(p as any).skill && (p as any).missing_skills
+);
                   if (!gapPath) {
                     // Fallback: show career vision card if no gap path
                     if (primaryUnpaid) return (
