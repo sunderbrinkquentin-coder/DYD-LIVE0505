@@ -291,6 +291,7 @@ export default function FestivalPaymentSuccessPage() {
   isUploadingRef.current = false;
 };
 
+// 1. DIESEN TEIL ERSETZEN (Das alte handleTicketsFound):
   const handleTicketsFound = (found: any[]) => {
     if (resolvedRef.current) return;
     resolvedRef.current = true;
@@ -299,10 +300,58 @@ export default function FestivalPaymentSuccessPage() {
     setTickets(found);
     setLoadingTickets(false);
     setTimeout(() => setShowThankYou(true), 400);
-
-    // Starte den Upload im Hintergrund direkt nach dem Finden
-    uploadTicketsAndSaveUrls(found);
   };
+
+// 2. DIESEN BLOCK NEU DIREKT DARUNTER PACKEN:
+  useEffect(() => {
+    if (tickets.length === 0 || isUploadingRef.current) return;
+
+    const runBackgroundUpload = async () => {
+      isUploadingRef.current = true;
+
+      for (const ticket of tickets) {
+        if (ticket.ticket_url) continue;
+
+        try {
+          const ticketBlob = await generateFestivalTicketBlob(ticket);
+          if (!ticketBlob) continue;
+
+          const filePath = `${ticket.stripe_session_id}/${ticket.ticket_number}.pdf`;
+
+          const { error: storageError } = await supabase.storage
+            .from('tickets')
+            .upload(filePath, ticketBlob, {
+              contentType: 'application/pdf',
+              upsert: true,
+            });
+
+          if (storageError) continue;
+
+          const { data: { publicUrl } } = supabase.storage
+            .from('tickets')
+            .getPublicUrl(filePath);
+
+          const { error: updateError } = await supabase
+            .from('festival_ticket_sales')
+            .update({ ticket_url: publicUrl })
+            .eq('id', ticket.id);
+
+          if (!updateError) {
+            setTickets((prev) =>
+              prev.map((t) => (t.id === ticket.id ? { ...t, ticket_url: publicUrl } : t))
+            );
+          }
+        } catch (err) {
+          console.error("Hintergrund-Upload fehlgeschlagen:", err);
+        }
+      }
+      isUploadingRef.current = false;
+    };
+
+    runBackgroundUpload();
+  }, [tickets]);
+
+// ... ab hier geht es normal weiter wie in deinem Prompt
 
   const checkDbAll = async (): Promise<any[]> => {
     try {
