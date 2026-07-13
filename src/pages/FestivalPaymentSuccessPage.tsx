@@ -5,6 +5,7 @@ import { CheckCircle, Ticket, ArrowRight, Music, Instagram, Download, X, Heart, 
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../contexts/AuthContext';
 import { downloadFestivalTicketPDF } from '../utils/festivalTicketPDF';
+import { generateFestivalTicketBlob } from '../utils/festivalTicketPDF'; // Dein PDF-Pfad
 
 const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL as string;
 const SUPABASE_ANON_KEY = import.meta.env.VITE_SUPABASE_ANON_KEY as string;
