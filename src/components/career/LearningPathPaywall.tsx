@@ -4,6 +4,7 @@ import {
   ArrowRight, Sparkles, Clock, Zap, Lock, ShieldCheck, Layers,
 } from 'lucide-react';
 import { supabase } from '../../lib/supabase';
+import { careerService } from '../../services/careerService';
 
 // Single path: 5 € — unlocks only the current learning path
 const PRICE_ID_SINGLE = import.meta.env.VITE_STRIPE_PRICE_LEARNING_PATH_SINGLE || 'price_1TWw5G3Sd9dZl64SKYanIg6m';
