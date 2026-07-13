@@ -586,4 +586,7 @@ export async function downloadFestivalTicketPDF(ticket: FestivalTicketPDFProps):
   a.click();
   document.body.removeChild(a);
   URL.revokeObjectURL(url);
+  // Erzeugt den reinen Datei-Blob für den automatischen Hintergrund-Upload
+export async function generateFestivalTicketBlob(ticket: FestivalTicketPDFProps): Promise<Blob> {
+  return await pdf(<TicketDocument ticket={ticket} />).toBlob();
 }
