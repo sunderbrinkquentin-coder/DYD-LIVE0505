@@ -323,13 +323,18 @@ interface AnalysisResult {
 }
 
 function ResultView({
-  result, learningPath, onPaywallClose, onGoToDashboard,
-}: { result: AnalysisResult; learningPath: LearningPath; onPaywallClose: () => void; onGoToDashboard?: () => void }) {
+  result, learningPath, onPaywallClose, onGoToDashboard, preselectSkill,
+}: {
+  result: AnalysisResult;
+  learningPath: LearningPath;
+  onPaywallClose: () => void;
+  onGoToDashboard?: () => void;
+  preselectSkill?: string;
+}) {
   const [showPaywall, setShowPaywall] = useState(false);
 
   // Access is granted by exactly one thing: is_paid, written only by the Stripe
-  // webhook with the service role. The presence of a curriculum proves nothing —
-  // Make can write one before payment settles.
+  // webhook with the service role.
   const isPaid = !!learningPath.is_paid;
 
   const [showAllCurrent, setShowAllCurrent] = useState(false);
@@ -344,31 +349,40 @@ function ResultView({
   const criticalSkills = visibleSkills.filter(s => (s?.gap_severity ?? 0) >= 4);
   const buildSkills    = visibleSkills.filter(s => (s?.gap_severity ?? 0) >= 2 && (s?.gap_severity ?? 0) < 4);
 
-  const initialSkill = skillFromPath(learningPath)
+  // Vorauswahl: ?unlock_skill= vom Dashboard, sonst der Skill der Zeile, sonst der erste.
+  const initialSkill =
+    preselectSkill
+    ?? skillFromPath(learningPath)
     ?? (visibleSkills[0] ? skillDisplayName(visibleSkills[0]) : null);
 
   const [selectedSkillName, setSelectedSkillName] = useState<string | null>(initialSkill);
-  const [isSavingSkill, setIsSavingSkill] = useState(false);
-  const [skillSaveError, setSkillSaveError] = useState<string | null>(null);
 
-  // The skill column is frozen by a DB trigger once is_paid is true. Before
-  // payment it stays writable so the user can change their mind.
-  const selectSkill = async (name: string) => {
-    if (name === selectedSkillName || isPaid) return;
-    const previous = selectedSkillName;
+  // Für die Paywall: id der Skill-EIGENEN Zeile (lazy angelegt beim Klick).
+  const [paywallPathId, setPaywallPathId] = useState<string | null>(null);
+  const [resolvingUnlock, setResolvingUnlock] = useState(false);
+  const [unlockError, setUnlockError] = useState<string | null>(null);
+
+  // Auswahl ist jetzt rein lokal — KEIN DB-Write mehr, damit die Analyse-Zeile
+  // nie überschrieben wird. Die eigene Zeile entsteht erst beim Freischalten.
+  const selectSkill = (name: string) => {
+    if (isPaid) return;
     setSelectedSkillName(name);
-    setIsSavingSkill(true);
-    setSkillSaveError(null);
+    setUnlockError(null);
+  };
+
+  // Freischalten: erst die eigene Skill-Zeile besorgen, dann Paywall mit DEREN id.
+  const startUnlock = async () => {
+    if (!selectedSkillName) return;
+    setResolvingUnlock(true);
+    setUnlockError(null);
     try {
-      const { error } = await supabase.from('learning_paths')
-        .update({ skill: name, updated_at: new Date().toISOString() })
-        .eq('id', learningPath.id);
-      if (error) throw error;
+      const id = await careerService.getOrCreateSkillPath(learningPath, selectedSkillName);
+      setPaywallPathId(id);
+      setShowPaywall(true);
     } catch {
-      setSelectedSkillName(previous);
-      setSkillSaveError('Auswahl konnte nicht gespeichert werden. Bitte erneut versuchen.');
+      setUnlockError('Freischalten konnte nicht gestartet werden. Bitte erneut versuchen.');
     } finally {
-      setIsSavingSkill(false);
+      setResolvingUnlock(false);
     }
   };
 
@@ -522,14 +536,9 @@ function ResultView({
 
           {!isPaid && allSelectableSkills.length > 0 && (
             <div className="space-y-2">
-              <div className="flex items-center justify-between">
-                <p className="text-[11px] font-black uppercase tracking-widest text-[#30E3CA]/60">
-                  Mit welchem Skill startest du?
-                </p>
-                {isSavingSkill && (
-                  <div className="w-3 h-3 rounded-full border border-[#30E3CA]/40 border-t-[#30E3CA] animate-spin" />
-                )}
-              </div>
+              <p className="text-[11px] font-black uppercase tracking-widest text-[#30E3CA]/60">
+                Welchen Skill möchtest du freischalten?
+              </p>
               <div className="flex flex-wrap gap-2">
                 {allSelectableSkills.map((skill, i) => {
                   const name = skillDisplayName(skill);
@@ -557,8 +566,8 @@ function ResultView({
                 })}
               </div>
 
-              {skillSaveError && (
-                <p className="text-[11px] text-red-400/80 px-1 pt-1">{skillSaveError}</p>
+              {unlockError && (
+                <p className="text-[11px] text-red-400/80 px-1 pt-1">{unlockError}</p>
               )}
 
               {selectedSkillName && (() => {
@@ -594,16 +603,18 @@ function ResultView({
           ) : (
             <>
               <button
-                onClick={() => setShowPaywall(true)}
-                disabled={!selectedSkillName || isSavingSkill}
+                onClick={startUnlock}
+                disabled={!selectedSkillName || resolvingUnlock}
                 className="group relative w-full py-4 rounded-xl font-black text-[15px] text-black flex items-center justify-center gap-3 overflow-hidden transition-all duration-200 hover:scale-[1.02] active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed"
-                style={{ background: 'linear-gradient(135deg,#66c0b6,#30E3CA)', animation: selectedSkillName ? 'lp_ctaPulse 2.5s ease-in-out infinite' : 'none', boxShadow: '0 4px 20px rgba(48,227,202,0.3)' }}
+                style={{ background: 'linear-gradient(135deg,#66c0b6,#30E3CA)', animation: selectedSkillName && !resolvingUnlock ? 'lp_ctaPulse 2.5s ease-in-out infinite' : 'none', boxShadow: '0 4px 20px rgba(48,227,202,0.3)' }}
               >
                 <div className="absolute inset-0 pointer-events-none"
                   style={{ background: 'linear-gradient(90deg,transparent,rgba(255,255,255,0.15),transparent)', backgroundSize: '200% 100%', animation: 'lp_shimmer 2s ease-in-out infinite' }} />
                 <Sparkles className="w-5 h-5 relative z-10 group-hover:rotate-12 transition-transform duration-300" />
                 <span className="relative z-10">
-                  {selectedSkillName ? `Lernpfad für "${selectedSkillName}" starten` : 'Skill auswählen…'}
+                  {resolvingUnlock
+                    ? 'Wird vorbereitet…'
+                    : selectedSkillName ? `Lernpfad für "${selectedSkillName}" starten` : 'Skill auswählen…'}
                 </span>
                 <ArrowRight className="w-5 h-5 relative z-10 group-hover:translate-x-1 transition-transform" />
               </button>
@@ -617,7 +628,7 @@ function ResultView({
         <LearningPathPaywall
           isOpen
           onClose={() => { setShowPaywall(false); onPaywallClose(); }}
-          learningPathId={learningPath.id}
+          learningPathId={paywallPathId ?? learningPath.id}
           targetJob={targetJob}
           targetCompany={targetCompany}
           skillCount={visibleSkills.length}
@@ -627,7 +638,6 @@ function ResultView({
     </div>
   );
 }
-
 // ── Quiz parsing ───────────────────────────────────────────────────────────────
 
 interface QuizQuestion {
