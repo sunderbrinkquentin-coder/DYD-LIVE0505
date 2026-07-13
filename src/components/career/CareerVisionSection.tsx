@@ -751,6 +751,8 @@ function ResultView({ result, onNavigate }: { result: AnalysisResult; onNavigate
   const openPaywall = (skillName?: string) => {
     setPendingSkill(skillName);
     setShowPaywall(true);
+    <WhereToStartCard skill={topSkill} targetJob={targetJob}
+  onNavigate={() => openPaywall(skillDisplayName(topSkill))} />
   };
 
   return (
