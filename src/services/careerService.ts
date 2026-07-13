@@ -83,8 +83,6 @@ static async getOrCreateSkillPath(analysisPathId: string, skillName: string): Pr
     .limit(1).maybeSingle();
   if (existing?.id) return existing.id;
 
-  // ... (insert bleibt wie gehabt) ...
-}
 
   // 2) Sonst neue Skill-Zeile mit dem kompletten Analyse-Kontext.
   const { data: created, error } = await supabase
