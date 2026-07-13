@@ -5,7 +5,6 @@ import { CheckCircle, Ticket, ArrowRight, Music, Instagram, Download, X, Heart, 
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../contexts/AuthContext';
 import { downloadFestivalTicketPDF } from '../utils/festivalTicketPDF';
-import { generateFestivalTicketBlob } from '../utils/festivalTicketPDF'; // Dein PDF-Pfad
 
 const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL as string;
 const SUPABASE_ANON_KEY = import.meta.env.VITE_SUPABASE_ANON_KEY as string;
@@ -202,156 +201,19 @@ export default function FestivalPaymentSuccessPage() {
   const [loadingTickets, setLoadingTickets] = useState(true);
   const [showThankYou, setShowThankYou] = useState(false);
   const resolvedRef = useRef(false);
-  const isUploadingRef = useRef(false); // Verhindert doppelte Uploads
   const fallbackTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const label  = TICKET_LABEL_MAP[ticketType] || 'Festival Ticket';
   const accent = TICKET_ACCENT_MAP[ticketType] || C.cyan;
 
-  // ── NEU: DIE HINTERGRUND-UPLOAD LOGIK ──────────────────────────────────────
- const uploadTicketsAndSaveUrls = async (foundTickets: any[]) => {
-  if (isUploadingRef.current) {
-    console.log("[Upload] Bereits aktiv, blockiert.");
-    return;
-  }
-  isUploadingRef.current = true;
-
-  console.log("[Upload] Starte Hintergrundprozess für Tickets:", foundTickets);
-
-  for (const ticket of foundTickets) {
-    if (ticket.ticket_url) {
-      console.log(`[Upload] Ticket ${ticket.ticket_number} hat bereits eine URL.`);
-      continue;
-    }
-
-    // --- SICHERHEITSBLOCK FÜR DIE PDF-GENERIERUNG ---
-    let ticketBlob;
-    try {
-      console.log(`[Upload] Versuche PDF-Blob zu generieren für Ticket-Nr: ${ticket.ticket_number}`);
-      
-      if (typeof generateFestivalTicketBlob !== 'function') {
-        throw new Error("Die Funktion 'generateFestivalTicketBlob' existiert nicht oder ist kein valider Import!");
-      }
-
-      ticketBlob = await generateFestivalTicketBlob(ticket);
-      
-      if (!ticketBlob) {
-        throw new Error("Die Funktion hat 'undefined' oder 'null' statt eines Blobs zurückgegeben!");
-      }
-      
-      console.log(`[Upload] PDF erfolgreich generiert (Größe: ${ticketBlob.size} Bytes)`);
-    } catch (pdfError: any) {
-      console.error("❌ FEHLER BEI DER PDF-GENERIERUNG:", pdfError.message || pdfError);
-      // Wir springen zum nächsten Ticket, damit die Seite nicht einfriert
-      continue; 
-    }
-
-    // --- AB HIER VERSUCHEN WIR DEN UPLOAD ---
-    try {
-      const filePath = `${ticket.stripe_session_id}/${ticket.ticket_number}.pdf`;
-      console.log(`[Upload] Starte Supabase Storage Upload nach: tickets/${filePath}`);
-
-      const { error: storageError } = await supabase.storage
-        .from('tickets')
-        .upload(filePath, ticketBlob, {
-          contentType: 'application/pdf',
-          upsert: true,
-        });
-
-      if (storageError) {
-        console.error("❌ FEHLER BEIM STORAGE-UPLOAD:", storageError);
-        continue;
-      }
-
-      console.log("[Upload] Storage-Upload erfolgreich. Hole Public URL...");
-      const { data: { publicUrl } } = supabase.storage
-        .from('tickets')
-        .getPublicUrl(filePath);
-
-      // --- AB HIER SCHREIBEN WIR IN DIE DATENBANK ---
-      console.log(`[DB] Versuche URL in festival_ticket_sales für ID ${ticket.id} zu speichern...`);
-      const { error: updateError } = await supabase
-        .from('festival_ticket_sales')
-        .update({ ticket_url: publicUrl })
-        .eq('id', ticket.id);
-
-      if (updateError) {
-        console.error("❌ FEHLER BEIM DATENBANK-UPDATE:", updateError);
-      } else {
-        console.log(`✅ ERFOLG! Ticket ${ticket.ticket_number} wurde upgedatet:`, publicUrl);
-        
-        setTickets((prev) =>
-          prev.map((t) => (t.id === ticket.id ? { ...t, ticket_url: publicUrl } : t))
-        );
-      }
-    } catch (generalError) {
-      console.error("❌ UNERWARTETER FEHLER IM UPLOAD-ABLAUF:", generalError);
-    }
-  }
-  isUploadingRef.current = false;
-};
-
-// 1. DIESEN TEIL ERSETZEN (Das alte handleTicketsFound):
   const handleTicketsFound = (found: any[]) => {
     if (resolvedRef.current) return;
     resolvedRef.current = true;
     if (fallbackTimerRef.current) clearTimeout(fallbackTimerRef.current);
-    
     setTickets(found);
     setLoadingTickets(false);
     setTimeout(() => setShowThankYou(true), 400);
   };
-
-// 2. DIESEN BLOCK NEU DIREKT DARUNTER PACKEN:
-  useEffect(() => {
-    if (tickets.length === 0 || isUploadingRef.current) return;
-
-    const runBackgroundUpload = async () => {
-      isUploadingRef.current = true;
-
-      for (const ticket of tickets) {
-        if (ticket.ticket_url) continue;
-
-        try {
-          const ticketBlob = await generateFestivalTicketBlob(ticket);
-          if (!ticketBlob) continue;
-
-          const filePath = `${ticket.stripe_session_id}/${ticket.ticket_number}.pdf`;
-
-          const { error: storageError } = await supabase.storage
-            .from('tickets')
-            .upload(filePath, ticketBlob, {
-              contentType: 'application/pdf',
-              upsert: true,
-            });
-
-          if (storageError) continue;
-
-          const { data: { publicUrl } } = supabase.storage
-            .from('tickets')
-            .getPublicUrl(filePath);
-
-          const { error: updateError } = await supabase
-            .from('festival_ticket_sales')
-            .update({ ticket_url: publicUrl })
-            .eq('id', ticket.id);
-
-          if (!updateError) {
-            setTickets((prev) =>
-              prev.map((t) => (t.id === ticket.id ? { ...t, ticket_url: publicUrl } : t))
-            );
-          }
-        } catch (err) {
-          console.error("Hintergrund-Upload fehlgeschlagen:", err);
-        }
-      }
-      isUploadingRef.current = false;
-    };
-
-    runBackgroundUpload();
-  }, [tickets]);
-
-// ... ab hier geht es normal weiter wie in deinem Prompt
 
   const checkDbAll = async (): Promise<any[]> => {
     try {
@@ -400,6 +262,7 @@ export default function FestivalPaymentSuccessPage() {
         .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'festival_ticket_sales', filter: `stripe_session_id=eq.${sessionId}` },
           async () => {
             if (resolvedRef.current) return;
+            // Fetch all tickets now (may be multiple)
             const all = await checkDbAll();
             if (all.length > 0) handleTicketsFound(all);
           }
@@ -433,7 +296,6 @@ export default function FestivalPaymentSuccessPage() {
   const firstTicket = tickets[0];
   const isMulti = tickets.length > 1;
 
-  // ... Rest deiner Komponente (das return () mit dem JSX bleibt komplett identisch)
   return (
     <div className="min-h-screen flex flex-col items-center justify-center px-4 py-12 relative overflow-hidden" style={{ backgroundColor: C.bg, color: '#fff' }}>
       {showThankYou && (
