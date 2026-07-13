@@ -152,12 +152,14 @@ export function LearningPathPaywall({
           primaryPathId = primary.id;
           allPathIds = newRows.map((r: any) => r.id).join(',');
         }
-      } else if (!isAllPlan && selectedSkill && sourcePath) {
-        // Single skill — save selected skill to original row before checkout
+      } else if (!isAllPlan && selectedSkill) {
+  // Eigene Skill-Zeile anlegen/wiederverwenden — die Analyse-Zeile bleibt unberührt.
+  
         await supabase
           .from('learning_paths')
           .update({ skill: selectedSkill, updated_at: new Date().toISOString() })
           .eq('id', learningPathId);
+      primaryPathId = await careerService.getOrCreateSkillPath(learningPathId, selectedSkill)
       }
 
       const skillParam = selectedSkill ? `&skill=${encodeURIComponent(selectedSkill)}` : '';
