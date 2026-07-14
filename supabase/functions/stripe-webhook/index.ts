@@ -1,3 +1,11 @@
+// supabase/functions/stripe-webhook/index.ts
+//
+// Deploy OHNE JWT-Verifizierung (Stripe schickt keinen Supabase-Token):
+//   supabase functions deploy stripe-webhook --no-verify-jwt
+//
+// Secrets: STRIPE_SECRET_KEY, STRIPE_WEBHOOK_SECRET,
+//          SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY
+
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import Stripe from "npm:stripe@17.5.0";
 import { createClient } from "npm:@supabase/supabase-js@2.57.4";
@@ -38,10 +46,7 @@ function generateTicketNumber(type: string): string {
 
 Deno.serve(async (req: Request) => {
   if (req.method === "OPTIONS") {
-    return new Response(null, {
-      status: 200,
-      headers: corsHeaders,
-    });
+    return new Response(null, { status: 200, headers: corsHeaders });
   }
 
   try {
@@ -52,18 +57,13 @@ Deno.serve(async (req: Request) => {
       throw new Error("STRIPE_SECRET_KEY not configured");
     }
 
-    const stripe = new Stripe(stripeKey, {
-      apiVersion: "2024-12-18.acacia",
-    });
+    const stripe = new Stripe(stripeKey, { apiVersion: "2024-12-18.acacia" });
 
     const signature = req.headers.get("stripe-signature");
     if (!signature) {
       return new Response(
         JSON.stringify({ error: "Missing stripe-signature header" }),
-        {
-          status: 400,
-          headers: { ...corsHeaders, "Content-Type": "application/json" },
-        }
+        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
 
@@ -72,15 +72,12 @@ Deno.serve(async (req: Request) => {
 
     if (webhookSecret) {
       try {
-        event = stripe.webhooks.constructEvent(body, signature, webhookSecret);
+        event = await stripe.webhooks.constructEventAsync(body, signature, webhookSecret);
       } catch (err: any) {
         console.error("[Stripe Webhook] Signature verification failed:", err.message);
         return new Response(
           JSON.stringify({ error: `Webhook signature verification failed: ${err.message}` }),
-          {
-            status: 400,
-            headers: { ...corsHeaders, "Content-Type": "application/json" },
-          }
+          { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
         );
       }
     } else {
@@ -104,16 +101,14 @@ Deno.serve(async (req: Request) => {
       }
 
       const lineItems = await stripe.checkout.sessions.listLineItems(session.id);
-      const priceId = lineItems.data[0]?.price?.id;
+      const lineItem = lineItems.data[0];
+      const priceId = lineItem?.price?.id;
 
       if (!priceId) {
         console.error("[Stripe Webhook] No price_id found in line items");
         return new Response(
           JSON.stringify({ error: "No price_id found" }),
-          {
-            status: 400,
-            headers: { ...corsHeaders, "Content-Type": "application/json" },
-          }
+          { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
         );
       }
 
@@ -127,6 +122,9 @@ Deno.serve(async (req: Request) => {
 
       const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
+      // ────────────────────────────────────────────────────────────────────────
+      // A) FESTIVAL-TICKET  (idempotent per (stripe_session_id, ticket_index))
+      // ────────────────────────────────────────────────────────────────────────
       if (festivalTicket) {
         console.log("[Stripe Webhook] Festival ticket purchase:", festivalTicket.label);
 
@@ -134,52 +132,43 @@ Deno.serve(async (req: Request) => {
         const bierpongTeamName = session.metadata?.bierpong_team_name || null;
         const bierpongPartnerName = session.metadata?.bierpong_partner_name || null;
         const buyerName = session.customer_details?.name || session.metadata?.buyer_name || null;
-        const quantity = Math.max(1, parseInt(session.metadata?.quantity || "1", 10));
+        const quantity = Math.max(1, Math.min(10, parseInt(session.metadata?.quantity || String(lineItem?.quantity ?? 1), 10)));
+        const amountPerTicket = Math.round((session.amount_total ?? 0) / quantity);
 
-        const { data: existingTickets } = await supabase
+        // Deterministischer ticket_index (0..n-1) → Idempotenz-Schlüssel.
+        // Bei Konflikt wird NICHT erneut eingefügt (kein Doppel-Ticket, auch nicht
+        // wenn parallel der confirm-festival-ticket-Fallback läuft).
+        const rows = Array.from({ length: quantity }, (_, i) => ({
+          stripe_session_id: session.id,
+          ticket_index: i,
+          stripe_payment_intent_id: (session.payment_intent as string) || null,
+          ticket_type: festivalTicket.type,
+          ticket_label: festivalTicket.label,
+          amount_paid: amountPerTicket,
+          currency: session.currency,
+          buyer_email: session.customer_details?.email || session.customer_email || null,
+          buyer_name: buyerName,
+          payment_status: session.payment_status,
+          user_id: metaUserId,
+          ticket_number: generateTicketNumber(festivalTicket.type),
+          bierpong_team_name: bierpongTeamName,
+          bierpong_partner_name: bierpongPartnerName,
+        }));
+
+        const { error: festivalError } = await supabase
           .from("festival_ticket_sales")
-          .select("id")
-          .eq("stripe_session_id", session.id);
+          .upsert(rows, { onConflict: "stripe_session_id,ticket_index", ignoreDuplicates: true });
 
-        const existingCount = existingTickets?.length ?? 0;
-
-        if (existingCount >= quantity) {
-          console.log("[Stripe Webhook] Festival tickets already exist, skipping insert");
+        if (festivalError) {
+          console.error("[Stripe Webhook] Error saving festival tickets:", festivalError);
         } else {
-          const ticketsToInsert = Array.from({ length: quantity - existingCount }, (_, i) => ({
-            stripe_session_id: session.id,
-            stripe_payment_intent_id: session.payment_intent as string || null,
-            ticket_type: festivalTicket.type,
-            ticket_label: festivalTicket.label,
-            amount_paid: Math.round(session.amount_total / quantity),
-            currency: session.currency,
-            buyer_email: session.customer_details?.email || session.customer_email || null,
-            buyer_name: buyerName,
-            payment_status: session.payment_status,
-            user_id: metaUserId,
-            ticket_number: generateTicketNumber(festivalTicket.type),
-            bierpong_team_name: bierpongTeamName,
-            bierpong_partner_name: bierpongPartnerName,
-          }));
-
-          const { error: festivalError } = await supabase
-            .from("festival_ticket_sales")
-            .insert(ticketsToInsert);
-
-          if (festivalError) {
-            console.error("[Stripe Webhook] Error saving festival tickets:", festivalError);
-          } else {
-            console.log(`[Stripe Webhook] ${ticketsToInsert.length} festival ticket(s) saved`);
-          }
+          console.log(`[Stripe Webhook] ${rows.length} festival ticket(s) upserted`);
         }
 
-        return new Response(
-          JSON.stringify({ received: true }),
-          {
-            status: 200,
-            headers: { ...corsHeaders, "Content-Type": "application/json" },
-          }
-        );
+        return new Response(JSON.stringify({ received: true }), {
+          status: 200,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
       }
 
       const userId = session.client_reference_id || session.metadata?.user_id;
@@ -190,6 +179,9 @@ Deno.serve(async (req: Request) => {
 
       console.log("[Stripe Webhook] Price:", priceId, "| isCvCheck:", isCvCheckPrice, "| Tokens:", tokensToAdd, "| cvId:", cvId, "| userId:", userId);
 
+      // ────────────────────────────────────────────────────────────────────────
+      // B) CV-ZAHLUNG
+      // ────────────────────────────────────────────────────────────────────────
       if (cvId) {
         console.log("[Stripe Webhook] Payment for CV upload:", cvId, "| type:", isCvCheckPrice ? "cv_check" : "cv_optimizer");
 
@@ -273,7 +265,9 @@ Deno.serve(async (req: Request) => {
         }
       }
 
-      // Handle skillgap analysis payment
+      // ────────────────────────────────────────────────────────────────────────
+      // C) SKILL-GAP-ANALYSE FREISCHALTEN
+      // ────────────────────────────────────────────────────────────────────────
       const skillgapPathId = session.metadata?.skillgap_path_id;
       if (skillgapPathId) {
         console.log("[Stripe Webhook] Payment for skillgap analysis:", skillgapPathId);
@@ -292,36 +286,34 @@ Deno.serve(async (req: Request) => {
         });
       }
 
-      // Handle learning path payment
-      if (learningPathId) {
-        console.log("[Stripe Webhook] Payment for learning path:", learningPathId);
-        const selectedSkill = session.metadata?.selected_skill || null;
-        const unlockAll = session.metadata?.unlock_all === 'true';
-        const lpUpdate: Record<string, unknown> = { is_paid: true, updated_at: new Date().toISOString() };
-        if (selectedSkill) lpUpdate.skill = selectedSkill;
+      // ────────────────────────────────────────────────────────────────────────
+      // D) LERNPFAD FREISCHALTEN  (FIX: nur is_paid, NIE skill überschreiben)
+      // ────────────────────────────────────────────────────────────────────────
+      if (learningPathId || session.metadata?.all_path_ids) {
+        // Freizuschaltende Zeilen: Primär-Pfad + optional alle all_path_ids.
+        const ids = new Set<string>();
+        if (learningPathId) ids.add(learningPathId);
+        if (session.metadata?.all_path_ids) {
+          session.metadata.all_path_ids
+            .split(",")
+            .map((s) => s.trim())
+            .filter(Boolean)
+            .forEach((id) => ids.add(id));
+        }
 
-        if (unlockAll && userId) {
-          // Unlock ALL learning paths for this user (preserve skill if provided)
-          console.log("[Stripe Webhook] Unlocking ALL learning paths for user:", userId);
-          const { error: allLpError } = await supabase
-            .from("learning_paths")
-            .update(lpUpdate)
-            .eq("user_id", userId);
-          if (allLpError) {
-            console.error("[Stripe Webhook] Error unlocking all learning paths:", allLpError);
-          } else {
-            console.log("[Stripe Webhook] All learning paths unlocked for user:", userId);
-          }
-        } else {
-          // Unlock only the specific learning path
+        console.log("[Stripe Webhook] Unlocking learning paths:", Array.from(ids));
+
+        // WICHTIG: NUR is_paid setzen. Niemals skill überschreiben — jede Zeile
+        // hat ihren eigenen Skill; ein Überschreiben macht alle Kacheln identisch.
+        if (ids.size > 0) {
           const { error: lpError } = await supabase
             .from("learning_paths")
-            .update(lpUpdate)
-            .eq("id", learningPathId);
+            .update({ is_paid: true, updated_at: new Date().toISOString() })
+            .in("id", Array.from(ids));
           if (lpError) {
-            console.error("[Stripe Webhook] Error unlocking learning path:", lpError);
+            console.error("[Stripe Webhook] Error unlocking learning paths:", lpError);
           } else {
-            console.log("[Stripe Webhook] Learning path unlocked:", learningPathId);
+            console.log("[Stripe Webhook] Learning paths unlocked:", ids.size);
           }
         }
 
@@ -331,6 +323,9 @@ Deno.serve(async (req: Request) => {
         });
       }
 
+      // ────────────────────────────────────────────────────────────────────────
+      // E) TOKEN-KAUF
+      // ────────────────────────────────────────────────────────────────────────
       if (!userId) {
         console.warn("[Stripe Webhook] No user_id found - skipping token crediting");
         return new Response(JSON.stringify({ received: true }), {
@@ -367,10 +362,7 @@ Deno.serve(async (req: Request) => {
         }
 
         console.log("[Stripe Webhook] user_tokens updated:", {
-          userId,
-          previous: currentCredits,
-          added: tokensToAdd,
-          new: newCredits,
+          userId, previous: currentCredits, added: tokensToAdd, new: newCredits,
         });
 
         const { error: logError } = await supabase
@@ -390,21 +382,15 @@ Deno.serve(async (req: Request) => {
       }
     }
 
-    return new Response(
-      JSON.stringify({ received: true }),
-      {
-        status: 200,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      }
-    );
+    return new Response(JSON.stringify({ received: true }), {
+      status: 200,
+      headers: { ...corsHeaders, "Content-Type": "application/json" },
+    });
   } catch (error: any) {
     console.error("[Stripe Webhook] Error:", error);
     return new Response(
       JSON.stringify({ error: error.message || "Internal server error" }),
-      {
-        status: 500,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      }
+      { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
   }
 });
