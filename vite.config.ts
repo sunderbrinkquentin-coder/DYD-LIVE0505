@@ -1,10 +1,10 @@
-import { defineConfig } from 'vite';
-import react from '@vitejs/plugin-react';
+import { defineConfig } from "vite";
+import react from "@vitejs/plugin-react";
+import { nodePolyfills } from "vite-plugin-node-polyfills";   // ← neu
 
 export default defineConfig({
-  plugins: [react()],
-  publicDir: 'public-static',
-  optimizeDeps: {
-    exclude: ['lucide-react'],
-  },
+  plugins: [
+    react(),
+    nodePolyfills({ globals: { Buffer: true, global: true } }),   // ← neu
+  ],
 });
