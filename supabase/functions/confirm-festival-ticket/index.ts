@@ -9,7 +9,7 @@ const corsHeaders = {
 };
 
 const FESTIVAL_TICKET_MAPPING: Record<string, { type: string; label: string }> = {
-  price_1T9NSV3Sd9dZl64S39A2Rpl1: { type: "early_bird", label: "EARLY Bird Bundle" },
+  price_1ToGq73Sd9dZl64STNjgoSF1: { type: "early_bird", label: "EARLY Bird Bundle" },
   price_1T9NPZ3Sd9dZl64SjF0ilg4Z: { type: "dj", label: "DJ Sets House / Techno" },
   price_1T9NPE3Sd9dZl64S5l8dCMJg: { type: "concert", label: "Live Konzert Zirkel.WTF" },
   price_1T9NLf3Sd9dZl64Sdp05jz2i: { type: "bierpong", label: "Bierpong-Turnier" },
@@ -96,13 +96,53 @@ Deno.serve(async (req: Request) => {
       );
     }
 
-    const festivalTicket = FESTIVAL_TICKET_MAPPING[priceId];
-    if (!festivalTicket) {
-      return new Response(
-        JSON.stringify({ error: "Not a festival ticket" }),
-        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-      );
+    // Statt:  if (festivalTicket) {
+// ── ALLE Festival-Line-Items (Cross-Selling) ──
+const festivalItems = lineItems.data.filter(
+  (li) => li.price?.id && FESTIVAL_TICKET_MAPPING[li.price.id]
+);
+
+if (festivalItems.length > 0) {
+  const buyerName = session.customer_details?.name || session.metadata?.buyer_name || null;
+  const buyerEmail = session.customer_details?.email || session.customer_email || null;
+  const metaUserId = session.metadata?.user_id || null;
+
+  const rows: any[] = [];
+  let ticketIndex = 0;
+  for (const li of festivalItems) {
+    const map = FESTIVAL_TICKET_MAPPING[li.price!.id];
+    const qty = Math.max(1, li.quantity ?? 1);
+    const unitAmount = li.price?.unit_amount ?? Math.round((li.amount_total ?? 0) / qty);
+    for (let i = 0; i < qty; i++) {
+      rows.push({
+        stripe_session_id: session.id,
+        ticket_index: ticketIndex++,
+        stripe_payment_intent_id: (session.payment_intent as string) || null,
+        ticket_type: map.type,
+        ticket_label: map.label,
+        amount_paid: unitAmount,
+        currency: session.currency,
+        buyer_email: buyerEmail,
+        buyer_name: buyerName,
+        payment_status: session.payment_status,
+        user_id: metaUserId,
+        ticket_number: generateTicketNumber(map.type),
+        bierpong_team_name: map.type === "bierpong" ? (session.metadata?.bierpong_team_name || null) : null,
+        bierpong_partner_name: map.type === "bierpong" ? (session.metadata?.bierpong_partner_name || null) : null,
+      });
     }
+  }
+
+  const { error: festivalError } = await supabase
+    .from("festival_ticket_sales")
+    .upsert(rows, { onConflict: "stripe_session_id,ticket_index", ignoreDuplicates: true });
+  if (festivalError) console.error("[Stripe Webhook] Error saving festival tickets:", festivalError);
+  else console.log(`[Stripe Webhook] ${rows.length} festival ticket(s) upserted`);
+
+  return new Response(JSON.stringify({ received: true }), {
+    status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" },
+  });
+}
 
     const quantity = Math.max(1, Math.min(10, parseInt(session.metadata?.quantity || String(lineItem?.quantity ?? 1), 10)));
     const metaUserId = user_id || session.metadata?.user_id || null;
