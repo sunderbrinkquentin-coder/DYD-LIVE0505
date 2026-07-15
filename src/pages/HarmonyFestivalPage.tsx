@@ -2547,20 +2547,13 @@ let authToken = anonKey;
 
     <div className="relative z-10 p-7 sm:p-10">
       {/* Shirt images */}
-<div className="flex items-center gap-3 mb-10 px-2 py-4 rounded-2xl"
+<div className="mb-10 rounded-2xl overflow-hidden"
   style={{ background: 'rgba(220,50,50,0.06)', border: '1px solid rgba(220,50,50,0.18)' }}>
-  <div className="w-2 h-2 rounded-full flex-shrink-0"
-    style={{ background: '#dc3232', boxShadow: '0 0 8px rgba(220,50,50,0.7)' }}/>
-  <p style={{
-    fontFamily: "'Barlow Condensed', sans-serif",
-    fontWeight: 700,
-    fontSize: '16px',
-    letterSpacing: '0.08em',
-    textTransform: 'uppercase',
-    color: 'rgba(220,120,120,0.9)',
-  }}>
-    Bilder folgen in Kürze
-  </p>
+  <img
+    src="/Soli_Shirt.png"
+    alt="Harmony Soli-Shirt – Gewinn geht an KeinBockAufNazis e.V."
+    style={{ display: 'block', width: '100%', height: 'auto' }}
+  />
 </div>
 
       {/* Price + Info */}
