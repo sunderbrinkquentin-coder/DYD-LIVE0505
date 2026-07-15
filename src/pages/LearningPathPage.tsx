@@ -341,7 +341,7 @@ function ResultView({
     setResolvingUnlock(true);
     setUnlockError(null);
     try {
-      const id = await careerService.getOrCreateSkillPath(learningPath, selectedSkillName);
+      const id = await careerService.getOrCreateSkillPath(learningPath.id, selectedSkillName);
       setPaywallPathId(id);
       setShowPaywall(true);
     } catch {
