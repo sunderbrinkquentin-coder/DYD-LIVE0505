@@ -10,6 +10,7 @@ import { careerService } from '../services/careerService';
 import { certificateService } from '../services/certificateService';
 import { LearningPath } from '../types/learningPath';
 import { supabase } from '../lib/supabase';
+import { parseSkills, skillDisplayName, skillFromPath, RawSkill } from '../utils/skills';
 
 // ── Constants ──────────────────────────────────────────────────────────────────
 
@@ -50,42 +51,6 @@ const GLOBAL_STYLES = `
   @keyframes lp_orb1      { 0%,100% { transform:translate(0,0) scale(1); } 33% { transform:translate(20px,-15px) scale(1.1); } 66% { transform:translate(-10px,20px) scale(0.95); } }
   @keyframes lp_orb2      { 0%,100% { transform:translate(0,0) scale(1); } 33% { transform:translate(-25px,10px) scale(0.9); } 66% { transform:translate(15px,-20px) scale(1.05); } }
 `;
-
-// ── Types ──────────────────────────────────────────────────────────────────────
-
-interface RawSkill {
-  skill_name?: string;
-  name?: string;
-  pitch?: string;
-  gap_severity?: number;
-  market_value_bonus?: string;
-  category?: string;
-  priority?: string;
-}
-
-function skillDisplayName(s: RawSkill) {
-  return s.skill_name || s.name || '(unbenannt)';
-}
-
-function parseSkills(raw: unknown): RawSkill[] {
-  if (!raw) return [];
-  if (Array.isArray(raw)) return raw as RawSkill[];
-  if (typeof raw === 'string') {
-    const s = raw.trim();
-    if (!s) return [];
-    try { const p = JSON.parse(s); if (Array.isArray(p)) return p; } catch { /* */ }
-  }
-  return [];
-}
-
-/** Reads the selected skill from a learning_paths row, whatever shape it has. */
-function skillFromPath(path: LearningPath | null): string | null {
-  if (!path) return null;
-  const sel = (path as any).skill;
-  if (sel && typeof sel === 'string') return sel;
-  if (sel && typeof sel === 'object') return sel.skill_name || sel.name || null;
-  return null;
-}
 
 // ── Smart progress bar ─────────────────────────────────────────────────────────
 
@@ -624,17 +589,19 @@ function ResultView({
         </div>
       </div>
 
-      {showPaywall && (
-        <LearningPathPaywall
-          isOpen
-          onClose={() => { setShowPaywall(false); onPaywallClose(); }}
-          learningPathId={paywallPathId ?? learningPath.id}
-          targetJob={targetJob}
-          targetCompany={targetCompany}
-          skillCount={visibleSkills.length}
-          selectedSkill={selectedSkillName ?? undefined}
-        />
-      )}
+      {showPaywall && paywallPathId && (
+  <LearningPathPaywall
+    isOpen
+    onClose={() => { setShowPaywall(false); onPaywallClose(); }}
+    learningPathId={paywallPathId}
+    analysisPathId={learningPath.id}
+    missingSkills={visibleSkills}
+    targetJob={targetJob}
+    targetCompany={targetCompany}
+    skillCount={visibleSkills.length}
+    selectedSkill={selectedSkillName ?? undefined}
+  />
+)}
     </div>
   );
 }
