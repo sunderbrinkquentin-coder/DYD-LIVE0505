@@ -34,7 +34,7 @@ interface LearningPathPaywallProps {
 }export function LearningPathPaywall({
   isOpen, onClose, analysisPathId, targetJob, targetCompany,
   skillCount = 0, selectedSkill, missingSkills,
-}: LearningPathPaywallProps) {
+}: LearningPathPaywallProps) 
 
 const BENEFITS_SINGLE = [
   {
