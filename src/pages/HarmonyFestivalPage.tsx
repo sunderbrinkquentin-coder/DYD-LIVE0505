@@ -187,9 +187,9 @@ const POSTER_SLIDES = [
     glow: 'rgba(200,200,200,0.06)',
   },
   {
-    src: '/22.08.2026_Klub_Kulb_Dusseldorf_(1)%20copy%20copy.png',
+    src: '/BobMarley.png',
     alt: 'Harmony Festival – Hauptposter',
-    label: 'Festival Poster',
+    label: 'Empfehlung Bob',
     accent: 'rgba(0,190,150,1)',
     accentAlpha: 'rgba(0,190,150,0.18)',
     glow: 'rgba(0,180,140,0.08)',
