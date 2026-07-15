@@ -194,6 +194,14 @@ const POSTER_SLIDES = [
     accentAlpha: 'rgba(0,190,150,0.18)',
     glow: 'rgba(0,180,140,0.08)',
   },
+   {
+    src: 'Soli_Shirt.png',
+    alt: 'Harmony Festival – Hauptposter',
+    label: 'Soli Shirt',
+    accent: 'rgba(0,190,150,1)',
+    accentAlpha: 'rgba(0,190,150,0.18)',
+    glow: 'rgba(0,180,140,0.08)',
+  },
 ];
 
 const AUTOPLAY_INTERVAL = 10000;
