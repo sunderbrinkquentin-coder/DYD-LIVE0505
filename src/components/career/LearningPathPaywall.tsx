@@ -114,7 +114,7 @@ export function LearningPathPaywall({
 
   // Single-Plan braucht eine Skill-Wahl. Wenn keine Optionen da sind (z.B. Aufruf
   // ohne missingSkills), lassen wir den Kauf zu und fallen auf selectedSkill zurück.
-  const singleNeedsChoice = !isAllPlan && skillOptions.length > 0 && !chosenSkill;
+ const singleNeedsChoice = !isAllPlan && !chosenSkill && !selectedSkill;
 
   const handleCheckout = async () => {
     setIsLoading(true);
