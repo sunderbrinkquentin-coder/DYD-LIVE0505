@@ -1254,22 +1254,29 @@ export function DashboardPage() {
                {/* Locked skills — Skills aus missing_skills, die noch keine bezahlte Zeile haben */}
 {(() => {
   // Alle Analyse-Zeilen (skill = null, missing_skills gefüllt).
+{/* Analysen — immer sichtbar, unabhängig von Lernpfaden */}
+{(() => {
   const gapPaths = learningPaths.filter(
     (p) => !(p as any).skill && (p as any).missing_skills
   );
+  if (gapPaths.length === 0) return null;
 
-  if (gapPaths.length === 0) {
-    if (primaryUnpaid) {
-      return (
+  return (
+    <div className="space-y-2.5">
+      <p className="text-[10px] font-black uppercase tracking-widest text-white/20 px-1">
+        Meine Analysen
+      </p>
+      {gapPaths.map((gp) => (
         <CareerVisionCard
-          learningPath={primaryUnpaid}
+          key={gp.id}
+          learningPath={gp}
           variant="compact"
-          onStartLearning={() => navigate(`/learning-path/${primaryUnpaid.id}`)}
+          onStartLearning={() => navigate(`/learning-path/${gp.id}`)}
         />
-      );
-    }
-    return null;
-  }
+      ))}
+    </div>
+  );
+})()}
 
   // Bereits bezahlte Skills (Name + zugehörige Analyse), damit derselbe
   // Skill-Name aus zwei verschiedenen Analysen nicht fälschlich verschwindet.
