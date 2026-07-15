@@ -589,11 +589,20 @@ function ResultView({
         </div>
       </div>
 
-      {showPaywall && paywallPathId && (
+      // startUnlock: kein DB-Call mehr
+const startUnlock = () => {
+  if (!selectedSkillName) return;
+  setUnlockError(null);
+  setShowPaywall(true);
+};
+
+// paywallPathId + resolvingUnlock State löschen.
+// Der Button-Text: `resolvingUnlock ? 'Wird vorbereitet…' : …` → den Zweig raus.
+
+{showPaywall && (
   <LearningPathPaywall
     isOpen
     onClose={() => { setShowPaywall(false); onPaywallClose(); }}
-    learningPathId={paywallPathId}
     analysisPathId={learningPath.id}
     missingSkills={visibleSkills}
     targetJob={targetJob}
