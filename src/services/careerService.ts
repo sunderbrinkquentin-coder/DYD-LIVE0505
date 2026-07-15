@@ -59,60 +59,132 @@ export class CareerVisionService {
       ];
     }
   }
+
+  // ──────────────────────────────────────────────────────────────────────────
+  // PER-SKILL-UNLOCK
+  // ──────────────────────────────────────────────────────────────────────────
+
   /**
- * Legt eine eigene learning_paths-Zeile für EINEN Skill einer Analyse an
- * (oder gibt die bestehende zurück), sodass jeder freigeschaltete Skill sein
- * eigenes is_paid + eigenes learning_results bekommt. Überschreibt niemals die
- * Analyse-Zeile.
- */
-static async getOrCreateSkillPath(analysisPathId: string, skillName: string): Promise<string> {
-  if (!analysisPathId) throw new Error('Keine Analyse-id übergeben');
+   * Legt eine eigene learning_paths-Zeile für EINEN Skill einer Analyse an
+   * (oder gibt die bestehende zurück), sodass jeder freigeschaltete Skill sein
+   * eigenes is_paid + eigenes learning_results bekommt.
+   *
+   * Die Analyse-Zeile (skill = null, missing_skills gefüllt) wird NIEMALS
+   * verändert — sie bleibt die einzige Quelle der Gap-Liste.
+   *
+   * Voraussetzung in der DB:
+   *   alter table learning_paths
+   *     add column if not exists analysis_id uuid references learning_paths(id) on delete cascade;
+   *   create unique index if not exists learning_paths_analysis_skill_uniq
+   *     on learning_paths (analysis_id, skill) where analysis_id is not null;
+   */
+  static async getOrCreateSkillPath(analysisPathId: string, skillName: string): Promise<string> {
+    if (!analysisPathId) throw new Error('Keine Analyse-id übergeben');
+    if (!skillName?.trim()) throw new Error('Kein Skill-Name übergeben');
 
-  const { data: analysis, error: loadErr } = await supabase
-    .from('learning_paths').select('*').eq('id', analysisPathId).maybeSingle();
-  if (loadErr) throw new Error(`Analyse konnte nicht geladen werden: ${loadErr.message}`);
-  if (!analysis) throw new Error('Analyse-Zeile nicht gefunden');
+    const skill = skillName.trim();
 
-  // Fallback auf die eigene id, NIE undefined weitergeben:
-  const analysisId: string = (analysis as any).analysis_id ?? analysis.id;
-  if (!analysisId) throw new Error('Analyse-Zeile ohne gültige id');
+    // 1) Analyse-Zeile laden — sie liefert den kompletten Kontext für die Skill-Zeile.
+    const { data: analysis, error: loadErr } = await supabase
+      .from('learning_paths')
+      .select('*')
+      .eq('id', analysisPathId)
+      .maybeSingle();
 
-  const { data: existing } = await supabase
-    .from('learning_paths').select('id')
-    .eq('analysis_id', analysisId).eq('skill', skillName)
-    .limit(1).maybeSingle();
-  if (existing?.id) return existing.id;
+    if (loadErr) throw new Error(`Analyse konnte nicht geladen werden: ${loadErr.message}`);
+    if (!analysis) throw new Error('Analyse-Zeile nicht gefunden');
 
+    const a = analysis as any;
 
-  // 2) Sonst neue Skill-Zeile mit dem kompletten Analyse-Kontext.
-  const { data: created, error } = await supabase
-    .from('learning_paths')
-    .insert({
-      user_id: analysisPath.user_id ?? null,
-      session_id: (analysisPath as any).session_id ?? null,
-      cv_id: (analysisPath as any).cv_id ?? null,
-      analysis_id: analysisId,
-      skill: skillName,
-      target_job: analysisPath.target_job,
-      target_company: (analysisPath as any).target_company ?? null,
-      vision_description: (analysisPath as any).vision_description ?? null,
-      industry: (analysisPath as any).industry ?? null,
-      match_score: (analysisPath as any).match_score ?? null,
-      missing_skills: analysisPath.missing_skills,
-      current_skills: (analysisPath as any).current_skills ?? [],
-      strategic_outlook_2026: (analysisPath as any).strategic_outlook_2026 ?? null,
-      status: 'pending',
-      is_paid: false,
-      progress: {},
-    })
-    .select('id')
-    .single();
+    // Falls versehentlich eine Skill-Zeile übergeben wurde: auf deren Eltern-Analyse
+    // zurückfallen, damit keine Ketten (Skill-Zeile → Skill-Zeile) entstehen.
+    const analysisId: string = a.analysis_id ?? a.id;
+    if (!analysisId) throw new Error('Analyse-Zeile ohne gültige id');
 
-  if (error || !created?.id) {
-    throw new Error(error?.message ?? 'Skill-Pfad konnte nicht angelegt werden');
+    // 2) Existiert die Skill-Zeile schon? Dann wiederverwenden (idempotent —
+    //    wichtig, weil der "Alle freischalten"-Loop mehrfach laufen kann).
+    const { data: existing, error: existErr } = await supabase
+      .from('learning_paths')
+      .select('id')
+      .eq('analysis_id', analysisId)
+      .eq('skill', skill)
+      .limit(1)
+      .maybeSingle();
+
+    if (existErr) throw new Error(`Skill-Pfad konnte nicht geprüft werden: ${existErr.message}`);
+    if (existing?.id) {
+      console.log('[CareerVision] Skill-Pfad wiederverwendet:', skill, existing.id);
+      return existing.id;
+    }
+
+    // 3) Sonst neue Skill-Zeile mit dem kompletten Analyse-Kontext anlegen.
+    //    is_paid bleibt false — das setzt AUSSCHLIESSLICH der Stripe-Webhook.
+    const { data: created, error } = await supabase
+      .from('learning_paths')
+      .insert({
+        user_id: a.user_id ?? null,
+        session_id: a.session_id ?? null,
+        cv_id: a.cv_id ?? null,
+        analysis_id: analysisId,
+        skill,
+        target_job: a.target_job,
+        target_company: a.target_company ?? null,
+        vision_description: a.vision_description ?? null,
+        industry: a.industry ?? null,
+        match_score: a.match_score ?? null,
+        missing_skills: a.missing_skills,
+        current_skills: a.current_skills ?? [],
+        strategic_outlook_2026: a.strategic_outlook_2026 ?? null,
+        // Die Analyse ist bezahlt — die Skill-Zeile erbt das, sonst würde die
+        // Gap-Analyse auf der Skill-Zeile erneut zur Zahlung angeboten.
+        skillgap_paid: a.skillgap_paid ?? false,
+        // Muss ein Wert sein, den die Waiting-Page als "noch nicht getriggert"
+        // versteht (siehe handleRetry in LearningPathWaitingPage).
+        status: 'gap_analysis_complete',
+        is_paid: false,
+        progress: {},
+      })
+      .select('id')
+      .single();
+
+    // Race-Fall: zwei parallele Klicks. Der Unique-Index (analysis_id, skill)
+    // lässt nur einen Insert durch — der Verlierer holt sich die Gewinner-Zeile.
+    if (error?.code === '23505') {
+      const { data: raced } = await supabase
+        .from('learning_paths')
+        .select('id')
+        .eq('analysis_id', analysisId)
+        .eq('skill', skill)
+        .limit(1)
+        .maybeSingle();
+      if (raced?.id) return raced.id;
+    }
+
+    if (error || !created?.id) {
+      throw new Error(error?.message ?? 'Skill-Pfad konnte nicht angelegt werden');
+    }
+
+    console.log('[CareerVision] ✅ Skill-Pfad angelegt:', skill, created.id);
+    return created.id;
   }
-  return created.id;
-}
+
+  /** Alle Skill-Zeilen einer Analyse (für Dashboard / Fortschrittsanzeige). */
+  static async getSkillPathsForAnalysis(analysisPathId: string): Promise<LearningPath[]> {
+    const { data, error } = await supabase
+      .from('learning_paths')
+      .select('*')
+      .eq('analysis_id', analysisPathId)
+      .order('created_at', { ascending: true });
+
+    if (error) {
+      console.error('[CareerVision] Failed to load skill paths:', error.message);
+      return [];
+    }
+    return (data as LearningPath[]) || [];
+  }
+
+  // ──────────────────────────────────────────────────────────────────────────
+
   static async analyzeVision(
     request: VisionAnalysisRequest
   ): Promise<VisionAnalysisResponse> {
@@ -299,6 +371,11 @@ static async getOrCreateSkillPath(analysisPathId: string, skillName: string): Pr
     }
   }
 
+  /**
+   * ACHTUNG: Setzt is_paid clientseitig. Der reguläre Kauf-Flow läuft
+   * ausschließlich über den Stripe-Webhook (Service Role). Diese Methode nur
+   * für Admin-/Kulanz-Fälle verwenden — nicht aus der Paywall aufrufen.
+   */
   static async unlockLearningPath(pathId: string): Promise<void> {
     // Mark as paid in DB
     const { error } = await supabase
@@ -317,16 +394,24 @@ static async getOrCreateSkillPath(analysisPathId: string, skillName: string): Pr
 
     if (LEARNINGPATH_WEBHOOK_URL && path) {
       try {
+        const selectedSkill = (path as any).skill ?? null;
         await fetch(LEARNINGPATH_WEBHOOK_URL, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
             id: pathId,
+            // Make MUSS diese id zurückschreiben — learning_results.learning_path_id
+            // ist NOT NULL.
+            learning_path_id: pathId,
             user_id: path.user_id,
             target_job: path.target_job,
             target_company: path.target_company,
             industry: path.industry,
-            missing_skills: path.missing_skills,
+            skill: selectedSkill,
+            selected_skill: selectedSkill,
+            // Nur der EINE freigeschaltete Skill — nicht die ganze Gap-Liste,
+            // sonst generiert Make Inhalte quer über alle Skills.
+            missing_skills: selectedSkill ? [selectedSkill] : path.missing_skills,
             current_skills: path.current_skills,
             match_score: path.match_score,
             is_paid: true,
