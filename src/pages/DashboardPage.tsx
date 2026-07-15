@@ -22,6 +22,7 @@ import { useAuth } from '../contexts/AuthContext';
 import { LearningPath } from '../types/learningPath';
 import { mapEditorDataToWizard } from '../utils/cvDataMapper';
 import { cvProfileService } from '../services/cvProfileService';
+import { parseSkills, skillDisplayName, skillFromPath } from '../utils/skills';
 
 // ---------- FIX 2: Zentrale Helper — EINE Format-Erkennung für alle Flows ----------
 // Vorher war die Wizard/Optimizer-Prüfung 4x kopiert und im Payment-Flow
@@ -1270,14 +1271,9 @@ export function DashboardPage() {
                   }
 
                   // Parse missing_skills
-                  let allSkills: string[] = [];
-                  try {
-                    const raw = (gapPath as any).missing_skills;
-                    const parsed = typeof raw === 'string' ? JSON.parse(raw) : raw;
-                    if (Array.isArray(parsed)) {
-                      allSkills = parsed.map((s: any) => s.skill_name || s.name).filter(Boolean);
-                    }
-                  } catch { /**/ }
+                  const allSkills = parseSkills((gapPath as any).missing_skills)
+  .map(skillDisplayName)
+  .filter((s) => s !== '(unbenannt)');
 
                   // Skills already paid
                   const paidSkills = new Set(paidPaths.map(p => (p as any).skill));
