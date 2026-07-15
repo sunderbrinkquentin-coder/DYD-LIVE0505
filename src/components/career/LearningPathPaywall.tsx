@@ -125,34 +125,32 @@ export function LearningPathPaywall({
       const token = session?.access_token || import.meta.env.VITE_SUPABASE_ANON_KEY;
       const origin = window.location.origin;
 
-      let primaryPathId = learningPathId;
-      let allPathIds: string | undefined;
+     let primaryPathId: string;
+let allPathIds: string | undefined;
 
-      if (isAllPlan) {
-        // Eine eigene Zeile pro Skill anlegen (mit analysis_id, dedupt über
-        // getOrCreateSkillPath). Der Stripe-Webhook muss ALLE über all_path_ids
-        // auf is_paid=true setzen.
-        const ids: string[] = [];
-        for (const name of skillOptions) {
-          ids.push(await careerService.getOrCreateSkillPath(learningPathId, name));
-        }
-        if (ids.length > 0) {
-          primaryPathId = chosenSkill
-            ? await careerService.getOrCreateSkillPath(learningPathId, chosenSkill)
-            : ids[0];
-          allPathIds = Array.from(new Set([...ids, primaryPathId])).join(',');
-        }
-      } else {
-        // Single: der gewählte Skill ist Pflicht.
-        const skillForSingle = chosenSkill ?? selectedSkill;
-        if (!skillForSingle) {
-          setError('Bitte wähle den Skill, mit dem du starten möchtest.');
-          setIsLoading(false);
-          return;
-        }
-        // Eigene Skill-Zeile anlegen/wiederverwenden — Analyse-Zeile bleibt unberührt.
-        primaryPathId = await careerService.getOrCreateSkillPath(learningPathId, skillForSingle);
-      }
+if (isAllPlan) {
+  if (skillOptions.length === 0) {
+    setError('Keine Skills in der Analyse gefunden. Bitte lade die Seite neu.');
+    setIsLoading(false);
+    return;
+  }
+  const ids: string[] = [];
+  for (const name of skillOptions) {
+    ids.push(await careerService.getOrCreateSkillPath(analysisPathId, name));
+  }
+  primaryPathId = chosenSkill
+    ? await careerService.getOrCreateSkillPath(analysisPathId, chosenSkill)
+    : ids[0];
+  allPathIds = Array.from(new Set([...ids, primaryPathId])).join(',');
+} else {
+  const skillForSingle = chosenSkill ?? selectedSkill;
+  if (!skillForSingle) {
+    setError('Bitte wähle den Skill, mit dem du starten möchtest.');
+    setIsLoading(false);
+    return;
+  }
+  primaryPathId = await careerService.getOrCreateSkillPath(analysisPathId, skillForSingle);
+}
 
       const activeSkill = chosenSkill ?? selectedSkill;
       const skillParam = activeSkill ? `&skill=${encodeURIComponent(activeSkill)}` : '';
