@@ -1,7 +1,7 @@
 // src/pages/DashboardPage.tsx
 import { useState, useEffect } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
-import { Plus, Briefcase, LogOut, ClipboardCheck, Coins, CheckCircle, Target, Lock, ExternalLink, Calendar, TrendingUp, FileSearch, ChevronDown, ChevronUp, Download, FileText, X, Zap, ArrowRight, Settings, CreditCard as Edit2, Award, Sparkles } from 'lucide-react';
+import { Plus, Briefcase, LogOut, ClipboardCheck, Coins, CheckCircle, Target, Lock, Calendar, FileSearch, ChevronDown, ChevronUp, Download, FileText, X, Zap, ArrowRight, Settings, CreditCard as Edit2, Award, Sparkles } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import { cvStorageService } from '../services/cvStorageService';
 import { tokenService } from '../services/tokenService';
@@ -21,7 +21,6 @@ import { parseAtsJson } from '../types/ats';
 import { useAuth } from '../contexts/AuthContext';
 import { LearningPath } from '../types/learningPath';
 import { mapEditorDataToWizard } from '../utils/cvDataMapper';
-import { cvProfileService } from '../services/cvProfileService';
 import { parseSkills, skillDisplayName, skillFromPath } from '../utils/skills';
 
 // ---------- FIX 2: Zentrale Helper — EINE Format-Erkennung für alle Flows ----------
@@ -94,7 +93,6 @@ export function DashboardPage() {
   const [learningPaths, setLearningPaths] = useState<LearningPath[]>([]);
   const [lpResults, setLpResults] = useState<Record<string, boolean>>({}); // pathId → has completed learning_results
   const [lpUnitCounts, setLpUnitCounts] = useState<Record<string, number>>({}); // pathId → completed unit count
-  const [userFirstName, setUserFirstName] = useState<string>('');
   const [festivalTickets, setFestivalTickets] = useState<any[]>([]);
   const [isCvChecksExpanded, setIsCvChecksExpanded] = useState(false);
   const [isFinishedCvsExpanded, setIsFinishedCvsExpanded] = useState(false);
@@ -110,7 +108,6 @@ export function DashboardPage() {
   const [expandedCheckId, setExpandedCheckId] = useState<string | null>(null);
   const [showNewCvCheckBanner, setShowNewCvCheckBanner] = useState(false);
   const [newCvUnlockId, setNewCvUnlockId] = useState<string | null>(null);
-
 
   // ---------- Ladefunktionen ----------
 
@@ -153,10 +150,6 @@ export function DashboardPage() {
       }
 
       console.log('[Dashboard] Loaded', data?.length || 0, 'CVs');
-      console.log(
-        '[Dashboard] CVs with download_unlocked:',
-        data?.filter((cv) => cv.download_unlocked).length || 0
-      );
       setUserCVs(data || []);
     } catch (error) {
       console.error('[Dashboard] Error loading CVs:', error);
@@ -176,8 +169,6 @@ export function DashboardPage() {
         return;
       }
 
-      console.log('[Dashboard] Loading CV checks - User:', user.id);
-
       const { data, error } = await supabase
         .from('stored_cvs')
         .select('id, created_at, status, file_name, ats_json, error_message, is_paid')
@@ -189,8 +180,6 @@ export function DashboardPage() {
         console.error('[Dashboard] Error loading CV checks:', error);
         return;
       }
-
-      console.log('[Dashboard] cvChecks loaded:', data?.length || 0, 'checks');
 
       const mappedData = (data || []).map((check) => ({
         ...check,
@@ -214,33 +203,6 @@ export function DashboardPage() {
       setUserTokens(tokens?.credits || 0);
     } catch (error) {
       console.error('Error loading user tokens:', error);
-    }
-  }
-
-  async function loadUserProfile() {
-    try {
-      const {
-        data: { user },
-      } = await supabase.auth.getUser();
-      if (!user) return;
-
-      const { data: profile, error } = await supabase
-        .from('profiles')
-        .select('full_name')
-        .eq('id', user.id)
-        .maybeSingle();
-
-      if (error) {
-        console.error('[Dashboard] Error loading profile:', error);
-        return;
-      }
-
-      if (profile?.full_name) {
-        const firstName = profile.full_name.split(' ')[0];
-        setUserFirstName(firstName);
-      }
-    } catch (error) {
-      console.error('[Dashboard] Error loading user profile:', error);
     }
   }
 
@@ -321,41 +283,35 @@ export function DashboardPage() {
         return;
       }
 
-      console.log('[Dashboard] Loading learning paths for user:', user.id);
-
       const paths = await careerService.getUserLearningPaths(user.id);
       console.log('[Dashboard] Loaded', paths.length, 'learning paths');
       setLearningPaths(paths);
 
-      // Load ready state and unit completion counts for paid paths
       if (paths.length > 0) {
-        const ids = paths.filter(p => p.is_paid).map(p => p.id);
-        if (ids.length > 0) {
-          const allPathIds = paths.map(p => p.id);
-          const [{ data: partial }, { data: unitRows }] = await Promise.all([
-            supabase.from('learning_results').select('learning_path_id, content')
-              .in('learning_path_id', allPathIds),
-            supabase.from('unit_completions').select('learning_path_id')
-              .in('learning_path_id', allPathIds),
-          ]);
+        const allPathIds = paths.map((p) => p.id);
+        const [{ data: partial }, { data: unitRows }] = await Promise.all([
+          supabase.from('learning_results').select('learning_path_id, content')
+            .in('learning_path_id', allPathIds),
+          supabase.from('unit_completions').select('learning_path_id')
+            .in('learning_path_id', allPathIds),
+        ]);
 
-          // A path is "ready" when learning_results has content filled
-          const map: Record<string, boolean> = {};
-          (partial ?? []).forEach((r: any) => {
-            if (r.learning_path_id && r.content != null) map[r.learning_path_id] = true;
-          });
-          paths.forEach(p => {
-            if (p.status === 'completed') map[p.id] = true;
-          });
-          setLpResults(map);
+        // A path is "ready" when learning_results has content filled
+        const map: Record<string, boolean> = {};
+        (partial ?? []).forEach((r: any) => {
+          if (r.learning_path_id && r.content != null) map[r.learning_path_id] = true;
+        });
+        paths.forEach((p) => {
+          if (p.status === 'completed') map[p.id] = true;
+        });
+        setLpResults(map);
 
-          // Count completed units per path
-          const unitMap: Record<string, number> = {};
-          (unitRows ?? []).forEach((r: any) => {
-            if (r.learning_path_id) unitMap[r.learning_path_id] = (unitMap[r.learning_path_id] ?? 0) + 1;
-          });
-          setLpUnitCounts(unitMap);
-        }
+        // Count completed units per path
+        const unitMap: Record<string, number> = {};
+        (unitRows ?? []).forEach((r: any) => {
+          if (r.learning_path_id) unitMap[r.learning_path_id] = (unitMap[r.learning_path_id] ?? 0) + 1;
+        });
+        setLpUnitCounts(unitMap);
       }
     } catch (error) {
       console.error('[Dashboard] Error loading learning paths:', error);
@@ -371,7 +327,6 @@ export function DashboardPage() {
       await loadCVs();
       await loadCvChecks();
       await loadUserTokens();
-      await loadUserProfile();
       await loadLearningPaths();
       await loadFestivalTickets();
       setIsLoading(false);
@@ -389,7 +344,6 @@ export function DashboardPage() {
       setShowPaywall(true);
       setSearchParams({});
     } else if (actionParam === 'cv-unlock' && cvIdParam) {
-      console.log('[Dashboard] 🔓 CV unlock flow - redirecting to paywall with cvId:', cvIdParam);
       navigate(`/cv-paywall?cvId=${cvIdParam}&source=cv-unlock`, { replace: true });
     }
 
@@ -400,7 +354,6 @@ export function DashboardPage() {
     const postPaymentAction = searchParams.get('action');
 
     if (paymentParam === 'success') {
-      console.log('[Dashboard] ✅ Payment successful - reloading CVs');
       setShowPaymentSuccess(true);
 
       if (highlightCvParam) {
@@ -437,9 +390,7 @@ export function DashboardPage() {
       };
 
       // FIX 3: Prefill nach Zahlung wird gepollt statt einmalig nach 1s gelesen.
-      // Der Stripe-Webhook darf jetzt bis zu ~11s brauchen, ohne dass der Flow bricht.
-      // FIX 2: Nutzt dieselben Helper wie handleCreateCV — inkl. Optimizer→Wizard-Mapping,
-      // das hier vorher fehlte (Bug: Prefill vor Zahlung ok, nach Zahlung leer).
+      // FIX 2: Nutzt dieselben Helper wie handleCreateCV — inkl. Optimizer→Wizard-Mapping.
       const resolveCreateCvPrefill = async (retries: number): Promise<void> => {
         const { data: { user } } = await supabase.auth.getUser();
         if (!user) return;
@@ -462,15 +413,12 @@ export function DashboardPage() {
           setTimeout(() => { resolveCreateCvPrefill(retries - 1); }, 2500);
           return;
         }
-        // Webhook zu langsam oder wirklich keine brauchbaren Daten
         if (richest) {
           setExistingCvDataForQuick(null);
           setExistingWizardCvId(richest.id ?? null);
           setShowCreateCVChoice(true);
         } else {
-          navigate('/job-targeting', {
-            state: { fromDashboard: true, isPaidFlow: true },
-          });
+          navigate('/job-targeting', { state: { fromDashboard: true, isPaidFlow: true } });
         }
       };
 
@@ -479,7 +427,11 @@ export function DashboardPage() {
         const freshCvs = await (async () => {
           const { data: { user } } = await supabase.auth.getUser();
           if (!user) return [];
-          const { data } = await supabase.from('stored_cvs').select('id, cv_data, job_data, updated_at, status, source, is_paid, download_unlocked, file_name, pdf_url, created_at').eq('user_id', user.id).order('updated_at', { ascending: false });
+          const { data } = await supabase
+            .from('stored_cvs')
+            .select('id, cv_data, job_data, updated_at, status, source, is_paid, download_unlocked, file_name, pdf_url, created_at')
+            .eq('user_id', user.id)
+            .order('updated_at', { ascending: false });
           return data || [];
         })();
 
@@ -500,9 +452,8 @@ export function DashboardPage() {
 
         setTimeout(() => pollTokens(4, prevCredits), 3000);
 
-        // ✅ Auto-Download nach CV-Kauf (aus Editor Flow)
+        // Auto-Download nach CV-Kauf (aus Editor Flow)
         if (downloadCvParam) {
-          console.log('[Dashboard] 📥 Auto-downloading CV after payment:', downloadCvParam);
           try {
             const { data: cvData, error } = await supabase
               .from('stored_cvs')
@@ -511,11 +462,8 @@ export function DashboardPage() {
               .maybeSingle();
 
             if (error) {
-              console.error('[Dashboard] ❌ Error loading CV for download:', error);
+              console.error('[Dashboard] Error loading CV for download:', error);
             } else if (cvData?.pdf_url) {
-              console.log('[Dashboard] ✅ PDF URL found, starting download:', cvData.pdf_url);
-
-              // PDF direkt öffnen/downloaden
               const link = document.createElement('a');
               link.href = cvData.pdf_url;
               link.target = '_blank';
@@ -523,18 +471,14 @@ export function DashboardPage() {
               document.body.appendChild(link);
               link.click();
               document.body.removeChild(link);
-            } else {
-              console.log('[Dashboard] ⚠️ No PDF URL yet for CV:', downloadCvParam);
             }
           } catch (err) {
-            console.error('[Dashboard] ❌ Error during auto-download:', err);
+            console.error('[Dashboard] Error during auto-download:', err);
           }
         }
       }, 1000);
 
-      setTimeout(() => {
-        setShowPaymentSuccess(false);
-      }, 8000);
+      setTimeout(() => setShowPaymentSuccess(false), 8000);
 
       const newParams = new URLSearchParams(searchParams);
       newParams.delete('payment');
@@ -562,9 +506,7 @@ export function DashboardPage() {
     const ticketSuccessParam = searchParams.get('ticket_success');
     if (ticketSuccessParam === '1') {
       setShowTicketSuccess(true);
-      setTimeout(async () => {
-        await loadFestivalTickets();
-      }, 2000);
+      setTimeout(async () => { await loadFestivalTickets(); }, 2000);
       setTimeout(() => setShowTicketSuccess(false), 6000);
       const newParams = new URLSearchParams(searchParams);
       newParams.delete('ticket_success');
@@ -574,11 +516,7 @@ export function DashboardPage() {
   }, []);
 
   // FIX 4: Realtime als SIGNAL behandeln, nie den Payload-Inhalt auswerten.
-  // Große JSONB-Spalten (content) fehlen ohne REPLICA IDENTITY FULL im Payload —
-  // die alte Prüfung `row?.content != null` konnte deshalb nie feuern und die UI
-  // blieb auf "Wird erstellt" hängen. Jetzt: Event auf relevante ID → Refetch.
-  // Außerdem: stabiler Channel-Key statt [learningPaths]-Dependency — vorher wurde
-  // der Channel bei jedem State-Update ab- und wieder aufgebaut.
+  // Große JSONB-Spalten (content) fehlen ohne REPLICA IDENTITY FULL im Payload.
   const lpIdsKey = learningPaths.map((p) => p.id).sort().join(',');
 
   useEffect(() => {
@@ -594,13 +532,8 @@ export function DashboardPage() {
             loadLearningPaths();
           }
         })
-      .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'learning_paths' },
-        (payload) => {
-          const row = payload.new as any;
-          if (row?.id && relevantIds.has(row.id)) {
-            loadLearningPaths();
-          }
-        })
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'learning_paths' },
+        () => { loadLearningPaths(); })
       .subscribe();
 
     return () => { supabase.removeChannel(ch); };
@@ -615,70 +548,28 @@ export function DashboardPage() {
   }, []);
 
   // FIX 7: Auto-Refresh für Entwürfe ohne PDF (alle 10 Sekunden).
-  // Dependency ist jetzt ein Boolean statt [userCVs] — vorher wurde das Intervall
-  // bei JEDEM Fetch zerstört und neu erstellt (loadCVs → setUserCVs → Effect-Neustart).
   const hasDraftsWaitingForPdf = userCVs.some(
     (cv) => (cv.download_unlocked || cv.is_paid) && !cv.pdf_url
   );
 
   useEffect(() => {
     if (!hasDraftsWaitingForPdf) return;
-
-    console.log('[Dashboard] Auto-refresh aktiv: Entwürfe warten auf PDF');
-
-    const intervalId = setInterval(async () => {
-      console.log('[Dashboard] Refreshing CVs...');
-      await loadCVs();
-    }, 10000);
-
+    const intervalId = setInterval(async () => { await loadCVs(); }, 10000);
     return () => clearInterval(intervalId);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [hasDraftsWaitingForPdf]);
 
   // ---------- Actions ----------
 
-  const handleOptimizeCV = async (cv: any) => {
-    setSelectedCVForOptimize(cv);
-
-    const {
-      data: { user },
-    } = await supabase.auth.getUser();
-    if (!user) {
-      navigate('/login');
-      return;
-    }
-
-    // FIX 5: Credits vor der Entscheidung frisch aus der DB holen (wie in handleCreateCV).
-    // Vorher entschied hier stale React-State über Paywall vs. Modal.
-    let currentTokens = userTokens;
-    try {
-      const tokens = await tokenService.getUserTokens(user.id);
-      currentTokens = tokens?.credits ?? 0;
-      setUserTokens(currentTokens);
-    } catch {
-      // Fallback auf State-Wert
-    }
-
-    if (currentTokens <= 0) {
-      setShowPaywall(true);
-    } else {
-      setShowOptimizeModal(true);
-    }
-  };
-
   const handleSubmitJobData = async (jobData: any) => {
     if (!selectedCVForOptimize) return;
 
-    const {
-      data: { user },
-    } = await supabase.auth.getUser();
+    const { data: { user } } = await supabase.auth.getUser();
     if (!user) return;
 
     try {
       const consumed = await tokenService.consumeToken(user.id);
-      if (!consumed) {
-        throw new Error('Nicht genügend Credits');
-      }
+      if (!consumed) throw new Error('Nicht genügend Credits');
 
       await cvStorageService.saveCVData({
         id: selectedCVForOptimize.id,
@@ -691,18 +582,13 @@ export function DashboardPage() {
 
       setOptimizedJobData(jobData);
       await loadUserTokens();
-      // FIX 6: Dashboard-Liste nach dem Speichern neu laden — vorher zeigte das
-      // Dashboard bis zum nächsten Mount den alten Stand des optimierten CVs.
       await loadCVs();
 
       setShowOptimizeModal(false);
       setShowAdjustmentModal(true);
     } catch (error) {
       console.error('Error optimizing CV:', error);
-      alert(
-        'Fehler beim Optimieren: ' +
-          (error instanceof Error ? error.message : 'Unbekannter Fehler')
-      );
+      alert('Fehler beim Optimieren: ' + (error instanceof Error ? error.message : 'Unbekannter Fehler'));
     }
   };
 
@@ -714,10 +600,7 @@ export function DashboardPage() {
   const handleGoToEditor = () => {
     if (!selectedCVForOptimize) return;
     navigate(`/cv-live-editor/${selectedCVForOptimize.id}`, {
-      state: {
-        cvData: selectedCVForOptimize.cv_data,
-        jobData: optimizedJobData,
-      },
+      state: { cvData: selectedCVForOptimize.cv_data, jobData: optimizedJobData },
     });
   };
 
@@ -738,7 +621,6 @@ export function DashboardPage() {
   };
 
   const handleCreateCV = async () => {
-    // Re-fetch token balance to avoid acting on stale state
     let currentTokens = userTokens;
     try {
       const { data: { user } } = await supabase.auth.getUser();
@@ -751,21 +633,14 @@ export function DashboardPage() {
       // Fall back to existing state value
     }
 
-    // FIX 1+2: Richest CV über zentrale Helper bestimmen, dann frische Daten
-    // per ID aus der DB laden. normalizeCvData übernimmt String-Parsing,
-    // Wizard-Erkennung UND Optimizer→Wizard-Mapping an einer Stelle.
     const richestCv = pickRichestCv(userCVs);
 
     if (richestCv) {
       const mappedData = await fetchFreshCvData(richestCv.id, richestCv.cv_data);
-
       setExistingCvDataForQuick(mappedData);
       setExistingWizardCvId(richestCv.id ?? null);
-
-      // Always show the overview first — paywall check happens on "Continue"
       setShowWizardOverview(true);
     } else {
-      // No existing CVs — show empty Status Quo screen so user can enter data
       setExistingCvDataForQuick(null);
       setExistingWizardCvId(null);
       setShowWizardOverview(true);
@@ -778,13 +653,8 @@ export function DashboardPage() {
       setPaywallFromCreateCv(true);
       setShowPaywall(true);
     } else {
-      // Use the user-confirmed (possibly edited) data from the Status Quo screen
       const dataToUse = updatedData ?? existingCvDataForQuick;
       const hasValidData = hasWizardContent(dataToUse);
-      // FIX 1: cvId mitgeben — die Zielseite soll sich die Daten per ID frisch
-      // aus stored_cvs holen können, statt nur mit dem Snapshot zu arbeiten.
-      // cvData bleibt als Fallback erhalten (Abwärtskompatibilität + vom User
-      // im Status-Quo-Screen editierte Daten).
       navigate('/job-targeting', {
         state: hasValidData
           ? { cvId: existingWizardCvId, cvData: dataToUse, fromDashboard: true, isPaidFlow: true }
@@ -798,14 +668,10 @@ export function DashboardPage() {
     const hasValidData = hasWizardContent(existingCvDataForQuick);
 
     if (!hasValidData) {
-      console.warn('[Dashboard] No valid CV data found – navigating without prefill');
-      navigate('/job-targeting', {
-        state: { fromDashboard: true, isPaidFlow: true },
-      });
+      navigate('/job-targeting', { state: { fromDashboard: true, isPaidFlow: true } });
       return;
     }
 
-    // FIX 1: cvId mitgeben (siehe handleWizardOverviewContinue)
     navigate('/job-targeting', {
       state: { cvId: existingWizardCvId, cvData: existingCvDataForQuick, fromDashboard: true, isPaidFlow: true },
     });
@@ -813,21 +679,13 @@ export function DashboardPage() {
 
   const handleWizardCV = () => {
     setShowCreateCVChoice(false);
-    navigate('/job-targeting', {
-      state: { fromDashboard: true, isPaidFlow: true },
-    });
+    navigate('/job-targeting', { state: { fromDashboard: true, isPaidFlow: true } });
   };
 
   const handleLogout = async () => {
     await logout();
     navigate('/');
   };
-
-  // Berechne CV-Check-Daten
-  const allCvChecks = cvChecks;
-  const latestCompletedCheck = cvChecks.find(
-    (check) => check.analysis_status === 'completed' || check.ats_json
-  );
 
   // ---------- Render ----------
 
@@ -1001,7 +859,7 @@ export function DashboardPage() {
               <button
                 onClick={() => navigate('/career-vision')}
                 className="flex-1 sm:flex-none px-4 py-2 rounded-lg text-black font-semibold hover:opacity-90 transition-all flex items-center justify-center gap-2 text-sm shadow-lg"
-              style={{ background: 'linear-gradient(135deg,#66c0b6,#30E3CA)' }}
+                style={{ background: 'linear-gradient(135deg,#66c0b6,#30E3CA)' }}
               >
                 <Target size={18} />
                 <span className="hidden sm:inline">Career Vision</span>
@@ -1011,7 +869,7 @@ export function DashboardPage() {
           </div>
 
           {/* One-Click CV Hero Banner */}
-          {userCVs.filter(cv => cv.source !== 'check' && cv.cv_data).length > 0 && (
+          {userCVs.filter((cv) => cv.source !== 'check' && cv.cv_data).length > 0 && (
             <div
               onClick={handleCreateCV}
               className="relative overflow-hidden rounded-2xl border border-[#66c0b6]/40 bg-gradient-to-r from-[#0d2a28] via-[#0f3330] to-[#0a1f1d] cursor-pointer group hover:border-[#66c0b6]/70 transition-all duration-300 hover:shadow-xl hover:shadow-[#66c0b6]/10"
@@ -1054,26 +912,45 @@ export function DashboardPage() {
             </div>
           )}
 
-          {/* Career Vision — Lernpfade */}
+          {/* ══════════════════════════════════════════════════════════════════
+              Career Vision — Analysen → Lernpfade → Noch freizuschalten
+              ══════════════════════════════════════════════════════════════════ */}
           {learningPaths.length > 0 && (() => {
-            // Show ONLY paths where is_paid=true AND has skill — deduped by skill
-            const seenSkills = new Set<string>();
+            // ── Alle abgeleiteten Listen EINMAL hier oben. Die inneren Blöcke
+            //    dürfen sie nur BENUTZEN, niemals selbst deklarieren.
+
+            // Analyse-Zeilen: skill = null, missing_skills gefüllt.
+            const gapPaths = learningPaths.filter(
+              (p) => !(p as any).skill && (p as any).missing_skills
+            );
+
+            // Skill-Zeilen: skill gesetzt UND bezahlt. Kein Dedup nach Skill-Name —
+            // doppelte Kacheln wären ein Datenfehler, den man sehen soll.
             const paidPaths = [...learningPaths]
-              .filter(p => {
-                const skill = (p as any).skill;
-                if (!skill) return false;
-                if (!p.is_paid) return false;
-                return true;
-              })
+              .filter((p) => !!(p as any).skill && !!p.is_paid)
               .sort((a, b) => {
-                // Ready first, then in_progress, then others
                 const score = (p: LearningPath) =>
                   lpResults[p.id] ? 3 : p.status === 'completed' ? 2 : p.status === 'in_progress' ? 1 : 0;
                 if (score(b) !== score(a)) return score(b) - score(a);
                 return new Date(b.updated_at).getTime() - new Date(a.updated_at).getTime();
               });
-            const unpaidPaths = learningPaths.filter(p => !p.is_paid);
-            const primaryUnpaid = unpaidPaths[0];
+
+            // Bereits bezahlt, als "analyse::skill"-Schlüssel — so verschwindet
+            // derselbe Skill-Name aus einer ANDEREN Analyse nicht fälschlich.
+            const paidKeys = new Set(
+              paidPaths.map((p) => `${(p as any).analysis_id ?? p.id}::${(p as any).skill}`)
+            );
+
+            // Ein Eintrag pro (Analyse × noch nicht bezahltem Skill).
+            const lockedSkills = gapPaths.flatMap((gp) =>
+              parseSkills((gp as any).missing_skills)
+                .map(skillDisplayName)
+                .filter((name) => name !== '(unbenannt)')
+                .filter((name) => !paidKeys.has(`${gp.id}::${name}`))
+                .map((name) => ({ name, gap: gp }))
+            );
+
+            const certPaths = learningPaths.filter((p) => p.certificate_url && p.certificate_issued_at);
 
             return (
               <div className="space-y-4">
@@ -1088,17 +965,32 @@ export function DashboardPage() {
                       <p className="text-[11px] text-white/40 mt-0.5">Dein persönlicher Karriere-Fahrplan</p>
                     </div>
                   </div>
-                  {learningPaths.length > 1 && (
-                    <button
-                      onClick={() => navigate('/career-vision')}
-                      className="text-[11px] text-[#66c0b6]/70 hover:text-[#66c0b6] transition-colors font-semibold flex items-center gap-1"
-                    >
-                      Alle {learningPaths.length} <ArrowRight size={11} />
-                    </button>
-                  )}
+                  <button
+                    onClick={() => navigate('/career-vision')}
+                    className="text-[11px] text-[#66c0b6]/70 hover:text-[#66c0b6] transition-colors font-semibold flex items-center gap-1"
+                  >
+                    Neue Analyse <ArrowRight size={11} />
+                  </button>
                 </div>
 
-                {/* Paid learning paths list */}
+                {/* ── 1. Analysen — immer präsent sichtbar ─────────────────── */}
+                {gapPaths.length > 0 && (
+                  <div className="space-y-2.5">
+                    <p className="text-[10px] font-black uppercase tracking-widest text-white/20 px-1">
+                      Meine Analysen
+                    </p>
+                    {gapPaths.map((gp) => (
+                      <CareerVisionCard
+                        key={gp.id}
+                        learningPath={gp}
+                        variant="compact"
+                        onStartLearning={() => navigate(`/learning-path/${gp.id}`)}
+                      />
+                    ))}
+                  </div>
+                )}
+
+                {/* ── 2. Gestartete Lernpfade ──────────────────────────────── */}
                 {paidPaths.length > 0 && (
                   <div className="space-y-2.5">
                     <p className="text-[10px] font-black uppercase tracking-widest text-white/20 px-1">
@@ -1112,25 +1004,16 @@ export function DashboardPage() {
                       const TOTAL_U = 5;
                       const progressPct = Math.round((unitsDone / TOTAL_U) * 100);
 
-                      const skillLabel = (() => {
-                        const sel = (path as any).skill;
-                        if (sel && typeof sel === 'string') return sel;
-                        if (sel && typeof sel === 'object') return sel.skill_name || sel.name || null;
-                        const missing = (path as any).missing_skills;
-                        if (Array.isArray(missing) && missing.length > 0) {
-                          return missing[0]?.skill_name || missing[0]?.name || null;
-                        }
-                        if (typeof missing === 'string') {
-                          try {
-                            const parsed = JSON.parse(missing);
-                            if (Array.isArray(parsed) && parsed.length > 0) return parsed[0]?.skill_name || parsed[0]?.name || null;
-                          } catch { /* */ }
-                        }
-                        return null;
-                      })();
+                      const skillLabel = skillFromPath(path);
 
-                      const accentColor = hasCert ? '#fbbf24' : allDone ? '#fbbf24' : isReady ? '#30E3CA' : '#30E3CA';
-                      const statusLabel = hasCert ? 'Zertifikat' : allDone ? 'Prüfung offen' : isReady ? (unitsDone > 0 ? `${unitsDone}/${TOTAL_U}` : 'Starten') : 'Wird erstellt';
+                      const accentColor = hasCert || allDone ? '#fbbf24' : '#30E3CA';
+                      const statusLabel = hasCert
+                        ? 'Zertifikat'
+                        : allDone
+                          ? 'Prüfung offen'
+                          : isReady
+                            ? (unitsDone > 0 ? `${unitsDone}/${TOTAL_U}` : 'Starten')
+                            : 'Wird erstellt';
 
                       return (
                         <div
@@ -1144,11 +1027,16 @@ export function DashboardPage() {
                                 : isReady
                                   ? 'linear-gradient(135deg,rgba(48,227,202,0.07) 0%,rgba(5,9,18,0.98) 60%)'
                                   : 'linear-gradient(135deg,rgba(48,227,202,0.04) 0%,rgba(5,9,18,0.98) 60%)',
-                            border: hasCert ? '1px solid rgba(251,191,36,0.25)' : allDone ? '1px solid rgba(251,191,36,0.2)' : isReady ? '1px solid rgba(48,227,202,0.2)' : '1px solid rgba(48,227,202,0.12)',
+                            border: hasCert
+                              ? '1px solid rgba(251,191,36,0.25)'
+                              : allDone
+                                ? '1px solid rgba(251,191,36,0.2)'
+                                : isReady
+                                  ? '1px solid rgba(48,227,202,0.2)'
+                                  : '1px solid rgba(48,227,202,0.12)',
                           }}
-                          onClick={() => isReady ? navigate(`/learning-path/${path.id}`) : navigate(`/learning-path-waiting/${path.id}`)}
+                          onClick={() => navigate(isReady ? `/learning-path/${path.id}` : `/learning-path-waiting/${path.id}`)}
                         >
-                          {/* Top shimmer line */}
                           {(hasCert || allDone) && (
                             <div className="h-px w-full" style={{ background: 'linear-gradient(90deg,transparent,rgba(251,191,36,0.4),transparent)' }} />
                           )}
@@ -1166,18 +1054,18 @@ export function DashboardPage() {
                                 <Sparkles size={16} style={{ color: '#fbbf24' }} />
                               ) : isReady && unitsDone > 0 ? (
                                 <svg width="17" height="17" viewBox="0 0 17 17">
-                                  <circle cx="8.5" cy="8.5" r="7" fill="none" stroke="rgba(48,227,202,0.15)" strokeWidth="2"/>
+                                  <circle cx="8.5" cy="8.5" r="7" fill="none" stroke="rgba(48,227,202,0.15)" strokeWidth="2" />
                                   <circle cx="8.5" cy="8.5" r="7" fill="none" stroke="#30E3CA" strokeWidth="2"
                                     strokeLinecap="round"
                                     strokeDasharray={`${2 * Math.PI * 7}`}
                                     strokeDashoffset={`${2 * Math.PI * 7 * (1 - progressPct / 100)}`}
                                     style={{ transition: 'stroke-dashoffset 0.6s ease' }}
-                                    transform="rotate(-90 8.5 8.5)"/>
+                                    transform="rotate(-90 8.5 8.5)" />
                                   <text x="8.5" y="12" textAnchor="middle" fill="#30E3CA" style={{ fontSize: '5px', fontWeight: 900 }}>{progressPct}%</text>
                                 </svg>
                               ) : isReady ? (
                                 <svg width="14" height="14" viewBox="0 0 12 12" fill="#30E3CA">
-                                  <polygon points="2,1 10,6 2,11"/>
+                                  <polygon points="2,1 10,6 2,11" />
                                 </svg>
                               ) : (
                                 <div className="w-3.5 h-3.5 rounded-full border-[1.5px] border-[#30E3CA]/30 border-t-[#30E3CA] animate-spin" />
@@ -1186,16 +1074,14 @@ export function DashboardPage() {
 
                             {/* Content */}
                             <div className="flex-1 min-w-0">
-                              {/* Skill — primary, prominent */}
+                              {/* Skill — immer präsent, primär */}
                               {skillLabel && (
-                                <p className="text-xs font-black truncate mb-0.5" style={{ color: `${accentColor}` }}>
+                                <p className="text-xs font-black truncate mb-0.5" style={{ color: accentColor }}>
                                   {skillLabel}
                                 </p>
                               )}
-                              {/* Job — secondary */}
                               <p className="text-sm font-bold text-white/80 leading-tight truncate">{path.target_job}</p>
 
-                              {/* Progress segments */}
                               {isReady && unitsDone > 0 && (
                                 <div className="flex items-center gap-1.5 mt-1.5">
                                   <div className="flex gap-0.5">
@@ -1230,14 +1116,14 @@ export function DashboardPage() {
                               <button
                                 onClick={(e) => {
                                   e.stopPropagation();
-                                  isReady ? navigate(`/learning-path/${path.id}`) : navigate(`/learning-path-waiting/${path.id}`);
+                                  navigate(isReady ? `/learning-path/${path.id}` : `/learning-path-waiting/${path.id}`);
                                 }}
                                 className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-[10px] font-black transition-all hover:scale-105 active:scale-95"
                                 style={{ background: `${accentColor}15`, border: `1px solid ${accentColor}30`, color: accentColor }}>
                                 {isReady ? (
                                   <>
                                     {allDone ? 'Prüfung' : 'Weiter'}
-                                    <svg width="9" height="9" viewBox="0 0 9 9" fill="currentColor"><polygon points="1,1 8,4.5 1,8"/></svg>
+                                    <svg width="9" height="9" viewBox="0 0 9 9" fill="currentColor"><polygon points="1,1 8,4.5 1,8" /></svg>
                                   </>
                                 ) : (
                                   <div className="w-2.5 h-2.5 rounded-full border border-current border-t-transparent animate-spin" />
@@ -1251,159 +1137,88 @@ export function DashboardPage() {
                   </div>
                 )}
 
-               {/* Locked skills — Skills aus missing_skills, die noch keine bezahlte Zeile haben */}
-{(() => {
-  // Alle Analyse-Zeilen (skill = null, missing_skills gefüllt).
-{/* Analysen — immer sichtbar, unabhängig von Lernpfaden */}
-{(() => {
-  const gapPaths = learningPaths.filter(
-    (p) => !(p as any).skill && (p as any).missing_skills
-  );
-  if (gapPaths.length === 0) return null;
-
-  return (
-    <div className="space-y-2.5">
-      <p className="text-[10px] font-black uppercase tracking-widest text-white/20 px-1">
-        Meine Analysen
-      </p>
-      {gapPaths.map((gp) => (
-        <CareerVisionCard
-          key={gp.id}
-          learningPath={gp}
-          variant="compact"
-          onStartLearning={() => navigate(`/learning-path/${gp.id}`)}
-        />
-      ))}
-    </div>
-  );
-})()}
-
-  // Bereits bezahlte Skills (Name + zugehörige Analyse), damit derselbe
-  // Skill-Name aus zwei verschiedenen Analysen nicht fälschlich verschwindet.
-  const paidKeys = new Set(
-    paidPaths.map((p) => `${(p as any).analysis_id ?? p.id}::${(p as any).skill}`)
-  );
-
-  // Ein Eintrag pro (Analyse × Skill) — jeder trägt seine eigene Analyse mit,
-  // damit der Freischalten-Button auf die richtige Zeile navigiert.
-  const locked = gapPaths.flatMap((gp) =>
-    parseSkills((gp as any).missing_skills)
-      .map(skillDisplayName)
-      .filter((name) => name !== '(unbenannt)')
-      .filter((name) => !paidKeys.has(`${gp.id}::${name}`))
-      .map((name) => ({ name, gap: gp }))
-  );
-
-  if (locked.length === 0) return null;
-
-  return (
-    <div className="space-y-2">
-      <p className="text-[10px] font-black uppercase tracking-widest text-white/20 px-1">
-        Noch freizuschalten
-      </p>
-      {locked.map(({ name, gap }) => (
-        <div
-          key={`${gap.id}-${name}`}
-          className="flex items-center gap-3 px-4 py-3.5 rounded-2xl"
-          style={{
-            background: 'rgba(255,255,255,0.02)',
-            border: '1px solid rgba(255,255,255,0.07)',
-          }}
-        >
-          {/* Lock icon */}
-          <div
-            className="w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0"
-            style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.09)' }}
-          >
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.25)" strokeWidth="2" strokeLinecap="round">
-              <rect x="3" y="11" width="18" height="11" rx="2" />
-              <path d="M7 11V7a5 5 0 0 1 10 0v4" />
-            </svg>
-          </div>
-          <div className="flex-1 min-w-0">
-            <p className="text-xs font-black text-white/35 truncate">{name}</p>
-            <p className="text-[10px] text-white/20 mt-0.5">{gap.target_job}</p>
-          </div>
-          <button
-            onClick={() =>
-              navigate(`/learning-path/${gap.id}?unlock_skill=${encodeURIComponent(name)}`)
-            }
-            className="flex-shrink-0 px-3 py-1.5 rounded-xl text-[11px] font-black transition-all hover:scale-[1.02]"
-            style={{ background: 'rgba(48,227,202,0.08)', border: '1px solid rgba(48,227,202,0.2)', color: '#30E3CA' }}
-          >
-            Freischalten
-          </button>
-        </div>
-      ))}
-    </div>
-  );
-})()}
-
-                {!learningPaths.some(p => (p as any).missing_skills) && paidPaths.length === 0 && learningPaths.slice(0, 1).map(path => (
-                  <CareerVisionCard
-                    key={path.id}
-                    learningPath={path}
-                    variant="compact"
-                    onStartLearning={() => navigate(`/learning-path/${path.id}`)}
-                  />
-                ))}
-
-                {learningPaths.length > 3 && (
-                  <button
-                    onClick={() => navigate('/career-vision')}
-                    className="w-full py-2.5 rounded-xl text-[12px] font-bold text-white/50 bg-white/[0.03] border border-white/8 hover:border-white/15 hover:text-white/70 transition-all flex items-center justify-center gap-1.5"
-                  >
-                    <Target size={13} />
-                    {learningPaths.length - 3} weitere Analysen anzeigen
-                  </button>
+                {/* ── 3. Noch freizuschalten ───────────────────────────────── */}
+                {lockedSkills.length > 0 && (
+                  <div className="space-y-2">
+                    <p className="text-[10px] font-black uppercase tracking-widest text-white/20 px-1">
+                      Noch freizuschalten
+                    </p>
+                    {lockedSkills.map(({ name, gap }) => (
+                      <div
+                        key={`${gap.id}-${name}`}
+                        className="flex items-center gap-3 px-4 py-3.5 rounded-2xl"
+                        style={{ background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.07)' }}
+                      >
+                        <div className="w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0"
+                          style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.09)' }}>
+                          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.25)" strokeWidth="2" strokeLinecap="round">
+                            <rect x="3" y="11" width="18" height="11" rx="2" />
+                            <path d="M7 11V7a5 5 0 0 1 10 0v4" />
+                          </svg>
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <p className="text-xs font-black text-white/35 truncate">{name}</p>
+                          <p className="text-[10px] text-white/20 mt-0.5">{gap.target_job}</p>
+                        </div>
+                        <button
+                          onClick={() => navigate(`/learning-path/${gap.id}?unlock_skill=${encodeURIComponent(name)}`)}
+                          className="flex-shrink-0 px-3 py-1.5 rounded-xl text-[11px] font-black transition-all hover:scale-[1.02]"
+                          style={{ background: 'rgba(48,227,202,0.08)', border: '1px solid rgba(48,227,202,0.2)', color: '#30E3CA' }}
+                        >
+                          Freischalten
+                        </button>
+                      </div>
+                    ))}
+                  </div>
                 )}
 
-                {/* Certificate showcase */}
-                {(() => {
-                  const certPaths = learningPaths.filter(p => p.certificate_url && p.certificate_issued_at);
-                  if (!certPaths.length) return null;
-                  return (
-                    <div className="space-y-3">
-                      <div className="flex items-center gap-2">
-                        <div className="w-5 h-5 rounded-lg flex items-center justify-center" style={{ background: 'rgba(251,191,36,0.12)', border: '1px solid rgba(251,191,36,0.25)' }}>
-                          <Award size={12} className="text-amber-400" />
-                        </div>
-                        <span className="text-[11px] font-black uppercase tracking-widest text-white/30">Meine Zertifikate</span>
+                {/* ── 4. Zertifikate ───────────────────────────────────────── */}
+                {certPaths.length > 0 && (
+                  <div className="space-y-3">
+                    <div className="flex items-center gap-2">
+                      <div className="w-5 h-5 rounded-lg flex items-center justify-center" style={{ background: 'rgba(251,191,36,0.12)', border: '1px solid rgba(251,191,36,0.25)' }}>
+                        <Award size={12} className="text-amber-400" />
                       </div>
-                      {certPaths.map(path => (
-                        <div
-                          key={path.id}
-                          className="flex items-center gap-3 px-4 py-3 rounded-2xl"
-                          style={{ background: 'linear-gradient(135deg,rgba(251,191,36,0.06),rgba(249,115,22,0.04))', border: '1px solid rgba(251,191,36,0.18)' }}
-                        >
-                          <div className="w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0" style={{ background: 'rgba(251,191,36,0.1)', border: '1px solid rgba(251,191,36,0.25)' }}>
-                            <Award size={18} className="text-amber-400" />
-                          </div>
-                          <div className="flex-1 min-w-0">
-                            <p className="text-sm font-black text-white leading-tight truncate">{path.target_job}</p>
-                            <p className="text-[10px] text-white/35 mt-0.5">
-                              Abgeschlossen {path.certificate_issued_at ? new Date(path.certificate_issued_at).toLocaleDateString('de-DE', { day: '2-digit', month: 'long', year: 'numeric' }) : ''}
-                            </p>
-                          </div>
-                          <a
-                            href={path.certificate_url}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-[11px] font-black transition-all hover:scale-105 flex-shrink-0"
-                            style={{ background: 'rgba(251,191,36,0.12)', border: '1px solid rgba(251,191,36,0.28)', color: '#fbbf24' }}
-                          >
-                            <Download size={12} />
-                            PDF
-                          </a>
-                        </div>
-                      ))}
+                      <span className="text-[11px] font-black uppercase tracking-widest text-white/30">Meine Zertifikate</span>
                     </div>
-                  );
-                })()}
+                    {certPaths.map((path) => (
+                      <div
+                        key={path.id}
+                        className="flex items-center gap-3 px-4 py-3 rounded-2xl"
+                        style={{ background: 'linear-gradient(135deg,rgba(251,191,36,0.06),rgba(249,115,22,0.04))', border: '1px solid rgba(251,191,36,0.18)' }}
+                      >
+                        <div className="w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0" style={{ background: 'rgba(251,191,36,0.1)', border: '1px solid rgba(251,191,36,0.25)' }}>
+                          <Award size={18} className="text-amber-400" />
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <p className="text-sm font-black text-white leading-tight truncate">
+                            {skillFromPath(path) ?? path.target_job}
+                          </p>
+                          <p className="text-[10px] text-white/35 mt-0.5">
+                            Abgeschlossen {path.certificate_issued_at ? new Date(path.certificate_issued_at).toLocaleDateString('de-DE', { day: '2-digit', month: 'long', year: 'numeric' }) : ''}
+                          </p>
+                        </div>
+                        <a
+                          href={path.certificate_url}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-[11px] font-black transition-all hover:scale-105 flex-shrink-0"
+                          style={{ background: 'rgba(251,191,36,0.12)', border: '1px solid rgba(251,191,36,0.28)', color: '#fbbf24' }}
+                        >
+                          <Download size={12} />
+                          PDF
+                        </a>
+                      </div>
+                    ))}
+                  </div>
+                )}
               </div>
             );
           })()}
 
+          {/* ══════════════════════════════════════════════════════════════════
+              CV-Analysen
+              ══════════════════════════════════════════════════════════════════ */}
           {cvChecks.length > 0 && (() => {
             const latestCheck = cvChecks[0];
             const olderChecks = cvChecks.slice(1);
@@ -1564,7 +1379,9 @@ export function DashboardPage() {
                                 <FileSearch size={16} className={check.is_paid ? 'text-[#66c0b6]' : 'text-white/30'} />
                                 <div className="flex-1 min-w-0">
                                   <p className="text-sm font-semibold text-white truncate">{check.file_name || 'CV-Analyse'}</p>
-                                  <p className="text-xs text-white/40">{new Date(check.created_at).toLocaleDateString('de-DE', { day: '2-digit', month: '2-digit', year: 'numeric' })}</p>
+                                  <p className="text-xs text-white/40">
+                                    {new Date(check.created_at).toLocaleDateString('de-DE', { day: '2-digit', month: '2-digit', year: 'numeric' })}
+                                  </p>
                                 </div>
                                 {score !== null && <span className={`text-sm font-bold flex-shrink-0 ${sc}`}>{score}%</span>}
                                 <div className="flex-shrink-0">{renderCheckAction(check)}</div>
@@ -1683,7 +1500,9 @@ export function DashboardPage() {
                                 <p className="text-sm font-semibold text-white truncate">
                                   {jobTitle ? `${jobTitle}${company ? ` – ${company}` : ''}` : personalName}
                                 </p>
-                                <p className="text-xs text-white/40">{new Date(cv.updated_at || cv.created_at).toLocaleDateString('de-DE', { day: '2-digit', month: '2-digit', year: 'numeric' })}</p>
+                                <p className="text-xs text-white/40">
+                                  {new Date(cv.updated_at || cv.created_at).toLocaleDateString('de-DE', { day: '2-digit', month: '2-digit', year: 'numeric' })}
+                                </p>
                               </div>
                               <div className="flex items-center gap-1.5 flex-shrink-0">
                                 <button
@@ -1720,7 +1539,9 @@ export function DashboardPage() {
           <Briefcase size={20} className="text-white/50" />
           <h2 className="text-base sm:text-lg font-bold text-white">Bewerbungs-Kanban</h2>
         </div>
-        <p className="text-xs sm:text-sm text-white/60 mb-3">Verschiebe deine Bewerbungen zwischen den Spalten um den Status zu aktualisieren</p>
+        <p className="text-xs sm:text-sm text-white/60 mb-3">
+          Verschiebe deine Bewerbungen zwischen den Spalten um den Status zu aktualisieren
+        </p>
 
         {isLoading ? (
           <div className="text-center py-12">
@@ -1775,7 +1596,6 @@ export function DashboardPage() {
       {newCvPopup && (
         <div className="fixed bottom-6 right-6 z-50 w-80 animate-fade-in">
           <div className="bg-gradient-to-br from-[#0d2a28] to-[#0a1f1d] border border-[#66c0b6]/50 rounded-2xl shadow-2xl shadow-black/50 overflow-hidden">
-            {/* Header */}
             <div className="flex items-center justify-between px-4 pt-4 pb-2">
               <div className="flex items-center gap-2">
                 <div className="w-7 h-7 rounded-lg bg-gradient-to-br from-[#66c0b6] to-[#30E3CA] flex items-center justify-center">
@@ -1788,7 +1608,6 @@ export function DashboardPage() {
               </button>
             </div>
 
-            {/* Card preview */}
             <div className="mx-4 mb-3 bg-white rounded-xl p-3 shadow-sm">
               <div className="flex items-center gap-1.5 mb-1">
                 <div className="w-1.5 h-1.5 rounded-full bg-[#66c0b6] animate-pulse" />
@@ -1809,7 +1628,6 @@ export function DashboardPage() {
               </div>
             </div>
 
-            {/* Actions */}
             <div className="px-4 pb-4 space-y-2">
               <button
                 onClick={() => {
