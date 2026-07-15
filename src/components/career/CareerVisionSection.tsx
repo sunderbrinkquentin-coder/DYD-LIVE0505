@@ -831,7 +831,8 @@ const openPaywall = (skillName?: string) => {
 
       {/* CTA */}
       {topSkill ? (
-        <WhereToStartCard skill={topSkill} targetJob={targetJob} onNavigate={() => openPaywall()} />
+        <WhereToStartCard skill={topSkill} targetJob={targetJob}
+  onNavigate={() => openPaywall(skillDisplayName(topSkill))} />
       ) : (
         <button
           onClick={() => openPaywall()}
