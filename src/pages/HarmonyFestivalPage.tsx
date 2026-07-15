@@ -2773,7 +2773,7 @@ let authToken = anonKey;
         </div>
         <div className="flex items-center justify-center gap-4 mb-4">
           <a
-            href="https://www.instagram.com/dyd_harmony"
+            href="https://www.instagram.com/harmonyfestivaldus"
             target="_blank"
             rel="noopener noreferrer"
             className="group flex items-center gap-2 px-4 py-2 rounded-full border transition-all"
@@ -2786,7 +2786,7 @@ let authToken = anonKey;
               <circle cx="12" cy="12" r="4"/>
               <circle cx="17.5" cy="6.5" r="0.5" fill="currentColor" stroke="none"/>
             </svg>
-            <span style={{ fontFamily: "'Inter', sans-serif", fontSize: '13px', letterSpacing: '0.04em' }}>@dyd_harmony</span>
+            <span style={{ fontFamily: "'Inter', sans-serif", fontSize: '13px', letterSpacing: '0.04em' }}>@harmonyfestivaldus</span>
           </a>
         </div>
         <button onClick={() => navigate('/')} className="transition-opacity hover:opacity-50"
