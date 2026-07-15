@@ -747,13 +747,10 @@ function ResultView({ result, onNavigate }: { result: AnalysisResult; onNavigate
   const visibleCurrent = currentSkills.filter((s) => skillDisplayName(s) !== '(unbenannt)');
   const topSkill = visibleSkills[0];
   const scoreColor = matchScore >= 70 ? '#22c55e' : matchScore >= 40 ? '#f59e0b' : '#30E3CA';
-
-  const openPaywall = (skillName?: string) => {
-    setPendingSkill(skillName);
-    setShowPaywall(true);
-    <WhereToStartCard skill={topSkill} targetJob={targetJob}
-  onNavigate={() => openPaywall(skillDisplayName(topSkill))} />
-  };
+const openPaywall = (skillName?: string) => {
+  setPendingSkill(skillName);
+  setShowPaywall(true);
+};
 
   return (
     <div className="space-y-5" style={{ animation: 'fadeUp 0.5s ease' }}>
