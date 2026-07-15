@@ -30,6 +30,7 @@ interface LearningPathPaywallProps {
   skillCount?: number;
   selectedSkill?: string;
   missingSkills?: SkillItem[];
+  analysisPathId: string;   // Analyse-Zeile — Eltern für alle Skill-Zeilen;
 }
 
 const BENEFITS_SINGLE = [
