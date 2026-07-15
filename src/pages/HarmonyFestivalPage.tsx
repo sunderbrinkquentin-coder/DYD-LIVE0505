@@ -2228,30 +2228,6 @@ let authToken = anonKey;
                         <span style={{ fontFamily: "'Inter', sans-serif", fontSize: '12px', fontWeight: 600, color: '#00c8c8' }}>Alles in einem Ticket</span>
                       </div>
                     </div>
-                    {/* Instagram follow CTA */}
-                    <a href="https://www.instagram.com/harmonyfestivaldus" target="_blank" rel="noopener noreferrer"
-                      className="flex items-center gap-4 rounded-xl mb-4 px-5 py-4 group transition-all"
-                      style={{ background: 'rgba(0,212,212,0.07)', border: '1px solid rgba(0,212,212,0.22)', textDecoration: 'none' }}
-                      onMouseEnter={e => (e.currentTarget.style.background = 'rgba(0,212,212,0.13)')}
-                      onMouseLeave={e => (e.currentTarget.style.background = 'rgba(0,212,212,0.07)')}>
-                      <div className="flex-shrink-0 w-10 h-10 rounded-xl flex items-center justify-center"
-                        style={{ background: 'rgba(0,212,212,0.12)', border: '1px solid rgba(0,212,212,0.3)' }}>
-                        <svg viewBox="0 0 24 24" fill="none" style={{ width: '18px', height: '18px', color: '#00c8c8' }} stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
-                          <rect x="2" y="2" width="20" height="20" rx="5" ry="5"/>
-                          <circle cx="12" cy="12" r="4"/>
-                          <circle cx="17.5" cy="6.5" r="0.5" fill="currentColor" stroke="none"/>
-                        </svg>
-                      </div>
-                      <div className="flex-1 min-w-0">
-                        <p style={{ fontFamily: "'Bebas Neue', sans-serif", fontSize: '14px', letterSpacing: '0.18em', color: '#fff', marginBottom: '2px' }}>
-                          Folge uns auf Instagram &amp; spare 20 %
-                        </p>
-                        <p style={{ fontFamily: "'Inter', sans-serif", fontSize: '12px', color: 'rgba(0,212,212,0.6)', letterSpacing: '0.02em' }}>
-                          @harmonyfestivaldus · DM uns nach dem Follow für deinen Code
-                        </p>
-                      </div>
-                      <ArrowRight className="w-4 h-4 flex-shrink-0 transition-transform group-hover:translate-x-1" style={{ color: 'rgba(0,212,212,0.55)' }} />
-                    </a>
 
                     {/* free drink bonus */}
                     <div className="rounded-xl mb-7 overflow-hidden"
