@@ -31,10 +31,7 @@ interface LearningPathPaywallProps {
   selectedSkill?: string;
   missingSkills?: SkillItem[];
   
-}export function LearningPathPaywall({
-  isOpen, onClose, analysisPathId, targetJob, targetCompany,
-  skillCount = 0, selectedSkill, missingSkills,
-}: LearningPathPaywallProps) 
+}
 
 const BENEFITS_SINGLE = [
   {
@@ -95,7 +92,8 @@ const GLOBAL_STYLES = `
 `;
 
 export function LearningPathPaywall({
-  isOpen, onClose, learningPathId, targetJob, targetCompany, skillCount = 0, selectedSkill, missingSkills,
+  isOpen, onClose, analysisPathId, targetJob, targetCompany,
+  skillCount = 0, selectedSkill, missingSkills,
 }: LearningPathPaywallProps) {
   const [selectedPlan, setSelectedPlan] = useState<Plan>('single');
   const [isLoading, setIsLoading] = useState(false);
