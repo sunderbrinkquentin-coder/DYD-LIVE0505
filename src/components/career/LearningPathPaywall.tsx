@@ -24,14 +24,17 @@ interface SkillItem {
 interface LearningPathPaywallProps {
   isOpen: boolean;
   onClose: () => void;
-  learningPathId: string;
+  analysisPathId: string;
   targetJob: string;
   targetCompany?: string;
   skillCount?: number;
   selectedSkill?: string;
   missingSkills?: SkillItem[];
-  analysisPathId: string;   // Analyse-Zeile — Eltern für alle Skill-Zeilen;
-}
+  
+}export function LearningPathPaywall({
+  isOpen, onClose, analysisPathId, targetJob, targetCompany,
+  skillCount = 0, selectedSkill, missingSkills,
+}: LearningPathPaywallProps) {
 
 const BENEFITS_SINGLE = [
   {
