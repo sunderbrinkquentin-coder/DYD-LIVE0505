@@ -41,18 +41,6 @@ const INDUSTRIES = [
 
 // ── Types ──────────────────────────────────────────────────────────────────────
 
-interface RawSkill {
-  skill_name?: string;
-  name?: string;
-  pitch?: string;
-  gap_severity?: number;
-  market_value_bonus?: string;
-  category?: string;
-  esco_code?: string;
-  priority?: string;
-  estimatedTime?: string;
-}
-
 interface AnalysisResult {
   pathId: string;
   missingSkills: RawSkill[];
