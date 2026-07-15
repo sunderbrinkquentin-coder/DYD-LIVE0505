@@ -2140,22 +2140,11 @@ export default function LearningPathPage() {
       }
 
       // Paid, but no content yet.
-      const { data: inProgressPaths } = await supabase
-        .from('learning_paths')
-        .select('id')
-        .eq('user_id', path.user_id)
-        .eq('status', 'in_progress')
-        .neq('id', pathId)
-        .limit(1);
-
-      if (inProgressPaths && inProgressPaths.length > 0) {
-        // A different path is mid-generation. Running two Make scenarios at once
-        // has produced cross-linked rows before, so wait rather than trigger.
-        setPhase('result');
-        return;
-      }
-
-      navigate(`/learning-path-waiting/${pathId}`, { replace: true });
+     const skill = skillFromPath(path);
+navigate(
+  `/learning-path-waiting/${pathId}${skill ? `?skill=${encodeURIComponent(skill)}` : ''}`,
+  { replace: true },
+);
     } catch (err: any) {
       setError(err?.message || 'Fehler beim Laden');
       setPhase('error');
