@@ -74,31 +74,6 @@ type Phase =
   | 'error'
   | 'fallback';
 
-// ── Skill parser ───────────────────────────────────────────────────────────────
-
-function parseSkills(raw: unknown): RawSkill[] {
-  if (!raw) return [];
-  if (Array.isArray(raw)) return raw as RawSkill[];
-  if (typeof raw === 'string') {
-    const s = raw.trim();
-    if (!s) return [];
-    try {
-      const p = JSON.parse(s);
-      if (Array.isArray(p)) return p;
-      if (typeof p === 'object' && p !== null) return [p as RawSkill];
-    } catch { /* continue */ }
-    try {
-      const p = JSON.parse(`[${s}]`);
-      if (Array.isArray(p)) return p;
-    } catch { /* continue */ }
-  }
-  return [];
-}
-
-function skillDisplayName(s: RawSkill) {
-  return s.skill_name || s.name || '(unbenannt)';
-}
-
 function normalizeCurrentSkills(raw: unknown): RawSkill[] {
   return parseSkills(raw).map((s) => ({
     ...s,
