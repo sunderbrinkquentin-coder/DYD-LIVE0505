@@ -336,12 +336,10 @@ function ResultView({
   };
 
   // Freischalten: erst die eigene Skill-Zeile besorgen, dann Paywall mit DEREN id.
-   // startUnlock: kein DB-Call mehr
-const startUnlock = () => {
-  if (!selectedSkillName) return;
-  setUnlockError(null);
-  setShowPaywall(true);
-};
+  const startUnlock = async () => {
+    if (!selectedSkillName) return;
+    setResolvingUnlock(true);
+    setUnlockError(null);
     try {
       const id = await careerService.getOrCreateSkillPath(learningPath.id, selectedSkillName);
       setPaywallPathId(id);
