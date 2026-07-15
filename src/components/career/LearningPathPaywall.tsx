@@ -155,7 +155,7 @@ if (isAllPlan) {
       const activeSkill = chosenSkill ?? selectedSkill;
       const skillParam = activeSkill ? `&skill=${encodeURIComponent(activeSkill)}` : '';
       const successUrl = `${origin}/#/learning-path-waiting/${primaryPathId}?session_id={CHECKOUT_SESSION_ID}${skillParam}`;
-      const cancelUrl  = `${origin}/#/learning-path/${learningPathId}?payment=cancelled`;
+      const cancelUrl = `${origin}/#/learning-path/${analysisPathId}?payment=cancelled`;
 
       const resp = await fetch(STRIPE_CHECKOUT_URL, {
         method: 'POST',
