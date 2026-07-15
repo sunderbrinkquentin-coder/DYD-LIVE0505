@@ -1063,8 +1063,6 @@ export function DashboardPage() {
                 const skill = (p as any).skill;
                 if (!skill) return false;
                 if (!p.is_paid) return false;
-                if (seenSkills.has(skill)) return false;
-                seenSkills.add(skill);
                 return true;
               })
               .sort((a, b) => {
