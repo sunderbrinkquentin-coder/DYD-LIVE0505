@@ -589,13 +589,6 @@ function ResultView({
         </div>
       </div>
 
-      // startUnlock: kein DB-Call mehr
-const startUnlock = () => {
-  if (!selectedSkillName) return;
-  setUnlockError(null);
-  setShowPaywall(true);
-};
-
 // paywallPathId + resolvingUnlock State löschen.
 // Der Button-Text: `resolvingUnlock ? 'Wird vorbereitet…' : …` → den Zweig raus.
 
