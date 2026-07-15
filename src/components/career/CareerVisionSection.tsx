@@ -845,16 +845,17 @@ const openPaywall = (skillName?: string) => {
       )}
 
       {showPaywall && (
-        <LearningPathPaywall
-          isOpen
-          onClose={() => { setShowPaywall(false); setPendingSkill(undefined); }}
-          learningPathId={result.pathId}
-          targetJob={targetJob}
-          targetCompany={targetCompany}
-          skillCount={visibleSkills.length}
-          selectedSkill={pendingSkill}
-        />
-      )}
+  <LearningPathPaywall
+    isOpen
+    onClose={() => { setShowPaywall(false); setPendingSkill(undefined); }}
+    analysisPathId={result.pathId}
+    missingSkills={visibleSkills}
+    targetJob={targetJob}
+    targetCompany={targetCompany}
+    skillCount={visibleSkills.length}
+    selectedSkill={pendingSkill}
+  />
+)}
     </div>
   );
 }
