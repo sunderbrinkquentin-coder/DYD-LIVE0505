@@ -13,6 +13,7 @@ import { uploadCvAndCreateRecord } from '../../services/cvUploadService';
 import { LearningPathPaywall } from './LearningPathPaywall';
 import { SkillGapPaywall } from './SkillGapPaywall';
 import { FollowRewardPopup, shouldShowFollowPopup } from '../landing/FollowRewardPopup';
+import { parseSkills, skillDisplayName, RawSkill } from '../../utils/skills';
 
 // ── Constants ──────────────────────────────────────────────────────────────────
 
