@@ -2559,14 +2559,7 @@ let authToken = anonKey;
     textTransform: 'uppercase',
     color: 'rgba(220,120,120,0.9)',
   }}>
-     {
-    src: 'Soli_Shirt.png',
-    alt: 'Harmony Festival – Hauptposter',
-    label: 'Soli Shirt',
-    accent: 'rgba(0,190,150,1)',
-    accentAlpha: 'rgba(0,190,150,0.18)',
-    glow: 'rgba(0,180,140,0.08)',
-  },
+    Bilder folgen in Kürze
   </p>
 </div>
 
