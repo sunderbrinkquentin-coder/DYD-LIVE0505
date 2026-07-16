@@ -556,7 +556,7 @@ function SkillDetailPanel({
         </div>
 
         {skill?.esco_code && (
-  
+  <a
     href={skill.esco_code}
     target="_blank"
     rel="noopener noreferrer"
