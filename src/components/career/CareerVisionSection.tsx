@@ -4,8 +4,7 @@ import {
   Sparkles, X, RefreshCw, Upload,
   FileText, ChevronDown, AlertCircle, Eye,
   ArrowRight, Brain, Building2, Check, Zap,
-  BarChart3, ChevronRight, CheckCircle2, Star,
-  TrendingUp, ShieldCheck,
+  BarChart3, CheckCircle2, ShieldCheck,
 } from 'lucide-react';
 import { useAuth } from '../../contexts/AuthContext';
 import { supabase } from '../../lib/supabase';
@@ -21,8 +20,6 @@ const POLL_INTERVAL_MS = 3_000;
 const POLL_MAX = 80;           // 80 × 3s = 4 Minuten
 const FALLBACK_TIMEOUT_MS = 150_000; // 2.5 Minuten bevor Fallback erscheint
 const CV_DATA_POLL_MAX = 30;
-const PAID_POLL_MAX = 45;
-const PAID_POLL_INTERVAL_MS = 2_000;
 
 const COMPLETE_STATUSES = new Set(['gap_analysis_complete', 'curriculum_ready', 'completed']);
 
@@ -559,7 +556,7 @@ function SkillDetailPanel({
         </div>
 
         {skill?.esco_code && (
-          <a
+          
             href={skill.esco_code}
             target="_blank"
             rel="noopener noreferrer"
@@ -711,10 +708,11 @@ function ResultView({ result, onNavigate }: { result: AnalysisResult; onNavigate
   const visibleCurrent = currentSkills.filter((s) => skillDisplayName(s) !== '(unbenannt)');
   const topSkill = visibleSkills[0];
   const scoreColor = matchScore >= 70 ? '#22c55e' : matchScore >= 40 ? '#f59e0b' : '#30E3CA';
-const openPaywall = (skillName?: string) => {
-  setPendingSkill(skillName);
-  setShowPaywall(true);
-};
+
+  const openPaywall = (skillName?: string) => {
+    setPendingSkill(skillName);
+    setShowPaywall(true);
+  };
 
   return (
     <div className="space-y-5" style={{ animation: 'fadeUp 0.5s ease' }}>
@@ -795,8 +793,11 @@ const openPaywall = (skillName?: string) => {
 
       {/* CTA */}
       {topSkill ? (
-        <WhereToStartCard skill={topSkill} targetJob={targetJob}
-  onNavigate={() => openPaywall(skillDisplayName(topSkill))} />
+        <WhereToStartCard
+          skill={topSkill}
+          targetJob={targetJob}
+          onNavigate={() => openPaywall(skillDisplayName(topSkill))}
+        />
       ) : (
         <button
           onClick={() => openPaywall()}
@@ -810,17 +811,17 @@ const openPaywall = (skillName?: string) => {
       )}
 
       {showPaywall && (
-  <LearningPathPaywall
-    isOpen
-    onClose={() => { setShowPaywall(false); setPendingSkill(undefined); }}
-    analysisPathId={result.pathId}
-    missingSkills={visibleSkills}
-    targetJob={targetJob}
-    targetCompany={targetCompany}
-    skillCount={visibleSkills.length}
-    selectedSkill={pendingSkill}
-  />
-)}
+        <LearningPathPaywall
+          isOpen
+          onClose={() => { setShowPaywall(false); setPendingSkill(undefined); }}
+          analysisPathId={result.pathId}
+          missingSkills={visibleSkills}
+          targetJob={targetJob}
+          targetCompany={targetCompany}
+          skillCount={visibleSkills.length}
+          selectedSkill={pendingSkill}
+        />
+      )}
     </div>
   );
 }
@@ -858,14 +859,16 @@ export function CareerVisionSection({ cvId: initialCvId, onAnalysisComplete, res
   const [result, setResult] = useState<AnalysisResult | null>(null);
   const [cvUploadFileName, setCvUploadFileName] = useState<string>('');
 
-  // Follow-reward popup: shown once per session as soon as this section mounts
+  // Follow-reward popup: shown once the analysis is actually finished — not on
+  // mount. Firing it at mount meant the "thank you" arrived before the user had
+  // done anything, and burned the once-per-session flag on an empty form.
   const [followPopupOpen, setFollowPopupOpen] = useState(false);
 
   useEffect(() => {
-    if (shouldShowFollowPopup()) {
+    if (phase === 'done' && shouldShowFollowPopup()) {
       setFollowPopupOpen(true);
     }
-  }, []);
+  }, [phase]);
 
   // Refs
   const channelRef     = useRef<ReturnType<typeof supabase.channel> | null>(null);
@@ -1006,45 +1009,22 @@ export function CareerVisionSection({ cvId: initialCvId, onAnalysisComplete, res
   );
 
   // ── CV upload + cv_data polling ─────────────────────────────────────────────
+  // uploadCvAndCreateRecord ruft trigger-cv-check bereits selbst auf und reicht
+  // `source` sowohl in die stored_cvs-Zeile als auch in den Make-Payload durch.
+  // Ein zweiter Aufruf hier würde Make pro Upload doppelt feuern.
 
-const up = await uploadCvAndCreateRecord(file, {
-  source: 'skill',
-  userId: user?.id ?? null,
-  tempId: null,
-});
-if (!up.success || !up.uploadId) {
-  throw new Error('CV-Upload fehlgeschlagen');
-}
-    const uploadId = up.uploadId;
+  const uploadCvAndWaitForData = useCallback(async (file: File): Promise<{ uploadId: string }> => {
+    const up = await uploadCvAndCreateRecord(file, {
+      source: 'skill',
+      userId: user?.id ?? null,
+      tempId: null,
+    });
 
-    const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
-    const callbackUrl = `${supabaseUrl}/functions/v1/make-cv-callback`;
-
-    try {
-      const { data: cvRow } = await supabase
-        .from('stored_cvs')
-        .select('file_url,file_path,file_name')
-        .eq('id', uploadId)
-        .maybeSingle();
-
-      await supabase.functions.invoke('trigger-cv-check', {
-        body: {
-          upload_id: uploadId,
-          url: cvRow?.file_url ?? '',
-          file_url: cvRow?.file_url ?? '',
-          file_url_fallback: null,
-          file_name: cvRow?.file_name ?? file.name,
-          file_path: cvRow?.file_path ?? null,
-          source: 'skill',
-          user_id: user?.id ?? null,
-          temp_id: null,
-          callback_url: callbackUrl,
-          timestamp: new Date().toISOString(),
-        },
-      });
-    } catch (e: any) {
-      console.warn('[CVSection] CV-Check trigger error (continuing):', e.message);
+    if (!up.success || !up.uploadId) {
+      throw new Error('CV-Upload fehlgeschlagen');
     }
+
+    const uploadId = up.uploadId;
 
     // Poll for cv_data to appear (Make writes it back)
     for (let i = 0; i < CV_DATA_POLL_MAX; i++) {
@@ -1188,7 +1168,6 @@ if (!up.success || !up.uploadId) {
   useEffect(() => {
     if (!resumePathId) return;
     let cancelled = false;
-    const timers: ReturnType<typeof setTimeout>[] = [];
 
     (async () => {
       // 1. Ladepage sofort zeigen
@@ -1251,9 +1230,9 @@ if (!up.success || !up.uploadId) {
           currentSkills:    normalizeCurrentSkills(row.current_skills),
           strategicOutlook: (row.strategic_outlook_2026 as string) ?? '',
           matchScore:       Number(row.match_score ?? 0),
-          industry:         (row.industry as string) ?? (data.industry as string) ?? '',
-          targetJob:        (row.target_job as string) ?? (data.target_job as string) ?? '',
-          targetCompany:    (row.target_company as string) ?? (data.target_company as string) ?? '',
+          industry:         (row.industry as string) ?? (data!.industry as string) ?? '',
+          targetJob:        (row.target_job as string) ?? (data!.target_job as string) ?? '',
+          targetCompany:    (row.target_company as string) ?? (data!.target_company as string) ?? '',
         });
         setPhase('revealing');
         setTimeout(() => setPhase('done'), 1_500);
@@ -1266,13 +1245,11 @@ if (!up.success || !up.uploadId) {
           await new Promise(r => setTimeout(r, 5_000));
           if (!pollActive || cancelled || completedRef.current) break;
           try {
-            console.log('[SkillGap] Polling status...');
             const { data: row } = await supabase
               .from('learning_paths')
               .select('status, missing_skills, current_skills, strategic_outlook_2026, match_score, industry, target_job, target_company')
               .eq('id', resumePathId)
               .maybeSingle();
-            console.log('[SkillGap] Status:', row?.status);
             if (row && COMPLETE_STATUSES.has(row.status as string)) {
               pollActive = false;
               showResult(row as Record<string, unknown>);
@@ -1286,7 +1263,7 @@ if (!up.success || !up.uploadId) {
       runPolling();
 
       // Fallback nach 4 Min.
-      const fallbackTimer = setTimeout(() => {
+      fallbackTimRef.current = setTimeout(() => {
         if (!completedRef.current) setPhase('fallback');
       }, 240_000);
 
@@ -1298,9 +1275,9 @@ if (!up.success || !up.uploadId) {
         (async () => {
           try {
             let cvData: string | null = null;
-            if (data.cv_id) {
+            if (data!.cv_id) {
               const { data: cv } = await supabase
-                .from('stored_cvs').select('cv_data').eq('id', data.cv_id).maybeSingle();
+                .from('stored_cvs').select('cv_data').eq('id', data!.cv_id).maybeSingle();
               if (cv) cvData = (cv.cv_data as string | null) ?? null;
             }
             const res = await fetch(makeUrl, {
@@ -1309,17 +1286,16 @@ if (!up.success || !up.uploadId) {
               body: JSON.stringify({
                 id: resumePathId,
                 learning_path_id: resumePathId,
-                user_id: data.user_id ?? null,
-                target_job: data.target_job ?? null,
-                target_company: data.target_company ?? null,
-                vision_description: data.vision_description ?? null,
-                industry: data.industry ?? null,
+                user_id: data!.user_id ?? null,
+                target_job: data!.target_job ?? null,
+                target_company: data!.target_company ?? null,
+                vision_description: data!.vision_description ?? null,
+                industry: data!.industry ?? null,
                 cv_data: cvData,
                 timestamp: new Date().toISOString(),
               }),
             });
             if (!res.ok) throw new Error(`Status ${res.status}`);
-            console.log('[SkillGap] Make webhook fired successfully');
           } catch (e: any) {
             console.error('[SkillGap] Make webhook error:', e.message);
             setApiError(`Make Webhook Fehler: ${e.message}`);
