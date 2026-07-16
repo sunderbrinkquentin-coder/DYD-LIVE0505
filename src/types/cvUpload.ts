@@ -30,6 +30,8 @@ export interface UploadOptions {
   userId?: string | null;
   tempId?: string | null;
   sessionId?: string | null;
+  triggerNow?: boolean;      // ← neu
+  status?: UploadStatus;     // ← neu
 }
 
 export type UploadResult =
