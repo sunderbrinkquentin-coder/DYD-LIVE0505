@@ -1008,7 +1008,11 @@ export function CareerVisionSection({ cvId: initialCvId, onAnalysisComplete, res
   // ── CV upload + cv_data polling ─────────────────────────────────────────────
 
   const uploadCvAndWaitForData = useCallback(async (file: File): Promise<{ uploadId: string }> => {
-    const up = await uploadCvAndCreateRecord(file, { source: 'skill', userId: user?.id ?? null });
+    const result = await uploadCvAndCreateRecord(file, {
+  source: 'skill',        // ← das fehlt
+  userId: user?.id ?? null,
+  tempId,
+});
     if (!up.success || !up.uploadId) {
       throw new Error('CV-Upload fehlgeschlagen');
     }
