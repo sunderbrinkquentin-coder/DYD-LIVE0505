@@ -1015,7 +1015,6 @@ const up = await uploadCvAndCreateRecord(file, {
 if (!up.success || !up.uploadId) {
   throw new Error('CV-Upload fehlgeschlagen');
 }
-    }
 
     const uploadId = up.uploadId;
 
