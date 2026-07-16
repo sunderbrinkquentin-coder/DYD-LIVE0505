@@ -556,16 +556,16 @@ function SkillDetailPanel({
         </div>
 
         {skill?.esco_code && (
-          
-            href={skill.esco_code}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="inline-flex items-center gap-1.5 text-[11px] transition-colors hover:opacity-100"
-            style={{ color: `${tier.color}80` }}
-          >
-            <BarChart3 size={11} /> ESCO-Referenz ansehen <ArrowRight size={10} />
-          </a>
-        )}
+  
+    href={skill.esco_code}
+    target="_blank"
+    rel="noopener noreferrer"
+    className="inline-flex items-center gap-1.5 text-[11px] transition-colors hover:opacity-100"
+    style={{ color: `${tier.color}80` }}
+  >
+    <BarChart3 size={11} /> ESCO-Referenz ansehen <ArrowRight size={10} />
+  </a>
+)}
 
         {/* Per-skill CTA */}
         {onStartLearning && (
