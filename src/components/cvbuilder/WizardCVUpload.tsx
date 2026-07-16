@@ -44,11 +44,11 @@ export function WizardCVUpload({ userId, onDataImported }: WizardCVUploadProps) 
 
     const tempId = getOrCreateTempId();
 
-const result = await uploadCvAndCreateRecord(file, {
-  source: 'skill',        // ← das fehlt
-  userId: user?.id ?? null,
-  tempId,
-});
+    const result = await uploadCvAndCreateRecord(file, {
+      source: 'wizard',
+      userId,
+      tempId,
+    });
 
     if (!result.success || !result.uploadId) {
       setUploadState('error');
