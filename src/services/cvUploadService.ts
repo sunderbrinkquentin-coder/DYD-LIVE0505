@@ -5,7 +5,7 @@
 
 import { supabase } from '../lib/supabase';
 import { CV_BUCKET, STORAGE_CONFIG } from '../config/storage';
-import type { UploadResult, UploadOptions } from '../types/cvUpload';
+import type { UploadResult, UploadOptions, UploadSource } from '../types/cvUpload';
 
 // Some mobile networks (especially cellular) are known to silently stall a
 // long-lived request — no error, no timeout of their own, the connection
@@ -71,13 +71,24 @@ export async function uploadCvAndCreateRecord(
   file: File,
   options: UploadOptions = {}
 ): Promise<UploadResult> {
-  const { source = 'check', userId = null, tempId = null } = options;
+  // triggerNow/status sind neu. Die Defaults bilden exakt das bisherige
+  // Verhalten ab — Aufrufer, die sie nicht setzen (CV-Check, Wizard),
+  // laufen unverändert durch.
+  const {
+    source = 'check',
+    userId = null,
+    tempId = null,
+    triggerNow = true,
+    status = 'processing',
+  } = options;
 
   logStep('Starting upload', {
     fileName: file.name,
     sizeMB: (file.size / 1024 / 1024).toFixed(2),
     type: file.type,
     source,
+    status,
+    triggerNow,
     userId: userId ?? 'anonymous',
     tempId: tempId ?? 'none',
   });
@@ -128,7 +139,7 @@ export async function uploadCvAndCreateRecord(
           user_id: userId,
           temp_id: tempId,
           session_id: tempId,
-          status: 'processing',
+          status,
           source,
           file_name: file.name,
           file_url: fileUrl,
@@ -152,7 +163,17 @@ export async function uploadCvAndCreateRecord(
     }
 
     const uploadId = dbResult.data.id;
-    logStep('DB entry created with processing status', { uploadId, hasSignedUrl: !!signedUrl });
+    logStep('DB entry created', { uploadId, status, hasSignedUrl: !!signedUrl });
+
+    // ─────────────────────────────────────────────────────────────────────
+    // STEP 2b: Deferred flow — Datei liegt im Storage, Trigger kommt später
+    // (z.B. erst nach der Zahlung). Vor der Paywall entstehen so keine
+    // Make-/LLM-Kosten.
+    // ─────────────────────────────────────────────────────────────────────
+    if (!triggerNow) {
+      logStep('Trigger deferred — upload only', { uploadId, status });
+      return { success: true, uploadId, fileUrl };
+    }
 
     // ─────────────────────────────────────────────────────────────────────
     // STEP 3: Trigger Make.com via Edge Function
@@ -245,5 +266,65 @@ export async function uploadCvAndCreateRecord(
       success: false,
       error: error?.message || 'Ein unerwarteter Fehler ist aufgetreten',
     };
+  }
+}
+
+/**
+ * Startet die CV-Extraktion für eine Zeile, die bereits im Storage liegt —
+ * für Flows, die erst später triggern (z.B. nach einer Zahlung).
+ *
+ * Bewusst getrennt von uploadCvAndCreateRecord: kein File-Objekt nötig,
+ * überlebt also einen Redirect.
+ */
+export async function triggerCvExtraction(
+  uploadId: string,
+  source: UploadSource,
+  userId: string | null,
+): Promise<void> {
+  const { data: cv, error: loadError } = await supabase
+    .from('stored_cvs')
+    .select('file_url,file_path,file_name')
+    .eq('id', uploadId)
+    .maybeSingle();
+
+  if (loadError || !cv) {
+    throw new Error('CV-Datensatz nicht gefunden');
+  }
+
+  // Signierte URL neu erzeugen — die aus dem Upload ist nach 1h abgelaufen.
+  let signedUrl: string | null = null;
+  if (cv.file_path) {
+    const { data: signed } = await supabase.storage
+      .from(CV_BUCKET)
+      .createSignedUrl(cv.file_path as string, 3600);
+    signedUrl = signed?.signedUrl ?? null;
+  }
+
+  await supabase.from('stored_cvs').update({ status: 'processing' }).eq('id', uploadId);
+
+  const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
+
+  logStep('Invoking trigger-cv-check (deferred)', { uploadId, source });
+
+  const { error } = await supabase.functions.invoke('trigger-cv-check', {
+    body: {
+      upload_id: uploadId,
+      url: cv.file_url ?? '',
+      file_url: signedUrl || cv.file_url || '',
+      file_url_fallback: signedUrl ? cv.file_url : null,
+      file_name: cv.file_name ?? null,
+      file_path: cv.file_path ?? null,
+      source,
+      user_id: userId,
+      temp_id: null,
+      callback_url: `${supabaseUrl}/functions/v1/make-cv-callback`,
+      timestamp: new Date().toISOString(),
+    },
+  });
+
+  if (error) {
+    logError('deferred trigger', error, { uploadId });
+    await supabase.from('stored_cvs').update({ status: 'failed' }).eq('id', uploadId);
+    throw new Error(`CV-Extraktion konnte nicht gestartet werden: ${error.message}`);
   }
 }
