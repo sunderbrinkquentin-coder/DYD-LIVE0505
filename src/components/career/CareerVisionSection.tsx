@@ -8,7 +8,7 @@ import {
 } from 'lucide-react';
 import { useAuth } from '../../contexts/AuthContext';
 import { supabase } from '../../lib/supabase';
-import { uploadCvAndCreateRecord } from '../../services/cvUploadService';
+import { uploadCvAndCreateRecord, triggerCvExtraction } from '../../services/cvUploadService';
 import { LearningPathPaywall } from './LearningPathPaywall';
 import { SkillGapPaywall } from './SkillGapPaywall';
 import { FollowRewardPopup, shouldShowFollowPopup } from '../landing/FollowRewardPopup';
@@ -51,7 +51,7 @@ interface AnalysisResult {
 
 type Phase =
   | 'idle'
-  | 'cv_uploading'   // CV being uploaded + cv_data waiting
+  | 'cv_uploading'   // CV extraction running (after payment)
   | 'paywall'        // waiting for skillgap payment
   | 'waiting'        // vision webhook sent, listening for DB update
   | 'revealing'      // completed received, brief success state
@@ -556,16 +556,16 @@ function SkillDetailPanel({
         </div>
 
         {skill?.esco_code && (
-  <a
-    href={skill.esco_code}
-    target="_blank"
-    rel="noopener noreferrer"
-    className="inline-flex items-center gap-1.5 text-[11px] transition-colors hover:opacity-100"
-    style={{ color: `${tier.color}80` }}
-  >
-    <BarChart3 size={11} /> ESCO-Referenz ansehen <ArrowRight size={10} />
-  </a>
-)}
+          
+            href={skill.esco_code}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="inline-flex items-center gap-1.5 text-[11px] transition-colors hover:opacity-100"
+            style={{ color: `${tier.color}80` }}
+          >
+            <BarChart3 size={11} /> ESCO-Referenz ansehen <ArrowRight size={10} />
+          </a>
+        )}
 
         {/* Per-skill CTA */}
         {onStartLearning && (
@@ -858,6 +858,7 @@ export function CareerVisionSection({ cvId: initialCvId, onAnalysisComplete, res
   const [apiError, setApiError] = useState<string | null>(null);
   const [result, setResult] = useState<AnalysisResult | null>(null);
   const [cvUploadFileName, setCvUploadFileName] = useState<string>('');
+  const [preparing, setPreparing] = useState(false);
 
   // Follow-reward popup: shown once the analysis is actually finished — not on
   // mount. Firing it at mount meant the "thank you" arrived before the user had
@@ -1008,48 +1009,26 @@ export function CareerVisionSection({ cvId: initialCvId, onAnalysisComplete, res
     [handleCompletion],
   );
 
-  // ── CV upload + cv_data polling ─────────────────────────────────────────────
-  // uploadCvAndCreateRecord ruft trigger-cv-check bereits selbst auf und reicht
-  // `source` sowohl in die stored_cvs-Zeile als auch in den Make-Payload durch.
-  // Ein zweiter Aufruf hier würde Make pro Upload doppelt feuern.
+  // ── CV-Extraktion — läuft erst NACH der Zahlung ──────────────────────────────
 
-  const uploadCvAndWaitForData = useCallback(async (file: File): Promise<{ uploadId: string }> => {
-    const up = await uploadCvAndCreateRecord(file, {
-      source: 'skill',
-      userId: user?.id ?? null,
-      tempId: null,
-    });
+  /** Triggert die Extraktion für eine abgelegte CV-Zeile und wartet auf cv_data. */
+  const waitForCvData = useCallback(async (cvId: string, ownerId: string | null): Promise<string> => {
+    const { data: existing } = await supabase
+      .from('stored_cvs').select('cv_data').eq('id', cvId).maybeSingle();
+    if (existing?.cv_data != null) return existing.cv_data as string;
 
-    if (!up.success || !up.uploadId) {
-      throw new Error('CV-Upload fehlgeschlagen');
-    }
+    await triggerCvExtraction(cvId, 'skill', ownerId);
 
-    const uploadId = up.uploadId;
-
-    // Poll for cv_data to appear (Make writes it back)
     for (let i = 0; i < CV_DATA_POLL_MAX; i++) {
       await new Promise((r) => setTimeout(r, POLL_INTERVAL_MS));
       const { data } = await supabase
-        .from('stored_cvs')
-        .select('cv_data,status')
-        .eq('id', uploadId)
-        .maybeSingle();
-
-      if (data?.status === 'failed') {
-        throw new Error('CV-Analyse fehlgeschlagen. Bitte versuche es erneut.');
-      }
-      if (data?.cv_data != null) {
-        setActiveCvId(uploadId);
-        setCvFileName(file.name);
-        return { uploadId };
-      }
+        .from('stored_cvs').select('cv_data,status').eq('id', cvId).maybeSingle();
+      if (data?.status === 'failed') throw new Error('Dein Lebenslauf konnte nicht gelesen werden.');
+      if (data?.cv_data != null) return data.cv_data as string;
     }
-
-    // cv_data never appeared — continue; Edge Function handles null cv_data gracefully
-    setActiveCvId(uploadId);
-    setCvFileName(file.name);
-    return { uploadId };
-  }, [user?.id]);
+    // Bezahlt ist bezahlt — hier NICHT stillschweigend ohne CV weiterlaufen.
+    throw new Error('Dein Lebenslauf konnte nicht gelesen werden. Bitte kontaktiere den Support.');
+  }, []);
 
   // ── Run analysis ────────────────────────────────────────────────────────────
 
@@ -1061,15 +1040,29 @@ export function CareerVisionSection({ cvId: initialCvId, onAnalysisComplete, res
     setApiError(null);
     setResult(null);
     completedRef.current = false;
+    setPreparing(true);
 
     try {
       let resolvedCvId = activeCvId;
 
+      // Datei nur ablegen, NICHT triggern. Vor der Zahlung entstehen so keine
+      // Make-/LLM-Kosten — und die Datei überlebt den Stripe-Redirect, was das
+      // File-Objekt im State nicht täte.
       if (useNewCv && newCvFile) {
+        const up = await uploadCvAndCreateRecord(newCvFile, {
+          source: 'skill',
+          userId: user.id,
+          tempId: null,
+          triggerNow: false,
+          status: 'draft',
+        });
+        if (!up.success) throw new Error(up.error);
+        if (!up.uploadId) throw new Error('CV-Upload fehlgeschlagen');
+
+        resolvedCvId = up.uploadId;
+        setActiveCvId(up.uploadId);
+        setCvFileName(newCvFile.name);
         setCvUploadFileName(newCvFile.name);
-        setPhase('cv_uploading');
-        const { uploadId } = await uploadCvAndWaitForData(newCvFile);
-        resolvedCvId = uploadId;
       }
 
       const { data: lp, error: insertErr } = await supabase
@@ -1095,17 +1088,18 @@ export function CareerVisionSection({ cvId: initialCvId, onAnalysisComplete, res
       }
 
       pathIdRef.current = lp.id;
-      // Show paywall — webhook fires only after payment
+      // Paywall — der Webhook feuert erst nach der Zahlung
       setPhase('paywall');
     } catch (e: any) {
       console.error('[CVSection] runAnalysis error:', e);
       setApiError(e.message || 'Ein unbekannter Fehler ist aufgetreten. Bitte versuche es erneut.');
       setPhase('idle');
+    } finally {
+      setPreparing(false);
     }
   }, [
     targetJob, targetCompany, industry, visionDescription,
     activeCvId, useNewCv, newCvFile, user,
-    uploadCvAndWaitForData,
   ]);
 
   // ── Trigger skillgap Edge Function ──────────────────────────────────────────
@@ -1267,7 +1261,7 @@ export function CareerVisionSection({ cvId: initialCvId, onAnalysisComplete, res
         if (!completedRef.current) setPhase('fallback');
       }, 240_000);
 
-      // 6. Make Webhook fire-and-forget — blockiert das Polling nicht
+      // 6. Nach der Zahlung: erst CV extrahieren, dann Skill-Gap
       const makeUrl = import.meta.env.VITE_MAKE_WEBHOOK_SKILLGAP;
       if (!makeUrl) {
         setApiError('Konfigurationsfehler: VITE_MAKE_WEBHOOK_SKILLGAP ist nicht gesetzt.');
@@ -1276,10 +1270,12 @@ export function CareerVisionSection({ cvId: initialCvId, onAnalysisComplete, res
           try {
             let cvData: string | null = null;
             if (data!.cv_id) {
-              const { data: cv } = await supabase
-                .from('stored_cvs').select('cv_data').eq('id', data!.cv_id).maybeSingle();
-              if (cv) cvData = (cv.cv_data as string | null) ?? null;
+              setPhase('cv_uploading');
+              cvData = await waitForCvData(data!.cv_id as string, (data!.user_id as string) ?? null);
+              if (cancelled) return;
+              setPhase('waiting');
             }
+
             const res = await fetch(makeUrl, {
               method: 'POST',
               headers: { 'Content-Type': 'application/json' },
@@ -1297,8 +1293,9 @@ export function CareerVisionSection({ cvId: initialCvId, onAnalysisComplete, res
             });
             if (!res.ok) throw new Error(`Status ${res.status}`);
           } catch (e: any) {
-            console.error('[SkillGap] Make webhook error:', e.message);
-            setApiError(`Make Webhook Fehler: ${e.message}`);
+            console.error('[SkillGap] Fehler:', e.message);
+            setApiError(e.message);
+            setPhase('idle');
           }
         })();
       }
@@ -1364,14 +1361,6 @@ export function CareerVisionSection({ cvId: initialCvId, onAnalysisComplete, res
     }
   };
 
-  // When user selects/drops a CV file while targetJob is already filled → auto-start
-  useEffect(() => {
-    if (newCvFile && targetJob.trim() && phase === 'idle') {
-      runAnalysis();
-    }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [newCvFile]);
-
   // ── Render ───────────────────────────────────────────────────────────────────
 
   return (
@@ -1382,7 +1371,7 @@ export function CareerVisionSection({ cvId: initialCvId, onAnalysisComplete, res
         onContinue={() => setFollowPopupOpen(false)}
       />
 
-      {/* CV uploading loader */}
+      {/* CV extraction loader (nach der Zahlung) */}
       {isCvUploading && <CvUploadLoader fileName={cvUploadFileName} />}
 
       {/* Vision analysis loader */}
@@ -1572,7 +1561,7 @@ export function CareerVisionSection({ cvId: initialCvId, onAnalysisComplete, res
                     <button
                       type="button"
                       onClick={runAnalysis}
-                      disabled={!targetJob.trim()}
+                      disabled={!targetJob.trim() || preparing}
                       className="group flex flex-col items-start gap-2.5 p-4 rounded-2xl text-left transition-all hover:scale-[1.02] active:scale-[0.98] disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:scale-100"
                       style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.12)' }}
                     >
@@ -1622,7 +1611,7 @@ export function CareerVisionSection({ cvId: initialCvId, onAnalysisComplete, res
                             <p className="text-sm font-black text-white">{newCvFile.name}</p>
                             <p className="text-[11px] text-green-400/80 mt-0.5 flex items-center justify-center gap-1">
                               <CheckCircle2 size={10} />
-                              Bereit — Analyse startet automatisch nach Klick auf "Vision analysieren"
+                              Bereit — klicke auf "CV hochladen & Vision analysieren"
                             </p>
                           </div>
                           <button
@@ -1685,15 +1674,17 @@ export function CareerVisionSection({ cvId: initialCvId, onAnalysisComplete, res
         <div className="space-y-2">
           <button
             onClick={runAnalysis}
-            disabled={!canSubmit}
+            disabled={!canSubmit || preparing}
             className="group relative w-full py-4 rounded-xl font-black text-lg text-black flex items-center justify-center gap-3 overflow-hidden transition-all duration-200 hover:scale-[1.015] active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100"
-            style={{ background: 'linear-gradient(135deg,#66c0b6,#30E3CA)', animation: canSubmit ? 'ctaPulse 2.5s ease-in-out infinite' : 'none' }}
+            style={{ background: 'linear-gradient(135deg,#66c0b6,#30E3CA)', animation: canSubmit && !preparing ? 'ctaPulse 2.5s ease-in-out infinite' : 'none' }}
           >
             <div className="absolute inset-0 pointer-events-none"
-              style={{ background: 'linear-gradient(90deg,transparent,rgba(255,255,255,0.18),transparent)', backgroundSize: '200% 100%', animation: canSubmit ? 'shimmer 2s ease-in-out infinite' : 'none' }} />
+              style={{ background: 'linear-gradient(90deg,transparent,rgba(255,255,255,0.18),transparent)', backgroundSize: '200% 100%', animation: canSubmit && !preparing ? 'shimmer 2s ease-in-out infinite' : 'none' }} />
             <Sparkles className="w-5 h-5 relative z-10 group-hover:rotate-12 transition-transform duration-300" />
             <span className="relative z-10">
-              {newCvFile ? 'CV hochladen & Vision analysieren' : (useNewCv ? 'Ohne CV analysieren' : 'Vision analysieren')}
+              {preparing
+                ? 'Lebenslauf wird vorbereitet…'
+                : newCvFile ? 'CV hochladen & Vision analysieren' : (useNewCv ? 'Ohne CV analysieren' : 'Vision analysieren')}
             </span>
             <ArrowRight className="w-5 h-5 relative z-10 group-hover:translate-x-1 transition-transform" />
           </button>
