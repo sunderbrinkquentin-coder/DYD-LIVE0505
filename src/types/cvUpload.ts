@@ -37,3 +37,4 @@ export interface UploadOptions {
 export type UploadResult =
   | { success: true; uploadId: string; fileUrl: string | null; triggerFailed?: boolean }
   | { success: false; error: string; uploadId?: string };
+export type UploadStatus = 'draft' | 'pending' | 'processing' | 'completed' | 'failed';
