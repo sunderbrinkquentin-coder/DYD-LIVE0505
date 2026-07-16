@@ -23,7 +23,7 @@ export interface UploadedCv {
   updated_at: string;
 }
 
-export type UploadSource = 'upload' | 'check' | 'wizard';
+export type UploadSource = 'upload' | 'check' | 'wizard' | 'skill';
 
 export interface UploadOptions {
   source?: UploadSource;
