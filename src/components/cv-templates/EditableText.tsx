@@ -20,6 +20,23 @@ export interface EditableTextProps {
    * Kontaktzeilen). Ein `div` würde dort den Flex-/Inline-Fluss brechen.
    */
   as?: 'div' | 'span' | 'p' | 'h1' | 'h2';
+  /**
+   * Einzeiliges Feld, das umbrechen DARF. Default `false`.
+   *
+   * BUG, der hier lag: Ohne `multiline` war ein Editable hart auf
+   * `nowrap` + `overflow: hidden` + `text-overflow: ellipsis` gesetzt. Für
+   * Datums-Badges und Chips ist das richtig — die sollen nie umbrechen. Für
+   * Titel ist es falsch: ein langer Studiengang ("Wirtschaftsingenieurwesen
+   * (Digital Engineering and Management, B. Eng.)") wurde im Editor bei der
+   * Kartenbreite abgeschnitten, und im PDF setzt html2canvas weder das
+   * Ellipsis noch das Clipping um — der volle String lief über die
+   * Datums-Badge hinaus und wurde erst an der Blattkante gekappt.
+   *
+   * `wrap` erlaubt den Umbruch, ohne `multiline` zu setzen: Enter wird
+   * weiterhin von `handleKeyDown` abgefangen, der Wert bleibt einzeilig.
+   * Der Unterschied ist rein visuell — genau das, was ein Titel braucht.
+   */
+  wrap?: boolean;
 }
 
 export const EditableText: React.FC<EditableTextProps> = ({
@@ -30,6 +47,7 @@ export const EditableText: React.FC<EditableTextProps> = ({
   multiline = false,
   style,
   as = 'div',
+  wrap = false,
 }) => {
   const v = value ?? '';
   const ref = useRef<HTMLElement>(null);
@@ -88,6 +106,22 @@ export const EditableText: React.FC<EditableTextProps> = ({
     className,
   ].filter(Boolean).join(' ');
 
+  // Drei Modi statt zwei:
+  //   multiline        → mehrzeilig, Zeilenumbrüche im Wert erlaubt
+  //   wrap             → einzeiliger Wert, darf aber visuell umbrechen
+  //   (keins von beiden) → nowrap + Ellipsis (Badges, Chips, Datum)
+  const flows = multiline || wrap;
+
+  const flowStyle: React.CSSProperties = {
+    whiteSpace: multiline ? 'pre-wrap' : wrap ? 'normal' : 'nowrap',
+    wordBreak: flows ? 'break-word' : 'normal',
+    overflow: flows ? 'visible' : 'hidden',
+    textOverflow: flows ? 'unset' : 'ellipsis',
+    // `break-word` allein rettet kein einzelnes überlanges Wort. `anywhere`
+    // schon — relevant für lange Institutionsnamen ohne Leerzeichen.
+    ...(flows ? { overflowWrap: 'anywhere' as const } : {}),
+  };
+
   return React.createElement(
     as,
     {
@@ -104,10 +138,7 @@ export const EditableText: React.FC<EditableTextProps> = ({
       'data-placeholder': placeholder,
       className: baseClasses,
       style: {
-        whiteSpace: multiline ? 'pre-wrap' : 'nowrap',
-        wordBreak: multiline ? 'break-word' : 'normal',
-        overflow: multiline ? 'visible' : 'hidden',
-        textOverflow: multiline ? 'unset' : 'ellipsis',
+        ...flowStyle,
         ...style,
       },
     },
