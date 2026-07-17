@@ -19,6 +19,17 @@ import { useCvOptimizationStatus } from '../hooks/useCvOptimizationStatus';
 /** Abstand zwischen zwei sichtbaren A4-Blättern in der Vorschau. */
 const SHEET_GAP_PX = 32;
 
+/**
+ * Sektionen, deren Items chronologisch absteigend sortiert werden.
+ *
+ * BUG, der hier lag: Der Sortierer prüfte `section.type !== 'experience'` und
+ * gab alles andere unverändert zurück. Die Ausbildungs-Reihenfolge war deshalb
+ * keine Sortierung, sondern die Concat-Reihenfolge aus dem Fallback-Zweig
+ * (`schoolEducation` → `professionalEducation` → `education`). Das Fachabitur
+ * stand damit zwangsläufig über dem Studium.
+ */
+const SORTABLE_TYPES = new Set(['experience', 'education', 'volunteering', 'courses']);
+
 interface EditorSection {
   type: string;
   title?: string;
@@ -559,8 +570,51 @@ export function CVLiveEditorPage() {
         };
       };
 
+      // Sprachen erreichen uns aus mindestens vier Quellen: dem Wizard
+      // (`{language, level}`), der KI (`{name, proficiency}`), dem Skill-Fallback
+      // (`{skill, level}` — weil `isLanguageItem` sie aus den Hard Skills
+      // herausfischt) und als nackte Strings.
+      const pickLanguage = (item: any): string => {
+        if (typeof item === 'string') return item;
+        if (typeof item !== 'object' || item === null) return '';
+        return (
+          item.language ?? item.name ?? item.sprache ??
+          item.skill ?? item.label ?? item.title ?? ''
+        );
+      };
+
+      const pickLevel = (item: any): string => {
+        if (typeof item !== 'object' || item === null) return '';
+        return item.level ?? item.niveau ?? item.proficiency ?? item.stufe ?? '';
+      };
+
+      /**
+       * BUG, der hier lag: Normalisiert wurden Sprachen nur im Fallback-Zweig
+       * (rohe KI-Daten). Der sections-Zweig — also JEDER bereits einmal
+       * gespeicherte CV — reichte die Rohform ungefiltert an die Templates
+       * durch. Modern fängt das template-seitig mit toleranten Fallbacks ab,
+       * die anderen vier Templates lesen nur `language || name || sprache`:
+       * kam eine Sprache als `{skill: 'Deutsch'}`, fiel sie durch und übrig
+       * blieb die Überschrift "SPRACHEN" über einer leeren Liste.
+       *
+       * Normalisierung gehört in den Mapper, nicht fünfmal ins Template.
+       */
+      const normalizeLanguageSection = (section: EditorSection): EditorSection => {
+        if (section.type !== 'languages' || !Array.isArray(section.items)) return section;
+        const items = section.items
+          .map((item: any) => ({
+            language: String(pickLanguage(item) ?? '').replace(CATEGORY_PREFIX_RE, '').trim(),
+            level: String(pickLevel(item) ?? '').trim(),
+          }))
+          // "[object Object]" entsteht, wenn keine der Feldnamen passt. Solche
+          // Einträge gehören nicht in den Lebenslauf — und sie stillschweigend
+          // als leeren Text durchzulassen ist schlimmer, als sie zu verwerfen.
+          .filter((l) => l.language && l.language !== '[object Object]');
+        return { ...section, items };
+      };
+
       const sortSectionNewestFirst = (section: EditorSection): EditorSection => {
-        if (section.type !== 'experience' || !Array.isArray(section.items)) return section;
+        if (!SORTABLE_TYPES.has(section.type) || !Array.isArray(section.items)) return section;
         const parseDateVal = (raw: string): number => {
           if (!raw) return 0;
           const lower = raw.toLowerCase();
@@ -583,7 +637,11 @@ export function CVLiveEditorPage() {
       };
 
       if (Array.isArray(editorPayload.sections) && editorPayload.sections.length > 0) {
-        sections = (editorPayload.sections as EditorSection[]).map(normalizeSkillSection).map(normalizeDateSection).map(sortSectionNewestFirst);
+        sections = (editorPayload.sections as EditorSection[])
+          .map(normalizeSkillSection)
+          .map(normalizeDateSection)
+          .map(normalizeLanguageSection)
+          .map(sortSectionNewestFirst);
         const seenTypes = new Set<string>();
         sections = sections.filter((s) => {
           if (seenTypes.has(s.type)) return false;
@@ -649,11 +707,14 @@ export function CVLiveEditorPage() {
         });
 
         if (allEduItemsDeduped.length > 0) {
-          sections.push({
+          // Die Concat-Reihenfolge oben ist schoolEducation → professionalEducation
+          // → education. Ohne Sortierung stünde das Fachabitur damit immer über
+          // dem Studium, egal welche Daten dranstehen.
+          sections.push(sortSectionNewestFirst({
             type: 'education',
             title: 'Ausbildung',
             items: allEduItemsDeduped
-          });
+          }));
         }
 
         // 2. ZERTIFIKATE & STIPENDIEN
@@ -789,39 +850,13 @@ export function CVLiveEditorPage() {
           const allLangs = [...(Array.isArray(langRaw) ? langRaw : []), ...collectedLanguagesFallback];
 
           if (allLangs.length > 0) {
-            // Sprachen erreichen uns aus mindestens vier Quellen: dem Wizard
-            // (`{language, level}`), der KI (`{name, proficiency}`), dem
-            // Skill-Fallback (`{skill, level}` — weil `isLanguageItem` sie aus
-            // den Hard Skills herausfischt) und als nackte Strings.
-            //
-            // Vorher las die Normalisierung nur `language || name || sprache`.
-            // Kam eine Sprache als `{skill: 'Deutsch'}` an, fiel sie durch und
-            // landete via `String(item)` als "[object Object]" — oder als leerer
-            // String, wenn das Template den Wert nochmal säuberte. Sichtbar war
-            // dann nur die Überschrift "SPRACHEN" über einer leeren Liste.
-            const pickLanguage = (item: any): string => {
-              if (typeof item === 'string') return item;
-              if (typeof item !== 'object' || item === null) return '';
-              return (
-                item.language ?? item.name ?? item.sprache ??
-                item.skill ?? item.label ?? item.title ?? ''
-              );
-            };
-
-            const pickLevel = (item: any): string => {
-              if (typeof item !== 'object' || item === null) return '';
-              return item.level ?? item.niveau ?? item.proficiency ?? item.stufe ?? '';
-            };
-
+            // `pickLanguage`/`pickLevel` stehen jetzt weiter oben, neben den
+            // anderen Normalisierern — der sections-Zweig braucht sie ebenso.
             const normalized = allLangs
               .map((item: any) => ({
                 language: String(pickLanguage(item) ?? '').trim(),
                 level: String(pickLevel(item) ?? '').trim(),
               }))
-              // "[object Object]" entsteht, wenn keine der Feldnamen passt.
-              // Solche Einträge gehören nicht in den Lebenslauf — und sie
-              // stillschweigend als leeren Text durchzulassen ist schlimmer,
-              // als sie hier zu verwerfen.
               .filter((l) => l.language && l.language !== '[object Object]');
 
             if (normalized.length > 0) {
