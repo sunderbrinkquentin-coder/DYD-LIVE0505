@@ -268,11 +268,11 @@ export const ModernCVTemplate: React.FC<CVTemplateProps> = ({
   // Fuß der letzten berechneten Seite.
   const containerMinHeight = minHeightPx ?? 1122;
 
-  const renderCardControls = (
+const renderCardControls = (
     sectionIndex: number,
     idx: number,
     item: any,
-    opts?: { addBullet?: boolean }
+    opts?: { addBullet?: boolean; keepDescription?: boolean }
   ) => (
     <div className="pdf-hidden" data-pdf-hidden>
       {opts?.addBullet && (
@@ -280,13 +280,19 @@ export const ModernCVTemplate: React.FC<CVTemplateProps> = ({
           type="button"
           style={{ fontSize: '9px', color: CI.primaryDark, background: '#fff', border: `1px solid ${CI.border}`, borderRadius: '4px', cursor: 'pointer', padding: '2px 7px', lineHeight: '1.5' }}
           onClick={() => {
+            const hasDescription = typeof item?.description === 'string' && item.description.trim();
+            // Bei Berufserfahrung wird eine vorhandene Fließtext-Beschreibung in
+            // Bullets überführt und geleert. Bei Ausbildung NICHT: dort ist die
+            // Beschreibung das Feld "Schwerpunkte" und steht bewusst neben den
+            // Bullets, nicht statt ihrer.
+            const convert = hasDescription && !opts?.keepDescription;
             const base = Array.isArray(item?.bulletPoints) && item.bulletPoints.length > 0
               ? [...item.bulletPoints]
-              : typeof item?.description === 'string' && item.description.trim()
+              : convert
                 ? splitToBullets(item.description)
                 : [];
             onUpdateSectionItem(sectionIndex, idx, 'bulletPoints', [...base, 'Neuer Punkt']);
-            if (typeof item?.description === 'string' && item.description.trim()) {
+            if (convert) {
               onUpdateSectionItem(sectionIndex, idx, 'description', '');
             }
           }}
@@ -294,6 +300,7 @@ export const ModernCVTemplate: React.FC<CVTemplateProps> = ({
           + Bullet
         </button>
       )}
+      {/* Der "Station löschen"-Button bleibt unverändert */}
       <button
         type="button"
         style={{ fontSize: '9px', color: '#dc2626', background: '#fff', border: '1px solid #fecaca', borderRadius: '4px', cursor: 'pointer', padding: '2px 7px', lineHeight: '1.5' }}
