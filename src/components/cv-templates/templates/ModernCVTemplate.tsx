@@ -442,78 +442,135 @@ const renderCardControls = (
       case 'projects':
         return renderExperienceOrProjects(section, sectionIndex, true);
 
-      case 'education': {
+case 'education': {
         // Vor der Längenprüfung filtern. Sonst rendert die Überschrift über
         // einer Liste, die anschließend komplett wegfällt.
-        const eduItems = items.filter((e: any) =>
-          (e?.degree || e?.title || '').toString().trim() ||
-          (e?.institution || e?.school || e?.university || '').toString().trim()
-        );
+        //
+        // `originalIdx` MUSS mitgeführt werden: alle onUpdate-/onDelete-Callbacks
+        // adressieren `section.items`, nicht diese gefilterte Liste. Vorher lief
+        // hier der Map-Index rein — sobald ein leerer Eintrag rausfiel, landeten
+        // Bearbeitung und Löschung auf der falschen Station.
+        const eduItems = items
+          .map((e: any, originalIdx: number) => ({ edu: e, originalIdx }))
+          .filter(({ edu }) =>
+            (edu?.degree || edu?.title || '').toString().trim() ||
+            (edu?.institution || edu?.school || edu?.university || '').toString().trim()
+          );
         if (eduItems.length === 0) return null;
 
         return (
           <div key={`education-${sectionIndex}`}>
             <SectionTitle>{section.title || 'Ausbildung & Studium'}</SectionTitle>
             <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
-              {eduItems.map((edu: any, idx: number) => (
-                <div key={idx} data-pdf-section data-break-item style={cardStyle}>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: '10px' }}>
-                    <div style={{ flex: 1, minWidth: 0 }}>
-                      <EditableText
-                        value={edu.degree || edu.title || ''}
-                        onChange={(v) => onUpdateSectionItem(sectionIndex, idx, 'degree', v)}
-                        placeholder="Abschluss"
-                        style={{ fontSize: '11px', fontWeight: 700, color: t.text, lineHeight: 1.4 }}
-                      />
-                      <EditableText
-                        value={edu.institution || edu.school || edu.university || ''}
-                        onChange={(v) => onUpdateSectionItem(sectionIndex, idx, 'institution', v)}
-                        placeholder="Institution"
-                        style={{ fontSize: '10px', color: t.muted, marginTop: '2px', lineHeight: 1.4 }}
-                      />
-                      {edu.location && (
+              {eduItems.map(({ edu, originalIdx }) => {
+                // Anders als bei Berufserfahrung KEIN getBullets(): dort fällt die
+                // Funktion auf `description` zurück. Hier würde das die
+                // Schwerpunkte-Zeile in Bullets verwandeln, sobald sie existiert.
+                const eduBullets = Array.isArray(edu.bulletPoints)
+                  ? edu.bulletPoints
+                      .map((b: any) => normalizeBullet(String(b ?? '')))
+                      .filter((b: string) => b.length > 0)
+                  : [];
+
+                return (
+                  <div key={originalIdx} data-pdf-section data-break-item style={cardStyle}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: '10px' }}>
+                      <div style={{ flex: 1, minWidth: 0 }}>
                         <EditableText
-                          value={edu.location}
-                          onChange={(v) => onUpdateSectionItem(sectionIndex, idx, 'location', v)}
-                          placeholder="Ort"
-                          style={{ fontSize: '9.5px', color: t.faint, marginTop: '2px', lineHeight: 1.4 }}
+                          wrap
+                          value={edu.degree || edu.title || ''}
+                          onChange={(v) => onUpdateSectionItem(sectionIndex, originalIdx, 'degree', v)}
+                          placeholder="Abschluss"
+                          style={{ fontSize: '11px', fontWeight: 700, color: t.text, lineHeight: 1.4 }}
                         />
-                      )}
-                    </div>
-                    <DateBadge
-                      from={edu.date_from || ''}
-                      to={edu.date_to || ''}
-                      onChangeFrom={(v) => onUpdateSectionItem(sectionIndex, idx, 'date_from', v)}
-                      onChangeTo={(v) => onUpdateSectionItem(sectionIndex, idx, 'date_to', v)}
-                    />
-                  </div>
-
-                  {edu.description && (
-                    <EditableText
-                      multiline
-                      value={edu.description}
-                      onChange={(v) => onUpdateSectionItem(sectionIndex, idx, 'description', v)}
-                      placeholder="Schwerpunkte"
-                      style={{ fontSize: '9.5px', color: t.muted, marginTop: '4px', lineHeight: 1.5 }}
-                    />
-                  )}
-
-                  {(edu.grade || edu.grades || edu.note) && (
-                    <div style={{ fontSize: '9.5px', color: t.muted, marginTop: '4px', lineHeight: 1.5 }}>
-                      <span style={{ fontWeight: 600 }}>Note: </span>
-                      <EditableText
-                        as="span"
-                        value={edu.grade || edu.grades || edu.note || ''}
-                        onChange={(v) => onUpdateSectionItem(sectionIndex, idx, 'grade', v)}
-                        placeholder="Note"
-                        style={{ fontSize: '9.5px', color: t.muted }}
+                        <EditableText
+                          wrap
+                          value={edu.institution || edu.school || edu.university || ''}
+                          onChange={(v) => onUpdateSectionItem(sectionIndex, originalIdx, 'institution', v)}
+                          placeholder="Institution"
+                          style={{ fontSize: '10px', color: t.muted, marginTop: '2px', lineHeight: 1.4 }}
+                        />
+                        {edu.location && (
+                          <EditableText
+                            value={edu.location}
+                            onChange={(v) => onUpdateSectionItem(sectionIndex, originalIdx, 'location', v)}
+                            placeholder="Ort"
+                            style={{ fontSize: '9.5px', color: t.faint, marginTop: '2px', lineHeight: 1.4 }}
+                          />
+                        )}
+                      </div>
+                      <DateBadge
+                        from={edu.date_from || ''}
+                        to={edu.date_to || ''}
+                        onChangeFrom={(v) => onUpdateSectionItem(sectionIndex, originalIdx, 'date_from', v)}
+                        onChangeTo={(v) => onUpdateSectionItem(sectionIndex, originalIdx, 'date_to', v)}
                       />
                     </div>
-                  )}
 
-                  {renderCardControls(sectionIndex, idx, edu)}
-                </div>
-              ))}
+                    {edu.description && (
+                      <EditableText
+                        multiline
+                        value={edu.description}
+                        onChange={(v) => onUpdateSectionItem(sectionIndex, originalIdx, 'description', v)}
+                        placeholder="Schwerpunkte"
+                        style={{ fontSize: '9.5px', color: t.muted, marginTop: '4px', lineHeight: 1.5 }}
+                      />
+                    )}
+
+                    {eduBullets.length > 0 && (
+                      <ul style={{ margin: '8px 0 0', padding: 0, listStyle: 'none', display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                        {eduBullets.map((bp: string, bIdx: number) => (
+                          <li key={bIdx} data-break-line data-pdf-bullet-row style={{ display: 'flex', alignItems: 'flex-start', gap: '7px' }}>
+                            <span
+                              aria-hidden="true"
+                              data-pdf-bullet-dot
+                              style={{ display: 'inline-block', flexShrink: 0, color: CI.primaryDark, fontSize: '9.5px', lineHeight: 1.55, userSelect: 'none' }}
+                            >•</span>
+                            <EditableText
+                              multiline
+                              value={bp}
+                              onChange={(v) => {
+                                const base = [...eduBullets];
+                                while (base.length <= bIdx) base.push('');
+                                base[bIdx] = v;
+                                onUpdateSectionItem(sectionIndex, originalIdx, 'bulletPoints', base);
+                              }}
+                              placeholder="Inhalt / Schwerpunkt"
+                              style={{ fontSize: '9.5px', color: t.text, lineHeight: 1.55, flex: 1, display: 'block' }}
+                            />
+                            {onDeleteBullet && (
+                              <button
+                                type="button"
+                                className="pdf-hidden flex-shrink-0 text-red-400 hover:text-red-600 transition-colors"
+                                style={{ lineHeight: 1, padding: '1px 3px', fontSize: '11px', background: 'none', border: 'none', cursor: 'pointer' }}
+                                onClick={() => onDeleteBullet(sectionIndex, originalIdx, bIdx)}
+                                title="Bullet löschen"
+                              >×</button>
+                            )}
+                          </li>
+                        ))}
+                      </ul>
+                    )}
+
+                    {(edu.grade || edu.grades || edu.note) && (
+                      <div style={{ fontSize: '9.5px', color: t.muted, marginTop: '4px', lineHeight: 1.5 }}>
+                        <span style={{ fontWeight: 600 }}>Note: </span>
+                        <EditableText
+                          as="span"
+                          value={edu.grade || edu.grades || edu.note || ''}
+                          onChange={(v) => onUpdateSectionItem(sectionIndex, originalIdx, 'grade', v)}
+                          placeholder="Note"
+                          style={{ fontSize: '9.5px', color: t.muted }}
+                        />
+                      </div>
+                    )}
+
+                    {renderCardControls(sectionIndex, originalIdx, edu, { addBullet: true, keepDescription: true })}
+                  </div>
+                );
+              })}
+
+              {/* "+ Eintrag hinzufügen" bleibt unverändert */}
 
               {onAddSectionItem && (
                 <button
