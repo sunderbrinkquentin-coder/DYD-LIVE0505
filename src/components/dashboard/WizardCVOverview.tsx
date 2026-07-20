@@ -96,6 +96,13 @@ const EMPTY_VOLUNTEER: VolunteerWork = {
   description: '',
 };
 
+const EMPTY_STIPENDIUM: Stipendium = {
+  name: '',
+  organization: '',
+  year: '',
+  description: '',
+};
+
 export function WizardCVOverview({ isOpen, cvData, cvId, onClose, onContinue }: WizardCVOverviewProps) {
   const navigate = useNavigate();
 
@@ -120,7 +127,7 @@ export function WizardCVOverview({ isOpen, cvData, cvId, onClose, onContinue }: 
   const [expandedLanguages, setExpandedLanguages] = useState(false);
   const [expandedCerts, setExpandedCerts] = useState(false);
   const [expandedVolunteer, setExpandedVolunteer] = useState(false);
-  const [expandedStipendien, setExpandedStipendien] = useState(false);
+  const [expandedStipendien, setExpandedStipendien] = useState(true);
 
   if (!isOpen) return null;
 
@@ -189,6 +196,22 @@ export function WizardCVOverview({ isOpen, cvData, cvId, onClose, onContinue }: 
   const addVolunteer = () => {
     setData(prev => ({ ...prev, volunteerWork: [...(prev.volunteerWork || []), { ...EMPTY_VOLUNTEER }] }));
     setExpandedVolunteer(true);
+  };
+
+  // ── Stipendium helpers ── (NEU: editierbar wie Zertifikate)
+  const updateStipendium = (i: number, field: keyof Stipendium, value: any) => {
+    setData(prev => {
+      const stips = [...(prev.stipendien || [])];
+      stips[i] = { ...stips[i], [field]: value };
+      return { ...prev, stipendien: stips };
+    });
+  };
+  const deleteStipendium = (i: number) => {
+    setData(prev => ({ ...prev, stipendien: (prev.stipendien || []).filter((_, idx) => idx !== i) }));
+  };
+  const addStipendium = () => {
+    setData(prev => ({ ...prev, stipendien: [...(prev.stipendien || []), { ...EMPTY_STIPENDIUM }] }));
+    setExpandedStipendien(true);
   };
 
   const exps = data.workExperiences || [];
@@ -792,27 +815,82 @@ export function WizardCVOverview({ isOpen, cvData, cvId, onClose, onContinue }: 
                   )}
                 </div>
 
-                {/* ── Stipendien ── */}
-                {stipendien.length > 0 && (
-                  <div>
-                    <SectionHeader
-                      label="Stipendien"
-                      count={stipendien.length}
-                      expanded={expandedStipendien}
-                      onToggle={() => setExpandedStipendien(v => !v)}
-                    />
-                    {expandedStipendien && (
-                      <div className="mt-2 pl-1 space-y-1">
-                        {stipendien.map((s: Stipendium, i: number) => (
-                          <div key={i} className="flex items-center gap-2 px-3 py-2 rounded-lg bg-white/3 border border-white/10 text-sm text-white/70">
-                            <span className="flex-1">{s.name}{s.organization ? ` · ${s.organization}` : ''}</span>
-                            {s.year && <span className="text-white/40 text-xs shrink-0">{s.year}</span>}
+                {/* ── Stipendien (NEU: editierbar + immer sichtbar) ── */}
+                <div>
+                  <SectionHeader
+                    label="Stipendien"
+                    count={stipendien.length}
+                    expanded={expandedStipendien}
+                    onToggle={() => setExpandedStipendien(v => !v)}
+                  />
+                  {expandedStipendien && (
+                    <div className="mt-2 space-y-3 pl-1">
+                      {stipendien.length === 0 && (
+                        <p className="text-sm text-white/30 px-2">Noch keine Stipendien eingetragen.</p>
+                      )}
+                      {stipendien.map((st, i) => (
+                        <div key={i} className="p-4 rounded-xl border border-white/10 bg-white/3 space-y-2">
+                          <div className="flex items-center justify-between gap-2 mb-1">
+                            <span className="text-xs font-semibold text-[#66c0b6] uppercase tracking-wider">Stipendium {i + 1}</span>
+                            <button
+                              type="button"
+                              onClick={() => deleteStipendium(i)}
+                              className="p-1 hover:bg-red-500/20 rounded-md transition-colors"
+                            >
+                              <Trash2 size={13} className="text-red-400/70" />
+                            </button>
                           </div>
-                        ))}
-                      </div>
-                    )}
-                  </div>
-                )}
+                          <div className="grid grid-cols-2 gap-2">
+                            <div>
+                              <label className="text-[10px] text-white/40 mb-0.5 block">Name</label>
+                              <input
+                                className={inputCls()}
+                                value={st.name || ''}
+                                onChange={e => updateStipendium(i, 'name', e.target.value)}
+                                placeholder="z.B. Deutschlandstipendium"
+                              />
+                            </div>
+                            <div>
+                              <label className="text-[10px] text-white/40 mb-0.5 block">Organisation / Stiftung</label>
+                              <input
+                                className={inputCls()}
+                                value={st.organization || ''}
+                                onChange={e => updateStipendium(i, 'organization', e.target.value)}
+                                placeholder="Stiftung / Institution"
+                              />
+                            </div>
+                          </div>
+                          <div>
+                            <label className="text-[10px] text-white/40 mb-0.5 block">Jahr</label>
+                            <input
+                              className={inputCls('max-w-[120px]')}
+                              value={st.year || ''}
+                              onChange={e => updateStipendium(i, 'year', e.target.value)}
+                              placeholder="2023"
+                            />
+                          </div>
+                          <div>
+                            <label className="text-[10px] text-white/40 mb-0.5 block">Beschreibung (optional)</label>
+                            <textarea
+                              className={inputCls('resize-none min-h-[52px]')}
+                              rows={2}
+                              value={st.description || ''}
+                              onChange={e => updateStipendium(i, 'description', e.target.value)}
+                              placeholder="Wofür wurdest du gefördert?"
+                            />
+                          </div>
+                        </div>
+                      ))}
+                      <button
+                        type="button"
+                        onClick={addStipendium}
+                        className="flex items-center gap-1.5 text-sm text-[#66c0b6] hover:text-[#30E3CA] transition-colors px-2 py-1"
+                      >
+                        <Plus size={14} /> Stipendium hinzufügen
+                      </button>
+                    </div>
+                  )}
+                </div>
 
                 {/* ── Skills ── */}
                 <div>
