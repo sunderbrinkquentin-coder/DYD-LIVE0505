@@ -176,13 +176,12 @@ const renderDateRange = (sectionIndex: number, idx: number, item: any) => (
       style={{
         fontSize: '9px',
         color: t.accent,
-        // FIX: Datum wurde links abgeschnitten. Ursache: EditableText erbt
-        // ohne `wrap`/`multiline` overflow:hidden + ellipsis + nowrap; bei
-        // text-right clippt hidden am linken Rand → "11/202…" von vorne
-        // abgeschnitten. `overflow: visible` + `textOverflow: clip` heben das
-        // auf, `whiteSpace: nowrap` hält "11/2024 – Heute" auf einer Zeile.
-        // `w-32` (Tailwind) ersetzt durch minWidth, damit die Badge bei Bedarf
-        // breiter werden darf statt den Text zu kappen.
+        // FIX: Zeitraum wurde links abgeschnitten ("11/202…"). Ursache:
+        // EditableText erbt ohne wrap/multiline overflow:hidden + ellipsis +
+        // nowrap; bei text-right clippt hidden am LINKEN Rand. overflow:visible
+        // + textOverflow:clip heben das auf, nowrap hält alles auf einer Zeile.
+        // w-32 aus dem className entfernt und durch minWidth ersetzt, damit die
+        // Badge bei Bedarf breiter werden darf statt zu kappen.
         minWidth: '92px',
         whiteSpace: 'nowrap',
         overflow: 'visible',
