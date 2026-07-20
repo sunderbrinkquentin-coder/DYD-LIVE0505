@@ -166,10 +166,13 @@ export const ClassicCVTemplate: React.FC<CVTemplateProps> = ({
           {items.map((item: any, idx: number) => (
             <div key={idx} data-pdf-section data-break-item style={cardWrapper}>
               <div className="flex items-baseline justify-between gap-3">
+                {/* wrap + min-w-0: langer Positionstitel darf umbrechen statt
+                    abgeschnitten zu werden. */}
                 <EditableText
-                  value={item.title}
+                  wrap
+                  value={item.title || item.position || ''}
                   onChange={(val) => onUpdateSectionItem(experienceIndex, idx, 'title', val)}
-                  className="font-bold leading-tight flex-1"
+                  className="font-bold leading-tight flex-1 min-w-0"
                   style={{ fontSize: '11px', color: t.text }}
                   placeholder="Position / Rolle"
                 />
@@ -249,10 +252,17 @@ export const ClassicCVTemplate: React.FC<CVTemplateProps> = ({
           {items.map((item: any, idx: number) => (
             <div key={idx} data-pdf-section data-break-item style={cardWrapper}>
               <div className="flex items-baseline justify-between gap-3">
+                {/* FIX: Titel liest jetzt `degree` ODER `title` — kommt eine
+                    Station mit `title` statt `degree` rein (KI-Output, neu
+                    hinzugefügte Station), blieb das Feld vorher leer und man
+                    sah nur den hellgrauen Platzhalter → wirkte wie „unsichtbar".
+                    `wrap` + `min-w-0`: lange Studiengänge brechen um statt
+                    hinter der Datums-Badge abgeschnitten zu werden. */}
                 <EditableText
-                  value={item.degree}
+                  wrap
+                  value={item.degree || item.title || ''}
                   onChange={(val) => onUpdateSectionItem(educationIndex, idx, 'degree', val)}
-                  className="font-bold leading-tight flex-1"
+                  className="font-bold leading-tight flex-1 min-w-0"
                   style={{ fontSize: '11px', color: t.text }}
                   placeholder="Abschluss / Studiengang"
                 />
@@ -324,7 +334,8 @@ export const ClassicCVTemplate: React.FC<CVTemplateProps> = ({
           {items.map((item: any, idx: number) => (
             <div key={idx} data-pdf-section data-break-item style={cardWrapper}>
               <EditableText
-                value={item.title}
+                wrap
+                value={item.title || item.name || ''}
                 onChange={(val) => onUpdateSectionItem(projectsIndex, idx, 'title', val)}
                 className="font-bold leading-tight"
                 style={{ fontSize: '11px', color: t.text }}
@@ -362,16 +373,8 @@ export const ClassicCVTemplate: React.FC<CVTemplateProps> = ({
 
   // ─── Sprachen ──────────────────────────────────────────────────────────────
   //
-  // FRÜHER: `skillLevelToStars()` verglich das Niveau gegen eine Liste exakter
-  // Strings. "Muttersprache" traf und ergab fünf Sterne. "Verhandlungssicher (C1)"
-  // traf nicht, ergab 0 — und dann rendete das Template stattdessen einen
-  // navyfarbenen Textlabel. Zwei Sprachen untereinander sahen dadurch
-  // unterschiedlich aus, obwohl beide ein Niveau hatten.
-  //
-  // JETZT: durchgehend Textlabels. Sprache in `t.text`, Niveau in `t.muted` —
-  // konsistent mit Minimal und Kreativ. Wer die Sterne zurück will, braucht
-  // zuerst eine robuste Niveau-Erkennung (CEFR-Regex statt String-Gleichheit),
-  // sonst kehrt genau dieser Fehler zurück.
+  // Sprache in `t.text` (dunkel), Niveau in `t.muted` — konsistent mit Minimal
+  // und Kreativ. `wrap` an der Sprache, falls ein Sprachname länger ist.
   const renderLanguages = () => {
     if (languagesIndex === -1) return null;
     const items = sections[languagesIndex].items ?? [];
@@ -389,6 +392,7 @@ export const ClassicCVTemplate: React.FC<CVTemplateProps> = ({
             return (
               <li key={idx} className="flex flex-nowrap justify-between items-center gap-2" style={{ fontSize: '9px' }}>
                 <EditableText
+                  wrap
                   value={language}
                   onChange={(val) => onUpdateSectionItem(languagesIndex, idx, 'language', val)}
                   className="font-medium flex-1 min-w-0"
@@ -538,6 +542,7 @@ export const ClassicCVTemplate: React.FC<CVTemplateProps> = ({
                     <div style={{ flex: 1, minWidth: 0 }}>
                       <div style={{ fontWeight: 600, fontSize: '9.5px' }}>
                         <EditableText
+                          wrap
                           value={name}
                           onChange={(val) => onUpdateSectionItem(index, idx, 'name', val)}
                           style={{ color: t.text }}
