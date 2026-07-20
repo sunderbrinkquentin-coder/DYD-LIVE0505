@@ -164,7 +164,7 @@ export const ClassicCVTemplate: React.FC<CVTemplateProps> = ({
     );
   };
 
-  const renderDateRange = (sectionIndex: number, idx: number, item: any) => (
+const renderDateRange = (sectionIndex: number, idx: number, item: any) => (
     <EditableText
       value={[item.date_from, item.date_to].filter(Boolean).join(' – ') || ''}
       onChange={(val) => {
@@ -172,8 +172,24 @@ export const ClassicCVTemplate: React.FC<CVTemplateProps> = ({
         onUpdateSectionItem(sectionIndex, idx, 'date_from', from);
         onUpdateSectionItem(sectionIndex, idx, 'date_to', to);
       }}
-      className="text-right w-32 flex-shrink-0 leading-tight font-semibold"
-      style={{ fontSize: '9px', color: t.accent }}
+      className="text-right flex-shrink-0 leading-tight font-semibold"
+      style={{
+        fontSize: '9px',
+        color: t.accent,
+        // FIX: Datum wurde links abgeschnitten. Ursache: EditableText erbt
+        // ohne `wrap`/`multiline` overflow:hidden + ellipsis + nowrap; bei
+        // text-right clippt hidden am linken Rand → "11/202…" von vorne
+        // abgeschnitten. `overflow: visible` + `textOverflow: clip` heben das
+        // auf, `whiteSpace: nowrap` hält "11/2024 – Heute" auf einer Zeile.
+        // `w-32` (Tailwind) ersetzt durch minWidth, damit die Badge bei Bedarf
+        // breiter werden darf statt den Text zu kappen.
+        minWidth: '92px',
+        whiteSpace: 'nowrap',
+        overflow: 'visible',
+        textOverflow: 'clip',
+        wordBreak: 'normal',
+        overflowWrap: 'normal',
+      }}
       placeholder="Zeitraum"
     />
   );
