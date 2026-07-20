@@ -338,10 +338,6 @@ export const MinimalCVTemplate: React.FC<CVTemplateProps> = ({
                 // Zeile mit Niveau aber ohne Namen NICHT verwerfen — sonst
                 // verschwindet die Sprache. Namensfeld bleibt leer + editierbar.
                 if (!language && !level) return null;
-                const level =
-                  typeof lang === 'object' && lang !== null
-                    ? lang.level || lang.niveau || lang.proficiency || ''
-                    : '';
 
                 return (
                   <div
