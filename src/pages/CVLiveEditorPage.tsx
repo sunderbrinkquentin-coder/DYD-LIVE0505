@@ -1,6 +1,6 @@
 import { useEffect, useState, useRef } from 'react';
 import { useParams, useNavigate, useSearchParams } from 'react-router-dom';
-import { Camera, Loader2, AlertTriangle, Sparkles, ArrowLeft, ChevronDown, Briefcase, FileSearch, GraduationCap, Music2, Check, Download } from 'lucide-react';
+import { Camera, Loader2, AlertTriangle, Sparkles, ArrowLeft, ChevronDown, Briefcase, FileSearch, GraduationCap, Music2, Check, Download, Plus } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import { exportCVToPDFBlob, debugLogPDFHtml } from '../utils/pdfExportClient';
 import { CVTemplateType } from '../components/cv-templates/CVTemplateSelector';
@@ -63,7 +63,20 @@ const templates = [
   { id: 'creative' as CVTemplateType, name: 'Kreativ', icon: '🎨' },
   { id: 'professional' as CVTemplateType, name: 'Professional', icon: '💼' },
 ];
-
+const ADDABLE_SECTIONS: { type: string; label: string; defaultTitle: string; makeItem: () => any }[] = [
+  { type: 'experience',    label: 'Berufsstation',        defaultTitle: 'Berufserfahrung',      makeItem: () => ({ title: 'Neue Position', company: '', date_from: '', date_to: 'Heute', bulletPoints: [] }) },
+  { type: 'education',      label: 'Ausbildung / Studium', defaultTitle: 'Ausbildung',           makeItem: () => ({ degree: 'Neuer Abschluss', institution: '', date_from: '', date_to: '' }) },
+  { type: 'projects',      label: 'Projekt',              defaultTitle: 'Projekte',             makeItem: () => ({ title: 'Neues Projekt', role: '', bulletPoints: [] }) },
+  { type: 'skills',        label: 'Fähigkeit / Skill',    defaultTitle: 'Fähigkeiten',          makeItem: () => ({ skill: 'Neue Fähigkeit' }) },
+  { type: 'soft_skills',   label: 'Soft Skill',           defaultTitle: 'Soft Skills',          makeItem: () => ({ skill: 'Neue Stärke' }) },
+  { type: 'languages',     label: 'Sprache',              defaultTitle: 'Sprachen',             makeItem: () => ({ language: 'Neue Sprache', level: '' }) },
+  { type: 'stipendien',    label: 'Stipendium',           defaultTitle: 'Stipendien',           makeItem: () => ({ name: 'Neues Stipendium', institution: '', date: '' }) },
+  { type: 'certifications',label: 'Zertifikat',           defaultTitle: 'Zertifikate',          makeItem: () => ({ name: 'Neues Zertifikat', institution: '', date: '' }) },
+  { type: 'awards',        label: 'Auszeichnung',         defaultTitle: 'Auszeichnungen',       makeItem: () => ({ name: 'Neue Auszeichnung', institution: '', date: '' }) },
+  { type: 'volunteering',  label: 'Ehrenamt',             defaultTitle: 'Ehrenamt',             makeItem: () => ({ title: 'Neues Engagement', company: '', date_from: '', date_to: '', bulletPoints: [] }) },
+  { type: 'work_values',   label: 'Wert / Arbeitsweise',  defaultTitle: 'Arbeitsweise & Werte', makeItem: () => ({ label: 'Neuer Wert' }) },
+  { type: 'hobbies',       label: 'Hobby / Interesse',    defaultTitle: 'Hobbys & Interessen',  makeItem: () => ({ label: 'Neues Hobby' }) },
+];
 interface LoadingPageProps {
   elapsedSeconds: number;
   activeStep: number;
@@ -253,6 +266,7 @@ export function CVLiveEditorPage() {
   const autoDownloadTriggeredRef = useRef(false);
 
   const [scale, setScale] = useState(1);
+  const [showAddSectionMenu, setShowAddSectionMenu] = useState(false);
 
   // ───────────────────────────────────────────────────────────────────────────
   // DIE UMBRUCH-ENGINE
@@ -1423,7 +1437,25 @@ export function CVLiveEditorPage() {
       return { ...prev, sections: newSections };
     });
   };
-
+const handleAddSectionType = (type: string) => {
+  const def = ADDABLE_SECTIONS.find((s) => s.type === type);
+  if (!def) return;
+  setHasEditorChanges(true);
+  setEditorData((prev: any) => {
+    if (!prev) return prev;
+    const sections = [...(prev.sections || [])];
+    const existingIdx = sections.findIndex((s: any) => s.type === type);
+    const newItem = def.makeItem();
+    if (existingIdx >= 0) {
+      const sec = sections[existingIdx];
+      sections[existingIdx] = { ...sec, items: [...(sec.items || []), newItem] };
+    } else {
+      sections.push({ type: def.type, title: def.defaultTitle, items: [newItem] });
+    }
+    return { ...prev, sections };
+  });
+  setShowAddSectionMenu(false);
+};
   if (error) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-[#050507] via-[#0a0a0f] to-[#050507] text-white flex items-center justify-center">
