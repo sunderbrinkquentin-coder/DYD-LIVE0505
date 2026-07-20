@@ -12,6 +12,31 @@ import { getTokens, FONT_STACK } from '../tokens';
 const t = getTokens('classic');
 
 /**
+ * Sichere Umbruch-Regel für Titel.
+ *
+ * Der Wurzel-Container darf NICHT `overflow-wrap: anywhere` an die Titel
+ * vererben: `anywhere` senkt die min-content-Breite auf ein einzelnes Zeichen,
+ * und in der Flex-Zeile neben der Datums-Badge quetscht Flexbox den Titel dann
+ * bis auf 1 Zeichen Breite — der Text stapelt sich senkrecht, Buchstabe für
+ * Buchstabe ("Senior Consultant" vertikal).
+ *
+ * `overflowWrap: break-word` + `wordBreak: normal` bricht höchstens AM WORT um
+ * und lässt die min-content-Breite beim längsten Wort — der Titel kann nicht
+ * mehr kollabieren. `whiteSpace: normal` + `overflow: visible` heben die
+ * nowrap/ellipsis-Defaults von EditableText auf (html2canvas setzt Ellipsis im
+ * PDF ohnehin nicht um — ein abgeschnittener Titel wäre dort sichtbar).
+ */
+const titleStyle: React.CSSProperties = {
+  fontSize: '11px',
+  color: t.text,
+  whiteSpace: 'normal',
+  overflow: 'visible',
+  textOverflow: 'clip',
+  wordBreak: 'normal',
+  overflowWrap: 'break-word',
+};
+
+/**
  * Überschrift der Hauptspalte.
  * `data-break-keep-next` bindet sie an den folgenden Inhalt.
  */
@@ -166,14 +191,14 @@ export const ClassicCVTemplate: React.FC<CVTemplateProps> = ({
           {items.map((item: any, idx: number) => (
             <div key={idx} data-pdf-section data-break-item style={cardWrapper}>
               <div className="flex items-baseline justify-between gap-3">
-                {/* wrap + min-w-0: langer Positionstitel darf umbrechen statt
-                    abgeschnitten zu werden. */}
+                {/* `flex-1` OHNE `min-w-0`: min-width bleibt beim längsten Wort,
+                    der Titel kann nicht auf 1 Zeichen kollabieren. `titleStyle`
+                    erlaubt nur Wort-Umbruch, kein Zeichen-Stapeln. */}
                 <EditableText
-                  wrap
                   value={item.title || item.position || ''}
                   onChange={(val) => onUpdateSectionItem(experienceIndex, idx, 'title', val)}
-                  className="font-bold leading-tight flex-1 min-w-0"
-                  style={{ fontSize: '11px', color: t.text }}
+                  className="font-bold leading-tight flex-1"
+                  style={titleStyle}
                   placeholder="Position / Rolle"
                 />
                 {renderDateRange(experienceIndex, idx, item)}
@@ -252,18 +277,16 @@ export const ClassicCVTemplate: React.FC<CVTemplateProps> = ({
           {items.map((item: any, idx: number) => (
             <div key={idx} data-pdf-section data-break-item style={cardWrapper}>
               <div className="flex items-baseline justify-between gap-3">
-                {/* FIX: Titel liest jetzt `degree` ODER `title` — kommt eine
-                    Station mit `title` statt `degree` rein (KI-Output, neu
-                    hinzugefügte Station), blieb das Feld vorher leer und man
-                    sah nur den hellgrauen Platzhalter → wirkte wie „unsichtbar".
-                    `wrap` + `min-w-0`: lange Studiengänge brechen um statt
-                    hinter der Datums-Badge abgeschnitten zu werden. */}
+                {/* Titel liest `degree` ODER `title` — kommt eine Station mit
+                    `title` statt `degree` (KI-Output / neu hinzugefügte Station),
+                    war das Feld sonst leer und zeigte nur den hellgrauen
+                    Platzhalter → wirkte „unsichtbar". `titleStyle` verhindert
+                    zusätzlich den senkrechten Buchstaben-Stapel. */}
                 <EditableText
-                  wrap
                   value={item.degree || item.title || ''}
                   onChange={(val) => onUpdateSectionItem(educationIndex, idx, 'degree', val)}
-                  className="font-bold leading-tight flex-1 min-w-0"
-                  style={{ fontSize: '11px', color: t.text }}
+                  className="font-bold leading-tight flex-1"
+                  style={titleStyle}
                   placeholder="Abschluss / Studiengang"
                 />
                 {renderDateRange(educationIndex, idx, item)}
@@ -334,11 +357,10 @@ export const ClassicCVTemplate: React.FC<CVTemplateProps> = ({
           {items.map((item: any, idx: number) => (
             <div key={idx} data-pdf-section data-break-item style={cardWrapper}>
               <EditableText
-                wrap
                 value={item.title || item.name || ''}
                 onChange={(val) => onUpdateSectionItem(projectsIndex, idx, 'title', val)}
                 className="font-bold leading-tight"
-                style={{ fontSize: '11px', color: t.text }}
+                style={titleStyle}
                 placeholder="Projektname"
               />
               {item.role && (
@@ -372,9 +394,7 @@ export const ClassicCVTemplate: React.FC<CVTemplateProps> = ({
   };
 
   // ─── Sprachen ──────────────────────────────────────────────────────────────
-  //
-  // Sprache in `t.text` (dunkel), Niveau in `t.muted` — konsistent mit Minimal
-  // und Kreativ. `wrap` an der Sprache, falls ein Sprachname länger ist.
+  // Sprache in `t.text` (dunkel), Niveau in `t.muted`.
   const renderLanguages = () => {
     if (languagesIndex === -1) return null;
     const items = sections[languagesIndex].items ?? [];
@@ -392,11 +412,10 @@ export const ClassicCVTemplate: React.FC<CVTemplateProps> = ({
             return (
               <li key={idx} className="flex flex-nowrap justify-between items-center gap-2" style={{ fontSize: '9px' }}>
                 <EditableText
-                  wrap
                   value={language}
                   onChange={(val) => onUpdateSectionItem(languagesIndex, idx, 'language', val)}
-                  className="font-medium flex-1 min-w-0"
-                  style={{ color: t.text }}
+                  className="font-medium flex-1"
+                  style={{ color: t.text, whiteSpace: 'normal', overflow: 'visible', textOverflow: 'clip', wordBreak: 'normal', overflowWrap: 'break-word' }}
                   placeholder="Sprache"
                 />
                 <EditableText
@@ -542,10 +561,9 @@ export const ClassicCVTemplate: React.FC<CVTemplateProps> = ({
                     <div style={{ flex: 1, minWidth: 0 }}>
                       <div style={{ fontWeight: 600, fontSize: '9.5px' }}>
                         <EditableText
-                          wrap
                           value={name}
                           onChange={(val) => onUpdateSectionItem(index, idx, 'name', val)}
-                          style={{ color: t.text }}
+                          style={{ color: t.text, whiteSpace: 'normal', overflow: 'visible', textOverflow: 'clip', wordBreak: 'normal', overflowWrap: 'break-word' }}
                           placeholder="Name/Titel"
                         />
                       </div>
@@ -628,20 +646,19 @@ export const ClassicCVTemplate: React.FC<CVTemplateProps> = ({
         minHeight: `${containerMinHeight}px`,
         width: '100%',
         boxSizing: 'border-box',
-        wordBreak: 'break-word',
-        overflowWrap: 'anywhere',
+        // FIX: war `wordBreak: 'break-word'` + `overflowWrap: 'anywhere'`.
+        // Beide senken die min-content-Breite auf 1 Zeichen und ließen Flexbox
+        // den Titel senkrecht stapeln. `normal` + `break-word` bricht lange
+        // Wörter weiterhin um, kollabiert die Breite aber nicht mehr.
+        wordBreak: 'normal',
+        overflowWrap: 'break-word',
         border: `1px solid ${t.border}`,
       }}
     >
       <div className="w-full p-8">
         <div className="flex gap-8">
 
-          {/* ── Linke Spalte ────────────────────────────────────────────────
-              Hinweis zur Paginierung: die Break-Engine sammelt Verbotszonen aus
-              BEIDEN Spalten. Ein Schnitt, der in der Hauptspalte zwischen zwei
-              Stationen läge, aber quer durch den Sprachenblock der Seitenspalte
-              ginge, wird deshalb verworfen. Das ist gewollt — kann aber dazu
-              führen, dass eine Seite früher endet als technisch nötig.        */}
+          {/* ── Linke Spalte ──────────────────────────────────────────────── */}
           <aside className="w-1/3 max-w-[33%] pr-6 flex flex-col" style={{ borderRight: `1px solid ${t.border}` }}>
             <div className="mb-6" data-break-atomic>
               {photoUrl && (
