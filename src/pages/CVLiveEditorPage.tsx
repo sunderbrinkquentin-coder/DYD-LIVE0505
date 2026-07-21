@@ -1786,6 +1786,7 @@ const reorderSectionItem = (sectionIndex: number, fromIndex: number, toIndex: nu
             onDeleteSectionItem: deleteSectionItemWithConfirm,
             onDeleteBullet: deleteBulletPoint,
             onReorderSections: reorderSections,
+            onReorderSectionItem: reorderSectionItem,
           };
 
           const renderTemplate = () => {
