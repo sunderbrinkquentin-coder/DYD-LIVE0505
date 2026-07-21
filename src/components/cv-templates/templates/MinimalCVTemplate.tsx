@@ -326,8 +326,16 @@ export const MinimalCVTemplate: React.FC<CVTemplateProps> = ({
             <div className="space-y-1">
               {items.map((lang: any, idx: number) => {
                 if (!lang) return null;
-                const language = clean(typeof lang === 'string' ? lang : lang.language || lang.name || '');
-                if (!language) return null;
+                const rawLanguage =
+  typeof lang === 'string'
+    ? lang
+    : lang.language || lang.name || lang.sprache || lang.skill || lang.label || '';
+const language = clean(rawLanguage);
+const level =
+  typeof lang === 'object' && lang !== null
+    ? lang.level || lang.niveau || lang.proficiency || ''
+    : '';
+if (!language && !level) return null;
                 const level =
                   typeof lang === 'object' && lang !== null
                     ? lang.level || lang.niveau || lang.proficiency || ''
