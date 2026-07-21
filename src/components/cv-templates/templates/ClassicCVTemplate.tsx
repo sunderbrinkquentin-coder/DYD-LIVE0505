@@ -11,16 +11,10 @@ import { getTokens, FONT_STACK } from '../tokens';
 
 const t = getTokens('classic');
 
-const titleStyle: React.CSSProperties = {
-  fontSize: '11px',
-  color: t.text,
-  whiteSpace: 'normal',
-  overflow: 'visible',
-  textOverflow: 'clip',
-  wordBreak: 'normal',
-  overflowWrap: 'break-word',
-};
-
+/**
+ * Überschrift der Hauptspalte.
+ * `data-break-keep-next` bindet sie an den folgenden Inhalt.
+ */
 const MainTitle: React.FC<{ children: React.ReactNode; first?: boolean }> = ({ children, first }) => (
   <h2
     data-break-keep-next
@@ -36,6 +30,7 @@ const MainTitle: React.FC<{ children: React.ReactNode; first?: boolean }> = ({ c
   </h2>
 );
 
+/** Überschrift der Seitenspalte. */
 const AsideTitle: React.FC<{ children: React.ReactNode }> = ({ children }) => (
   <h3
     data-break-keep-next
@@ -89,6 +84,7 @@ export const ClassicCVTemplate: React.FC<CVTemplateProps> = ({
   onDeleteBullet,
   onReorderSections,
 }) => {
+  // Höhe kommt aus der Break-Engine, nicht aus einem lokalen ResizeObserver.
   const containerMinHeight = minHeightPx ?? 1122;
 
   const findSectionIndex = (type: string) => sections.findIndex((s) => s.type === type);
@@ -101,6 +97,7 @@ export const ClassicCVTemplate: React.FC<CVTemplateProps> = ({
   const languagesIndex = findSectionIndex('languages');
   const workValuesIndex = findSectionIndex('work_values');
 
+  // ─── Bullets ───────────────────────────────────────────────────────────────
   const renderBulletPoints = (bullets: any[] | undefined, sectionIndex: number, itemIndex: number) => {
     if (!Array.isArray(bullets) || bullets.length === 0) return null;
 
@@ -150,21 +147,13 @@ export const ClassicCVTemplate: React.FC<CVTemplateProps> = ({
         onUpdateSectionItem(sectionIndex, idx, 'date_from', from);
         onUpdateSectionItem(sectionIndex, idx, 'date_to', to);
       }}
-      className="text-right flex-shrink-0 leading-tight font-semibold"
-      style={{
-        fontSize: '9px',
-        color: t.accent,
-        minWidth: '92px',
-        whiteSpace: 'nowrap',
-        overflow: 'visible',
-        textOverflow: 'clip',
-        wordBreak: 'normal',
-        overflowWrap: 'normal',
-      }}
+      className="text-right w-32 flex-shrink-0 leading-tight font-semibold"
+      style={{ fontSize: '9px', color: t.accent }}
       placeholder="Zeitraum"
     />
   );
 
+  // ─── Berufserfahrung ───────────────────────────────────────────────────────
   const renderExperience = () => {
     if (experienceIndex === -1) return null;
     const items = sections[experienceIndex].items ?? [];
@@ -178,10 +167,10 @@ export const ClassicCVTemplate: React.FC<CVTemplateProps> = ({
             <div key={idx} data-pdf-section data-break-item style={cardWrapper}>
               <div className="flex items-baseline justify-between gap-3">
                 <EditableText
-                  value={item.title || item.position || ''}
+                  value={item.title}
                   onChange={(val) => onUpdateSectionItem(experienceIndex, idx, 'title', val)}
                   className="font-bold leading-tight flex-1"
-                  style={titleStyle}
+                  style={{ fontSize: '11px', color: t.text }}
                   placeholder="Position / Rolle"
                 />
                 {renderDateRange(experienceIndex, idx, item)}
@@ -247,6 +236,7 @@ export const ClassicCVTemplate: React.FC<CVTemplateProps> = ({
     );
   };
 
+  // ─── Ausbildung ────────────────────────────────────────────────────────────
   const renderEducation = () => {
     if (educationIndex === -1) return null;
     const items = sections[educationIndex].items ?? [];
@@ -260,10 +250,10 @@ export const ClassicCVTemplate: React.FC<CVTemplateProps> = ({
             <div key={idx} data-pdf-section data-break-item style={cardWrapper}>
               <div className="flex items-baseline justify-between gap-3">
                 <EditableText
-                  value={item.degree || item.title || ''}
+                  value={item.degree}
                   onChange={(val) => onUpdateSectionItem(educationIndex, idx, 'degree', val)}
                   className="font-bold leading-tight flex-1"
-                  style={titleStyle}
+                  style={{ fontSize: '11px', color: t.text }}
                   placeholder="Abschluss / Studiengang"
                 />
                 {renderDateRange(educationIndex, idx, item)}
@@ -321,6 +311,7 @@ export const ClassicCVTemplate: React.FC<CVTemplateProps> = ({
     );
   };
 
+  // ─── Projekte ──────────────────────────────────────────────────────────────
   const renderProjects = () => {
     if (projectsIndex === -1) return null;
     const items = sections[projectsIndex].items ?? [];
@@ -333,10 +324,10 @@ export const ClassicCVTemplate: React.FC<CVTemplateProps> = ({
           {items.map((item: any, idx: number) => (
             <div key={idx} data-pdf-section data-break-item style={cardWrapper}>
               <EditableText
-                value={item.title || item.name || ''}
+                value={item.title}
                 onChange={(val) => onUpdateSectionItem(projectsIndex, idx, 'title', val)}
                 className="font-bold leading-tight"
-                style={titleStyle}
+                style={{ fontSize: '11px', color: t.text }}
                 placeholder="Projektname"
               />
               {item.role && (
@@ -369,13 +360,18 @@ export const ClassicCVTemplate: React.FC<CVTemplateProps> = ({
     );
   };
 
-  /**
-   * FIX (Bug B — Sprache ohne Namen verschwand):
-   * - `language` liest jetzt zusätzlich `skill`/`label` (KI-Fallback-Format).
-   * - Ein Eintrag mit Niveau, aber ohne erkannten Namen, wird NICHT mehr
-   *   verworfen — er blieb sonst spurlos verschwunden (nur "fluent" sichtbar,
-   *   keine Sprache dahinter). Das Namensfeld bleibt leer und editierbar.
-   */
+  // ─── Sprachen ──────────────────────────────────────────────────────────────
+  //
+  // FRÜHER: `skillLevelToStars()` verglich das Niveau gegen eine Liste exakter
+  // Strings. "Muttersprache" traf und ergab fünf Sterne. "Verhandlungssicher (C1)"
+  // traf nicht, ergab 0 — und dann rendete das Template stattdessen einen
+  // navyfarbenen Textlabel. Zwei Sprachen untereinander sahen dadurch
+  // unterschiedlich aus, obwohl beide ein Niveau hatten.
+  //
+  // JETZT: durchgehend Textlabels. Sprache in `t.text`, Niveau in `t.muted` —
+  // konsistent mit Minimal und Kreativ. Wer die Sterne zurück will, braucht
+  // zuerst eine robuste Niveau-Erkennung (CEFR-Regex statt String-Gleichheit),
+  // sonst kehrt genau dieser Fehler zurück.
   const renderLanguages = () => {
     if (languagesIndex === -1) return null;
     const items = sections[languagesIndex].items ?? [];
@@ -386,19 +382,17 @@ export const ClassicCVTemplate: React.FC<CVTemplateProps> = ({
         <AsideTitle>Sprachen</AsideTitle>
         <ul className="space-y-2">
           {items.map((item: any, idx: number) => {
-            const language = stripSectionLabel(
-              item.language || item.name || item.sprache || item.skill || item.label || ''
-            );
+            const language = stripSectionLabel(item.language || item.name || item.sprache || '');
             const level = item.level || item.niveau || item.proficiency || '';
-            if (!language && !level) return null;
+            if (!language) return null;
 
             return (
               <li key={idx} className="flex flex-nowrap justify-between items-center gap-2" style={{ fontSize: '9px' }}>
                 <EditableText
                   value={language}
                   onChange={(val) => onUpdateSectionItem(languagesIndex, idx, 'language', val)}
-                  className="font-medium flex-1"
-                  style={{ color: t.text, whiteSpace: 'normal', overflow: 'visible', textOverflow: 'clip', wordBreak: 'normal', overflowWrap: 'break-word' }}
+                  className="font-medium flex-1 min-w-0"
+                  style={{ color: t.text }}
                   placeholder="Sprache"
                 />
                 <EditableText
@@ -416,6 +410,7 @@ export const ClassicCVTemplate: React.FC<CVTemplateProps> = ({
     );
   };
 
+  // ─── Chip-Listen (Skills, Soft Skills) ────────────────────────────────────
   const renderChipSection = (label: string, index: number) => {
     if (index === -1) return null;
     const items = sections[index].items ?? [];
@@ -484,6 +479,7 @@ export const ClassicCVTemplate: React.FC<CVTemplateProps> = ({
     );
   };
 
+  // ─── Arbeitsweise & Werte ─────────────────────────────────────────────────
   const renderWorkValues = () => {
     if (workValuesIndex === -1) return null;
     const items = sections[workValuesIndex].items ?? [];
@@ -512,6 +508,7 @@ export const ClassicCVTemplate: React.FC<CVTemplateProps> = ({
     );
   };
 
+  // ─── Seitenspalten-Sektionen (Zertifikate, Stipendien, …) ─────────────────
   const renderSidebarSections = () =>
     sections.map((section, index) => {
       if (!SIDEBAR_TYPES.includes(section.type)) return null;
@@ -543,7 +540,7 @@ export const ClassicCVTemplate: React.FC<CVTemplateProps> = ({
                         <EditableText
                           value={name}
                           onChange={(val) => onUpdateSectionItem(index, idx, 'name', val)}
-                          style={{ color: t.text, whiteSpace: 'normal', overflow: 'visible', textOverflow: 'clip', wordBreak: 'normal', overflowWrap: 'break-word' }}
+                          style={{ color: t.text }}
                           placeholder="Name/Titel"
                         />
                       </div>
@@ -578,6 +575,7 @@ export const ClassicCVTemplate: React.FC<CVTemplateProps> = ({
       );
     });
 
+  // ─── Unbekannte Sektionen in der Hauptspalte ──────────────────────────────
   const renderUnknownSections = () =>
     sections.map((section, index) => {
       if (KNOWN_MAIN_TYPES.includes(section.type)) return null;
@@ -625,13 +623,20 @@ export const ClassicCVTemplate: React.FC<CVTemplateProps> = ({
         minHeight: `${containerMinHeight}px`,
         width: '100%',
         boxSizing: 'border-box',
-        wordBreak: 'normal',
-        overflowWrap: 'break-word',
+        wordBreak: 'break-word',
+        overflowWrap: 'anywhere',
         border: `1px solid ${t.border}`,
       }}
     >
       <div className="w-full p-8">
         <div className="flex gap-8">
+
+          {/* ── Linke Spalte ────────────────────────────────────────────────
+              Hinweis zur Paginierung: die Break-Engine sammelt Verbotszonen aus
+              BEIDEN Spalten. Ein Schnitt, der in der Hauptspalte zwischen zwei
+              Stationen läge, aber quer durch den Sprachenblock der Seitenspalte
+              ginge, wird deshalb verworfen. Das ist gewollt — kann aber dazu
+              führen, dass eine Seite früher endet als technisch nötig.        */}
           <aside className="w-1/3 max-w-[33%] pr-6 flex flex-col" style={{ borderRight: `1px solid ${t.border}` }}>
             <div className="mb-6" data-break-atomic>
               {photoUrl && (
@@ -707,6 +712,7 @@ export const ClassicCVTemplate: React.FC<CVTemplateProps> = ({
             {renderSidebarSections()}
           </aside>
 
+          {/* ── Rechte Spalte ─────────────────────────────────────────────── */}
           <main className="flex-1 flex flex-col min-w-0">
             <div data-pdf-section data-break-atomic className="mb-6">
               <MainTitle first>Profil</MainTitle>

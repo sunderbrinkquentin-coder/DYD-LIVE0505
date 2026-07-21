@@ -11,6 +11,11 @@ import { getTokens } from '../tokens';
 
 const t = getTokens('modern');
 
+/**
+ * Modern hat eine eigene Farbwelt (Türkis auf hellem Mint), die sich nicht
+ * vollständig auf die generischen Tokens abbilden lässt. Text, Muted und Border
+ * kommen aus den Tokens; die flächigen Hintergründe bleiben lokal.
+ */
 const CI = {
   primary: '#30E3CA',
   primaryDark: '#26b8a8',
@@ -28,6 +33,7 @@ const SECTION_ORDER_RIGHT = [
   'volunteering', 'stipendien', 'scholarships',
 ];
 
+/** Sektionen, die niemals über eine Seitengrenze getrennt werden. */
 const ATOMIC_TYPES = new Set([
   'languages', 'skills', 'soft_skills', 'work_values', 'values',
   'hobbies', 'interests', 'certifications', 'courses', 'awards',
@@ -70,6 +76,16 @@ const SectionTitle: React.FC<{ children: React.ReactNode }> = ({ children }) => 
   </h2>
 );
 
+/**
+ * Datums-Badge.
+ *
+ * BUG, der hier lag: Das Badge wurde immer gerendert, auch wenn beide Daten
+ * leer waren. Der PDF-Exporter entfernt leere `contenteditable`-Felder, das
+ * literale "–" dazwischen aber nicht — es ist reiner Text. Im PDF blieb ein
+ * leeres Pillen-Badge mit einem einsamen Bindestrich stehen.
+ *
+ * Jetzt: kein Badge ohne Datum, kein Bindestrich ohne zweites Datum.
+ */
 const DateBadge: React.FC<{
   from: string;
   to: string;
@@ -247,9 +263,12 @@ export const ModernCVTemplate: React.FC<CVTemplateProps> = ({
   const today = new Date().toLocaleDateString('de-DE', { day: '2-digit', month: '2-digit', year: 'numeric' });
   const footerLocation = (personalInfo.footerLocation ?? personalInfo.location ?? '').toString();
 
+  // Höhe kommt aus der Break-Engine. Der frühere lokale ResizeObserver war eine
+  // zweite Höhen-Autorität — der Footer landete am Fuß *dieser* Höhe statt am
+  // Fuß der letzten berechneten Seite.
   const containerMinHeight = minHeightPx ?? 1122;
 
-  const renderCardControls = (
+const renderCardControls = (
     sectionIndex: number,
     idx: number,
     item: any,
@@ -262,6 +281,10 @@ export const ModernCVTemplate: React.FC<CVTemplateProps> = ({
           style={{ fontSize: '9px', color: CI.primaryDark, background: '#fff', border: `1px solid ${CI.border}`, borderRadius: '4px', cursor: 'pointer', padding: '2px 7px', lineHeight: '1.5' }}
           onClick={() => {
             const hasDescription = typeof item?.description === 'string' && item.description.trim();
+            // Bei Berufserfahrung wird eine vorhandene Fließtext-Beschreibung in
+            // Bullets überführt und geleert. Bei Ausbildung NICHT: dort ist die
+            // Beschreibung das Feld "Schwerpunkte" und steht bewusst neben den
+            // Bullets, nicht statt ihrer.
             const convert = hasDescription && !opts?.keepDescription;
             const base = Array.isArray(item?.bulletPoints) && item.bulletPoints.length > 0
               ? [...item.bulletPoints]
@@ -277,6 +300,7 @@ export const ModernCVTemplate: React.FC<CVTemplateProps> = ({
           + Bullet
         </button>
       )}
+      {/* Der "Station löschen"-Button bleibt unverändert */}
       <button
         type="button"
         style={{ fontSize: '9px', color: '#dc2626', background: '#fff', border: '1px solid #fecaca', borderRadius: '4px', cursor: 'pointer', padding: '2px 7px', lineHeight: '1.5' }}
@@ -287,6 +311,7 @@ export const ModernCVTemplate: React.FC<CVTemplateProps> = ({
     </div>
   );
 
+  // ─── Berufserfahrung / Projekte ───────────────────────────────────────────
   const renderExperienceOrProjects = (section: EditorSection, sectionIndex: number, isProject: boolean) => {
     const items = Array.isArray(section.items) ? section.items : [];
     if (items.length === 0) return null;
@@ -385,6 +410,11 @@ export const ModernCVTemplate: React.FC<CVTemplateProps> = ({
             );
           })}
 
+          {/*
+            Diese Schaltfläche trug bisher zusätzlich `nonce-export`, und die
+            Editor-CSS setzt `.nonce-export { display: none !important; }`.
+            Sie war also niemals sichtbar. Ohne die Klasse funktioniert sie.
+          */}
           {onAddSectionItem && (
             <button
               type="button"
@@ -402,6 +432,7 @@ export const ModernCVTemplate: React.FC<CVTemplateProps> = ({
     );
   };
 
+  // ─── Sektions-Renderer ────────────────────────────────────────────────────
   const renderSection = (section: EditorSection, sectionIndex: number): React.ReactNode => {
     const items = Array.isArray(section.items) ? section.items : [];
 
@@ -411,7 +442,14 @@ export const ModernCVTemplate: React.FC<CVTemplateProps> = ({
       case 'projects':
         return renderExperienceOrProjects(section, sectionIndex, true);
 
-      case 'education': {
+case 'education': {
+        // Vor der Längenprüfung filtern. Sonst rendert die Überschrift über
+        // einer Liste, die anschließend komplett wegfällt.
+        //
+        // `originalIdx` MUSS mitgeführt werden: alle onUpdate-/onDelete-Callbacks
+        // adressieren `section.items`, nicht diese gefilterte Liste. Vorher lief
+        // hier der Map-Index rein — sobald ein leerer Eintrag rausfiel, landeten
+        // Bearbeitung und Löschung auf der falschen Station.
         const eduItems = items
           .map((e: any, originalIdx: number) => ({ edu: e, originalIdx }))
           .filter(({ edu }) =>
@@ -425,6 +463,9 @@ export const ModernCVTemplate: React.FC<CVTemplateProps> = ({
             <SectionTitle>{section.title || 'Ausbildung & Studium'}</SectionTitle>
             <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
               {eduItems.map(({ edu, originalIdx }) => {
+                // Anders als bei Berufserfahrung KEIN getBullets(): dort fällt die
+                // Funktion auf `description` zurück. Hier würde das die
+                // Schwerpunkte-Zeile in Bullets verwandeln, sobald sie existiert.
                 const eduBullets = Array.isArray(edu.bulletPoints)
                   ? edu.bulletPoints
                       .map((b: any) => normalizeBullet(String(b ?? '')))
@@ -529,6 +570,8 @@ export const ModernCVTemplate: React.FC<CVTemplateProps> = ({
                 );
               })}
 
+              {/* "+ Eintrag hinzufügen" bleibt unverändert */}
+
               {onAddSectionItem && (
                 <button
                   type="button"
@@ -544,12 +587,16 @@ export const ModernCVTemplate: React.FC<CVTemplateProps> = ({
         );
       }
 
-      /**
-       * FIX (Bug B): Der finale Filter warf Level-only-Einträge raus, obwohl
-       * `language` bereits mit Fallback auf `skill`/`label` gelesen wurde.
-       * Genau das war das Screenshot-Szenario: "Muttersprache" ohne Namen
-       * dahinter verschwand komplett, statt mit leerem Namensfeld zu bleiben.
-       */
+      // ── Sprachen ────────────────────────────────────────────────────────
+      //
+      // Die Sterne sind entfallen. `skillLevelToStars` verglich gegen exakte
+      // Strings: "Muttersprache" ergab fünf Sterne, "Verhandlungssicher (C1)"
+      // ergab null — und dann rendete das Template stattdessen einen Textlabel.
+      // Zwei Sprachen untereinander sahen dadurch verschieden aus.
+      //
+      // Außerdem wird jetzt VOR der Längenprüfung gefiltert. Vorher blieb die
+      // Überschrift "Sprachen" stehen, während alle Einträge wegfielen — genau
+      // das Symptom "Überschrift ohne Inhalt".
       case 'languages': {
         const langItems = items
           .map((lang: any, originalIdx: number) => {
@@ -569,7 +616,7 @@ export const ModernCVTemplate: React.FC<CVTemplateProps> = ({
             }
             return { language: language.trim(), level: level.trim(), originalIdx };
           })
-          .filter((l) => (l.language && l.language !== '[object Object]') || l.level);
+          .filter((l) => l.language && l.language !== '[object Object]');
 
         if (langItems.length === 0) return null;
 
@@ -613,6 +660,7 @@ export const ModernCVTemplate: React.FC<CVTemplateProps> = ({
         );
       }
 
+      // ── Chips ───────────────────────────────────────────────────────────
       case 'skills':
       case 'soft_skills': {
         const isSoft = section.type === 'soft_skills';
@@ -679,6 +727,7 @@ export const ModernCVTemplate: React.FC<CVTemplateProps> = ({
         );
       }
 
+      // ── Zertifikate, Stipendien, Auszeichnungen, Ehrenamt ───────────────
       case 'certifications':
       case 'courses':
       case 'awards':
@@ -818,6 +867,10 @@ export const ModernCVTemplate: React.FC<CVTemplateProps> = ({
         fontFamily: FONT,
         color: t.text,
         width: '794px',
+        // BUG, der hier lag: `borderLeft: 4px` bei `width: 794px` ohne
+        // border-box ergibt 798px Gesamtbreite. html2canvas rendert aber auf
+        // 794px — der Inhalt war im PDF um 4px verschoben und rechts
+        // beschnitten. `boxSizing: border-box` zieht den Rand nach innen.
         boxSizing: 'border-box',
         minHeight: `${containerMinHeight}px`,
         display: 'flex',
@@ -828,6 +881,14 @@ export const ModernCVTemplate: React.FC<CVTemplateProps> = ({
         overflowWrap: 'anywhere',
       }}
     >
+      {/*
+        Das frühere `data-pdf-root` auf diesem Element ist entfernt. Der Editor
+        setzt dasselbe Attribut auf den unskalierten Mess-Wrapper. Bei fünf
+        gerenderten Blättern gab es damit sechs Elemente mit `data-pdf-root` —
+        `querySelector` traf ein zufälliges davon, und die Break-Engine maß im
+        Zweifel einen skalierten Frame statt des Referenz-Renders.
+      */}
+
       <div>
         <header
           style={{

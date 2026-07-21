@@ -647,28 +647,8 @@ export function DashboardPage() {
     }
   };
 
-const handleWizardOverviewContinue = async (updatedData: any) => {
+  const handleWizardOverviewContinue = (updatedData: any) => {
     setShowWizardOverview(false);
-
-    // A: In genau die Zeile zurückschreiben, die das Modal angezeigt hat
-    // (existingWizardCvId = pickRichestCv). Damit werden Löschen/Hinzufügen
-    // zur Grundlage ALLER künftigen Optimierungen — beim nächsten Öffnen lädt
-    // pickRichestCv dieselbe Zeile, jetzt mit den Änderungen. Das bereits
-    // erzeugte PDF liegt separat als pdf_url und bleibt unberührt.
-    if (existingWizardCvId && hasWizardContent(updatedData)) {
-      try {
-        await cvStorageService.saveCVData({
-          id: existingWizardCvId,
-          cvData: updatedData,
-          mode: 'update',
-        });
-        await loadCVs();
-      } catch (e) {
-        console.error('[Dashboard] Zurückschreiben der CV-Daten fehlgeschlagen:', e);
-        // Kein Abbruch: der Nutzer soll trotzdem weiter optimieren können.
-      }
-    }
-
     if (userTokens <= 0) {
       setPaywallFromCreateCv(true);
       setShowPaywall(true);

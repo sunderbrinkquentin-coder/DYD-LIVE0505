@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
-import { ArrowRight, Briefcase, Building2, Link2, FileText, Loader2, Zap, Layers, X, AlertTriangle } from 'lucide-react';
+import { ArrowRight, Briefcase, Building2, Link2, FileText, Loader2, Zap, Layers, X } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { AvatarSidebar } from '../components/cvbuilder/AvatarSidebar';
 import { CVBuilderData } from '../types/cvBuilder';
@@ -10,24 +10,6 @@ import { sessionManager } from '../utils/sessionManager';
 import { getOrCreateTempId } from '../utils/tempIdManager';
 import { supabase } from '../lib/supabase';
 import { tokenService } from '../services/tokenService';
-
-/**
- * Obergrenze für die Stellenbeschreibung.
- *
- * BUG, den das hier behebt: Eine sehr lange Stellenbeschreibung (Copy-Paste
- * ganzer Karriereseiten, mehrfach eingefügter Text, o.ä.) ließ den Prozess
- * unbemerkt scheitern — je nachdem, wo die Grenze zuerst griff: Edge-Function-
- * Payload zu groß, Make.com-Webhook lehnt ab, oder die KI bekommt mehr Text
- * als sie sinnvoll verarbeiten kann und liefert ein schlechteres Ergebnis.
- * In allen Fällen sah der Nutzer nur "Ein technischer Fehler ist aufgetreten"
- * — ohne zu wissen, dass die Textlänge die Ursache war.
- *
- * 12.000 Zeichen entsprechen ungefähr 2.000–2.500 Wörtern — mehr als jede
- * reale Stellenanzeige braucht (typisch: 300–800 Wörter), aber genug Puffer
- * für Anzeigen mit viel Beiwerk (Unternehmensprofil, Benefits-Liste etc.).
- */
-const MAX_JOB_DESCRIPTION_LENGTH = 6000;
-const JOB_DESCRIPTION_WARN_THRESHOLD = MAX_JOB_DESCRIPTION_LENGTH * 0.9;
 
 export function JobTargeting() {
   const navigate = useNavigate();
@@ -105,10 +87,6 @@ export function JobTargeting() {
   const [error, setError] = useState<string | null>(null);
   const [generalistMode, setGeneralistMode] = useState(false);
 
-  const jobDescriptionLength = formData.jobDescription.length;
-  const isJobDescriptionTooLong = jobDescriptionLength > MAX_JOB_DESCRIPTION_LENGTH;
-  const isJobDescriptionNearLimit = jobDescriptionLength > JOB_DESCRIPTION_WARN_THRESHOLD;
-
   // ---------- Helper: Deep sanitize ----------
   const deepSanitize = (obj: any, depth = 0): any => {
     if (depth > 50) return null;
@@ -156,25 +134,11 @@ export function JobTargeting() {
       return;
     }
 
-    // Sperre: zu lange Stellenbeschreibung würde den Prozess unbemerkt zum
-    // Scheitern bringen (Payload-Limit / Make.com / KI-Kontext). Hier klar
-    // kommunizieren statt einen kryptischen Fehler später im Prozess zu riskieren.
-    if (!generalistMode && isJobDescriptionTooLong) {
-      setError(
-        `Die Stellenbeschreibung ist zu lang (${jobDescriptionLength.toLocaleString('de-DE')} von maximal ${MAX_JOB_DESCRIPTION_LENGTH.toLocaleString('de-DE')} Zeichen). Kürze sie bitte auf die wichtigsten Abschnitte — Aufgaben, Anforderungen, Qualifikationen reichen völlig aus.`
-      );
-      return;
-    }
-
     await handleSubmit();
   };
 
   const handleSubmit = async () => {
     if (!generalistMode && (!formData.company || !formData.jobTitle || !formData.jobDescription)) return;
-    // Zweite Absicherung direkt vor dem Versand — falls handleSubmit jemals
-    // ohne den handleClickNext-Check aufgerufen wird, geht trotzdem nichts
-    // Überlanges raus.
-    if (!generalistMode && isJobDescriptionTooLong) return;
 
     const resolvedBaseCvData: CVBuilderData = baseCvData ?? {
       workExperiences: [],
@@ -230,36 +194,34 @@ export function JobTargeting() {
             company: deepSanitize(formData.company),
             job_title: deepSanitize(formData.jobTitle),
             job_link: deepSanitize(formData.jobLink) || null,
-            // Zusätzlich zur harten Sperre im UI wird hier hart auf die
-            // Obergrenze gekappt — falls formData je auf anderem Weg (z.B.
-            // programmatisch) befüllt wird, ohne durch handleClickNext zu laufen.
-            job_description: deepSanitize(formData.jobDescription)?.slice(0, MAX_JOB_DESCRIPTION_LENGTH) ?? '',
+            job_description: deepSanitize(formData.jobDescription),
           };
 
       // 3) CV-Daten direkt übernehmen – ALLES explizit aufgeführt
-      const cvDataPayload: any = {
-        experienceLevel: resolvedBaseCvData.experienceLevel,
-        targetRole: resolvedBaseCvData.targetRole,
-        targetIndustry: resolvedBaseCvData.targetIndustry,
-        personalData: resolvedBaseCvData.personalData,
-        workExperiences: resolvedBaseCvData.workExperiences ?? [],
-        projects: resolvedBaseCvData.projects ?? [],
-        hardSkills: resolvedBaseCvData.hardSkills ?? [],
-        softSkills: resolvedBaseCvData.softSkills ?? [],
-        schoolEducation: resolvedBaseCvData.schoolEducation ?? [],
-        professionalEducation: resolvedBaseCvData.professionalEducation ?? [],
-        internships: resolvedBaseCvData.internships ?? [],
-        hobbies: resolvedBaseCvData.hobbies,
-        workValues: resolvedBaseCvData.workValues,
-        jobTarget: resolvedBaseCvData.jobTarget,
-        targetJob: resolvedBaseCvData.targetJob,
-        languages: resolvedBaseCvData.languages ?? [],
-        summary: resolvedBaseCvData.summary,
-        stipendien: resolvedBaseCvData.stipendien ?? [],
-        volunteerWork: resolvedBaseCvData.volunteerWork ?? [],
-        certificates: resolvedBaseCvData.certificates ?? [],
-        desired_job: sanitizedJobData,
-      };
+const cvDataPayload: any = {
+  experienceLevel: resolvedBaseCvData.experienceLevel,
+  targetRole: resolvedBaseCvData.targetRole,
+  targetIndustry: resolvedBaseCvData.targetIndustry,
+  personalData: resolvedBaseCvData.personalData,
+  workExperiences: resolvedBaseCvData.workExperiences ?? [],
+  projects: resolvedBaseCvData.projects ?? [],
+  hardSkills: resolvedBaseCvData.hardSkills ?? [],
+  softSkills: resolvedBaseCvData.softSkills ?? [],
+  schoolEducation: resolvedBaseCvData.schoolEducation ?? [],
+  professionalEducation: resolvedBaseCvData.professionalEducation ?? [],
+  internships: resolvedBaseCvData.internships ?? [],
+  hobbies: resolvedBaseCvData.hobbies,
+  workValues: resolvedBaseCvData.workValues,
+  jobTarget: resolvedBaseCvData.jobTarget,
+  targetJob: resolvedBaseCvData.targetJob,
+  languages: resolvedBaseCvData.languages ?? [],
+  summary: resolvedBaseCvData.summary,
+  // ✅ Korrekte Feldnamen aus CVBuilderData
+  stipendien: resolvedBaseCvData.stipendien ?? [],
+  volunteerWork: resolvedBaseCvData.volunteerWork ?? [],
+  certificates: resolvedBaseCvData.certificates ?? [],
+  desired_job: sanitizedJobData,
+};
 
       // 4) Log & Speicherung in Supabase
       console.log('🟦 [JOB-TARGETING] CV payload field counts:', {
@@ -275,7 +237,6 @@ export function JobTargeting() {
         awards: cvDataPayload.awards?.length ?? 0,
         volunteerWork: cvDataPayload.volunteerWork?.length ?? 0,
         certificates: cvDataPayload.certificates?.length ?? 0,
-        jobDescriptionLength: sanitizedJobData.job_description?.length ?? 0,
       });
       console.log('🟦 [JOB-TARGETING] Saving to Supabase (status=processing)...');
 
@@ -285,7 +246,7 @@ export function JobTargeting() {
         company: formData.company,
         jobTitle: formData.jobTitle,
         jobLink: formData.jobLink,
-        jobDescription: formData.jobDescription.slice(0, MAX_JOB_DESCRIPTION_LENGTH),
+        jobDescription: formData.jobDescription,
       };
 
       if (isPaidFlow && currentUserId) {
@@ -403,9 +364,7 @@ export function JobTargeting() {
     }
   };
 
-  const isValid =
-    generalistMode ||
-    !!(formData.company && formData.jobTitle && formData.jobDescription && !isJobDescriptionTooLong);
+  const isValid = generalistMode || !!(formData.company && formData.jobTitle && formData.jobDescription);
 
   if (isLoadingCvData) {
     return (
@@ -548,23 +507,10 @@ export function JobTargeting() {
               </div>
 
               <div className="space-y-2">
-                <div className="flex items-center justify-between gap-2 flex-wrap">
-                  <label className="flex items-center gap-2 text-lg font-semibold text-white/90">
-                    <FileText size={20} className="text-[#66c0b6]" />
-                    Stellenbeschreibung *
-                  </label>
-                  <span
-                    className={`text-xs font-medium tabular-nums ${
-                      isJobDescriptionTooLong
-                        ? 'text-red-400'
-                        : isJobDescriptionNearLimit
-                          ? 'text-amber-400'
-                          : 'text-white/40'
-                    }`}
-                  >
-                    {jobDescriptionLength.toLocaleString('de-DE')} / {MAX_JOB_DESCRIPTION_LENGTH.toLocaleString('de-DE')} Zeichen
-                  </span>
-                </div>
+                <label className="flex items-center gap-2 text-lg font-semibold text-white/90">
+                  <FileText size={20} className="text-[#66c0b6]" />
+                  Stellenbeschreibung *
+                </label>
                 <p className="text-sm text-white/60">
                   Kopiere die Stellenanzeige hier hinein. Je vollständiger, desto besser können wir deinen CV anpassen.
                 </p>
@@ -575,25 +521,11 @@ export function JobTargeting() {
                   }
                   placeholder="Füge hier die komplette Stellenbeschreibung ein..."
                   rows={12}
-                  className={`w-full px-4 py-3 rounded-xl border bg-white/5 text-white placeholder-white/30 focus:outline-none focus:ring-2 resize-none font-mono text-sm transition-colors ${
-                    isJobDescriptionTooLong
-                      ? 'border-red-500/50 focus:border-red-500 focus:ring-red-500/20'
-                      : 'border-white/10 focus:border-[#66c0b6] focus:ring-[#66c0b6]/20'
-                  }`}
+                  className="w-full px-4 py-3 rounded-xl border border-white/10 bg-white/5 text-white placeholder-white/30 focus:outline-none focus:border-[#66c0b6] focus:ring-2 focus:ring-[#66c0b6]/20 resize-none font-mono text-sm"
                 />
-                {isJobDescriptionTooLong ? (
-                  <div className="flex items-start gap-2 px-3 py-2 rounded-lg bg-red-500/10 border border-red-500/30">
-                    <AlertTriangle size={15} className="text-red-400 flex-shrink-0 mt-0.5" />
-                    <p className="text-xs text-red-400">
-                      Die Beschreibung ist um {(jobDescriptionLength - MAX_JOB_DESCRIPTION_LENGTH).toLocaleString('de-DE')} Zeichen zu lang.
-                      Kürze sie auf die wichtigsten Abschnitte (Aufgaben, Anforderungen, Qualifikationen) — Unternehmensportrait und Benefits-Listen kannst du weglassen.
-                    </p>
-                  </div>
-                ) : (
-                  <p className="text-xs text-white/40">
-                    💡 Tipp: Je detaillierter die Stellenbeschreibung, desto präziser die Optimierung
-                  </p>
-                )}
+                <p className="text-xs text-white/40">
+                  💡 Tipp: Je detaillierter die Stellenbeschreibung, desto präziser die Optimierung
+                </p>
               </div>
 
             </div>
@@ -608,7 +540,7 @@ export function JobTargeting() {
 
               <button
                 onClick={handleClickNext}
-                disabled={isSaving || (!generalistMode && isJobDescriptionTooLong)}
+                disabled={isSaving}
                 className="group px-16 py-6 rounded-3xl bg-gradient-to-r from-[#66c0b6] to-[#30E3CA] text-black font-bold text-2xl hover:opacity-90 transition-all flex items-center gap-4 shadow-2xl hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 {isSaving ? (
@@ -624,7 +556,7 @@ export function JobTargeting() {
                 )}
               </button>
 
-              {!generalistMode && !isJobDescriptionTooLong && (
+              {!generalistMode && (
                 <p className="text-center text-sm text-white/40">* Felder ohne Wunschstelle: Generalist-Modus aktivieren</p>
               )}
             </div>
