@@ -99,30 +99,36 @@ export const cvStorageService = {
       });
 
       // Determine status based on mode
-      let status = 'draft';
+ // Determine status based on mode
+      let status: string | undefined = 'draft';
       if (params.mode === 'processing') {
         status = 'processing';
       } else if (params.mode === 'completed') {
         status = 'completed';
+      } else if (params.mode === 'update') {
+        // Nur cv_data aktualisieren. Status, is_paid, source, pdf_url etc.
+        // bleiben unangetastet.
+        status = undefined;
       }
 
       const upsertData: any = {
-        user_id: user?.id || null,
-        session_id: params.sessionId || null,
         cv_data: params.cvData,
-        job_data: params.jobData || {},
-        is_paid: params.isPaid ?? false,
-        source: params.source || 'wizard',
-        status,
         updated_at: new Date().toISOString(),
       };
 
-      // Only include id if provided (otherwise Supabase generates it)
+      if (params.mode !== 'update') {
+        upsertData.user_id = user?.id || null;
+        upsertData.session_id = params.sessionId || null;
+        upsertData.job_data = params.jobData || {};
+        upsertData.is_paid = params.isPaid ?? false;
+        upsertData.source = params.source || 'wizard';
+      }
+      if (status !== undefined) {
+        upsertData.status = status;
+      }
       if (params.id) {
         upsertData.id = params.id;
       }
-
-      // Only set editor_data and insights if provided (Make fills these)
       if (params.insights !== undefined) {
         upsertData.insights = params.insights;
       }
