@@ -336,11 +336,6 @@ const level =
     ? lang.level || lang.niveau || lang.proficiency || ''
     : '';
 if (!language && !level) return null;
-                const level =
-                  typeof lang === 'object' && lang !== null
-                    ? lang.level || lang.niveau || lang.proficiency || ''
-                    : '';
-
                 return (
                   <div
                     key={idx}
