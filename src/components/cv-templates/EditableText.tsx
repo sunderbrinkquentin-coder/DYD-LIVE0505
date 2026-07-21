@@ -13,6 +13,8 @@ export interface EditableTextProps {
   placeholder?: string;
   multiline?: boolean;
   style?: React.CSSProperties;
+  onReorderSections: reorderSections,
+  onReorderSectionItem: reorderSectionItem,
   /**
    * Element-Tag. Default `div`.
    *
