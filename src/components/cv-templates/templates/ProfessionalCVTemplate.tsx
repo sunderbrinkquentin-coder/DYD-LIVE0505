@@ -36,6 +36,7 @@ interface ProfessionalCVTemplateProps {
   onDeleteSectionItem?: (sectionIndex: number, itemIndex: number) => void;
   onDeleteBullet?: (sectionIndex: number, itemIndex: number, bulletIndex: number) => void;
   onReorderSections?: (fromIndex: number, toIndex: number) => void;
+  onReorderSectionItem?: (sectionIndex: number, fromIndex: number, toIndex: number) => void;
   pageBreakItems?: Map<string, number>;
   pageCount?: number;
 }
@@ -46,18 +47,14 @@ const EditableText: React.FC<{
   className?: string;
   placeholder?: string;
   multiline?: boolean;
+  wrap?: boolean;
   style?: React.CSSProperties;
-}> = ({ value, onChange, className = '', placeholder = '', multiline = false, style }) => {
+}> = ({ value, onChange, className = '', placeholder = '', multiline = false, wrap = false, style }) => {
   const v = value ?? '';
   const ref = useRef<HTMLDivElement>(null);
   const isComposing = useRef(false);
   const isFocused = useRef(false);
   const lastValue = useRef(v);
-  // `renderKey` is rendered as JSX children, so the correct text is present
-  // from the FIRST render/paint — no need to wait for an effect (which could
-  // run after a PDF clone is taken, leaving the clone empty). It mirrors `v`
-  // except while focused, where it's frozen so React doesn't remount the
-  // node mid-keystroke (which would reset the cursor position).
   const [renderKey, setRenderKey] = useState(v);
 
   useEffect(() => {
@@ -93,6 +90,8 @@ const EditableText: React.FC<{
     }
   }, [multiline]);
 
+  const flows = multiline || wrap;
+
   return (
     <div
       key={renderKey}
@@ -112,15 +111,42 @@ const EditableText: React.FC<{
         className,
       ].join(' ')}
       style={{
-        whiteSpace: multiline ? 'pre-wrap' : 'nowrap',
-        wordBreak: multiline ? 'break-word' : 'normal',
-        overflow: multiline ? 'visible' : 'hidden',
-        textOverflow: multiline ? 'unset' : 'ellipsis',
+        whiteSpace: multiline ? 'pre-wrap' : wrap ? 'normal' : 'nowrap',
+        wordBreak: flows ? 'break-word' : 'normal',
+        overflow: flows ? 'visible' : 'hidden',
+        textOverflow: flows ? 'unset' : 'ellipsis',
+        ...(flows ? { overflowWrap: 'break-word' as const } : {}),
         ...style,
       }}
     >{renderKey}</div>
   );
 };
+
+/** Drag-Handler zum Verschieben einzelner Items INNERHALB einer Sektion. */
+function itemDragProps(
+  sectionIndex: number,
+  itemIndex: number,
+  onReorderSectionItem?: (sectionIndex: number, fromIndex: number, toIndex: number) => void
+) {
+  if (!onReorderSectionItem) return {};
+  return {
+    draggable: true,
+    onDragStart: (e: React.DragEvent) => {
+      e.dataTransfer.setData('application/x-item-index', String(itemIndex));
+      e.dataTransfer.setData('application/x-section-index', String(sectionIndex));
+      e.dataTransfer.effectAllowed = 'move';
+    },
+    onDragOver: (e: React.DragEvent) => e.preventDefault(),
+    onDrop: (e: React.DragEvent) => {
+      e.preventDefault();
+      const fromSection = parseInt(e.dataTransfer.getData('application/x-section-index'), 10);
+      const fromItem = parseInt(e.dataTransfer.getData('application/x-item-index'), 10);
+      if (fromSection === sectionIndex && !isNaN(fromItem) && fromItem !== itemIndex) {
+        onReorderSectionItem(sectionIndex, fromItem, itemIndex);
+      }
+    },
+  };
+}
 
 const SectionTitle: React.FC<{ children: React.ReactNode }> = ({ children }) => (
   <h2 className="mt-4 mb-2 !text-[9px] font-bold tracking-[0.16em] text-slate-700 uppercase flex items-center gap-1.5">
@@ -160,6 +186,7 @@ export const ProfessionalCVTemplate: React.FC<ProfessionalCVTemplateProps> = ({
   onDeleteSectionItem = () => {},
   onDeleteBullet,
   onReorderSections,
+  onReorderSectionItem,
   pageBreakItems,
   pageCount,
 }) => {
@@ -263,7 +290,6 @@ export const ProfessionalCVTemplate: React.FC<ProfessionalCVTemplateProps> = ({
             <SectionTitle>{sectionTitle}</SectionTitle>
             <div className="space-y-2">
               {items.map((exp: any, idx: number) => {
-                // 🔥 Konsistente ID: section.type + sectionIndex + idx
                 const itemKey = `${section.type}-${sectionIndex}-${idx}`;
                 const spacer = pageBreakItems?.get(itemKey) ?? 0;
                 const bullets = getBullets(exp);
@@ -272,12 +298,23 @@ export const ProfessionalCVTemplate: React.FC<ProfessionalCVTemplateProps> = ({
                     key={idx}
                     data-pdf-section
                     data-spacer-id={itemKey}
-                    style={{ display: 'block', width: '100%', ...(spacer > 0 ? { marginTop: `${spacer}px` } : {}) }}
+                    style={{
+                      display: 'block',
+                      width: '100%',
+                      cursor: onReorderSectionItem ? 'grab' : undefined,
+                      ...(spacer > 0 ? { marginTop: `${spacer}px` } : {}),
+                    }}
                     className="px-3 py-2 rounded-lg border border-slate-200 bg-white/95"
+                    {...itemDragProps(sectionIndex, idx, onReorderSectionItem)}
                   >
                     <div className="flex justify-between gap-2 items-start">
+                      {/* FIX: min-w-0 auf dem Flex-Kind ist zwingend nötig,
+                          sonst schrumpft der Titel nicht und wird von der
+                          Datums-Spalte abgeschnitten statt umzubrechen.
+                          `wrap` auf EditableText erlaubt den Umbruch selbst. */}
                       <div className="flex-1 min-w-0">
                         <EditableText
+                          wrap
                           className="text-[11px] font-bold text-slate-900"
                           value={exp.title || exp.position || ''}
                           onChange={(val) =>
@@ -286,6 +323,7 @@ export const ProfessionalCVTemplate: React.FC<ProfessionalCVTemplateProps> = ({
                           placeholder="Position"
                         />
                         <EditableText
+                          wrap
                           className="mt-0.5 text-[10px] text-slate-500"
                           value={exp.company || ''}
                           onChange={(val) =>
@@ -400,7 +438,6 @@ export const ProfessionalCVTemplate: React.FC<ProfessionalCVTemplateProps> = ({
             <SectionTitle>{sectionTitle}</SectionTitle>
             <div className="space-y-2">
               {items.map((proj: any, idx: number) => {
-                // 🔥 Konsistente ID: section.type + sectionIndex + idx
                 const itemKey = `${section.type}-${sectionIndex}-${idx}`;
                 const spacer = pageBreakItems?.get(itemKey) ?? 0;
                 const bullets = getBullets(proj);
@@ -409,12 +446,19 @@ export const ProfessionalCVTemplate: React.FC<ProfessionalCVTemplateProps> = ({
                     key={idx}
                     data-pdf-section
                     data-spacer-id={itemKey}
-                    style={{ display: 'block', width: '100%', ...(spacer > 0 ? { marginTop: `${spacer}px` } : {}) }}
+                    style={{
+                      display: 'block',
+                      width: '100%',
+                      cursor: onReorderSectionItem ? 'grab' : undefined,
+                      ...(spacer > 0 ? { marginTop: `${spacer}px` } : {}),
+                    }}
                     className="px-3 py-2 rounded-lg border border-slate-200 bg-white/95"
+                    {...itemDragProps(sectionIndex, idx, onReorderSectionItem)}
                   >
                     <div className="flex justify-between gap-2 items-start">
                       <div className="flex-1 min-w-0">
                         <EditableText
+                          wrap
                           className="text-[11px] font-bold text-slate-900"
                           value={proj.title || proj.name || ''}
                           onChange={(val) =>
@@ -423,6 +467,7 @@ export const ProfessionalCVTemplate: React.FC<ProfessionalCVTemplateProps> = ({
                           placeholder="Projekt"
                         />
                         <EditableText
+                          wrap
                           className="mt-0.5 text-[10px] text-slate-500"
                           value={proj.role || ''}
                           onChange={(val) =>
@@ -498,62 +543,87 @@ export const ProfessionalCVTemplate: React.FC<ProfessionalCVTemplateProps> = ({
           </div>
         );
 
+      /**
+       * FIX (Ausbildungstitel wurde abgeschnitten): `flex-1` OHNE `min-w-0`
+       * ließ den Titel bei langen Studiengängen hinter die Datums-Spalte
+       * laufen bzw. abschneiden. `min-w-0` erlaubt dem Flex-Kind zu
+       * schrumpfen, `wrap` erlaubt dem EditableText den tatsächlichen
+       * Zeilenumbruch — dieselbe Kombination wie im Modern-Template.
+       */
       case 'education':
         return (
           <div key={sectionIndex}>
             <SectionTitle>Ausbildung & Studium</SectionTitle>
             <div className="space-y-1.5">
               {items.map((edu: any, idx: number) => {
-                // 🔥 Konsistente ID: section.type + sectionIndex + idx
                 const itemKey = `${section.type}-${sectionIndex}-${idx}`;
                 const spacer = pageBreakItems?.get(itemKey) ?? 0;
                 return (
-                <div key={idx} data-pdf-section data-spacer-id={itemKey} style={{ display: 'block', width: '100%', ...(spacer > 0 ? { marginTop: `${spacer}px` } : {}) }} className="px-2 py-1 rounded-md">
-                  <EditableText
-                    className="text-[11px] font-bold text-slate-900"
-                    value={edu.degree || ''}
-                    onChange={(val) =>
-                      onUpdateSectionItem(sectionIndex, idx, 'degree', val)
-                    }
-                    placeholder="Abschluss / Studiengang"
-                  />
-                  <EditableText
-                    className="mt-0.5 text-[10px] text-slate-500"
-                    value={edu.institution || ''}
-                    onChange={(val) =>
-                      onUpdateSectionItem(sectionIndex, idx, 'institution', val)
-                    }
-                    placeholder="Institution"
-                  />
-                  {edu.location && (
-                    <EditableText
-                      className="mt-0.5 text-[9.5px] text-slate-400"
-                      value={edu.location || ''}
-                      onChange={(val) => onUpdateSectionItem(sectionIndex, idx, 'location', val)}
-                      placeholder="Ort"
-                    />
-                  )}
-                  {(edu.date_from || edu.date_to) && (
-                    <div className="mt-0.5 text-[9px] text-slate-500 flex gap-1">
+                <div
+                  key={idx}
+                  data-pdf-section
+                  data-spacer-id={itemKey}
+                  style={{
+                    display: 'block',
+                    width: '100%',
+                    cursor: onReorderSectionItem ? 'grab' : undefined,
+                    ...(spacer > 0 ? { marginTop: `${spacer}px` } : {}),
+                  }}
+                  className="px-2 py-1 rounded-md"
+                  {...itemDragProps(sectionIndex, idx, onReorderSectionItem)}
+                >
+                  <div className="flex justify-between gap-2 items-start">
+                    <div className="flex-1 min-w-0">
                       <EditableText
-                        style={{ width: '50px' }}
-                        value={edu.date_from || ''}
+                        wrap
+                        className="text-[11px] font-bold text-slate-900"
+                        value={edu.degree || ''}
                         onChange={(val) =>
-                          onUpdateSectionItem(sectionIndex, idx, 'date_from', val)
+                          onUpdateSectionItem(sectionIndex, idx, 'degree', val)
                         }
-                        placeholder="Von"
+                        placeholder="Abschluss / Studiengang"
                       />
-                      <span>–</span>
                       <EditableText
-                        style={{ width: '50px' }}
-                        value={edu.date_to || ''}
+                        wrap
+                        className="mt-0.5 text-[10px] text-slate-500"
+                        value={edu.institution || ''}
                         onChange={(val) =>
-                          onUpdateSectionItem(sectionIndex, idx, 'date_to', val)
+                          onUpdateSectionItem(sectionIndex, idx, 'institution', val)
                         }
-                        placeholder="Bis"
+                        placeholder="Institution"
                       />
+                      {edu.location && (
+                        <EditableText
+                          className="mt-0.5 text-[9.5px] text-slate-400"
+                          value={edu.location || ''}
+                          onChange={(val) => onUpdateSectionItem(sectionIndex, idx, 'location', val)}
+                          placeholder="Ort"
+                        />
+                      )}
                     </div>
-                  )}
+                    {(edu.date_from || edu.date_to) && (
+                      <div className="text-[9px] text-slate-500 text-right whitespace-nowrap flex flex-col items-end gap-0.5 flex-shrink-0">
+                        <EditableText
+                          className="text-right"
+                          style={{ width: '60px' }}
+                          value={edu.date_from || ''}
+                          onChange={(val) =>
+                            onUpdateSectionItem(sectionIndex, idx, 'date_from', val)
+                          }
+                          placeholder="Von"
+                        />
+                        <EditableText
+                          className="text-right"
+                          style={{ width: '60px' }}
+                          value={edu.date_to || ''}
+                          onChange={(val) =>
+                            onUpdateSectionItem(sectionIndex, idx, 'date_to', val)
+                          }
+                          placeholder="Bis"
+                        />
+                      </div>
+                    )}
+                  </div>
                   {(edu.grade || edu.grades || edu.note) && (
                     <div className="mt-0.5 flex items-center gap-1 text-[9.5px] text-slate-500">
                       <span className="font-semibold text-[#30E3CA]">Note:</span>
@@ -589,11 +659,19 @@ export const ProfessionalCVTemplate: React.FC<ProfessionalCVTemplateProps> = ({
             <SectionTitle>Sprachen</SectionTitle>
             <div className="space-y-1">
               {items.map((lang: any, idx: number) => {
-                const rawLangVal = typeof lang === 'string' ? lang : (lang.language || lang.name || lang.sprache || '');
-                const langVal = rawLangVal.replace(/^(programmiersprachen|technische\s*f[äa]higkeiten|fachkenntnisse|kenntnisse|sprachen|fähigkeiten|soft\s*skills|skills|languages|kompetenzen|tools?)[:\s\-–]+/i, '').replace(/\s*\(?Otherskill\)?/gi, '').replace(/\s*\($/, '').trim();
-                if (!langVal) return null;
+                const rawLangVal = typeof lang === 'string'
+                  ? lang
+                  : (lang.language || lang.name || lang.sprache || lang.skill || lang.label || '');
+                const langVal = rawLangVal
+                  .replace(/^(programmiersprachen|technische\s*f[äa]higkeiten|fachkenntnisse|kenntnisse|sprachen|fähigkeiten|soft\s*skills|skills|languages|kompetenzen|tools?)[:\s\-–]+/i, '')
+                  .replace(/\s*\(?Otherskill\)?/gi, '').replace(/\s*\($/, '').trim();
 
-                const levelVal = typeof lang === 'object' && lang !== null ? (lang.level || lang.niveau || lang.proficiency || '') : '';
+                const levelVal = typeof lang === 'object' && lang !== null
+                  ? (lang.level || lang.niveau || lang.proficiency || '')
+                  : '';
+
+                if (!langVal && !levelVal) return null;
+
                 return (
                   <div key={idx} style={{ breakInside: 'avoid', pageBreakInside: 'avoid' }} className="flex items-center justify-between gap-2 text-[9.5px] text-slate-800">
                     <EditableText
@@ -602,15 +680,13 @@ export const ProfessionalCVTemplate: React.FC<ProfessionalCVTemplateProps> = ({
                       onChange={(val) => onUpdateSectionItem(sectionIndex, idx, 'language', val)}
                       placeholder="Sprache"
                     />
-                    {levelVal && (
-                      <EditableText
-                        className="text-right text-slate-500"
-                        style={{ width: '70px' }}
-                        value={levelVal}
-                        onChange={(val) => onUpdateSectionItem(sectionIndex, idx, 'level', val)}
-                        placeholder="Niveau"
-                      />
-                    )}
+                    <EditableText
+                      className="text-right text-slate-500"
+                      style={{ width: '70px' }}
+                      value={levelVal}
+                      onChange={(val) => onUpdateSectionItem(sectionIndex, idx, 'level', val)}
+                      placeholder="Niveau"
+                    />
                   </div>
                 );
               })}
@@ -739,7 +815,6 @@ export const ProfessionalCVTemplate: React.FC<ProfessionalCVTemplateProps> = ({
       default:
         if (items.length === 0) return null;
 
-        // Check if this is a detailed section (certifications, courses, awards, volunteering, stipendien, scholarships)
         const detailedTypes = ['certifications', 'courses', 'awards', 'volunteering', 'stipendien', 'scholarships'];
         if (detailedTypes.includes(section.type)) {
           return (
@@ -758,6 +833,7 @@ export const ProfessionalCVTemplate: React.FC<ProfessionalCVTemplateProps> = ({
                     >
                       <div style={{ fontWeight: 600, marginBottom: institution || date ? '2px' : '0' }}>
                         <EditableText
+                          wrap
                           className="text-slate-900"
                           value={name}
                           onChange={(val) =>
@@ -836,7 +912,6 @@ export const ProfessionalCVTemplate: React.FC<ProfessionalCVTemplateProps> = ({
         minHeight: `${containerMinHeight}px`,
       }}
     >
-      {/* Dunkler Professional-Header */}
       <div ref={contentRef}>
       <header className="px-8 pt-7 pb-5 bg-slate-900 text-white flex justify-between gap-6 items-start border-b-4 border-[#30E3CA]">
         <div className="flex-1 min-w-0">
@@ -911,10 +986,8 @@ export const ProfessionalCVTemplate: React.FC<ProfessionalCVTemplateProps> = ({
         )}
       </header>
 
-      {/* Flexbox-Layout */}
       <div style={{ display: 'flex', width: '100%', backgroundColor: '#ffffff', flex: 'none', padding: '16px 0' }}>
         
-        {/* Linke Spalte */}
         <section style={{ flex: '0 0 58%', minWidth: 0, paddingLeft: '32px', paddingRight: '12px', display: 'flex', flexDirection: 'column', gap: '12px' }}>
           <div>
             <SectionTitle>Profil & Mehrwert</SectionTitle>
@@ -948,7 +1021,6 @@ export const ProfessionalCVTemplate: React.FC<ProfessionalCVTemplateProps> = ({
           })}
         </section>
 
-        {/* Rechte Spalte */}
         <aside style={{ flex: '0 0 42%', minWidth: 0, paddingLeft: '12px', paddingRight: '32px', display: 'flex', flexDirection: 'column', gap: '12px' }}>
           {rightSections.map((section) => {
             const idx = sections.findIndex((s) => s === section);
@@ -971,7 +1043,6 @@ export const ProfessionalCVTemplate: React.FC<ProfessionalCVTemplateProps> = ({
         </aside>
       </div>
 
-      {/* Weitere Sections */}
       {otherSections.length > 0 && (
         <div className="px-8 pb-4 space-y-3 bg-white" data-pdf-section>
           {otherSections.map((section) => {
@@ -995,7 +1066,6 @@ export const ProfessionalCVTemplate: React.FC<ProfessionalCVTemplateProps> = ({
         </div>
       )}
 
-      {/* 🔥 Footer mit marginTop: 'auto' — geht an den Boden der berechneten Seite */}
       </div>
       <footer
         data-pdf-footer
