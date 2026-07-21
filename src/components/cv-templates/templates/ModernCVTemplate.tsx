@@ -321,7 +321,8 @@ const renderCardControls = (
     return (
       <div key={`${section.type}-${sectionIndex}`}>
         <SectionTitle>{title}</SectionTitle>
-        {items.map((item: any, idx: number) => {
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+          {items.map((item: any, idx: number) => {
             const bullets = getBullets(item);
             return (
               <div
