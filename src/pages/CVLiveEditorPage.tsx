@@ -63,13 +63,6 @@ const templates = [
   { id: 'creative' as CVTemplateType, name: 'Kreativ', icon: '🎨' },
   { id: 'professional' as CVTemplateType, name: 'Professional', icon: '💼' },
 ];
-const TEMPLATE_PAGE_BG: Record<CVTemplateType, string> = {
-  modern: '#f0faf8',
-  classic: '#ffffff',
-  minimal: '#ffffff',
-  creative: '#ffffff',
-  professional: '#ffffff',
-};
 
 interface LoadingPageProps {
   elapsedSeconds: number;
@@ -859,18 +852,21 @@ export function CVLiveEditorPage() {
           if (allLangs.length > 0) {
             // `pickLanguage`/`pickLevel` stehen jetzt weiter oben, neben den
             // anderen Normalisierern — der sections-Zweig braucht sie ebenso.
-const normalized = allLangs
+            const normalized = allLangs
               .map((item: any) => ({
                 language: String(pickLanguage(item) ?? '').trim(),
                 level: String(pickLevel(item) ?? '').trim(),
               }))
-              .filter((l) => (l.language && l.language !== '[object Object]') || l.level);
+              .filter((l) => l.language && l.language !== '[object Object]');
 
             if (normalized.length > 0) {
               sections.push({ type: 'languages', title: 'Sprachen', items: normalized });
+            } else if (allLangs.length > 0) {
+              console.warn(
+                '[cvMapper] Sprach-Einträge gefunden, aber kein Feld erkannt. Rohdaten:',
+                allLangs
+              );
             }
-            // Der console.warn-Zweig für "kein Feld erkannt" kann entfallen —
-            // Einträge mit Niveau werden jetzt mitgenommen statt verworfen.
           }
         }
       }
@@ -1053,7 +1049,11 @@ const normalized = allLangs
         // Der versteckte Render trägt keinen Transform mehr — die alte
         // `el.style.transform = 'none'`-Akrobatik entfällt.
         await new Promise((resolve) => setTimeout(resolve, 300));
-        const pdfBlob = await exportCVToPDFBlob(cvPreviewRef, editorData, { quality: 0.95, scale: 2 });
+        const pdfBlob = await exportCVToPDFBlob(cvPreviewRef, editorData, {
+          quality: 0.95,
+          scale: 2,
+          backgroundColor: TEMPLATE_PAGE_BG[selectedTemplate] ?? '#ffffff',
+        });
 
         const blobUrl = URL.createObjectURL(pdfBlob);
         const a = document.createElement('a');
@@ -1199,7 +1199,9 @@ const normalized = allLangs
       // aus der Break-Engine — im Preview und im Export identisch.
       await new Promise(resolve => setTimeout(resolve, 400));
 
-      const blob = await exportCVToPDFBlob(cvPreviewRef, editorData);
+      const blob = await exportCVToPDFBlob(cvPreviewRef, editorData, {
+        backgroundColor: TEMPLATE_PAGE_BG[selectedTemplate] ?? '#ffffff',
+      });
 
       const url = URL.createObjectURL(blob);
       const a = document.createElement('a');
@@ -1369,28 +1371,13 @@ const normalized = allLangs
     });
   };
 
-const reorderSections = (fromIndex: number, toIndex: number) => {
+  const reorderSections = (fromIndex: number, toIndex: number) => {
     setHasEditorChanges(true);
     setEditorData((prev: any) => {
       if (!prev?.sections) return prev;
       const newSections = [...prev.sections];
       const [moved] = newSections.splice(fromIndex, 1);
       newSections.splice(toIndex, 0, moved);
-      return { ...prev, sections: newSections };
-    });
-  };
-
-  const reorderSectionItem = (sectionIndex: number, fromIndex: number, toIndex: number) => {
-    setHasEditorChanges(true);
-    setEditorData((prev: any) => {
-      if (!prev?.sections?.[sectionIndex]?.items) return prev;
-      const newSections = [...prev.sections];
-      const section = { ...newSections[sectionIndex] };
-      const items = [...section.items];
-      const [moved] = items.splice(fromIndex, 1);
-      items.splice(toIndex, 0, moved);
-      section.items = items;
-      newSections[sectionIndex] = section;
       return { ...prev, sections: newSections };
     });
   };
@@ -1729,6 +1716,18 @@ const reorderSections = (fromIndex: number, toIndex: number) => {
             pointer-events: auto;
           }
 
+          .nonce-export { display: none !important; }
+
+          .a4-page-frame {
+            width: 794px !important;
+            height: 1122px !important;
+            background-color: #ffffff !important;
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.4) !important;
+            border-radius: 4px;
+            position: absolute !important;
+            overflow: hidden !important;
+          }
+
           /* text-size-adjust:none verhindert iOS-Text-Boosting, ohne font-size
              zu ändern — für sichtbare Frames UND den versteckten PDF-Render. */
           .a4-page-frame,
@@ -1821,17 +1820,11 @@ const reorderSections = (fromIndex: number, toIndex: number) => {
                 const frameTop = pageIdx * (PAGE_HEIGHT_PX + SHEET_GAP_PX) * scale;
 
                 return (
-                 <div
-                  key={pageIdx}
-                  className="a4-page-frame"
-                  style={{
-                    top: `${frameTop}px`,
-                    left: 0,
-                    transform: `scale(${scale})`,
-                    transformOrigin: 'top left',
-                    backgroundColor: TEMPLATE_PAGE_BG[selectedTemplate] ?? '#ffffff',
-                  }}
-                >
+                  <div
+                    key={pageIdx}
+                    className="a4-page-frame"
+                    style={{ top: `${frameTop}px`, left: 0, transform: `scale(${scale})`, transformOrigin: 'top left' }}
+                  >
                     <div style={{ position: 'relative', width: '794px', height: `${visibleHeight}px`, overflow: 'hidden' }}>
                       <div style={{ position: 'absolute', top: `${-pageStart}px`, left: 0, width: '794px' }}>
                         {renderTemplate()}
