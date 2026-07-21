@@ -853,16 +853,18 @@ const normalizeLanguageSection = (section: EditorSection): EditorSection => {
           if (allLangs.length > 0) {
             // `pickLanguage`/`pickLevel` stehen jetzt weiter oben, neben den
             // anderen Normalisierern — der sections-Zweig braucht sie ebenso.
-            const normalized = allLangs
+const normalized = allLangs
               .map((item: any) => ({
                 language: String(pickLanguage(item) ?? '').trim(),
                 level: String(pickLevel(item) ?? '').trim(),
               }))
-              .filter((l) => l.language && l.language !== '[object Object]');
+              .filter((l) => (l.language && l.language !== '[object Object]') || l.level);
 
             if (normalized.length > 0) {
               sections.push({ type: 'languages', title: 'Sprachen', items: normalized });
-            } else if (allLangs.length > 0) {
+            }
+            // Der console.warn-Zweig für "kein Feld erkannt" kann entfallen —
+            // Einträge mit Niveau werden jetzt mitgenommen statt verworfen. else if (allLangs.length > 0) {
               console.warn(
                 '[cvMapper] Sprach-Einträge gefunden, aber kein Feld erkannt. Rohdaten:',
                 allLangs
