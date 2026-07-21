@@ -38,6 +38,16 @@ function SectionHeader({ label, count, expanded, onToggle }: { label: string; co
   );
 }
 
+/** Sprachnamen tolerant aus verschiedenen Feldern lesen (KI-Output nutzt teils
+ *  andere Feldnamen als das Wizard-Format). */
+function readLanguage(item: any): { language: string; level: string } {
+  if (typeof item === 'string') return { language: item, level: '' };
+  if (!item || typeof item !== 'object') return { language: '', level: '' };
+  const language = item.language || item.name || item.sprache || item.skill || item.label || '';
+  const level = item.level || item.niveau || item.proficiency || '';
+  return { language: String(language).trim(), level: String(level).trim() };
+}
+
 const EMPTY_EXPERIENCE: WorkExperience = {
   jobTitle: '',
   company: '',
@@ -76,6 +86,16 @@ const EMPTY_VOLUNTEER: VolunteerWork = {
   description: '',
 };
 
+const EMPTY_STIPENDIUM: Stipendium = {
+  name: '',
+  organization: '',
+  year: '',
+  description: '',
+};
+
+interface EditableLanguage { language: string; level: string; }
+const EMPTY_LANGUAGE: EditableLanguage = { language: '', level: '' };
+
 export function WizardCVOverview({ isOpen, cvData, cvId, onClose, onContinue }: WizardCVOverviewProps) {
   const navigate = useNavigate();
 
@@ -89,11 +109,19 @@ export function WizardCVOverview({ isOpen, cvData, cvId, onClose, onContinue }: 
     stipendien: cvData.stipendien ? cvData.stipendien.map(e => ({ ...e })) : [],
   }));
 
+  // Sprachen liegen bei manchen Datensätzen unter uneinheitlichen Feldnamen
+  // (z.B. {skill, level} statt {language, level}). Hier normalisiert, damit
+  // sie überhaupt editierbar werden — vorher gab es dafür gar keinen Block.
+  const [editLanguages, setEditLanguages] = useState<EditableLanguage[]>(() =>
+    (cvData.languages || []).map((item: any) => readLanguage(item)).filter(l => l.language || l.level)
+  );
+
   const [confirmed, setConfirmed] = useState(false);
   const [expandedExp, setExpandedExp] = useState(true);
   const [expandedEdu, setExpandedEdu] = useState(true);
   const [expandedSchool, setExpandedSchool] = useState(false);
   const [expandedSkills, setExpandedSkills] = useState(false);
+  const [expandedLanguages, setExpandedLanguages] = useState(false);
   const [expandedCerts, setExpandedCerts] = useState(false);
   const [expandedVolunteer, setExpandedVolunteer] = useState(false);
   const [expandedStipendien, setExpandedStipendien] = useState(false);
@@ -176,6 +204,44 @@ export function WizardCVOverview({ isOpen, cvData, cvId, onClose, onContinue }: 
   const addVolunteer = () => {
     setData(prev => ({ ...prev, volunteerWork: [...(prev.volunteerWork || []), { ...EMPTY_VOLUNTEER }] }));
     setExpandedVolunteer(true);
+    setConfirmed(false);
+  };
+
+  // ── Stipendium helpers (NEU: editierbar statt nur read-only) ──
+  const updateStipendium = (i: number, field: keyof Stipendium, value: any) => {
+    setData(prev => {
+      const stips = [...(prev.stipendien || [])];
+      stips[i] = { ...stips[i], [field]: value };
+      return { ...prev, stipendien: stips };
+    });
+    setConfirmed(false);
+  };
+  const deleteStipendium = (i: number) => {
+    setData(prev => ({ ...prev, stipendien: (prev.stipendien || []).filter((_, idx) => idx !== i) }));
+    setConfirmed(false);
+  };
+  const addStipendium = () => {
+    setData(prev => ({ ...prev, stipendien: [...(prev.stipendien || []), { ...EMPTY_STIPENDIUM }] }));
+    setExpandedStipendien(true);
+    setConfirmed(false);
+  };
+
+  // ── Language helpers (NEU: Sprachen gab es hier bisher gar nicht) ──
+  const updateLanguage = (i: number, field: keyof EditableLanguage, value: string) => {
+    setEditLanguages(prev => {
+      const next = [...prev];
+      next[i] = { ...next[i], [field]: value };
+      return next;
+    });
+    setConfirmed(false);
+  };
+  const deleteLanguage = (i: number) => {
+    setEditLanguages(prev => prev.filter((_, idx) => idx !== i));
+    setConfirmed(false);
+  };
+  const addLanguage = () => {
+    setEditLanguages(prev => [...prev, { ...EMPTY_LANGUAGE }]);
+    setExpandedLanguages(true);
     setConfirmed(false);
   };
 
@@ -437,6 +503,64 @@ export function WizardCVOverview({ isOpen, cvData, cvId, onClose, onContinue }: 
             </div>
           )}
 
+          {/* ── Sprachen (NEU: gab es hier bisher gar nicht) ── */}
+          <div>
+            <SectionHeader
+              label="Sprachen"
+              count={editLanguages.length}
+              expanded={expandedLanguages}
+              onToggle={() => setExpandedLanguages(v => !v)}
+            />
+            {expandedLanguages && (
+              <div className="mt-2 space-y-3 pl-1">
+                {editLanguages.length === 0 && (
+                  <p className="text-sm text-white/30 px-2">Noch keine Sprachen eingetragen.</p>
+                )}
+                {editLanguages.map((lang, i) => (
+                  <div key={i} className="p-4 rounded-xl border border-white/10 bg-white/3 space-y-2">
+                    <div className="flex items-center justify-between gap-2 mb-1">
+                      <span className="text-xs font-semibold text-[#66c0b6] uppercase tracking-wider">Sprache {i + 1}</span>
+                      <button
+                        type="button"
+                        onClick={() => deleteLanguage(i)}
+                        className="p-1 hover:bg-red-500/20 rounded-md transition-colors"
+                      >
+                        <Trash2 size={13} className="text-red-400/70" />
+                      </button>
+                    </div>
+                    <div className="grid grid-cols-2 gap-2">
+                      <div>
+                        <label className="text-[10px] text-white/40 mb-0.5 block">Sprache</label>
+                        <input
+                          className={inputCls()}
+                          value={lang.language}
+                          onChange={e => updateLanguage(i, 'language', e.target.value)}
+                          placeholder="z.B. Englisch"
+                        />
+                      </div>
+                      <div>
+                        <label className="text-[10px] text-white/40 mb-0.5 block">Niveau</label>
+                        <input
+                          className={inputCls()}
+                          value={lang.level}
+                          onChange={e => updateLanguage(i, 'level', e.target.value)}
+                          placeholder="z.B. Verhandlungssicher (C1)"
+                        />
+                      </div>
+                    </div>
+                  </div>
+                ))}
+                <button
+                  type="button"
+                  onClick={addLanguage}
+                  className="flex items-center gap-1.5 text-sm text-[#66c0b6] hover:text-[#30E3CA] transition-colors px-2 py-1"
+                >
+                  <Plus size={14} /> Sprache hinzufügen
+                </button>
+              </div>
+            )}
+          </div>
+
           {/* ── Zertifikate ── */}
           <div>
             <SectionHeader
@@ -597,27 +721,72 @@ export function WizardCVOverview({ isOpen, cvData, cvId, onClose, onContinue }: 
             )}
           </div>
 
-          {/* ── Stipendien (read-only, collapsed by default) ── */}
-          {stipendien.length > 0 && (
-            <div>
-              <SectionHeader
-                label="Stipendien"
-                count={stipendien.length}
-                expanded={expandedStipendien}
-                onToggle={() => setExpandedStipendien(v => !v)}
-              />
-              {expandedStipendien && (
-                <div className="mt-2 pl-1 space-y-1">
-                  {stipendien.map((s: Stipendium, i: number) => (
-                    <div key={i} className="flex items-center gap-2 px-3 py-2 rounded-lg bg-white/3 border border-white/10 text-sm text-white/70">
-                      <span className="flex-1">{s.name}{s.organization ? ` · ${s.organization}` : ''}</span>
-                      {s.year && <span className="text-white/40 text-xs shrink-0">{s.year}</span>}
+          {/* ── Stipendien (NEU: editierbar statt nur read-only) ── */}
+          <div>
+            <SectionHeader
+              label="Stipendien"
+              count={stipendien.length}
+              expanded={expandedStipendien}
+              onToggle={() => setExpandedStipendien(v => !v)}
+            />
+            {expandedStipendien && (
+              <div className="mt-2 space-y-3 pl-1">
+                {stipendien.length === 0 && (
+                  <p className="text-sm text-white/30 px-2">Noch keine Stipendien eingetragen.</p>
+                )}
+                {stipendien.map((st, i) => (
+                  <div key={i} className="p-4 rounded-xl border border-white/10 bg-white/3 space-y-2">
+                    <div className="flex items-center justify-between gap-2 mb-1">
+                      <span className="text-xs font-semibold text-[#66c0b6] uppercase tracking-wider">Stipendium {i + 1}</span>
+                      <button
+                        type="button"
+                        onClick={() => deleteStipendium(i)}
+                        className="p-1 hover:bg-red-500/20 rounded-md transition-colors"
+                      >
+                        <Trash2 size={13} className="text-red-400/70" />
+                      </button>
                     </div>
-                  ))}
-                </div>
-              )}
-            </div>
-          )}
+                    <div className="grid grid-cols-2 gap-2">
+                      <div>
+                        <label className="text-[10px] text-white/40 mb-0.5 block">Name</label>
+                        <input
+                          className={inputCls()}
+                          value={st.name || ''}
+                          onChange={e => updateStipendium(i, 'name', e.target.value)}
+                          placeholder="z.B. Deutschlandstipendium"
+                        />
+                      </div>
+                      <div>
+                        <label className="text-[10px] text-white/40 mb-0.5 block">Organisation / Stiftung</label>
+                        <input
+                          className={inputCls()}
+                          value={st.organization || ''}
+                          onChange={e => updateStipendium(i, 'organization', e.target.value)}
+                          placeholder="Stiftung / Institution"
+                        />
+                      </div>
+                    </div>
+                    <div>
+                      <label className="text-[10px] text-white/40 mb-0.5 block">Jahr</label>
+                      <input
+                        className={inputCls('max-w-[120px]')}
+                        value={st.year || ''}
+                        onChange={e => updateStipendium(i, 'year', e.target.value)}
+                        placeholder="2023"
+                      />
+                    </div>
+                  </div>
+                ))}
+                <button
+                  type="button"
+                  onClick={addStipendium}
+                  className="flex items-center gap-1.5 text-sm text-[#66c0b6] hover:text-[#30E3CA] transition-colors px-2 py-1"
+                >
+                  <Plus size={14} /> Stipendium hinzufügen
+                </button>
+              </div>
+            )}
+          </div>
 
           {/* ── Skills Summary (collapsed by default) ── */}
           <div>
@@ -703,7 +872,7 @@ export function WizardCVOverview({ isOpen, cvData, cvId, onClose, onContinue }: 
           </button>
 
           <button
-            onClick={() => confirmed && onContinue(data)}
+            onClick={() => confirmed && onContinue({ ...data, languages: editLanguages })}
             disabled={!confirmed}
             className={`flex-1 group flex items-center justify-center gap-2 px-5 py-3 rounded-xl font-bold transition-all shadow-lg text-sm ${
               confirmed
