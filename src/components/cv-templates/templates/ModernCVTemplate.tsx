@@ -322,12 +322,16 @@ const renderCardControls = (
       <div key={`${section.type}-${sectionIndex}`}>
         <SectionTitle>{title}</SectionTitle>
         <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
-          {items.map((item: any, idx: number) => {
+{items.map((item: any, idx: number) => {
             const bullets = getBullets(item);
             return (
-              <div key={idx} data-pdf-section data-break-item style={cardStyle}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: '10px' }}>
-                  <div style={{ flex: 1, minWidth: 0 }}>
+              <div
+                key={idx}
+                data-pdf-section
+                data-break-item
+                style={{ ...cardStyle, cursor: onReorderSectionItem ? 'grab' : undefined }}
+                {...itemDragProps(sectionIndex, idx, onReorderSectionItem)}
+              >
                     <EditableText
                       value={isProject ? item.title || item.name || '' : item.title || item.position || item.role || ''}
                       onChange={(v) => onUpdateSectionItem(sectionIndex, idx, 'title', v)}
