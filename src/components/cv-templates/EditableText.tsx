@@ -190,24 +190,32 @@ export interface CVTemplateProps {
   onReorderSections?: (fromIndex: number, toIndex: number) => void;
 }
 
-/** Drag-Handler für die Sektions-Umsortierung. Überall identisch. */
-export function dragProps(
-  index: number,
-  onReorderSections?: (from: number, to: number) => void
+/** Drag-Handler zum Verschieben einzelner Items INNERHALB einer Sektion
+ *  (z. B. eine Berufsstation über eine andere ziehen). */
+export function itemDragProps(
+  sectionIndex: number,
+  itemIndex: number,
+  onReorderSectionItem?: (sectionIndex: number, fromIndex: number, toIndex: number) => void
 ) {
-  if (!onReorderSections) return {};
+  if (!onReorderSectionItem) return {};
   return {
     draggable: true,
-    style: { cursor: 'grab' as const },
     onDragStart: (e: React.DragEvent) => {
-      e.dataTransfer.setData('text/plain', String(index));
+      e.dataTransfer.setData('application/x-item-index', String(itemIndex));
+      e.dataTransfer.setData('application/x-section-index', String(sectionIndex));
       e.dataTransfer.effectAllowed = 'move';
     },
     onDragOver: (e: React.DragEvent) => e.preventDefault(),
     onDrop: (e: React.DragEvent) => {
       e.preventDefault();
-      const from = parseInt(e.dataTransfer.getData('text/plain'), 10);
-      if (!isNaN(from) && from !== index) onReorderSections(from, index);
+      const fromSection = parseInt(e.dataTransfer.getData('application/x-section-index'), 10);
+      const fromItem = parseInt(e.dataTransfer.getData('application/x-item-index'), 10);
+      // Nur innerhalb derselben Sektion verschieben — zwischen Sektionen
+      // (z. B. eine Berufsstation in Ausbildung ziehen) macht inhaltlich
+      // keinen Sinn und würde das Datenschema brechen.
+      if (fromSection === sectionIndex && !isNaN(fromItem) && fromItem !== itemIndex) {
+        onReorderSectionItem(sectionIndex, fromItem, itemIndex);
+      }
     },
   };
 }
