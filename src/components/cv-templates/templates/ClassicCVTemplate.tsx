@@ -11,21 +11,6 @@ import { getTokens, FONT_STACK } from '../tokens';
 
 const t = getTokens('classic');
 
-/**
- * Sichere Umbruch-Regel für Titel.
- *
- * Der Wurzel-Container darf NICHT `overflow-wrap: anywhere` an die Titel
- * vererben: `anywhere` senkt die min-content-Breite auf ein einzelnes Zeichen,
- * und in der Flex-Zeile neben der Datums-Badge quetscht Flexbox den Titel dann
- * bis auf 1 Zeichen Breite — der Text stapelt sich senkrecht, Buchstabe für
- * Buchstabe ("Senior Consultant" vertikal).
- *
- * `overflowWrap: break-word` + `wordBreak: normal` bricht höchstens AM WORT um
- * und lässt die min-content-Breite beim längsten Wort — der Titel kann nicht
- * mehr kollabieren. `whiteSpace: normal` + `overflow: visible` heben die
- * nowrap/ellipsis-Defaults von EditableText auf (html2canvas setzt Ellipsis im
- * PDF ohnehin nicht um — ein abgeschnittener Titel wäre dort sichtbar).
- */
 const titleStyle: React.CSSProperties = {
   fontSize: '11px',
   color: t.text,
@@ -36,10 +21,6 @@ const titleStyle: React.CSSProperties = {
   overflowWrap: 'break-word',
 };
 
-/**
- * Überschrift der Hauptspalte.
- * `data-break-keep-next` bindet sie an den folgenden Inhalt.
- */
 const MainTitle: React.FC<{ children: React.ReactNode; first?: boolean }> = ({ children, first }) => (
   <h2
     data-break-keep-next
@@ -55,7 +36,6 @@ const MainTitle: React.FC<{ children: React.ReactNode; first?: boolean }> = ({ c
   </h2>
 );
 
-/** Überschrift der Seitenspalte. */
 const AsideTitle: React.FC<{ children: React.ReactNode }> = ({ children }) => (
   <h3
     data-break-keep-next
@@ -109,7 +89,6 @@ export const ClassicCVTemplate: React.FC<CVTemplateProps> = ({
   onDeleteBullet,
   onReorderSections,
 }) => {
-  // Höhe kommt aus der Break-Engine, nicht aus einem lokalen ResizeObserver.
   const containerMinHeight = minHeightPx ?? 1122;
 
   const findSectionIndex = (type: string) => sections.findIndex((s) => s.type === type);
@@ -122,7 +101,6 @@ export const ClassicCVTemplate: React.FC<CVTemplateProps> = ({
   const languagesIndex = findSectionIndex('languages');
   const workValuesIndex = findSectionIndex('work_values');
 
-  // ─── Bullets ───────────────────────────────────────────────────────────────
   const renderBulletPoints = (bullets: any[] | undefined, sectionIndex: number, itemIndex: number) => {
     if (!Array.isArray(bullets) || bullets.length === 0) return null;
 
@@ -164,7 +142,7 @@ export const ClassicCVTemplate: React.FC<CVTemplateProps> = ({
     );
   };
 
-const renderDateRange = (sectionIndex: number, idx: number, item: any) => (
+  const renderDateRange = (sectionIndex: number, idx: number, item: any) => (
     <EditableText
       value={[item.date_from, item.date_to].filter(Boolean).join(' – ') || ''}
       onChange={(val) => {
@@ -176,12 +154,6 @@ const renderDateRange = (sectionIndex: number, idx: number, item: any) => (
       style={{
         fontSize: '9px',
         color: t.accent,
-        // FIX: Zeitraum wurde links abgeschnitten ("11/202…"). Ursache:
-        // EditableText erbt ohne wrap/multiline overflow:hidden + ellipsis +
-        // nowrap; bei text-right clippt hidden am LINKEN Rand. overflow:visible
-        // + textOverflow:clip heben das auf, nowrap hält alles auf einer Zeile.
-        // w-32 aus dem className entfernt und durch minWidth ersetzt, damit die
-        // Badge bei Bedarf breiter werden darf statt zu kappen.
         minWidth: '92px',
         whiteSpace: 'nowrap',
         overflow: 'visible',
@@ -193,7 +165,6 @@ const renderDateRange = (sectionIndex: number, idx: number, item: any) => (
     />
   );
 
-  // ─── Berufserfahrung ───────────────────────────────────────────────────────
   const renderExperience = () => {
     if (experienceIndex === -1) return null;
     const items = sections[experienceIndex].items ?? [];
@@ -206,9 +177,6 @@ const renderDateRange = (sectionIndex: number, idx: number, item: any) => (
           {items.map((item: any, idx: number) => (
             <div key={idx} data-pdf-section data-break-item style={cardWrapper}>
               <div className="flex items-baseline justify-between gap-3">
-                {/* `flex-1` OHNE `min-w-0`: min-width bleibt beim längsten Wort,
-                    der Titel kann nicht auf 1 Zeichen kollabieren. `titleStyle`
-                    erlaubt nur Wort-Umbruch, kein Zeichen-Stapeln. */}
                 <EditableText
                   value={item.title || item.position || ''}
                   onChange={(val) => onUpdateSectionItem(experienceIndex, idx, 'title', val)}
@@ -279,7 +247,6 @@ const renderDateRange = (sectionIndex: number, idx: number, item: any) => (
     );
   };
 
-  // ─── Ausbildung ────────────────────────────────────────────────────────────
   const renderEducation = () => {
     if (educationIndex === -1) return null;
     const items = sections[educationIndex].items ?? [];
@@ -292,11 +259,6 @@ const renderDateRange = (sectionIndex: number, idx: number, item: any) => (
           {items.map((item: any, idx: number) => (
             <div key={idx} data-pdf-section data-break-item style={cardWrapper}>
               <div className="flex items-baseline justify-between gap-3">
-                {/* Titel liest `degree` ODER `title` — kommt eine Station mit
-                    `title` statt `degree` (KI-Output / neu hinzugefügte Station),
-                    war das Feld sonst leer und zeigte nur den hellgrauen
-                    Platzhalter → wirkte „unsichtbar". `titleStyle` verhindert
-                    zusätzlich den senkrechten Buchstaben-Stapel. */}
                 <EditableText
                   value={item.degree || item.title || ''}
                   onChange={(val) => onUpdateSectionItem(educationIndex, idx, 'degree', val)}
@@ -359,7 +321,6 @@ const renderDateRange = (sectionIndex: number, idx: number, item: any) => (
     );
   };
 
-  // ─── Projekte ──────────────────────────────────────────────────────────────
   const renderProjects = () => {
     if (projectsIndex === -1) return null;
     const items = sections[projectsIndex].items ?? [];
@@ -408,8 +369,13 @@ const renderDateRange = (sectionIndex: number, idx: number, item: any) => (
     );
   };
 
-  // ─── Sprachen ──────────────────────────────────────────────────────────────
-  // Sprache in `t.text` (dunkel), Niveau in `t.muted`.
+  /**
+   * FIX (Bug B — Sprache ohne Namen verschwand):
+   * - `language` liest jetzt zusätzlich `skill`/`label` (KI-Fallback-Format).
+   * - Ein Eintrag mit Niveau, aber ohne erkannten Namen, wird NICHT mehr
+   *   verworfen — er blieb sonst spurlos verschwunden (nur "fluent" sichtbar,
+   *   keine Sprache dahinter). Das Namensfeld bleibt leer und editierbar.
+   */
   const renderLanguages = () => {
     if (languagesIndex === -1) return null;
     const items = sections[languagesIndex].items ?? [];
@@ -420,9 +386,11 @@ const renderDateRange = (sectionIndex: number, idx: number, item: any) => (
         <AsideTitle>Sprachen</AsideTitle>
         <ul className="space-y-2">
           {items.map((item: any, idx: number) => {
-            const language = stripSectionLabel(item.language || item.name || item.sprache || '');
+            const language = stripSectionLabel(
+              item.language || item.name || item.sprache || item.skill || item.label || ''
+            );
             const level = item.level || item.niveau || item.proficiency || '';
-            if (!language) return null;
+            if (!language && !level) return null;
 
             return (
               <li key={idx} className="flex flex-nowrap justify-between items-center gap-2" style={{ fontSize: '9px' }}>
@@ -448,7 +416,6 @@ const renderDateRange = (sectionIndex: number, idx: number, item: any) => (
     );
   };
 
-  // ─── Chip-Listen (Skills, Soft Skills) ────────────────────────────────────
   const renderChipSection = (label: string, index: number) => {
     if (index === -1) return null;
     const items = sections[index].items ?? [];
@@ -517,7 +484,6 @@ const renderDateRange = (sectionIndex: number, idx: number, item: any) => (
     );
   };
 
-  // ─── Arbeitsweise & Werte ─────────────────────────────────────────────────
   const renderWorkValues = () => {
     if (workValuesIndex === -1) return null;
     const items = sections[workValuesIndex].items ?? [];
@@ -546,7 +512,6 @@ const renderDateRange = (sectionIndex: number, idx: number, item: any) => (
     );
   };
 
-  // ─── Seitenspalten-Sektionen (Zertifikate, Stipendien, …) ─────────────────
   const renderSidebarSections = () =>
     sections.map((section, index) => {
       if (!SIDEBAR_TYPES.includes(section.type)) return null;
@@ -613,7 +578,6 @@ const renderDateRange = (sectionIndex: number, idx: number, item: any) => (
       );
     });
 
-  // ─── Unbekannte Sektionen in der Hauptspalte ──────────────────────────────
   const renderUnknownSections = () =>
     sections.map((section, index) => {
       if (KNOWN_MAIN_TYPES.includes(section.type)) return null;
@@ -661,10 +625,6 @@ const renderDateRange = (sectionIndex: number, idx: number, item: any) => (
         minHeight: `${containerMinHeight}px`,
         width: '100%',
         boxSizing: 'border-box',
-        // FIX: war `wordBreak: 'break-word'` + `overflowWrap: 'anywhere'`.
-        // Beide senken die min-content-Breite auf 1 Zeichen und ließen Flexbox
-        // den Titel senkrecht stapeln. `normal` + `break-word` bricht lange
-        // Wörter weiterhin um, kollabiert die Breite aber nicht mehr.
         wordBreak: 'normal',
         overflowWrap: 'break-word',
         border: `1px solid ${t.border}`,
@@ -672,8 +632,6 @@ const renderDateRange = (sectionIndex: number, idx: number, item: any) => (
     >
       <div className="w-full p-8">
         <div className="flex gap-8">
-
-          {/* ── Linke Spalte ──────────────────────────────────────────────── */}
           <aside className="w-1/3 max-w-[33%] pr-6 flex flex-col" style={{ borderRight: `1px solid ${t.border}` }}>
             <div className="mb-6" data-break-atomic>
               {photoUrl && (
@@ -749,7 +707,6 @@ const renderDateRange = (sectionIndex: number, idx: number, item: any) => (
             {renderSidebarSections()}
           </aside>
 
-          {/* ── Rechte Spalte ─────────────────────────────────────────────── */}
           <main className="flex-1 flex flex-col min-w-0">
             <div data-pdf-section data-break-atomic className="mb-6">
               <MainTitle first>Profil</MainTitle>
