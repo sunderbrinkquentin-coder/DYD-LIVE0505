@@ -26,7 +26,7 @@ import { tokenService } from '../services/tokenService';
  * reale Stellenanzeige braucht (typisch: 300–800 Wörter), aber genug Puffer
  * für Anzeigen mit viel Beiwerk (Unternehmensprofil, Benefits-Liste etc.).
  */
-const MAX_JOB_DESCRIPTION_LENGTH = 12000;
+const MAX_JOB_DESCRIPTION_LENGTH = 6000;
 const JOB_DESCRIPTION_WARN_THRESHOLD = MAX_JOB_DESCRIPTION_LENGTH * 0.9;
 
 export function JobTargeting() {
