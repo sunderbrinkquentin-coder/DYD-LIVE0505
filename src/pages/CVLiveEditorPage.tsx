@@ -63,6 +63,13 @@ const templates = [
   { id: 'creative' as CVTemplateType, name: 'Kreativ', icon: '🎨' },
   { id: 'professional' as CVTemplateType, name: 'Professional', icon: '💼' },
 ];
+const TEMPLATE_PAGE_BG: Record<CVTemplateType, string> = {
+  modern: '#f0faf8',
+  classic: '#ffffff',
+  minimal: '#ffffff',
+  creative: '#ffffff',
+  professional: '#ffffff',
+};
 
 interface LoadingPageProps {
   elapsedSeconds: number;
