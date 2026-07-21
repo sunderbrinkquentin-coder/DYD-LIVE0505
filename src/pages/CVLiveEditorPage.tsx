@@ -1362,7 +1362,18 @@ const normalized = allLangs
     });
   };
 
-const reorderSectionItem = (sectionIndex: number, fromIndex: number, toIndex: number) => {
+const reorderSections = (fromIndex: number, toIndex: number) => {
+    setHasEditorChanges(true);
+    setEditorData((prev: any) => {
+      if (!prev?.sections) return prev;
+      const newSections = [...prev.sections];
+      const [moved] = newSections.splice(fromIndex, 1);
+      newSections.splice(toIndex, 0, moved);
+      return { ...prev, sections: newSections };
+    });
+  };
+
+  const reorderSectionItem = (sectionIndex: number, fromIndex: number, toIndex: number) => {
     setHasEditorChanges(true);
     setEditorData((prev: any) => {
       if (!prev?.sections?.[sectionIndex]?.items) return prev;
