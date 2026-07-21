@@ -7,6 +7,15 @@ export interface PDFExportOptions {
   filename?: string;
   quality?: number;
   scale?: number;
+  /**
+   * Seiten-Hintergrundfarbe — muss mit der Root-Hintergrundfarbe des gewählten
+   * Templates übereinstimmen (z. B. Modern: '#f0faf8'). Bleibt eine Seite nicht
+   * bis zum Rand gefüllt (üblich bei kurzen CVs oder der letzten Seite), bleibt
+   * der Rest in dieser Farbe sichtbar statt in einem hartcodierten Weiß, das
+   * bei Templates mit farbigem Hintergrund als sichtbarer Bruch auffällt.
+   * Default '#ffffff' für Templates mit weißem Hintergrund.
+   */
+  backgroundColor?: string;
 }
 
 const A4_WIDTH_MM = 210;
@@ -496,7 +505,7 @@ async function renderElementToPDFBlob(
   element: HTMLElement,
   options: PDFExportOptions = {}
 ): Promise<Blob> {
-  const { quality = 0.95, scale = 2 } = options;
+  const { quality = 0.95, scale = 2, backgroundColor = '#ffffff' } = options;
 
   await waitForFonts();
 
@@ -589,7 +598,7 @@ async function renderElementToPDFBlob(
       scale,
       useCORS: true,
       allowTaint: true,
-      backgroundColor: '#ffffff',
+      backgroundColor,
       logging: false,
       imageTimeout: 0,
       windowWidth: A4_WIDTH_PX,
@@ -619,14 +628,17 @@ async function renderElementToPDFBlob(
    *
    * Jede Seite ist ein volles A4-Blatt. Der Inhaltsausschnitt wird oben
    * platziert, der Footer (nur auf der letzten Seite) an der Unterkante —
-   * exakt so, wie der Editor die A4-Frames darstellt.
+   * exakt so, wie der Editor die A4-Frames darstellt. Der freie Bereich
+   * darunter (falls der Inhalt die Seite nicht ausfüllt) wird mit
+   * `backgroundColor` grundiert — derselben Farbe wie beim html2canvas-Capture
+   * und derselben, die die Live-Vorschau für dieses Template nutzt.
    */
   const drawPage = (srcYCanvas: number, srcHCanvas: number, withFooter: boolean, isFirst: boolean) => {
     const pc = document.createElement('canvas');
     pc.width = canvas.width;
     pc.height = canvasPageH;
     const ctx = pc.getContext('2d')!;
-    ctx.fillStyle = '#ffffff';
+    ctx.fillStyle = backgroundColor;
     ctx.fillRect(0, 0, pc.width, pc.height);
 
     const clippedH = Math.min(srcHCanvas, canvasPageH);
