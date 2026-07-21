@@ -12,11 +12,6 @@ import { getTokens } from '../tokens';
 
 const t = getTokens('modern');
 
-/**
- * Modern hat eine eigene Farbwelt (Türkis auf hellem Mint), die sich nicht
- * vollständig auf die generischen Tokens abbilden lässt. Text, Muted und Border
- * kommen aus den Tokens; die flächigen Hintergründe bleiben lokal.
- */
 const CI = {
   primary: '#30E3CA',
   primaryDark: '#26b8a8',
@@ -34,7 +29,6 @@ const SECTION_ORDER_RIGHT = [
   'volunteering', 'stipendien', 'scholarships',
 ];
 
-/** Sektionen, die niemals über eine Seitengrenze getrennt werden. */
 const ATOMIC_TYPES = new Set([
   'languages', 'skills', 'soft_skills', 'work_values', 'values',
   'hobbies', 'interests', 'certifications', 'courses', 'awards',
@@ -77,16 +71,6 @@ const SectionTitle: React.FC<{ children: React.ReactNode }> = ({ children }) => 
   </h2>
 );
 
-/**
- * Datums-Badge.
- *
- * BUG, der hier lag: Das Badge wurde immer gerendert, auch wenn beide Daten
- * leer waren. Der PDF-Exporter entfernt leere `contenteditable`-Felder, das
- * literale "–" dazwischen aber nicht — es ist reiner Text. Im PDF blieb ein
- * leeres Pillen-Badge mit einem einsamen Bindestrich stehen.
- *
- * Jetzt: kein Badge ohne Datum, kein Bindestrich ohne zweites Datum.
- */
 const DateBadge: React.FC<{
   from: string;
   to: string;
@@ -260,17 +244,14 @@ export const ModernCVTemplate: React.FC<CVTemplateProps> = ({
   onDeleteSectionItem = () => {},
   onDeleteBullet,
   onReorderSections,
-  onReorderSectionItem,   // ← neu
+  onReorderSectionItem,
 }) => {
   const today = new Date().toLocaleDateString('de-DE', { day: '2-digit', month: '2-digit', year: 'numeric' });
   const footerLocation = (personalInfo.footerLocation ?? personalInfo.location ?? '').toString();
 
-  // Höhe kommt aus der Break-Engine. Der frühere lokale ResizeObserver war eine
-  // zweite Höhen-Autorität — der Footer landete am Fuß *dieser* Höhe statt am
-  // Fuß der letzten berechneten Seite.
   const containerMinHeight = minHeightPx ?? 1122;
 
-const renderCardControls = (
+  const renderCardControls = (
     sectionIndex: number,
     idx: number,
     item: any,
@@ -283,10 +264,6 @@ const renderCardControls = (
           style={{ fontSize: '9px', color: CI.primaryDark, background: '#fff', border: `1px solid ${CI.border}`, borderRadius: '4px', cursor: 'pointer', padding: '2px 7px', lineHeight: '1.5' }}
           onClick={() => {
             const hasDescription = typeof item?.description === 'string' && item.description.trim();
-            // Bei Berufserfahrung wird eine vorhandene Fließtext-Beschreibung in
-            // Bullets überführt und geleert. Bei Ausbildung NICHT: dort ist die
-            // Beschreibung das Feld "Schwerpunkte" und steht bewusst neben den
-            // Bullets, nicht statt ihrer.
             const convert = hasDescription && !opts?.keepDescription;
             const base = Array.isArray(item?.bulletPoints) && item.bulletPoints.length > 0
               ? [...item.bulletPoints]
@@ -302,7 +279,6 @@ const renderCardControls = (
           + Bullet
         </button>
       )}
-      {/* Der "Station löschen"-Button bleibt unverändert */}
       <button
         type="button"
         style={{ fontSize: '9px', color: '#dc2626', background: '#fff', border: '1px solid #fecaca', borderRadius: '4px', cursor: 'pointer', padding: '2px 7px', lineHeight: '1.5' }}
@@ -313,7 +289,14 @@ const renderCardControls = (
     </div>
   );
 
-  // ─── Berufserfahrung / Projekte ───────────────────────────────────────────
+  /**
+   * Berufserfahrung UND Projekte teilen sich diese Funktion — die
+   * Schleifenvariable heißt hier durchgehend `item`, NICHT `edu`. `edu`
+   * existiert ausschließlich im `education`-Case weiter unten. Eine
+   * Verwechslung der beiden führte zuletzt zu `ReferenceError: edu is not
+   * defined`, weil ein Ausbildungs-Codeschnipsel versehentlich hier
+   * hineinkopiert wurde.
+   */
   const renderExperienceOrProjects = (section: EditorSection, sectionIndex: number, isProject: boolean) => {
     const items = Array.isArray(section.items) ? section.items : [];
     if (items.length === 0) return null;
@@ -335,21 +318,16 @@ const renderCardControls = (
                 {...itemDragProps(sectionIndex, idx, onReorderSectionItem)}
               >
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: '10px' }}>
-  <div style={{ flex: 1, minWidth: 0 }}>
-    <EditableText
-      wrap
-      value={edu.degree || edu.title || ''}
-      onChange={(v) => onUpdateSectionItem(sectionIndex, originalIdx, 'degree', v)}
-      placeholder="Abschluss"
-      style={{ fontSize: '11px', fontWeight: 700, color: t.text, lineHeight: 1.4 }}
-    />
+                  <div style={{ flex: 1, minWidth: 0 }}>
                     <EditableText
+                      wrap
                       value={isProject ? item.title || item.name || '' : item.title || item.position || item.role || ''}
                       onChange={(v) => onUpdateSectionItem(sectionIndex, idx, 'title', v)}
                       placeholder={isProject ? 'Projekttitel' : 'Position / Rolle'}
                       style={{ fontSize: '11px', fontWeight: 700, color: t.text, lineHeight: 1.4 }}
                     />
                     <EditableText
+                      wrap
                       value={isProject ? item.role || '' : item.company || item.employer || ''}
                       onChange={(v) => onUpdateSectionItem(sectionIndex, idx, isProject ? 'role' : 'company', v)}
                       placeholder={isProject ? 'Deine Rolle' : 'Unternehmen'}
@@ -425,11 +403,6 @@ const renderCardControls = (
             );
           })}
 
-          {/*
-            Diese Schaltfläche trug bisher zusätzlich `nonce-export`, und die
-            Editor-CSS setzt `.nonce-export { display: none !important; }`.
-            Sie war also niemals sichtbar. Ohne die Klasse funktioniert sie.
-          */}
           {onAddSectionItem && (
             <button
               type="button"
@@ -447,7 +420,6 @@ const renderCardControls = (
     );
   };
 
-  // ─── Sektions-Renderer ────────────────────────────────────────────────────
   const renderSection = (section: EditorSection, sectionIndex: number): React.ReactNode => {
     const items = Array.isArray(section.items) ? section.items : [];
 
@@ -457,14 +429,18 @@ const renderCardControls = (
       case 'projects':
         return renderExperienceOrProjects(section, sectionIndex, true);
 
-case 'education': {
-        // Vor der Längenprüfung filtern. Sonst rendert die Überschrift über
-        // einer Liste, die anschließend komplett wegfällt.
-        //
-        // `originalIdx` MUSS mitgeführt werden: alle onUpdate-/onDelete-Callbacks
-        // adressieren `section.items`, nicht diese gefilterte Liste. Vorher lief
-        // hier der Map-Index rein — sobald ein leerer Eintrag rausfiel, landeten
-        // Bearbeitung und Löschung auf der falschen Station.
+      /**
+       * Ausbildung — die Schleifenvariable heißt hier `edu`, ausschließlich
+       * in diesem Case. FIX (Titel überlappte die Datums-Badge): Der Titel
+       * lief in `DateBadge` hinein, statt umzubrechen. `minWidth: 0` auf dem
+       * Flex-Kind ist zwingend nötig — ohne das ignoriert Flexbox das
+       * Schrumpfen und der Inhalt läuft über die Nachbarspalte hinaus.
+       * `wrap` auf dem EditableText erlaubt dann den tatsächlichen Umbruch.
+       * Beides zusammen verhindert die Überlappung UND den in EditableText
+       * separat gefixten Buchstaben-Stapel (overflowWrap: break-word statt
+       * anywhere).
+       */
+      case 'education': {
         const eduItems = items
           .map((e: any, originalIdx: number) => ({ edu: e, originalIdx }))
           .filter(({ edu }) =>
@@ -478,9 +454,6 @@ case 'education': {
             <SectionTitle>{section.title || 'Ausbildung & Studium'}</SectionTitle>
             <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
               {eduItems.map(({ edu, originalIdx }) => {
-                // Anders als bei Berufserfahrung KEIN getBullets(): dort fällt die
-                // Funktion auf `description` zurück. Hier würde das die
-                // Schwerpunkte-Zeile in Bullets verwandeln, sobald sie existiert.
                 const eduBullets = Array.isArray(edu.bulletPoints)
                   ? edu.bulletPoints
                       .map((b: any) => normalizeBullet(String(b ?? '')))
@@ -488,7 +461,13 @@ case 'education': {
                   : [];
 
                 return (
-                  <div key={originalIdx} data-pdf-section data-break-item style={cardStyle}>
+                  <div
+                    key={originalIdx}
+                    data-pdf-section
+                    data-break-item
+                    style={{ ...cardStyle, cursor: onReorderSectionItem ? 'grab' : undefined }}
+                    {...itemDragProps(sectionIndex, originalIdx, onReorderSectionItem)}
+                  >
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: '10px' }}>
                       <div style={{ flex: 1, minWidth: 0 }}>
                         <EditableText
@@ -585,8 +564,6 @@ case 'education': {
                 );
               })}
 
-              {/* "+ Eintrag hinzufügen" bleibt unverändert */}
-
               {onAddSectionItem && (
                 <button
                   type="button"
@@ -602,16 +579,13 @@ case 'education': {
         );
       }
 
-      // ── Sprachen ────────────────────────────────────────────────────────
-      //
-      // Die Sterne sind entfallen. `skillLevelToStars` verglich gegen exakte
-      // Strings: "Muttersprache" ergab fünf Sterne, "Verhandlungssicher (C1)"
-      // ergab null — und dann rendete das Template stattdessen einen Textlabel.
-      // Zwei Sprachen untereinander sahen dadurch verschieden aus.
-      //
-      // Außerdem wird jetzt VOR der Längenprüfung gefiltert. Vorher blieb die
-      // Überschrift "Sprachen" stehen, während alle Einträge wegfielen — genau
-      // das Symptom "Überschrift ohne Inhalt".
+      /**
+       * FIX (Sprachen unsichtbar): `language` liest jetzt zusätzlich
+       * `skill`/`label` (KI-Fallback-Format), und der finale Filter wirft
+       * keinen Eintrag mehr raus, der nur ein Niveau ohne erkannten Namen hat
+       * — genau das ließ zuvor eine Sprache spurlos verschwinden ("nur
+       * 'Muttersprache' sichtbar, kein Name davor").
+       */
       case 'languages': {
         const langItems = items
           .map((lang: any, originalIdx: number) => {
@@ -631,7 +605,7 @@ case 'education': {
             }
             return { language: language.trim(), level: level.trim(), originalIdx };
           })
-          .filter((l) => l.language && l.language !== '[object Object]');
+          .filter((l) => (l.language && l.language !== '[object Object]') || l.level);
 
         if (langItems.length === 0) return null;
 
@@ -675,7 +649,6 @@ case 'education': {
         );
       }
 
-      // ── Chips ───────────────────────────────────────────────────────────
       case 'skills':
       case 'soft_skills': {
         const isSoft = section.type === 'soft_skills';
@@ -742,7 +715,6 @@ case 'education': {
         );
       }
 
-      // ── Zertifikate, Stipendien, Auszeichnungen, Ehrenamt ───────────────
       case 'certifications':
       case 'courses':
       case 'awards':
@@ -882,10 +854,6 @@ case 'education': {
         fontFamily: FONT,
         color: t.text,
         width: '794px',
-        // BUG, der hier lag: `borderLeft: 4px` bei `width: 794px` ohne
-        // border-box ergibt 798px Gesamtbreite. html2canvas rendert aber auf
-        // 794px — der Inhalt war im PDF um 4px verschoben und rechts
-        // beschnitten. `boxSizing: border-box` zieht den Rand nach innen.
         boxSizing: 'border-box',
         minHeight: `${containerMinHeight}px`,
         display: 'flex',
@@ -896,14 +864,6 @@ case 'education': {
         overflowWrap: 'anywhere',
       }}
     >
-      {/*
-        Das frühere `data-pdf-root` auf diesem Element ist entfernt. Der Editor
-        setzt dasselbe Attribut auf den unskalierten Mess-Wrapper. Bei fünf
-        gerenderten Blättern gab es damit sechs Elemente mit `data-pdf-root` —
-        `querySelector` traf ein zufälliges davon, und die Break-Engine maß im
-        Zweifel einen skalierten Frame statt des Referenz-Renders.
-      */}
-
       <div>
         <header
           style={{
