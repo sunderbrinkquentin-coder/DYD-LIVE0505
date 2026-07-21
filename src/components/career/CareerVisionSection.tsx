@@ -1076,6 +1076,8 @@ export function CareerVisionSection({ cvId: initialCvId, onAnalysisComplete, res
 
       const { data: lp, error: insertErr } = await supabase
         .from('learning_paths')
+        const { data: { user: freshUser }, error: authErr } = await supabase.auth.getUser();
+      console.log('[DEBUG] Context user.id:', user?.id, '| Frischer auth.getUser():', freshUser?.id, '| authErr:', authErr);
         .insert({
           user_id: freshUser.id,
           target_job: targetJob.trim(),
