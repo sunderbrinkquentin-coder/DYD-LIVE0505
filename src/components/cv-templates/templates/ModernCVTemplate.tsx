@@ -4,6 +4,7 @@ import React from 'react';
 import {
   EditableText,
   dragProps,
+  itemDragProps,
   type CVTemplateProps,
   type EditorSection,
 } from '../EditableText';
