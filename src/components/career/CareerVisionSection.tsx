@@ -1032,51 +1032,54 @@ export function CareerVisionSection({ cvId: initialCvId, onAnalysisComplete, res
 
   // ── Run analysis ────────────────────────────────────────────────────────────
 
-  const runAnalysis = useCallback(async () => {
+const runAnalysis = useCallback(async () => {
     if (!targetJob.trim()) { setFormError('Bitte gib eine Zielposition ein.'); return; }
     if (!user?.id)          { setFormError('Bitte melde dich zuerst an.'); return; }
-
     setFormError(null);
     setApiError(null);
     setResult(null);
     completedRef.current = false;
     setPreparing(true);
-
     try {
-      let resolvedCvId = activeCvId;
+      // FIX: Statt user.id aus dem React-Context zu verwenden, wird die
+      // Session unmittelbar vor dem Insert frisch bei Supabase abgefragt.
+      // RLS prüft server-seitig gegen auth.uid() zum Zeitpunkt des Requests
+      // — ein veralteter/leerer Context-State (z.B. nach langer Tab-Öffnung
+      // oder abgelaufener Session) kann dort zu einer anderen oder gar
+      // keiner ID führen, obwohl das Frontend noch "eingeloggt" anzeigt.
+      const { data: { user: freshUser }, error: authErr } = await supabase.auth.getUser();
+      console.log(
+        '[DEBUG] Context user.id:', user?.id,
+        '| Frischer auth.getUser():', freshUser?.id,
+        '| authErr:', authErr
+      );
 
+      if (authErr || !freshUser?.id) {
+        throw new Error('Deine Sitzung ist abgelaufen. Bitte lade die Seite neu und melde dich erneut an.');
+      }
+
+      let resolvedCvId = activeCvId;
       // Datei nur ablegen, NICHT triggern. Vor der Zahlung entstehen so keine
       // Make-/LLM-Kosten — und die Datei überlebt den Stripe-Redirect, was das
       // File-Objekt im State nicht täte.
       if (useNewCv && newCvFile) {
         const up = await uploadCvAndCreateRecord(newCvFile, {
           source: 'skill',
-          userId: user.id,
+          userId: freshUser.id,
           tempId: null,
           triggerNow: false,
           status: 'draft',
         });
         if (!up.success) throw new Error(up.error);
         if (!up.uploadId) throw new Error('CV-Upload fehlgeschlagen');
-
         resolvedCvId = up.uploadId;
         setActiveCvId(up.uploadId);
         setCvFileName(newCvFile.name);
         setCvUploadFileName(newCvFile.name);
       }
 
-      // Frisch holen statt auf den React-State zu vertrauen — RLS prüft
-      // exakt gegen auth.uid() zum Zeitpunkt des Requests. Ein veralteter
-      // Context-State kann eine andere/leere ID enthalten als die aktuell
-      // gültige Session, was den Insert an der Policy scheitern lässt.
-      const { data: { user: freshUser }, error: authErr } = await supabase.auth.getUser();
-      if (authErr || !freshUser?.id) {
-        throw new Error('Deine Sitzung ist abgelaufen. Bitte lade die Seite neu und melde dich erneut an.');
-      }
-
       const { data: lp, error: insertErr } = await supabase
         .from('learning_paths')
-        
         .insert({
           user_id: freshUser.id,
           target_job: targetJob.trim(),
@@ -1094,6 +1097,7 @@ export function CareerVisionSection({ cvId: initialCvId, onAnalysisComplete, res
         .single();
 
       if (insertErr || !lp?.id) {
+        console.error('[DEBUG] Insert-Fehler Detail:', insertErr);
         throw new Error('Analyse konnte nicht gestartet werden: ' + (insertErr?.message ?? 'Unbekannter Fehler'));
       }
 
@@ -1111,7 +1115,6 @@ export function CareerVisionSection({ cvId: initialCvId, onAnalysisComplete, res
     targetJob, targetCompany, industry, visionDescription,
     activeCvId, useNewCv, newCvFile, user,
   ]);
-
   // ── Trigger skillgap Edge Function ──────────────────────────────────────────
 
   const triggerSkillgapWebhook = useCallback(async (pathId: string) => {
