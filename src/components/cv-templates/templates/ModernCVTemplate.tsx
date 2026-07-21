@@ -335,7 +335,14 @@ const renderCardControls = (
                 {...itemDragProps(sectionIndex, idx, onReorderSectionItem)}
               >
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: '10px' }}>
-                  <div style={{ flex: 1, minWidth: 0 }}>
+  <div style={{ flex: 1, minWidth: 0 }}>
+    <EditableText
+      wrap
+      value={edu.degree || edu.title || ''}
+      onChange={(v) => onUpdateSectionItem(sectionIndex, originalIdx, 'degree', v)}
+      placeholder="Abschluss"
+      style={{ fontSize: '11px', fontWeight: 700, color: t.text, lineHeight: 1.4 }}
+    />
                     <EditableText
                       value={isProject ? item.title || item.name || '' : item.title || item.position || item.role || ''}
                       onChange={(v) => onUpdateSectionItem(sectionIndex, idx, 'title', v)}
