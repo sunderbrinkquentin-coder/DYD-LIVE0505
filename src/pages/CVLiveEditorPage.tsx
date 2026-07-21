@@ -599,21 +599,20 @@ export function CVLiveEditorPage() {
        *
        * Normalisierung gehört in den Mapper, nicht fünfmal ins Template.
        */
-const normalizeLanguageSection = (section: EditorSection): EditorSection => {
+      const normalizeLanguageSection = (section: EditorSection): EditorSection => {
         if (section.type !== 'languages' || !Array.isArray(section.items)) return section;
         const items = section.items
           .map((item: any) => ({
             language: String(pickLanguage(item) ?? '').replace(CATEGORY_PREFIX_RE, '').trim(),
             level: String(pickLevel(item) ?? '').trim(),
           }))
-          // FIX: Niveau ohne erkannten Namen NICHT mehr verwerfen — das war
-          // die Wurzel-Ursache dafür, dass eine zweite Sprache spurlos
-          // verschwand, obwohl sie im Datensatz vorhanden war. Templates
-          // rendern jetzt ein leeres, editierbares Namensfeld statt gar
-          // nichts.
-          .filter((l) => (l.language && l.language !== '[object Object]') || l.level);
+          // "[object Object]" entsteht, wenn keine der Feldnamen passt. Solche
+          // Einträge gehören nicht in den Lebenslauf — und sie stillschweigend
+          // als leeren Text durchzulassen ist schlimmer, als sie zu verwerfen.
+          .filter((l) => l.language && l.language !== '[object Object]');
         return { ...section, items };
       };
+
       const sortSectionNewestFirst = (section: EditorSection): EditorSection => {
         if (!SORTABLE_TYPES.has(section.type) || !Array.isArray(section.items)) return section;
         const parseDateVal = (raw: string): number => {
@@ -864,12 +863,7 @@ const normalized = allLangs
               sections.push({ type: 'languages', title: 'Sprachen', items: normalized });
             }
             // Der console.warn-Zweig für "kein Feld erkannt" kann entfallen —
-            // Einträge mit Niveau werden jetzt mitgenommen statt verworfen. else if (allLangs.length > 0) {
-              console.warn(
-                '[cvMapper] Sprach-Einträge gefunden, aber kein Feld erkannt. Rohdaten:',
-                allLangs
-              );
-            }
+            // Einträge mit Niveau werden jetzt mitgenommen statt verworfen.
           }
         }
       }
