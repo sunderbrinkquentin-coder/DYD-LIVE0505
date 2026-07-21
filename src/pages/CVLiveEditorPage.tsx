@@ -15,6 +15,7 @@ import PhotoUpload from '../components/PhotoUpload';
 import { CVOptimizerPaywall } from '../components/dashboard/CVOptimizerPaywall';
 import { supabase } from '../lib/supabase';
 import { useCvOptimizationStatus } from '../hooks/useCvOptimizationStatus';
+import { X, ArrowLeft, Plus, ChevronDown, ... } from 'lucide-react';
 
 /** Abstand zwischen zwei sichtbaren A4-Blättern in der Vorschau. */
 const SHEET_GAP_PX = 32;
