@@ -237,6 +237,7 @@ export function CVLiveEditorPage() {
   const [cvStatus, setCvStatus] = useState<string>('processing');
   const [error, setError] = useState<string | null>(null);
   const [hasEditorChanges, setHasEditorChanges] = useState(false);
+  const [showAddSectionMenu, setShowAddSectionMenu] = useState(false);
 
   const [selectedTemplate, setSelectedTemplate] = useState<CVTemplateType>('modern');
   const [isTemplateReady, setIsTemplateReady] = useState(false);
