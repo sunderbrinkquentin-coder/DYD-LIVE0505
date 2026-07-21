@@ -1800,6 +1800,31 @@ const reorderSectionItem = (sectionIndex: number, fromIndex: number, toIndex: nu
           // per marginTop:auto dann exakt auf dessen Unterkante.
           const minHeightPx = breaks.containerHeight;
           const pageCount = breaks.pageCount;
+const reorderSections = (fromIndex: number, toIndex: number) => {
+            setHasEditorChanges(true);
+            setEditorData((prev: any) => {
+              if (!prev?.sections) return prev;
+              const newSections = [...prev.sections];
+              const [moved] = newSections.splice(fromIndex, 1);
+              newSections.splice(toIndex, 0, moved);
+              return { ...prev, sections: newSections };
+            });
+          };
+
+          const reorderSectionItem = (sectionIndex: number, fromIndex: number, toIndex: number) => {
+            setHasEditorChanges(true);
+            setEditorData((prev: any) => {
+              if (!prev?.sections?.[sectionIndex]?.items) return prev;
+              const newSections = [...prev.sections];
+              const section = { ...newSections[sectionIndex] };
+              const items = [...section.items];
+              const [moved] = items.splice(fromIndex, 1);
+              items.splice(toIndex, 0, moved);
+              section.items = items;
+              newSections[sectionIndex] = section;
+              return { ...prev, sections: newSections };
+            });
+          };
 
           const templateProps = {
             /**
