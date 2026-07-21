@@ -1065,10 +1065,19 @@ export function CareerVisionSection({ cvId: initialCvId, onAnalysisComplete, res
         setCvUploadFileName(newCvFile.name);
       }
 
+      // Frisch holen statt auf den React-State zu vertrauen — RLS prüft
+      // exakt gegen auth.uid() zum Zeitpunkt des Requests. Ein veralteter
+      // Context-State kann eine andere/leere ID enthalten als die aktuell
+      // gültige Session, was den Insert an der Policy scheitern lässt.
+      const { data: { user: freshUser }, error: authErr } = await supabase.auth.getUser();
+      if (authErr || !freshUser?.id) {
+        throw new Error('Deine Sitzung ist abgelaufen. Bitte lade die Seite neu und melde dich erneut an.');
+      }
+
       const { data: lp, error: insertErr } = await supabase
         .from('learning_paths')
         .insert({
-          user_id: user.id,
+          user_id: freshUser.id,
           target_job: targetJob.trim(),
           target_company: targetCompany.trim() || null,
           industry: industry.trim() || null,
