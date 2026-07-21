@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import {
   X, Award, BookOpen, TrendingUp, CheckCircle2,
   ArrowRight, Sparkles, Clock, Zap, Lock, ShieldCheck, Layers,
@@ -30,7 +30,6 @@ interface LearningPathPaywallProps {
   skillCount?: number;
   selectedSkill?: string;
   missingSkills?: SkillItem[];
-  
 }
 
 const BENEFITS_SINGLE = [
@@ -101,21 +100,47 @@ export function LearningPathPaywall({
   // Welchen Skill startet der User zuerst? (die "welchen Skill?"-Frage)
   const [chosenSkill, setChosenSkill] = useState<string | undefined>(selectedSkill);
 
-  if (!isOpen) return null;
-
-  const isAllPlan = selectedPlan === 'all';
-  const priceId = isAllPlan ? PRICE_ID_ALL : PRICE_ID_SINGLE;
-  const benefits = isAllPlan ? BENEFITS_ALL : BENEFITS_SINGLE;
-
   // Auswählbare Skills aus der Analyse (für Picker + All-Plan Row-Erzeugung)
   const skillOptions = (missingSkills ?? [])
     .map((s) => s.skill_name || s.name)
     .filter((s): s is string => !!s)
     .slice(0, 8);
 
-  // Single-Plan braucht eine Skill-Wahl. Wenn keine Optionen da sind (z.B. Aufruf
-  // ohne missingSkills), lassen wir den Kauf zu und fallen auf selectedSkill zurück.
- const singleNeedsChoice = !isAllPlan && !chosenSkill && !selectedSkill;
+  /**
+   * FIX (Deadlock-Bug): War `missingSkills` leer oder in einem Format, das
+   * `skill_name`/`name` nicht kennt, blieb `skillOptions` leer. Der Picker
+   * ("Mit welchem Skill startest du?") erscheint nur, wenn `skillOptions`
+   * gefüllt ist — ohne ihn gab es KEINE Möglichkeit, `chosenSkill` zu setzen,
+   * und `singleNeedsChoice` sperrte den Button dauerhaft, ohne jeden Hinweis
+   * auf einen Ausweg.
+   *
+   * Fallback: Ist kein Skill aus der Analyse ermittelbar, aber `targetJob`
+   * bekannt, wird `targetJob` selbst als Skill-Bezeichnung verwendet — besser
+   * ein sinnvoller Startpunkt als ein toter Button. Das greift automatisch,
+   * sobald das Modal öffnet, nicht erst bei Interaktion.
+   */
+  useEffect(() => {
+    if (!isOpen) return;
+    if (chosenSkill || selectedSkill) return;
+    if (skillOptions.length > 0) return;
+    if (targetJob?.trim()) {
+      setChosenSkill(targetJob.trim());
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isOpen, missingSkills, targetJob]);
+
+  if (!isOpen) return null;
+
+  const isAllPlan = selectedPlan === 'all';
+  const priceId = isAllPlan ? PRICE_ID_ALL : PRICE_ID_SINGLE;
+  const benefits = isAllPlan ? BENEFITS_ALL : BENEFITS_SINGLE;
+
+  // Single-Plan braucht eine Skill-Wahl. Der useEffect oben füllt chosenSkill
+  // per Fallback, sobald irgendein Skill-Signal (Analyse oder targetJob)
+  // existiert — bleibt dies dennoch leer, gibt es wirklich nichts Sinnvolles
+  // zum Freischalten, und das Modal zeigt das unten explizit an.
+  const singleNeedsChoice = !isAllPlan && !chosenSkill && !selectedSkill;
+  const noSkillAtAll = !chosenSkill && !selectedSkill && !targetJob?.trim();
 
   const handleCheckout = async () => {
     setIsLoading(true);
@@ -126,32 +151,39 @@ export function LearningPathPaywall({
       const token = session?.access_token || import.meta.env.VITE_SUPABASE_ANON_KEY;
       const origin = window.location.origin;
 
-     let primaryPathId: string;
-let allPathIds: string | undefined;
+      let primaryPathId: string;
+      let allPathIds: string | undefined;
 
-if (isAllPlan) {
-  if (skillOptions.length === 0) {
-    setError('Keine Skills in der Analyse gefunden. Bitte lade die Seite neu.');
-    setIsLoading(false);
-    return;
-  }
-  const ids: string[] = [];
-  for (const name of skillOptions) {
-    ids.push(await careerService.getOrCreateSkillPath(analysisPathId, name));
-  }
-  primaryPathId = chosenSkill
-    ? await careerService.getOrCreateSkillPath(analysisPathId, chosenSkill)
-    : ids[0];
-  allPathIds = Array.from(new Set([...ids, primaryPathId])).join(',');
-} else {
-  const skillForSingle = chosenSkill ?? selectedSkill;
-  if (!skillForSingle) {
-    setError('Bitte wähle den Skill, mit dem du starten möchtest.');
-    setIsLoading(false);
-    return;
-  }
-  primaryPathId = await careerService.getOrCreateSkillPath(analysisPathId, skillForSingle);
-}
+      if (isAllPlan) {
+        // Beim "Alle Pfade"-Plan braucht es mindestens EINEN bekannten Skill,
+        // um überhaupt eine erste Zeile anzulegen. Fällt auf targetJob zurück,
+        // falls die Analyse keine Skills liefert (Konsistenz mit Single-Plan).
+        const optionsForAll = skillOptions.length > 0
+          ? skillOptions
+          : (chosenSkill ? [chosenSkill] : []);
+
+        if (optionsForAll.length === 0) {
+          setError('Keine Skills in der Analyse gefunden. Bitte lade die Seite neu.');
+          setIsLoading(false);
+          return;
+        }
+        const ids: string[] = [];
+        for (const name of optionsForAll) {
+          ids.push(await careerService.getOrCreateSkillPath(analysisPathId, name));
+        }
+        primaryPathId = chosenSkill
+          ? await careerService.getOrCreateSkillPath(analysisPathId, chosenSkill)
+          : ids[0];
+        allPathIds = Array.from(new Set([...ids, primaryPathId])).join(',');
+      } else {
+        const skillForSingle = chosenSkill ?? selectedSkill;
+        if (!skillForSingle) {
+          setError('Bitte wähle den Skill, mit dem du starten möchtest.');
+          setIsLoading(false);
+          return;
+        }
+        primaryPathId = await careerService.getOrCreateSkillPath(analysisPathId, skillForSingle);
+      }
 
       const activeSkill = chosenSkill ?? selectedSkill;
       const skillParam = activeSkill ? `&skill=${encodeURIComponent(activeSkill)}` : '';
@@ -327,11 +359,32 @@ if (isAllPlan) {
                   );
                 })}
               </div>
-              {singleNeedsChoice && (
-                <p className="text-[11px] text-white/30 px-0.5">
-                  Wähle einen Skill, um fortzufahren.
-                </p>
-              )}
+            </div>
+          )}
+
+          {/*
+            FIX: Kein Skill aus der Analyse UND kein targetJob als Fallback
+            vorhanden — der Nutzer sieht jetzt, WARUM nichts geht, statt vor
+            einem stumm gesperrten Button zu stehen.
+          */}
+          {!isAllPlan && noSkillAtAll && (
+            <div className="mx-6 mb-4 px-4 py-3 rounded-xl text-sm"
+              style={{ background: 'rgba(251,191,36,0.08)', border: '1px solid rgba(251,191,36,0.25)', color: 'rgba(251,191,36,0.9)' }}>
+              Für diesen Lernpfad konnte kein Skill ermittelt werden. Bitte schließe dieses Fenster und starte die Analyse erneut.
+            </div>
+          )}
+
+          {/*
+            FIX: Skills vorhanden, aber (noch) keiner ausgewählt — z. B. direkt
+            nach dem automatischen targetJob-Fallback greift dieser Zweig NICHT
+            mehr, weil chosenSkill dann schon gesetzt ist. Er bleibt als
+            Sicherheitsnetz für den seltenen Fall, dass der Effekt noch nicht
+            gelaufen ist.
+          */}
+          {singleNeedsChoice && !noSkillAtAll && (
+            <div className="mx-6 mb-4 px-4 py-3 rounded-xl text-sm"
+              style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.1)', color: 'rgba(255,255,255,0.5)' }}>
+              Wähle oben einen Skill aus, um fortzufahren.
             </div>
           )}
 
