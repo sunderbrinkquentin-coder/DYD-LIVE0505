@@ -259,6 +259,7 @@ export const ModernCVTemplate: React.FC<CVTemplateProps> = ({
   onDeleteSectionItem = () => {},
   onDeleteBullet,
   onReorderSections,
+  onReorderSectionItem,   // ← neu
 }) => {
   const today = new Date().toLocaleDateString('de-DE', { day: '2-digit', month: '2-digit', year: 'numeric' });
   const footerLocation = (personalInfo.footerLocation ?? personalInfo.location ?? '').toString();
