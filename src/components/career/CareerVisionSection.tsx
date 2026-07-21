@@ -1031,7 +1031,8 @@ export function CareerVisionSection({ cvId: initialCvId, onAnalysisComplete, res
   }, []);
 
   // ── Run analysis ────────────────────────────────────────────────────────────
-
+const { data: { user: freshUser }, error: authErr } = await supabase.auth.getUser();
+      console.log('[DEBUG] Context user.id:', user?.id, '| Frischer auth.getUser():', freshUser?.id, '| authErr:', authErr);
   const runAnalysis = useCallback(async () => {
     if (!targetJob.trim()) { setFormError('Bitte gib eine Zielposition ein.'); return; }
     if (!user?.id)          { setFormError('Bitte melde dich zuerst an.'); return; }
