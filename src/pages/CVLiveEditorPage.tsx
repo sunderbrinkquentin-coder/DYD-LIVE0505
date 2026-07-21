@@ -1722,20 +1722,6 @@ const reorderSections = (fromIndex: number, toIndex: number) => {
             pointer-events: auto;
           }
 
-          .nonce-export { display: none !important; }
-
- /** Seiten-Hintergrundfarbe pro Template — muss mit der jeweiligen Template-
- *  eigenen Root-Hintergrundfarbe übereinstimmen, sonst entsteht am unteren
- *  Seitenrand ein sichtbarer Farbbruch, sobald eine Seite nicht bis zum
- *  Rand gefüllt ist. */
-const TEMPLATE_PAGE_BG: Record<CVTemplateType, string> = {
-  modern: '#f0faf8',
-  classic: '#ffffff',
-  minimal: '#ffffff',
-  creative: '#ffffff',
-  professional: '#ffffff',
-};
-
           /* text-size-adjust:none verhindert iOS-Text-Boosting, ohne font-size
              zu ändern — für sichtbare Frames UND den versteckten PDF-Render. */
           .a4-page-frame,
