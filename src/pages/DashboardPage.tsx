@@ -647,8 +647,25 @@ export function DashboardPage() {
     }
   };
 
-  const handleWizardOverviewContinue = (updatedData: any) => {
+const handleWizardOverviewContinue = async (updatedData: any) => {
     setShowWizardOverview(false);
+
+    // In genau die Zeile zurückschreiben, die das Modal angezeigt hat
+    // (existingWizardCvId = pickRichestCv). Beim nächsten Öffnen lädt
+    // pickRichestCv dieselbe Zeile — jetzt mit den Änderungen.
+    if (existingWizardCvId && hasWizardContent(updatedData)) {
+      try {
+        await cvStorageService.saveCVData({
+          id: existingWizardCvId,
+          cvData: updatedData,
+          mode: 'update',
+        });
+        await loadCVs();
+      } catch (e) {
+        console.error('[Dashboard] Zurückschreiben der CV-Daten fehlgeschlagen:', e);
+      }
+    }
+
     if (userTokens <= 0) {
       setPaywallFromCreateCv(true);
       setShowPaywall(true);
