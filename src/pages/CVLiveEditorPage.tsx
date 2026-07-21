@@ -1658,6 +1658,39 @@ const reorderSectionItem = (sectionIndex: number, fromIndex: number, toIndex: nu
         </div>
       </header>
 
+      {/* Toolbar: Fehlt eine Station? */}
+      <div className="bg-black/20 border-b border-white/10 flex-shrink-0 z-40">
+        <div className="max-w-7xl mx-auto px-3 sm:px-4 py-2 flex items-center gap-3 relative">
+          <span className="text-xs text-white/40 hidden sm:inline">Fehlt eine Station?</span>
+          <div className="relative">
+            <button
+              onClick={() => setShowAddSectionMenu((v) => !v)}
+              className="px-3 py-1.5 rounded-lg bg-[#66c0b6]/15 border border-[#66c0b6]/40 text-[#66c0b6] text-xs sm:text-sm font-semibold flex items-center gap-1.5 hover:bg-[#66c0b6]/25 transition-all"
+            >
+              <Plus size={15} /> Station hinzufügen
+              <ChevronDown size={14} className={`transition-transform ${showAddSectionMenu ? 'rotate-180' : ''}`} />
+            </button>
+            {showAddSectionMenu && (
+              <>
+                <div className="fixed inset-0 z-40" onClick={() => setShowAddSectionMenu(false)} />
+                <div className="absolute left-0 top-full mt-2 z-50 w-64 max-h-[70vh] overflow-y-auto rounded-xl bg-[#111] border border-white/10 shadow-2xl p-1.5">
+                  {ADDABLE_SECTIONS.map((s) => (
+                    <button
+                      key={s.type}
+                      onClick={() => handleAddSectionType(s.type)}
+                      className="w-full text-left px-3 py-2 rounded-lg text-sm text-white/80 hover:bg-white/10 hover:text-white transition-colors flex items-center gap-2"
+                    >
+                      <Plus size={13} className="text-[#66c0b6] flex-shrink-0" />
+                      {s.label}
+                    </button>
+                  ))}
+                </div>
+              </>
+            )}
+          </div>
+        </div>
+      </div>
+
       <main ref={mainRefCallback} className="flex-1 overflow-y-auto bg-[#1e1e24] w-full py-12 flex flex-col items-center">
 
         <style>{`
