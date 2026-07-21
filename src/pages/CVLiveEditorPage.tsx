@@ -1454,25 +1454,6 @@ const reorderSectionItem = (sectionIndex: number, fromIndex: number, toIndex: nu
       return { ...prev, sections: newSections };
     });
   };
-  const handleAddSectionType = (type: string) => {
-    const def = ADDABLE_SECTIONS.find((s) => s.type === type);
-    if (!def) return;
-    setHasEditorChanges(true);
-    setEditorData((prev: any) => {
-      if (!prev) return prev;
-      const sections = [...(prev.sections || [])];
-      const existingIdx = sections.findIndex((s: any) => s.type === type);
-      const newItem = def.makeItem();
-      if (existingIdx >= 0) {
-        const sec = sections[existingIdx];
-        sections[existingIdx] = { ...sec, items: [...(sec.items || []), newItem] };
-      } else {
-        sections.push({ type: def.type, title: def.defaultTitle, items: [newItem] });
-      }
-      return { ...prev, sections };
-    });
-    setShowAddSectionMenu(false);
-  };
 
   if (error) {
     return (
