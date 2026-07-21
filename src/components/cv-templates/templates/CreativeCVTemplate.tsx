@@ -4,6 +4,7 @@ import React from 'react';
 import {
   EditableText,
   dragProps,
+  itemDragProps,
   type CVTemplateProps,
   type EditorSection,
 } from '../EditableText';
@@ -11,13 +12,6 @@ import { getTokens, FONT_STACK } from '../tokens';
 
 const t = getTokens('creative');
 
-/**
- * Sektionsüberschrift.
- *
- * `data-break-keep-next` sorgt dafür, dass zwischen dieser Überschrift und dem
- * folgenden Inhalt nicht umgebrochen wird. Eine Überschrift allein am Seitenfuß
- * ist der klassische Layoutfehler, den die Break-Engine damit ausschließt.
- */
 const SectionTitle: React.FC<{ children: React.ReactNode }> = ({ children }) => (
   <h2
     data-break-keep-next
@@ -29,7 +23,6 @@ const SectionTitle: React.FC<{ children: React.ReactNode }> = ({ children }) => 
   </h2>
 );
 
-/** Kleinere Zwischenüberschrift innerhalb eines Blocks (z. B. "Fachlich"). */
 const SubTitle: React.FC<{ children: React.ReactNode }> = ({ children }) => (
   <div
     style={{
@@ -45,7 +38,6 @@ const SubTitle: React.FC<{ children: React.ReactNode }> = ({ children }) => (
   </div>
 );
 
-/** Sektionen, die niemals über eine Seitengrenze getrennt werden dürfen. */
 const ATOMIC_TYPES = new Set([
   'languages',
   'skills',
@@ -62,7 +54,6 @@ const ATOMIC_TYPES = new Set([
   'scholarships',
 ]);
 
-/** Sektionen, die pro Eintrag eine eigene Karte bekommen (trennbar zwischen Karten). */
 const DETAILED_TYPES = new Set([
   'certifications',
   'courses',
@@ -142,10 +133,8 @@ export const CreativeCVTemplate: React.FC<CVTemplateProps> = ({
   onDeleteSectionItem = () => {},
   onDeleteBullet,
   onReorderSections,
+  onReorderSectionItem,
 }) => {
-  // Kein lokaler ResizeObserver und kein eigenes `containerMinHeight` mehr.
-  // Die Höhe kommt aus der Break-Engine über den Parent. Vorher gab es vier
-  // Instanzen, die unabhängig voneinander Seitenhöhen bestimmten.
   const containerMinHeight = minHeightPx ?? 1122;
 
   const getBullets = (item: any): string[] => {
@@ -195,7 +184,6 @@ export const CreativeCVTemplate: React.FC<CVTemplateProps> = ({
     (s) => !leftColumnTypes.includes(s.type) && !rightColumnTypes.includes(s.type)
   );
 
-  // ─── Bullet-Liste ──────────────────────────────────────────────────────────
   const renderBullets = (
     bullets: string[],
     sectionIndex: number,
@@ -277,7 +265,6 @@ export const CreativeCVTemplate: React.FC<CVTemplateProps> = ({
     </div>
   );
 
-  // ─── Sektions-Renderer ─────────────────────────────────────────────────────
   const renderSection = (section: EditorSection, sectionIndex: number): React.ReactNode => {
     const items = Array.isArray(section.items) ? section.items : [];
     const sectionTitle = section.title || TYPE_LABELS[section.type] || section.type;
@@ -286,7 +273,6 @@ export const CreativeCVTemplate: React.FC<CVTemplateProps> = ({
     if (items.length === 0 && !mustShow) return null;
 
     switch (section.type) {
-      // ── Berufserfahrung ──────────────────────────────────────────────────
       case 'experience':
         return (
           <div>
@@ -294,13 +280,20 @@ export const CreativeCVTemplate: React.FC<CVTemplateProps> = ({
             {items.map((exp: any, idx: number) => {
               const bullets = getBullets(exp);
               return (
-                // `data-break-item`: die Karte wird zusammengehalten, solange sie
-                // kürzer ist als 70 % einer Seite. Zwischen zwei Karten darf die
-                // Engine trennen — das ist genau das gewünschte Verhalten.
-                <div key={idx} data-pdf-section data-break-item style={cardStyle}>
+                <div
+                  key={idx}
+                  data-pdf-section
+                  data-break-item
+                  style={{ ...cardStyle, cursor: onReorderSectionItem ? 'grab' : undefined }}
+                  {...itemDragProps(sectionIndex, idx, onReorderSectionItem)}
+                >
                   <div className="flex justify-between items-start gap-2">
+                    {/* FIX (Titel abgeschnitten): min-w-0 auf dem Flex-Kind
+                        erlaubt dem Titel zu schrumpfen statt hinter die
+                        Datums-Spalte zu laufen; `wrap` erlaubt den Umbruch. */}
                     <div className="flex-1 min-w-0">
                       <EditableText
+                        wrap
                         className="font-bold"
                         style={{ fontSize: '11px', color: t.text }}
                         value={exp.title || exp.position || ''}
@@ -308,6 +301,7 @@ export const CreativeCVTemplate: React.FC<CVTemplateProps> = ({
                         placeholder="Position"
                       />
                       <EditableText
+                        wrap
                         className="mt-0.5"
                         style={{ fontSize: '10px', color: t.muted }}
                         value={exp.company || ''}
@@ -347,7 +341,6 @@ export const CreativeCVTemplate: React.FC<CVTemplateProps> = ({
           </div>
         );
 
-      // ── Projekte ─────────────────────────────────────────────────────────
       case 'projects':
         return (
           <div>
@@ -355,8 +348,15 @@ export const CreativeCVTemplate: React.FC<CVTemplateProps> = ({
             {items.map((proj: any, idx: number) => {
               const bullets = getBullets(proj);
               return (
-                <div key={idx} data-pdf-section data-break-item style={cardStyle}>
+                <div
+                  key={idx}
+                  data-pdf-section
+                  data-break-item
+                  style={{ ...cardStyle, cursor: onReorderSectionItem ? 'grab' : undefined }}
+                  {...itemDragProps(sectionIndex, idx, onReorderSectionItem)}
+                >
                   <EditableText
+                    wrap
                     className="font-bold"
                     style={{ fontSize: '11px', color: t.text }}
                     value={proj.title || proj.name || ''}
@@ -384,23 +384,35 @@ export const CreativeCVTemplate: React.FC<CVTemplateProps> = ({
           </div>
         );
 
-      // ── Ausbildung ───────────────────────────────────────────────────────
+      /**
+       * FIX (Titel abgeschnitten): identisches Muster — min-w-0 auf dem
+       * Flex-Kind + wrap auf Titel/Institution, sonst läuft ein langer
+       * Studiengang hinter das Datumsfeld statt umzubrechen.
+       */
       case 'education':
         return (
           <div>
             <SectionTitle>Ausbildung &amp; Studium</SectionTitle>
             {items.map((edu: any, idx: number) => (
-              <div key={idx} data-pdf-section data-break-item style={cardStyle}>
+              <div
+                key={idx}
+                data-pdf-section
+                data-break-item
+                style={{ ...cardStyle, cursor: onReorderSectionItem ? 'grab' : undefined }}
+                {...itemDragProps(sectionIndex, idx, onReorderSectionItem)}
+              >
                 <div className="flex justify-between items-start gap-2">
                   <div className="flex-1 min-w-0">
                     <EditableText
+                      wrap
                       className="font-bold"
                       style={{ fontSize: '11px', color: t.text }}
-                      value={edu.degree || ''}
+                      value={edu.degree || edu.title || ''}
                       onChange={(val) => onUpdateSectionItem(sectionIndex, idx, 'degree', val)}
                       placeholder="Abschluss"
                     />
                     <EditableText
+                      wrap
                       className="mt-0.5"
                       style={{ fontSize: '10px', color: t.muted }}
                       value={edu.institution || ''}
@@ -448,37 +460,48 @@ export const CreativeCVTemplate: React.FC<CVTemplateProps> = ({
           </div>
         );
 
-      // ── Sprachen ─────────────────────────────────────────────────────────
-      // `data-break-atomic`: Sprachen bleiben immer zusammen. Passt der Block
-      // nicht mehr auf die Seite, wandert er komplett auf die nächste.
+      /**
+       * FIX (Konsistenz + Level-ohne-Namen): liest jetzt auch skill/label,
+       * und verwirft eine Zeile mit Niveau, aber ohne erkannten Namen NICHT
+       * mehr — Namensfeld bleibt leer & editierbar statt die Sprache
+       * verschwinden zu lassen.
+       */
       case 'languages':
         return (
           <div data-pdf-section data-break-atomic>
             <SectionTitle>Sprachen</SectionTitle>
             <div className="space-y-0.5">
-              {items.map((lang: any, idx: number) => (
-                <div key={idx} className="flex justify-between items-center" style={{ fontSize: '9.5px' }}>
-                  <EditableText
-                    className="font-medium"
-                    style={{ width: '50%', color: t.text }}
-                    value={typeof lang === 'string' ? lang : lang.language || lang.name || ''}
-                    onChange={(val) => onUpdateSectionItem(sectionIndex, idx, 'language', val)}
-                    placeholder="Sprache"
-                  />
-                  <EditableText
-                    className="text-right"
-                    style={{ width: '50%', fontSize: '9px', color: t.muted }}
-                    value={typeof lang === 'object' ? lang.level || lang.proficiency || '' : ''}
-                    onChange={(val) => onUpdateSectionItem(sectionIndex, idx, 'level', val)}
-                    placeholder="Niveau"
-                  />
-                </div>
-              ))}
+              {items.map((lang: any, idx: number) => {
+                const language = typeof lang === 'string'
+                  ? lang
+                  : (lang.language || lang.name || lang.sprache || lang.skill || lang.label || '');
+                const level = typeof lang === 'object' && lang !== null
+                  ? (lang.level || lang.niveau || lang.proficiency || '')
+                  : '';
+                if (!language && !level) return null;
+                return (
+                  <div key={idx} className="flex justify-between items-center" style={{ fontSize: '9.5px' }}>
+                    <EditableText
+                      className="font-medium"
+                      style={{ width: '50%', color: t.text }}
+                      value={language}
+                      onChange={(val) => onUpdateSectionItem(sectionIndex, idx, 'language', val)}
+                      placeholder="Sprache"
+                    />
+                    <EditableText
+                      className="text-right"
+                      style={{ width: '50%', fontSize: '9px', color: t.muted }}
+                      value={level}
+                      onChange={(val) => onUpdateSectionItem(sectionIndex, idx, 'level', val)}
+                      placeholder="Niveau"
+                    />
+                  </div>
+                );
+              })}
             </div>
           </div>
         );
 
-      // ── Chips ────────────────────────────────────────────────────────────
       case 'skills':
       case 'soft_skills': {
         const isSoft = section.type === 'soft_skills';
@@ -563,15 +586,6 @@ export const CreativeCVTemplate: React.FC<CVTemplateProps> = ({
           </div>
         );
 
-      // ── Zertifikate, Stipendien, Auszeichnungen, Ehrenamt ────────────────
-      //
-      // HIER LAG DER BUG. Diese Sektionen wurden mit `text-[#f9fafb]` und
-      // `color: '#e2e8f0'` gerendert — nahezu weiß, auf weißem Grund. Die
-      // Trennlinien waren `border-white/30`, also ebenfalls unsichtbar.
-      //
-      // Vermutlich ein Überbleibsel aus einer Version mit dunkler Seitenspalte.
-      // Die Daten waren immer da, sie waren nur nicht zu sehen. Mit Tokens ist
-      // dieser Fehler nicht mehr möglich: das Template kennt keine Hex-Werte.
       default: {
         const isDetailed = DETAILED_TYPES.has(section.type);
         const isAtomic = ATOMIC_TYPES.has(section.type);
@@ -594,6 +608,7 @@ export const CreativeCVTemplate: React.FC<CVTemplateProps> = ({
                     >
                       <div style={{ fontWeight: 600, marginBottom: institution || date ? '2px' : '0' }}>
                         <EditableText
+                          wrap
                           style={{ color: t.text }}
                           value={name}
                           onChange={(val) => onUpdateSectionItem(sectionIndex, idx, 'name', val)}
@@ -650,20 +665,12 @@ export const CreativeCVTemplate: React.FC<CVTemplateProps> = ({
     }
   };
 
-  // ─── Rechte Spalte: Skills und Soft Skills als ein Block ───────────────────
-  //
-  // Beide gehören zusammen unter "Skills & Tools" und dürfen als Einheit nicht
-  // getrennt werden — daher ein gemeinsames `data-break-atomic`.
-  //
-  // Nebenbei: Der alte Code gab bei `soft_skills` immer `null` zurück und
-  // rechnete darauf, dass die `skills`-Sektion den Block mitrendert. Existierten
-  // nur Soft Skills, verschwanden sie komplett. Behoben.
   const renderRightSection = (section: EditorSection): React.ReactNode => {
     const sectionIndex = sections.findIndex((s) => s === section);
 
     if (section.type === 'soft_skills') {
       const hasSkills = rightSections.some((s) => s.type === 'skills');
-      if (hasSkills) return null; // wird im skills-Block mitgerendert
+      if (hasSkills) return null;
       return (
         <div key="skills-tools-block" data-pdf-section data-break-atomic>
           <SectionTitle>Skills &amp; Tools</SectionTitle>
@@ -707,21 +714,11 @@ export const CreativeCVTemplate: React.FC<CVTemplateProps> = ({
         printColorAdjust: 'exact',
       }}
     >
-      {/*
-        Der frühere `@media print`-Block mit `.split-box-fix` ist entfallen.
-        Der Export läuft über html2canvas — ein Screenshot des DOM, kein
-        Druckvorgang. Print-Media-Queries greifen dabei nie. Toter Code, der
-        Sicherheit vortäuschte.
-      */}
-
-      {/* Dekorativer Verlauf. `position: absolute` — trägt nichts zur Höhe bei
-          und wird von der Break-Engine korrekt ignoriert. */}
       <div className="pointer-events-none absolute inset-0" style={{ opacity: 0.35 }}>
         <div className="absolute -top-10 -left-16 w-52 h-52 blur-3xl rounded-full" style={{ background: t.accent }} />
         <div className="absolute -bottom-20 right-0 w-64 h-64 blur-3xl rounded-full" style={{ background: '#66c0b6' }} />
       </div>
 
-      {/* Alles zwischen Header und Footer zählt als Inhalt. */}
       <div>
         <header
           className="relative px-6 pt-4 pb-2.5 flex items-center justify-between gap-3 flex-shrink-0"
@@ -857,9 +854,6 @@ export const CreativeCVTemplate: React.FC<CVTemplateProps> = ({
         )}
       </div>
 
-      {/* Footer: `marginTop: auto` drückt ihn an die Unterkante des Containers,
-          also exakt an den Fuß der letzten Seite. Die Break-Engine reserviert
-          seine Höhe bei der Paginierung. */}
       <footer
         data-pdf-footer
         className="relative flex-shrink-0"
