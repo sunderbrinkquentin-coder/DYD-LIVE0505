@@ -1709,15 +1709,17 @@ const normalized = allLangs
 
           .nonce-export { display: none !important; }
 
-          .a4-page-frame {
-            width: 794px !important;
-            height: 1122px !important;
-            background-color: #ffffff !important;
-            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.4) !important;
-            border-radius: 4px;
-            position: absolute !important;
-            overflow: hidden !important;
-          }
+ /** Seiten-Hintergrundfarbe pro Template — muss mit der jeweiligen Template-
+ *  eigenen Root-Hintergrundfarbe übereinstimmen, sonst entsteht am unteren
+ *  Seitenrand ein sichtbarer Farbbruch, sobald eine Seite nicht bis zum
+ *  Rand gefüllt ist. */
+const TEMPLATE_PAGE_BG: Record<CVTemplateType, string> = {
+  modern: '#f0faf8',
+  classic: '#ffffff',
+  minimal: '#ffffff',
+  creative: '#ffffff',
+  professional: '#ffffff',
+};
 
           /* text-size-adjust:none verhindert iOS-Text-Boosting, ohne font-size
              zu ändern — für sichtbare Frames UND den versteckten PDF-Render. */
@@ -1811,11 +1813,17 @@ const normalized = allLangs
                 const frameTop = pageIdx * (PAGE_HEIGHT_PX + SHEET_GAP_PX) * scale;
 
                 return (
-                  <div
-                    key={pageIdx}
-                    className="a4-page-frame"
-                    style={{ top: `${frameTop}px`, left: 0, transform: `scale(${scale})`, transformOrigin: 'top left' }}
-                  >
+                 <div
+                  key={pageIdx}
+                  className="a4-page-frame"
+                  style={{
+                    top: `${frameTop}px`,
+                    left: 0,
+                    transform: `scale(${scale})`,
+                    transformOrigin: 'top left',
+                    backgroundColor: TEMPLATE_PAGE_BG[selectedTemplate] ?? '#ffffff',
+                  }}
+                >
                     <div style={{ position: 'relative', width: '794px', height: `${visibleHeight}px`, overflow: 'hidden' }}>
                       <div style={{ position: 'absolute', top: `${-pageStart}px`, left: 0, width: '794px' }}>
                         {renderTemplate()}
