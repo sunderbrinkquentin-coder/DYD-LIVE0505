@@ -548,7 +548,7 @@ export class CareerVisionService {
     }
   }
 
-  /** Bestehensgrenze — identisch zu PASSING_SCORE in certificateService. */
+ /** Bestehensgrenze — identisch zu PASSING_SCORE in certificateService. */
   static readonly PASSING_SCORE = 80;
 
   /**
@@ -636,5 +636,7 @@ export class CareerVisionService {
     }
     return (data as LearningPath[]) || [];
   }
+  }
+}
 
 export const careerService = CareerVisionService;
