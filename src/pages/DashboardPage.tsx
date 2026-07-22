@@ -704,7 +704,17 @@ const handleWizardOverviewContinue = async (updatedData: any) => {
     await logout();
     navigate('/');
   };
-
+const handleIssueCertificate = async (pathId: string) => {
+  setIssuingCertId(pathId);
+  try {
+    await careerService.generateCertificate(pathId);
+    await loadLearningPaths();
+  } catch (err: any) {
+    alert(err?.message || 'Das Zertifikat konnte nicht erstellt werden.');
+  } finally {
+    setIssuingCertId(null);
+  }
+};
   // ---------- Render ----------
 
   return (
