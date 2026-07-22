@@ -581,8 +581,6 @@ const startUnlock = () => {
         </div>
       </div>
 
-// paywallPathId + resolvingUnlock State löschen.
-// Der Button-Text: `resolvingUnlock ? 'Wird vorbereitet…' : …` → den Zweig raus.
 
 {showPaywall && (
   <LearningPathPaywall
@@ -2584,7 +2582,7 @@ const handleFinalExamSubmit = async () => {
                         style={{ background: 'rgba(248,113,113,0.06)', border: '1px solid rgba(248,113,113,0.25)' }}>
                         <p className="text-xs text-red-400/85 leading-relaxed">{certificateError}</p>
                         <button
-                          onClick={() => issueCertificate(learningPath, finalExamScore)}
+                          onClick={() => issueCertificate(learningPath)}
                           disabled={issuingCertificate}
                           className="w-full py-2.5 rounded-lg font-bold text-xs text-white/80 transition-all hover:bg-white/5 disabled:opacity-40"
                           style={{ border: '1px solid rgba(255,255,255,0.12)' }}>
