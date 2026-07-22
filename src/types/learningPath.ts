@@ -42,20 +42,48 @@ export interface LearningPath {
   user_id?: string;
   session_id?: string;
   cv_id?: string;
+
+  /** Bei Skill-Zeilen: id der Eltern-Analyse. Bei Analyse-Zeilen: null. */
+  analysis_id?: string | null;
+  /** Der eine freigeschaltete Skill dieser Zeile. Analyse-Zeilen: null. */
+  skill?: string | null;
+
   target_job: string;
   target_company?: string;
   vision_description?: string;
   industry?: string;
-  missing_skills: Skill[];
+
+  /** Make schreibt hier teils kaputtes JSON — vor Gebrauch durch parseSkills(). */
+  missing_skills: any;
   current_skills?: Skill[];
   match_score?: number;
   strategic_outlook_2026?: string;
   curriculum?: Curriculum;
   progress: Record<string, ModuleProgress>;
-  status: 'analyzing' | 'curriculum_ready' | 'in_progress' | 'completed';
+
+  status:
+    | 'analyzing'
+    | 'gap_analysis_complete'
+    | 'curriculum_ready'
+    | 'in_progress'
+    | 'completed'
+    | 'failed';
+
+  /** Gap-Analyse bezahlt (Analyse-Zeile) */
+  skillgap_paid?: boolean;
+  /** Lernpfad dieses Skills bezahlt (Skill-Zeile) */
   is_paid: boolean;
-  certificate_issued_at?: string;
-  certificate_url?: string;
+
+  final_exam_score?: number | null;
+  final_exam_status?: 'triggered' | 'done' | null;
+  final_exam_triggered_at?: string;
+  final_exam_completed_at?: string;
+  completed_at?: string;
+
+  certificate_id?: string | null;
+  certificate_url?: string | null;
+  certificate_issued_at?: string | null;
+
   created_at: string;
   updated_at: string;
 }
