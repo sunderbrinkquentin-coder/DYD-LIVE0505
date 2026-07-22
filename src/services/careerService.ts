@@ -637,4 +637,4 @@ export class CareerVisionService {
     return (data as LearningPath[]) || [];
   }
 
-export const careerService = CareerVisionService;
+export const careerService = CareerVisionService
