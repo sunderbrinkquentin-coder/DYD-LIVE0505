@@ -29,35 +29,146 @@ export function skillDisplayName(s: RawSkill): string {
   return s.skill_name || s.name || '(unbenannt)';
 }
 
+/** Ergebnis des Parsens — unterscheidet "keine Skills" von "kaputte Daten". */
+export type SkillParseStatus = 'ok' | 'empty' | 'prose' | 'unparsable';
+
+export interface SkillParseResult {
+  skills: RawSkill[];
+  status: SkillParseStatus;
+  /** Rohtext-Anfang, falls das Feld Prosa statt JSON enthielt */
+  raw?: string;
+}
+
+/** Markdown-Fences entfernen, die das LLM gelegentlich mitliefert. */
+function stripFences(s: string): string {
+  return s.replace(/^```(?:json)?\s*/i, '').replace(/\s*```$/, '').trim();
+}
+
 /**
- * Make schreibt missing_skills als String OHNE Array-Klammern:
- *   {"skill_name":"A",...}, {"skill_name":"B",...}
- * Das ist kein gültiges JSON. Hier wird der Wrapper ergänzt und
- * gap_severity von "High"/"Medium" auf Zahlen normalisiert.
+ * Sammelt vollständige {...}-Objekte aus einem Text ein (klammer-balanciert,
+ * string-aware). Rettet Skills auch dann, wenn Make Fließtext davor/danach
+ * schreibt oder die Antwort mittendrin abgeschnitten ist.
  */
-export function parseSkills(raw: unknown): RawSkill[] {
-  const norm = (arr: any[]): RawSkill[] =>
-    arr.filter(Boolean).map((s) => ({ ...s, gap_severity: toSeverity(s.gap_severity) }));
+function extractObjects(text: string): string[] {
+  const out: string[] = [];
+  let depth = 0;
+  let start = -1;
+  let inString = false;
+  let escaped = false;
 
-  if (!raw) return [];
-  if (Array.isArray(raw)) return norm(raw);
-  if (typeof raw === 'object') return norm([raw]);
-  if (typeof raw !== 'string') return [];
+  for (let i = 0; i < text.length; i++) {
+    const ch = text[i];
 
-  let s = raw.trim();
-  if (!s) return [];
-  if (s.startsWith('"')) { try { s = JSON.parse(s) as string; } catch { /* */ } }
-  s = s.trim();
-  if (!s) return [];
-  if (!s.startsWith('[')) s = `[${s}]`;
+    if (inString) {
+      if (escaped) escaped = false;
+      else if (ch === '\\') escaped = true;
+      else if (ch === '"') inString = false;
+      continue;
+    }
 
-  try {
-    const p = JSON.parse(s);
-    return norm(Array.isArray(p) ? p : [p]);
-  } catch (e) {
-    console.error('[parseSkills] unparsebar:', s.slice(0, 150), e);
-    return [];
+    if (ch === '"') { inString = true; continue; }
+    if (ch === '{') { if (depth === 0) start = i; depth++; continue; }
+    if (ch === '}') {
+      depth--;
+      if (depth === 0 && start >= 0) { out.push(text.slice(start, i + 1)); start = -1; }
+      if (depth < 0) depth = 0;
+    }
   }
+  return out;
+}
+
+/**
+ * Robuster Parser für `learning_paths.missing_skills`.
+ *
+ * Deckt alle bisher beobachteten Make-Formate ab:
+ *  1. echtes Array            [{...},{...}]
+ *  2. Liste ohne Klammern     {...}, {...}
+ *  3. doppelt serialisiert    "[{...}]"
+ *  4. Markdown-Fences         ```json [...] ```
+ *  5. Prosa mit JSON drin     "Hier deine Skills: {...}, {...}"
+ *  6. reine Prosa             "Da keine vorhandenen Skills angegeben wurden…"
+ *
+ * Fall 6 liefert status 'prose' — das ist ein Datenfehler aus Make,
+ * kein leeres Analyseergebnis, und sollte im UI unterschieden werden.
+ */
+export function parseSkillsDetailed(raw: unknown): SkillParseResult {
+  const norm = (arr: any[]): RawSkill[] =>
+    arr
+      .filter((s) => s && typeof s === 'object')
+      .map((s) => ({ ...s, gap_severity: toSeverity(s.gap_severity) }))
+      .filter((s) => Boolean(s.skill_name || s.name));
+
+  if (raw == null) return { skills: [], status: 'empty' };
+  if (Array.isArray(raw)) {
+    const skills = norm(raw);
+    return { skills, status: skills.length ? 'ok' : 'empty' };
+  }
+  if (typeof raw === 'object') {
+    const skills = norm([raw]);
+    return { skills, status: skills.length ? 'ok' : 'empty' };
+  }
+  if (typeof raw !== 'string') return { skills: [], status: 'unparsable' };
+
+  let s = stripFences(raw.trim());
+  if (!s) return { skills: [], status: 'empty' };
+
+  // doppelt serialisiert: '"[{...}]"' → einmal auspacken (ggf. mehrfach)
+  for (let i = 0; i < 3 && s.startsWith('"'); i++) {
+    try {
+      const unwrapped = JSON.parse(s);
+      if (typeof unwrapped !== 'string') break;
+      s = stripFences(unwrapped.trim());
+    } catch {
+      break;
+    }
+  }
+  if (!s) return { skills: [], status: 'empty' };
+
+  // Direktversuch, ggf. mit ergänzten Klammern
+  const candidates = s.startsWith('[') || s.startsWith('{') ? [s, `[${s}]`] : [`[${s}]`, s];
+  for (const candidate of candidates) {
+    try {
+      const parsed = JSON.parse(candidate);
+      const skills = norm(Array.isArray(parsed) ? parsed : [parsed]);
+      if (skills.length) return { skills, status: 'ok' };
+    } catch {
+      /* nächster Versuch */
+    }
+  }
+
+  // Rettungsversuch: einzelne Objekte aus dem Text herausschneiden
+  const chunks = extractObjects(s);
+  if (chunks.length) {
+    const recovered: any[] = [];
+    for (const chunk of chunks) {
+      try { recovered.push(JSON.parse(chunk)); } catch { /* Fragment überspringen */ }
+    }
+    const skills = norm(recovered);
+    if (skills.length) {
+      console.warn(
+        `[parseSkills] ${skills.length} Skill(s) aus fehlerhaftem Feld gerettet ` +
+          '— Make liefert kein sauberes JSON.'
+      );
+      return { skills, status: 'ok' };
+    }
+  }
+
+  // Kein einziges Objekt im Feld → das LLM hat Prosa geschrieben
+  const looksLikeProse = !s.includes('"skill_name"') && !s.includes('"name"');
+  console.warn(
+    `[parseSkills] ${looksLikeProse ? 'Prosa statt JSON' : 'unparsebar'}:`,
+    s.slice(0, 200)
+  );
+  return {
+    skills: [],
+    status: looksLikeProse ? 'prose' : 'unparsable',
+    raw: s.slice(0, 500),
+  };
+}
+
+/** Abwärtskompatible Variante — liefert wie bisher nur das Array. */
+export function parseSkills(raw: unknown): RawSkill[] {
+  return parseSkillsDetailed(raw).skills;
 }
 
 /** Liest den Skill-Namen aus einer learning_paths-Zeile. */
