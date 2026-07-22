@@ -16,7 +16,7 @@ const CURRICULUM_WEBHOOK_URL = import.meta.env.VITE_MAKE_WEBHOOK_CURRICULUM || '
 const TARGET_SKILLS_WEBHOOK_URL = import.meta.env.VITE_MAKE_WEBHOOK_TARGET_SKILLS || '';
 const LEARNINGPATH_WEBHOOK_URL = import.meta.env.VITE_MAKE_WEBHOOK_LEARNINGPATH || '';
 
-export class CareerVisionService {
+export class Careerservice {
   static async getTargetSkills(targetJob: string): Promise<Skill[]> {
     try {
       console.log('[CareerVision] Getting required skills for:', targetJob);
@@ -560,7 +560,7 @@ static async completeLearningPath(
   finalExamScore: number
 ): Promise<{ passed: boolean; score: number }> {
   // 1. CareerVisionService statt 'this' nutzen, damit der Kontext nicht verloren geht
-  const passed = finalExamScore >= CareerVisionService.PASSING_SCORE;
+  const passed = finalExamScore >= Careerservice.PASSING_SCORE;
 
   // 2. Basis-Update-Payload
   const updatePayload: Record<string, any> = {
@@ -598,7 +598,7 @@ static async generateCertificate(
   pathId: string,
   options: { autoDownload?: boolean } = {}
 ): Promise<string> {
-  const path = await CareerVisionService.getLearningPath(pathId);
+  const path = await Careerservice.getLearningPath(pathId);
   if (!path) throw new Error('Lernpfad nicht gefunden');
 
   if (path.certificate_url) {
