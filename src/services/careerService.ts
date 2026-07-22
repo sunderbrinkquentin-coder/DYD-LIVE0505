@@ -465,12 +465,9 @@ export class CareerVisionService {
         (p: any) => p.status === 'completed'
       ).length;
 
+ // 'completed' setzt ausschließlich completeLearningPath() nach der Prüfung.
       const newStatus =
-        completedModules === allModules.length
-          ? 'completed'
-          : completedModules > 0
-          ? 'in_progress'
-          : path.status;
+        completedModules > 0 && path.status !== 'completed' ? 'in_progress' : path.status;
 
       await this.updateLearningPath(pathId, {
         progress: newProgress,
