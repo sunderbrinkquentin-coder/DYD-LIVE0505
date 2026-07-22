@@ -1206,7 +1206,50 @@ const certReady = learningPaths.filter(
                 )}
 
                 {/* ── 4. Zertifikate ───────────────────────────────────────── */}
-{certPaths.map((path) => (
+{(certPaths.length > 0 || certReady.length > 0) && (
+                  <div className="space-y-3">
+                    <div className="flex items-center gap-2">
+                      <div className="w-5 h-5 rounded-lg flex items-center justify-center" style={{ background: 'rgba(251,191,36,0.12)', border: '1px solid rgba(251,191,36,0.25)' }}>
+                        <Award size={12} className="text-amber-400" />
+                      </div>
+                      <span className="text-[11px] font-black uppercase tracking-widest text-white/30">Meine Zertifikate</span>
+                      {certPaths.length > 0 && (
+                        <span className="text-[10px] font-black px-1.5 py-0.5 rounded-full" style={{ background: 'rgba(251,191,36,0.12)', color: '#fbbf24' }}>
+                          {certPaths.length}
+                        </span>
+                      )}
+                    </div>
+
+                    {certReady.map((path) => (
+                      <div
+                        key={path.id}
+                        className="flex items-center gap-3 px-4 py-3 rounded-2xl"
+                        style={{ background: 'rgba(251,191,36,0.04)', border: '1px dashed rgba(251,191,36,0.3)' }}
+                      >
+                        <div className="w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0" style={{ background: 'rgba(251,191,36,0.1)', border: '1px solid rgba(251,191,36,0.25)' }}>
+                          <Sparkles size={17} className="text-amber-400" />
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <p className="text-sm font-black text-white leading-tight truncate">
+                            {skillFromPath(path) ?? path.target_job}
+                          </p>
+                          <p className="text-[10px] text-white/35 mt-0.5">
+                            Prüfung bestanden — Zertifikat abholen
+                          </p>
+                        </div>
+                        <button
+                          onClick={() => handleIssueCertificate(path.id)}
+                          disabled={issuingCertId === path.id}
+                          className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-[11px] font-black transition-all hover:scale-105 flex-shrink-0 disabled:opacity-50"
+                          style={{ background: 'rgba(251,191,36,0.15)', border: '1px solid rgba(251,191,36,0.35)', color: '#fbbf24' }}
+                        >
+                          <Award size={12} />
+                          {issuingCertId === path.id ? 'Wird erstellt…' : 'Zertifikat erstellen'}
+                        </button>
+                      </div>
+                    ))}
+
+                    {certPaths.map((path) => (
                       <div
                         key={path.id}
                         className="flex items-center gap-3 px-4 py-3 rounded-2xl"
@@ -1233,8 +1276,11 @@ const certReady = learningPaths.filter(
                           <Download size={12} />
                           PDF
                         </a>
+                      </div>
                     ))}
                   </div>
+                )}
+              </div>
             );
           })()}
           {/* ══════════════════════════════════════════════════════════════════
