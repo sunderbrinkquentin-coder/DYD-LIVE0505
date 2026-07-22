@@ -1990,11 +1990,9 @@ export default function LearningPathPage() {
     setLearningPath(normalized);
     setAnalysisResult(resultFromPath(normalized));
 
-    // Close out the in-flight status. Without this, the "another path is already
-    // in_progress" guard below blocks generation for every subsequent path.
-    if (normalized.status !== 'completed') {
+ if (normalized.status !== 'completed') {
       await supabase.from('learning_paths')
-        .update({ status: 'completed', updated_at: new Date().toISOString() })
+        .update({ status: 'curriculum_ready', updated_at: new Date().toISOString() })
         .eq('id', normalized.id);
     }
 
