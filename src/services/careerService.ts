@@ -548,93 +548,105 @@ export class CareerVisionService {
     }
   }
 
-  /** Bestehensgrenze — identisch zu PASSING_SCORE in certificateService. */
-  static readonly PASSING_SCORE = 80;
+/** Bestehensgrenze — identisch zu PASSING_SCORE in certificateService. */
+static readonly PASSING_SCORE = 80;
 
-  /**
-   * Schließt einen Lernpfad nach der Abschlussprüfung ab.
-   * Einzige Stelle im Code, die status = 'completed' setzt.
-   */
-  static async completeLearningPath(
-    pathId: string,
-    finalExamScore: number
-  ): Promise<{ passed: boolean; score: number }> {
-    const passed = finalExamScore >= this.PASSING_SCORE;
+/**
+ * Schließt einen Lernpfad nach der Abschlussprüfung ab.
+ * Einzige Stelle im Code, die status = 'completed' setzt.
+ */
+static async completeLearningPath(
+  pathId: string,
+  finalExamScore: number
+): Promise<{ passed: boolean; score: number }> {
+  // 1. CareerVisionService statt 'this' nutzen, damit der Kontext nicht verloren geht
+  const passed = finalExamScore >= CareerVisionService.PASSING_SCORE;
 
-    const { error } = await supabase
-      .from('learning_paths')
-      .update({
-        final_exam_score: finalExamScore,
-        final_exam_completed_at: new Date().toISOString(),
-        ...(passed ? { status: 'completed', completed_at: new Date().toISOString() } : {}),
-        updated_at: new Date().toISOString(),
-      })
-      .eq('id', pathId);
+  // 2. Basis-Update-Payload
+  const updatePayload: Record<string, any> = {
+    final_exam_score: finalExamScore,
+    final_exam_completed_at: new Date().toISOString(),
+    updated_at: new Date().toISOString(),
+  };
 
-    if (error) {
-      throw new Error(`Prüfungsergebnis konnte nicht gespeichert werden: ${error.message}`);
-    }
-
-    console.log('[CareerVision] Prüfung gespeichert:', { pathId, finalExamScore, passed });
-    return { passed, score: finalExamScore };
+  // 3. Explizite Status-Steuerung (verhindert Alt-Status 'completed' bei Fehlversuchen)
+  if (passed) {
+    updatePayload.status = 'completed';
+    updatePayload.completed_at = new Date().toISOString();
+  } else {
+    updatePayload.status = 'failed'; // oder 'in_progress', je nach gewünschter Fachlogik
   }
 
-  /**
-   * Erstellt das Zertifikat. KEIN eigener Status-Check — die fachliche
-   * Bedingung (Score >= PASSING_SCORE) liegt allein in certificateService.
-   */
-  static async generateCertificate(
-    pathId: string,
-    options: { autoDownload?: boolean } = {}
-  ): Promise<string> {
-    const path = await this.getLearningPath(pathId);
-    if (!path) throw new Error('Lernpfad nicht gefunden');
+  const { error } = await supabase
+    .from('learning_paths')
+    .update(updatePayload)
+    .eq('id', pathId);
 
-    if (path.certificate_url) {
-      console.log('[CareerVision] Zertifikat existiert bereits:', path.certificate_url);
-      return path.certificate_url;
-    }
-
-    const { data: { user } } = await supabase.auth.getUser();
-
-    let recipientName = '';
-    if (user?.id) {
-      const { data: profile } = await supabase
-        .from('profiles')
-        .select('full_name')
-        .eq('id', user.id)
-        .maybeSingle();
-      recipientName =
-        profile?.full_name ||
-        (user.user_metadata?.full_name as string | undefined) ||
-        user.email?.split('@')[0] ||
-        '';
-    }
-
-    const { certificateService } = await import('./certificateService');
-    const certificateUrl = await certificateService.issueCertificate(path, recipientName, {
-      autoDownload: options.autoDownload ?? true,
-    });
-
-    console.log('[CareerVision] ✅ Zertifikat erstellt:', certificateUrl);
-    return certificateUrl;
+  if (error) {
+    throw new Error(`Prüfungsergebnis konnte nicht gespeichert werden: ${error.message}`);
   }
 
-  /** Alle bezahlten Skill-Pfade eines Nutzers — Datenquelle der Zertifikats-Sektion. */
-  static async getCertificateOverview(userId: string): Promise<LearningPath[]> {
-    const { data, error } = await supabase
-      .from('learning_paths')
-      .select('*')
-      .eq('user_id', userId)
-      .eq('is_paid', true)
-      .not('skill', 'is', null)
-      .order('created_at', { ascending: false });
+  console.log('[CareerVision] Prüfung gespeichert:', { pathId, finalExamScore, passed });
+  return { passed, score: finalExamScore };
+}
 
-    if (error) {
-      console.error('[CareerVision] Zertifikatsübersicht fehlgeschlagen:', error.message);
-      return [];
-    }
-    return (data as LearningPath[]) || [];
+/**
+ * Erstellt das Zertifikat. KEIN eigener Status-Check — die fachliche
+ * Bedingung (Score >= PASSING_SCORE) liegt allein in certificateService.
+ */
+static async generateCertificate(
+  pathId: string,
+  options: { autoDownload?: boolean } = {}
+): Promise<string> {
+  const path = await CareerVisionService.getLearningPath(pathId);
+  if (!path) throw new Error('Lernpfad nicht gefunden');
+
+  if (path.certificate_url) {
+    console.log('[CareerVision] Zertifikat existiert bereits:', path.certificate_url);
+    return path.certificate_url;
   }
 
-export const careerService = CareerVisionService
+  const { data: { user } } = await supabase.auth.getUser();
+
+  let recipientName = '';
+  if (user?.id) {
+    const { data: profile } = await supabase
+      .from('profiles')
+      .select('full_name')
+      .eq('id', user.id)
+      .maybeSingle();
+      
+    recipientName =
+      profile?.full_name ||
+      (user.user_metadata?.full_name as string | undefined) ||
+      user.email?.split('@')[0] ||
+      '';
+  }
+
+  const { certificateService } = await import('./certificateService');
+  const certificateUrl = await certificateService.issueCertificate(path, recipientName, {
+    autoDownload: options.autoDownload ?? true,
+  });
+
+  console.log('[CareerVision] ✅ Zertifikat erstellt:', certificateUrl);
+  return certificateUrl;
+}
+
+/** Alle bezahlten Skill-Pfade eines Nutzers — Datenquelle der Zertifikats-Sektion. */
+static async getCertificateOverview(userId: string): Promise<LearningPath[]> {
+  const { data, error } = await supabase
+    .from('learning_paths')
+    .select('*')
+    .eq('user_id', userId)
+    .eq('is_paid', true)
+    .not('skill', 'is', null)
+    .order('created_at', { ascending: false });
+
+  if (error) {
+    console.error('[CareerVision] Zertifikatsübersicht fehlgeschlagen:', error.message);
+    return [];
+  }
+  return (data as LearningPath[]) || [];
+}
+
+export const careerService = CareerVisionService;
