@@ -548,7 +548,7 @@ export class CareerVisionService {
     }
   }
 
-  s/** Bestehensgrenze — identisch zu PASSING_SCORE in certificateService. */
+  /** Bestehensgrenze — identisch zu PASSING_SCORE in certificateService. */
   static readonly PASSING_SCORE = 80;
 
   /**
