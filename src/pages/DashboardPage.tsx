@@ -1276,6 +1276,7 @@ const certReady = learningPaths.filter(
                           <Download size={12} />
                           PDF
                         </a>
+                      </div>
                     ))}
                   </div>
                 )}
