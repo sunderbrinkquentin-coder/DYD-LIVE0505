@@ -1206,7 +1206,7 @@ const certReady = learningPaths.filter(
                 )}
 
                 {/* ── 4. Zertifikate ───────────────────────────────────────── */}
-          {(certPaths.length > 0 || certReady.length > 0) && (
+             {(certPaths.length > 0 || certReady.length > 0) && (
                   <div className="space-y-3">
                     <div className="flex items-center gap-2">
                       <div className="w-5 h-5 rounded-lg flex items-center justify-center" style={{ background: 'rgba(251,191,36,0.12)', border: '1px solid rgba(251,191,36,0.25)' }}>
@@ -1276,10 +1276,15 @@ const certReady = learningPaths.filter(
                           <Download size={12} />
                           PDF
                         </a>
-                      </div>
                     ))}
                   </div>
                 )}
+                  </div>
+                )}
+              </div>
+            );
+          })()}
+
           {/* ══════════════════════════════════════════════════════════════════
               CV-Analysen
               ══════════════════════════════════════════════════════════════════ */}
