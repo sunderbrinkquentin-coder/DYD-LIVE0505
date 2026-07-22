@@ -2335,19 +2335,11 @@ const handleFinalExamSubmit = async () => {
   setFinalExamScore(pct);
   setFinalExamPhase('submitted');
 
-    // ZUERST speichern — das ist Punkt 7. Setzt Score und, bei Erfolg, status='completed'.
+  // ZUERST speichern — das ist Punkt 7. Setzt Score und, bei Erfolg, status='completed'.
   const { passed } = await careerService.completeLearningPath(learningPath.id, pct);
 
   if (passed) await issueCertificate(learningPath);
 };
-    if (pct >= MIN_PASS_SCORE) {
-      await issueCertificate(learningPath, pct);
-    } else {
-      await supabase.from('learning_paths')
-        .update({ final_exam_score: pct, updated_at: new Date().toISOString() })
-        .eq('id', learningPath.id);
-    }
-  };
 
   const retakeFinalExam = () => {
     setFinalExamAnswers({});
