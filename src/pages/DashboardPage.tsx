@@ -108,6 +108,7 @@ export function DashboardPage() {
   const [expandedCheckId, setExpandedCheckId] = useState<string | null>(null);
   const [showNewCvCheckBanner, setShowNewCvCheckBanner] = useState(false);
   const [newCvUnlockId, setNewCvUnlockId] = useState<string | null>(null);
+  const [issuingCertId, setIssuingCertId] = useState<string | null>(null);
 
   // ---------- Ladefunktionen ----------
 
