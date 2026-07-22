@@ -978,7 +978,12 @@ const handleIssueCertificate = async (pathId: string) => {
                 .map((name) => ({ name, gap: gp }))
             );
 
-            const certPaths = learningPaths.filter((p) => p.certificate_url && p.certificate_issued_at);
+        const certPaths = learningPaths.filter((p) => p.certificate_url && p.certificate_issued_at);
+
+// Bestanden, aber noch kein PDF — sonst hängt der Nutzer ohne Ausweg fest.
+const certReady = learningPaths.filter(
+  (p) => !p.certificate_url && ((p as any).final_exam_score ?? 0) >= 80
+);
 
             return (
               <div className="space-y-4">
