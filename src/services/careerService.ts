@@ -648,3 +648,4 @@ static async getCertificateOverview(userId: string): Promise<LearningPath[]> {
   }
   return (data as LearningPath[]) || [];
 }
+}
