@@ -2335,10 +2335,6 @@ const handleFinalExamSubmit = async () => {
   setFinalExamScore(pct);
   setFinalExamPhase('submitted');
 
-  // ZUERST speichern — das ist Punkt 7. Setzt Score und, bei Erfolg, status='completed'.
-
-};
-
     if (pct >= MIN_PASS_SCORE) {
       await issueCertificate(learningPath, pct);
     } else {
