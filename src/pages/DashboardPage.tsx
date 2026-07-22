@@ -1266,7 +1266,7 @@ const certReady = learningPaths.filter(
                             Abgeschlossen {path.certificate_issued_at ? new Date(path.certificate_issued_at).toLocaleDateString('de-DE', { day: '2-digit', month: 'long', year: 'numeric' }) : ''}
                           </p>
                         </div>
-                        
+                        <a
                           href={path.certificate_url}
                           target="_blank"
                           rel="noopener noreferrer"
