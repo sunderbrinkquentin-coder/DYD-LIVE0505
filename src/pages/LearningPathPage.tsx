@@ -2302,41 +2302,44 @@ navigate(
     return meta?.full_name || meta?.name || user?.email?.split('@')[0] || 'Teilnehmer';
   }, [user]);
 
-  const issueCertificate = useCallback(async (path: LearningPath, scorePct: number) => {
-    setIssuingCertificate(true);
-    setCertificateError(null);
-    try {
-      const url = await certificateService.issueCertificate(path, recipientName());
-      const now = new Date().toISOString();
+const issueCertificate = useCallback(async (path: LearningPath) => {
+  setIssuingCertificate(true);
+  setCertificateError(null);
+  try {
+    // Score steht zu diesem Zeitpunkt bereits in der DB (siehe handleFinalExamSubmit).
+    // certificateService schreibt certificate_url, certificate_id und
+    // certificate_issued_at selbst — hier nur noch den Prüfungsstatus abschließen.
+    const url = await careerService.generateCertificate(path.id);
 
-      // Persist the URL together with the terminal status. If issuing fails, the
-      // status stays open and the user can retry — the old order marked the exam
-      // 'done' first, stranding anyone whose certificate generation threw.
-      await supabase.from('learning_paths')
-        .update({
-          certificate_url: url,
-          certificate_issued_at: now,
-          final_exam_score: scorePct,
-          final_exam_status: 'done',
-          updated_at: now,
-        })
-        .eq('id', path.id);
+    await supabase.from('learning_paths')
+      .update({ final_exam_status: 'done', updated_at: new Date().toISOString() })
+      .eq('id', path.id);
 
-      setCertificateUrl(url);
-    } catch (err: any) {
-      setCertificateError(err?.message || 'Das Zertifikat konnte nicht erstellt werden.');
-    } finally {
-      setIssuingCertificate(false);
-    }
-  }, [recipientName]);
+    setCertificateUrl(url);
+  } catch (err: any) {
+    setCertificateError(err?.message || 'Das Zertifikat konnte nicht erstellt werden.');
+  } finally {
+    setIssuingCertificate(false);
+  }
+}, []);
 
-  const handleFinalExamSubmit = async () => {
-    if (!learningPath) return;
-    const correct = finalExamQuestions.filter(q => finalExamAnswers[q.question_id] === q.correct_key).length;
-    const pct = finalExamQuestions.length > 0 ? Math.round((correct / finalExamQuestions.length) * 100) : 0;
+const handleFinalExamSubmit = async () => {
+  if (!learningPath) return;
+  const correct = finalExamQuestions.filter(
+    q => finalExamAnswers[q.question_id] === q.correct_key
+  ).length;
+  const pct = finalExamQuestions.length > 0
+    ? Math.round((correct / finalExamQuestions.length) * 100)
+    : 0;
 
-    setFinalExamScore(pct);
-    setFinalExamPhase('submitted');
+  setFinalExamScore(pct);
+  setFinalExamPhase('submitted');
+
+  // ZUERST speichern — das ist Punkt 7. Setzt Score und, bei Erfolg, status='completed'.
+  const { passed } = await careerService.completeLearningPath(learningPath.id, pct);
+
+  if (passed) await issueCertificate(learningPath);
+};
 
     if (pct >= MIN_PASS_SCORE) {
       await issueCertificate(learningPath, pct);
