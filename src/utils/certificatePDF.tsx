@@ -1,53 +1,41 @@
 import React from 'react';
 import { Document, Page, Text, View, StyleSheet } from '@react-pdf/renderer';
 
-/**
- * Datenmodell des Zertifikats.
- * Bewusst eigenständig gehalten (nicht `Certificate` aus types/learningPath),
- * damit das PDF alle Pflichtangaben kennt, ohne den bestehenden Typ zu brechen.
- * Übernimm dieses Interface bei Gelegenheit nach types/learningPath.ts.
- */
 export interface CertificateModule {
   title: string;
 }
 
 export interface CertificateData {
-  /** Vollständiger Name der Person */
   recipient_name: string;
-  /** Zielposition — wird auf dem Zertifikat NICHT gedruckt, nur intern genutzt */
   target_job?: string;
-  /** Der freigeschaltete Einzel-Skill dieses Lernpfads */
   skill?: string | null;
-  /** Offizieller Titel der Maßnahme (aus certificate_metadata.official_title) */
   official_title?: string | null;
-  /** Erworbene Kompetenzen */
   mastered_skills: string[];
-  /** Absolvierte Lerneinheiten inkl. Ergebnis */
   modules?: CertificateModule[];
-  /** Lernumfang in Zeitstunden */
   total_hours?: number | null;
-  /** Bearbeitungszeitraum (ISO-Strings) */
   period_start?: string | null;
   period_end?: string | null;
-  /** Ausstellungsdatum (ISO) */
   completion_date: string;
   certificate_id: string;
   issuer: string;
   issuer_url?: string;
   issue_place?: string;
   dqr_reference?: string | null;
-  verification_url?: string | null;
+  /** Prüfungsergebnis in Prozent — erhöht die Aussagekraft gegenüber "bestanden". */
+  final_score?: number | null;
   verification_footer?: string | null;
 }
 
-/* ── Markenfarben DYD ── */
-const NAVY = '#0A192F';
-const NAVY_SOFT = '#33405A';
-const SKY = '#38BDF8';
-const LIME = '#DEFF9A';
-const RULE = '#DCE3EC';
-const MUTED = '#6B7280';
-const PAPER = '#F7F9FC';
+/* ── DYD Corporate Design ──
+   Führend ist die Produktpalette aus der App (#30E3CA / #66c0b6).
+   Nur diese fünf Konstanten anpassen, wenn das CD abweicht. */
+const NAVY      = '#0A192F';   // Grundton, Text
+const NAVY_SOFT = '#3B4A63';   // Sekundärtext
+const TEAL      = '#30E3CA';   // Signaturfarbe
+const TEAL_DEEP = '#66C0B6';   // Sekundärakzent
+const RULE      = '#DCE3EC';
+const MUTED     = '#6B7280';
+const PAPER     = '#F5FAF9';   // leicht ins Teal gezogenes Papier
 
 const styles = StyleSheet.create({
   page: {
@@ -57,22 +45,18 @@ const styles = StyleSheet.create({
     color: NAVY,
   },
 
-  /* Schmale Navy-Kante links: gibt dem Blatt eine Leserichtung, ohne Rahmen-Kitsch */
+  /* Navy-Kante links mit Teal-Akzent — Leserichtung ohne Rahmen-Kitsch */
   spine: {
     position: 'absolute',
-    top: 0,
-    bottom: 0,
-    left: 0,
+    top: 0, bottom: 0, left: 0,
     width: 18,
     backgroundColor: NAVY,
   },
   spineAccent: {
     position: 'absolute',
-    top: 0,
-    left: 18,
+    top: 0, bottom: 0, left: 18,
     width: 4,
-    bottom: 0,
-    backgroundColor: LIME,
+    backgroundColor: TEAL,
   },
 
   content: {
@@ -98,62 +82,46 @@ const styles = StyleSheet.create({
     fontSize: 12,
     fontFamily: 'Helvetica-Bold',
     color: NAVY,
-    letterSpacing: 1.2,
+    letterSpacing: 0.8,
   },
   orgSub: {
     fontSize: 8,
     color: MUTED,
     marginTop: 2,
-    letterSpacing: 0.4,
+    letterSpacing: 0.3,
   },
-  headRight: {
-    flexDirection: 'column',
-    alignItems: 'flex-end',
-  },
+  headRight: { flexDirection: 'column', alignItems: 'flex-end' },
   eyebrow: {
     fontSize: 7.5,
     fontFamily: 'Helvetica-Bold',
-    color: NAVY_SOFT,
-    letterSpacing: 2.4,
+    color: TEAL_DEEP,
+    letterSpacing: 1.6,
   },
-  headId: {
-    fontSize: 7.5,
-    color: MUTED,
-    marginTop: 3,
-  },
+  headId: { fontSize: 7.5, color: MUTED, marginTop: 3 },
 
   /* ── Titelblock ── */
   title: {
     fontSize: 30,
     fontFamily: 'Helvetica-Bold',
     color: NAVY,
-    letterSpacing: 5,
+    letterSpacing: 2.4,
     marginTop: 22,
   },
   titleRule: {
     height: 3,
     width: 96,
-    backgroundColor: SKY,
+    backgroundColor: TEAL,
     marginTop: 8,
   },
 
-  lead: {
-    fontSize: 9.5,
-    color: MUTED,
-    marginTop: 16,
-  },
+  lead: { fontSize: 9.5, color: MUTED, marginTop: 16 },
   recipient: {
     fontSize: 25,
     fontFamily: 'Helvetica-Bold',
     color: NAVY,
     marginTop: 6,
   },
-  body: {
-    fontSize: 9.5,
-    color: MUTED,
-    marginTop: 12,
-    lineHeight: 1.5,
-  },
+  body: { fontSize: 9.5, color: MUTED, marginTop: 12, lineHeight: 1.5 },
   skillLine: {
     fontSize: 15,
     fontFamily: 'Helvetica-Bold',
@@ -161,17 +129,14 @@ const styles = StyleSheet.create({
     marginTop: 5,
   },
 
-  /* ── Spalten: Kompetenzen | Lerneinheiten ── */
-  columns: {
-    flexDirection: 'row',
-    marginTop: 18,
-  },
+  /* ── Spalten ── */
+  columns: { flexDirection: 'row', marginTop: 18 },
   col: {
     flexGrow: 1,
     flexBasis: 0,
     backgroundColor: PAPER,
     borderLeftWidth: 2,
-    borderLeftColor: SKY,
+    borderLeftColor: TEAL,
     borderLeftStyle: 'solid',
     paddingTop: 9,
     paddingBottom: 9,
@@ -183,43 +148,31 @@ const styles = StyleSheet.create({
     fontSize: 7.5,
     fontFamily: 'Helvetica-Bold',
     color: NAVY_SOFT,
-    letterSpacing: 1.8,
+    letterSpacing: 1.1,
     marginBottom: 7,
   },
-  chipRow: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-  },
+  chipRow: { flexDirection: 'row', flexWrap: 'wrap' },
   chip: {
     backgroundColor: '#FFFFFF',
     borderWidth: 1,
-    borderColor: RULE,
+    borderColor: TEAL_DEEP,
     borderStyle: 'solid',
     borderRadius: 9,
-    paddingTop: 3,
-    paddingBottom: 3,
-    paddingLeft: 7,
-    paddingRight: 7,
-    marginRight: 4,
-    marginBottom: 4,
+    paddingTop: 3, paddingBottom: 3,
+    paddingLeft: 7, paddingRight: 7,
+    marginRight: 4, marginBottom: 4,
   },
   chipText: { fontSize: 7.5, color: NAVY },
 
-  moduleRow: {
-    flexDirection: 'row',
-    alignItems: 'flex-start',
-    marginBottom: 4,
-  },
+  moduleRow: { flexDirection: 'row', alignItems: 'flex-start', marginBottom: 4 },
   moduleBullet: {
-    width: 3,
-    height: 3,
-    backgroundColor: SKY,
-    marginTop: 4,
-    marginRight: 6,
+    width: 3, height: 3,
+    backgroundColor: TEAL,
+    marginTop: 4, marginRight: 6,
   },
   moduleText: { fontSize: 8, color: NAVY_SOFT, flexGrow: 1, flexBasis: 0 },
 
-  /* ── Kennzahlenband (Signature-Element) ── */
+  /* ── Kennzahlenband ── */
   factBar: {
     flexDirection: 'row',
     marginTop: 16,
@@ -237,10 +190,11 @@ const styles = StyleSheet.create({
     fontSize: 6.8,
     fontFamily: 'Helvetica-Bold',
     color: MUTED,
-    letterSpacing: 1.4,
+    letterSpacing: 0.9,
     marginBottom: 3,
   },
   factValue: { fontSize: 10.5, fontFamily: 'Helvetica-Bold', color: NAVY },
+  factValueAccent: { fontSize: 10.5, fontFamily: 'Helvetica-Bold', color: TEAL_DEEP },
   factNote: { fontSize: 7, color: MUTED, marginTop: 2 },
 
   /* ── Fuß ── */
@@ -253,15 +207,10 @@ const styles = StyleSheet.create({
   },
   footLeft: { flexGrow: 1, flexBasis: 0, paddingRight: 24 },
   disclaimer: { fontSize: 6.6, color: MUTED, lineHeight: 1.45 },
-  verify: { fontSize: 6.8, color: NAVY_SOFT, marginTop: 5 },
+  footNote: { fontSize: 6.8, color: NAVY_SOFT, marginTop: 5 },
 
   sigBlock: { width: 190, alignItems: 'center' },
-  sigLine: {
-    width: 170,
-    height: 1,
-    backgroundColor: NAVY,
-    marginBottom: 4,
-  },
+  sigLine: { width: 170, height: 1, backgroundColor: NAVY, marginBottom: 4 },
   sigName: { fontSize: 8.5, fontFamily: 'Helvetica-Bold', color: NAVY },
   sigRole: { fontSize: 7, color: MUTED, marginTop: 1 },
 });
@@ -288,17 +237,25 @@ export function CertificatePDF({ certificate }: CertificatePDFProps) {
   const skills = (certificate.mastered_skills ?? []).filter(Boolean).slice(0, 12);
   const modules = (certificate.modules ?? []).slice(0, 6);
 
+  // Start == Ende (alles an einem Tag) → nur ein Datum, kein "21.07. – 21.07."
+  const startStr = formatDate(certificate.period_start);
+  const endStr = formatDate(certificate.period_end ?? certificate.completion_date);
   const period =
-    certificate.period_start || certificate.period_end
-      ? `${formatDate(certificate.period_start)} – ${formatDate(
-          certificate.period_end ?? certificate.completion_date
-        )}`
-      : formatDate(certificate.completion_date);
+    !certificate.period_start && !certificate.period_end
+      ? formatDate(certificate.completion_date)
+      : startStr === endStr
+        ? endStr
+        : `${startStr} – ${endStr}`;
 
   const hours =
     typeof certificate.total_hours === 'number' && certificate.total_hours > 0
       ? `${certificate.total_hours} Zeitstunden`
       : '—';
+
+  const examResult =
+    typeof certificate.final_score === 'number' && certificate.final_score > 0
+      ? `bestanden · ${Math.round(certificate.final_score)} %`
+      : 'bestanden';
 
   const measureTitle =
     certificate.official_title ||
@@ -339,9 +296,7 @@ export function CertificatePDF({ certificate }: CertificatePDFProps) {
           <Text style={styles.lead}>Hiermit wird bescheinigt, dass</Text>
           <Text style={styles.recipient}>{certificate.recipient_name}</Text>
 
-          <Text style={styles.body}>
-            den Lernpfad zur Kompetenz
-          </Text>
+          <Text style={styles.body}>den Lernpfad zur Kompetenz</Text>
           <Text style={styles.skillLine}>
             {certificate.skill || certificate.official_title || 'Lernpfad'}
           </Text>
@@ -397,7 +352,7 @@ export function CertificatePDF({ certificate }: CertificatePDFProps) {
             </View>
             <View style={styles.fact}>
               <Text style={styles.factLabel}>ABSCHLUSSPRÜFUNG</Text>
-              <Text style={styles.factValue}>bestanden</Text>
+              <Text style={styles.factValueAccent}>{examResult}</Text>
             </View>
             <View style={styles.fact}>
               <Text style={styles.factLabel}>AUSGESTELLT AM</Text>
@@ -406,7 +361,7 @@ export function CertificatePDF({ certificate }: CertificatePDFProps) {
             </View>
           </View>
 
-          {/* Fuß */}
+          {/* Fuß — Verify-URL entfernt, solange /verify nicht existiert */}
           <View style={styles.footer}>
             <View style={styles.footLeft}>
               <Text style={styles.disclaimer}>
@@ -414,13 +369,12 @@ export function CertificatePDF({ certificate }: CertificatePDFProps) {
                 der DYD Career Academy sowie das Bestehen der zugehörigen Abschlussprüfung. Es ist
                 kein staatlich anerkannter Berufs- oder Bildungsabschluss.
               </Text>
-              {certificate.verification_url ? (
-                <Text style={styles.verify}>
-                  Echtheit prüfen: {certificate.verification_url}
-                </Text>
-              ) : null}
+              <Text style={styles.footNote}>
+                Zertifikatsnummer {certificate.certificate_id} · Rückfragen zur Echtheit an{' '}
+                {certificate.issuer_url || 'decide-your-dream.de'}
+              </Text>
               {certificate.verification_footer ? (
-                <Text style={styles.verify}>{certificate.verification_footer}</Text>
+                <Text style={styles.footNote}>{certificate.verification_footer}</Text>
               ) : null}
             </View>
 
