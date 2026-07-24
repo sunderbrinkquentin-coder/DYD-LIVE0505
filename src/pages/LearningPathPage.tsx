@@ -2305,11 +2305,13 @@ const issueCertificate = useCallback(async (path: LearningPath) => {
     // Score steht zu diesem Zeitpunkt bereits in der DB (siehe handleFinalExamSubmit).
     // certificateService schreibt certificate_url, certificate_id und
     // certificate_issued_at selbst — hier nur noch den Prüfungsstatus abschließen.
-    const url = await careerService.generateCertificate(path.id);
+const url = await careerService.generateCertificate(path.id);
+if (!url) throw new Error('generateCertificate lieferte keine URL');
+setCertificateUrl(url);
 
-    await supabase.from('learning_paths')
-      .update({ final_exam_status: 'done', updated_at: new Date().toISOString() })
-      .eq('id', path.id);
+await supabase.from('learning_paths')
+  .update({ final_exam_status: 'done', updated_at: new Date().toISOString() })
+  .eq('id', path.id);
 
     setCertificateUrl(url);
   } catch (err: any) {
