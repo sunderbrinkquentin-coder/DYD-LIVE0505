@@ -2321,6 +2321,7 @@ const issueCertificate = useCallback(async (path: LearningPath) => {
 
 const handleFinalExamSubmit = async () => {
   if (!learningPath) return;
+
   const correct = finalExamQuestions.filter(
     q => finalExamAnswers[q.question_id] === q.correct_key
   ).length;
@@ -2330,13 +2331,22 @@ const handleFinalExamSubmit = async () => {
 
   setFinalExamScore(pct);
   setFinalExamPhase('submitted');
+  setCertificateError(null);
 
-  // ZUERST speichern — das ist Punkt 7. Setzt Score und, bei Erfolg, status='completed'.
-  const { passed } = await careerService.completeLearningPath(learningPath.id, pct);
+  if (pct < MIN_PASS_SCORE) return;
 
-  if (passed) await issueCertificate(learningPath);
+  try {
+    await careerService.completeLearningPath(learningPath.id, pct);
+  } catch (err: any) {
+    console.error('[FinalExam] completeLearningPath:', err);
+    setCertificateError(
+      `Dein Ergebnis konnte nicht gespeichert werden: ${err?.message ?? err}`
+    );
+    return;
+  }
+
+  await issueCertificate(learningPath);
 };
-
   const retakeFinalExam = () => {
     setFinalExamAnswers({});
     setFinalExamScore(0);
