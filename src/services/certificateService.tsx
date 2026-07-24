@@ -179,12 +179,15 @@ export class CertificateService {
     }
 
     /* ── 6. Lerneinheiten + Zeitraum ── */
-    const { data: completions } = await supabase
-      .from('unit_completions')
-      .select('unit_index, variant, exam_score, created_at')
-      .eq('learning_path_id', learningPath.id)
-      .order('unit_index', { ascending: true });
-
+ const { data: completions } = await supabase
+  .from('unit_completions')
+  .select('unit_index, variant, exam_score, completed_at')
+  .eq('learning_path_id', learningPath.id)
+  .order('unit_index', { ascending: true });
+const completionTimestamps = (completions ?? [])
+  .map((c: any) => c.completed_at)
+  .filter(Boolean)
+  .sort();
     // Prozentwerte bewusst NICHT ans PDF geben — auf dem Zertifikat stehen nur Titel.
     let modules: CertificateModule[] = (completions ?? []).map((c: any) => ({
       title: `Lerneinheit ${c.unit_index}${c.variant ? ` (${c.variant})` : ''}`,
