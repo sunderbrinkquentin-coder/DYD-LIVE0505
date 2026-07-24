@@ -179,15 +179,14 @@ export class CertificateService {
     }
 
     /* ── 6. Lerneinheiten + Zeitraum ── */
- const { data: completions } = await supabase
-  .from('unit_completions')
-  .select('unit_index, variant, exam_score, completed_at')
-  .eq('learning_path_id', learningPath.id)
-  .order('unit_index', { ascending: true });
-const completionTimestamps = (completions ?? [])
-  .map((c: any) => c.completed_at)
-  .filter(Boolean)
-  .sort();
+    // Achtung: unit_completions hat KEIN created_at — der Upsert in
+    // LearningPathPage schreibt completed_at. Falscher Spaltenname = HTTP 400.
+    const { data: completions } = await supabase
+      .from('unit_completions')
+      .select('unit_index, variant, exam_score, completed_at')
+      .eq('learning_path_id', learningPath.id)
+      .order('unit_index', { ascending: true });
+
     // Prozentwerte bewusst NICHT ans PDF geben — auf dem Zertifikat stehen nur Titel.
     let modules: CertificateModule[] = (completions ?? []).map((c: any) => ({
       title: `Lerneinheit ${c.unit_index}${c.variant ? ` (${c.variant})` : ''}`,
@@ -204,7 +203,7 @@ const completionTimestamps = (completions ?? [])
     }
 
     const completionTimestamps = (completions ?? [])
-      .map((c: any) => c.created_at)
+      .map((c: any) => c.completed_at)
       .filter(Boolean)
       .sort();
 
