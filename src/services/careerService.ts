@@ -31,9 +31,7 @@ export class Careerservice {
       console.log('[CareerVision] Calling skills webhook:', webhookUrl);
 
       const response = await axios.post(webhookUrl, payload, {
-        headers: {
-          'Content-Type': 'application/json',
-        },
+        headers: { 'Content-Type': 'application/json' },
         timeout: 30000,
       });
 
@@ -71,12 +69,6 @@ export class Careerservice {
    *
    * Die Analyse-Zeile (skill = null, missing_skills gefüllt) wird NIEMALS
    * verändert — sie bleibt die einzige Quelle der Gap-Liste.
-   *
-   * Voraussetzung in der DB:
-   *   alter table learning_paths
-   *     add column if not exists analysis_id uuid references learning_paths(id) on delete cascade;
-   *   create unique index if not exists learning_paths_analysis_skill_uniq
-   *     on learning_paths (analysis_id, skill) where analysis_id is not null;
    */
   static async getOrCreateSkillPath(analysisPathId: string, skillName: string): Promise<string> {
     if (!analysisPathId) throw new Error('Keine Analyse-id übergeben');
@@ -101,8 +93,7 @@ export class Careerservice {
     const analysisId: string = a.analysis_id ?? a.id;
     if (!analysisId) throw new Error('Analyse-Zeile ohne gültige id');
 
-    // 2) Existiert die Skill-Zeile schon? Dann wiederverwenden (idempotent —
-    //    wichtig, weil der "Alle freischalten"-Loop mehrfach laufen kann).
+    // 2) Existiert die Skill-Zeile schon? Dann wiederverwenden (idempotent).
     const { data: existing, error: existErr } = await supabase
       .from('learning_paths')
       .select('id')
@@ -135,11 +126,7 @@ export class Careerservice {
         missing_skills: a.missing_skills,
         current_skills: a.current_skills ?? [],
         strategic_outlook_2026: a.strategic_outlook_2026 ?? null,
-        // Die Analyse ist bezahlt — die Skill-Zeile erbt das, sonst würde die
-        // Gap-Analyse auf der Skill-Zeile erneut zur Zahlung angeboten.
         skillgap_paid: a.skillgap_paid ?? false,
-        // Muss ein Wert sein, den die Waiting-Page als "noch nicht getriggert"
-        // versteht (siehe handleRetry in LearningPathWaitingPage).
         status: 'gap_analysis_complete',
         is_paid: false,
         progress: {},
@@ -210,9 +197,7 @@ export class Careerservice {
       console.log('[CareerVision] Calling Make.com webhook:', webhookUrl);
 
       const response = await axios.post(webhookUrl, payload, {
-        headers: {
-          'Content-Type': 'application/json',
-        },
+        headers: { 'Content-Type': 'application/json' },
         timeout: 45000,
       });
 
@@ -253,9 +238,7 @@ export class Careerservice {
       console.log('[CareerVision] Calling curriculum webhook:', webhookUrl);
 
       const response = await axios.post(webhookUrl, payload, {
-        headers: {
-          'Content-Type': 'application/json',
-        },
+        headers: { 'Content-Type': 'application/json' },
         timeout: 60000,
       });
 
@@ -377,7 +360,6 @@ export class Careerservice {
    * für Admin-/Kulanz-Fälle verwenden — nicht aus der Paywall aufrufen.
    */
   static async unlockLearningPath(pathId: string): Promise<void> {
-    // Mark as paid in DB
     const { error } = await supabase
       .from('learning_paths')
       .update({ is_paid: true, updated_at: new Date().toISOString() })
@@ -385,7 +367,6 @@ export class Careerservice {
 
     if (error) throw new Error(`Failed to unlock learning path: ${error.message}`);
 
-    // Fetch full path data to send to Make
     const { data: path } = await supabase
       .from('learning_paths')
       .select('*')
@@ -460,12 +441,11 @@ export class Careerservice {
         [moduleId]: updatedModuleProgress,
       };
 
-      const allModules = path.curriculum?.modules || [];
       const completedModules = Object.values(newProgress).filter(
         (p: any) => p.status === 'completed'
       ).length;
 
- // 'completed' setzt ausschließlich completeLearningPath() nach der Prüfung.
+      // 'completed' setzt ausschließlich completeLearningPath() nach der Prüfung.
       const newStatus =
         completedModules > 0 && path.status !== 'completed' ? 'in_progress' : path.status;
 
@@ -548,105 +528,152 @@ export class Careerservice {
     }
   }
 
-/** Bestehensgrenze — identisch zu PASSING_SCORE in certificateService. */
-static readonly PASSING_SCORE = 80;
+  /** Bestehensgrenze — identisch zu PASSING_SCORE in certificateService. */
+  static readonly PASSING_SCORE = 80;
 
-/**
- * Schließt einen Lernpfad nach der Abschlussprüfung ab.
- * Einzige Stelle im Code, die status = 'completed' setzt.
- */
-static async completeLearningPath(
-  pathId: string,
-  finalExamScore: number
-): Promise<{ passed: boolean; score: number }> {
-  // 1. CareerVisionService statt 'this' nutzen, damit der Kontext nicht verloren geht
-  const passed = finalExamScore >= Careerservice.PASSING_SCORE;
+  /**
+   * Schließt einen Lernpfad nach der Abschlussprüfung ab.
+   * Einzige Stelle im Code, die status = 'completed' setzt.
+   */
+  static async completeLearningPath(
+    pathId: string,
+    finalExamScore: number
+  ): Promise<{ passed: boolean; score: number }> {
+    const passed = finalExamScore >= Careerservice.PASSING_SCORE;
 
-  // 2. Basis-Update-Payload
-  const updatePayload: Record<string, any> = {
-    final_exam_score: finalExamScore,
-    final_exam_completed_at: new Date().toISOString(),
-    updated_at: new Date().toISOString(),
-  };
+    const updatePayload: Record<string, any> = {
+      final_exam_score: finalExamScore,
+      final_exam_completed_at: new Date().toISOString(),
+      updated_at: new Date().toISOString(),
+    };
 
-  // 3. Explizite Status-Steuerung (verhindert Alt-Status 'completed' bei Fehlversuchen)
-  if (passed) {
-    updatePayload.status = 'completed';
-    updatePayload.completed_at = new Date().toISOString();
-  } else {
-    updatePayload.status = 'failed'; // oder 'in_progress', je nach gewünschter Fachlogik
+    // Explizite Status-Steuerung (verhindert Alt-Status 'completed' bei Fehlversuchen)
+    if (passed) {
+      updatePayload.status = 'completed';
+      updatePayload.completed_at = new Date().toISOString();
+    } else {
+      updatePayload.status = 'failed';
+    }
+
+    const { error } = await supabase
+      .from('learning_paths')
+      .update(updatePayload)
+      .eq('id', pathId);
+
+    if (error) {
+      throw new Error(`Prüfungsergebnis konnte nicht gespeichert werden: ${error.message}`);
+    }
+
+    console.log('[CareerVision] Prüfung gespeichert:', { pathId, finalExamScore, passed });
+    return { passed, score: finalExamScore };
   }
 
-  const { error } = await supabase
-    .from('learning_paths')
-    .update(updatePayload)
-    .eq('id', pathId);
+  /**
+   * Erstellt das Zertifikat. KEIN eigener Status-Check — die fachliche
+   * Bedingung (Score >= PASSING_SCORE) liegt allein in certificateService.
+   *
+   * Wirft Error('MISSING_NAME'), wenn kein Name ermittelbar ist. Die aufrufende
+   * Seite fragt den Namen dann beim Nutzer ab und ruft erneut auf.
+   */
+  static async generateCertificate(
+    pathId: string,
+    options: { autoDownload?: boolean; recipientName?: string } = {}
+  ): Promise<string> {
+    const path = await Careerservice.getLearningPath(pathId);
+    if (!path) throw new Error('Lernpfad nicht gefunden');
 
-  if (error) {
-    throw new Error(`Prüfungsergebnis konnte nicht gespeichert werden: ${error.message}`);
+    if (path.certificate_url) {
+      console.log('[CareerVision] Zertifikat existiert bereits:', path.certificate_url);
+      return path.certificate_url;
+    }
+
+    // Vom Nutzer eingegebener Name hat Vorrang vor allem anderen.
+    let recipientName = options.recipientName?.trim() || '';
+
+    if (!recipientName) {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (user?.id) {
+        // profiles hat id (PK der Zeile) UND user_id (Verweis auf auth.users).
+        // Der Auth-User steht in user_id — .eq('id', …) trifft nie zu.
+        const { data: profile } = await supabase
+          .from('profiles')
+          .select('full_name')
+          .eq('user_id', user.id)
+          .is('deleted_at', null)
+          .maybeSingle();
+
+        // Bewusst KEIN Fallback auf den E-Mail-Localpart: auf einer Urkunde ist
+        // "q.mueller" schlimmer als eine Rückfrage nach dem echten Namen.
+        recipientName =
+          profile?.full_name?.trim() ||
+          (user.user_metadata?.full_name as string | undefined)?.trim() ||
+          '';
+      }
+    }
+
+    const { certificateService } = await import('./certificateService');
+    const certificateUrl = await certificateService.issueCertificate(path, recipientName, {
+      autoDownload: options.autoDownload ?? true,
+    });
+
+    console.log('[CareerVision] ✅ Zertifikat erstellt:', certificateUrl);
+    return certificateUrl;
   }
 
-  console.log('[CareerVision] Prüfung gespeichert:', { pathId, finalExamScore, passed });
-  return { passed, score: finalExamScore };
+  /**
+   * Speichert den Namen im Profil, damit er beim nächsten Zertifikat vorliegt.
+   * Bewusst kein upsert — das bräuchte einen Unique-Index auf user_id.
+   */
+  static async saveFullName(userId: string, fullName: string): Promise<void> {
+    const name = fullName.trim();
+    if (!userId || !name) return;
+
+    try {
+      const { data: existing } = await supabase
+        .from('profiles')
+        .select('id')
+        .eq('user_id', userId)
+        .is('deleted_at', null)
+        .maybeSingle();
+
+      if (existing?.id) {
+        const { error } = await supabase
+          .from('profiles')
+          .update({ full_name: name, updated_at: new Date().toISOString() })
+          .eq('id', existing.id);
+        if (error) throw error;
+      } else {
+        const { error } = await supabase
+          .from('profiles')
+          .insert({ user_id: userId, full_name: name });
+        if (error) throw error;
+      }
+
+      console.log('[CareerVision] ✅ Name im Profil gespeichert');
+    } catch (err: any) {
+      // Nicht fatal: das Zertifikat wird trotzdem erstellt, der Name wird beim
+      // nächsten Mal nur erneut abgefragt.
+      console.error('[CareerVision] Name konnte nicht gespeichert werden:', err?.message ?? err);
+    }
+  }
+
+  /** Alle bezahlten Skill-Pfade eines Nutzers — Datenquelle der Zertifikats-Sektion. */
+  static async getCertificateOverview(userId: string): Promise<LearningPath[]> {
+    const { data, error } = await supabase
+      .from('learning_paths')
+      .select('*')
+      .eq('user_id', userId)
+      .eq('is_paid', true)
+      .not('skill', 'is', null)
+      .order('created_at', { ascending: false });
+
+    if (error) {
+      console.error('[CareerVision] Zertifikatsübersicht fehlgeschlagen:', error.message);
+      return [];
+    }
+    return (data as LearningPath[]) || [];
+  }
 }
 
-/**
- * Erstellt das Zertifikat. KEIN eigener Status-Check — die fachliche
- * Bedingung (Score >= PASSING_SCORE) liegt allein in certificateService.
- */
-static async generateCertificate(
-  pathId: string,
-  options: { autoDownload?: boolean } = {}
-): Promise<string> {
-  const path = await Careerservice.getLearningPath(pathId);
-  if (!path) throw new Error('Lernpfad nicht gefunden');
-
-  if (path.certificate_url) {
-    console.log('[CareerVision] Zertifikat existiert bereits:', path.certificate_url);
-    return path.certificate_url;
-  }
-
-  const { data: { user } } = await supabase.auth.getUser();
-
-  let recipientName = '';
-  if (user?.id) {
-    const { data: profile } = await supabase
-      .from('profiles')
-      .select('full_name')
-      .eq('id', user.id)
-      .maybeSingle();
-      
-    recipientName =
-      profile?.full_name ||
-      (user.user_metadata?.full_name as string | undefined) ||
-      user.email?.split('@')[0] ||
-      '';
-  }
-
-  const { certificateService } = await import('./certificateService');
-  const certificateUrl = await certificateService.issueCertificate(path, recipientName, {
-    autoDownload: options.autoDownload ?? true,
-  });
-
-  console.log('[CareerVision] ✅ Zertifikat erstellt:', certificateUrl);
-  return certificateUrl;
-}
-
-/** Alle bezahlten Skill-Pfade eines Nutzers — Datenquelle der Zertifikats-Sektion. */
-static async getCertificateOverview(userId: string): Promise<LearningPath[]> {
-  const { data, error } = await supabase
-    .from('learning_paths')
-    .select('*')
-    .eq('user_id', userId)
-    .eq('is_paid', true)
-    .not('skill', 'is', null)
-    .order('created_at', { ascending: false });
-
-  if (error) {
-    console.error('[CareerVision] Zertifikatsübersicht fehlgeschlagen:', error.message);
-    return [];
-  }
-  return (data as LearningPath[]) || [];
-}
-}
 export const careerService = Careerservice;
+export default Careerservice;

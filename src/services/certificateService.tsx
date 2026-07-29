@@ -12,7 +12,7 @@ const CERT_BUCKET_FALLBACK = 'cv-files';
 const PASSING_SCORE = 80;
 
 /** Fallback-Lernumfang je Lerneinheit, wenn weder certificate_metadata
- *  noch das Curriculum eine Stundenangabe liefern. Hier anpassen. */
+ *  noch das Curriculum eine Stundenangabe liefern. */
 const DEFAULT_HOURS_PER_UNIT = 4;
 
 /* ────────────────────────────────────────────────────────────
@@ -32,7 +32,6 @@ function parseMakeJson(raw: unknown): any {
   if (!text) return null;
 
   const attempts = [text];
-  // Liste ohne Klammern → einpacken
   if (!text.startsWith('[') && !text.startsWith('{')) attempts.push(`[${text}]`);
   if (text.startsWith('{') && text.includes('},')) attempts.push(`[${text}]`);
 
@@ -93,7 +92,7 @@ export class CertificateService {
   ): Promise<string> {
     const { force = false, autoDownload = true } = options;
 
-    /* ── 1. Lernpfad-Zeile laden (Score, Skill, Zeitraum, bestehendes Zertifikat) ── */
+    /* ── 1. Lernpfad-Zeile laden ── */
     const { data: pathRow, error: pathError } = await supabase
       .from('learning_paths')
       .select('*')
@@ -113,7 +112,7 @@ export class CertificateService {
       return pathRow.certificate_url as string;
     }
 
-    /* ── 2. Ergebnisse aus learning_results (Metadaten + Prüfung) ── */
+    /* ── 2. Ergebnisse aus learning_results (Metadaten + Prüfung + Unit-Titel) ── */
     const { data: resultRow } = await supabase
       .from('learning_results')
       .select('certificate_metadata, final_exam, content, selected_skill, created_at')
@@ -144,19 +143,28 @@ export class CertificateService {
       );
     }
 
-    /* ── 4. Name der Person ── */
+    /* ── 4. Name der Person ──
+       Ein explizit übergebener Name (Nutzereingabe) hat Vorrang. Nur wenn
+       keiner kommt, wird das Profil befragt.
+       profiles hat id (PK der Zeile) UND user_id (Verweis auf auth.users) —
+       .eq('id', …) trifft nie zu und war die Ursache für den E-Mail-Localpart. */
     let displayName = recipientName?.trim() || '';
     const userId = pathRow.user_id ?? learningPath.user_id;
-    if (userId) {
+
+    if (!displayName && userId) {
       const { data: profile } = await supabase
         .from('profiles')
         .select('full_name')
-        .eq('id', userId)
+        .eq('user_id', userId)
+        .is('deleted_at', null)
         .maybeSingle();
-      if (profile?.full_name) displayName = profile.full_name;
+      if (profile?.full_name) displayName = profile.full_name.trim();
     }
+
     if (!displayName) {
-      throw new Error('Für das Zertifikat fehlt der Name. Bitte im Profil hinterlegen.');
+      // Maschinenlesbarer Code: die Seite fragt daraufhin den Namen ab,
+      // statt einen roten Fehler anzuzeigen.
+      throw new Error('MISSING_NAME');
     }
 
     /* ── 5. Skill, Titel, Kompetenzen ── */
@@ -173,24 +181,33 @@ export class CertificateService {
       masteredSkills = toSkillStrings(certMeta.learning_outcomes);
     }
     if (masteredSkills.length === 0) {
-      // Fallback: nur den freigeschalteten Skill zeigen, NICHT die ganze Gap-Liste
-      // (missing_skills sind die noch fehlenden Skills der Analyse, keine erworbenen).
+      // Fallback: nur den freigeschalteten Skill zeigen, NICHT die ganze Gap-Liste.
       masteredSkills = skill ? [skill] : [];
     }
 
-    /* ── 6. Lerneinheiten + Zeitraum ── */
-    // Achtung: unit_completions hat KEIN created_at — der Upsert in
-    // LearningPathPage schreibt completed_at. Falscher Spaltenname = HTTP 400.
+    /* ── 6. Lerneinheiten + Zeitraum ──
+       Achtung: unit_completions hat KEIN created_at — der Upsert in
+       LearningPathPage schreibt completed_at. Falscher Spaltenname = HTTP 400. */
     const { data: completions } = await supabase
       .from('unit_completions')
       .select('unit_index, variant, exam_score, completed_at')
       .eq('learning_path_id', learningPath.id)
       .order('unit_index', { ascending: true });
 
-    // Prozentwerte bewusst NICHT ans PDF geben — auf dem Zertifikat stehen nur Titel.
-    let modules: CertificateModule[] = (completions ?? []).map((c: any) => ({
-      title: `Lerneinheit ${c.unit_index}${c.variant ? ` (${c.variant})` : ''}`,
-    }));
+    // Echte Titel aus dem generierten Curriculum; Index nur als Fallback.
+    const unitTitles = new Map<number, string>();
+    for (const u of (parseMakeJson(resultRow?.content) ?? []) as any[]) {
+      const id = typeof u?.unit_id === 'number' ? u.unit_id : null;
+      const t = u?.mobile_title || u?.title;
+      if (id && typeof t === 'string' && t.trim()) unitTitles.set(id, t.trim());
+    }
+
+    // Variante (A/B) und Prozentwerte bewusst NICHT aufs Zertifikat —
+    // die Variante ist interne Didaktik und wirft beim Leser nur Fragen auf.
+    let modules: CertificateModule[] = (completions ?? []).map((c: any) => {
+      const title = unitTitles.get(c.unit_index);
+      return { title: title ? `${c.unit_index}. ${title}` : `Lerneinheit ${c.unit_index}` };
+    });
 
     if (modules.length === 0) {
       const allModules = (pathRow.curriculum ?? learningPath.curriculum)?.modules ?? [];
@@ -236,7 +253,9 @@ export class CertificateService {
       issuer_url: 'decide-your-dream.de',
       issue_place: 'Düsseldorf',
       dqr_reference: certMeta?.dqr_reference ?? null,
-      verification_url: `https://decide-your-dream.de/#/verify/${certificateId}`,
+      final_score: score,
+      // verification_url entfällt, solange die Route /verify nicht existiert —
+      // eine Prüf-URL, die ins Leere führt, schadet der Glaubwürdigkeit.
       verification_footer: certMeta?.verification_footer ?? null,
     };
 
