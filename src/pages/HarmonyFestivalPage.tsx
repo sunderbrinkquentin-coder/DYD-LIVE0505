@@ -10,6 +10,7 @@ import {
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../contexts/AuthContext';
 import SupportThankYouPopup from '../components/festival/SupportThankYouPopup';
+import LineupSection from '../components/festival/LineupSection';
 
 const C = {
   cyan:    '#00d4d4',
@@ -1549,6 +1550,11 @@ let authToken = anonKey;
               ))}
             </div>
           </section>
+
+          <div className="divider" />
+
+          {/* ── STAND-UP LINE-UP ── */}
+          <LineupSection />
 
           <div className="divider" />
 
