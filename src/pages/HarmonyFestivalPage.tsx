@@ -34,13 +34,6 @@ const TICKETS = [
 ];
 
 
-const ACTS = [
-  { num: '01', icon: Laugh,  label: 'Stand-Up Comedy',  sub: 'Newcomer der lokalen Szene',  time: '16:30', color: C.orange },
-  { num: '02', icon: Trophy, label: 'Bierpong Turnier',  sub: 'Gewinnen = free drinks',       time: '18:00', color: C.lime   },
-  { num: '03', icon: Mic,    label: 'Zirkel.WTF Live',  sub: 'Pop-Punk aus Hamburg',          time: '20:30', color: C.cyan   },
-  { num: '04', icon: Disc3,  label: 'DJ Sets',           sub: 'House & Techno bis 02:00',     time: '22:00', color: C.blue   },
-];
-
 function GraffitiCanvas() {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const animRef   = useRef<number>(0);
