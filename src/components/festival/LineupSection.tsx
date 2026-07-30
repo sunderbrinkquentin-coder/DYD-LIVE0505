@@ -19,6 +19,7 @@ const CY = '#00d4d4';
 const BLUE = '#1e90d4';
 const ORANGE = '#f07820';
 const GREEN = '#1db954';
+const LIME = '#c8e840';
 
 type Standup = {
   name: string;
@@ -394,6 +395,67 @@ function SupportCard({ act, index }: { act: { name: string; img: string; embed: 
   );
 }
 
+function BierpongBlock({ onBuy }: { onBuy: () => void }) {
+  const tiles = [
+    { icon: '🏆', title: 'Ganzer Abend frei', text: 'Das Sieger-Team trinkt den ganzen Abend gratis.' },
+    { icon: '⏳', title: 'Plätze limitiert', text: 'Nur eine feste Zahl an Team-Startplätzen.' },
+    { icon: '⚡', title: 'Sei schnell', text: 'Ist voll, ist voll — first come, first serve.' },
+  ];
+  return (
+    <motion.div
+      {...fade}
+      transition={{ duration: 0.5 }}
+      style={{
+        position: 'relative', borderRadius: 24, overflow: 'hidden',
+        background: 'linear-gradient(135deg, rgba(200,232,64,.10), rgba(8,12,16,.6))',
+        border: `1px solid ${LIME}44`, boxShadow: `0 8px 60px rgba(0,0,0,.5), 0 0 60px rgba(200,232,64,.06)`,
+      }}
+    >
+      <div style={{ position: 'absolute', insetInline: 0, top: 0, height: 3, background: `linear-gradient(to right, transparent, ${LIME}, transparent)` }} />
+      <div style={{ padding: 26 }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 14, flexWrap: 'wrap' }}>
+          <span style={{ display: 'inline-flex', alignItems: 'center', gap: 7, fontFamily: "'Bebas Neue', sans-serif", fontSize: 12, letterSpacing: '.2em', padding: '5px 12px', borderRadius: 5, background: LIME, color: '#0c1004', fontWeight: 700 }}>
+            ⚡ LIMITIERT
+          </span>
+          <span style={{ fontFamily: "'Inter', sans-serif", fontSize: 11, fontWeight: 700, letterSpacing: '.22em', textTransform: 'uppercase', color: LIME }}>
+            Nur solange Plätze frei sind
+          </span>
+        </div>
+
+        <p style={{ fontFamily: "'Barlow Condensed', sans-serif", fontWeight: 700, fontStyle: 'italic', fontSize: 'clamp(18px, 2.6vw, 24px)', color: 'rgba(255,255,255,.92)', lineHeight: 1.3, marginBottom: 20, maxWidth: 620 }}>
+          Schlag dich durchs Turnier — und wenn ihr gewinnt, trinkt ihr den{' '}
+          <span style={{ color: LIME }}>ganzen Abend gratis</span>.
+        </p>
+
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: 12, marginBottom: 22 }}>
+          {tiles.map((t) => (
+            <div key={t.title} style={{ borderRadius: 14, padding: '14px 16px', background: 'rgba(200,232,64,.05)', border: `1px solid ${LIME}33` }}>
+              <div style={{ fontSize: 22, marginBottom: 6 }}>{t.icon}</div>
+              <div style={{ fontFamily: "'Bebas Neue', sans-serif", fontSize: 17, letterSpacing: '.03em', color: '#fff', lineHeight: 1.05, marginBottom: 4 }}>{t.title}</div>
+              <div style={{ fontFamily: "'Inter', sans-serif", fontSize: 12.5, color: 'rgba(210,225,180,.7)', lineHeight: 1.5 }}>{t.text}</div>
+            </div>
+          ))}
+        </div>
+
+        <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: 14 }}>
+          <button
+            onClick={onBuy}
+            style={{
+              display: 'inline-flex', alignItems: 'center', gap: 10, padding: '14px 26px', borderRadius: 14,
+              background: `linear-gradient(135deg, ${LIME}, ${LIME}bb)`, color: '#0c1004',
+              fontFamily: "'Bebas Neue', sans-serif", fontSize: 18, letterSpacing: '.14em', fontWeight: 700,
+              border: 'none', cursor: 'pointer', boxShadow: `0 4px 24px ${LIME}44`,
+            }}
+          >
+            🍺 Startplatz sichern · 10,00 €
+          </button>
+          <span className="lu-metaline">Zuschauen &amp; feiern ist für alle gratis — dieses Ticket ist für aktive Teams.</span>
+        </div>
+      </div>
+    </motion.div>
+  );
+}
+
 type LineupProps = {
   // Wird mit der Ticket-ID aufgerufen ('standup' | 'concert' | 'dj').
   // In HarmonyFestivalPage an den bestehenden Kauf-Flow hängen (siehe Hinweis).
@@ -428,13 +490,19 @@ export default function LineupSection({ onBuy }: LineupProps) {
 
       <div className="divider" />
 
-      {/* 2 — ZIRKEL */}
+      {/* 2 — BIERPONG */}
+      <ChapterHead color={LIME} eyebrow="Bierpong-Turnier · 18:00 Uhr" title="Gewinnen = frei trinken" />
+      <BierpongBlock onBuy={() => buy('bierpong')} />
+
+      <div className="divider" />
+
+      {/* 3 — ZIRKEL */}
       <ChapterHead color={CY} eyebrow="Live-Konzert · 20:30 Uhr" title="Der Headliner" />
       <ZirkelBlock onBuy={() => buy('concert')} />
 
       <div className="divider" />
 
-      {/* 3 — DJs */}
+      {/* 4 — DJs */}
       <ChapterHead color={BLUE} eyebrow="DJ-Sets · ab 22:00 Uhr" title="Bis in den Morgen" />
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
         {DJS.map((dj, i) => <DJCard key={dj.name} dj={dj} index={i} />)}
@@ -443,7 +511,7 @@ export default function LineupSection({ onBuy }: LineupProps) {
 
       <div className="divider" />
 
-      {/* 4 — SUPPORT */}
+      {/* 5 — SUPPORT */}
       <ChapterHead color={GREEN} eyebrow="Support · Musik via Spotify" title="Auf die Ohren" />
       <p style={{ fontFamily: "'Inter', sans-serif", fontSize: '14px', color: 'rgba(160,230,230,0.5)', margin: '-8px 0 18px', lineHeight: 1.6, maxWidth: '540px' }}>
         Kein Live-Slot – aber ihre Songs laufen über den Abend. Reinhören lohnt sich.
