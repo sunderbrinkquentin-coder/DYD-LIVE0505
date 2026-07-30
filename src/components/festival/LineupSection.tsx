@@ -1,20 +1,17 @@
 // src/components/festival/LineupSection.tsx
 //
-// Stand-Up Comedy Line-Up – innovative Sektion für die Harmony-Festivalpage.
-// An das bestehende Design-System angepasst: Cyan/Graffiti auf transparentem
-// Hintergrund (die globale GraffitiCanvas scheint durch), tag-label + graffiti
-// Headings, framer-motion Entrance wie die übrigen Sektionen.
+// Stand-Up Comedy Line-Up – Sektion für die Harmony-Festivalpage.
+// Design-System-konform (Cyan/Graffiti auf transparentem Hintergrund).
 //
-// Interaktion (der innovative Kern):
-//   - Karten neigen sich beim Hover 3D zum Cursor (Tilt).
-//   - Acts mit zwei Motiven flippen beim Hover (Desktop) bzw. Tap (Mobile)
-//     auf das zweite Motiv (rotateY).
-//   - Ein dezenter Cyan-Spotlight folgt der Maus über das Grid.
+// Interaktion:
+//   - Desktop: Hover vergrößert die Karte (gut lesbar) und flippt sie – wenn
+//     ein zweites Motiv existiert – auf ebendieses. Reines CSS-:hover, damit
+//     nichts "hängt" (kein per-Frame-JS-Transform mehr).
+//   - Mobile/Touch: Tap flippt die Karte (per @media (hover:none) getrennt).
 //
-// Bilder liegen in public/festival/ und werden per absolutem Pfad referenziert
-// (gleiche Konvention wie der Rest der Page, z. B. "/Stand-Up_LineUp.png").
+// Bilder liegen in public/festival/ und werden per absolutem Pfad referenziert.
 
-import { useRef, useState, type CSSProperties } from 'react';
+import { useState } from 'react';
 import { motion } from 'framer-motion';
 
 const CY = '#00d4d4';
@@ -26,7 +23,6 @@ type Act = {
   back?: string; // zweites Motiv -> aktiviert den Flip
 };
 
-// Alle sechs Solo-Comedians (Reihenfolge frei anpassbar).
 const ACTS: Act[] = [
   { name: 'Alex Graf',     role: 'Stand-Up', front: '/festival/alex-graf-1.webp' },
   { name: 'Larissa Magnus', role: 'Stand-Up', front: '/festival/larissa-magnus-1.webp', back: '/festival/larissa-magnus-2.webp' },
@@ -36,33 +32,80 @@ const ACTS: Act[] = [
   { name: 'Leon Blokesch', role: 'Stand-Up', front: '/festival/leon-1.webp',         back: '/festival/leon-2.webp' },
 ];
 
+// Scoped CSS: 3D-Flip + Hover-Zoom. Klassen mit lu-Präfix, um Kollisionen zu vermeiden.
+const STYLES = `
+  .lu-card {
+    position: relative;
+    aspect-ratio: 4 / 5;
+    border-radius: 16px;
+    perspective: 1200px;
+    z-index: 1;
+    cursor: pointer;
+    transition: z-index 0s;
+  }
+  .lu-scale {
+    position: absolute;
+    inset: 0;
+    border-radius: 16px;
+    transform-style: preserve-3d;
+    transition: transform .4s cubic-bezier(.2,.7,.2,1);
+    will-change: transform;
+  }
+  .lu-inner {
+    position: absolute;
+    inset: 0;
+    border-radius: 16px;
+    transform-style: preserve-3d;
+    transition: transform .55s cubic-bezier(.2,.7,.2,1);
+    will-change: transform;
+  }
+  .lu-face {
+    position: absolute;
+    inset: 0;
+    border-radius: 16px;
+    overflow: hidden;
+    backface-visibility: hidden;
+    -webkit-backface-visibility: hidden;
+    box-shadow: 0 16px 44px rgba(0,0,0,.5), inset 0 0 0 1px rgba(0,212,212,.1);
+  }
+  .lu-face img { width: 100%; height: 100%; object-fit: cover; display: block; }
+  .lu-back { transform: rotateY(180deg); }
+  .lu-halo {
+    position: absolute; inset: -2px; border-radius: 18px; pointer-events: none;
+    opacity: 0; transition: opacity .3s;
+    box-shadow: 0 0 0 1.5px ${CY}b0, 0 0 34px 4px ${CY}45;
+  }
+  .lu-tag {
+    position: absolute; left: 12px; top: 12px; z-index: 4;
+    background: rgba(8,12,16,.72); border: 1px solid ${CY}55; color: ${CY};
+    backdrop-filter: blur(4px); -webkit-backdrop-filter: blur(4px);
+    padding: 5px 10px; border-radius: 999px;
+    font-family: 'Barlow Condensed', sans-serif; font-weight: 700;
+    font-size: 10px; letter-spacing: 0.16em; text-transform: uppercase;
+  }
+  .lu-hint {
+    position: absolute; right: 12px; bottom: 12px; z-index: 4;
+    font-family: 'Inter', sans-serif; font-size: 11px; color: ${CY}aa;
+  }
+
+  /* ---- Desktop: Hover vergrößert + flippt ---- */
+  @media (hover: hover) {
+    .lu-card:hover { z-index: 30; }
+    .lu-card:hover .lu-scale { transform: translateY(-8px) scale(1.2); }
+    .lu-card:hover .lu-halo { opacity: 1; }
+    .lu-card.lu-has-back:hover .lu-inner { transform: rotateY(180deg); }
+  }
+
+  /* ---- Touch: Tap flippt ---- */
+  @media (hover: none) {
+    .lu-card.lu-has-back.lu-flipped .lu-inner { transform: rotateY(180deg); }
+    .lu-card.lu-flipped .lu-halo { opacity: 1; }
+  }
+`;
+
 function ActCard({ act, index }: { act: Act; index: number }) {
-  const ref = useRef<HTMLDivElement>(null);
   const [flipped, setFlipped] = useState(false);
-  const [tilt, setTilt] = useState({ x: 0, y: 0, lift: 0 });
-
   const hasBack = Boolean(act.back);
-
-  const handleMove = (e: React.MouseEvent) => {
-    const el = ref.current;
-    if (!el) return;
-    const r = el.getBoundingClientRect();
-    const px = (e.clientX - r.left) / r.width - 0.5;
-    const py = (e.clientY - r.top) / r.height - 0.5;
-    setTilt({ x: px * 12, y: -py * 12, lift: -8 });
-  };
-
-  const reset = () => {
-    setTilt({ x: 0, y: 0, lift: 0 });
-    setFlipped(false);
-  };
-
-  const base = flipped ? 180 : 0;
-  const cardStyle: CSSProperties = {
-    transform: `rotateY(${base + tilt.x}deg) rotateX(${tilt.y}deg) translateY(${tilt.lift}px)`,
-    transformStyle: 'preserve-3d',
-    transition: 'transform 0.5s cubic-bezier(.2,.7,.2,1)',
-  };
 
   return (
     <motion.div
@@ -70,100 +113,35 @@ function ActCard({ act, index }: { act: Act; index: number }) {
       whileInView={{ opacity: 1, y: 0 }}
       viewport={{ once: true }}
       transition={{ duration: 0.5, delay: index * 0.07 }}
+      className={`lu-card ${hasBack ? 'lu-has-back' : ''} ${flipped ? 'lu-flipped' : ''}`}
+      onClick={() => hasBack && setFlipped((f) => !f)}
     >
-      <div
-        ref={ref}
-        className="group relative cursor-pointer rounded-2xl"
-        style={{ aspectRatio: '4 / 5', ...cardStyle }}
-        onMouseEnter={() => hasBack && setFlipped(true)}
-        onMouseLeave={reset}
-        onMouseMove={handleMove}
-        onClick={() => hasBack && setFlipped((f) => !f)}
-      >
-        {/* Cyan-Halo beim Hover */}
-        <div
-          className="pointer-events-none absolute -inset-0.5 rounded-[18px] opacity-0 transition-opacity duration-300 group-hover:opacity-100"
-          style={{ boxShadow: `0 0 0 1.5px ${CY}b0, 0 0 34px 4px ${CY}45` }}
-        />
-
-        {/* Vorderseite */}
-        <div
-          className="absolute inset-0 overflow-hidden rounded-2xl"
-          style={{ backfaceVisibility: 'hidden', boxShadow: '0 16px 44px rgba(0,0,0,.5), inset 0 0 0 1px rgba(0,212,212,.1)' }}
-        >
-          <img src={act.front} alt={act.name} loading="lazy" className="h-full w-full object-cover" />
+      <div className="lu-halo" />
+      <div className="lu-scale">
+        <div className="lu-inner">
+          {/* Vorderseite */}
+          <div className="lu-face lu-front">
+            <img src={act.front} alt={act.name} loading="lazy" />
+            <span className="lu-tag">{act.role}</span>
+            {hasBack && <div className="lu-hint">2 Motive ↻</div>}
+          </div>
+          {/* Rückseite (zweites Motiv) */}
+          {hasBack && (
+            <div className="lu-face lu-back">
+              <img src={act.back} alt={`${act.name} – zweites Motiv`} loading="lazy" />
+            </div>
+          )}
         </div>
-
-        {/* Rückseite (zweites Motiv) */}
-        {hasBack && (
-          <div
-            className="absolute inset-0 overflow-hidden rounded-2xl"
-            style={{
-              backfaceVisibility: 'hidden',
-              transform: 'rotateY(180deg)',
-              boxShadow: '0 16px 44px rgba(0,0,0,.5), inset 0 0 0 1px rgba(0,212,212,.1)',
-            }}
-          >
-            <img src={act.back} alt={`${act.name} – zweites Motiv`} loading="lazy" className="h-full w-full object-cover" />
-          </div>
-        )}
-
-        {/* Rollen-Tag oben links */}
-        <span
-          className="absolute left-3 top-3 z-10 rounded-full px-2.5 py-1"
-          style={{
-            background: 'rgba(8,12,16,.72)',
-            border: `1px solid ${CY}55`,
-            color: CY,
-            backdropFilter: 'blur(4px)',
-            fontFamily: "'Barlow Condensed', sans-serif",
-            fontWeight: 700,
-            fontSize: '10px',
-            letterSpacing: '0.16em',
-            textTransform: 'uppercase',
-          }}
-        >
-          {act.role}
-        </span>
-
-        {/* Name unten */}
-        <div
-          className="pointer-events-none absolute inset-x-0 bottom-0 z-10 rounded-b-2xl px-4 pb-4 pt-10"
-          style={{ background: 'linear-gradient(transparent, rgba(4,10,14,.94))', backfaceVisibility: 'hidden' }}
-        >
-          <div className="graffiti" style={{ fontSize: '24px', color: '#fff', lineHeight: 1 }}>{act.name}</div>
-          <div style={{ fontFamily: "'Inter', sans-serif", fontSize: '11px', letterSpacing: '0.14em', color: `${CY}cc`, marginTop: '4px', textTransform: 'uppercase' }}>
-            22.08. · 16:30 Uhr
-          </div>
-        </div>
-
-        {/* Hinweis auf zweites Motiv */}
-        {hasBack && (
-          <div
-            className="absolute bottom-3.5 right-3 z-10"
-            style={{ fontFamily: "'Inter', sans-serif", fontSize: '11px', color: `${CY}aa` }}
-          >
-            2 Motive ↻
-          </div>
-        )}
       </div>
     </motion.div>
   );
 }
 
 export default function LineupSection() {
-  const gridRef = useRef<HTMLDivElement>(null);
-
-  const handleGridMove = (e: React.MouseEvent) => {
-    const el = gridRef.current;
-    if (!el) return;
-    const r = el.getBoundingClientRect();
-    el.style.setProperty('--sx', `${((e.clientX - r.left) / r.width) * 100}%`);
-    el.style.setProperty('--sy', `${((e.clientY - r.top) / r.height) * 100}%`);
-  };
-
   return (
     <section id="comedy" className="pt-4">
+      <style>{STYLES}</style>
+
       <motion.div
         initial={{ opacity: 0, y: 28 }}
         whileInView={{ opacity: 1, y: 0 }}
@@ -176,21 +154,11 @@ export default function LineupSection() {
           Das <span style={{ color: CY, textShadow: `0 0 40px ${CY}55` }}>Line-Up</span>
         </h2>
         <p style={{ fontFamily: "'Inter', sans-serif", fontSize: '15px', color: 'rgba(160,230,230,0.5)', marginTop: '14px', lineHeight: 1.7, maxWidth: '520px' }}>
-          Sechs Newcomer aus der lokalen Szene – frisch, direkt, ehrlich. Fahr mit der Maus über die Acts (oder tippe am Handy) und dreh die Karte auf ihr zweites Motiv.
+          Sechs Newcomer aus der lokalen Szene – frisch, direkt, ehrlich. Fahr mit der Maus über einen Act (oder tippe am Handy), um ihn groß zu sehen und auf sein zweites Motiv zu drehen.
         </p>
       </motion.div>
 
-      <div
-        ref={gridRef}
-        onMouseMove={handleGridMove}
-        className="relative grid gap-5"
-        style={{ gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', perspective: '1400px' }}
-      >
-        {/* dezenter Cyan-Spotlight, folgt der Maus */}
-        <div
-          className="pointer-events-none absolute inset-0 z-0"
-          style={{ background: `radial-gradient(circle at var(--sx,50%) var(--sy,40%), ${CY}12, transparent 26%)` }}
-        />
+      <div className="grid grid-cols-2 lg:grid-cols-3 gap-5 lg:gap-6">
         {ACTS.map((act, i) => (
           <ActCard key={act.name} act={act} index={i} />
         ))}
