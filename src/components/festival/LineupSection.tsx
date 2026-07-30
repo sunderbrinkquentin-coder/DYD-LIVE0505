@@ -81,6 +81,7 @@ const ZIRKEL = {
   album: 'Das ist der Plan',
   label: 'Hamburg Records',
   features: ['Jack Pott', 'Bluthund', 'DuZoe', 'Peat & Pessi'],
+  spotify: 'https://open.spotify.com/embed/artist/798bbZOe4VTHtiKT7rwQvi',
 };
 
 const DJS = [
@@ -94,8 +95,18 @@ const DJS = [
 //   link  = normale Spotify-URL für den "Auf Spotify hören"-Button (Fallback).
 // Beide leer -> es erscheint ein dezenter Platzhalter.
 const SUPPORT = [
-  { name: 'Mudfight', img: '/festival/mudfight-1.webp', embed: '', link: '' },
-  { name: 'Loraaas', img: '/festival/loraaas-1.webp', embed: '', link: '' },
+  {
+    name: 'Mudfight',
+    img: '/festival/mudfight-1.webp',
+    embed: 'https://open.spotify.com/embed/artist/3H2BQW1ziznCjwQxqv7u2b',
+    link: 'https://open.spotify.com/artist/3H2BQW1ziznCjwQxqv7u2b',
+  },
+  {
+    name: 'Loraaas',
+    img: '/festival/loraaas-1.webp',
+    embed: 'https://open.spotify.com/embed/artist/2XfxvX8wNkjEw3pwQXzfrB',
+    link: 'https://open.spotify.com/artist/2XfxvX8wNkjEw3pwQXzfrB',
+  },
 ];
 
 const scrollToTickets = () =>
@@ -214,6 +225,25 @@ function ChapterHead({ color, eyebrow, title }: { color: string; eyebrow: string
   );
 }
 
+function BuyBar({ color, label, note, onClick }: { color: string; label: string; note?: string; onClick: () => void }) {
+  return (
+    <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: 14, marginTop: 22 }}>
+      <button
+        onClick={onClick}
+        style={{
+          display: 'inline-flex', alignItems: 'center', gap: 10, padding: '14px 26px', borderRadius: 14,
+          background: `linear-gradient(135deg, ${color}, ${color}bb)`, color: '#080c10',
+          fontFamily: "'Bebas Neue', sans-serif", fontSize: 18, letterSpacing: '0.14em', fontWeight: 700,
+          border: 'none', cursor: 'pointer', boxShadow: `0 4px 24px ${color}44`,
+        }}
+      >
+        {label}
+      </button>
+      {note && <span className="lu-metaline">{note}</span>}
+    </div>
+  );
+}
+
 function StandupCard({ act, index }: { act: Standup; index: number }) {
   const hasInfo = Boolean(act.hook);
   return (
@@ -255,7 +285,7 @@ function StandupCard({ act, index }: { act: Standup; index: number }) {
   );
 }
 
-function ZirkelBlock() {
+function ZirkelBlock({ onBuy }: { onBuy: () => void }) {
   const z = ZIRKEL;
   return (
     <motion.div {...fade} transition={{ duration: 0.55 }} className="lu-hero">
@@ -299,8 +329,20 @@ function ZirkelBlock() {
             </div>
           </div>
 
+          {z.spotify && (
+            <iframe
+              title="Zirkel.WTF auf Spotify"
+              src={z.spotify}
+              width="100%"
+              height="152"
+              style={{ border: 0, borderRadius: 12, marginBottom: 20 }}
+              loading="lazy"
+              allow="autoplay; clipboard-write; encrypted-media; fullscreen; picture-in-picture"
+            />
+          )}
+
           <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: 14 }}>
-            <button className="lu-cta" onClick={scrollToTickets}>🎟 Konzert-Ticket · 17,50 €</button>
+            <button className="lu-cta" onClick={onBuy}>🎟 Konzert-Ticket · 17,50 €</button>
             <span className="lu-metaline">oder im Bundle ab 39,99 € — mit Stand-Up, DJ &amp; Freigetränk</span>
           </div>
         </div>
@@ -352,7 +394,16 @@ function SupportCard({ act, index }: { act: { name: string; img: string; embed: 
   );
 }
 
-export default function LineupSection() {
+type LineupProps = {
+  // Wird mit der Ticket-ID aufgerufen ('standup' | 'concert' | 'dj').
+  // In HarmonyFestivalPage an den bestehenden Kauf-Flow hängen (siehe Hinweis).
+  onBuy?: (ticketId: string) => void;
+};
+
+export default function LineupSection({ onBuy }: LineupProps) {
+  // Fallback: falls kein onBuy übergeben wird, scrolle zur Ticket-Sektion.
+  const buy = (id: string) => (onBuy ? onBuy(id) : scrollToTickets());
+
   return (
     <section id="comedy" className="pt-4">
       <style>{STYLES}</style>
@@ -373,12 +424,13 @@ export default function LineupSection() {
       <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
         {STANDUP.map((act, i) => <StandupCard key={act.name} act={act} index={i} />)}
       </div>
+      <BuyBar color={ORANGE} label="🎟 Stand-Up-Ticket · 17,50 €" note="Sechs Acts, ein Ticket" onClick={() => buy('standup')} />
 
       <div className="divider" />
 
       {/* 2 — ZIRKEL */}
       <ChapterHead color={CY} eyebrow="Live-Konzert · 20:30 Uhr" title="Der Headliner" />
-      <ZirkelBlock />
+      <ZirkelBlock onBuy={() => buy('concert')} />
 
       <div className="divider" />
 
@@ -387,6 +439,7 @@ export default function LineupSection() {
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
         {DJS.map((dj, i) => <DJCard key={dj.name} dj={dj} index={i} />)}
       </div>
+      <BuyBar color={BLUE} label="🎟 DJ-Ticket · 8,50 €" note="House & Techno bis 02:00" onClick={() => buy('dj')} />
 
       <div className="divider" />
 
