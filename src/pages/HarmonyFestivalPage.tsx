@@ -34,6 +34,13 @@ const TICKETS = [
 ];
 
 
+const ACTS = [
+  { num: '01', icon: Laugh,  label: 'Stand-Up Comedy',  sub: 'Newcomer der lokalen Szene',  time: '16:30', color: C.orange },
+  { num: '02', icon: Trophy, label: 'Bierpong Turnier',  sub: 'Gewinnen = free drinks',       time: '18:00', color: C.lime   },
+  { num: '03', icon: Mic,    label: 'Zirkel.WTF Live',  sub: 'Pop-Punk aus Hamburg',          time: '20:30', color: C.cyan   },
+  { num: '04', icon: Disc3,  label: 'DJ Sets',           sub: 'House & Techno bis 02:00',     time: '22:00', color: C.blue   },
+];
+
 function GraffitiCanvas() {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const animRef   = useRef<number>(0);
@@ -1517,44 +1524,6 @@ const doCheckout = async (
       {/* ── CONTENT ─────────────────────────────────────────────── */}
       <div className="relative z-10">
         <div className="max-w-6xl mx-auto px-6 sm:px-10 pb-32">
-
-          {/* ── PROGRAMM ─────────────────────────────────────────── */}
-          <section id="programm" className="pt-24">
-            <motion.div {...fadeUp} className="flex items-end justify-between mb-12">
-              <div>
-                <div className="tag-label mb-3">Das Programm</div>
-                <h2 className="graffiti" style={{ fontSize: 'clamp(48px, 8vw, 88px)', color: '#fff', lineHeight: 0.9 }}>
-                  Ein Abend,<br /><span className="spray-underline" style={{ color: C.cyan }}>Vier Acts</span>
-                </h2>
-              </div>
-              <span style={{ fontFamily: "'Barlow Condensed', sans-serif", fontWeight: 700, fontSize: '13px', letterSpacing: '0.22em', color: `${C.cyan}50`, textTransform: 'uppercase', paddingBottom: '6px' }}>22.08.2026</span>
-            </motion.div>
-
-            <div className="rounded-2xl overflow-hidden glass" style={{ border: `1px solid rgba(0,212,212,0.1)` }}>
-              {ACTS.map((act, i) => (
-                <motion.div key={i} initial={{ opacity: 0, x: -20 }} whileInView={{ opacity: 1, x: 0 }} viewport={{ once: true }}
-                  transition={{ duration: 0.5, delay: i * 0.08 }}
-                  className="act-row flex items-center gap-6 sm:gap-10 px-6 sm:px-10 py-6 sm:py-7">
-                  <span className="graffiti hidden sm:block flex-shrink-0"
-                    style={{ fontSize: 'clamp(38px, 5vw, 56px)', color: `${act.color}18`, lineHeight: 1 }}>{act.num}</span>
-                  <div className="w-1 self-stretch flex-shrink-0 rounded-full" style={{ backgroundColor: act.color, minHeight: '48px', boxShadow: `0 0 12px ${act.color}60` }} />
-                  <div className="flex-1 min-w-0">
-                    <div style={{ fontFamily: "'Inter', sans-serif", fontSize: '10px', fontWeight: 700, letterSpacing: '0.26em', textTransform: 'uppercase', color: act.color, marginBottom: '5px', opacity: 0.9 }}>
-                      {act.time} Uhr
-                    </div>
-                    <h3 className="graffiti" style={{ fontSize: 'clamp(22px, 3.5vw, 36px)', color: '#fff' }}>{act.label}</h3>
-                    <p style={{ fontFamily: "'Inter', sans-serif", fontSize: '14px', color: 'rgba(160,230,230,0.5)', marginTop: '2px' }}>{act.sub}</p>
-                  </div>
-                  <div className="flex-shrink-0 w-12 h-12 rounded-xl flex items-center justify-center"
-                    style={{ backgroundColor: `${act.color}10`, border: `1px solid ${act.color}28`, boxShadow: `0 0 20px ${act.color}20` }}>
-                    <act.icon className="w-5 h-5" style={{ color: act.color }} />
-                  </div>
-                </motion.div>
-              ))}
-            </div>
-          </section>
-
-          <div className="divider" />
 
           {/* ── STAND-UP LINE-UP ── */}
           <LineupSection />
