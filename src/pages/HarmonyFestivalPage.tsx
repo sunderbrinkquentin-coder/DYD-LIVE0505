@@ -688,110 +688,120 @@ useEffect(() => {
   return () => window.removeEventListener('scroll', handleScroll);
 }, []);
 
-  const doCheckout = async (ticket: typeof TICKETS[0], name: string, bpTeam?: string, bpPartner?: string, shirtSize?: string, quantity = 1) => {
-    setError(null);
-    setLoadingId(ticket.id);
-    setShowSlowHint(false);
+const doCheckout = async (
+  ticket: typeof TICKETS[0],
+  name: string,
+  bpTeam?: string,
+  bpPartner?: string,
+  shirtSize?: string,
+  quantity = 1,
+) => {
+  if (loadingId) return; // Doppelklick-Schutz
 
-    if (!ticket.priceId) {
-      setError('Ticket-Konfiguration fehlt. Bitte versuche es spaeter erneut.');
-      setLoadingId(null);
-      return;
+  setError(null);
+  setLoadingId(ticket.id);
+  setShowSlowHint(false);
+
+  if (!ticket.priceId) {
+    setError('Ticket-Konfiguration fehlt. Bitte lade die Seite neu.');
+    setLoadingId(null);
+    return;
+  }
+
+  const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
+  const anonKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
+  const checkoutUrl = `${supabaseUrl}/functions/v1/stripe-checkout`;
+
+  const slowHintTimer = setTimeout(() => setShowSlowHint(true), 3000);
+
+  // Token holen – NIE fatal. Hängt getSession (z. B. navigator.locks),
+  // nach 3s einfach mit anonKey weiter (user_id geht ohnehin im Body mit).
+  const getToken = async (): Promise<string> => {
+    try {
+      const res: any = await Promise.race([
+        supabase.auth.getSession(),
+        new Promise((resolve) => setTimeout(() => resolve(null), 3000)),
+      ]);
+      return res?.data?.session?.access_token || anonKey;
+    } catch {
+      return anonKey;
     }
+  };
 
-    const slowHintTimer = setTimeout(() => setShowSlowHint(true), 3000);
-
-    const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
-    const anonKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
-    const checkoutUrl = `${supabaseUrl}/functions/v1/stripe-checkout`;
-
-    const attemptCheckout = async (): Promise<string> => {
-      const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 15000);
-let authToken = anonKey;
-      try {
-        const { data: { session: authSession } } = await Promise.race([
-          supabase.auth.getSession(),
-          new Promise<never>((_, reject) =>
-            setTimeout(() => reject(new Error('Session-Timeout. Bitte Seite neu laden.')), 5000)
-          ),
-        ]);
-        const authToken = authSession?.access_token || anonKey;
-
-        const response = await fetch(checkoutUrl, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${authToken}`,
-            'apikey': anonKey,
-          },
-          body: JSON.stringify({
-            price_id: ticket.priceId,
-            quantity,
-            success_url: ticket.id === 'support'
+  const attemptCheckout = async (): Promise<string> => {
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 20000); // Coldstart-Puffer
+    try {
+      const authToken = await getToken();
+      const response = await fetch(checkoutUrl, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${authToken}`,
+          apikey: anonKey,
+        },
+        body: JSON.stringify({
+          price_id: ticket.priceId,
+          quantity,
+          success_url:
+            ticket.id === 'support'
               ? `${window.location.origin}/#/festival?support_success=1&session_id={CHECKOUT_SESSION_ID}`
               : ticket.id === 'soli_shirt'
               ? `${window.location.origin}/#/festival-success?session_id={CHECKOUT_SESSION_ID}&type=soli_shirt`
               : `${window.location.origin}/#/festival-success?session_id={CHECKOUT_SESSION_ID}&type=${ticket.id}`,
-            cancel_url: `${window.location.origin}/#/festival?payment=cancelled`,
-            mode: 'payment',
-            metadata: { ticket_type: ticket.id },
-            ...(user?.id ? { user_id: user.id } : {}),
-            buyer_name: name,
-            ...(bpTeam ? { bierpong_team_name: bpTeam } : {}),
-            ...(bpPartner ? { bierpong_partner_name: bpPartner } : {}),
-            ...(shirtSize ? { shirt_size: shirtSize } : {}),
-          }),
-          signal: controller.signal,
-        });
+          cancel_url: `${window.location.origin}/#/festival?payment=cancelled`,
+          mode: 'payment',
+          metadata: { ticket_type: ticket.id },
+          ...(user?.id ? { user_id: user.id } : {}),
+          buyer_name: name,
+          ...(bpTeam ? { bierpong_team_name: bpTeam } : {}),
+          ...(bpPartner ? { bierpong_partner_name: bpPartner } : {}),
+          ...(shirtSize ? { shirt_size: shirtSize } : {}),
+        }),
+        signal: controller.signal,
+      });
+      clearTimeout(timeoutId);
 
-        clearTimeout(timeoutId);
-
-        if (!response.ok) {
-          let serverMessage: string | undefined;
-          try {
-            const errBody = await response.json();
-            serverMessage = errBody?.error;
-          } catch {
-            // ignore parse failures
-          }
-          throw new Error(serverMessage || 'Checkout fehlgeschlagen. Bitte versuche es erneut.');
+      if (!response.ok) {
+        let serverMessage: string | undefined;
+        try {
+          serverMessage = (await response.json())?.error;
+        } catch {
+          /* ignore */
         }
-
-        const data = await response.json();
-        if (!data?.url) throw new Error(data?.error || 'Checkout fehlgeschlagen.');
-        return data.url;
-      } catch (err: any) {
-        clearTimeout(timeoutId);
-        if (err.name === 'AbortError') {
-          throw new Error('Verbindungs-Timeout. Bitte versuche es erneut.');
-        }
-        throw err;
+        throw new Error(serverMessage || `Checkout fehlgeschlagen (Status ${response.status}).`);
       }
-    };
 
-    const MAX_RETRIES = 2;
-    let lastError: Error | null = null;
-
-    for (let attempt = 1; attempt <= MAX_RETRIES; attempt++) {
-      try {
-        const url = await attemptCheckout();
-        clearTimeout(slowHintTimer);
-        window.location.href = url;
-        return;
-      } catch (e: any) {
-        lastError = e;
-        if (attempt < MAX_RETRIES) {
-          await new Promise(res => setTimeout(res, 1500));
-        }
-      }
+      const data = await response.json();
+      if (!data?.url) throw new Error(data?.error || 'Checkout fehlgeschlagen.');
+      return data.url as string;
+    } catch (err: any) {
+      clearTimeout(timeoutId);
+      if (err?.name === 'AbortError') throw new Error('Zeitüberschreitung. Bitte erneut versuchen.');
+      throw err;
     }
-
-    clearTimeout(slowHintTimer);
-    setError(lastError?.message || 'Checkout fehlgeschlagen. Bitte versuche es erneut.');
-    setLoadingId(null);
-    setShowSlowHint(false);
   };
+
+  const MAX_RETRIES = 3;
+  let lastError: Error | null = null;
+
+  for (let attempt = 1; attempt <= MAX_RETRIES; attempt++) {
+    try {
+      const url = await attemptCheckout();
+      clearTimeout(slowHintTimer);
+      window.location.href = url; // Erfolg -> Weiterleitung, loadingId bleibt bis Seitenwechsel
+      return;
+    } catch (e: any) {
+      lastError = e;
+      if (attempt < MAX_RETRIES) await new Promise((r) => setTimeout(r, 1200 * attempt));
+    }
+  }
+
+  clearTimeout(slowHintTimer);
+  setError(lastError?.message || 'Checkout fehlgeschlagen. Bitte erneut versuchen.');
+  setLoadingId(null);
+  setShowSlowHint(false);
+};
 
   const openTicketModal = (ticket: typeof TICKETS[0]) => {
     if (BIERPONG_TICKET_IDS.has(ticket.id)) {
