@@ -260,12 +260,12 @@ export const ClassicCVTemplate: React.FC<CVTemplateProps> = ({
               </div>
 
               <EditableText
-                value={item.institution}
-                onChange={(val) => onUpdateSectionItem(educationIndex, idx, 'institution', val)}
-                className="font-semibold leading-snug mt-0.5"
-                style={{ fontSize: '10px', color: t.muted }}
-                placeholder="Institution"
-              />
+                  value={item.degree || item.title || ''}
+                  onChange={(val) => onUpdateSectionItem(educationIndex, idx, 'degree', val)}
+                  className="font-bold leading-tight flex-1 min-w-0"
+                  style={{ fontSize: '11px', color: t.text }}
+                  placeholder="Abschluss / Studiengang"
+                />
 
               {item.location && (
                 <EditableText
