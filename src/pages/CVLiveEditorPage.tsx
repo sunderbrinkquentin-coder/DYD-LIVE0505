@@ -1907,7 +1907,7 @@ const reorderSections = (fromIndex: number, toIndex: number) => {
                   <div
                     key={pageIdx}
                     className="a4-page-frame"
-                    style={{ top: `${frameTop}px`, left: 0, transform: `scale(${scale})`, transformOrigin: 'top left' }}
+                    style={{ top: `${frameTop}px`, left: 0, backgroundColor: TEMPLATE_PAGE_BG[selectedTemplate] ?? '#ffffff', transform: `scale(${scale})`, transformOrigin: 'top left' }}
                   >
                     <div style={{ position: 'relative', width: '794px', height: `${visibleHeight}px`, overflow: 'hidden' }}>
                       <div style={{ position: 'absolute', top: `${-pageStart}px`, left: 0, width: '794px' }}>
