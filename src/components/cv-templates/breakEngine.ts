@@ -385,25 +385,26 @@ export function computeBreakPoints(
       if (pos > best) best = pos;
     }
 
-    if (best < 0) {
-      // Kein legaler Kandidat oberhalb der Mindestfüllung. Das passiert, wenn ein
-      // atomarer Block (Sprachen, Skills, …) genau über die Seitengrenze ragt.
-      // Dann schneiden wir VOR diesem Block — auch wenn die Seite dadurch
-      // kürzer wird als minFill. Eine halbleere Seite ist besser als ein
-      // zerrissener Sprachenblock.
-      const straddler = straddlingZone(hardMax, zones, tolerancePx);
+if (best < 0) {
+      // Kein legaler Kandidat oberhalb der Mindestfüllung. Bei ZWEISPALTIGEN
+      // Templates (Modern) regelmäßig, weil die Zonen BEIDER Spalten dasselbe
+      // Y-Fenster abdecken.
+      //
+      // FIX: Zuerst den tiefsten Schnitt, der durch KEINE Zone läuft — also
+      // durch beide Spalten sauber geht (isInsideZone prüft alle Zonen). Erst
+      // wenn es gar keinen sauberen Schnitt gibt, auf straddler.top / hardMax
+      // ausweichen. Vorher wurde straddler.top SOFORT genommen; diese
+      // Y-Position konnte in der anderen Spalte mitten durch eine kürzere
+      // Station laufen — genau der Schnitt „mitten im Block".
+      const cleanBelow = candidates.filter(
+        (p) => p > cursor + tolerancePx && p <= hardMax && !isInsideZone(p, zones, tolerancePx)
+      );
 
-      if (straddler && straddler.top > cursor + tolerancePx) {
-        best = straddler.top;
+      if (cleanBelow.length > 0) {
+        best = cleanBelow[cleanBelow.length - 1];
       } else {
-        // Auch das greift nicht: entweder ragt der Block schon vom Seitenanfang
-        // an über die Grenze (dann ist er unteilbar UND zu groß — kann bei
-        // exakt seitenhohen Blöcken passieren), oder es gibt gar keine
-        // Kandidaten. Harter Schnitt als letzte Instanz.
-        const fallback = candidates.filter(
-          (p) => p > cursor + tolerancePx && p <= hardMax && !isInsideZone(p, zones, tolerancePx)
-        );
-        best = fallback.length > 0 ? fallback[fallback.length - 1] : hardMax;
+        const straddler = straddlingZone(hardMax, zones, tolerancePx);
+        best = straddler && straddler.top > cursor + tolerancePx ? straddler.top : hardMax;
       }
     }
 
