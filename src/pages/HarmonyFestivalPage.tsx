@@ -688,120 +688,110 @@ useEffect(() => {
   return () => window.removeEventListener('scroll', handleScroll);
 }, []);
 
-const doCheckout = async (
-  ticket: typeof TICKETS[0],
-  name: string,
-  bpTeam?: string,
-  bpPartner?: string,
-  shirtSize?: string,
-  quantity = 1,
-) => {
-  if (loadingId) return; // Doppelklick-Schutz
+  const doCheckout = async (ticket: typeof TICKETS[0], name: string, bpTeam?: string, bpPartner?: string, shirtSize?: string, quantity = 1) => {
+    setError(null);
+    setLoadingId(ticket.id);
+    setShowSlowHint(false);
 
-  setError(null);
-  setLoadingId(ticket.id);
-  setShowSlowHint(false);
-
-  if (!ticket.priceId) {
-    setError('Ticket-Konfiguration fehlt. Bitte lade die Seite neu.');
-    setLoadingId(null);
-    return;
-  }
-
-  const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
-  const anonKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
-  const checkoutUrl = `${supabaseUrl}/functions/v1/stripe-checkout`;
-
-  const slowHintTimer = setTimeout(() => setShowSlowHint(true), 3000);
-
-  // Token holen – NIE fatal. Hängt getSession (z. B. navigator.locks),
-  // nach 3s einfach mit anonKey weiter (user_id geht ohnehin im Body mit).
-  const getToken = async (): Promise<string> => {
-    try {
-      const res: any = await Promise.race([
-        supabase.auth.getSession(),
-        new Promise((resolve) => setTimeout(() => resolve(null), 3000)),
-      ]);
-      return res?.data?.session?.access_token || anonKey;
-    } catch {
-      return anonKey;
+    if (!ticket.priceId) {
+      setError('Ticket-Konfiguration fehlt. Bitte versuche es spaeter erneut.');
+      setLoadingId(null);
+      return;
     }
-  };
 
-  const attemptCheckout = async (): Promise<string> => {
-    const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 20000); // Coldstart-Puffer
-    try {
-      const authToken = await getToken();
-      const response = await fetch(checkoutUrl, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${authToken}`,
-          apikey: anonKey,
-        },
-        body: JSON.stringify({
-          price_id: ticket.priceId,
-          quantity,
-          success_url:
-            ticket.id === 'support'
+    const slowHintTimer = setTimeout(() => setShowSlowHint(true), 3000);
+
+    const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
+    const anonKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
+    const checkoutUrl = `${supabaseUrl}/functions/v1/stripe-checkout`;
+
+    const attemptCheckout = async (): Promise<string> => {
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 15000);
+let authToken = anonKey;
+      try {
+        const { data: { session: authSession } } = await Promise.race([
+          supabase.auth.getSession(),
+          new Promise<never>((_, reject) =>
+            setTimeout(() => reject(new Error('Session-Timeout. Bitte Seite neu laden.')), 5000)
+          ),
+        ]);
+        const authToken = authSession?.access_token || anonKey;
+
+        const response = await fetch(checkoutUrl, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${authToken}`,
+            'apikey': anonKey,
+          },
+          body: JSON.stringify({
+            price_id: ticket.priceId,
+            quantity,
+            success_url: ticket.id === 'support'
               ? `${window.location.origin}/#/festival?support_success=1&session_id={CHECKOUT_SESSION_ID}`
               : ticket.id === 'soli_shirt'
               ? `${window.location.origin}/#/festival-success?session_id={CHECKOUT_SESSION_ID}&type=soli_shirt`
               : `${window.location.origin}/#/festival-success?session_id={CHECKOUT_SESSION_ID}&type=${ticket.id}`,
-          cancel_url: `${window.location.origin}/#/festival?payment=cancelled`,
-          mode: 'payment',
-          metadata: { ticket_type: ticket.id },
-          ...(user?.id ? { user_id: user.id } : {}),
-          buyer_name: name,
-          ...(bpTeam ? { bierpong_team_name: bpTeam } : {}),
-          ...(bpPartner ? { bierpong_partner_name: bpPartner } : {}),
-          ...(shirtSize ? { shirt_size: shirtSize } : {}),
-        }),
-        signal: controller.signal,
-      });
-      clearTimeout(timeoutId);
+            cancel_url: `${window.location.origin}/#/festival?payment=cancelled`,
+            mode: 'payment',
+            metadata: { ticket_type: ticket.id },
+            ...(user?.id ? { user_id: user.id } : {}),
+            buyer_name: name,
+            ...(bpTeam ? { bierpong_team_name: bpTeam } : {}),
+            ...(bpPartner ? { bierpong_partner_name: bpPartner } : {}),
+            ...(shirtSize ? { shirt_size: shirtSize } : {}),
+          }),
+          signal: controller.signal,
+        });
 
-      if (!response.ok) {
-        let serverMessage: string | undefined;
-        try {
-          serverMessage = (await response.json())?.error;
-        } catch {
-          /* ignore */
+        clearTimeout(timeoutId);
+
+        if (!response.ok) {
+          let serverMessage: string | undefined;
+          try {
+            const errBody = await response.json();
+            serverMessage = errBody?.error;
+          } catch {
+            // ignore parse failures
+          }
+          throw new Error(serverMessage || 'Checkout fehlgeschlagen. Bitte versuche es erneut.');
         }
-        throw new Error(serverMessage || `Checkout fehlgeschlagen (Status ${response.status}).`);
+
+        const data = await response.json();
+        if (!data?.url) throw new Error(data?.error || 'Checkout fehlgeschlagen.');
+        return data.url;
+      } catch (err: any) {
+        clearTimeout(timeoutId);
+        if (err.name === 'AbortError') {
+          throw new Error('Verbindungs-Timeout. Bitte versuche es erneut.');
+        }
+        throw err;
       }
+    };
 
-      const data = await response.json();
-      if (!data?.url) throw new Error(data?.error || 'Checkout fehlgeschlagen.');
-      return data.url as string;
-    } catch (err: any) {
-      clearTimeout(timeoutId);
-      if (err?.name === 'AbortError') throw new Error('Zeitüberschreitung. Bitte erneut versuchen.');
-      throw err;
+    const MAX_RETRIES = 2;
+    let lastError: Error | null = null;
+
+    for (let attempt = 1; attempt <= MAX_RETRIES; attempt++) {
+      try {
+        const url = await attemptCheckout();
+        clearTimeout(slowHintTimer);
+        window.location.href = url;
+        return;
+      } catch (e: any) {
+        lastError = e;
+        if (attempt < MAX_RETRIES) {
+          await new Promise(res => setTimeout(res, 1500));
+        }
+      }
     }
+
+    clearTimeout(slowHintTimer);
+    setError(lastError?.message || 'Checkout fehlgeschlagen. Bitte versuche es erneut.');
+    setLoadingId(null);
+    setShowSlowHint(false);
   };
-
-  const MAX_RETRIES = 3;
-  let lastError: Error | null = null;
-
-  for (let attempt = 1; attempt <= MAX_RETRIES; attempt++) {
-    try {
-      const url = await attemptCheckout();
-      clearTimeout(slowHintTimer);
-      window.location.href = url; // Erfolg -> Weiterleitung, loadingId bleibt bis Seitenwechsel
-      return;
-    } catch (e: any) {
-      lastError = e;
-      if (attempt < MAX_RETRIES) await new Promise((r) => setTimeout(r, 1200 * attempt));
-    }
-  }
-
-  clearTimeout(slowHintTimer);
-  setError(lastError?.message || 'Checkout fehlgeschlagen. Bitte erneut versuchen.');
-  setLoadingId(null);
-  setShowSlowHint(false);
-};
 
   const openTicketModal = (ticket: typeof TICKETS[0]) => {
     if (BIERPONG_TICKET_IDS.has(ticket.id)) {
@@ -1524,6 +1514,44 @@ const doCheckout = async (
       {/* ── CONTENT ─────────────────────────────────────────────── */}
       <div className="relative z-10">
         <div className="max-w-6xl mx-auto px-6 sm:px-10 pb-32">
+
+          {/* ── PROGRAMM ─────────────────────────────────────────── */}
+          <section id="programm" className="pt-24">
+            <motion.div {...fadeUp} className="flex items-end justify-between mb-12">
+              <div>
+                <div className="tag-label mb-3">Das Programm</div>
+                <h2 className="graffiti" style={{ fontSize: 'clamp(48px, 8vw, 88px)', color: '#fff', lineHeight: 0.9 }}>
+                  Ein Abend,<br /><span className="spray-underline" style={{ color: C.cyan }}>Vier Acts</span>
+                </h2>
+              </div>
+              <span style={{ fontFamily: "'Barlow Condensed', sans-serif", fontWeight: 700, fontSize: '13px', letterSpacing: '0.22em', color: `${C.cyan}50`, textTransform: 'uppercase', paddingBottom: '6px' }}>22.08.2026</span>
+            </motion.div>
+
+            <div className="rounded-2xl overflow-hidden glass" style={{ border: `1px solid rgba(0,212,212,0.1)` }}>
+              {ACTS.map((act, i) => (
+                <motion.div key={i} initial={{ opacity: 0, x: -20 }} whileInView={{ opacity: 1, x: 0 }} viewport={{ once: true }}
+                  transition={{ duration: 0.5, delay: i * 0.08 }}
+                  className="act-row flex items-center gap-6 sm:gap-10 px-6 sm:px-10 py-6 sm:py-7">
+                  <span className="graffiti hidden sm:block flex-shrink-0"
+                    style={{ fontSize: 'clamp(38px, 5vw, 56px)', color: `${act.color}18`, lineHeight: 1 }}>{act.num}</span>
+                  <div className="w-1 self-stretch flex-shrink-0 rounded-full" style={{ backgroundColor: act.color, minHeight: '48px', boxShadow: `0 0 12px ${act.color}60` }} />
+                  <div className="flex-1 min-w-0">
+                    <div style={{ fontFamily: "'Inter', sans-serif", fontSize: '10px', fontWeight: 700, letterSpacing: '0.26em', textTransform: 'uppercase', color: act.color, marginBottom: '5px', opacity: 0.9 }}>
+                      {act.time} Uhr
+                    </div>
+                    <h3 className="graffiti" style={{ fontSize: 'clamp(22px, 3.5vw, 36px)', color: '#fff' }}>{act.label}</h3>
+                    <p style={{ fontFamily: "'Inter', sans-serif", fontSize: '14px', color: 'rgba(160,230,230,0.5)', marginTop: '2px' }}>{act.sub}</p>
+                  </div>
+                  <div className="flex-shrink-0 w-12 h-12 rounded-xl flex items-center justify-center"
+                    style={{ backgroundColor: `${act.color}10`, border: `1px solid ${act.color}28`, boxShadow: `0 0 20px ${act.color}20` }}>
+                    <act.icon className="w-5 h-5" style={{ color: act.color }} />
+                  </div>
+                </motion.div>
+              ))}
+            </div>
+          </section>
+
+          <div className="divider" />
 
           {/* ── STAND-UP LINE-UP ── */}
           <LineupSection />
