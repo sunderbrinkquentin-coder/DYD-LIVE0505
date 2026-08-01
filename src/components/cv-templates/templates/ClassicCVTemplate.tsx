@@ -245,17 +245,15 @@ export const ClassicCVTemplate: React.FC<CVTemplateProps> = ({
     return (
       <div>
         <MainTitle>Ausbildung / Studium</MainTitle>
-        <div className="space-y-5">
-          {items.map((item: any, idx: number) => (
-            <div key={idx} data-pdf-section data-break-item style={cardWrapper}>
-              <div className="flex items-baseline justify-between gap-3">
+<div className="flex items-baseline justify-between gap-3">
                 <EditableText
-  value={item.degree || item.title || ''}
-  onChange={(val) => onUpdateSectionItem(educationIndex, idx, 'degree', val)}
-  className="font-bold leading-tight flex-1 min-w-0"
-  style={titleStyle}
-  placeholder="Abschluss / Studiengang"
-/>
+                  value={item.degree || item.title || ''}
+                  onChange={(val) => onUpdateSectionItem(educationIndex, idx, 'degree', val)}
+                  className="font-bold leading-tight flex-1 min-w-0"
+                  style={{ fontSize: '11px', color: t.text }}
+                  placeholder="Abschluss / Studiengang"
+                  wrap
+                />
                 {renderDateRange(educationIndex, idx, item)}
               </div>
 
