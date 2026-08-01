@@ -1519,10 +1519,15 @@ let authToken = anonKey;
           {/* ── PROGRAMM ─────────────────────────────────────────── */}
 
           {/* ── STAND-UP LINE-UP ── */}
-          <LineupSection />
+          {/* ── LINE-UP (kategorisiert) ── */}
+          <LineupSection
+            onBuy={(id) => {
+              const t = TICKETS.find((x) => x.id === id);
+              if (t) handleBuy(t);
+            }}
+          />
 
           <div className="divider" />
-
           {/* ── POSTER ───────────────────────────────────────────── */}
           <PosterSwitcher />
 
