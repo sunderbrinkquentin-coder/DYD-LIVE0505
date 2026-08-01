@@ -382,7 +382,7 @@ export const MinimalCVTemplate: React.FC<CVTemplateProps> = ({
    * Niveau ohne erkannten Namen hat — Namensfeld bleibt leer & editierbar
    * statt die ganze Sprache verschwinden zu lassen.
    */
-  const renderLanguages = (section: EditorSection, sectionIndex: number) => {
+const renderLanguages = (section: EditorSection, sectionIndex: number) => {
     const items = Array.isArray(section.items) ? section.items : [];
     if (items.length === 0) return null;
 
@@ -409,16 +409,22 @@ export const MinimalCVTemplate: React.FC<CVTemplateProps> = ({
                 className="flex justify-between items-center gap-2 px-2 py-1 rounded-md"
                 style={{ background: t.surfaceAlt, border: `1px solid ${t.border}`, fontSize: '9.5px' }}
               >
+                {/* FIX (Sprachen unsichtbar trotz Box): explizite fontSize statt
+                    Vererbung ins contenteditable, plus `wrap` + `min-w-0`, damit
+                    EditableText nicht den Default nowrap+overflow:hidden+ellipsis
+                    erbt und in der schmalen rechten Spalte auf 0 clippt. */}
                 <EditableText
-                  className="flex-1 font-medium"
-                  style={{ color: t.text }}
+                  wrap
+                  className="flex-1 min-w-0 font-medium"
+                  style={{ fontSize: '9.5px', color: t.text }}
                   value={language}
                   onChange={(val) => onUpdateSectionItem(sectionIndex, idx, 'language', val)}
                   placeholder="Sprache"
                 />
                 <EditableText
-                  className="text-right"
-                  style={{ minWidth: '60px', color: t.muted }}
+                  wrap
+                  className="text-right flex-shrink-0"
+                  style={{ fontSize: '9.5px', minWidth: '60px', color: t.muted }}
                   value={level}
                   onChange={(val) => onUpdateSectionItem(sectionIndex, idx, 'level', val)}
                   placeholder="Niveau"
