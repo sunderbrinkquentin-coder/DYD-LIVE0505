@@ -382,12 +382,7 @@
     }
   }
 
-  @media screen and (max-width: 640px) {
-    .cv-template-container {
-      /* Mobile: full width with padding */
-      width: 100% !important;
-      max-width: 100% !important;
-      padding: 0 !important;
-    }
-  }
+  /* The fixed-canvas architecture (794px stage + transform:scale) handles
+     all viewport sizes uniformly. No responsive overrides — they would
+     break the WYSIWYG guarantee that mobile = desktop = PDF. */
 }

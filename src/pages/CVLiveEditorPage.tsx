@@ -319,21 +319,6 @@ export function CVLiveEditorPage() {
     };
   }, []);
 
-  // Set viewport to 794px (CV width) on mobile so the browser scales
-  // the page proportionally — identical appearance to desktop, no JS scaling needed
-  useEffect(() => {
-    const meta = document.querySelector<HTMLMetaElement>('meta[name="viewport"]');
-    if (!meta) return;
-    const original = meta.getAttribute('content') || '';
-    const isMobile = window.innerWidth < 794;
-    if (isMobile) {
-      meta.setAttribute('content', 'width=794, initial-scale=1.0');
-    }
-    return () => {
-      meta.setAttribute('content', original);
-    };
-  }, []);
-
   const isInitialLoadRef = useRef(true);
   const saveTimeoutRef = useRef<number | null>(null);
 
@@ -1708,7 +1693,7 @@ const reorderSectionItem = (sectionIndex: number, fromIndex: number, toIndex: nu
         </div>
       </div>
 
-      <main ref={mainRefCallback} className="flex-1 overflow-y-auto bg-[#1e1e24] w-full py-12 flex flex-col items-center">
+      <main ref={mainRefCallback} className="flex-1 overflow-y-auto bg-[#1e1e24] w-full py-12 px-4 flex flex-col items-center">
 
         <style>{`
           /* ─────────────────────────────────────────────────────────────────
