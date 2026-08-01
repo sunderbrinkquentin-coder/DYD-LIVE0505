@@ -1511,12 +1511,7 @@ let authToken = anonKey;
         </div>
       </section>
 
-<LineupSection
-     onBuy={(id) => {
-       const t = TICKETS.find((x) => x.id === id);
-       if (t) handleBuy(t);
-     }}
-   />
+
       {/* ── CONTENT ─────────────────────────────────────────────── */}
       <div className="relative z-10">
         <div className="max-w-6xl mx-auto px-6 sm:px-10 pb-32">
