@@ -136,12 +136,12 @@ export const MinimalCVTemplate: React.FC<CVTemplateProps> = ({
               {...itemDragProps(sectionIndex, idx, onReorderSectionItem)}
             >
               <div className="flex justify-between items-start gap-2">
-                {/* FIX (Titel abgeschnitten): min-w-0 auf dem Flex-Kind ist
-                    zwingend nötig, sonst schrumpft der Titel nicht und läuft
-                    hinter die Datums-Spalte statt umzubrechen. `wrap` erlaubt
-                    dem EditableText selbst den Umbruch. Zusammen mit der jetzt
-                    festen Datumsspalte kann er nicht mehr auf 0 kollabieren. */}
-                <div className="flex-1 min-w-0">
+                {/* MAXIMAL STABIL: KEIN min-w-0. Mit min-w-0 dürfte der Wrapper
+                    unter min-content (= längstes Wort) schrumpfen und der Titel
+                    stapelt zeichenweise. Ohne min-w-0 floored er auf Wortbreite
+                    und bricht nur zwischen Wörtern um. Die Datumsspalte daneben
+                    ist mit fester Breite (72px) gedeckelt, quetscht also nichts. */}
+                <div className="flex-1">
                   <EditableText
                     wrap
                     className="font-bold"
@@ -158,15 +158,13 @@ export const MinimalCVTemplate: React.FC<CVTemplateProps> = ({
                     onChange={(val) => onUpdateSectionItem(sectionIndex, idx, 'company', val)}
                     placeholder="Unternehmen"
                   />
-                  {(exp.location || exp.ort) && (
-                    <EditableText
-                      className="mt-0.5"
-                      style={{ fontSize: '9.5px', color: t.faint }}
-                      value={exp.location || exp.ort || ''}
-                      onChange={(val) => onUpdateSectionItem(sectionIndex, idx, 'location', val)}
-                      placeholder="Ort"
-                    />
-                  )}
+                  <EditableText
+                    className="mt-0.5"
+                    style={{ fontSize: '9.5px', color: t.faint }}
+                    value={exp.location || exp.ort || ''}
+                    onChange={(val) => onUpdateSectionItem(sectionIndex, idx, 'location', val)}
+                    placeholder="Ort"
+                  />
                 </div>
                 {renderDates(sectionIndex, idx, exp)}
               </div>
@@ -342,7 +340,7 @@ export const MinimalCVTemplate: React.FC<CVTemplateProps> = ({
             {...itemDragProps(sectionIndex, idx, onReorderSectionItem)}
           >
             <div className="flex justify-between items-start gap-2">
-              <div className="flex-1 min-w-0">
+              <div className="flex-1">
                 <EditableText
                   wrap
                   className="font-bold"
@@ -359,15 +357,13 @@ export const MinimalCVTemplate: React.FC<CVTemplateProps> = ({
                   onChange={(val) => onUpdateSectionItem(sectionIndex, idx, 'institution', val)}
                   placeholder="Institution"
                 />
-                {edu.location && (
-                  <EditableText
-                    className="mt-0.5"
-                    style={{ fontSize: '9.5px', color: t.faint }}
-                    value={edu.location}
-                    onChange={(val) => onUpdateSectionItem(sectionIndex, idx, 'location', val)}
-                    placeholder="Ort"
-                  />
-                )}
+                <EditableText
+                  className="mt-0.5"
+                  style={{ fontSize: '9.5px', color: t.faint }}
+                  value={edu.location || ''}
+                  onChange={(val) => onUpdateSectionItem(sectionIndex, idx, 'location', val)}
+                  placeholder="Ort"
+                />
               </div>
               {renderDates(sectionIndex, idx, edu)}
             </div>
@@ -432,21 +428,28 @@ export const MinimalCVTemplate: React.FC<CVTemplateProps> = ({
             return (
               <div
                 key={idx}
-                className="flex justify-between items-center gap-2 px-2 py-1 rounded-md"
+                className="flex items-start gap-2 px-2 py-1 rounded-md"
                 style={{ background: t.surfaceAlt, border: `1px solid ${t.border}`, fontSize: '9.5px' }}
               >
+                {/* MAXIMAL STABIL: feste Basis-Anteile statt flex-shrink-0.
+                    FRÜHER war das Niveau `flex-shrink-0` OHNE Breitendeckel —
+                    "gute Kenntnisse" wuchs die Spalte auf und quetschte "Deutsch"
+                    auf 0, worauf es zeichenweise stapelte. Jetzt: Sprache 55 %
+                    ohne min-w-0 (floored auf Wortbreite, stapelt nie), Niveau
+                    feste 42 % (wächst/schrumpft nicht → quetscht nichts) und
+                    bricht bei langen Werten UM statt abgeschnitten zu werden. */}
                 <EditableText
                   wrap
-                  className="flex-1 min-w-0 font-medium"
-                  style={{ fontSize: '9.5px', color: t.text }}
+                  className="font-medium"
+                  style={{ flex: '1 1 55%', fontSize: '9.5px', color: t.text, overflowWrap: 'break-word' }}
                   value={language}
                   onChange={(val) => onUpdateSectionItem(sectionIndex, idx, 'language', val)}
                   placeholder="Sprache"
                 />
                 <EditableText
                   wrap
-                  className="text-right flex-shrink-0"
-                  style={{ fontSize: '9.5px', minWidth: '60px', color: t.muted }}
+                  className="text-right"
+                  style={{ flex: '0 0 42%', fontSize: '9.5px', color: t.muted, textAlign: 'right', overflowWrap: 'break-word' }}
                   value={level}
                   onChange={(val) => onUpdateSectionItem(sectionIndex, idx, 'level', val)}
                   placeholder="Niveau"
@@ -531,7 +534,7 @@ export const MinimalCVTemplate: React.FC<CVTemplateProps> = ({
 
             return (
               <div key={idx} className="flex justify-between items-start gap-2" style={{ fontSize: '9.5px' }}>
-                <div className="flex-1 min-w-0">
+                <div className="flex-1">
                   <EditableText
                     wrap
                     className="font-semibold"
