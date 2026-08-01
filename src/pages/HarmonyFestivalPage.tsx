@@ -1615,6 +1615,8 @@ let authToken = anonKey;
 { icon: Music,  title: 'Genre-Mix',          desc: 'Stand-Up, Pop-Punk-Konzert und House/Techno an einem Abend – ein Line-up ohne Schubladen.',           color: C.cyan },
 { icon: Heart,  title: 'Selbst veranstaltet', desc: 'Kein Konzern, keine Agentur – ein Mensch, eine Vision, mit Herzblut auf die Beine gestellt.',           color: C.orange },
 { icon: Mic,    title: 'Bühne für Newcomer',  desc: 'Lokale Talente statt teurer Namen – echte Energie aus der Szene, nah dran statt abgehoben.',            color: C.sky },
+        { icon: Users,    title: 'Safe Space am Rhein', desc: 'Ab 18, offen für jeden – ein Ort zum Durchatmen, ohne Vorurteile, mitten in Düsseldorf.', color: C.sky },
+{ icon: Sparkles, title: 'Mit gutem Zweck',     desc: 'Soli-Shirt zu 100 % für KeinBockAufNazis e.V. – Feiern und Haltung zeigen zugleich.',      color: C.lime },
               ].map((f, i) => (
                 <motion.div key={i} initial={{ opacity: 0, y: 14 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }}
                   transition={{ duration: 0.5, delay: i * 0.08 }} whileHover={{ y: -3 }}
