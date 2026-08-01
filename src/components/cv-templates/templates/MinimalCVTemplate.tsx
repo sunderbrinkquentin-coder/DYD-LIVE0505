@@ -12,12 +12,24 @@ import { getTokens, FONT_STACK } from '../tokens';
 
 const t = getTokens('minimal');
 
+/**
+ * Section-Eyebrow.
+ *
+ * CANVA-LIFT (sicher, innerhalb der Tokens): Titel jetzt in `t.accent` statt
+ * `t.muted`, mit einem kleinen Akzent-Strich davor. Das ist die Signatur des
+ * Layouts — konsistent auf jeder Sektion, ohne die Karten zu überladen. Die
+ * Hairline unten bleibt für die Trennung.
+ */
 const SectionTitle: React.FC<{ children: React.ReactNode }> = ({ children }) => (
   <h2
     data-break-keep-next
-    className="mb-2 font-bold tracking-[0.14em] uppercase"
-    style={{ fontSize: '9px', color: t.muted, borderBottom: `1px solid ${t.border}`, paddingBottom: '4px' }}
+    className="mb-2.5 font-bold tracking-[0.14em] uppercase flex items-center gap-2"
+    style={{ fontSize: '9px', color: t.accent, borderBottom: `1px solid ${t.border}`, paddingBottom: '5px' }}
   >
+    <span
+      aria-hidden
+      style={{ display: 'inline-block', width: '10px', height: '2px', background: t.accent, flexShrink: 0 }}
+    />
     {children}
   </h2>
 );
@@ -40,7 +52,7 @@ const getBullets = (item: any): string[] => {
 const cardStyle: React.CSSProperties = {
   display: 'block',
   width: '100%',
-  padding: '10px 14px',
+  padding: '11px 14px',
   marginBottom: '10px',
   borderRadius: '8px',
   border: `1px solid ${t.border}`,
@@ -66,27 +78,39 @@ export const MinimalCVTemplate: React.FC<CVTemplateProps> = ({
   const containerMinHeight = minHeightPx ?? 1122;
 
   /**
-   * `renderDates` — zwei getrennte Felder (von/bis) untereinander, jeweils
-   * mit fester Breite und text-right. FIX (Clipping): ohne wrap/multiline
-   * erbt EditableText overflow:hidden + ellipsis + nowrap; bei text-right
-   * schneidet hidden LINKS ab ("11/202…"). overflow:visible + textOverflow:
-   * clip heben das auf, minWidth statt fixer width lässt längere Werte zu.
+   * `renderDates` — von/bis untereinander, rechtsbündig.
+   *
+   * FIX (vertikales Stapeln + fast leere Seite 1): Die Datumsspalte war
+   * `flex-shrink-0` + `whiteSpace: nowrap` OHNE feste Breite. Ein langer Wert
+   * im Datumsfeld ließ die Spalte unbegrenzt wachsen und quetschte das
+   * `flex-1 min-w-0`-Titelfeld auf ~0 — dort stapelte der Titel dann Zeichen
+   * für Zeichen. Eine so aufgeblähte Karte passt nicht mehr auf Seite 1, die
+   * Break-Engine schiebt sie samt allem dahinter auf Seite 2 → Seite 1 bleibt
+   * leer.
+   *
+   * Jetzt: feste Breite (72px). Die Spalte kann nicht mehr wachsen, das
+   * Titelfeld behält garantiert nutzbare Breite. Lange Werte brechen INNERHALB
+   * der 72px um (wrap + break-word), statt nach außen zu drücken.
    */
+  const DATE_COL_WIDTH = 72;
+
   const renderDates = (sectionIndex: number, idx: number, item: any) => (
     <div
-      className="text-right whitespace-nowrap flex flex-col items-end gap-0.5 flex-shrink-0"
-      style={{ fontSize: '9px', color: t.muted }}
+      className="text-right flex flex-col items-end gap-0.5 flex-shrink-0"
+      style={{ width: `${DATE_COL_WIDTH}px`, fontSize: '9px', color: t.muted }}
     >
       <EditableText
+        wrap
         className="text-right"
-        style={{ minWidth: '60px', whiteSpace: 'nowrap', overflow: 'visible', textOverflow: 'clip' }}
+        style={{ width: '100%', fontSize: '9px', overflowWrap: 'break-word', textAlign: 'right' }}
         value={item.date_from || ''}
         onChange={(val) => onUpdateSectionItem(sectionIndex, idx, 'date_from', val)}
         placeholder="Von"
       />
       <EditableText
+        wrap
         className="text-right"
-        style={{ minWidth: '60px', whiteSpace: 'nowrap', overflow: 'visible', textOverflow: 'clip' }}
+        style={{ width: '100%', fontSize: '9px', overflowWrap: 'break-word', textAlign: 'right' }}
         value={item.date_to || ''}
         onChange={(val) => onUpdateSectionItem(sectionIndex, idx, 'date_to', val)}
         placeholder="Bis"
@@ -115,7 +139,8 @@ export const MinimalCVTemplate: React.FC<CVTemplateProps> = ({
                 {/* FIX (Titel abgeschnitten): min-w-0 auf dem Flex-Kind ist
                     zwingend nötig, sonst schrumpft der Titel nicht und läuft
                     hinter die Datums-Spalte statt umzubrechen. `wrap` erlaubt
-                    dem EditableText selbst den Umbruch. */}
+                    dem EditableText selbst den Umbruch. Zusammen mit der jetzt
+                    festen Datumsspalte kann er nicht mehr auf 0 kollabieren. */}
                 <div className="flex-1 min-w-0">
                   <EditableText
                     wrap
@@ -298,8 +323,8 @@ export const MinimalCVTemplate: React.FC<CVTemplateProps> = ({
 
   /**
    * FIX (Titel abgeschnitten): dasselbe Muster wie bei Berufserfahrung —
-   * `min-w-0` auf dem Flex-Kind + `wrap` auf dem EditableText. Vorher lief
-   * ein langer Studiengang hinter das Datumsfeld statt umzubrechen.
+   * `min-w-0` auf dem Flex-Kind + `wrap` auf dem EditableText. Zusammen mit der
+   * festen Datumsspalte bricht ein langer Studiengang um, statt zu stapeln.
    */
   const renderEducation = (section: EditorSection, sectionIndex: number) => {
     const items = Array.isArray(section.items) ? section.items : [];
@@ -377,12 +402,13 @@ export const MinimalCVTemplate: React.FC<CVTemplateProps> = ({
   };
 
   /**
-   * FIX (Sprachen unsichtbar): `language` liest jetzt zusätzlich
-   * `skill`/`label`, und der Guard verwirft keine Zeile mehr, die nur ein
-   * Niveau ohne erkannten Namen hat — Namensfeld bleibt leer & editierbar
-   * statt die ganze Sprache verschwinden zu lassen.
+   * FIX (Sprachen unsichtbar trotz Box): explizite `fontSize` auf beiden
+   * Feldern statt Vererbung ins contenteditable, plus `wrap` + `min-w-0`, damit
+   * EditableText nicht den Default nowrap+overflow:hidden+ellipsis erbt und in
+   * der schmalen rechten Spalte auf 0 clippt. `language` liest zusätzlich
+   * `skill`/`label`; der Guard verwirft nur, wenn Name UND Niveau leer sind.
    */
-const renderLanguages = (section: EditorSection, sectionIndex: number) => {
+  const renderLanguages = (section: EditorSection, sectionIndex: number) => {
     const items = Array.isArray(section.items) ? section.items : [];
     if (items.length === 0) return null;
 
@@ -409,10 +435,6 @@ const renderLanguages = (section: EditorSection, sectionIndex: number) => {
                 className="flex justify-between items-center gap-2 px-2 py-1 rounded-md"
                 style={{ background: t.surfaceAlt, border: `1px solid ${t.border}`, fontSize: '9.5px' }}
               >
-                {/* FIX (Sprachen unsichtbar trotz Box): explizite fontSize statt
-                    Vererbung ins contenteditable, plus `wrap` + `min-w-0`, damit
-                    EditableText nicht den Default nowrap+overflow:hidden+ellipsis
-                    erbt und in der schmalen rechten Spalte auf 0 clippt. */}
                 <EditableText
                   wrap
                   className="flex-1 min-w-0 font-medium"
@@ -612,24 +634,27 @@ const renderLanguages = (section: EditorSection, sectionIndex: number) => {
       }}
     >
       <div className="w-full p-8">
-        <header className="mb-6 pb-4" style={{ borderBottom: `1px solid ${t.border}` }}>
+        {/* CANVA-LIFT: Akzent-Regel (2px t.accent) unter dem Kopf statt der
+            früheren 1px-Hairline. Zusammen mit dem größeren Namen und dem
+            Titel in Akzentfarbe ist das die klarste „designte" Zone. */}
+        <header className="mb-6 pb-4" style={{ borderBottom: `2px solid ${t.accent}` }}>
           <div className="flex items-start justify-between gap-4">
             <div className="flex-1 min-w-0">
               <EditableText
                 className="font-extrabold"
-                style={{ fontSize: '22px', color: t.text }}
+                style={{ fontSize: '24px', color: t.text, letterSpacing: '-0.01em' }}
                 value={personalInfo.name || ''}
                 onChange={(val) => onUpdatePersonalInfo('name', val)}
                 placeholder="Dein Name"
               />
               <EditableText
-                className="mt-1 font-semibold"
-                style={{ fontSize: '12px', color: t.muted }}
+                className="mt-1 font-semibold uppercase"
+                style={{ fontSize: '11px', color: t.accent, letterSpacing: '0.08em' }}
                 value={personalInfo.title || ''}
                 onChange={(val) => onUpdatePersonalInfo('title', val)}
                 placeholder="Berufsbezeichnung"
               />
-              <div className="mt-2 flex flex-wrap gap-x-4 gap-y-1" style={{ fontSize: '9.5px', color: t.muted }}>
+              <div className="mt-2.5 flex flex-wrap gap-x-4 gap-y-1" style={{ fontSize: '9.5px', color: t.muted }}>
                 <EditableText value={personalInfo.location || ''} onChange={(val) => onUpdatePersonalInfo('location', val)} placeholder="Ort" />
                 <EditableText value={personalInfo.phone || ''} onChange={(val) => onUpdatePersonalInfo('phone', val)} placeholder="Telefon" />
                 <EditableText value={personalInfo.email || ''} onChange={(val) => onUpdatePersonalInfo('email', val)} placeholder="E-Mail" />
@@ -637,7 +662,7 @@ const renderLanguages = (section: EditorSection, sectionIndex: number) => {
               </div>
             </div>
             {photoUrl && (
-              <div className="flex-shrink-0 w-20 h-20 rounded-full overflow-hidden" style={{ border: `2px solid ${t.border}` }}>
+              <div className="flex-shrink-0 w-20 h-20 rounded-full overflow-hidden" style={{ border: `2px solid ${t.accent}` }}>
                 <img
                   src={photoUrl}
                   alt="Foto"
