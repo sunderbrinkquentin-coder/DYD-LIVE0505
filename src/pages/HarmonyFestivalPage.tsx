@@ -1611,10 +1611,10 @@ let authToken = anonKey;
             </motion.div>
             <div className="grid sm:grid-cols-2 gap-4">
               {[
-                { icon: Users,     title: 'Für alle',          desc: 'Fair, zugänglich und gemeinsam gestaltet.',                                  color: C.sky    },
-                { icon: Mic,       title: 'Neue Talente',       desc: 'Bühne für lokale Künstlerinnen und Künstler, die gehört werden wollen.',    color: C.cyan   },
-                { icon: Handshake, title: 'Offene Räume',       desc: 'Begegnung, Workshops und kultureller Austausch in entspannter Atmosphäre.', color: C.lime   },
-                { icon: Music,     title: 'Musik & Miteinander',desc: 'Nicht kommerziell – echter Fokus auf Verbindung.',                          color: C.orange },
+                { icon: Ticket, title: 'Ehrliche Preise',   desc: 'Tickets ab 8,50 €, Bier für 4 € – bewusst fair kalkuliert. Kein Abzock-Festival, kein VIP-Bullshit.', color: C.lime },
+{ icon: Music,  title: 'Genre-Mix',          desc: 'Stand-Up, Pop-Punk-Konzert und House/Techno an einem Abend – ein Line-up ohne Schubladen.',           color: C.cyan },
+{ icon: Heart,  title: 'Selbst veranstaltet', desc: 'Kein Konzern, keine Agentur – ein Mensch, eine Vision, mit Herzblut auf die Beine gestellt.',           color: C.orange },
+{ icon: Mic,    title: 'Bühne für Newcomer',  desc: 'Lokale Talente statt teurer Namen – echte Energie aus der Szene, nah dran statt abgehoben.',            color: C.sky },
               ].map((f, i) => (
                 <motion.div key={i} initial={{ opacity: 0, y: 14 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }}
                   transition={{ duration: 0.5, delay: i * 0.08 }} whileHover={{ y: -3 }}
