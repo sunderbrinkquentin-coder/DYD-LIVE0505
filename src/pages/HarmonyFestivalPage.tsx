@@ -2288,23 +2288,26 @@ let authToken = anonKey;
             })()}
 
 {/* ─────────────────────────────────────────────────────────────
-   EINZELTICKETS – aufgewertete Karten (Drop-in-Ersatz)
+   EINZELTICKETS – aufgewertete Karten (Drop-in-Ersatz, KORRIGIERT)
 
-   ERSETZT: den bisherigen Block, der die Einzeltickets rendert –
-   also das <div className="space-y-3 mb-6"> … {TICKETS.slice(1).map(…)} … </div>.
-   Suche in deiner TICKETS-Sektion nach "space-y-3 mb-6" bzw. "TICKETS.slice(1)".
+   ERSETZT: den bisherigen <div className="space-y-3 mb-6"> … {TICKETS.slice(1).map(…)} … </div>.
+   Nutzt vorhandene Dinge: TICKETS, quantities, updateQty, handleBuy, loadingId, React.
 
-   Nutzt deine vorhandenen Dinge unverändert:
-   TICKETS, quantities, updateQty, handleBuy, loadingId, React.
-   (Kein neuer Import nötig – React ist schon importiert.)
+   WICHTIG: ticket.accent ist ein rgba()-String -> Alpha wird über withA() gesetzt,
+   NICHT per Hex-Suffix (das war der Grund für den unsichtbaren Button).
    ───────────────────────────────────────────────────────────── */}
 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-6">
   {TICKETS.slice(1)
-    .filter((t) => t.id !== 'soli_shirt') // Soli-Shirt hat seine eigene Sektion – hier raus.
+    .filter((t) => t.id !== 'soli_shirt') // Soli-Shirt hat eigene Sektion
     .map((ticket) => {
+      // setzt den Alpha-Wert eines rgba()-Strings; fällt bei Hex auf die Farbe zurück
+      const withA = (c: string, a: number) =>
+        c.startsWith('rgba') || c.startsWith('rgb')
+          ? c.replace(/rgba?\(([^)]+?)(?:,\s*[\d.]+)?\)/, (_m, rgb) => `rgba(${rgb.split(',').slice(0, 3).join(',')}, ${a})`)
+          : c;
+
       const icon: Record<string, string> = { standup: '🎤', bierpong: '🏆', concert: '🎸', dj: '🎧' };
 
-      // gleiche Marktpreis-Logik wie bisher
       let marketPrice = 0;
       const l = ticket.label.toLowerCase();
       if (l.includes('konzert') || l.includes('live')) marketPrice = 30;
@@ -2315,6 +2318,8 @@ let authToken = anonKey;
       const savePct = hasMarket ? Math.round(((marketPrice - ticket.price) / marketPrice) * 100) : 0;
       const isBierpong = ticket.id === 'bierpong';
 
+      const solid = withA(ticket.accent, 1); // volle Deckkraft für Button/Badge
+
       return (
         <React.Fragment key={ticket.id}>
           <div
@@ -2324,26 +2329,22 @@ let authToken = anonKey;
               padding: '22px 22px 20px', display: 'flex', flexDirection: 'column',
             }}
           >
-            {/* Akzent-Balken links */}
-            <div style={{ position: 'absolute', left: 0, top: 0, bottom: 0, width: 4, background: ticket.accent }} />
-            {/* Glow oben-links */}
-            <div style={{ position: 'absolute', inset: 0, pointerEvents: 'none', background: `radial-gradient(ellipse 60% 55% at 0% 0%, ${ticket.accentAlpha}, transparent 70%)` }} />
-            {/* Ticket-Kerbe rechts */}
+            <div style={{ position: 'absolute', left: 0, top: 0, bottom: 0, width: 4, background: solid }} />
+            <div style={{ position: 'absolute', inset: 0, pointerEvents: 'none', background: `radial-gradient(ellipse 60% 55% at 0% 0%, ${withA(ticket.accent, 0.16)}, transparent 70%)` }} />
             <div style={{ position: 'absolute', right: -9, top: '50%', width: 18, height: 18, borderRadius: '50%', background: '#080c10', transform: 'translateY(-50%)', border: '1px solid rgba(255,255,255,0.07)' }} />
 
             {ticket.badge && (
-              <span style={{ position: 'absolute', top: 16, right: 16, zIndex: 2, fontFamily: "'Bebas Neue', sans-serif", fontSize: 11, letterSpacing: '0.2em', padding: '3px 9px', borderRadius: 4, background: ticket.accent, color: '#08120a', fontWeight: 700, boxShadow: '2px 2px 0 rgba(0,0,0,0.4)' }}>
+              <span style={{ position: 'absolute', top: 16, right: 16, zIndex: 2, fontFamily: "'Bebas Neue', sans-serif", fontSize: 11, letterSpacing: '0.2em', padding: '3px 9px', borderRadius: 4, background: solid, color: '#08120a', fontWeight: 700, boxShadow: '2px 2px 0 rgba(0,0,0,0.4)' }}>
                 {ticket.badge}
               </span>
             )}
 
-            {/* Icon + Uhrzeit */}
             <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 14, position: 'relative', zIndex: 1 }}>
-              <div style={{ width: 44, height: 44, borderRadius: 12, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 22, background: `${ticket.accent}22`, border: `1px solid ${ticket.accent}66`, flex: 'none' }}>
+              <div style={{ width: 44, height: 44, borderRadius: 12, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 22, background: withA(ticket.accent, 0.15), border: `1px solid ${withA(ticket.accent, 0.45)}`, flex: 'none' }}>
                 {icon[ticket.id] || '🎟'}
               </div>
               {ticket.time && (
-                <span style={{ marginLeft: 'auto', display: 'inline-flex', alignItems: 'center', gap: 5, fontFamily: "'Bebas Neue', sans-serif", fontSize: 14, letterSpacing: '0.08em', color: ticket.accent, background: `${ticket.accent}1f`, border: `1px solid ${ticket.accent}55`, borderRadius: 999, padding: '4px 11px' }}>
+                <span style={{ marginLeft: 'auto', display: 'inline-flex', alignItems: 'center', gap: 5, fontFamily: "'Bebas Neue', sans-serif", fontSize: 14, letterSpacing: '0.08em', color: solid, background: withA(ticket.accent, 0.12), border: `1px solid ${withA(ticket.accent, 0.36)}`, borderRadius: 999, padding: '4px 11px' }}>
                   🕓 {ticket.time}
                 </span>
               )}
@@ -2352,7 +2353,6 @@ let authToken = anonKey;
             <h3 className="graffiti" style={{ fontSize: 24, color: '#fff', lineHeight: 1, marginBottom: 6, position: 'relative', zIndex: 1 }}>{ticket.label}</h3>
             <p style={{ fontSize: 12.5, color: 'rgba(180,210,210,0.5)', lineHeight: 1.55, marginBottom: 16, position: 'relative', zIndex: 1, flex: 1 }}>{ticket.description}</p>
 
-            {/* Preis + Ersparnis */}
             <div style={{ display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between', gap: 12, position: 'relative', zIndex: 1, marginBottom: 14 }}>
               <div>
                 {hasMarket ? (
@@ -2360,51 +2360,49 @@ let authToken = anonKey;
                     <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.35)', textDecoration: 'line-through' }}>
                       Marktüblich {marketPrice.toLocaleString('de-DE', { minimumFractionDigits: 2 })} €
                     </div>
-                    <span style={{ display: 'inline-block', fontSize: 11, fontWeight: 800, color: '#000', background: ticket.accent, borderRadius: 5, padding: '1px 7px', marginTop: 3 }}>
+                    <span style={{ display: 'inline-block', fontSize: 11, fontWeight: 800, color: '#08120a', background: solid, borderRadius: 5, padding: '1px 7px', marginTop: 3 }}>
                       −{savePct}%
                     </span>
                   </>
                 ) : isBierpong ? (
-                  <div style={{ fontSize: 11, fontWeight: 700, color: `${ticket.accent}cc` }}>10 € / Team · 5 € p. P.</div>
+                  <div style={{ fontSize: 11, fontWeight: 700, color: solid }}>10 € / Team · 5 € p. P.</div>
                 ) : null}
               </div>
-              <div style={{ fontFamily: "'Bebas Neue', sans-serif", fontSize: 40, lineHeight: 0.9, color: ticket.accent }}>
+              <div style={{ fontFamily: "'Bebas Neue', sans-serif", fontSize: 40, lineHeight: 0.9, color: solid }}>
                 {ticket.price.toLocaleString('de-DE', { minimumFractionDigits: 2 })}{' '}
                 <span style={{ fontSize: 14, color: 'rgba(255,255,255,0.4)' }}>€</span>
               </div>
             </div>
 
-            {/* Mengenauswahl (bleibt erhalten) */}
             <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 12, position: 'relative', zIndex: 1 }}>
               <span style={{ fontSize: 12, color: 'rgba(160,230,230,0.5)' }}>Anzahl</span>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 12, background: `${ticket.accent}12`, border: `1px solid ${ticket.accent}33`, borderRadius: 10, padding: '5px 12px' }}>
-                <button onClick={(e) => { e.stopPropagation(); updateQty(ticket.id, -1); }} style={{ background: 'none', border: 'none', color: ticket.accent, fontSize: 18, cursor: 'pointer', opacity: quantities[ticket.id] <= 1 ? 0.3 : 1 }}>−</button>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 12, background: withA(ticket.accent, 0.12), border: `1px solid ${withA(ticket.accent, 0.3)}`, borderRadius: 10, padding: '5px 12px' }}>
+                <button onClick={(e) => { e.stopPropagation(); updateQty(ticket.id, -1); }} style={{ background: 'none', border: 'none', color: solid, fontSize: 18, cursor: 'pointer', opacity: quantities[ticket.id] <= 1 ? 0.3 : 1 }}>−</button>
                 <span style={{ fontFamily: "'Bebas Neue', sans-serif", fontSize: 18, minWidth: 20, textAlign: 'center' }}>{quantities[ticket.id]}</span>
-                <button onClick={(e) => { e.stopPropagation(); updateQty(ticket.id, 1); }} style={{ background: 'none', border: 'none', color: ticket.accent, fontSize: 18, cursor: 'pointer', opacity: quantities[ticket.id] >= 10 ? 0.3 : 1 }}>+</button>
+                <button onClick={(e) => { e.stopPropagation(); updateQty(ticket.id, 1); }} style={{ background: 'none', border: 'none', color: solid, fontSize: 18, cursor: 'pointer', opacity: quantities[ticket.id] >= 10 ? 0.3 : 1 }}>+</button>
               </div>
               {quantities[ticket.id] > 1 && (
-                <span style={{ fontSize: 12, color: `${ticket.accent}bb` }}>
+                <span style={{ fontSize: 12, color: withA(ticket.accent, 0.85) }}>
                   = {(ticket.price * quantities[ticket.id]).toLocaleString('de-DE', { minimumFractionDigits: 2 })} €
                 </span>
               )}
             </div>
 
-            {/* Kauf-Button (gleicher handleBuy-Flow -> Modal -> Stripe) */}
             <button
               onClick={() => handleBuy(ticket)}
               disabled={loadingId !== null}
               style={{
-                width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, padding: 12, borderRadius: 12, border: 'none', cursor: 'pointer',
-                fontFamily: "'Bebas Neue', sans-serif", fontSize: 16, letterSpacing: '0.14em', fontWeight: 700,
-                background: `linear-gradient(135deg, ${ticket.accent}, ${ticket.accent}bb)`, color: '#08120a',
-                opacity: loadingId !== null ? 0.4 : 1, position: 'relative', zIndex: 1,
+                width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, padding: 13, borderRadius: 12, border: 'none', cursor: 'pointer',
+                fontFamily: "'Bebas Neue', sans-serif", fontSize: 17, letterSpacing: '0.14em', fontWeight: 700,
+                background: `linear-gradient(135deg, ${solid}, ${withA(ticket.accent, 0.72)})`, color: '#08120a',
+                boxShadow: `0 4px 18px ${withA(ticket.accent, 0.35)}`,
+                opacity: loadingId !== null ? 0.5 : 1, position: 'relative', zIndex: 1,
               }}
             >
               {loadingId === ticket.id ? 'Lädt…' : isBierpong ? 'Team-Platz sichern →' : 'Ticket sichern →'}
             </button>
           </div>
 
-          {/* Bierpong-Hinweis unter der Karte (volle Breite) */}
           {isBierpong && (
             <div style={{ gridColumn: '1 / -1', display: 'flex', alignItems: 'flex-start', gap: 12, padding: '14px 18px', borderRadius: 14, background: 'rgba(185,215,55,0.05)', border: '1px solid rgba(185,215,55,0.18)' }}>
               <span style={{ fontSize: 18 }}>🏆</span>
