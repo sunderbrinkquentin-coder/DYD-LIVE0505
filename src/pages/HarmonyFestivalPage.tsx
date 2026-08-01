@@ -2418,6 +2418,28 @@ let authToken = anonKey;
       );
     })}
 </div>
+
+            {loadingId !== null && showSlowHint && (
+              <p className="text-center mt-2 mb-4" style={{ fontFamily: "'Inter', sans-serif", fontSize: '12px', color: 'rgba(160,200,200,0.35)', letterSpacing: '0.05em' }}>
+                Beim ersten Mal kann dies etwas laenger dauern...
+              </p>
+            )}
+
+            {/* Trust bar */}
+            <div className="flex flex-col sm:flex-row items-center justify-center gap-3 sm:gap-8 py-4 px-5 rounded-2xl"
+              style={{ background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.06)' }}>
+              {[
+                { icon: Lock,        text: 'Sichere Zahlung via Stripe' },
+                { icon: Mail,        text: 'Ticket per E-Mail' },
+                { icon: ShieldCheck, text: 'Kauf unterstützt DYD direkt' },
+              ].map((item) => (
+                <div key={item.text} className="flex items-center gap-2">
+                  <item.icon className="w-3.5 h-3.5 flex-shrink-0" style={{ color: 'rgba(160,200,200,0.35)' }} />
+                  <span style={{ fontFamily: "'Inter', sans-serif", fontSize: '12px', color: 'rgba(160,200,200,0.35)', letterSpacing: '0.04em' }}>{item.text}</span>
+                </div>
+              ))}
+            </div>
+          </section>
 {/* ── SOLI-SHIRTS ── */}
 <div className="divider"/>
 <motion.section
