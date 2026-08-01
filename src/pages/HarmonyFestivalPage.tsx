@@ -2206,28 +2206,19 @@ let authToken = anonKey;
                     </div>
 
                     {/* free drink bonus */}
-                    <div className="rounded-xl mb-7 overflow-hidden"
-                      style={{ background: 'rgba(185,215,55,0.06)', border: '1px solid rgba(185,215,55,0.28)', boxShadow: '0 0 24px rgba(185,215,55,0.06)' }}>
-                      <div className="flex items-center gap-3 px-4 py-2" style={{ borderBottom: '1px solid rgba(185,215,55,0.15)', background: 'rgba(185,215,55,0.08)' }}>
-                        <Beer className="w-4 h-4 flex-shrink-0" style={{ color: 'rgba(210,235,80,0.9)' }} />
-                        <span style={{ fontFamily: "'Bebas Neue', sans-serif", fontSize: '13px', letterSpacing: '0.22em', color: 'rgba(210,235,80,0.9)' }}>
-                          EXKLUSIV IM BUNDLE
-                        </span>
-                        <span className="ml-auto px-2 py-0.5 rounded-md flex-shrink-0" style={{ fontFamily: "'Bebas Neue', sans-serif", fontSize: '10px', fontWeight: 700, letterSpacing: '0.18em', background: 'rgba(185,215,55,0.18)', color: 'rgba(220,245,90,0.95)', border: '1px solid rgba(185,215,55,0.35)' }}>
-                          GRATIS · ~5 € WERT
-                        </span>
-                      </div>
-                      <div className="flex item-center gap-3 px-4 py-3">
-                        <div>
-                          <p style={{ fontFamily: "'Inter', sans-serif", fontSize: '14px', fontWeight: 700, color: 'rgba(220,245,140,0.9)', marginBottom: '2px' }}>
-                            1 Getränk nach Wahl beim Einlass
-                          </p>
-                          <p style={{ fontFamily: "'Inter', sans-serif", fontSize: '12px', color: 'rgba(190,220,120,0.55)', lineHeight: 1.5 }}>
-                            Bier, Softdrink oder Wasser – direkt beim Betreten. Zeig dein Ticket, hol dir deinen Drink.
-                          </p>
-                        </div>
-                      </div>
-                    </div>
+                    {/* ── Freigetränk (prominent · nach Wahl) ── */}
+<div style={{ position: 'relative', display: 'flex', alignItems: 'center', gap: 16, marginBottom: 20, padding: '16px 18px', borderRadius: 16, background: 'linear-gradient(135deg, rgba(240,180,60,0.16), rgba(200,140,30,0.06))', border: '1.5px solid rgba(240,190,80,0.5)', boxShadow: '0 0 30px rgba(240,180,60,0.12)' }}>
+  <span style={{ position: 'absolute', top: -11, right: 14, fontFamily: "'Bebas Neue', sans-serif", fontSize: 12, letterSpacing: '0.14em', background: '#f5b942', color: '#241400', padding: '3px 12px', borderRadius: 5, fontWeight: 900, boxShadow: '0 3px 10px rgba(240,180,60,0.5)' }}>GRATIS</span>
+  <span style={{ fontSize: 34 }}>🍺</span>
+  <div>
+    <div style={{ fontFamily: "'Bebas Neue', sans-serif", fontSize: 22, letterSpacing: '0.03em', color: '#ffe1a3', lineHeight: 1, marginBottom: 5 }}>Freigetränk nach Wahl</div>
+    <div style={{ fontSize: 12.5, color: 'rgba(255,225,170,0.7)', lineHeight: 1.45 }}>Du darfst dir alles holen — egal ob Bier, Softdrink oder Wasser, ganz nach Lust. Ticket zeigen, Drink holen.</div>
+  </div>
+  <div style={{ marginLeft: 'auto', textAlign: 'center', flex: 'none' }}>
+    <div style={{ fontFamily: "'Bebas Neue', sans-serif", fontSize: 26, color: '#f5b942', lineHeight: 1 }}>~5 €</div>
+    <div style={{ fontSize: 9, letterSpacing: '0.16em', textTransform: 'uppercase', color: 'rgba(255,215,150,0.6)' }}>Wert</div>
+  </div>
+</div>
                     {/* CTA */}
                     <div className="flex items-center gap-4 mb-4">
                       <span style={{ fontFamily: "'Inter', sans-serif", fontSize: '13px', color: 'rgba(160,230,230,0.5)' }}>
