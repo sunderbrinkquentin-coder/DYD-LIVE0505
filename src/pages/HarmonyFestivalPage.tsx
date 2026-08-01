@@ -1450,7 +1450,7 @@ let authToken = anonKey;
               DYD · Decide Your Dream
             </div>
             <p style={{ fontFamily: "'Barlow Condensed', sans-serif", fontWeight: 600, fontStyle: 'italic', fontSize: 'clamp(16px, 2.2vw, 22px)', color: `${C.cyan}cc`, letterSpacing: '0.04em', marginBottom: '32px', lineHeight: 1.3 }}>
-              Andere Ansichten, gleicher Wunsch: mehr Harmony
+              Lass uns schaun was uns verbindet und nicht nur was uns trennt
             </p>
             {/* Preis-Claim */}
 <div style={{ display: 'inline-flex', alignItems: 'center', gap: 10, marginBottom: 32, padding: '10px 18px', borderRadius: 999, background: 'linear-gradient(135deg, rgba(200,232,64,0.14), rgba(0,212,212,0.10))', border: '1px solid rgba(200,232,64,0.4)', boxShadow: '0 0 30px rgba(200,232,64,0.12)' }}>
