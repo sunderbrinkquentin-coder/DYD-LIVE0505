@@ -1428,7 +1428,7 @@ const reorderSectionItem = (sectionIndex: number, fromIndex: number, toIndex: nu
     });
   };
 
-  const addSectionItem = (sectionIndex: number, defaultItem: any) => {
+const addSectionItem = (sectionIndex: number, defaultItem: any) => {
     setHasEditorChanges(true);
     setEditorData((prev: any) => {
       if (!prev?.sections?.[sectionIndex]) return prev;
@@ -1440,6 +1440,38 @@ const reorderSectionItem = (sectionIndex: number, fromIndex: number, toIndex: nu
     });
   };
 
+  /**
+   * "Station hinzufügen" aus der Toolbar. Legt einen neuen Eintrag des
+   * gewählten Typs an:
+   *   - existiert schon eine Sektion dieses Typs → neues Item ans Ende
+   *   - existiert noch keine → neue Sektion mit defaultTitle + einem Item
+   *
+   * BUG, der hier lag: Die Dropdown-Items riefen `handleAddSectionType`,
+   * aber die Funktion existierte nicht. Unter Vite/esbuild ist das KEIN
+   * Build-Fehler (Typen werden nur gestript, nicht geprüft) — der Klick warf
+   * `ReferenceError: handleAddSectionType is not defined`, den React im
+   * Event-Handler schluckt. Ergebnis: Button ohne Wirkung.
+   */
+  const handleAddSectionType = (type: string) => {
+    const config = ADDABLE_SECTIONS.find((s) => s.type === type);
+    if (!config) return;
+    setHasEditorChanges(true);
+    setShowAddSectionMenu(false);
+    setEditorData((prev: any) => {
+      if (!prev) return prev;
+      const sections: EditorSection[] = Array.isArray(prev.sections) ? [...prev.sections] : [];
+      const newItem = config.makeItem();
+      const existingIndex = sections.findIndex((s) => s.type === type);
+      if (existingIndex >= 0) {
+        const section = { ...sections[existingIndex] };
+        section.items = [...(section.items || []), newItem];
+        sections[existingIndex] = section;
+      } else {
+        sections.push({ type, title: config.defaultTitle, items: [newItem] });
+      }
+      return { ...prev, sections };
+    });
+  };
   if (error) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-[#050507] via-[#0a0a0f] to-[#050507] text-white flex items-center justify-center">
