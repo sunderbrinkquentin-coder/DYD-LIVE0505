@@ -184,15 +184,13 @@ export const ClassicCVTemplate: React.FC<CVTemplateProps> = ({
                 placeholder="Unternehmen"
               />
 
-              {(item.location || item.ort) && (
-                <EditableText
-                  value={item.location || item.ort || ''}
-                  onChange={(val) => onUpdateSectionItem(experienceIndex, idx, 'location', val)}
-                  className="leading-snug mt-0.5"
-                  style={{ fontSize: '9.5px', color: t.faint }}
-                  placeholder="Ort"
-                />
-              )}
+              <EditableText
+                value={item.location || item.ort || ''}
+                onChange={(val) => onUpdateSectionItem(experienceIndex, idx, 'location', val)}
+                className="leading-snug mt-0.5"
+                style={{ fontSize: '9.5px', color: t.faint }}
+                placeholder="Ort"
+              />
 
               {item.description && (
                 <div className="flex items-start gap-2 mt-2 leading-snug">
@@ -266,10 +264,17 @@ export const ClassicCVTemplate: React.FC<CVTemplateProps> = ({
           {items.map((item: any, idx: number) => (
             <div key={idx} data-pdf-section data-break-item style={cardWrapper}>
               <div className="flex items-baseline justify-between gap-3">
+                {/* MAXIMAL STABIL: KEIN min-w-0. Ein Flex-Feld mit min-w-0 darf
+                    unter seine min-content-Breite (= längstes Wort) schrumpfen —
+                    genau das erlaubt das zeichenweise Stapeln. Ohne min-w-0
+                    floored das Feld auf Wortbreite und bricht höchstens zwischen
+                    Wörtern um. Exakt das Muster der Berufserfahrung, die nie
+                    gestapelt hat. Das Datum daneben ist mit `w-32` fest, kann das
+                    Feld also nicht quetschen. */}
                 <EditableText
                   value={item.degree || item.title || ''}
                   onChange={(val) => onUpdateSectionItem(educationIndex, idx, 'degree', val)}
-                  className="font-bold leading-tight flex-1 min-w-0"
+                  className="font-bold leading-tight flex-1"
                   style={{ fontSize: '11px', color: t.text }}
                   placeholder="Abschluss / Studiengang"
                   wrap
@@ -286,15 +291,13 @@ export const ClassicCVTemplate: React.FC<CVTemplateProps> = ({
                 wrap
               />
 
-              {item.location && (
-                <EditableText
-                  value={item.location}
-                  onChange={(val) => onUpdateSectionItem(educationIndex, idx, 'location', val)}
-                  className="leading-snug mt-0.5"
-                  style={{ fontSize: '9.5px', color: t.faint }}
-                  placeholder="Ort"
-                />
-              )}
+              <EditableText
+                value={item.location || ''}
+                onChange={(val) => onUpdateSectionItem(educationIndex, idx, 'location', val)}
+                className="leading-snug mt-0.5"
+                style={{ fontSize: '9.5px', color: t.faint }}
+                placeholder="Ort"
+              />
 
               {(item.grade || item.grades || item.note) && (
                 <div className="flex items-center gap-1.5 mt-1" style={{ fontSize: '9.5px', color: t.muted }}>
@@ -410,7 +413,7 @@ export const ClassicCVTemplate: React.FC<CVTemplateProps> = ({
                 <EditableText
                   value={language}
                   onChange={(val) => onUpdateSectionItem(languagesIndex, idx, 'language', val)}
-                  className="font-medium flex-1 min-w-0"
+                  className="font-medium flex-1"
                   style={{ fontSize: '9px', color: t.text }}
                   placeholder="Sprache"
                   wrap
