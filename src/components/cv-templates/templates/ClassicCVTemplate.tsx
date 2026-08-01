@@ -237,6 +237,23 @@ export const ClassicCVTemplate: React.FC<CVTemplateProps> = ({
   };
 
   // ─── Ausbildung ────────────────────────────────────────────────────────────
+  //
+  // FIX (Absturz + vertikales Stapeln + Dublette):
+  //  1. Es standen ZWEI Abschluss-Felder übereinander. Das erste referenzierte
+  //     `style={titleStyle}` — eine Variable, die nirgends definiert war →
+  //     `ReferenceError: titleStyle is not defined` beim Mount des Templates.
+  //  2. Der Ersatz-Fix hatte das Feld mit `flex-1 min-w-0` in die Flex-Zeile
+  //     gelegt. Zusammen mit `overflowWrap: 'anywhere'` am Root-Container (siehe
+  //     unten) kollabierte die min-content-Breite auf ein Zeichen und das Feld
+  //     stapelte vertikal ("A b s c h l u s s …").
+  // Jetzt: EIN Abschluss-Feld in der Flex-Zeile neben dem Datum, mit `wrap`.
+  // Der Root-Container nutzt jetzt `overflowWrap: 'break-word'` (wie Minimal),
+  // wodurch `min-w-0` gefahrlos ist: das Feld nimmt den verfügbaren Platz und
+  // bricht lange Studiengänge normal um, statt zu kollabieren.
+  //
+  // Zusätzlich: das `institution`-Feld war nie gerendert, obwohl der Mapper es
+  // befüllt. Es sitzt jetzt zwischen Abschluss und Ort — analog zu `company`
+  // in der Berufserfahrung.
   const renderEducation = () => {
     if (educationIndex === -1) return null;
     const items = sections[educationIndex].items ?? [];
@@ -261,12 +278,13 @@ export const ClassicCVTemplate: React.FC<CVTemplateProps> = ({
               </div>
 
               <EditableText
-                  value={item.degree || item.title || ''}
-                  onChange={(val) => onUpdateSectionItem(educationIndex, idx, 'degree', val)}
-                  className="font-bold leading-tight flex-1 min-w-0"
-                  style={{ fontSize: '11px', color: t.text }}
-                  placeholder="Abschluss / Studiengang"
-                />
+                value={item.institution || ''}
+                onChange={(val) => onUpdateSectionItem(educationIndex, idx, 'institution', val)}
+                className="font-semibold mt-0.5 leading-snug"
+                style={{ fontSize: '10px', color: t.muted }}
+                placeholder="Institution / Hochschule"
+                wrap
+              />
 
               {item.location && (
                 <EditableText
@@ -383,9 +401,9 @@ export const ClassicCVTemplate: React.FC<CVTemplateProps> = ({
         <AsideTitle>Sprachen</AsideTitle>
         <ul className="space-y-2">
           {items.map((item: any, idx: number) => {
-            const language = stripSectionLabel(item.language || item.name || item.sprache || '');
+            const language = stripSectionLabel(item.language || item.name || item.sprache || item.skill || item.label || '');
             const level = item.level || item.niveau || item.proficiency || '';
-            if (!language) return null;
+            if (!language && !level) return null;
 
             return (
               <li key={idx} className="flex flex-nowrap justify-between items-center gap-2" style={{ fontSize: '9px' }}>
@@ -393,15 +411,17 @@ export const ClassicCVTemplate: React.FC<CVTemplateProps> = ({
                   value={language}
                   onChange={(val) => onUpdateSectionItem(languagesIndex, idx, 'language', val)}
                   className="font-medium flex-1 min-w-0"
-                  style={{ color: t.text }}
+                  style={{ fontSize: '9px', color: t.text }}
                   placeholder="Sprache"
+                  wrap
                 />
                 <EditableText
                   value={level}
                   onChange={(val) => onUpdateSectionItem(languagesIndex, idx, 'level', val)}
                   className="font-medium text-right flex-shrink-0"
-                  style={{ width: '68px', color: t.muted }}
+                  style={{ fontSize: '9px', width: '68px', color: t.muted }}
                   placeholder="Niveau"
+                  wrap
                 />
               </li>
             );
@@ -624,8 +644,14 @@ export const ClassicCVTemplate: React.FC<CVTemplateProps> = ({
         minHeight: `${containerMinHeight}px`,
         width: '100%',
         boxSizing: 'border-box',
-        wordBreak: 'break-word',
-        overflowWrap: 'anywhere',
+        // FIX (vertikales Buchstaben-Stapeln): `overflowWrap: 'anywhere'` senkt
+        // die min-content-Breite jeder Box auf EIN Zeichen. Ein schrumpfbares
+        // Flex-Kind (flex-1 + min-w-0) kollabiert dadurch auf Zeichenbreite und
+        // stapelt vertikal. `break-word` bricht nur bei echtem Überlauf und
+        // lässt die min-content-Breite intakt — identisch zum Minimal-Template,
+        // das denselben Fix bereits trägt.
+        wordBreak: 'normal',
+        overflowWrap: 'break-word',
         border: `1px solid ${t.border}`,
       }}
     >
