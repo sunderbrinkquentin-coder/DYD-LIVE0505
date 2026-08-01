@@ -2145,6 +2145,18 @@ let authToken = anonKey;
                         </div>
                       </div>
                     )}
+                    {/* ── Bundle-Collage: alle Acts ── */}
+<div style={{ display: 'flex', alignItems: 'center', gap: 16, marginBottom: 24, padding: '14px 16px', borderRadius: 14, background: 'rgba(0,200,200,0.05)', border: '1px solid rgba(0,200,200,0.16)' }}>
+  <div style={{ display: 'flex', alignItems: 'center' }}>
+    {['/festival/zirkel-1.webp','/festival/alex-graf-1.webp','/festival/larissa-magnus-1.webp','/festival/justyn-maxx-1.webp','/festival/vio-leen-1.webp'].map((src, i) => (
+      <img key={src} src={src} alt="" loading="lazy" style={{ width: 52, height: 65, objectFit: 'cover', borderRadius: 9, border: '2px solid #0a1a1a', marginLeft: i === 0 ? 0 : -18, boxShadow: '0 6px 16px rgba(0,0,0,0.5)', position: 'relative', zIndex: 10 - i }} />
+    ))}
+  </div>
+  <div>
+    <div style={{ fontFamily: "'Bebas Neue', sans-serif", fontSize: 18, letterSpacing: '0.05em', color: '#fff', lineHeight: 1 }}>Alle Acts, ein Ticket</div>
+    <div style={{ fontFamily: "'Inter', sans-serif", fontSize: 12.5, color: 'rgba(180,230,230,0.6)' }}>Stand-Up · Zirkel.WTF · DJs · + mehr</div>
+  </div>
+</div>
                     {/* main row */}
                     <div className="flex flex-col sm:flex-row sm:items-end gap-6 sm:gap-10 mb-7">
                       <div className="flex-1 min-w-0">
