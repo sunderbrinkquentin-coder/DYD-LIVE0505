@@ -10,8 +10,6 @@ const TOTAL_DURATION_MS = 3 * 60 * 1000;
 
 // ── Content-Erkennung ───────────────────────────────────────────────────────────
 // content kommt von Make als JSON-STRING (content_typ = string), nicht als SQL-NULL.
-// Diese Prüfung akzeptiert alles, was echten Inhalt trägt, und lehnt die leeren
-// Formen ab, die wie Inhalt aussehen ('', '[]', 'null', '{}').
 function hasRealContent(value: unknown): boolean {
   if (value == null) return false;
   if (typeof value === 'string') {
@@ -23,15 +21,14 @@ function hasRealContent(value: unknown): boolean {
   return true;
 }
 
-// ── Progress stages ─────────────────────────────────────────────────────────────
-// Bleiben inhaltlich wie gehabt — sie sind die Stationen der Route.
+// ── Stufen = Stationen des Aufstiegs ────────────────────────────────────────────
 
 const STAGES = [
-  { id: 'gap',       label: 'Skill-Gaps analysieren',   sublabel: 'Wir finden deine wichtigsten Lernbereiche',   durationShare: 0.18 },
-  { id: 'modules',   label: 'Module strukturieren',     sublabel: 'Lerneinheiten werden nach Priorität geordnet', durationShare: 0.20 },
-  { id: 'resources', label: 'Ressourcen kuratieren',    sublabel: 'Passende Kurse & Materialien werden gewählt',  durationShare: 0.22 },
-  { id: 'timeline',  label: 'Zeitplan erstellen',       sublabel: 'Ein realistischer Plan für dein Tempo',        durationShare: 0.20 },
-  { id: 'cert',      label: 'Zertifikat vorbereiten',   sublabel: 'Deine Leistung wird dokumentiert',             durationShare: 0.20 },
+  { id: 'gap',       label: 'Skill-Gaps analysieren', live: 'Vergleiche dein Profil mit 2.400+ Stellenanzeigen…', durationShare: 0.18 },
+  { id: 'modules',   label: 'Module strukturieren',   live: 'Ordne Lerneinheiten nach Wirkung auf dein Ziel…',    durationShare: 0.20 },
+  { id: 'resources', label: 'Ressourcen kuratieren',  live: 'Wähle die besten Kurse, Videos & Artikel aus…',      durationShare: 0.22 },
+  { id: 'timeline',  label: 'Zeitplan erstellen',     live: 'Baue einen realistischen Plan für dein Tempo…',      durationShare: 0.20 },
+  { id: 'cert',      label: 'Zertifikat vorbereiten', live: 'Lege deine Abschlussprüfung & Urkunde an…',          durationShare: 0.20 },
 ];
 
 const QUOTES = [
@@ -42,73 +39,29 @@ const QUOTES = [
   { text: 'Dein nächster Job wartet nicht auf dich — er wartet auf die Version von dir, die du gerade baust.', author: 'Decide your Dream' },
 ];
 
-// Ein Akzent, konsequent durchgezogen (CLT: keine fünf konkurrierenden Farben).
 const ACCENT = '#30E3CA';
+const ACCENT2 = '#66c0b6';
 const DONE = '#22c55e';
 
-// ── Signatur: die Route ─────────────────────────────────────────────────────────
-//
-// Eine Station der sich zeichnenden Strecke. Der Konnektor NACH einem erledigten
-// Knoten ist durchgezogen (die Route ist bis hierher „gebaut"), sonst gedämpft.
-// Genau EIN Element trägt Fortschritt + Schritte + Blickfang — das ist die
-// CLT-Reduktion gegenüber Spinner + Balken + fünf Animationszeilen.
+// Die Route: ein Aufstieg von unten (jetzt) nach oben (dein Ziel = Gipfel).
+// Knoten liegen exakt auf dem Pfad, damit der Komet sie streift.
+const ASCENT_PATH =
+  'M 150 476 C 150 456 150 452 150 432 C 150 402 108 362 108 332 C 108 298 192 272 192 238 C 192 202 112 184 112 148 C 112 114 150 94 150 60 L 150 26';
+const NODE_POS = [
+  { x: 150, y: 432 },
+  { x: 108, y: 332 },
+  { x: 192, y: 238 },
+  { x: 112, y: 148 },
+  { x: 150, y: 60 },
+];
 
-function RouteStep({
-  stage, state, isLast, allDone,
-}: {
-  stage: typeof STAGES[number];
-  state: 'done' | 'active' | 'pending';
-  isLast: boolean;
-  allDone: boolean;
-}) {
-  const nodeColor = state === 'pending' ? 'rgba(255,255,255,0.14)' : (allDone ? DONE : (state === 'done' ? DONE : ACCENT));
-  const connectorFilled = state === 'done' || allDone;
-
-  return (
-    <div className="flex gap-4">
-      {/* Route-Spalte: Knoten + Konnektor */}
-      <div className="flex flex-col items-center flex-shrink-0" style={{ width: 24 }}>
-        <div
-          className="relative flex items-center justify-center rounded-full transition-all duration-500"
-          style={{
-            width: 24, height: 24,
-            background: state === 'pending' ? 'transparent' : `${nodeColor}1f`,
-            border: `1.5px solid ${nodeColor}`,
-            boxShadow: state === 'active' ? `0 0 0 4px ${ACCENT}14` : 'none',
-          }}
-        >
-          {(state === 'done' || allDone) ? (
-            <svg width="11" height="11" viewBox="0 0 12 12" aria-hidden>
-              <polyline points="2,6.5 5,9.5 10,3.5" fill="none" stroke={DONE} strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
-            </svg>
-          ) : state === 'active' ? (
-            <span className="lpw-pulse rounded-full" style={{ width: 8, height: 8, background: ACCENT }} />
-          ) : (
-            <span className="rounded-full" style={{ width: 5, height: 5, background: 'rgba(255,255,255,0.25)' }} />
-          )}
-        </div>
-
-        {!isLast && (
-          <div className="flex-1 w-px my-1 rounded-full transition-all duration-700" style={{ minHeight: 26, background: connectorFilled ? DONE : 'rgba(255,255,255,0.10)' }} />
-        )}
-      </div>
-
-      {/* Label */}
-      <div className={`pb-6 min-w-0 transition-opacity duration-500 ${state === 'pending' ? 'opacity-40' : 'opacity-100'}`}>
-        <p
-          className="text-[15px] font-bold leading-snug transition-colors duration-500"
-          style={{ color: state === 'active' ? '#ffffff' : (state === 'done' || allDone) ? 'rgba(255,255,255,0.55)' : 'rgba(255,255,255,0.6)' }}
-        >
-          {stage.label}
-        </p>
-        {/* Sublabel nur beim aktiven Schritt — CLT: nicht fünf Erklärzeilen gleichzeitig */}
-        {state === 'active' && !allDone && (
-          <p className="text-[12.5px] mt-1 leading-relaxed" style={{ color: `${ACCENT}cc` }}>{stage.sublabel}</p>
-        )}
-      </div>
-    </div>
-  );
-}
+// Ein dezenter Sternenstaub für Atmosphäre (ARCS: perzeptuelle Aktivierung).
+const STARS = [
+  { x: 12, y: 18, d: 0 }, { x: 82, y: 9, d: 1.2 }, { x: 46, y: 30, d: 0.6 },
+  { x: 90, y: 44, d: 2.1 }, { x: 7, y: 52, d: 1.6 }, { x: 70, y: 66, d: 0.3 },
+  { x: 26, y: 74, d: 2.4 }, { x: 94, y: 80, d: 1.0 }, { x: 55, y: 88, d: 1.8 },
+  { x: 18, y: 92, d: 0.9 }, { x: 88, y: 24, d: 1.4 }, { x: 38, y: 58, d: 2.0 },
+];
 
 // ── Main page ──────────────────────────────────────────────────────────────────
 
@@ -130,16 +83,15 @@ export default function LearningPathWaitingPage() {
   const [quoteIdx, setQuoteIdx] = useState(0);
   const [quoteVisible, setQuoteVisible] = useState(true);
 
-  // Refs — genau EIN Poller, EIN Kanal, EIN Trigger. Das verhindert die
-  // Doppel-Trigger (= Unit-Duplikate) und die sich gegenseitig abräumenden
-  // Subscriptions aus der alten Version.
+  // Refs — genau EIN Poller, EIN Kanal, EIN Trigger.
   const doneRef       = useRef(false);
-  const bootedRef     = useRef(false); // schützt gegen StrictMode-Doppellauf
+  const bootedRef     = useRef(false);
   const triggeredRef  = useRef(false);
   const pollTimerRef  = useRef<ReturnType<typeof setTimeout> | null>(null);
   const channelRef    = useRef<ReturnType<typeof supabase.channel> | null>(null);
   const rafRef        = useRef<number | null>(null);
   const startTimeRef  = useRef<number | null>(null);
+  const pathRef       = useRef<SVGPathElement | null>(null); // nur Präsentation: Komet-Position
 
   // ── Cleanup ────────────────────────────────────────────────────────────────
 
@@ -211,10 +163,6 @@ export default function LearningPathWaitingPage() {
   }, [phase]);
 
   // ── Der EINE Content-Check ───────────────────────────────────────────────────
-  // Kein .not('content','is',null) mehr (content ist ein String, nicht NULL).
-  // Fehler werden NICHT verschluckt — sie werden geloggt und, wenn hartnäckig,
-  // als Fehlerzustand angezeigt. Das war die Ursache des "ewigen Ladens":
-  // der alte Poller warf jeden Fehler weg und drehte blind weiter.
   const checkForContent = useCallback(async (): Promise<'done' | 'pending' | 'failed'> => {
     if (!pathId) return 'pending';
 
@@ -226,8 +174,6 @@ export default function LearningPathWaitingPage() {
 
     if (error) {
       console.error('[LPW] Lesefehler learning_results:', error.message, error);
-      // Fehler beim Lesen = wir wissen es nicht, also weiter pollen —
-      // aber sichtbar, nicht stumm.
       return 'pending';
     }
 
@@ -236,7 +182,6 @@ export default function LearningPathWaitingPage() {
 
     if ((data ?? []).some(r => hasRealContent(r.content))) return 'done';
 
-    // Kein Content — ist der Pfad evtl. hart gescheitert?
     const { data: lp } = await supabase
       .from('learning_paths').select('status').eq('id', pathId).maybeSingle();
     if (lp?.status === 'failed') return 'failed';
@@ -303,7 +248,7 @@ export default function LearningPathWaitingPage() {
 
   useEffect(() => {
     if (!pathId) { navigate('/', { replace: true }); return; }
-    if (bootedRef.current) return;   // StrictMode-Schutz: nur einmal booten
+    if (bootedRef.current) return;
     bootedRef.current = true;
 
     doneRef.current = false;
@@ -319,32 +264,25 @@ export default function LearningPathWaitingPage() {
 
       if (lp.target_job) setTargetJob(lp.target_job);
 
-      // Anforderung: bezahlt ⇒ Content muss existieren. Wenn NICHT bezahlt,
-      // gehört der User nicht auf die Warteseite — zurück zur Analyse.
       if (!lp.is_paid) {
         console.log('[LPW] Pfad nicht bezahlt — zurück zur Lernpfad-Seite');
         navigate(`/learning-path/${pathId}`, { replace: true });
         return;
       }
 
-      // Skill aus URL nachtragen, falls der Webhook ihn noch nicht geschrieben hat.
       if (!(lp as any).skill && skillFromUrl) {
         await supabase.from('learning_paths')
           .update({ skill: skillFromUrl, updated_at: new Date().toISOString() })
           .eq('id', pathId);
       }
 
-      // Schon fertig? Dann direkt weiter — kein Trigger, kein Warten.
       const first = await checkForContent();
       if (first === 'done')   { markDone(); return; }
       if (first === 'failed') { markError('Die KI konnte deinen Lernpfad nicht erstellen.'); return; }
 
-      // Realtime + Polling starten (beide finden dieselbe Zeile; wer zuerst
-      // kommt, ruft markDone, der andere no-op via doneRef).
       startRealtime();
       startPolling();
 
-      // Trigger nur, wenn noch nicht in Arbeit. Genau einmal (triggeredRef).
       if (lp.status === 'in_progress') {
         console.log('[LPW] Bereits in_progress — nur warten, kein neuer Trigger');
       } else {
@@ -394,35 +332,68 @@ export default function LearningPathWaitingPage() {
   const quote = QUOTES[quoteIdx];
   const isDone = phase === 'done';
   const displayProgress = isDone ? 100 : Math.round(Math.min(progress, 95));
+  const activeStage = STAGES[Math.min(activeStageIdx, STAGES.length - 1)];
+
+  // Komet-Position live entlang des Pfades (SVG-Koordinaten → skaliert mit viewBox).
+  let cometX = NODE_POS[0].x, cometY = 476;
+  if (pathRef.current) {
+    try {
+      const total = pathRef.current.getTotalLength();
+      const pt = pathRef.current.getPointAtLength(total * (displayProgress / 100));
+      cometX = pt.x; cometY = pt.y;
+    } catch { /* erster Frame: ref noch nicht gesetzt */ }
+  }
 
   // ── Render ─────────────────────────────────────────────────────────────────
 
   return (
-    <div className="min-h-screen text-white" style={{ background: 'radial-gradient(120% 80% at 50% -10%, #0a1420 0%, #070d16 45%, #05080f 100%)' }}>
+    <div className="min-h-screen text-white relative overflow-hidden"
+      style={{ background: 'radial-gradient(130% 90% at 50% 0%, #0c1826 0%, #081120 40%, #05080f 100%)' }}>
+
       <style>{`
-        @keyframes lpw_up   { from { opacity:0; transform:translateY(14px); } to { opacity:1; transform:translateY(0); } }
-        @keyframes lpw_in   { from { opacity:0; } to { opacity:1; } }
-        @keyframes lpw_pulse{ 0%,100% { transform:scale(1); opacity:1; } 50% { transform:scale(0.55); opacity:0.55; } }
-        @keyframes lpw_pop  { 0% { transform:scale(0.72); opacity:0; } 70% { transform:scale(1.06); } 100% { transform:scale(1); opacity:1; } }
-        .lpw-pulse { animation: lpw_pulse 1.5s ease-in-out infinite; }
+        @keyframes lpw_up     { from { opacity:0; transform:translateY(18px); } to { opacity:1; transform:translateY(0); } }
+        @keyframes lpw_in     { from { opacity:0; } to { opacity:1; } }
+        @keyframes lpw_pop    { 0% { transform:scale(0.7); opacity:0; } 65% { transform:scale(1.08); } 100% { transform:scale(1); opacity:1; } }
+        @keyframes lpw_aurora1{ 0%,100% { transform:translate(-8%,-4%) scale(1); } 50% { transform:translate(10%,6%) scale(1.18); } }
+        @keyframes lpw_aurora2{ 0%,100% { transform:translate(6%,4%) scale(1.1); } 50% { transform:translate(-10%,-6%) scale(0.92); } }
+        @keyframes lpw_aurora3{ 0%,100% { transform:translate(0,0) scale(1); } 50% { transform:translate(-6%,8%) scale(1.14); } }
+        @keyframes lpw_twinkle{ 0%,100% { opacity:0.15; } 50% { opacity:0.85; } }
+        @keyframes lpw_ping   { 0% { transform:scale(0.6); opacity:0.7; } 100% { transform:scale(2.4); opacity:0; } }
+        @keyframes lpw_float  { 0%,100% { transform:translateY(0); } 50% { transform:translateY(-7px); } }
+        @keyframes lpw_dots   { 0%,80%,100% { opacity:0.2; } 40% { opacity:1; } }
+        @keyframes lpw_shine  { 0% { background-position:-200% 0; } 100% { background-position:200% 0; } }
+        .lpw-comet   { filter: drop-shadow(0 0 6px ${ACCENT}) drop-shadow(0 0 14px ${ACCENT}); }
+        .lpw-jobgrad {
+          background: linear-gradient(100deg, #ffffff 0%, ${ACCENT} 45%, ${ACCENT2} 70%, #ffffff 100%);
+          background-size: 220% 100%;
+          -webkit-background-clip: text; background-clip: text; color: transparent;
+          animation: lpw_shine 5s ease-in-out infinite;
+        }
         @media (prefers-reduced-motion: reduce) {
-          .lpw-pulse { animation: none; }
-          [data-lpw-animate] { animation: none !important; }
+          [data-lpw-anim], .lpw-jobgrad { animation: none !important; }
         }
       `}</style>
 
-      {/* Ein einziger, sehr dezenter Ambient-Schimmer statt konkurrierender Orbs (CLT). */}
-      <div className="fixed inset-0 pointer-events-none overflow-hidden">
-        <div className="absolute rounded-full" style={{ width: 520, height: 520, top: -180, left: '50%', transform: 'translateX(-50%)', background: `radial-gradient(circle, ${ACCENT}0f, transparent 70%)` }} />
+      {/* Aurora + Sternenstaub — Atmosphäre (ARCS Attention) */}
+      <div className="fixed inset-0 pointer-events-none">
+        <div data-lpw-anim className="absolute rounded-full" style={{ width: 620, height: 620, top: '-14%', left: '-10%', background: `radial-gradient(circle, ${ACCENT}22, transparent 68%)`, filter: 'blur(30px)', animation: 'lpw_aurora1 14s ease-in-out infinite' }} />
+        <div data-lpw-anim className="absolute rounded-full" style={{ width: 560, height: 560, bottom: '-16%', right: '-12%', background: `radial-gradient(circle, ${DONE}1c, transparent 66%)`, filter: 'blur(34px)', animation: 'lpw_aurora2 17s ease-in-out infinite' }} />
+        <div data-lpw-anim className="absolute rounded-full" style={{ width: 440, height: 440, top: '30%', right: '8%', background: `radial-gradient(circle, ${ACCENT2}18, transparent 70%)`, filter: 'blur(30px)', animation: 'lpw_aurora3 12s ease-in-out infinite' }} />
+        <div className="absolute inset-0">
+          {STARS.map((s, i) => (
+            <span key={i} data-lpw-anim className="absolute rounded-full bg-white"
+              style={{ width: 2, height: 2, left: `${s.x}%`, top: `${s.y}%`, animation: `lpw_twinkle ${3 + (i % 4)}s ease-in-out ${s.d}s infinite` }} />
+          ))}
+        </div>
       </div>
 
-      <div className="relative z-10 max-w-md mx-auto px-5 py-12 sm:py-16">
+      <div className="relative z-10 max-w-lg mx-auto px-5 py-10 sm:py-14 min-h-screen flex flex-col justify-center">
 
-        {/* ── loading (kurzer Übergang) ── */}
+        {/* ── loading ── */}
         {phase === 'loading' && (
           <div className="space-y-5" style={{ animation: 'lpw_in 0.3s ease' }}>
-            {[64, 220, 40].map((h, i) => (
-              <div key={i} data-lpw-animate className="rounded-2xl animate-pulse" style={{ height: h, background: 'rgba(255,255,255,0.04)' }} />
+            {[54, 300, 44].map((h, i) => (
+              <div key={i} data-lpw-anim className="rounded-2xl animate-pulse" style={{ height: h, background: 'rgba(255,255,255,0.04)' }} />
             ))}
           </div>
         )}
@@ -446,7 +417,7 @@ export default function LearningPathWaitingPage() {
                 <div className="flex flex-col sm:flex-row gap-3">
                   <button onClick={handleRetry} disabled={retrying}
                     className="flex-1 py-3 rounded-xl font-black text-sm text-black flex items-center justify-center gap-2 transition-all hover:scale-[1.02] disabled:opacity-50"
-                    style={{ background: `linear-gradient(135deg,#66c0b6,${ACCENT})` }}>
+                    style={{ background: `linear-gradient(135deg,${ACCENT2},${ACCENT})` }}>
                     {retrying ? <><div className="w-4 h-4 rounded-full border-2 border-black/30 border-t-black animate-spin" />Wird wiederholt…</> : 'Erneut versuchen'}
                   </button>
                   <button onClick={() => navigate('/dashboard')}
@@ -466,85 +437,177 @@ export default function LearningPathWaitingPage() {
 
         {/* ── waiting / done ── */}
         {(phase === 'waiting' || phase === 'done') && (
-          <div className="space-y-9">
+          <div className="space-y-6">
 
-            {/* Kopf — ARCS Relevance: es geht um DEIN Ziel */}
-            <div className="text-center space-y-2.5" style={{ animation: 'lpw_up 0.4s ease' }}>
-              <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full"
-                style={{ background: isDone ? 'rgba(34,197,94,0.1)' : `${ACCENT}0f`, border: `1px solid ${isDone ? 'rgba(34,197,94,0.25)' : `${ACCENT}22`}` }}>
-                <span className="rounded-full lpw-pulse" style={{ width: 6, height: 6, background: isDone ? DONE : ACCENT }} />
-                <span className="text-[10px] font-black uppercase tracking-[0.2em]" style={{ color: isDone ? DONE : ACCENT }}>
-                  {isDone ? 'Fertig' : 'Wird erstellt'}
+            {/* Kopf — ARCS Relevance: DEIN Gipfel, groß */}
+            <div className="text-center space-y-3" style={{ animation: 'lpw_up 0.4s ease' }}>
+              <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full"
+                style={{ background: isDone ? 'rgba(34,197,94,0.12)' : `${ACCENT}12`, border: `1px solid ${isDone ? 'rgba(34,197,94,0.3)' : `${ACCENT}2e`}` }}>
+                <span className="relative flex" style={{ width: 7, height: 7 }}>
+                  <span data-lpw-anim className="absolute inline-flex rounded-full" style={{ width: 7, height: 7, background: isDone ? DONE : ACCENT, animation: 'lpw_ping 1.6s ease-out infinite' }} />
+                  <span className="relative inline-flex rounded-full" style={{ width: 7, height: 7, background: isDone ? DONE : ACCENT }} />
+                </span>
+                <span className="text-[10px] font-black uppercase tracking-[0.22em]" style={{ color: isDone ? DONE : ACCENT }}>
+                  {isDone ? 'Dein Weg steht' : 'Dein Aufstieg beginnt'}
                 </span>
               </div>
-              <h1 className="text-[26px] sm:text-[30px] font-black leading-[1.12] tracking-tight">
-                {isDone ? 'Dein Lernpfad ist bereit' : 'Dein Lernpfad entsteht'}
+
+              <h1 className="text-[13px] font-black uppercase tracking-[0.2em] text-white/40">
+                {isDone ? 'Bereit für' : 'Dein Weg zum'}
               </h1>
-              <p className="text-sm text-white/45 leading-relaxed">
-                {isDone
-                  ? <>Alle Module, der Abschlusstest und dein Zertifikat für <span className="text-white/75 font-bold">{targetJob}</span> warten auf dich.</>
-                  : <>Wir bauen deinen persönlichen Plan für <span className="text-white/75 font-bold">{targetJob}</span> — Schritt für Schritt.</>}
+              <p className="lpw-jobgrad text-[30px] sm:text-[38px] font-black leading-[1.06] tracking-tight px-2 break-words">
+                {targetJob}
               </p>
             </div>
 
-            {/* Die Route — Signatur & einziger Fokus */}
-            <div className="rounded-2xl px-6 pt-7 pb-1" style={{ background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.06)', animation: 'lpw_up 0.55s ease' }}>
-              {STAGES.map((stage, i) => {
-                const state: 'done' | 'active' | 'pending' =
-                  isDone || i < activeStageIdx ? 'done' : i === activeStageIdx ? 'active' : 'pending';
-                return (
-                  <RouteStep
-                    key={stage.id}
-                    stage={stage}
-                    state={state}
-                    isLast={i === STAGES.length - 1}
-                    allDone={isDone}
-                  />
-                );
-              })}
+            {/* SIGNATUR — der Aufstieg */}
+            <div className="relative mx-auto" style={{ width: '100%', maxWidth: 340, animation: 'lpw_up 0.55s ease' }}>
+              <svg viewBox="0 0 300 500" className="w-full h-auto" style={{ display: 'block' }}>
+                <defs>
+                  <linearGradient id="lpwPath" x1="0" y1="1" x2="0" y2="0">
+                    <stop offset="0%"  stopColor={ACCENT2} />
+                    <stop offset="60%" stopColor={ACCENT} />
+                    <stop offset="100%" stopColor={DONE} />
+                  </linearGradient>
+                  <radialGradient id="lpwNodeGlow">
+                    <stop offset="0%" stopColor={ACCENT} stopOpacity="0.9" />
+                    <stop offset="100%" stopColor={ACCENT} stopOpacity="0" />
+                  </radialGradient>
+                  <filter id="lpwBlur" x="-60%" y="-60%" width="220%" height="220%">
+                    <feGaussianBlur stdDeviation="4" />
+                  </filter>
+                </defs>
+
+                {/* Basisroute (gedämpft) */}
+                <path d={ASCENT_PATH} fill="none" stroke="rgba(255,255,255,0.09)" strokeWidth="3" strokeLinecap="round" />
+
+                {/* gelaufener, leuchtender Teil — zeichnet sich mit dem Fortschritt */}
+                <path
+                  ref={pathRef}
+                  d={ASCENT_PATH}
+                  fill="none"
+                  stroke="url(#lpwPath)"
+                  strokeWidth="3.5"
+                  strokeLinecap="round"
+                  pathLength={100}
+                  strokeDasharray={100}
+                  strokeDashoffset={100 - displayProgress}
+                  style={{ transition: 'stroke-dashoffset 0.5s ease', filter: 'drop-shadow(0 0 4px rgba(48,227,202,0.5))' }}
+                />
+
+                {/* Stationen */}
+                {NODE_POS.map((n, i) => {
+                  const lit = isDone || i < activeStageIdx;
+                  const active = !isDone && i === activeStageIdx;
+                  const color = (lit ? DONE : active ? ACCENT : 'rgba(255,255,255,0.25)');
+                  return (
+                    <g key={i}>
+                      {(lit || active) && <circle cx={n.x} cy={n.y} r="16" fill="url(#lpwNodeGlow)" opacity={active ? 0.9 : 0.5} />}
+                      <circle cx={n.x} cy={n.y} r="8"
+                        fill={lit ? `${DONE}22` : active ? `${ACCENT}22` : 'rgba(10,16,26,0.9)'}
+                        stroke={color} strokeWidth="2"
+                        style={{ transition: 'all 0.4s ease' }} />
+                      {lit && (
+                        <polyline points={`${n.x - 3.5},${n.y} ${n.x - 1},${n.y + 2.5} ${n.x + 4},${n.y - 3}`}
+                          fill="none" stroke={DONE} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+                      )}
+                      {active && (
+                        <circle cx={n.x} cy={n.y} r="3" fill={ACCENT}>
+                          <animate attributeName="opacity" values="1;0.4;1" dur="1.3s" repeatCount="indefinite" />
+                        </circle>
+                      )}
+                    </g>
+                  );
+                })}
+
+                {/* Gipfel = dein Ziel */}
+                <g style={{ transformOrigin: '150px 26px' }}>
+                  {isDone && <circle cx="150" cy="26" r="26" fill="url(#lpwNodeGlow)" opacity="0.9" />}
+                  <g data-lpw-anim style={{ animation: isDone ? 'lpw_pop 0.6s ease' : 'lpw_float 3.5s ease-in-out infinite' }}>
+                    <path
+                      d="M150 8 l5.3 10.7 11.8 1.7 -8.5 8.3 2 11.7 -10.6 -5.6 -10.6 5.6 2 -11.7 -8.5 -8.3 11.8 -1.7 z"
+                      fill={isDone ? DONE : 'rgba(255,255,255,0.12)'}
+                      stroke={isDone ? DONE : ACCENT}
+                      strokeWidth="1.5"
+                      strokeLinejoin="round"
+                      style={{ transition: 'fill 0.5s ease, stroke 0.5s ease', filter: isDone ? `drop-shadow(0 0 10px ${DONE})` : 'none' }}
+                    />
+                  </g>
+                </g>
+
+                {/* Der Komet — klettert live */}
+                {!isDone && (
+                  <g className="lpw-comet" style={{ transition: 'transform 0.4s linear' }} transform={`translate(${cometX},${cometY})`}>
+                    <circle r="9" fill={ACCENT} opacity="0.25" filter="url(#lpwBlur)" />
+                    <circle r="4.5" fill="#eafffb" />
+                    <circle r="2.5" fill={ACCENT} />
+                  </g>
+                )}
+              </svg>
             </div>
 
-            {/* Fortschritt — ARCS Confidence: eine ruhige, ehrliche Zeile, kein zweiter großer Balken */}
+            {/* Aktueller Schritt + Live-Status (ARCS Attention: Variabilität) */}
             {!isDone && (
-              <div className="space-y-2" style={{ animation: 'lpw_up 0.65s ease' }}>
-                <div className="h-1 rounded-full overflow-hidden" style={{ background: 'rgba(255,255,255,0.07)' }}>
+              <div className="text-center space-y-1.5" style={{ animation: 'lpw_up 0.65s ease' }}>
+                <div className="flex items-center justify-center gap-2">
+                  <p className="text-[17px] font-black text-white">{activeStage.label}</p>
+                  <span className="inline-flex gap-0.5">
+                    {[0, 1, 2].map(d => (
+                      <span key={d} data-lpw-anim className="rounded-full" style={{ width: 4, height: 4, background: ACCENT, animation: `lpw_dots 1.4s ease-in-out ${d * 0.2}s infinite` }} />
+                    ))}
+                  </span>
+                </div>
+                <p className="text-[13px] leading-relaxed" style={{ color: `${ACCENT}cc` }}>{activeStage.live}</p>
+              </div>
+            )}
+
+            {/* Großer Fortschritt (ARCS Confidence) */}
+            {!isDone && (
+              <div className="space-y-2.5" style={{ animation: 'lpw_up 0.75s ease' }}>
+                <div className="flex items-end justify-between">
+                  <span className="text-[11px] font-bold uppercase tracking-widest text-white/30">Fortschritt</span>
+                  <span className="text-4xl font-black tabular-nums leading-none" style={{ color: ACCENT }}>{displayProgress}<span className="text-xl text-white/40">%</span></span>
+                </div>
+                <div className="h-2 rounded-full overflow-hidden" style={{ background: 'rgba(255,255,255,0.08)' }}>
                   <div className="h-full rounded-full transition-all duration-700 ease-out"
-                    style={{ width: `${displayProgress}%`, background: `linear-gradient(90deg,${ACCENT}88,${ACCENT})` }} />
+                    style={{ width: `${displayProgress}%`, background: `linear-gradient(90deg,${ACCENT2},${ACCENT})`, boxShadow: `0 0 12px ${ACCENT}66` }} />
                 </div>
-                <div className="flex items-center justify-between text-[11px]">
-                  <span className="text-white/30">Dauert etwa 3 Minuten</span>
-                  <span className="font-black tabular-nums" style={{ color: `${ACCENT}cc` }}>{displayProgress}%</span>
-                </div>
+                <p className="text-[11px] text-white/30 text-center">Dauert in der Regel etwa 3 Minuten</p>
               </div>
             )}
 
-            {/* Abschluss-CTA — ARCS Satisfaction */}
+            {/* Abschluss (ARCS Satisfaction) */}
             {isDone && (
-              <button onClick={() => navigate(`/learning-path/${pathId}`)}
-                data-lpw-animate
-                className="w-full py-4 rounded-2xl font-black text-base text-black flex items-center justify-center gap-3 transition-all hover:scale-[1.02] active:scale-[0.98]"
-                style={{ background: `linear-gradient(135deg,${DONE},#4ade80)`, boxShadow: '0 0 32px rgba(34,197,94,0.28)', animation: 'lpw_pop 0.5s ease' }}>
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><polygon points="5,3 19,12 5,21 5,3" /></svg>
-                Lernpfad starten
-              </button>
-            )}
-
-            {/* Motivation — bewusst untergeordnet (CLT: Nebenrolle, nicht zweiter Fokus) */}
-            {!isDone && (
-              <div className="text-center px-2" style={{ animation: 'lpw_up 0.75s ease', opacity: quoteVisible ? 1 : 0, transition: 'opacity 0.4s ease' }}>
-                <p className="text-[13px] text-white/45 leading-relaxed italic">&ldquo;{quote.text}&rdquo;</p>
-                <p className="text-[11px] text-white/25 mt-1.5 font-bold">— {quote.author}</p>
+              <div className="space-y-4 text-center" style={{ animation: 'lpw_up 0.5s ease' }}>
+                <p className="text-sm text-white/55 leading-relaxed">
+                  Alle Module, der Abschlusstest und dein Zertifikat sind fertig. Zeit, den ersten Schritt zu gehen.
+                </p>
+                <button onClick={() => navigate(`/learning-path/${pathId}`)}
+                  data-lpw-anim
+                  className="w-full py-4 rounded-2xl font-black text-base text-black flex items-center justify-center gap-3 transition-all hover:scale-[1.02] active:scale-[0.98]"
+                  style={{ background: `linear-gradient(135deg,${DONE},#4ade80)`, boxShadow: '0 0 36px rgba(34,197,94,0.32)', animation: 'lpw_pop 0.5s ease' }}>
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><polygon points="5,3 19,12 5,21 5,3" /></svg>
+                  Lernpfad starten
+                </button>
               </div>
             )}
 
-            {/* Zusicherung — ARCS Confidence + DSR: löst das eigentliche Problem (Abbruch) */}
+            {/* Zusicherung — Confidence + DSR (Abbruch verhindern) */}
             {!isDone && (
-              <div className="flex items-start gap-2.5 px-4 py-3 rounded-xl" style={{ background: 'rgba(255,255,255,0.015)', border: '1px solid rgba(255,255,255,0.05)', animation: 'lpw_up 0.85s ease' }}>
-                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke={`${ACCENT}99`} strokeWidth="2" strokeLinecap="round" className="flex-shrink-0 mt-0.5"><path d="M20 6 9 17l-5-5" /></svg>
-                <p className="text-[11.5px] text-white/40 leading-relaxed">
-                  Du kannst diese Seite jederzeit verlassen. Dein Lernpfad wird im Hintergrund fertiggestellt und wartet danach in deinem{' '}
-                  <button onClick={() => navigate('/dashboard')} className="underline text-[#66c0b6]/70 hover:text-[#66c0b6] transition-colors">Dashboard</button>.
+              <div className="flex items-start gap-2.5 px-4 py-3 rounded-xl" style={{ background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.06)', animation: 'lpw_up 0.85s ease' }}>
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke={`${ACCENT}aa`} strokeWidth="2" strokeLinecap="round" className="flex-shrink-0 mt-0.5"><path d="M20 6 9 17l-5-5" /></svg>
+                <p className="text-[11.5px] text-white/45 leading-relaxed">
+                  Du kannst diese Seite jederzeit verlassen — dein Lernpfad wird im Hintergrund fertig und wartet danach in deinem{' '}
+                  <button onClick={() => navigate('/dashboard')} className="underline text-[#66c0b6]/80 hover:text-[#66c0b6] transition-colors">Dashboard</button>.
                 </p>
+              </div>
+            )}
+
+            {/* Motivation — leise Nebenrolle */}
+            {!isDone && (
+              <div className="text-center px-2 pt-1" style={{ opacity: quoteVisible ? 1 : 0, transition: 'opacity 0.4s ease' }}>
+                <p className="text-[12.5px] text-white/40 leading-relaxed italic">&ldquo;{quote.text}&rdquo;</p>
+                <p className="text-[10.5px] text-white/22 mt-1 font-bold">— {quote.author}</p>
               </div>
             )}
           </div>
@@ -554,18 +617,18 @@ export default function LearningPathWaitingPage() {
       {/* Abschluss-Popup */}
       {showCompletionPopup && (
         <div className="fixed inset-0 z-50 flex items-center justify-center px-4"
-          style={{ background: 'rgba(0,0,0,0.7)', backdropFilter: 'blur(8px)', animation: 'lpw_up 0.35s ease' }}
+          style={{ background: 'rgba(0,0,0,0.72)', backdropFilter: 'blur(8px)', animation: 'lpw_up 0.35s ease' }}
           onClick={() => { setShowCompletionPopup(false); navigate(`/learning-path/${pathId}`); }}>
           <div className="relative max-w-sm w-full rounded-3xl overflow-hidden text-center"
-            style={{ background: 'linear-gradient(145deg,#080f1a,#0a1520)', border: '1px solid rgba(34,197,94,0.3)', boxShadow: '0 0 60px rgba(34,197,94,0.2), 0 20px 60px rgba(0,0,0,0.6)', animation: 'lpw_pop 0.45s cubic-bezier(0.175,0.885,0.32,1.275)' }}
+            style={{ background: 'linear-gradient(145deg,#081320,#0a1826)', border: '1px solid rgba(34,197,94,0.32)', boxShadow: '0 0 60px rgba(34,197,94,0.22), 0 20px 60px rgba(0,0,0,0.6)', animation: 'lpw_pop 0.45s cubic-bezier(0.175,0.885,0.32,1.275)' }}
             onClick={(e) => e.stopPropagation()}>
             <div className="absolute inset-x-0 top-0 h-px" style={{ background: 'linear-gradient(90deg,transparent,rgba(34,197,94,0.7),transparent)' }} />
             <div className="relative z-10 p-8 space-y-5">
               <div className="mx-auto w-16 h-16 rounded-2xl flex items-center justify-center" style={{ background: 'rgba(34,197,94,0.12)', border: '1px solid rgba(34,197,94,0.3)' }}>
-                <svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke={DONE} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 12 20 22 4 22 4 12" /><rect x="2" y="7" width="20" height="5" /><line x1="12" y1="22" x2="12" y2="7" /><path d="M12 7H7.5a2.5 2.5 0 0 1 0-5C11 2 12 7 12 7z" /><path d="M12 7h4.5a2.5 2.5 0 0 0 0-5C13 2 12 7 12 7z" /></svg>
+                <svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke={DONE} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M6 9H4.5a2.5 2.5 0 0 1 0-5H6" /><path d="M18 9h1.5a2.5 2.5 0 0 0 0-5H18" /><path d="M4 22h16" /><path d="M10 14.66V17c0 .55-.47.98-.97 1.21C7.85 18.75 7 20.24 7 22" /><path d="M14 14.66V17c0 .55.47.98.97 1.21C16.15 18.75 17 20.24 17 22" /><path d="M18 2H6v7a6 6 0 0 0 12 0V2Z" /></svg>
               </div>
               <div className="space-y-2">
-                <h2 className="text-xl font-black text-white">Dein Lernpfad ist bereit</h2>
+                <h2 className="text-xl font-black text-white">Dein Weg zum Ziel steht</h2>
                 <p className="text-sm text-white/55 leading-relaxed">
                   <span className="text-[#22c55e] font-bold">{targetJob}</span> — alle Module, der Abschlusstest und dein Zertifikat warten auf dich.
                 </p>
