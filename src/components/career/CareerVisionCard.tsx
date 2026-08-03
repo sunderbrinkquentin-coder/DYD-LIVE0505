@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
   ArrowRight, Sparkles, TrendingUp, Zap, Target, Building2,
@@ -8,6 +8,44 @@ import {
 } from 'lucide-react';
 import { LearningPath, Skill } from '../../types/learningPath';
 import { LearningPathPaywall } from './LearningPathPaywall';
+import { careerService } from '../../services/careerService';
+
+// ── Per-skill unlock helpers ───────────────────────────────────────────────────
+//
+// Das Datenmodell (bewiesen über careerService.getOrCreateSkillPath):
+//   - Die ANALYSE ist eine learning_paths-Zeile (skill = null, is_paid = false).
+//   - Jeder freigeschaltete SKILL ist eine EIGENE learning_paths-Zeile
+//     (analysis_id = Analyse-id, skill = Name, is_paid vom Stripe-Webhook).
+//
+// Die Kachel rendert die Analyse-Zeile — deren is_paid ist IMMER false. Der
+// Freischalt-Status lebt auf den Skill-Zeilen. Deshalb lädt jede Kachel die
+// Skill-Zeilen ihrer Analyse und prüft PRO Skill, ob eine bezahlte Zeile
+// existiert. Das ist der Fix für "zeigt freischalten obwohl bezahlt".
+
+function normSkill(s?: string | null): string {
+  return (s ?? '').trim().toLowerCase();
+}
+
+/** Lädt die Skill-Zeilen einer Analyse und liefert eine Nachschlage-Funktion. */
+function useSkillPaths(analysisId: string | undefined) {
+  const [rows, setRows] = useState<any[]>([]);
+
+  useEffect(() => {
+    if (!analysisId) return;
+    let cancelled = false;
+    careerService
+      .getSkillPathsForAnalysis(analysisId)
+      .then((r) => { if (!cancelled) setRows((r as any[]) ?? []); })
+      .catch(() => { /* nicht fatal — Kachel bleibt im gesperrten Zustand */ });
+    return () => { cancelled = true; };
+  }, [analysisId]);
+
+  /** Die bezahlte Skill-Zeile für einen Namen (oder undefined). */
+  const paidRowFor = (name: string): any | undefined =>
+    rows.find((r) => normSkill(r.skill) === normSkill(name) && r.is_paid);
+
+  return { skillRows: rows, paidRowFor };
+}
 
 // ── Skill detail modal helpers ─────────────────────────────────────────────────
 
@@ -33,8 +71,8 @@ interface ModalSkill {
 function modalSkillName(s: ModalSkill) { return s.skill_name || s.name || '(unbenannt)'; }
 
 function SkillDetailModal({
-  skill, targetJob, targetCompany, onStartLearning,
-}: { skill: ModalSkill; targetJob?: string; targetCompany?: string; onStartLearning?: () => void }) {
+  skill, targetJob, targetCompany, onStartLearning, unlocked,
+}: { skill: ModalSkill; targetJob?: string; targetCompany?: string; onStartLearning?: () => void; unlocked?: boolean }) {
   const severity = skill?.gap_severity ?? 3;
   const tier = modalTierFor(severity);
   const name = modalSkillName(skill);
@@ -44,7 +82,15 @@ function SkillDetailModal({
       <div className="p-5 space-y-4">
         <div className="flex items-start gap-3">
           <div className="flex-1 min-w-0">
-            <span className="text-[11px] font-black uppercase tracking-widest" style={{ color: tier.color }}>{tier.emoji} {tier.label}</span>
+            <div className="flex items-center gap-2 flex-wrap">
+              <span className="text-[11px] font-black uppercase tracking-widest" style={{ color: tier.color }}>{tier.emoji} {tier.label}</span>
+              {unlocked && (
+                <span className="flex items-center gap-1 text-[10px] font-black px-2 py-0.5 rounded-full"
+                  style={{ background: 'rgba(34,197,94,0.12)', color: '#4ade80', border: '1px solid rgba(34,197,94,0.25)' }}>
+                  <Check size={9} /> Freigeschaltet
+                </span>
+              )}
+            </div>
             <h4 className="font-black text-white text-[17px] leading-snug mt-1">{name}</h4>
           </div>
         </div>
@@ -85,9 +131,9 @@ function SkillDetailModal({
         {onStartLearning && (
           <button onClick={onStartLearning}
             className="group relative w-full py-3.5 rounded-xl font-black text-[14px] text-black flex items-center justify-center gap-2.5 overflow-hidden transition-all duration-200 hover:scale-[1.015] active:scale-[0.98]"
-            style={{ background: `linear-gradient(135deg,${tier.color},#30E3CA)` }}>
-            <Sparkles size={15} className="relative z-10 group-hover:rotate-12 transition-transform" />
-            <span className="relative z-10">Lernpfad für {name} starten</span>
+            style={{ background: `linear-gradient(135deg,${unlocked ? '#22c55e' : tier.color},#30E3CA)` }}>
+            {unlocked ? <PlayCircle size={15} className="relative z-10" /> : <Lock size={15} className="relative z-10" />}
+            <span className="relative z-10">{unlocked ? `Lernpfad für ${name} starten` : `${name} freischalten`}</span>
             <ArrowRight size={14} className="relative z-10 group-hover:translate-x-0.5 transition-transform" />
           </button>
         )}
@@ -99,14 +145,17 @@ function SkillDetailModal({
 // ── Skills overview modal ──────────────────────────────────────────────────────
 
 function SkillsOverviewModal({
-  learningPath, onClose, onStartLearning,
-}: { learningPath: LearningPath; onClose: () => void; onStartLearning: (skillName?: string) => void }) {
+  learningPath, onClose, onStartLearning, paidRowFor,
+}: { learningPath: LearningPath; onClose: () => void; onStartLearning: (skillName?: string) => void; paidRowFor: (name: string) => any | undefined }) {
   const skills = [...toSkillArray(learningPath.missing_skills)].sort((a, b) => severityOf(b) - severityOf(a));
   const currentSkills = toSkillArray(learningPath.current_skills ?? []).filter(s => skillName(s) !== '(unbenannt)');
   const [activeIdx, setActiveIdx] = useState(0);
   const outlook = learningPath.strategic_outlook_2026 ?? (learningPath as any).market_trend_2026 ?? '';
   const score = learningPath.match_score ?? 0;
   const scoreColor = score >= 70 ? '#22c55e' : score >= 40 ? '#f59e0b' : '#30E3CA';
+  const analysisUnlocked = learningPath.is_paid || !!learningPath.curriculum;
+  const activeName = skillName(skills[activeIdx] ?? {});
+  const activeUnlocked = analysisUnlocked || !!paidRowFor(activeName);
 
   return (
     <div
@@ -172,6 +221,7 @@ function SkillsOverviewModal({
                   const sev = severityOf(skill);
                   const tier = modalTierFor(sev);
                   const isActive = i === activeIdx;
+                  const sUnlocked = analysisUnlocked || !!paidRowFor(sName);
                   return (
                     <button key={i} onClick={() => setActiveIdx(i)}
                       className="flex items-center gap-1.5 px-3 py-1.5 rounded-full text-left transition-all duration-200 hover:scale-[1.03]"
@@ -182,7 +232,8 @@ function SkillsOverviewModal({
                       }}>
                       <span className="text-sm leading-none">{tier.emoji}</span>
                       <span className="text-[12px] font-black whitespace-nowrap" style={{ color: isActive ? tier.color : 'rgba(255,255,255,0.7)' }}>{sName}</span>
-                      {isActive && <div className="w-1 h-1 rounded-full flex-shrink-0" style={{ background: tier.color }} />}
+                      {sUnlocked && <Check size={10} className="flex-shrink-0" style={{ color: '#4ade80' }} />}
+                      {!sUnlocked && isActive && <div className="w-1 h-1 rounded-full flex-shrink-0" style={{ background: tier.color }} />}
                     </button>
                   );
                 })}
@@ -193,6 +244,7 @@ function SkillsOverviewModal({
                 skill={skills[activeIdx]}
                 targetJob={learningPath.target_job ?? undefined}
                 targetCompany={learningPath.target_company ?? undefined}
+                unlocked={activeUnlocked}
                 onStartLearning={() => onStartLearning(skillName(skills[activeIdx]))}
               />
             </div>
@@ -365,20 +417,23 @@ function SkillTile({
   return (
     <div
       className="relative rounded-2xl overflow-hidden flex flex-col group/tile cursor-pointer transition-all duration-200 hover:scale-[1.015]"
-      style={{ background: p.bg, border: `1px solid ${p.border}` }}
+      style={{
+        background: isLocked ? p.bg : 'rgba(34,197,94,0.06)',
+        border: `1px solid ${isLocked ? p.border : 'rgba(34,197,94,0.28)'}`,
+      }}
       onClick={onStart}
     >
       {/* Top accent line */}
-      <div className="h-[2px]" style={{ background: `linear-gradient(90deg,${p.color},transparent 70%)` }} />
+      <div className="h-[2px]" style={{ background: `linear-gradient(90deg,${isLocked ? p.color : '#4ade80'},transparent 70%)` }} />
 
       {/* Corner number badge */}
       <div className="absolute top-2.5 right-2.5 w-5 h-5 rounded-full flex items-center justify-center text-[9px] font-black"
-        style={{ background: 'rgba(0,0,0,0.40)', color: p.color }}>
+        style={{ background: 'rgba(0,0,0,0.40)', color: isLocked ? p.color : '#4ade80' }}>
         {index + 1}
       </div>
 
       <div className="p-4 flex flex-col gap-2.5 flex-1">
-        {/* Tier + category badges */}
+        {/* Tier + category + unlock badges */}
         <div className="flex items-center gap-1.5 flex-wrap">
           <div className="flex items-center gap-1">
             <TierIcon size={10} style={{ color: p.color }} />
@@ -390,16 +445,25 @@ function SkillTile({
             style={{ background: 'rgba(255,255,255,0.06)', color: 'rgba(255,255,255,0.45)' }}>
             <CatIcon size={8} />{cat}
           </span>
+          {/* FREIGESCHALTET — der eigentliche Fix: sichtbar, sobald die
+              Skill-Zeile dieser Kachel bezahlt ist. */}
+          {!isLocked && (
+            <span className="flex items-center gap-0.5 text-[9px] font-black px-1.5 py-0.5 rounded-full"
+              style={{ background: 'rgba(34,197,94,0.14)', color: '#4ade80', border: '1px solid rgba(34,197,94,0.3)' }}>
+              <Check size={8} />Freigeschaltet
+            </span>
+          )}
         </div>
 
         {/* Skill name */}
         <h4 className="text-[13px] font-black text-white leading-snug pr-4">{name}</h4>
 
-        {/* Pitch */}
+        {/* Pitch — prominenter: größer, hellerer Text, mehr Zeilen sichtbar.
+            Der Text ist bereits skill-spezifisch (aus missing_skills.pitch). */}
         {pitch ? (
-          <p className="text-[11px] text-white/55 leading-relaxed flex-1 line-clamp-3">{pitch}</p>
+          <p className="text-[11.5px] text-white/72 leading-relaxed flex-1 line-clamp-4">{pitch}</p>
         ) : (
-          <p className="text-[11px] text-white/35 leading-relaxed flex-1">
+          <p className="text-[11.5px] text-white/40 leading-relaxed flex-1">
             Kritischer Skill für den Karriereschritt zum {targetJob}.
           </p>
         )}
@@ -415,13 +479,13 @@ function SkillTile({
           <span className="text-[9px] text-white/30 font-bold whitespace-nowrap">Impact {sev}/5</span>
         </div>
 
-        {/* Start CTA */}
+        {/* Start / unlock CTA */}
         <button
           className="mt-1 w-full py-2 rounded-xl text-[11px] font-black flex items-center justify-center gap-1.5 transition-all duration-150 group-hover/tile:gap-2"
           style={{
-            background: isLocked ? 'rgba(255,255,255,0.05)' : `${p.color}18`,
-            border: isLocked ? '1px solid rgba(255,255,255,0.10)' : `1px solid ${p.border}`,
-            color: isLocked ? 'rgba(255,255,255,0.40)' : p.color,
+            background: isLocked ? `${p.color}18` : 'rgba(34,197,94,0.16)',
+            border: isLocked ? `1px solid ${p.border}` : '1px solid rgba(34,197,94,0.35)',
+            color: isLocked ? p.color : '#4ade80',
           }}
           onClick={(e) => { e.stopPropagation(); onStart(); }}
         >
@@ -466,8 +530,8 @@ function SkillRow({
     <div className="overflow-hidden transition-all duration-300 group/row"
       style={{
         borderRadius: '14px',
-        border: `1px solid ${open ? p.color + '40' : 'rgba(255,255,255,0.07)'}`,
-        background: open ? p.bg : 'rgba(255,255,255,0.015)',
+        border: `1px solid ${open ? p.color + '40' : isLocked ? 'rgba(255,255,255,0.07)' : 'rgba(34,197,94,0.22)'}`,
+        background: open ? p.bg : isLocked ? 'rgba(255,255,255,0.015)' : 'rgba(34,197,94,0.05)',
       }}>
       <button className="w-full flex items-center gap-3 px-4 py-3.5 text-left"
         onClick={() => setOpen((v) => !v)}>
@@ -482,7 +546,13 @@ function SkillRow({
               style={{ background: 'rgba(255,255,255,0.05)', color: 'rgba(255,255,255,0.35)' }}>
               <CatIcon size={8} />{cat}
             </span>
-            {isFirst && (
+            {!isLocked && (
+              <span className="flex items-center gap-0.5 text-[9px] font-black uppercase tracking-widest px-1.5 py-0.5 rounded"
+                style={{ background: 'rgba(34,197,94,0.14)', color: '#4ade80', border: '1px solid rgba(34,197,94,0.3)' }}>
+                <Check size={8} />Frei
+              </span>
+            )}
+            {isFirst && isLocked && (
               <span className="text-[9px] font-black uppercase tracking-widest px-1.5 py-0.5 rounded"
                 style={{ background: p.color, color: '#000' }}>
                 Einstieg
@@ -490,7 +560,7 @@ function SkillRow({
             )}
           </div>
           {pitch && !open && (
-            <p className="text-[11px] text-white/40 mt-0.5 truncate">{pitch}</p>
+            <p className="text-[11px] text-white/50 mt-0.5 line-clamp-2 leading-snug">{pitch}</p>
           )}
         </div>
         <div className="flex items-center gap-2 flex-shrink-0">
@@ -514,7 +584,7 @@ function SkillRow({
       <div className="overflow-hidden transition-all duration-300"
         style={{ maxHeight: open ? '320px' : '0', opacity: open ? 1 : 0 }}>
         <div className="px-4 pb-4 space-y-3 border-t" style={{ borderColor: `${p.color}15` }}>
-          {pitch && <p className="text-[12px] text-white/65 leading-relaxed pt-3">{pitch}</p>}
+          {pitch && <p className="text-[12px] text-white/70 leading-relaxed pt-3">{pitch}</p>}
           <div className="grid grid-cols-2 gap-2">
             <div className="rounded-xl p-3 space-y-1" style={{ background: 'rgba(239,68,68,0.06)', border: '1px solid rgba(239,68,68,0.15)' }}>
               <div className="flex items-center gap-1.5">
@@ -546,9 +616,9 @@ function SkillRow({
               onClick={(e) => { e.stopPropagation(); onStart(); }}
               className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[11px] font-black transition-all hover:scale-105"
               style={{
-                background: isLocked ? 'rgba(255,255,255,0.05)' : `${p.color}18`,
-                border: isLocked ? '1px solid rgba(255,255,255,0.10)' : `1px solid ${p.border}`,
-                color: isLocked ? 'rgba(255,255,255,0.45)' : p.color,
+                background: isLocked ? `${p.color}18` : 'rgba(34,197,94,0.16)',
+                border: isLocked ? `1px solid ${p.border}` : '1px solid rgba(34,197,94,0.35)',
+                color: isLocked ? p.color : '#4ade80',
               }}
             >
               {isLocked ? <><Lock size={10} />Freischalten</> : <><PlayCircle size={10} />Jetzt starten</>}
@@ -574,23 +644,47 @@ function CompactCard({ learningPath, onStartLearning }: Omit<CareerVisionCardPro
   const navigate = useNavigate();
   const [showPaywall, setShowPaywall] = useState(false);
   const [showModal, setShowModal] = useState(false);
-  const [localPaid, setLocalPaid] = useState(learningPath.is_paid);
   const [pendingSkill, setPendingSkill] = useState<string | undefined>(undefined);
+
+  // analysis_id der Skill-Zeilen = id der Analyse-Zeile. Falls learningPath
+  // selbst schon eine Skill-Zeile wäre, auf deren Eltern zurückfallen.
+  const analysisId = (learningPath as any).analysis_id ?? learningPath.id;
+  const { paidRowFor } = useSkillPaths(analysisId);
 
   const missing      = toSkillArray(learningPath.missing_skills);
   const sorted       = [...missing].sort((a, b) => severityOf(b) - severityOf(a));
   const topSkills    = sorted.slice(0, 4);
   const score        = learningPath.match_score ?? 0;
   const outlook      = learningPath.strategic_outlook_2026 ?? (learningPath as any).market_trend_2026 ?? '';
-  const isPaidOrFree = localPaid || !!learningPath.curriculum;
+  // Rückwärtskompatibel: eine (alt) direkt bezahlte Analyse-Zeile schaltet noch alles frei.
+  const analysisUnlocked = learningPath.is_paid || !!learningPath.curriculum;
   const accentColor  = sorted[0] ? paletteOf(severityOf(sorted[0])).color : '#30E3CA';
 
-  const handleCta = (skillIdx?: number) => {
-    if (isPaidOrFree) onStartLearning?.(skillIdx);
-    else {
-      setPendingSkill(skillIdx !== undefined ? sorted[skillIdx]?.name : undefined);
-      setShowPaywall(true);
-    }
+  const isSkillUnlocked = (name: string) => analysisUnlocked || !!paidRowFor(name);
+  const allTopUnlocked  = topSkills.length > 0 && topSkills.every((s) => isSkillUnlocked(skillName(s)));
+
+  /** Einen freigeschalteten Skill starten → auf dessen Skill-Pfad-Warteseite. */
+  const goToSkill = (name: string) => {
+    const paid = paidRowFor(name);
+    if (paid?.id) { navigate(`/learning-path-waiting/${paid.id}`); return; }
+    // analysisUnlocked ohne separate Zeile: Fallback auf Analyse-Pfad.
+    if (onStartLearning) onStartLearning();
+    else navigate(`/learning-path/${learningPath.id}`);
+  };
+
+  const handleTileCta = (skillIdx: number) => {
+    const skill = sorted[skillIdx];
+    const name = skill ? skillName(skill) : undefined;
+    if (!name) return;
+    if (isSkillUnlocked(name)) { goToSkill(name); return; }
+    setPendingSkill(name);
+    setShowPaywall(true);
+  };
+
+  const handleMainCta = () => {
+    if (allTopUnlocked && topSkills[0]) { goToSkill(skillName(topSkills[0])); return; }
+    setPendingSkill(undefined);
+    setShowPaywall(true);
   };
 
   return (
@@ -666,8 +760,8 @@ function CompactCard({ learningPath, onStartLearning }: Omit<CareerVisionCardPro
                     skill={skill}
                     index={i}
                     targetJob={learningPath.target_job}
-                    onStart={() => handleCta(i)}
-                    isLocked={!isPaidOrFree}
+                    onStart={() => handleTileCta(i)}
+                    isLocked={!isSkillUnlocked(skillName(skill))}
                   />
                 ))}
               </div>
@@ -691,13 +785,13 @@ function CompactCard({ learningPath, onStartLearning }: Omit<CareerVisionCardPro
 
           {/* Main CTA */}
           <button
-            onClick={(e) => { e.stopPropagation(); handleCta(); }}
+            onClick={(e) => { e.stopPropagation(); handleMainCta(); }}
             className="group/btn relative w-full py-3.5 rounded-xl font-black text-[14px] text-black flex items-center justify-center gap-2.5 overflow-hidden transition-all duration-200 hover:scale-[1.015] active:scale-[0.98]"
-            style={{ background: `linear-gradient(135deg,${accentColor},${SKILL_PALETTE[1].color})` }}
+            style={{ background: allTopUnlocked ? 'linear-gradient(135deg,#22c55e,#4ade80)' : `linear-gradient(135deg,${accentColor},${SKILL_PALETTE[1].color})` }}
           >
             <div className="absolute inset-0 pointer-events-none"
               style={{ background: 'linear-gradient(90deg,transparent,rgba(255,255,255,0.14),transparent)', backgroundSize: '200% 100%', animation: 'cvShimmerC 2.5s ease-in-out infinite' }} />
-            {isPaidOrFree
+            {allTopUnlocked
               ? <><Trophy size={15} className="relative z-10" /><span className="relative z-10">Alle Lernpfade starten</span><ArrowRight size={14} className="relative z-10 group-hover/btn:translate-x-0.5 transition-transform" /></>
               : <><Lock size={15} className="relative z-10" /><span className="relative z-10">Lernpfade freischalten</span><ArrowRight size={14} className="relative z-10 group-hover/btn:translate-x-0.5 transition-transform" /></>
             }
@@ -711,16 +805,15 @@ function CompactCard({ learningPath, onStartLearning }: Omit<CareerVisionCardPro
       {showModal && (
         <SkillsOverviewModal
           learningPath={learningPath}
+          paidRowFor={paidRowFor}
           onClose={() => setShowModal(false)}
           onStartLearning={(skill) => {
             setShowModal(false);
-            if (isPaidOrFree) {
-              if (onStartLearning) onStartLearning();
-              else navigate(`/learning-path/${learningPath.id}`);
-            } else {
-              setPendingSkill(skill);
-              setShowPaywall(true);
-            }
+            const name = skill;
+            if (name && isSkillUnlocked(name)) { goToSkill(name); return; }
+            if (!name && allTopUnlocked && topSkills[0]) { goToSkill(skillName(topSkills[0])); return; }
+            setPendingSkill(name);
+            setShowPaywall(true);
           }}
         />
       )}
@@ -729,11 +822,12 @@ function CompactCard({ learningPath, onStartLearning }: Omit<CareerVisionCardPro
         <LearningPathPaywall
           isOpen
           onClose={() => setShowPaywall(false)}
-          learningPathId={learningPath.id}
+          analysisPathId={analysisId}
           targetJob={learningPath.target_job}
           targetCompany={learningPath.target_company}
           skillCount={sorted.length}
           selectedSkill={pendingSkill}
+          missingSkills={sorted as any}
         />
       )}
     </>
@@ -743,9 +837,12 @@ function CompactCard({ learningPath, onStartLearning }: Omit<CareerVisionCardPro
 // ── DETAIL variant ─────────────────────────────────────────────────────────────
 
 function DetailCard({ learningPath, onStartLearning }: Omit<CareerVisionCardProps, 'variant'>) {
+  const navigate = useNavigate();
   const [showPaywall, setShowPaywall] = useState(false);
-  const [localPaid, setLocalPaid] = useState(learningPath.is_paid);
   const [pendingSkill, setPendingSkill] = useState<string | undefined>(undefined);
+
+  const analysisId = (learningPath as any).analysis_id ?? learningPath.id;
+  const { paidRowFor } = useSkillPaths(analysisId);
 
   const missing      = toSkillArray(learningPath.missing_skills);
   const current      = toSkillArray(learningPath.current_skills ?? []);
@@ -753,16 +850,26 @@ function DetailCard({ learningPath, onStartLearning }: Omit<CareerVisionCardProp
   const topSkill     = sorted[0];
   const score        = learningPath.match_score ?? 0;
   const outlook      = learningPath.strategic_outlook_2026 ?? (learningPath as any).market_trend_2026 ?? '';
-  const isPaidOrFree = localPaid || !!learningPath.curriculum;
+  const analysisUnlocked = learningPath.is_paid || !!learningPath.curriculum;
   const highCount    = sorted.filter((s) => severityOf(s) >= 4).length;
   const accentColor  = sorted[0] ? paletteOf(severityOf(sorted[0])).color : '#30E3CA';
 
+  const isSkillUnlocked = (name: string) => analysisUnlocked || !!paidRowFor(name);
+  const allUnlocked     = sorted.length > 0 && sorted.every((s) => isSkillUnlocked(skillName(s)));
+
+  const goToSkill = (name: string) => {
+    const paid = paidRowFor(name);
+    if (paid?.id) { navigate(`/learning-path-waiting/${paid.id}`); return; }
+    if (onStartLearning) onStartLearning();
+    else navigate(`/learning-path/${learningPath.id}`);
+  };
+
   const handleCta = (skillIdx?: number) => {
-    if (isPaidOrFree) onStartLearning?.(skillIdx);
-    else {
-      setPendingSkill(skillIdx !== undefined ? sorted[skillIdx]?.name : undefined);
-      setShowPaywall(true);
-    }
+    const skill = skillIdx !== undefined ? sorted[skillIdx] : sorted[0];
+    const name = skill ? skillName(skill) : undefined;
+    if (name && isSkillUnlocked(name)) { goToSkill(name); return; }
+    setPendingSkill(name);
+    setShowPaywall(true);
   };
 
   // Split skills by category for visual grouping
@@ -863,7 +970,7 @@ function DetailCard({ learningPath, onStartLearning }: Omit<CareerVisionCardProp
                       targetCompany={learningPath.target_company}
                       isFirst={sorted.indexOf(skill) === 0}
                       onStart={() => handleCta(sorted.indexOf(skill))}
-                      isLocked={!isPaidOrFree}
+                      isLocked={!isSkillUnlocked(skillName(skill))}
                     />
                   ))}
                 </div>
@@ -887,7 +994,7 @@ function DetailCard({ learningPath, onStartLearning }: Omit<CareerVisionCardProp
                       targetCompany={learningPath.target_company}
                       isFirst={false}
                       onStart={() => handleCta(sorted.indexOf(skill))}
-                      isLocked={!isPaidOrFree}
+                      isLocked={!isSkillUnlocked(skillName(skill))}
                     />
                   ))}
                 </div>
@@ -959,11 +1066,11 @@ function DetailCard({ learningPath, onStartLearning }: Omit<CareerVisionCardProp
             <button
               onClick={() => handleCta()}
               className="group/cta relative w-full py-4 rounded-xl font-black text-[15px] text-black flex items-center justify-center gap-3 overflow-hidden transition-all duration-200 hover:scale-[1.015] active:scale-[0.98]"
-              style={{ background: `linear-gradient(135deg,${accentColor},${SKILL_PALETTE[1].color})`, animation: 'cvCTApulseD 2.5s ease-in-out infinite' }}
+              style={{ background: allUnlocked ? 'linear-gradient(135deg,#22c55e,#4ade80)' : `linear-gradient(135deg,${accentColor},${SKILL_PALETTE[1].color})`, animation: 'cvCTApulseD 2.5s ease-in-out infinite' }}
             >
               <div className="absolute inset-0 pointer-events-none"
                 style={{ background: 'linear-gradient(90deg,transparent,rgba(255,255,255,0.15),transparent)', backgroundSize: '200% 100%', animation: 'cvShimmerD 2.2s ease-in-out infinite' }} />
-              {isPaidOrFree
+              {allUnlocked
                 ? <><Sparkles size={17} className="relative z-10" /><span className="relative z-10">Alle Lernpfade starten</span><ArrowRight size={17} className="relative z-10 group-hover/cta:translate-x-1 transition-transform" /></>
                 : <><Lock size={17} className="relative z-10" /><span className="relative z-10">Lernpfade freischalten</span><ArrowRight size={17} className="relative z-10 group-hover/cta:translate-x-1 transition-transform" /></>
               }
@@ -981,11 +1088,12 @@ function DetailCard({ learningPath, onStartLearning }: Omit<CareerVisionCardProp
         <LearningPathPaywall
           isOpen
           onClose={() => setShowPaywall(false)}
-          learningPathId={learningPath.id}
+          analysisPathId={analysisId}
           targetJob={learningPath.target_job}
           targetCompany={learningPath.target_company}
           skillCount={sorted.length}
           selectedSkill={pendingSkill}
+          missingSkills={sorted as any}
         />
       )}
     </>
