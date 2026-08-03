@@ -748,6 +748,8 @@ body: JSON.stringify({
             ...(bpTeam ? { bierpong_team_name: bpTeam } : {}),
             ...(bpPartner ? { bierpong_partner_name: bpPartner } : {}),
           }),
+signal: controller.signal,
+        });
 
         clearTimeout(timeoutId);
 
