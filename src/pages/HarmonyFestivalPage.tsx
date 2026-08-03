@@ -597,6 +597,7 @@ export default function HarmonyFestivalPage() {
   const [cancelledHint, setCancelledHint] = useState(false);
   const [showThankYou, setShowThankYou] = useState(false);
   const [showSupportPopup, setShowSupportPopup] = useState(false);
+  const [showShirtThankYou, setShowShirtThankYou] = useState(false);
   const [supportSessionId, setSupportSessionId] = useState<string | undefined>(undefined);
 
   const [quantities, setQuantities] = useState<Record<string, number>>(
@@ -869,7 +870,20 @@ signal: controller.signal,
       return () => clearTimeout(t);
     }
   }, [payStatus, user]);
-
+// Soli-Shirt-Rückkehr: shirt_success=1 wird aus dem HASH gelesen (nicht aus
+  // window.location.search — bei HashRouter stehen Query-Params hinter dem #).
+  useEffect(() => {
+    const hash = window.location.hash; // z.B. "#/festival?shirt_success=1&session_id=..."
+    const qIndex = hash.indexOf('?');
+    if (qIndex === -1) return;
+    const params = new URLSearchParams(hash.substring(qIndex + 1));
+    if (params.get('shirt_success') === '1') {
+      setShowShirtThankYou(true);
+      // Param entfernen, damit das Popup bei Reload nicht erneut erscheint
+      const cleanHash = hash.split('?')[0];
+      window.history.replaceState(null, '', window.location.pathname + cleanHash);
+    }
+  }, []);
   const CDUnit = ({ value, label }: { value: number; label: string }) => (
     <div className="flex flex-col items-center">
       <div style={{ minWidth: '72px', textAlign: 'center', overflow: 'hidden' }}>
@@ -3222,6 +3236,83 @@ signal: controller.signal,
               <button onClick={() => setShowThankYou(false)}
                 className="absolute top-4 right-4 w-8 h-8 flex items-center justify-center rounded-lg transition-opacity hover:opacity-60"
                 style={{ color: 'rgba(160,230,230,0.45)', background: 'rgba(0,212,212,0.06)' }}>
+                <X className="w-4 h-4" />
+              </button>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+        {/* ── SOLI-SHIRT DANKE POPUP ───────────────────────────────── */}
+      <AnimatePresence>
+        {showShirtThankYou && (
+          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+            className="fixed inset-0 z-50 flex items-center justify-center p-4"
+            style={{ background: 'rgba(10,4,4,0.88)', backdropFilter: 'blur(16px)' }}
+            onClick={() => setShowShirtThankYou(false)}>
+            <motion.div
+              initial={{ scale: 0.88, opacity: 0, y: 30 }}
+              animate={{ scale: 1, opacity: 1, y: 0 }}
+              exit={{ scale: 0.88, opacity: 0, y: 30 }}
+              transition={{ duration: 0.38, ease: [0.22, 1, 0.36, 1] }}
+              onClick={(e) => e.stopPropagation()}
+              className="relative w-full max-w-lg rounded-3xl overflow-hidden text-center"
+              style={{
+                background: 'rgba(22,6,6,0.99)',
+                border: '1px solid rgba(220,50,50,0.3)',
+                boxShadow: '0 0 0 1px rgba(220,50,50,0.08), 0 40px 100px rgba(0,0,0,0.8), 0 0 100px rgba(220,50,50,0.12)',
+              }}>
+              <div className="absolute inset-x-0 top-0 h-0.5"
+                style={{ background: 'linear-gradient(to right, transparent, #dc3232, transparent)' }} />
+              <div className="absolute inset-x-0 top-0 h-48 pointer-events-none"
+                style={{ background: 'radial-gradient(ellipse 70% 100% at 50% 0%, rgba(220,50,50,0.15) 0%, transparent 100%)' }} />
+
+              <div className="relative z-10 px-8 pt-10 pb-9">
+                <motion.div
+                  initial={{ scale: 0, rotate: -20 }}
+                  animate={{ scale: 1, rotate: 0 }}
+                  transition={{ delay: 0.15, duration: 0.5, type: 'spring', stiffness: 220, damping: 16 }}
+                  className="w-20 h-20 rounded-full flex items-center justify-center mx-auto mb-7"
+                  style={{ background: 'radial-gradient(circle, rgba(220,50,50,0.22) 0%, rgba(220,50,50,0.06) 100%)', border: '2px solid rgba(220,50,50,0.4)' }}>
+                  <Heart className="w-9 h-9" style={{ color: '#dc3232' }} />
+                </motion.div>
+
+                <div style={{ fontFamily: "'Inter', sans-serif", fontSize: '11px', fontWeight: 700, letterSpacing: '0.28em', textTransform: 'uppercase', color: '#dc3232', opacity: 0.7, marginBottom: '10px' }}>
+                  Zahlung erfolgreich
+                </div>
+
+                <h2 className="graffiti" style={{ fontSize: 'clamp(30px, 6vw, 48px)', color: '#ffffff', lineHeight: 0.95, marginBottom: '18px' }}>
+                  Danke für<br /><span style={{ color: '#dc3232', textShadow: '0 0 30px rgba(220,50,50,0.6)' }}>deine Haltung!</span>
+                </h2>
+
+                <p style={{ fontFamily: "'Inter', sans-serif", fontSize: '15px', color: 'rgba(230,190,190,0.65)', lineHeight: 1.75, maxWidth: '400px', margin: '0 auto 28px' }}>
+                  Mit deinem Soli-Shirt unterstützt du direkt <strong style={{ color: 'rgba(255,210,210,0.9)', fontWeight: 600 }}>KeinBockAufNazis e.V.</strong> — 100 % des Gewinns gehen an den Verein. Kein Cent bleibt bei mir. Das ist gelebte Solidarität.
+                </p>
+
+                <div className="flex items-center gap-3 px-5 py-4 rounded-2xl mb-8"
+                  style={{ background: 'rgba(220,50,50,0.07)', border: '1px solid rgba(220,50,50,0.18)' }}>
+                  <Sparkles className="w-5 h-5 flex-shrink-0" style={{ color: '#dc3232' }} />
+                  <p style={{ fontFamily: "'Inter', sans-serif", fontSize: '13px', color: 'rgba(230,190,190,0.75)', lineHeight: 1.6, textAlign: 'left' }}>
+                    Dein Shirt wird am Festival verteilt (Versand möglich). Wir melden uns wegen deiner gewählten Größe — danke, dass du Haltung zeigst.
+                  </p>
+                </div>
+
+                <motion.button whileHover={{ scale: 1.03 }} whileTap={{ scale: 0.97 }}
+                  onClick={() => setShowShirtThankYou(false)}
+                  className="w-full flex items-center justify-center gap-2.5 py-3.5 rounded-2xl"
+                  style={{
+                    background: 'linear-gradient(90deg, #dc3232 0%, #b02020 100%)',
+                    color: '#fff',
+                    fontFamily: "'Bebas Neue', sans-serif",
+                    fontSize: '18px', letterSpacing: '0.18em',
+                    boxShadow: '0 4px 28px rgba(220,50,50,0.3)',
+                  }}>
+                  <Heart className="w-5 h-5" /> Gemeinsam gegen Rechts
+                </motion.button>
+              </div>
+
+              <button onClick={() => setShowShirtThankYou(false)}
+                className="absolute top-4 right-4 w-8 h-8 flex items-center justify-center rounded-lg transition-opacity hover:opacity-60"
+                style={{ color: 'rgba(230,180,180,0.45)', background: 'rgba(220,50,50,0.08)' }}>
                 <X className="w-4 h-4" />
               </button>
             </motion.div>
