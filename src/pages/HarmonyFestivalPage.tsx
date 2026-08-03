@@ -725,7 +725,7 @@ let authToken = anonKey;
             'Authorization': `Bearer ${authToken}`,
             'apikey': anonKey,
           },
-          body: JSON.stringify({
+body: JSON.stringify({
             price_id: ticket.priceId,
             quantity,
             success_url: ticket.id === 'support'
@@ -735,15 +735,20 @@ let authToken = anonKey;
               : `${window.location.origin}/#/festival-success?session_id={CHECKOUT_SESSION_ID}&type=${ticket.id}`,
             cancel_url: `${window.location.origin}/#/festival?payment=cancelled`,
             mode: 'payment',
-            metadata: { ticket_type: ticket.id },
+            // WICHTIG: shirt_size MUSS in metadata liegen. Die stripe-checkout-Function
+            // liest nur ausgewählte Top-Level-Felder aus (price_id, buyer_name,
+            // bierpong_*, user_id, quantity) und verwirft alles andere — u.a. ein
+            // Top-Level-shirt_size. Nur was in metadata steht, wird per {...metadata}
+            // an Stripe durchgereicht und ist später im Webhook lesbar.
+            metadata: {
+              ticket_type: ticket.id,
+              ...(shirtSize ? { shirt_size: shirtSize } : {}),
+            },
             ...(user?.id ? { user_id: user.id } : {}),
             buyer_name: name,
             ...(bpTeam ? { bierpong_team_name: bpTeam } : {}),
             ...(bpPartner ? { bierpong_partner_name: bpPartner } : {}),
-            ...(shirtSize ? { shirt_size: shirtSize } : {}),
           }),
-          signal: controller.signal,
-        });
 
         clearTimeout(timeoutId);
 
