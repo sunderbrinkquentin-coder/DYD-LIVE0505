@@ -24,13 +24,14 @@ function hasRealContent(value: unknown): boolean {
 }
 
 // ── Progress stages ─────────────────────────────────────────────────────────────
+// Bleiben inhaltlich wie gehabt — sie sind die Stationen der Route.
 
 const STAGES = [
-  { id: 'gap',       icon: '🔍', label: 'Skill-Gaps analysieren',   sublabel: 'Kritische Lernbereiche werden identifiziert', color: '#38bdf8', durationShare: 0.18 },
-  { id: 'modules',   icon: '📚', label: 'Module strukturieren',     sublabel: 'Lerneinheiten nach Priorität ordnen',         color: '#30E3CA', durationShare: 0.20 },
-  { id: 'resources', icon: '🎯', label: 'Ressourcen kuratieren',    sublabel: 'Hochwertige Kurse & Materialien auswählen',   color: '#22d3ee', durationShare: 0.22 },
-  { id: 'timeline',  icon: '📅', label: 'Zeitplan erstellen',       sublabel: 'Realistischer Plan für dein Tempo',           color: '#66c0b6', durationShare: 0.20 },
-  { id: 'cert',      icon: '🏆', label: 'Zertifikat vorbereiten',   sublabel: 'Deine Leistung wird dokumentiert',            color: '#4ade80', durationShare: 0.20 },
+  { id: 'gap',       label: 'Skill-Gaps analysieren',   sublabel: 'Wir finden deine wichtigsten Lernbereiche',   durationShare: 0.18 },
+  { id: 'modules',   label: 'Module strukturieren',     sublabel: 'Lerneinheiten werden nach Priorität geordnet', durationShare: 0.20 },
+  { id: 'resources', label: 'Ressourcen kuratieren',    sublabel: 'Passende Kurse & Materialien werden gewählt',  durationShare: 0.22 },
+  { id: 'timeline',  label: 'Zeitplan erstellen',       sublabel: 'Ein realistischer Plan für dein Tempo',        durationShare: 0.20 },
+  { id: 'cert',      label: 'Zertifikat vorbereiten',   sublabel: 'Deine Leistung wird dokumentiert',             durationShare: 0.20 },
 ];
 
 const QUOTES = [
@@ -41,48 +42,70 @@ const QUOTES = [
   { text: 'Dein nächster Job wartet nicht auf dich — er wartet auf die Version von dir, die du gerade baust.', author: 'Decide your Dream' },
 ];
 
-// ── UI-Helfer ────────────────────────────────────────────────────────────────────
+// Ein Akzent, konsequent durchgezogen (CLT: keine fünf konkurrierenden Farben).
+const ACCENT = '#30E3CA';
+const DONE = '#22c55e';
 
-function SmoothBar({ progress, color }: { progress: number; color: string }) {
-  return (
-    <div className="h-1.5 rounded-full overflow-hidden" style={{ background: 'rgba(255,255,255,0.08)' }}>
-      <div className="h-full rounded-full transition-all duration-700 ease-out"
-        style={{ width: `${progress}%`, background: `linear-gradient(90deg,${color}90,${color})`, boxShadow: `0 0 8px ${color}60` }} />
-    </div>
-  );
-}
+// ── Signatur: die Route ─────────────────────────────────────────────────────────
+//
+// Eine Station der sich zeichnenden Strecke. Der Konnektor NACH einem erledigten
+// Knoten ist durchgezogen (die Route ist bis hierher „gebaut"), sonst gedämpft.
+// Genau EIN Element trägt Fortschritt + Schritte + Blickfang — das ist die
+// CLT-Reduktion gegenüber Spinner + Balken + fünf Animationszeilen.
 
-function StageRow({ stage, state }: { stage: typeof STAGES[number]; state: 'done' | 'active' | 'pending' }) {
+function RouteStep({
+  stage, state, isLast, allDone,
+}: {
+  stage: typeof STAGES[number];
+  state: 'done' | 'active' | 'pending';
+  isLast: boolean;
+  allDone: boolean;
+}) {
+  const nodeColor = state === 'pending' ? 'rgba(255,255,255,0.14)' : (allDone ? DONE : (state === 'done' ? DONE : ACCENT));
+  const connectorFilled = state === 'done' || allDone;
+
   return (
-    <div className="flex items-center gap-4 py-3 px-4 rounded-2xl transition-all duration-500"
-      style={{
-        background: state === 'active' ? `linear-gradient(135deg,${stage.color}0f,rgba(0,0,0,0))` : state === 'done' ? 'rgba(255,255,255,0.02)' : 'transparent',
-        border: state === 'active' ? `1px solid ${stage.color}30` : '1px solid transparent',
-        opacity: state === 'pending' ? 0.3 : 1,
-      }}>
-      <div className="w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0 text-lg transition-all duration-500"
-        style={{
-          background: state === 'done' ? 'rgba(34,197,94,0.12)' : state === 'active' ? `${stage.color}18` : 'rgba(255,255,255,0.04)',
-          border: state === 'done' ? '1px solid rgba(34,197,94,0.3)' : state === 'active' ? `1px solid ${stage.color}40` : '1px solid rgba(255,255,255,0.07)',
-        }}>
-        {state === 'done'
-          ? <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><polyline points="3,8 6.5,11.5 13,5" stroke="#22c55e" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" /></svg>
-          : <span style={{ filter: state === 'pending' ? 'grayscale(1)' : 'none' }}>{stage.icon}</span>}
+    <div className="flex gap-4">
+      {/* Route-Spalte: Knoten + Konnektor */}
+      <div className="flex flex-col items-center flex-shrink-0" style={{ width: 24 }}>
+        <div
+          className="relative flex items-center justify-center rounded-full transition-all duration-500"
+          style={{
+            width: 24, height: 24,
+            background: state === 'pending' ? 'transparent' : `${nodeColor}1f`,
+            border: `1.5px solid ${nodeColor}`,
+            boxShadow: state === 'active' ? `0 0 0 4px ${ACCENT}14` : 'none',
+          }}
+        >
+          {(state === 'done' || allDone) ? (
+            <svg width="11" height="11" viewBox="0 0 12 12" aria-hidden>
+              <polyline points="2,6.5 5,9.5 10,3.5" fill="none" stroke={DONE} strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
+            </svg>
+          ) : state === 'active' ? (
+            <span className="lpw-pulse rounded-full" style={{ width: 8, height: 8, background: ACCENT }} />
+          ) : (
+            <span className="rounded-full" style={{ width: 5, height: 5, background: 'rgba(255,255,255,0.25)' }} />
+          )}
+        </div>
+
+        {!isLast && (
+          <div className="flex-1 w-px my-1 rounded-full transition-all duration-700" style={{ minHeight: 26, background: connectorFilled ? DONE : 'rgba(255,255,255,0.10)' }} />
+        )}
       </div>
-      <div className="flex-1 min-w-0">
-        <p className="text-sm font-black leading-snug"
-          style={{ color: state === 'done' ? 'rgba(255,255,255,0.35)' : state === 'active' ? '#fff' : 'rgba(255,255,255,0.3)', textDecoration: state === 'done' ? 'line-through' : 'none' }}>
+
+      {/* Label */}
+      <div className={`pb-6 min-w-0 transition-opacity duration-500 ${state === 'pending' ? 'opacity-40' : 'opacity-100'}`}>
+        <p
+          className="text-[15px] font-bold leading-snug transition-colors duration-500"
+          style={{ color: state === 'active' ? '#ffffff' : (state === 'done' || allDone) ? 'rgba(255,255,255,0.55)' : 'rgba(255,255,255,0.6)' }}
+        >
           {stage.label}
         </p>
-        {state === 'active' && <p className="text-[11px] mt-0.5" style={{ color: `${stage.color}90` }}>{stage.sublabel}</p>}
+        {/* Sublabel nur beim aktiven Schritt — CLT: nicht fünf Erklärzeilen gleichzeitig */}
+        {state === 'active' && !allDone && (
+          <p className="text-[12.5px] mt-1 leading-relaxed" style={{ color: `${ACCENT}cc` }}>{stage.sublabel}</p>
+        )}
       </div>
-      {state === 'active' && (
-        <div className="flex-shrink-0 flex items-center gap-1.5">
-          <div className="w-1.5 h-1.5 rounded-full" style={{ background: stage.color, animation: 'lpw2_pulse 1.2s ease-in-out infinite' }} />
-          <span className="text-[10px] font-black uppercase tracking-widest" style={{ color: stage.color }}>Aktiv</span>
-        </div>
-      )}
-      {state === 'done' && <span className="flex-shrink-0 text-[9px] font-black uppercase tracking-widest text-green-400/50">Fertig</span>}
     </div>
   );
 }
@@ -371,55 +394,59 @@ export default function LearningPathWaitingPage() {
   const quote = QUOTES[quoteIdx];
   const isDone = phase === 'done';
   const displayProgress = isDone ? 100 : Math.round(Math.min(progress, 95));
-  const activeStage = STAGES[activeStageIdx] ?? STAGES[STAGES.length - 1];
 
   // ── Render ─────────────────────────────────────────────────────────────────
 
   return (
-    <div className="min-h-screen text-white" style={{ background: 'linear-gradient(155deg,#05080f 0%,#080d18 55%,#060910 100%)' }}>
+    <div className="min-h-screen text-white" style={{ background: 'radial-gradient(120% 80% at 50% -10%, #0a1420 0%, #070d16 45%, #05080f 100%)' }}>
       <style>{`
-        @keyframes lpw2_up    { from { opacity:0; transform:translateY(16px); } to { opacity:1; transform:translateY(0); } }
-        @keyframes lpw2_in    { from { opacity:0; } to { opacity:1; } }
-        @keyframes lpw2_pulse { 0%,100%{opacity:1;} 50%{opacity:0.35;} }
-        @keyframes lpw2_pop   { 0%{transform:scale(0.7);opacity:0;} 70%{transform:scale(1.08);} 100%{transform:scale(1);opacity:1;} }
+        @keyframes lpw_up   { from { opacity:0; transform:translateY(14px); } to { opacity:1; transform:translateY(0); } }
+        @keyframes lpw_in   { from { opacity:0; } to { opacity:1; } }
+        @keyframes lpw_pulse{ 0%,100% { transform:scale(1); opacity:1; } 50% { transform:scale(0.55); opacity:0.55; } }
+        @keyframes lpw_pop  { 0% { transform:scale(0.72); opacity:0; } 70% { transform:scale(1.06); } 100% { transform:scale(1); opacity:1; } }
+        .lpw-pulse { animation: lpw_pulse 1.5s ease-in-out infinite; }
+        @media (prefers-reduced-motion: reduce) {
+          .lpw-pulse { animation: none; }
+          [data-lpw-animate] { animation: none !important; }
+        }
       `}</style>
 
+      {/* Ein einziger, sehr dezenter Ambient-Schimmer statt konkurrierender Orbs (CLT). */}
       <div className="fixed inset-0 pointer-events-none overflow-hidden">
-        <div className="absolute rounded-full opacity-[0.04]" style={{ width: 600, height: 600, background: 'radial-gradient(circle,#30E3CA,transparent)', top: -200, right: -100 }} />
-        <div className="absolute rounded-full opacity-[0.03]" style={{ width: 400, height: 400, background: 'radial-gradient(circle,#38bdf8,transparent)', bottom: -100, left: -80 }} />
+        <div className="absolute rounded-full" style={{ width: 520, height: 520, top: -180, left: '50%', transform: 'translateX(-50%)', background: `radial-gradient(circle, ${ACCENT}0f, transparent 70%)` }} />
       </div>
 
-      <div className="relative z-10 max-w-lg mx-auto px-4 py-10 sm:py-14 space-y-5">
+      <div className="relative z-10 max-w-md mx-auto px-5 py-12 sm:py-16">
 
+        {/* ── loading (kurzer Übergang) ── */}
         {phase === 'loading' && (
-          <div className="space-y-4" style={{ animation: 'lpw2_in 0.3s ease' }}>
-            {[80, 48, 240, 160].map((h, i) => (
-              <div key={i} className="rounded-2xl animate-pulse" style={{ height: h, background: 'rgba(255,255,255,0.04)' }} />
+          <div className="space-y-5" style={{ animation: 'lpw_in 0.3s ease' }}>
+            {[64, 220, 40].map((h, i) => (
+              <div key={i} data-lpw-animate className="rounded-2xl animate-pulse" style={{ height: h, background: 'rgba(255,255,255,0.04)' }} />
             ))}
           </div>
         )}
 
+        {/* ── error ── */}
         {phase === 'error' && (
-          <div style={{ animation: 'lpw2_up 0.4s ease' }} className="space-y-5">
-            <div className="text-center">
-              <p className="text-[10px] font-black uppercase tracking-[0.25em] text-white/25">Decide your Dream</p>
-            </div>
-            <div className="rounded-2xl overflow-hidden" style={{ border: '1px solid rgba(239,68,68,0.25)', background: 'rgba(239,68,68,0.05)' }}>
+          <div style={{ animation: 'lpw_up 0.4s ease' }} className="space-y-6">
+            <p className="text-[10px] font-black uppercase tracking-[0.28em] text-white/25 text-center">Decide your Dream</p>
+            <div className="rounded-2xl overflow-hidden" style={{ border: '1px solid rgba(239,68,68,0.22)', background: 'rgba(239,68,68,0.04)' }}>
               <div className="h-1" style={{ background: 'linear-gradient(90deg,#ef4444,#f97316)' }} />
-              <div className="p-6 space-y-4">
+              <div className="p-6 space-y-5">
                 <div className="flex items-start gap-3">
                   <div className="w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0" style={{ background: 'rgba(239,68,68,0.1)', border: '1px solid rgba(239,68,68,0.25)' }}>
                     <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#ef4444" strokeWidth="2" strokeLinecap="round"><circle cx="12" cy="12" r="10" /><line x1="12" y1="8" x2="12" y2="12" /><line x1="12" y1="16" x2="12.01" y2="16" /></svg>
                   </div>
                   <div>
-                    <h2 className="text-base font-black text-white">Fehler beim Erstellen</h2>
+                    <h2 className="text-base font-black text-white">Der Lernpfad konnte nicht erstellt werden</h2>
                     <p className="text-sm text-white/55 mt-1 leading-relaxed">{errorMsg}</p>
                   </div>
                 </div>
                 <div className="flex flex-col sm:flex-row gap-3">
                   <button onClick={handleRetry} disabled={retrying}
                     className="flex-1 py-3 rounded-xl font-black text-sm text-black flex items-center justify-center gap-2 transition-all hover:scale-[1.02] disabled:opacity-50"
-                    style={{ background: 'linear-gradient(135deg,#66c0b6,#30E3CA)' }}>
+                    style={{ background: `linear-gradient(135deg,#66c0b6,${ACCENT})` }}>
                     {retrying ? <><div className="w-4 h-4 rounded-full border-2 border-black/30 border-t-black animate-spin" />Wird wiederholt…</> : 'Erneut versuchen'}
                   </button>
                   <button onClick={() => navigate('/dashboard')}
@@ -429,7 +456,7 @@ export default function LearningPathWaitingPage() {
                   </button>
                 </div>
                 <p className="text-center text-[11px] text-white/25">
-                  Deine Zahlung war erfolgreich — der Lernpfad ist freigeschaltet.<br />
+                  Deine Zahlung war erfolgreich — der Lernpfad bleibt freigeschaltet.<br />
                   <a href="mailto:support@decideyourdream.de" className="underline text-[#66c0b6]/50 hover:text-[#66c0b6]">support@decideyourdream.de</a>
                 </p>
               </div>
@@ -437,119 +464,108 @@ export default function LearningPathWaitingPage() {
           </div>
         )}
 
+        {/* ── waiting / done ── */}
         {(phase === 'waiting' || phase === 'done') && (
-          <>
-            <div className="text-center" style={{ animation: 'lpw2_up 0.4s ease' }}>
-              <p className="text-[10px] font-black uppercase tracking-[0.25em] text-white/25">Decide your Dream</p>
-            </div>
+          <div className="space-y-9">
 
-            <div className="rounded-3xl overflow-hidden"
-              style={{
-                background: isDone ? 'linear-gradient(135deg,rgba(34,197,94,0.09),rgba(8,13,24,0.98))' : 'linear-gradient(135deg,rgba(48,227,202,0.07),rgba(8,13,24,0.98))',
-                border: isDone ? '1px solid rgba(34,197,94,0.25)' : `1px solid ${activeStage.color}30`,
-                animation: 'lpw2_up 0.5s ease', transition: 'border-color 0.6s ease, background 0.6s ease',
-              }}>
-              <div className="h-[3px] transition-all duration-700"
-                style={{ background: isDone ? 'linear-gradient(90deg,#22c55e,#4ade80)' : `linear-gradient(90deg,${activeStage.color},${activeStage.color}40,transparent)` }} />
-              <div className="p-6 space-y-5">
-                <div>
-                  {isDone ? (
-                    <div style={{ animation: 'lpw2_pop 0.5s ease' }}>
-                      <div className="flex items-center gap-2 mb-2">
-                        <div className="w-6 h-6 rounded-full flex items-center justify-center" style={{ background: 'rgba(34,197,94,0.15)', border: '1px solid rgba(34,197,94,0.3)' }}>
-                          <svg width="12" height="12" viewBox="0 0 12 12" fill="none"><polyline points="2,6 5,9 10,3" stroke="#22c55e" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" /></svg>
-                        </div>
-                        <span className="text-xs font-black uppercase tracking-widest text-green-400/70">Abgeschlossen</span>
-                      </div>
-                      <h1 className="text-2xl sm:text-3xl font-black text-white leading-tight">Dein Lernpfad ist bereit!</h1>
-                      <p className="text-sm text-white/45 mt-1.5">Lernpfad für <span className="font-black text-white/80">{targetJob}</span> wurde erstellt.</p>
-                    </div>
-                  ) : (
-                    <>
-                      <div className="flex items-center gap-2 mb-2">
-                        <div className="w-2 h-2 rounded-full" style={{ background: activeStage.color, animation: 'lpw2_pulse 1.4s ease-in-out infinite' }} />
-                        <span className="text-xs font-black uppercase tracking-widest" style={{ color: `${activeStage.color}80` }}>Wird erstellt</span>
-                      </div>
-                      <h1 className="text-2xl sm:text-3xl font-black text-white leading-tight">Lernpfad für <span style={{ color: activeStage.color }}>{targetJob}</span></h1>
-                      <p className="text-sm text-white/40 mt-1.5">Die KI analysiert deinen Skill-Gap und baut deinen persönlichen Plan.</p>
-                    </>
-                  )}
-                </div>
-
-                <div className="space-y-2">
-                  <div className="flex items-center justify-between text-xs">
-                    <span className="font-bold text-white/35">{isDone ? 'Fertiggestellt' : activeStage.label}</span>
-                    <span className="font-black tabular-nums" style={{ color: isDone ? '#22c55e' : activeStage.color }}>{displayProgress}%</span>
-                  </div>
-                  <SmoothBar progress={displayProgress} color={isDone ? '#22c55e' : activeStage.color} />
-                  {!isDone && <p className="text-[11px] text-white/25">Dauert ca. 3 Minuten — diese Seite aktualisiert sich automatisch.</p>}
-                </div>
-
-                {isDone && (
-                  <button onClick={() => navigate(`/learning-path/${pathId}`)}
-                    className="w-full py-4 rounded-2xl font-black text-base text-black flex items-center justify-center gap-3 transition-all hover:scale-[1.02] active:scale-[0.98]"
-                    style={{ background: 'linear-gradient(135deg,#22c55e,#4ade80)', boxShadow: '0 0 32px rgba(34,197,94,0.28)', animation: 'lpw2_pop 0.5s ease' }}>
-                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><polygon points="5,3 19,12 5,21 5,3" /></svg>
-                    Lernpfad starten — {targetJob}
-                  </button>
-                )}
+            {/* Kopf — ARCS Relevance: es geht um DEIN Ziel */}
+            <div className="text-center space-y-2.5" style={{ animation: 'lpw_up 0.4s ease' }}>
+              <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full"
+                style={{ background: isDone ? 'rgba(34,197,94,0.1)' : `${ACCENT}0f`, border: `1px solid ${isDone ? 'rgba(34,197,94,0.25)' : `${ACCENT}22`}` }}>
+                <span className="rounded-full lpw-pulse" style={{ width: 6, height: 6, background: isDone ? DONE : ACCENT }} />
+                <span className="text-[10px] font-black uppercase tracking-[0.2em]" style={{ color: isDone ? DONE : ACCENT }}>
+                  {isDone ? 'Fertig' : 'Wird erstellt'}
+                </span>
               </div>
+              <h1 className="text-[26px] sm:text-[30px] font-black leading-[1.12] tracking-tight">
+                {isDone ? 'Dein Lernpfad ist bereit' : 'Dein Lernpfad entsteht'}
+              </h1>
+              <p className="text-sm text-white/45 leading-relaxed">
+                {isDone
+                  ? <>Alle Module, der Abschlusstest und dein Zertifikat für <span className="text-white/75 font-bold">{targetJob}</span> warten auf dich.</>
+                  : <>Wir bauen deinen persönlichen Plan für <span className="text-white/75 font-bold">{targetJob}</span> — Schritt für Schritt.</>}
+              </p>
             </div>
 
+            {/* Die Route — Signatur & einziger Fokus */}
+            <div className="rounded-2xl px-6 pt-7 pb-1" style={{ background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.06)', animation: 'lpw_up 0.55s ease' }}>
+              {STAGES.map((stage, i) => {
+                const state: 'done' | 'active' | 'pending' =
+                  isDone || i < activeStageIdx ? 'done' : i === activeStageIdx ? 'active' : 'pending';
+                return (
+                  <RouteStep
+                    key={stage.id}
+                    stage={stage}
+                    state={state}
+                    isLast={i === STAGES.length - 1}
+                    allDone={isDone}
+                  />
+                );
+              })}
+            </div>
+
+            {/* Fortschritt — ARCS Confidence: eine ruhige, ehrliche Zeile, kein zweiter großer Balken */}
             {!isDone && (
-              <div className="rounded-2xl overflow-hidden" style={{ background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.07)', animation: 'lpw2_up 0.65s ease' }}>
-                <div className="px-4 py-3 border-b border-white/[0.06]">
-                  <p className="text-[10px] font-black uppercase tracking-widest text-white/30">Fortschritt</p>
+              <div className="space-y-2" style={{ animation: 'lpw_up 0.65s ease' }}>
+                <div className="h-1 rounded-full overflow-hidden" style={{ background: 'rgba(255,255,255,0.07)' }}>
+                  <div className="h-full rounded-full transition-all duration-700 ease-out"
+                    style={{ width: `${displayProgress}%`, background: `linear-gradient(90deg,${ACCENT}88,${ACCENT})` }} />
                 </div>
-                <div className="p-2">
-                  {STAGES.map((stage, i) => (
-                    <StageRow key={stage.id} stage={stage} state={isDone || i < activeStageIdx ? 'done' : i === activeStageIdx ? 'active' : 'pending'} />
-                  ))}
+                <div className="flex items-center justify-between text-[11px]">
+                  <span className="text-white/30">Dauert etwa 3 Minuten</span>
+                  <span className="font-black tabular-nums" style={{ color: `${ACCENT}cc` }}>{displayProgress}%</span>
                 </div>
               </div>
             )}
 
+            {/* Abschluss-CTA — ARCS Satisfaction */}
+            {isDone && (
+              <button onClick={() => navigate(`/learning-path/${pathId}`)}
+                data-lpw-animate
+                className="w-full py-4 rounded-2xl font-black text-base text-black flex items-center justify-center gap-3 transition-all hover:scale-[1.02] active:scale-[0.98]"
+                style={{ background: `linear-gradient(135deg,${DONE},#4ade80)`, boxShadow: '0 0 32px rgba(34,197,94,0.28)', animation: 'lpw_pop 0.5s ease' }}>
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><polygon points="5,3 19,12 5,21 5,3" /></svg>
+                Lernpfad starten
+              </button>
+            )}
+
+            {/* Motivation — bewusst untergeordnet (CLT: Nebenrolle, nicht zweiter Fokus) */}
             {!isDone && (
-              <div className="rounded-2xl p-5"
-                style={{ background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.07)', animation: 'lpw2_up 0.75s ease', opacity: quoteVisible ? 1 : 0, transform: quoteVisible ? 'translateY(0)' : 'translateY(4px)', transition: 'opacity 0.4s ease, transform 0.4s ease' }}>
-                <p className="text-[10px] font-black uppercase tracking-widest text-white/20 mb-3">Während du wartest</p>
-                <p className="text-sm text-white/70 leading-relaxed italic">&ldquo;{quote.text}&rdquo;</p>
-                <p className="text-[11px] text-white/30 mt-2 font-bold">— {quote.author}</p>
-                <div className="flex gap-1 mt-3">
-                  {QUOTES.map((_, i) => (
-                    <div key={i} className="rounded-full transition-all duration-300" style={{ width: i === quoteIdx ? 16 : 5, height: 4, background: i === quoteIdx ? '#30E3CA' : 'rgba(255,255,255,0.1)' }} />
-                  ))}
-                </div>
+              <div className="text-center px-2" style={{ animation: 'lpw_up 0.75s ease', opacity: quoteVisible ? 1 : 0, transition: 'opacity 0.4s ease' }}>
+                <p className="text-[13px] text-white/45 leading-relaxed italic">&ldquo;{quote.text}&rdquo;</p>
+                <p className="text-[11px] text-white/25 mt-1.5 font-bold">— {quote.author}</p>
               </div>
             )}
 
+            {/* Zusicherung — ARCS Confidence + DSR: löst das eigentliche Problem (Abbruch) */}
             {!isDone && (
-              <div className="flex items-center gap-3 px-4 py-3 rounded-xl" style={{ background: 'rgba(255,255,255,0.015)', border: '1px solid rgba(255,255,255,0.06)', animation: 'lpw2_up 0.85s ease' }}>
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.3)" strokeWidth="2" strokeLinecap="round"><circle cx="12" cy="12" r="10" /><line x1="12" y1="8" x2="12" y2="12" /><line x1="12" y1="16" x2="12.01" y2="16" /></svg>
-                <p className="text-[11px] text-white/30 flex-1 leading-relaxed">
-                  Du kannst diese Seite verlassen — sobald dein Lernpfad fertig ist, kannst du ihn über das{' '}
-                  <button onClick={() => navigate('/dashboard')} className="underline text-[#66c0b6]/60 hover:text-[#66c0b6] transition-colors">Dashboard</button> starten.
+              <div className="flex items-start gap-2.5 px-4 py-3 rounded-xl" style={{ background: 'rgba(255,255,255,0.015)', border: '1px solid rgba(255,255,255,0.05)', animation: 'lpw_up 0.85s ease' }}>
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke={`${ACCENT}99`} strokeWidth="2" strokeLinecap="round" className="flex-shrink-0 mt-0.5"><path d="M20 6 9 17l-5-5" /></svg>
+                <p className="text-[11.5px] text-white/40 leading-relaxed">
+                  Du kannst diese Seite jederzeit verlassen. Dein Lernpfad wird im Hintergrund fertiggestellt und wartet danach in deinem{' '}
+                  <button onClick={() => navigate('/dashboard')} className="underline text-[#66c0b6]/70 hover:text-[#66c0b6] transition-colors">Dashboard</button>.
                 </p>
               </div>
             )}
-          </>
+          </div>
         )}
       </div>
 
+      {/* Abschluss-Popup */}
       {showCompletionPopup && (
         <div className="fixed inset-0 z-50 flex items-center justify-center px-4"
-          style={{ background: 'rgba(0,0,0,0.7)', backdropFilter: 'blur(8px)', animation: 'lpw2_up 0.35s ease' }}
+          style={{ background: 'rgba(0,0,0,0.7)', backdropFilter: 'blur(8px)', animation: 'lpw_up 0.35s ease' }}
           onClick={() => { setShowCompletionPopup(false); navigate(`/learning-path/${pathId}`); }}>
           <div className="relative max-w-sm w-full rounded-3xl overflow-hidden text-center"
-            style={{ background: 'linear-gradient(145deg,#080f1a,#0a1520)', border: '1px solid rgba(34,197,94,0.3)', boxShadow: '0 0 60px rgba(34,197,94,0.2), 0 20px 60px rgba(0,0,0,0.6)', animation: 'lpw2_pop 0.45s cubic-bezier(0.175,0.885,0.32,1.275)' }}
+            style={{ background: 'linear-gradient(145deg,#080f1a,#0a1520)', border: '1px solid rgba(34,197,94,0.3)', boxShadow: '0 0 60px rgba(34,197,94,0.2), 0 20px 60px rgba(0,0,0,0.6)', animation: 'lpw_pop 0.45s cubic-bezier(0.175,0.885,0.32,1.275)' }}
             onClick={(e) => e.stopPropagation()}>
             <div className="absolute inset-x-0 top-0 h-px" style={{ background: 'linear-gradient(90deg,transparent,rgba(34,197,94,0.7),transparent)' }} />
             <div className="relative z-10 p-8 space-y-5">
               <div className="mx-auto w-16 h-16 rounded-2xl flex items-center justify-center" style={{ background: 'rgba(34,197,94,0.12)', border: '1px solid rgba(34,197,94,0.3)' }}>
-                <svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="#22c55e" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 12 20 22 4 22 4 12" /><rect x="2" y="7" width="20" height="5" /><line x1="12" y1="22" x2="12" y2="7" /><path d="M12 7H7.5a2.5 2.5 0 0 1 0-5C11 2 12 7 12 7z" /><path d="M12 7h4.5a2.5 2.5 0 0 0 0-5C13 2 12 7 12 7z" /></svg>
+                <svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke={DONE} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 12 20 22 4 22 4 12" /><rect x="2" y="7" width="20" height="5" /><line x1="12" y1="22" x2="12" y2="7" /><path d="M12 7H7.5a2.5 2.5 0 0 1 0-5C11 2 12 7 12 7z" /><path d="M12 7h4.5a2.5 2.5 0 0 0 0-5C13 2 12 7 12 7z" /></svg>
               </div>
               <div className="space-y-2">
-                <h2 className="text-xl font-black text-white">Dein Lernpfad ist bereit!</h2>
+                <h2 className="text-xl font-black text-white">Dein Lernpfad ist bereit</h2>
                 <p className="text-sm text-white/55 leading-relaxed">
                   <span className="text-[#22c55e] font-bold">{targetJob}</span> — alle Module, der Abschlusstest und dein Zertifikat warten auf dich.
                 </p>
@@ -560,7 +576,7 @@ export default function LearningPathWaitingPage() {
               </div>
               <button onClick={() => { setShowCompletionPopup(false); navigate(`/learning-path/${pathId}`); }}
                 className="w-full py-4 rounded-2xl font-black text-base text-black flex items-center justify-center gap-2 transition-all hover:scale-[1.02] active:scale-[0.98]"
-                style={{ background: 'linear-gradient(135deg,#22c55e,#4ade80)', boxShadow: '0 4px 24px rgba(34,197,94,0.35)' }}>
+                style={{ background: `linear-gradient(135deg,${DONE},#4ade80)`, boxShadow: '0 4px 24px rgba(34,197,94,0.35)' }}>
                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><polygon points="5,3 19,12 5,21 5,3" /></svg>
                 Jetzt starten
               </button>
