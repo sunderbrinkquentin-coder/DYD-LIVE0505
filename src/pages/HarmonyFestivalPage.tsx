@@ -936,11 +936,9 @@ body: JSON.stringify({
           }
         }}
       >
-        {section.label}
+{section.label}
       </button>
-    );<style>{`
-    nav[aria-label="Schnellnavigation"]::-webkit-scrollbar { display: none; }
-  `}</style>
+    );
   })}
 </div>
 
