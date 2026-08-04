@@ -1,4 +1,6 @@
-import React, { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react';
+// src/components/cv-templates/templates/ProfessionalCVTemplate.tsx
+
+import React, { useCallback, useEffect, useRef, useState } from 'react';
 
 type EditorSection = {
   type: string;
@@ -23,9 +25,15 @@ interface ProfessionalCVTemplateProps {
   sections: EditorSection[];
   photoUrl?: string;
   photoPosition?: { x: number; y: number };
+  /**
+   * NEU: Höhe kommt jetzt — wie bei allen anderen Templates — aus der
+   * Break-Engine. Der frühere eigene ResizeObserver ist entfernt; er hat
+   * gegen die Engine gearbeitet.
+   */
+  minHeightPx?: number;
   onUpdatePersonalInfo: (field: string, value: string) => void;
   onUpdateSummary: (value: string) => void;
-  onUpdateSection: (sectionIndex: number, updates: Partial<EditorSection>) => void;
+  onUpdateSection?: (sectionIndex: number, updates: Partial<EditorSection>) => void;
   onUpdateSectionItem: (
     sectionIndex: number,
     itemIndex: number,
@@ -37,6 +45,7 @@ interface ProfessionalCVTemplateProps {
   onDeleteBullet?: (sectionIndex: number, itemIndex: number, bulletIndex: number) => void;
   onReorderSections?: (fromIndex: number, toIndex: number) => void;
   onReorderSectionItem?: (sectionIndex: number, fromIndex: number, toIndex: number) => void;
+  /** LEGACY — nicht mehr verwendet (Paginierung läuft über data-break-*). */
   pageBreakItems?: Map<string, number>;
   pageCount?: number;
 }
@@ -148,8 +157,16 @@ function itemDragProps(
   };
 }
 
+/**
+ * SectionTitle — jetzt mit `data-break-keep-next`, damit die Break-Engine die
+ * Überschrift an ihren folgenden Inhalt bindet (kein Schnitt direkt unter dem
+ * Titel). Zuvor fehlte dieses Attribut — einer der Gründe fürs Durchschneiden.
+ */
 const SectionTitle: React.FC<{ children: React.ReactNode }> = ({ children }) => (
-  <h2 className="mt-4 mb-2 !text-[9px] font-bold tracking-[0.16em] text-slate-700 uppercase flex items-center gap-1.5">
+  <h2
+    data-break-keep-next
+    className="mt-4 mb-2 !text-[9px] font-bold tracking-[0.16em] text-slate-700 uppercase flex items-center gap-1.5"
+  >
     <span className="w-1 h-1 rounded-full bg-slate-400" />
     {children}
   </h2>
@@ -180,6 +197,7 @@ export const ProfessionalCVTemplate: React.FC<ProfessionalCVTemplateProps> = ({
   sections,
   photoUrl,
   photoPosition = { x: 50, y: 50 },
+  minHeightPx,
   onUpdatePersonalInfo,
   onUpdateSummary,
   onUpdateSectionItem,
@@ -187,24 +205,12 @@ export const ProfessionalCVTemplate: React.FC<ProfessionalCVTemplateProps> = ({
   onDeleteBullet,
   onReorderSections,
   onReorderSectionItem,
-  pageBreakItems,
-  pageCount,
 }) => {
-  const contentRef = useRef<HTMLDivElement | null>(null);
-  const [containerMinHeight, setContainerMinHeight] = useState(1122);
-
-  useLayoutEffect(() => {
-    const el = contentRef.current;
-    if (!el) return;
-    const update = () => {
-      const h = el.offsetHeight;
-      setContainerMinHeight(Math.max(1122, Math.ceil(h / 1122) * 1122));
-    };
-    update();
-    const ro = new ResizeObserver(update);
-    ro.observe(el);
-    return () => ro.disconnect();
-  }, []);
+  // Höhe kommt aus der Break-Engine (wie bei allen anderen Templates).
+  // Der frühere ResizeObserver + `containerMinHeight`-State ist bewusst
+  // entfernt: eine template-eigene Höhenmessung arbeitet gegen die Engine
+  // und war Mitursache dafür, dass Professional als einziges „schnitt".
+  const containerMinHeight = minHeightPx ?? 1122;
 
   const handleBulletChange = (
     sectionIndex: number,
@@ -290,28 +296,24 @@ export const ProfessionalCVTemplate: React.FC<ProfessionalCVTemplateProps> = ({
             <SectionTitle>{sectionTitle}</SectionTitle>
             <div className="space-y-2">
               {items.map((exp: any, idx: number) => {
-                const itemKey = `${section.type}-${sectionIndex}-${idx}`;
-                const spacer = pageBreakItems?.get(itemKey) ?? 0;
                 const bullets = getBullets(exp);
                 return (
                   <div
                     key={idx}
                     data-pdf-section
-                    data-spacer-id={itemKey}
+                    data-break-item
                     style={{
                       display: 'block',
                       width: '100%',
                       cursor: onReorderSectionItem ? 'grab' : undefined,
-                      ...(spacer > 0 ? { marginTop: `${spacer}px` } : {}),
                     }}
                     className="px-3 py-2 rounded-lg border border-slate-200 bg-white/95"
                     {...itemDragProps(sectionIndex, idx, onReorderSectionItem)}
                   >
                     <div className="flex justify-between gap-2 items-start">
-                      {/* FIX: min-w-0 auf dem Flex-Kind ist zwingend nötig,
-                          sonst schrumpft der Titel nicht und wird von der
-                          Datums-Spalte abgeschnitten statt umzubrechen.
-                          `wrap` auf EditableText erlaubt den Umbruch selbst. */}
+                      {/* FIX: min-w-0 ist zwingend, sonst schrumpft der Titel
+                          nicht und wird von der Datums-Spalte abgeschnitten.
+                          `wrap` erlaubt den Umbruch. */}
                       <div className="flex-1 min-w-0">
                         <EditableText
                           wrap
@@ -331,16 +333,16 @@ export const ProfessionalCVTemplate: React.FC<ProfessionalCVTemplateProps> = ({
                           }
                           placeholder="Unternehmen"
                         />
-                        {(exp.location || exp.ort) && (
-                          <EditableText
-                            className="mt-0.5 text-[10px] text-slate-400"
-                            value={exp.location || exp.ort || ''}
-                            onChange={(val) =>
-                              onUpdateSectionItem(sectionIndex, idx, 'location', val)
-                            }
-                            placeholder="Ort"
-                          />
-                        )}
+                        {/* Ort JETZT IMMER sichtbar (auch wenn leer), damit er
+                            hinzugefügt werden kann. */}
+                        <EditableText
+                          className="mt-0.5 text-[10px] text-slate-400"
+                          value={exp.location || exp.ort || ''}
+                          onChange={(val) =>
+                            onUpdateSectionItem(sectionIndex, idx, 'location', val)
+                          }
+                          placeholder="Ort"
+                        />
                       </div>
                       {(exp.date_from || exp.date_to) && (
                         <div className="text-[9px] text-slate-500 text-right whitespace-nowrap flex flex-col items-end gap-0.5 flex-shrink-0">
@@ -369,7 +371,7 @@ export const ProfessionalCVTemplate: React.FC<ProfessionalCVTemplateProps> = ({
                     {bullets.length > 0 ? (
                       <ul className="mt-1 !text-[9.5px] text-slate-800" style={{ listStyle: 'none', padding: 0, margin: '4px 0 0', display: 'flex', flexDirection: 'column', gap: '4px' }}>
                         {bullets.map((bp: string, bIdx: number) => (
-                          <li key={bIdx} style={{ display: 'flex', alignItems: 'flex-start', gap: '6px', breakInside: 'avoid', pageBreakInside: 'avoid' }}>
+                          <li key={bIdx} data-break-line style={{ display: 'flex', alignItems: 'flex-start', gap: '6px', breakInside: 'avoid', pageBreakInside: 'avoid' }}>
                             <span style={{ flexShrink: 0, color: '#334155', fontSize: '9.5px', lineHeight: '1.375', userSelect: 'none' }}>•</span>
                             <EditableText
                               multiline
@@ -438,19 +440,16 @@ export const ProfessionalCVTemplate: React.FC<ProfessionalCVTemplateProps> = ({
             <SectionTitle>{sectionTitle}</SectionTitle>
             <div className="space-y-2">
               {items.map((proj: any, idx: number) => {
-                const itemKey = `${section.type}-${sectionIndex}-${idx}`;
-                const spacer = pageBreakItems?.get(itemKey) ?? 0;
                 const bullets = getBullets(proj);
                 return (
                   <div
                     key={idx}
                     data-pdf-section
-                    data-spacer-id={itemKey}
+                    data-break-item
                     style={{
                       display: 'block',
                       width: '100%',
                       cursor: onReorderSectionItem ? 'grab' : undefined,
-                      ...(spacer > 0 ? { marginTop: `${spacer}px` } : {}),
                     }}
                     className="px-3 py-2 rounded-lg border border-slate-200 bg-white/95"
                     {...itemDragProps(sectionIndex, idx, onReorderSectionItem)}
@@ -481,7 +480,7 @@ export const ProfessionalCVTemplate: React.FC<ProfessionalCVTemplateProps> = ({
                     {bullets.length > 0 ? (
                       <ul className="mt-1 !text-[9.5px] text-slate-800" style={{ listStyle: 'none', padding: 0, margin: '4px 0 0', display: 'flex', flexDirection: 'column', gap: '4px' }}>
                         {bullets.map((bp: string, bIdx: number) => (
-                          <li key={bIdx} style={{ display: 'flex', alignItems: 'flex-start', gap: '6px', breakInside: 'avoid', pageBreakInside: 'avoid' }}>
+                          <li key={bIdx} data-break-line style={{ display: 'flex', alignItems: 'flex-start', gap: '6px', breakInside: 'avoid', pageBreakInside: 'avoid' }}>
                             <span style={{ flexShrink: 0, color: '#334155', fontSize: '9.5px', lineHeight: '1.375', userSelect: 'none' }}>•</span>
                             <EditableText
                               multiline
@@ -544,30 +543,25 @@ export const ProfessionalCVTemplate: React.FC<ProfessionalCVTemplateProps> = ({
         );
 
       /**
-       * FIX (Ausbildungstitel wurde abgeschnitten): `flex-1` OHNE `min-w-0`
-       * ließ den Titel bei langen Studiengängen hinter die Datums-Spalte
-       * laufen bzw. abschneiden. `min-w-0` erlaubt dem Flex-Kind zu
-       * schrumpfen, `wrap` erlaubt dem EditableText den tatsächlichen
-       * Zeilenumbruch — dieselbe Kombination wie im Modern-Template.
+       * FIX (Ausbildung „komisch" / leer): liest jetzt `edu.degree || edu.title`
+       * — kommt der Wert beim One-Click-Mapping als `title` statt `degree`,
+       * blieb das Feld sonst leer. Ort jetzt immer sichtbar. `data-break-item`
+       * bindet jede Station als unteilbaren Block.
        */
       case 'education':
         return (
           <div key={sectionIndex}>
             <SectionTitle>Ausbildung & Studium</SectionTitle>
             <div className="space-y-1.5">
-              {items.map((edu: any, idx: number) => {
-                const itemKey = `${section.type}-${sectionIndex}-${idx}`;
-                const spacer = pageBreakItems?.get(itemKey) ?? 0;
-                return (
+              {items.map((edu: any, idx: number) => (
                 <div
                   key={idx}
                   data-pdf-section
-                  data-spacer-id={itemKey}
+                  data-break-item
                   style={{
                     display: 'block',
                     width: '100%',
                     cursor: onReorderSectionItem ? 'grab' : undefined,
-                    ...(spacer > 0 ? { marginTop: `${spacer}px` } : {}),
                   }}
                   className="px-2 py-1 rounded-md"
                   {...itemDragProps(sectionIndex, idx, onReorderSectionItem)}
@@ -577,7 +571,7 @@ export const ProfessionalCVTemplate: React.FC<ProfessionalCVTemplateProps> = ({
                       <EditableText
                         wrap
                         className="text-[11px] font-bold text-slate-900"
-                        value={edu.degree || ''}
+                        value={edu.degree || edu.title || ''}
                         onChange={(val) =>
                           onUpdateSectionItem(sectionIndex, idx, 'degree', val)
                         }
@@ -592,14 +586,13 @@ export const ProfessionalCVTemplate: React.FC<ProfessionalCVTemplateProps> = ({
                         }
                         placeholder="Institution"
                       />
-                      {edu.location && (
-                        <EditableText
-                          className="mt-0.5 text-[9.5px] text-slate-400"
-                          value={edu.location || ''}
-                          onChange={(val) => onUpdateSectionItem(sectionIndex, idx, 'location', val)}
-                          placeholder="Ort"
-                        />
-                      )}
+                      {/* Ort jetzt immer sichtbar */}
+                      <EditableText
+                        className="mt-0.5 text-[9.5px] text-slate-400"
+                        value={edu.location || ''}
+                        onChange={(val) => onUpdateSectionItem(sectionIndex, idx, 'location', val)}
+                        placeholder="Ort"
+                      />
                     </div>
                     {(edu.date_from || edu.date_to) && (
                       <div className="text-[9px] text-slate-500 text-right whitespace-nowrap flex flex-col items-end gap-0.5 flex-shrink-0">
@@ -646,16 +639,21 @@ export const ProfessionalCVTemplate: React.FC<ProfessionalCVTemplateProps> = ({
                     />
                   )}
                 </div>
-                );
-              })}
+              ))}
             </div>
           </div>
         );
 
+      /**
+       * FIX (Sprachniveau abgeschnitten): beide Felder jetzt mit `wrap`, das
+       * Niveau bekommt etwas mehr Breite und bricht bei langen Werten UM statt
+       * abgeschnitten zu werden. `data-break-atomic` hält den Sprachblock
+       * zusammen.
+       */
       case 'languages':
         if (items.length === 0) return null;
         return (
-          <div key={sectionIndex} data-pdf-section style={{ breakInside: 'avoid', pageBreakInside: 'avoid' }}>
+          <div key={sectionIndex} data-pdf-section data-break-atomic style={{ breakInside: 'avoid', pageBreakInside: 'avoid' }}>
             <SectionTitle>Sprachen</SectionTitle>
             <div className="space-y-1">
               {items.map((lang: any, idx: number) => {
@@ -673,16 +671,19 @@ export const ProfessionalCVTemplate: React.FC<ProfessionalCVTemplateProps> = ({
                 if (!langVal && !levelVal) return null;
 
                 return (
-                  <div key={idx} style={{ breakInside: 'avoid', pageBreakInside: 'avoid' }} className="flex items-center justify-between gap-2 text-[9.5px] text-slate-800">
+                  <div key={idx} style={{ breakInside: 'avoid', pageBreakInside: 'avoid' }} className="flex items-start justify-between gap-2 text-[9.5px] text-slate-800">
                     <EditableText
-                      className="flex-1"
+                      wrap
+                      className="font-medium"
+                      style={{ flex: '1 1 55%', overflowWrap: 'break-word' }}
                       value={langVal}
                       onChange={(val) => onUpdateSectionItem(sectionIndex, idx, 'language', val)}
                       placeholder="Sprache"
                     />
                     <EditableText
+                      wrap
                       className="text-right text-slate-500"
-                      style={{ width: '70px' }}
+                      style={{ flex: '0 0 42%', textAlign: 'right', overflowWrap: 'break-word' }}
                       value={levelVal}
                       onChange={(val) => onUpdateSectionItem(sectionIndex, idx, 'level', val)}
                       placeholder="Niveau"
@@ -697,14 +698,14 @@ export const ProfessionalCVTemplate: React.FC<ProfessionalCVTemplateProps> = ({
       case 'skills':
         if (items.length === 0) return null;
         return (
-          <div key={sectionIndex} data-pdf-section style={{ breakInside: 'avoid', pageBreakInside: 'avoid' }}>
+          <div key={sectionIndex} data-pdf-section data-break-atomic style={{ breakInside: 'avoid', pageBreakInside: 'avoid' }}>
             <SectionTitle>Fachliche Skills</SectionTitle>
             <div data-chip-row style={{ display: 'block', overflow: 'visible' }}>
               {items.map((skill: any, idx: number) => {
                 if (!skill) return null;
                 const val = typeof skill === 'string' ? skill : (skill.skill || skill.name || skill.label || '');
                 const level = typeof skill === 'object' && skill !== null ? (skill.level || skill.niveau || '') : '';
-                
+
                 let cleanedVal = val.replace(/\s*\(?Otherskill\)?/gi, '').replace(/\s*\($/, '').trim();
                 if (cleanedVal === '') return null;
 
@@ -727,14 +728,14 @@ export const ProfessionalCVTemplate: React.FC<ProfessionalCVTemplateProps> = ({
       case 'soft_skills':
         if (items.length === 0) return null;
         return (
-          <div key={sectionIndex} data-pdf-section style={{ breakInside: 'avoid', pageBreakInside: 'avoid' }}>
+          <div key={sectionIndex} data-pdf-section data-break-atomic style={{ breakInside: 'avoid', pageBreakInside: 'avoid' }}>
             <SectionTitle>Persönliche Stärken</SectionTitle>
             <div data-chip-row style={{ display: 'block', overflow: 'visible' }}>
               {items.map((skill: any, idx: number) => {
                 if (!skill) return null;
                 const val = typeof skill === 'string' ? skill : (skill.skill || skill.name || skill.label || '');
                 const level = typeof skill === 'object' && skill !== null ? (skill.level || skill.niveau || '') : '';
-                
+
                 let cleanedVal = val.replace(/\s*\(?Otherskill\)?/gi, '').replace(/\s*\($/, '').trim();
                 if (cleanedVal === '') return null;
 
@@ -758,13 +759,13 @@ export const ProfessionalCVTemplate: React.FC<ProfessionalCVTemplateProps> = ({
       case 'values':
         if (items.length === 0) return null;
         return (
-          <div key={sectionIndex} data-pdf-section>
+          <div key={sectionIndex} data-pdf-section data-break-atomic>
             <SectionTitle>Arbeitsweise & Werte</SectionTitle>
             <div data-chip-row style={{ display: 'block', overflow: 'visible' }}>
               {items.map((val: any, idx: number) => {
                 if (!val) return null;
                 const v = typeof val === 'string' ? val : (val.label || val.name || '');
-                
+
                 let cleanedV = v.replace(/\s*\(?Otherskill\)?/gi, '').replace(/\s*\($/, '').trim();
                 if (cleanedV === '') return null;
 
@@ -787,13 +788,13 @@ export const ProfessionalCVTemplate: React.FC<ProfessionalCVTemplateProps> = ({
       case 'interests':
         if (items.length === 0) return null;
         return (
-          <div key={sectionIndex} data-pdf-section>
+          <div key={sectionIndex} data-pdf-section data-break-atomic>
             <SectionTitle>Hobbys & Interessen</SectionTitle>
             <div data-chip-row style={{ display: 'block', overflow: 'visible' }}>
               {items.map((hob: any, idx: number) => {
                 if (!hob) return null;
                 const v = typeof hob === 'string' ? hob : (hob.label || hob.name || '');
-                
+
                 let cleanedV = v.replace(/\s*\(?Otherskill\)?/gi, '').replace(/\s*\($/, '').trim();
                 if (cleanedV === '') return null;
 
@@ -818,7 +819,7 @@ export const ProfessionalCVTemplate: React.FC<ProfessionalCVTemplateProps> = ({
         const detailedTypes = ['certifications', 'courses', 'awards', 'volunteering', 'stipendien', 'scholarships'];
         if (detailedTypes.includes(section.type)) {
           return (
-            <div key={sectionIndex} data-pdf-section style={{ breakInside: 'avoid', pageBreakInside: 'avoid' }}>
+            <div key={sectionIndex} data-pdf-section data-break-atomic style={{ breakInside: 'avoid', pageBreakInside: 'avoid' }}>
               <SectionTitle>{sectionTitle}</SectionTitle>
               <ul className="space-y-0.5 text-[9.5px] text-slate-800">
                 {items.map((item: any, idx: number) => {
@@ -873,7 +874,7 @@ export const ProfessionalCVTemplate: React.FC<ProfessionalCVTemplateProps> = ({
         }
 
         return (
-          <div key={sectionIndex} data-pdf-section>
+          <div key={sectionIndex} data-pdf-section data-break-atomic>
             <SectionTitle>{sectionTitle}</SectionTitle>
             <ul className="space-y-0.5 text-[9.5px] text-slate-800">
               {items.map((item: any, idx: number) => {
@@ -912,8 +913,8 @@ export const ProfessionalCVTemplate: React.FC<ProfessionalCVTemplateProps> = ({
         minHeight: `${containerMinHeight}px`,
       }}
     >
-      <div ref={contentRef}>
-      <header className="px-8 pt-7 pb-5 bg-slate-900 text-white flex justify-between gap-6 items-start border-b-4 border-[#30E3CA]">
+      <div>
+      <header className="px-8 pt-7 pb-5 bg-slate-900 text-white flex justify-between gap-6 items-start border-b-4 border-[#30E3CA]" data-break-atomic>
         <div className="flex-1 min-w-0">
           <EditableText
             className="text-[22px] font-extrabold tracking-tight text-white"
@@ -987,9 +988,9 @@ export const ProfessionalCVTemplate: React.FC<ProfessionalCVTemplateProps> = ({
       </header>
 
       <div style={{ display: 'flex', width: '100%', backgroundColor: '#ffffff', flex: 'none', padding: '16px 0' }}>
-        
+
         <section style={{ flex: '0 0 58%', minWidth: 0, paddingLeft: '32px', paddingRight: '12px', display: 'flex', flexDirection: 'column', gap: '12px' }}>
-          <div>
+          <div data-pdf-section data-break-atomic>
             <SectionTitle>Profil & Mehrwert</SectionTitle>
             <EditableText
               multiline
@@ -1094,7 +1095,7 @@ export const ProfessionalCVTemplate: React.FC<ProfessionalCVTemplateProps> = ({
             placeholder="Ort"
           />
         </div>
-        
+
         <span style={{ fontWeight: 600, whiteSpace: 'nowrap' }}>
           {new Date().toLocaleDateString('de-DE')}
         </span>
