@@ -113,6 +113,7 @@ const FEATURES = [
 function FrontPage({ ticket }: { ticket: FestivalTicketPDFProps }) {
   const accent     = ACCENT_BY_TYPE[ticket.ticket_type] || C.gold;
   const isEarlyBird = ticket.ticket_type === 'early_bird';
+    const einlass    = EINLASS_BY_TYPE[ticket.ticket_type] || '16:00';
 
   const s = StyleSheet.create({
     page:         { backgroundColor: C.bg, padding: 0, fontFamily: 'Helvetica' },
