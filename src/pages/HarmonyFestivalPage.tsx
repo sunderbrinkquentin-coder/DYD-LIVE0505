@@ -3316,7 +3316,7 @@ signal: controller.signal,
                   style={{ background: 'rgba(220,50,50,0.07)', border: '1px solid rgba(220,50,50,0.18)' }}>
                   <Sparkles className="w-5 h-5 flex-shrink-0" style={{ color: '#dc3232' }} />
                   <p style={{ fontFamily: "'Inter', sans-serif", fontSize: '13px', color: 'rgba(230,190,190,0.75)', lineHeight: 1.6, textAlign: 'left' }}>
-                    Du erhältst innerhalb von 24 Stunden eine Bestätigungsmail. Dein Shirt wird am Festival verteilt. Wir melden uns wegen deiner gewählten Größe — danke, dass du Haltung zeigst.
+                    Du erhältst innerhalb von 24 Stunden eine Bestätigungsmail. Dein Shirt wird am Festival verteilt. Danke, dass du Haltung zeigst.
                   </p>
                 </div>
 
