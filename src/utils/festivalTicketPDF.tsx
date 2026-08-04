@@ -65,7 +65,14 @@ const C = {
 const ACCENT_BY_TYPE: Record<string, string> = {
   early_bird: C.gold, concert: C.teal, standup: '#c47a3c', dj: '#6e9ab5', bierpong: '#a8b84a',
 };
-
+// Einlasszeit pro Kategorie: Stand-Up & Bundle ab 16:00, sonst zur jeweiligen Einlasszeit.
+const EINLASS_BY_TYPE: Record<string, string> = {
+  early_bird: '16:00',
+  standup:    '16:00',
+  bierpong:   '18:00',
+  concert:    '18:00',
+  dj:         '22:00',
+};
 const PROGRAM = [
   { time: '16:30', label: 'Stand-Up Comedy',  sub: 'Newcomer der lokalen Stand-Up Szene', color: '#c47a3c'  },
   { time: '18:00', label: 'Bierpong Turnier', sub: 'Gewinnen = free drinks',              color: '#a8b84a', bierpongNote: true },
