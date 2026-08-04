@@ -271,11 +271,17 @@ export const ClassicCVTemplate: React.FC<CVTemplateProps> = ({
                     Wörtern um. Exakt das Muster der Berufserfahrung, die nie
                     gestapelt hat. Das Datum daneben ist mit `w-32` fest, kann das
                     Feld also nicht quetschen. */}
+                {/* FIX (zeichenweises Stapeln der Ausbildung): der `wrap`-Modus
+                    der geteilten EditableText senkt die min-content-Breite auf
+                    1 Zeichen, wodurch das flex-1-Feld zeichenweise kollabiert.
+                    Diese expliziten Styles überschreiben das: volle Breite +
+                    Umbruch nur an Wortgrenzen (identisch zu Professional, das
+                    sauber rendert). */}
                 <EditableText
                   value={item.degree || item.title || ''}
                   onChange={(val) => onUpdateSectionItem(educationIndex, idx, 'degree', val)}
                   className="font-bold leading-tight flex-1"
-                  style={{ fontSize: '11px', color: t.text }}
+                  style={{ fontSize: '11px', color: t.text, width: '100%', minWidth: 0, whiteSpace: 'normal', wordBreak: 'normal', overflowWrap: 'break-word', overflow: 'visible' }}
                   placeholder="Abschluss / Studiengang"
                   wrap
                 />
@@ -286,7 +292,7 @@ export const ClassicCVTemplate: React.FC<CVTemplateProps> = ({
                 value={item.institution || ''}
                 onChange={(val) => onUpdateSectionItem(educationIndex, idx, 'institution', val)}
                 className="font-semibold mt-0.5 leading-snug"
-                style={{ fontSize: '10px', color: t.muted }}
+                style={{ fontSize: '10px', color: t.muted, width: '100%', whiteSpace: 'normal', wordBreak: 'normal', overflowWrap: 'break-word', overflow: 'visible' }}
                 placeholder="Institution / Hochschule"
                 wrap
               />
