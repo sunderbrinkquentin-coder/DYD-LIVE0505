@@ -1,0 +1,268 @@
+// src/components/festival/soliShirtReceipt.tsx
+//
+// Clientseitige PDF-Bestätigung für den Soli-Shirt-Kauf (@react-pdf/renderer).
+// Wird per dynamischem Import erst beim Klick geladen, damit @react-pdf NICHT
+// im Haupt-Bundle der Festival-Seite landet.
+//
+// Aufruf:
+//   const { downloadSoliShirtReceipt } = await import('../components/festival/soliShirtReceipt');
+//   await downloadSoliShirtReceipt({ buyerName, shirtSize, amount, sessionId, date });
+
+import { pdf, Document, Page, Text, View, StyleSheet } from '@react-pdf/renderer';
+
+export interface SoliShirtReceiptData {
+  buyerName: string;
+  shirtSize: string;
+  amount: number;      // in Euro, z.B. 25.00
+  sessionId?: string;
+  date?: Date;
+}
+
+const RED = '#dc3232';
+const INK = '#1a1a1a';
+const MUTED = '#6b6b6b';
+const LINE = '#e2e2e2';
+
+const styles = StyleSheet.create({
+  page: {
+    paddingTop: 48,
+    paddingBottom: 56,
+    paddingHorizontal: 48,
+    fontFamily: 'Helvetica',
+    fontSize: 11,
+    color: INK,
+    lineHeight: 1.5,
+  },
+  topBar: {
+    height: 4,
+    backgroundColor: RED,
+    borderRadius: 2,
+    marginBottom: 22,
+  },
+  brand: {
+    fontFamily: 'Helvetica-Bold',
+    fontSize: 22,
+    letterSpacing: 1,
+    color: INK,
+  },
+  brandSub: {
+    fontSize: 9,
+    letterSpacing: 2,
+    color: MUTED,
+    marginTop: 3,
+    textTransform: 'uppercase',
+  },
+  paidBadge: {
+    alignSelf: 'flex-start',
+    marginTop: 18,
+    marginBottom: 26,
+    paddingVertical: 5,
+    paddingHorizontal: 12,
+    borderRadius: 4,
+    backgroundColor: '#eafaec',
+    color: '#1f8a3b',
+    fontFamily: 'Helvetica-Bold',
+    fontSize: 10,
+    letterSpacing: 1,
+  },
+  title: {
+    fontFamily: 'Helvetica-Bold',
+    fontSize: 15,
+    marginBottom: 4,
+  },
+  intro: {
+    fontSize: 10.5,
+    color: MUTED,
+    marginBottom: 22,
+  },
+  table: {
+    borderTopWidth: 1,
+    borderTopColor: LINE,
+    marginBottom: 22,
+  },
+  row: {
+    flexDirection: 'row',
+    borderBottomWidth: 1,
+    borderBottomColor: LINE,
+    paddingVertical: 9,
+  },
+  cellLabel: {
+    width: '38%',
+    color: MUTED,
+    fontSize: 10,
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
+  },
+  cellValue: {
+    width: '62%',
+    fontFamily: 'Helvetica-Bold',
+    fontSize: 11,
+    color: INK,
+  },
+  totalRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    marginTop: 4,
+    paddingVertical: 10,
+    paddingHorizontal: 12,
+    backgroundColor: '#fbecec',
+    borderRadius: 6,
+    marginBottom: 24,
+  },
+  totalLabel: {
+    fontFamily: 'Helvetica-Bold',
+    fontSize: 12,
+    color: INK,
+  },
+  totalValue: {
+    fontFamily: 'Helvetica-Bold',
+    fontSize: 14,
+    color: RED,
+  },
+  donationBox: {
+    borderWidth: 1,
+    borderColor: '#f3c9c9',
+    borderRadius: 8,
+    padding: 14,
+    backgroundColor: '#fef6f6',
+    marginBottom: 22,
+  },
+  donationTitle: {
+    fontFamily: 'Helvetica-Bold',
+    fontSize: 10.5,
+    color: RED,
+    marginBottom: 4,
+    letterSpacing: 0.5,
+  },
+  donationText: {
+    fontSize: 10,
+    color: '#7a4a4a',
+  },
+  note: {
+    fontSize: 9,
+    color: MUTED,
+    marginBottom: 4,
+  },
+  footer: {
+    position: 'absolute',
+    bottom: 32,
+    left: 48,
+    right: 48,
+    borderTopWidth: 1,
+    borderTopColor: LINE,
+    paddingTop: 10,
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+  },
+  footerText: {
+    fontSize: 8.5,
+    color: MUTED,
+  },
+});
+
+function formatDate(d: Date): string {
+  return d.toLocaleDateString('de-DE', { day: '2-digit', month: '2-digit', year: 'numeric' }) +
+    ', ' + d.toLocaleTimeString('de-DE', { hour: '2-digit', minute: '2-digit' }) + ' Uhr';
+}
+
+function formatEuro(n: number): string {
+  return n.toLocaleString('de-DE', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + ' \u20AC';
+}
+
+function ReceiptDoc({ data }: { data: SoliShirtReceiptData }) {
+  const date = data.date ?? new Date();
+  const ref = data.sessionId ? data.sessionId.slice(-12).toUpperCase() : '\u2014';
+
+  return (
+    <Document
+      title="Harmony Soli-Shirt Bestätigung"
+      author="DYD - Decide your Dream UG (haftungsbeschränkt)"
+    >
+      <Page size="A4" style={styles.page}>
+        <View style={styles.topBar} />
+
+        <Text style={styles.brand}>HARMONY 2026</Text>
+        <Text style={styles.brandSub}>DYD · Decide Your Dream</Text>
+
+        <Text style={styles.paidBadge}>ZAHLUNG ERHALTEN · BEZAHLT</Text>
+
+        <Text style={styles.title}>Bestätigung deines Soli-Shirt-Kaufs</Text>
+        <Text style={styles.intro}>
+          Vielen Dank für deine Unterstützung! Diese Bestätigung dokumentiert deinen
+          Soli-Shirt-Kauf für das Harmony Festival am 22.08.2026 in Düsseldorf.
+        </Text>
+
+        <View style={styles.table}>
+          <View style={styles.row}>
+            <Text style={styles.cellLabel}>Name</Text>
+            <Text style={styles.cellValue}>{data.buyerName || '\u2014'}</Text>
+          </View>
+          <View style={styles.row}>
+            <Text style={styles.cellLabel}>Artikel</Text>
+            <Text style={styles.cellValue}>Harmony Soli-Shirt</Text>
+          </View>
+          <View style={styles.row}>
+            <Text style={styles.cellLabel}>Größe</Text>
+            <Text style={styles.cellValue}>{data.shirtSize || '\u2014'}</Text>
+          </View>
+          <View style={styles.row}>
+            <Text style={styles.cellLabel}>Datum</Text>
+            <Text style={styles.cellValue}>{formatDate(date)}</Text>
+          </View>
+          <View style={styles.row}>
+            <Text style={styles.cellLabel}>Referenz</Text>
+            <Text style={styles.cellValue}>{ref}</Text>
+          </View>
+          <View style={styles.row}>
+            <Text style={styles.cellLabel}>Zahlungsart</Text>
+            <Text style={styles.cellValue}>Stripe (online)</Text>
+          </View>
+        </View>
+
+        <View style={styles.totalRow}>
+          <Text style={styles.totalLabel}>Bezahlter Betrag</Text>
+          <Text style={styles.totalValue}>{formatEuro(data.amount)}</Text>
+        </View>
+
+        <View style={styles.donationBox}>
+          <Text style={styles.donationTitle}>100 % Gewinn an KeinBockAufNazis e.V.</Text>
+          <Text style={styles.donationText}>
+            Der gesamte Gewinn dieses Kaufs geht direkt an KeinBockAufNazis e.V. –
+            der Veranstalter behält keinen Cent. Danke, dass du Haltung zeigst.
+          </Text>
+        </View>
+
+        <Text style={styles.note}>
+          Du erhältst innerhalb von 24 Stunden zusätzlich eine Bestätigungsmail.
+        </Text>
+        <Text style={styles.note}>
+          Dein Shirt wird am Festival verteilt (Versand auf Anfrage möglich).
+        </Text>
+        <Text style={styles.note}>
+          Dies ist eine Kaufbestätigung, keine umsatzsteuerliche Rechnung.
+        </Text>
+
+        <View style={styles.footer} fixed>
+          <Text style={styles.footerText}>
+            DYD – Decide your Dream UG (haftungsbeschränkt)
+          </Text>
+          <Text style={styles.footerText}>
+            Harmony Festival · 22.08.2026 · Düsseldorf
+          </Text>
+        </View>
+      </Page>
+    </Document>
+  );
+}
+
+export async function downloadSoliShirtReceipt(data: SoliShirtReceiptData): Promise<void> {
+  const blob = await pdf(<ReceiptDoc data={data} />).toBlob();
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = 'Harmony-Soli-Shirt-Bestaetigung.pdf';
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  URL.revokeObjectURL(url);
+}
