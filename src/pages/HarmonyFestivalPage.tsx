@@ -699,7 +699,17 @@ useEffect(() => {
       setLoadingId(null);
       return;
     }
-
+// Für die PDF-Bestätigung: Details vor dem Stripe-Redirect sichern.
+    // sessionStorage überlebt den Roundtrip im selben Tab (unabhängig von DB/Webhook).
+    if (ticket.id === 'soli_shirt') {
+      try {
+        sessionStorage.setItem('harmony_shirt_receipt', JSON.stringify({
+          buyerName: name || '',
+          shirtSize: shirtSize || '',
+          amount: ticket.price,
+        }));
+      } catch { /* sessionStorage evtl. nicht verfügbar */ }
+    }
     const slowHintTimer = setTimeout(() => setShowSlowHint(true), 3000);
 
     const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
