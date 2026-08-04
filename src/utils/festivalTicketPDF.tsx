@@ -588,8 +588,10 @@ export async function generateFestivalTicketBlob(ticket: FestivalTicketPDFProps)
   return await buildTicketBlob(ticket);
 }
 
-// PDF in den public Bucket `tickets` hochladen + ticket_pdf_url zurückschreiben.
-// existingBlob optional übergeben, um doppeltes Rendern zu vermeiden.
+// PDF in den public Bucket `tickets` hochladen. Das Zurückschreiben von
+// ticket_pdf_url macht die Edge Function `confirm-festival-ticket` mit
+// Service-Role (umgeht RLS) — der Client hat kein UPDATE-Recht auf der
+// Sales-Tabelle, deshalb würde ein direkter Update bei Gästen still scheitern.
 export async function uploadFestivalTicketPDF(ticket: any, existingBlob?: Blob): Promise<string | null> {
   if (ticket?.ticket_pdf_url) return ticket.ticket_pdf_url;
   if (!ticket?.id || !ticket?.stripe_session_id || !ticket?.ticket_number) {
@@ -612,11 +614,21 @@ export async function uploadFestivalTicketPDF(ticket: any, existingBlob?: Blob):
     const { data } = supabase.storage.from('tickets').getPublicUrl(path);
     const url = data.publicUrl;
 
-    const { error: updErr } = await supabase
-      .from('festival_ticket_sales')
-      .update({ ticket_pdf_url: url })
-      .eq('id', ticket.id);
-    if (updErr) console.error('[ticket-pdf] DB-Update fehlgeschlagen:', updErr.message);
+    // URL über die Edge Function persistieren (Service-Role, RLS-sicher).
+    try {
+      const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
+      const anonKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
+      const res = await fetch(`${supabaseUrl}/functions/v1/confirm-festival-ticket`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${anonKey}` },
+        body: JSON.stringify({ action: 'set_pdf_url', ticket_id: ticket.id, pdf_url: url }),
+      });
+      if (!res.ok) {
+        console.error('[ticket-pdf] URL-Persistierung fehlgeschlagen:', await res.text());
+      }
+    } catch (e: any) {
+      console.error('[ticket-pdf] URL-Persistierung Fehler:', e?.message || e);
+    }
 
     return url;
   } catch (e: any) {
