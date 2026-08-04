@@ -4,7 +4,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { CheckCircle, Ticket, ArrowRight, Music, Instagram, Download, X, Heart, Star, Beer } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../contexts/AuthContext';
-import { downloadFestivalTicketPDF } from '../utils/festivalTicketPDF';
+import { downloadFestivalTicketPDF, uploadFestivalTicketPDF } from '../utils/festivalTicketPDF';
 
 const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL as string;
 const SUPABASE_ANON_KEY = import.meta.env.VITE_SUPABASE_ANON_KEY as string;
@@ -206,12 +206,32 @@ export default function FestivalPaymentSuccessPage() {
   const label  = TICKET_LABEL_MAP[ticketType] || 'Festival Ticket';
   const accent = TICKET_ACCENT_MAP[ticketType] || C.cyan;
 
+// Lädt jedes Ticket-PDF in den Bucket — unabhängig davon, ob der Nutzer
+  // "Herunterladen" klickt. Mit Retry, da der erste Versuch (Rechte/Timing)
+  // gelegentlich fehlschlägt. Rein additiv: kein Browser-Download, nur Upload.
+  const autoUploadTickets = async (found: any[]) => {
+    for (const t of found) {
+      if (t?.ticket_pdf_url) continue;      // schon im Bucket
+      if (!t?.id || !t?.stripe_session_id || !t?.ticket_number) continue; // unvollständig → überspringen
+      for (let attempt = 1; attempt <= 3; attempt++) {
+        try {
+          const url = await uploadFestivalTicketPDF(t);
+          if (url) break;                   // Erfolg
+        } catch (e) {
+          console.error('[success] Auto-Upload fehlgeschlagen:', e);
+        }
+        await new Promise((r) => setTimeout(r, 1500 * attempt)); // 1.5s, 3s
+      }
+    }
+  };
+
   const handleTicketsFound = (found: any[]) => {
     if (resolvedRef.current) return;
     resolvedRef.current = true;
     if (fallbackTimerRef.current) clearTimeout(fallbackTimerRef.current);
     setTickets(found);
     setLoadingTickets(false);
+    void autoUploadTickets(found);   // ← Upload sofort anstoßen, nicht erst beim Klick
     setTimeout(() => setShowThankYou(true), 400);
   };
 
