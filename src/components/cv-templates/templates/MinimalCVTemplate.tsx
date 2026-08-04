@@ -341,10 +341,13 @@ export const MinimalCVTemplate: React.FC<CVTemplateProps> = ({
           >
             <div className="flex justify-between items-start gap-2">
               <div className="flex-1">
+                {/* FIX (zeichenweises Stapeln): explizite Umbruch-Regel
+                    überschreibt den kollabierenden wrap-Default der geteilten
+                    EditableText — volle Breite, Umbruch nur an Wortgrenzen. */}
                 <EditableText
                   wrap
                   className="font-bold"
-                  style={{ fontSize: '11px', color: t.text }}
+                  style={{ fontSize: '11px', color: t.text, width: '100%', whiteSpace: 'normal', wordBreak: 'normal', overflowWrap: 'break-word', overflow: 'visible' }}
                   value={edu.degree || edu.title || ''}
                   onChange={(val) => onUpdateSectionItem(sectionIndex, idx, 'degree', val)}
                   placeholder="Abschluss / Studiengang"
@@ -352,7 +355,7 @@ export const MinimalCVTemplate: React.FC<CVTemplateProps> = ({
                 <EditableText
                   wrap
                   className="mt-0.5"
-                  style={{ fontSize: '10px', color: t.muted }}
+                  style={{ fontSize: '10px', color: t.muted, width: '100%', whiteSpace: 'normal', wordBreak: 'normal', overflowWrap: 'break-word', overflow: 'visible' }}
                   value={edu.institution || ''}
                   onChange={(val) => onUpdateSectionItem(sectionIndex, idx, 'institution', val)}
                   placeholder="Institution"
