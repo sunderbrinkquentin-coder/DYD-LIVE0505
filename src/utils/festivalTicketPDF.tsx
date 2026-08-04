@@ -74,10 +74,10 @@ const EINLASS_BY_TYPE: Record<string, string> = {
   dj:         '22:00',
 };
 const PROGRAM = [
-  { time: '16:30', label: 'Stand-Up Comedy',  sub: 'Newcomer der lokalen Stand-Up Szene', color: '#c47a3c'  },
-  { time: '18:00', label: 'Bierpong Turnier', sub: 'Gewinnen = free drinks',              color: '#a8b84a', bierpongNote: true },
-  { time: '20:30', label: 'Zirkel.WTF Live',  sub: 'Pop-Punk aus Hamburg',                color: C.teal    },
-  { time: '22:00', label: 'DJ Sets',           sub: 'House & Techno bis 02:00',            color: '#6e9ab5' },
+  { time: '16:30', einlass: '16:00', label: 'Stand-Up Comedy',  sub: 'Newcomer der lokalen Stand-Up Szene', color: '#c47a3c'  },
+  { time: '18:00', einlass: '18:00', label: 'Bierpong Turnier', sub: 'Gewinnen = free drinks',              color: '#a8b84a', bierpongNote: true },
+  { time: '20:30', einlass: '18:00', label: 'Zirkel.WTF Live',  sub: 'Pop-Punk aus Hamburg',                color: C.teal    },
+  { time: '22:00', einlass: '22:00', label: 'DJ Sets',           sub: 'House & Techno bis 02:00',            color: '#6e9ab5' },
 ];
 
 const WAVE_HEIGHTS = [4,7,11,15,9,17,12,20,16,10,18,13,7,23,14,18,11,20,13,17,22,8,16,19,11,14,20,12,17,8,19,14,12,18,10,16,13,7];
@@ -322,8 +322,8 @@ function FrontPage({ ticket }: { ticket: FestivalTicketPDFProps }) {
                   </View>
                 </View>
                 <View style={s.infoItem}>
-                  <Text style={s.infoLabel}>EINLASS</Text>
-                  <Text style={s.infoValue}>16:00 Uhr</Text>
+                  <Text style={s.infoLabel}>DEIN EINLASS</Text>
+                  <Text style={s.infoValue}>{einlass} Uhr</Text>
                 </View>
               </View>
 
@@ -349,7 +349,7 @@ function FrontPage({ ticket }: { ticket: FestivalTicketPDFProps }) {
                 <Text style={s.hinweisLbl}>HINWEISE</Text>
                 <View style={s.hinweisRow}>
                   <Text style={s.hinweisDot}>›</Text>
-                  <Text style={[s.hinweisText, { color:'rgba(255,255,255,0.65)' }]}>Einlass um 16:00 Uhr · Bitte puenktlich sein!</Text>
+                 <Text style={[s.hinweisText, { color:'rgba(255,255,255,0.65)' }]}>Dein Einlass um {einlass} Uhr · Bitte puenktlich sein!</Text>
                 </View>
                 <View style={s.hinweisRow}>
                   <Text style={s.hinweisDot}>›</Text>
@@ -379,6 +379,7 @@ function FrontPage({ ticket }: { ticket: FestivalTicketPDFProps }) {
                     <View style={s.actBlock}>
                       <Text style={[s.actName, { color: act.color }]}>{act.label}</Text>
                       <Text style={s.actSub}>{act.sub}</Text>
+                      <Text style={[s.actSub, { color: 'rgba(255,255,255,0.42)', marginTop: 1 }]}>Einlass ab {act.einlass} Uhr</Text>
                     </View>
                   </View>
                   {act.bierpongNote && (
