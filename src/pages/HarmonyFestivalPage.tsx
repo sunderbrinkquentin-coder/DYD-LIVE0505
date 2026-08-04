@@ -884,6 +884,7 @@ signal: controller.signal,
     }
   }, [payStatus, user]);
 // Soli-Shirt-Rückkehr: shirt_success=1 wird aus dem HASH gelesen (nicht aus
+  // window.location.search — bei HashRouter stehen Query-Params hinter dem #).
 // Soli-Shirt-Rückkehr: shirt_success=1 aus dem HASH (HashRouter → Query hinter #).
   useEffect(() => {
     const hash = window.location.hash;
