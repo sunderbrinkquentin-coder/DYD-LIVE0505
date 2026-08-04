@@ -599,6 +599,9 @@ export default function HarmonyFestivalPage() {
   const [showSupportPopup, setShowSupportPopup] = useState(false);
   const [showShirtThankYou, setShowShirtThankYou] = useState(false);
   const [supportSessionId, setSupportSessionId] = useState<string | undefined>(undefined);
+  const [shirtReceipt, setShirtReceipt] = useState
+    { buyerName: string; shirtSize: string; amount: number; sessionId?: string } | null
+  >(null);
 
   const [quantities, setQuantities] = useState<Record<string, number>>(
     Object.fromEntries(TICKETS.map(t => [t.id, t.id === 'early_bird' ? 2 : 1]))
@@ -881,15 +884,27 @@ signal: controller.signal,
     }
   }, [payStatus, user]);
 // Soli-Shirt-Rückkehr: shirt_success=1 wird aus dem HASH gelesen (nicht aus
-  // window.location.search — bei HashRouter stehen Query-Params hinter dem #).
+// Soli-Shirt-Rückkehr: shirt_success=1 aus dem HASH (HashRouter → Query hinter #).
   useEffect(() => {
-    const hash = window.location.hash; // z.B. "#/festival?shirt_success=1&session_id=..."
+    const hash = window.location.hash;
     const qIndex = hash.indexOf('?');
     if (qIndex === -1) return;
     const params = new URLSearchParams(hash.substring(qIndex + 1));
     if (params.get('shirt_success') === '1') {
+      const sessionId = params.get('session_id') || undefined;
+      let stashed: any = null;
+      try {
+        const raw = sessionStorage.getItem('harmony_shirt_receipt');
+        if (raw) stashed = JSON.parse(raw);
+      } catch { /* ignore */ }
+      setShirtReceipt({
+        buyerName: stashed?.buyerName || '',
+        shirtSize: stashed?.shirtSize || '',
+        amount: typeof stashed?.amount === 'number' ? stashed.amount : 25,
+        sessionId,
+      });
       setShowShirtThankYou(true);
-      // Param entfernen, damit das Popup bei Reload nicht erneut erscheint
+      try { sessionStorage.removeItem('harmony_shirt_receipt'); } catch { /* ignore */ }
       const cleanHash = hash.split('?')[0];
       window.history.replaceState(null, '', window.location.pathname + cleanHash);
     }
