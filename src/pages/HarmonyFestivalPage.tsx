@@ -599,8 +599,7 @@ export default function HarmonyFestivalPage() {
   const [showSupportPopup, setShowSupportPopup] = useState(false);
   const [showShirtThankYou, setShowShirtThankYou] = useState(false);
   const [supportSessionId, setSupportSessionId] = useState<string | undefined>(undefined);
-  const [shirtReceipt, setShirtReceipt] = useState
-    { buyerName: string; shirtSize: string; amount: number; sessionId?: string } | null>(null);
+  const [shirtReceipt, setShirtReceipt] = useState{ buyerName: string; shirtSize: string; amount: number; sessionId?: string } | null>(null);
 
   const [quantities, setQuantities] = useState<Record<string, number>>(
     Object.fromEntries(TICKETS.map(t => [t.id, t.id === 'early_bird' ? 2 : 1]))
