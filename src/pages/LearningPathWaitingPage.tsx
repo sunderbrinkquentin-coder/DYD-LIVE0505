@@ -203,22 +203,43 @@ export default function LearningPathWaitingPage() {
 
   // ── Trigger (genau einmal) ────────────────────────────────────────────────────
 
-  const triggerLearningpath = useCallback(async (): Promise<boolean> => {
-    if (triggeredRef.current) { console.log('[LPW] Trigger übersprungen (bereits ausgelöst)'); return true; }
-    triggeredRef.current = true;
-    console.log('[LPW] Trigger learningpath für:', pathId, '| variant:', useTestWebhook ? 'test' : 'prod');
-    try {
-      const { error } = await supabase.functions.invoke('trigger-learningpath', {
-        body: { learning_path_id: pathId, use_test_webhook: useTestWebhook },
-      });
-      if (error) { console.error('[LPW] Trigger-Fehler:', error.message); triggeredRef.current = false; return false; }
-      return true;
-    } catch (e) {
-      console.error('[LPW] Trigger warf:', e);
-      triggeredRef.current = false;
-      return false;
+// ── Trigger (genau einmal) ────────────────────────────────────────────────────
+
+const triggerLearningpath = useCallback(async (): Promise<boolean> => {
+  if (triggeredRef.current) { 
+    console.log('[LPW] Trigger übersprungen (bereits ausgelöst)'); 
+    return true; 
+  }
+  triggeredRef.current = true;
+
+  // 1. Dynamischen Funktionsnamen wählen:
+  // Ist useTestWebhook true -> rufe Edge Function 'use_test_webhook' auf.
+  // Ist useTestWebhook false -> rufe Edge Function 'trigger-learningpath' auf.
+  const targetFunction = useTestWebhook ? 'use_test_webhook' : 'trigger-learningpath';
+
+  console.log(`[LPW] Trigger gestartet via Edge Function '${targetFunction}' für Path-ID:`, pathId);
+
+  try {
+    const { error } = await supabase.functions.invoke(targetFunction, {
+      body: { 
+        learning_path_id: pathId, 
+        use_test_webhook: useTestWebhook 
+      },
+    });
+
+    if (error) { 
+      console.error(`[LPW] Fehler in Edge Function '${targetFunction}':`, error.message); 
+      triggeredRef.current = false; 
+      return false; 
     }
-  }, [pathId, useTestWebhook]);
+
+    return true;
+  } catch (e) {
+    console.error(`[LPW] Aufruf von '${targetFunction}' warf Fehler:`, e);
+    triggeredRef.current = false;
+    return false;
+  }
+}, [pathId, useTestWebhook]);
 
   // ── Poll-Schleife (genau eine) ────────────────────────────────────────────────
 
