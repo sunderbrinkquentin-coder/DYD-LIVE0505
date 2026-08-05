@@ -2,6 +2,14 @@ import { useEffect, useRef, useState, useCallback } from 'react';
 import { useParams, useNavigate, useSearchParams } from 'react-router-dom';
 import { supabase } from '../lib/supabase';
 
+// ═══════════════════════════════════════════════════════════════════════════════
+// ⚠️  TEST-MODUS — HART VERDRAHTET
+// Solange dies `true` ist, geht JEDER Trigger auf den TEST-Webhook (neuer Make-Flow),
+// auch für echte User. VOR dem Go-Live auf `false` setzen (oder auf Flag-Logik
+// zurückbauen). Dies ist der EINZIGE Ort, an dem der Test-Modus geschaltet wird.
+// ═══════════════════════════════════════════════════════════════════════════════
+const FORCE_TEST_WEBHOOK = true;
+
 // ── Constants ──────────────────────────────────────────────────────────────────
 
 const POLL_INTERVAL_MS = 2_500;
@@ -70,15 +78,10 @@ export default function LearningPathWaitingPage() {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const skillFromUrl = searchParams.get('skill') || null;
-  // Robust gegen HashRouter: liest 'variant' sowohl aus dem normalen Query-String
-  // als auch aus dem Teil hinter dem Hash (…/#/route?variant=test).
-// Test-Flow-Schalter — robust gegen HashRouter UND navigate().
-  // Priorität: (1) localStorage-Schalter, (2) variant in der URL (egal wo).
-  const useTestWebhook =
-    (typeof window !== 'undefined' && window.localStorage.getItem('lp_use_test') === '1') ||
-    searchParams.get('variant') === 'test' ||
-    new URLSearchParams(window.location.hash.split('?')[1] || '').get('variant') === 'test' ||
-    new URLSearchParams(window.location.search).get('variant') === 'test';
+
+  // TEST-MODUS hart verdrahtet — siehe FORCE_TEST_WEBHOOK oben.
+  // Die frühere URL-/Flag-Logik ist bewusst deaktiviert, bis der neue Flow steht.
+  const useTestWebhook = FORCE_TEST_WEBHOOK;
 
   const [phase, setPhase] = useState<'loading' | 'waiting' | 'done' | 'error'>('loading');
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
