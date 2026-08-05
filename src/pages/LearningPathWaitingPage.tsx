@@ -198,7 +198,7 @@ export default function LearningPathWaitingPage() {
     console.log('[LPW] Trigger learningpath für:', pathId);
     try {
       const { error } = await supabase.functions.invoke('trigger-learningpath', {
-        body: { learning_path_id: pathId },
+        body: { learning_path_id: pathId, use_test_webhook: useTestWebhook },
       });
       if (error) { console.error('[LPW] Trigger-Fehler:', error.message); triggeredRef.current = false; return false; }
       return true;
