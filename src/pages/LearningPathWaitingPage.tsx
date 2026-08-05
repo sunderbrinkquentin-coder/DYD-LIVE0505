@@ -70,7 +70,12 @@ export default function LearningPathWaitingPage() {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const skillFromUrl = searchParams.get('skill') || null;
-  const useTestWebhook = searchParams.get('variant') === 'test';
+  // Robust gegen HashRouter: liest 'variant' sowohl aus dem normalen Query-String
+  // als auch aus dem Teil hinter dem Hash (…/#/route?variant=test).
+  const useTestWebhook =
+    searchParams.get('variant') === 'test' ||
+    new URLSearchParams(window.location.hash.split('?')[1] || '').get('variant') === 'test' ||
+    new URLSearchParams(window.location.search).get('variant') === 'test';
 
   const [phase, setPhase] = useState<'loading' | 'waiting' | 'done' | 'error'>('loading');
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
