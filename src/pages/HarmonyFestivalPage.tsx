@@ -2713,36 +2713,26 @@ signal: controller.signal,
       </div>
 
       {/* CTA */}
+{/* CTA — Aktion beendet */}
       <motion.button
-        whileHover={{ scale: 1.015 }}
-        whileTap={{ scale: 0.97 }}
-        onClick={() => {
-        if (!selectedShirtSize) {
-        setSizeError('Bitte wähle zuerst eine Größe.');
-        return;
-        }
-        setSizeError('');
-        const shirtTicket = TICKETS.find((t) => t.id === 'soli_shirt')!;
-        doCheckout(shirtTicket, profile?.full_name || '', undefined, undefined, selectedShirtSize);
-    }}
-        disabled={loadingId !== null}
-        className="w-full flex items-center justify-center gap-3 py-4 rounded-2xl disabled:opacity-40 disabled:cursor-not-allowed"
+        onClick={undefined}
+        disabled={true}
+        aria-disabled={true}
+        className="w-full flex items-center justify-center gap-3 py-4 rounded-2xl cursor-not-allowed"
         style={{
-          background: 'linear-gradient(90deg, #dc3232 0%, #b02020 100%)',
-          color: '#fff',
+          background: 'linear-gradient(90deg, #6b6b6b 0%, #4a4a4a 100%)',
+          color: 'rgba(255,255,255,0.85)',
           fontFamily: "'Bebas Neue', sans-serif",
-          fontSize: '22px',
-          letterSpacing: '0.2em',
-          boxShadow: '0 4px 36px rgba(220,50,50,0.4)',
+          fontSize: '18px',
+          letterSpacing: '0.12em',
+          boxShadow: 'none',
+          lineHeight: 1.3,
+          textAlign: 'center',
         }}
       >
-        {loadingId === 'soli_shirt' ? (
-          <><Loader2 className="w-5 h-5 animate-spin" /> Weiterleitung...</>
-        ) : (
-          <><Heart className="w-5 h-5" /> Shirt sichern — 25,00 € für KeinBockAufNazis</>
-        )}
+        <Heart className="w-5 h-5 flex-shrink-0" />
+        <span>Aktion hat am 4.8. geendet — vielen Dank an alle Supporter</span>
       </motion.button>
-
       <p
         style={{
           fontFamily: "'Inter', sans-serif",
