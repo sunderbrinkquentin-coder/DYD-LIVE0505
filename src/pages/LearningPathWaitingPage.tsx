@@ -72,7 +72,10 @@ export default function LearningPathWaitingPage() {
   const skillFromUrl = searchParams.get('skill') || null;
   // Robust gegen HashRouter: liest 'variant' sowohl aus dem normalen Query-String
   // als auch aus dem Teil hinter dem Hash (…/#/route?variant=test).
+// Test-Flow-Schalter — robust gegen HashRouter UND navigate().
+  // Priorität: (1) localStorage-Schalter, (2) variant in der URL (egal wo).
   const useTestWebhook =
+    (typeof window !== 'undefined' && window.localStorage.getItem('lp_use_test') === '1') ||
     searchParams.get('variant') === 'test' ||
     new URLSearchParams(window.location.hash.split('?')[1] || '').get('variant') === 'test' ||
     new URLSearchParams(window.location.search).get('variant') === 'test';
