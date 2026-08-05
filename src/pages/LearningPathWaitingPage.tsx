@@ -70,7 +70,7 @@ export default function LearningPathWaitingPage() {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const skillFromUrl = searchParams.get('skill') || null;
-   const useTestWebhook = searchParams.get('variant') === 'test';
+  const useTestWebhook = searchParams.get('variant') === 'test';
 
   const [phase, setPhase] = useState<'loading' | 'waiting' | 'done' | 'error'>('loading');
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
@@ -195,7 +195,7 @@ export default function LearningPathWaitingPage() {
   const triggerLearningpath = useCallback(async (): Promise<boolean> => {
     if (triggeredRef.current) { console.log('[LPW] Trigger übersprungen (bereits ausgelöst)'); return true; }
     triggeredRef.current = true;
-    console.log('[LPW] Trigger learningpath für:', pathId);
+    console.log('[LPW] Trigger learningpath für:', pathId, '| variant:', useTestWebhook ? 'test' : 'prod');
     try {
       const { error } = await supabase.functions.invoke('trigger-learningpath', {
         body: { learning_path_id: pathId, use_test_webhook: useTestWebhook },
@@ -207,7 +207,7 @@ export default function LearningPathWaitingPage() {
       triggeredRef.current = false;
       return false;
     }
-  }, [pathId]);
+  }, [pathId, useTestWebhook]);
 
   // ── Poll-Schleife (genau eine) ────────────────────────────────────────────────
 
