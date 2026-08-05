@@ -70,6 +70,7 @@ export default function LearningPathWaitingPage() {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const skillFromUrl = searchParams.get('skill') || null;
+   const useTestWebhook = searchParams.get('variant') === 'test';
 
   const [phase, setPhase] = useState<'loading' | 'waiting' | 'done' | 'error'>('loading');
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
