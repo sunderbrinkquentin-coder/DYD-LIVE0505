@@ -983,14 +983,60 @@ function FinalExamError({ onRetry, onBack }: { onRetry: () => void; onBack: () =
 
 // ── Learning content ──────────────────────────────────────────────────────────
 
-type LearningPhase = 'intro' | 'goals' | 'practice' | 'consolidation' | 'exam';
+// ── Learning content (Duolingo-style) ──────────────────────────────────────────
 
-interface PracticeState {
-  currentIdx: number;
-  selected: string | null;
-  revealed: boolean;
-  correct: number;
+type UnitPhase = 'intro' | 'steps' | 'passed' | 'failed';
+
+const INTERACTIVE_TYPES = new Set(['choice', 'true_false', 'fill_blank', 'order', 'match', 'scenario']);
+const isInteractive = (s: any): boolean => INTERACTIVE_TYPES.has(s?.type);
+const stepXp = (s: any): number => (typeof s?.xp === 'number' && s.xp > 0 ? s.xp : 10);
+
+const HEARTS_START = 3;
+const PAIR_COLORS = ['#30E3CA', '#38bdf8', '#a78bfa', '#f472b6', '#fbbf24'];
+
+const ICON_EMOJI: Record<string, string> = {
+  lightbulb: '💡', bulb: '💡', idea: '💡',
+  cpu: '🧠', brain: '🧠', ai: '🧠',
+  settings: '⚙️', gear: '⚙️', config: '⚙️',
+  target: '🎯', goal: '🎯',
+  zap: '⚡', energy: '⚡', bolt: '⚡',
+  book: '📖', learn: '📖', education: '📖',
+  rocket: '🚀', launch: '🚀',
+  trophy: '🏆', award: '🏆', win: '🏆',
+  star: '⭐', check: '✅', puzzle: '🧩',
+  chart: '📊', graph: '📈', money: '💰',
+  users: '👥', team: '👥', handshake: '🤝',
+  globe: '🌐', network: '🌐', building: '🏢',
+  shield: '🛡️', lock: '🔒', key: '🔑',
+  clock: '⏰', calendar: '📅', flag: '🚩',
+};
+const iconEmoji = (name?: string): string => ICON_EMOJI[String(name || '').toLowerCase().replace(/^lucide-/, '')] || '📘';
+
+function shuffleArr<T>(arr: T[]): T[] {
+  const a = [...arr];
+  for (let i = a.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [a[i], a[j]] = [a[j], a[i]];
+  }
+  return a;
 }
+function shuffleDistinct(arr: number[]): number[] {
+  if (arr.length < 2) return [...arr];
+  let s = shuffleArr(arr);
+  let guard = 0;
+  while (s.every((v, i) => v === arr[i]) && guard++ < 12) s = shuffleArr(arr);
+  return s;
+}
+
+interface AnsState {
+  single: number | null;          // fill_blank, scenario
+  bool: boolean | null;           // true_false
+  multi: number[];                // choice
+  order: number[];                // order — sequence of ORIGINAL item indices
+  match: Record<number, number>;  // match — leftIndex -> rightDisplayIndex
+  activeLeft: number | null;      // match — currently selected left
+}
+const EMPTY_ANS: AnsState = { single: null, bool: null, multi: [], order: [], match: {}, activeLeft: null };
 
 function LearningContent({
   learningPath,
@@ -1010,17 +1056,57 @@ function LearningContent({
   onUnitCompleted: (unitIdx: number, score: number) => void;
 }) {
   const thisUnitComplete = completedUnits.has(unitIndex);
+  const contentUnit = parseContentUnit(learningResult?.content, unitIndex);
 
-  const [learningPhase, setLearningPhase] = useState<LearningPhase>('intro');
+  const steps: any[] = Array.isArray(contentUnit?.steps) ? contentUnit!.steps : [];
+  const learningObjectives: string[] = Array.isArray(contentUnit?.learning_objectives) ? contentUnit!.learning_objectives : [];
+  const keyFacts: string[] = Array.isArray(contentUnit?.key_facts) ? contentUnit!.key_facts : [];
+  const unitTitle: string = contentUnit?.title || learningPath.target_job || 'Lerneinheit';
+  const unitEmoji = iconEmoji(contentUnit?.icon);
+
+  const interactiveSteps = steps.filter(isInteractive);
+  const maxXp = interactiveSteps.reduce((s, st) => s + stepXp(st), 0) || 1;
+  const hasInteractive = interactiveSteps.length > 0;
+
+  const [phase, setPhase] = useState<UnitPhase>('intro');
+  const [stepIdx, setStepIdx] = useState(0);
+  const [hearts, setHearts] = useState(HEARTS_START);
+  const [earnedXp, setEarnedXp] = useState(0);
+
+  const [ans, setAns] = useState<AnsState>(EMPTY_ANS);
+  const [revealed, setRevealed] = useState(false);
+  const [wasWrong, setWasWrong] = useState(false);   // any wrong attempt on THIS step → no XP
+  const [lastCorrect, setLastCorrect] = useState(false);
+
+  const [orderDisplay, setOrderDisplay] = useState<number[]>([]);        // shuffled original indices
+  const [matchRights, setMatchRights] = useState<{ text: string; correctLeft: number }[]>([]);
+
   const [savingCompletion, setSavingCompletion] = useState(false);
   const [saveError, setSaveError] = useState<string | null>(null);
+  const [saved, setSaved] = useState(false);
 
-  const [practice, setPractice] = useState<PracticeState>({ currentIdx: 0, selected: null, revealed: false, correct: 0 });
-  const [examAnswers, setExamAnswers] = useState<Record<number, string>>({});
-  const [examSubmitted, setExamSubmitted] = useState(false);
+  const step = steps[stepIdx];
 
-  const saveUnitCompletion = async (score: number) => {
-    if (!userId || thisUnitComplete) return;
+  // Per-step setup: reset answer state and (re)build shuffles. Depends only on
+  // stepIdx + steps.length so it fires once per step and once when content
+  // arrives — never on every render (parseContentUnit returns a fresh object).
+  useEffect(() => {
+    setAns(EMPTY_ANS);
+    setRevealed(false);
+    setWasWrong(false);
+    setLastCorrect(false);
+    const st = steps[stepIdx];
+    if (st?.type === 'order' && Array.isArray(st.items)) {
+      setOrderDisplay(shuffleDistinct(st.items.map((_: any, i: number) => i)));
+    }
+    if (st?.type === 'match' && Array.isArray(st.pairs)) {
+      setMatchRights(shuffleArr(st.pairs.map((p: any, i: number) => ({ text: p.right, correctLeft: i }))));
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [stepIdx, steps.length]);
+
+  const persistCompletion = async (score: number) => {
+    if (!userId) return;
     setSavingCompletion(true);
     setSaveError(null);
     try {
@@ -1034,46 +1120,98 @@ function LearningContent({
         completed_at: new Date().toISOString(),
       }, { onConflict: 'learning_path_id,unit_index', ignoreDuplicates: true });
       if (error) throw error;
-      onUnitCompleted(unitIndex, score);
+      setSaved(true);
     } catch {
-      // The unit is passed but not persisted. Say so — silently swallowing this
-      // means the user redoes the unit after a reload with no explanation.
-      setSaveError('Fortschritt konnte nicht gespeichert werden. Lade die Seite neu und versuche es erneut.');
+      setSaveError('Fortschritt konnte nicht gespeichert werden. Du kannst es erneut versuchen.');
     } finally {
       setSavingCompletion(false);
     }
   };
 
-  const contentUnit = parseContentUnit(learningResult?.content, unitIndex);
-  const unitVariantText: string = unitVariant === 'A'
-    ? (contentUnit?.variant_a || '')
-    : (contentUnit?.variant_b || contentUnit?.variant_a || '');
-  const competencies: string[] = Array.isArray(contentUnit?.competencies) ? contentUnit!.competencies : [];
-  const officialTitle = contentUnit?.mobile_title || learningPath.target_job || '';
+  // ── Answer evaluation ─────────────────────────────────────────────────────
 
-  const questions: QuizQuestion[] = mapQuizQuestions(contentUnit?.quiz);
-  const practiceQuestions = questions.slice(0, Math.ceil(questions.length / 2));
+  const canCheck = (() => {
+    if (!step) return false;
+    switch (step.type) {
+      case 'choice':     return ans.multi.length > 0;
+      case 'true_false': return ans.bool !== null;
+      case 'fill_blank': return ans.single !== null;
+      case 'scenario':   return ans.single !== null;
+      case 'order':      return ans.order.length === (step.items?.length ?? 0);
+      case 'match':      return Object.keys(ans.match).length === (step.pairs?.length ?? 0);
+      default:           return false;
+    }
+  })();
 
-  const examScoreRaw = examSubmitted
-    ? questions.filter(q => examAnswers[q.question_id] === q.correct_key).length
-    : 0;
-  const examScorePct = questions.length > 0 ? Math.round((examScoreRaw / questions.length) * 100) : 0;
-  const examPassed = examSubmitted && examScorePct >= MIN_PASS_SCORE;
-  const allExamAnswered = questions.length > 0 && questions.every(q => examAnswers[q.question_id]);
+  const evaluate = (): boolean => {
+    if (!step) return false;
+    switch (step.type) {
+      case 'choice': {
+        const correct = new Set<number>(Array.isArray(step.correct) ? step.correct : []);
+        const sel = new Set<number>(ans.multi);
+        return correct.size === sel.size && [...correct].every((i) => sel.has(i));
+      }
+      case 'true_false': return ans.bool === step.answer;
+      case 'fill_blank': return ans.single === step.correct;
+      case 'scenario':   return ans.single === step.correct;
+      case 'order':      return ans.order.length === step.items.length && ans.order.every((v, i) => v === i);
+      case 'match':      return step.pairs.every((_: any, i: number) => matchRights[ans.match[i]]?.correctLeft === i);
+      default:           return true;
+    }
+  };
 
-  // Number of correct answers needed, derived from MIN_PASS_SCORE — never hardcoded.
-  const requiredCorrect = Math.ceil(questions.length * (MIN_PASS_SCORE / 100));
+  const onCheck = () => {
+    const correct = evaluate();
+    setRevealed(true);
+    setLastCorrect(correct);
+    if (correct) {
+      if (!wasWrong) setEarnedXp((x) => x + stepXp(step));
+    } else {
+      setHearts((h) => Math.max(0, h - 1));
+      setWasWrong(true);
+    }
+  };
 
-  const PHASE_STEPS: { key: LearningPhase; label: string }[] = [
-    { key: 'intro', label: 'Einstieg' },
-    { key: 'goals', label: 'Lernziele' },
-    { key: 'practice', label: 'Üben' },
-    { key: 'consolidation', label: 'Festigung' },
-    { key: 'exam', label: 'Einheitentest' },
-  ];
-  const phaseIdx = PHASE_STEPS.findIndex(s => s.key === learningPhase);
+  const onRetry = () => {
+    setAns(EMPTY_ANS);
+    setRevealed(false);
+    setLastCorrect(false);
+    // wasWrong stays true → no XP even once solved
+  };
 
-  // Content for this unit has not arrived yet.
+  const finishUnit = () => {
+    const pct = hasInteractive ? Math.round((earnedXp / maxXp) * 100) : 100;
+    if (pct >= MIN_PASS_SCORE) {
+      setPhase('passed');
+      persistCompletion(pct);
+    } else {
+      setPhase('failed');
+    }
+  };
+
+  const onContinue = () => {
+    if (stepIdx < steps.length - 1) setStepIdx(stepIdx + 1);
+    else finishUnit();
+  };
+
+  const restart = () => {
+    setPhase('intro');
+    setStepIdx(0);
+    setHearts(HEARTS_START);
+    setEarnedXp(0);
+    setAns(EMPTY_ANS);
+    setRevealed(false);
+    setWasWrong(false);
+    setLastCorrect(false);
+    setSaved(false);
+    setSaveError(null);
+  };
+
+  const finalPct = hasInteractive ? Math.round((earnedXp / maxXp) * 100) : 100;
+  const heartsGone = hearts <= 0;
+
+  // ── Content not arrived yet ────────────────────────────────────────────────
+
   if (!contentUnit) {
     return (
       <div className="flex flex-col items-center gap-5 py-20 max-w-sm mx-auto text-center">
@@ -1091,434 +1229,464 @@ function LearningContent({
     );
   }
 
-  return (
-    <div className="space-y-6 max-w-2xl mx-auto" style={{ animation: 'lp_fadeUp 0.45s ease' }}>
-      <style>{GLOBAL_STYLES}</style>
+  // ── INTRO ──────────────────────────────────────────────────────────────────
 
-      {thisUnitComplete && (
-        <div className="flex items-center gap-3 px-4 py-3 rounded-xl"
-          style={{ background: 'rgba(34,197,94,0.08)', border: '1px solid rgba(34,197,94,0.25)' }}>
-          <svg width="14" height="14" viewBox="0 0 14 14"><circle cx="7" cy="7" r="6" fill="rgba(34,197,94,0.15)" stroke="#22c55e" strokeWidth="1.5" /><polyline points="3.5,7 6,9.5 10.5,4.5" fill="none" stroke="#22c55e" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" /></svg>
-          <p className="text-xs font-black text-green-400/80">Einheit {unitIndex} abgeschlossen</p>
-        </div>
-      )}
+  if (phase === 'intro') {
+    return (
+      <div className="space-y-6 max-w-2xl mx-auto" style={{ animation: 'lp_fadeUp 0.45s ease' }}>
+        <style>{GLOBAL_STYLES}</style>
 
-      <div className="flex items-center gap-1 overflow-x-auto pb-1">
-        {PHASE_STEPS.map((step, i) => {
-          const isDone = i < phaseIdx;
-          const isActive = i === phaseIdx;
-          return (
-            <div key={step.key} className="flex items-center gap-1 flex-shrink-0">
-              <button
-                onClick={() => { if (isDone) setLearningPhase(step.key); }}
-                disabled={!isDone && !isActive}
-                className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-[10px] font-black uppercase tracking-wider transition-all"
-                style={{
-                  background: isActive ? 'rgba(48,227,202,0.15)' : isDone ? 'rgba(34,197,94,0.08)' : 'rgba(255,255,255,0.03)',
-                  border: `1px solid ${isActive ? 'rgba(48,227,202,0.35)' : isDone ? 'rgba(34,197,94,0.25)' : 'rgba(255,255,255,0.07)'}`,
-                  color: isActive ? '#30E3CA' : isDone ? '#4ade80' : 'rgba(255,255,255,0.3)',
-                  cursor: isDone ? 'pointer' : isActive ? 'default' : 'not-allowed',
-                }}
-              >
-                {isDone && <svg width="9" height="9" viewBox="0 0 9 9"><polyline points="1.5,4.5 3.5,6.5 7.5,2.5" fill="none" stroke="#4ade80" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" /></svg>}
-                {step.label}
-              </button>
-              {i < PHASE_STEPS.length - 1 && (
-                <div className="w-3 h-px flex-shrink-0" style={{ background: i < phaseIdx ? 'rgba(34,197,94,0.3)' : 'rgba(255,255,255,0.08)' }} />
-              )}
-            </div>
-          );
-        })}
-      </div>
+        {thisUnitComplete && (
+          <div className="flex items-center gap-3 px-4 py-3 rounded-xl"
+            style={{ background: 'rgba(34,197,94,0.08)', border: '1px solid rgba(34,197,94,0.25)' }}>
+            <svg width="14" height="14" viewBox="0 0 14 14"><circle cx="7" cy="7" r="6" fill="rgba(34,197,94,0.15)" stroke="#22c55e" strokeWidth="1.5" /><polyline points="3.5,7 6,9.5 10.5,4.5" fill="none" stroke="#22c55e" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" /></svg>
+            <p className="text-xs font-black text-green-400/80">Einheit {unitIndex} bereits abgeschlossen — du kannst sie wiederholen.</p>
+          </div>
+        )}
 
-      {/* Phase 1 — Intro */}
-      {learningPhase === 'intro' && (
-        <div className="space-y-5" style={{ animation: 'lp_fadeUp 0.4s ease' }}>
-          <div className="rounded-2xl overflow-hidden"
-            style={{ background: 'linear-gradient(135deg,rgba(48,227,202,0.1) 0%,rgba(6,7,15,0.98) 65%)', border: '1px solid rgba(48,227,202,0.25)' }}>
-            <div className="h-px w-full" style={{ background: 'linear-gradient(90deg,transparent,rgba(48,227,202,0.6),transparent)' }} />
-            <div className="p-6 space-y-4">
-              <div className="flex items-center gap-2">
-                <div className="w-8 h-8 rounded-xl flex items-center justify-center"
-                  style={{ background: 'rgba(48,227,202,0.12)', border: '1px solid rgba(48,227,202,0.3)' }}>
-                  <Sparkles size={15} className="text-[#30E3CA]" />
-                </div>
-                <span className="text-[10px] font-black uppercase tracking-widest text-[#30E3CA]/60">Deine Lerneinheit</span>
+        <div className="rounded-2xl overflow-hidden"
+          style={{ background: 'linear-gradient(135deg,rgba(48,227,202,0.1) 0%,rgba(6,7,15,0.98) 65%)', border: '1px solid rgba(48,227,202,0.25)' }}>
+          <div className="h-px w-full" style={{ background: 'linear-gradient(90deg,transparent,rgba(48,227,202,0.6),transparent)' }} />
+          <div className="p-6 space-y-4">
+            <div className="flex items-center gap-3">
+              <div className="w-12 h-12 rounded-2xl flex items-center justify-center text-2xl"
+                style={{ background: 'rgba(48,227,202,0.12)', border: '1px solid rgba(48,227,202,0.3)' }}>
+                {unitEmoji}
               </div>
-              <h2 className="text-2xl font-black text-white leading-tight">{officialTitle}</h2>
-              {unitVariantText ? (
-                <p className="text-sm text-white/70 leading-relaxed whitespace-pre-line">{unitVariantText}</p>
-              ) : (
-                <p className="text-sm text-white/60 leading-relaxed">
-                  Diese Lerneinheit wurde speziell für dein Karriereziel <span className="text-white font-bold">{learningPath.target_job}</span> zusammengestellt.
-                </p>
-              )}
+              <div>
+                <span className="text-[10px] font-black uppercase tracking-widest text-[#30E3CA]/60">Einheit {unitIndex}</span>
+                <h2 className="text-2xl font-black text-white leading-tight">{unitTitle}</h2>
+              </div>
             </div>
           </div>
+        </div>
 
-          <div className="grid grid-cols-3 gap-2">
-            {[
-              { icon: '🎯', title: 'Lernziele', desc: 'Was du am Ende kannst' },
-              { icon: '🧠', title: 'Geführtes Üben', desc: 'Schritt für Schritt mit Feedback' },
-              { icon: '🏆', title: 'Einheitentest', desc: `Mindestens ${MIN_PASS_SCORE}% zum Bestehen` },
-            ].map((item) => (
-              <div key={item.title} className="px-3 py-3.5 rounded-xl text-center"
-                style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.07)' }}>
-                <div className="text-xl mb-2">{item.icon}</div>
-                <p className="text-xs font-black text-white">{item.title}</p>
-                <p className="text-[10px] text-white/35 mt-0.5 leading-snug">{item.desc}</p>
+        {learningObjectives.length > 0 && (
+          <div>
+            <p className="text-[10px] font-black uppercase tracking-widest text-white/30 px-1 mb-3">Nach dieser Einheit kannst du…</p>
+            <div className="space-y-2">
+              {learningObjectives.map((obj, i) => (
+                <div key={i} className="flex items-start gap-3 px-4 py-3.5 rounded-xl"
+                  style={{ background: 'rgba(102,192,182,0.06)', border: '1px solid rgba(102,192,182,0.14)' }}>
+                  <div className="flex-shrink-0 w-6 h-6 rounded-lg flex items-center justify-center text-xs font-black mt-0.5"
+                    style={{ background: 'rgba(48,227,202,0.12)', color: '#30E3CA', border: '1px solid rgba(48,227,202,0.22)' }}>
+                    {i + 1}
+                  </div>
+                  <p className="text-sm text-white/80 leading-relaxed">{obj}</p>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {keyFacts.length > 0 && (
+          <div className="rounded-xl px-4 py-4 space-y-2"
+            style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.08)' }}>
+            <p className="text-[10px] font-black uppercase tracking-widest text-white/30">Kernfakten</p>
+            {keyFacts.map((f, i) => (
+              <div key={i} className="flex items-start gap-2.5">
+                <div className="w-1.5 h-1.5 rounded-full bg-[#30E3CA] flex-shrink-0 mt-1.5" />
+                <p className="text-xs text-white/60 leading-relaxed">{f}</p>
               </div>
             ))}
           </div>
+        )}
 
-          <div className="rounded-xl px-4 py-3 flex items-start gap-3"
-            style={{ background: 'rgba(248,197,100,0.06)', border: '1px solid rgba(248,197,100,0.18)' }}>
-            <div className="w-1.5 h-1.5 rounded-full bg-amber-400 flex-shrink-0 mt-1.5" />
-            <p className="text-xs text-amber-300/70 leading-relaxed">
-              <span className="font-bold text-amber-300/90">Tipp:</span> Gehe die Übungsphase gewissenhaft durch — sie bereitet dich direkt auf den Einheitentest vor.
-            </p>
+        <div className="grid grid-cols-3 gap-2">
+          <div className="px-3 py-3.5 rounded-xl text-center" style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.07)' }}>
+            <div className="text-xl mb-1">{'❤️❤️❤️'}</div>
+            <p className="text-[10px] text-white/40 leading-snug">3 Leben — bei Fehlern zählt jedes</p>
           </div>
-
-          <button
-            onClick={() => setLearningPhase('goals')}
-            className="w-full py-4 rounded-2xl font-black text-[15px] text-black flex items-center justify-center gap-2 transition-all hover:scale-[1.02] active:scale-[0.98]"
-            style={{ background: 'linear-gradient(135deg,#66c0b6,#30E3CA)', boxShadow: '0 4px 24px rgba(48,227,202,0.3)' }}>
-            Lerneinheit starten
-            <ArrowRight size={18} />
-          </button>
+          <div className="px-3 py-3.5 rounded-xl text-center" style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.07)' }}>
+            <div className="text-xl mb-1">⚡</div>
+            <p className="text-[10px] text-white/40 leading-snug">{maxXp} XP zu holen</p>
+          </div>
+          <div className="px-3 py-3.5 rounded-xl text-center" style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.07)' }}>
+            <div className="text-xl mb-1">🏆</div>
+            <p className="text-[10px] text-white/40 leading-snug">{MIN_PASS_SCORE}% XP zum Bestehen</p>
+          </div>
         </div>
-      )}
 
-      {/* Phase 2 — Goals */}
-      {learningPhase === 'goals' && (
-        <div className="space-y-5" style={{ animation: 'lp_fadeUp 0.4s ease' }}>
-          <div>
-            <p className="text-[10px] font-black uppercase tracking-widest text-white/30 px-1 mb-3">Nach dieser Einheit kannst du…</p>
-            {competencies.length > 0 ? (
-              <div className="space-y-2">
-                {competencies.map((comp, i) => (
-                  <div key={i} className="flex items-start gap-3 px-4 py-3.5 rounded-xl"
-                    style={{ background: 'rgba(102,192,182,0.06)', border: '1px solid rgba(102,192,182,0.14)' }}>
-                    <div className="flex-shrink-0 w-6 h-6 rounded-lg flex items-center justify-center text-xs font-black mt-0.5"
-                      style={{ background: 'rgba(48,227,202,0.12)', color: '#30E3CA', border: '1px solid rgba(48,227,202,0.22)' }}>
-                      {i + 1}
-                    </div>
-                    <p className="text-sm text-white/80 leading-relaxed">{comp}</p>
-                  </div>
-                ))}
-              </div>
-            ) : (
-              <div className="px-4 py-6 rounded-xl text-center text-white/35"
-                style={{ border: '1px solid rgba(255,255,255,0.07)' }}>
-                Für diese Einheit sind keine Lernziele hinterlegt.
-              </div>
-            )}
-          </div>
+        <button
+          onClick={() => { setStepIdx(0); setHearts(HEARTS_START); setEarnedXp(0); setPhase('steps'); }}
+          disabled={steps.length === 0}
+          className="w-full py-4 rounded-2xl font-black text-[15px] text-black flex items-center justify-center gap-2 transition-all hover:scale-[1.02] active:scale-[0.98] disabled:opacity-40 disabled:cursor-not-allowed"
+          style={{ background: 'linear-gradient(135deg,#66c0b6,#30E3CA)', boxShadow: '0 4px 24px rgba(48,227,202,0.3)' }}>
+          Lerneinheit starten
+          <ArrowRight size={18} />
+        </button>
+      </div>
+    );
+  }
 
-          <div className="rounded-xl px-4 py-3.5 space-y-1"
-            style={{ background: 'rgba(48,227,202,0.04)', border: '1px solid rgba(48,227,202,0.14)' }}>
-            <p className="text-xs font-black text-[#30E3CA]/70">Übungsphase</p>
-            <p className="text-xs text-white/45 leading-relaxed">
-              Du gehst jetzt {practiceQuestions.length} Übungsfragen durch — mit sofortigem Feedback und Erklärung nach jeder Antwort. So baust du Verständnis auf, bevor der Einheitentest kommt.
-            </p>
-          </div>
+  // ── PASSED ─────────────────────────────────────────────────────────────────
 
-          <button
-            onClick={() => setLearningPhase('practice')}
-            disabled={practiceQuestions.length === 0}
-            className="w-full py-4 rounded-2xl font-black text-[15px] text-black flex items-center justify-center gap-2 transition-all hover:scale-[1.02] active:scale-[0.98] disabled:opacity-40 disabled:cursor-not-allowed"
-            style={{ background: 'linear-gradient(135deg,#66c0b6,#30E3CA)', boxShadow: '0 4px 20px rgba(48,227,202,0.25)' }}>
-            Mit Übungsphase starten
-            <ArrowRight size={18} />
-          </button>
+  if (phase === 'passed') {
+    return (
+      <div className="max-w-2xl mx-auto space-y-4" style={{ animation: 'lp_fadeUp 0.4s ease' }}>
+        <style>{GLOBAL_STYLES}</style>
+        <div className="rounded-2xl p-6 text-center space-y-3"
+          style={{ background: 'rgba(34,197,94,0.07)', border: '1px solid rgba(34,197,94,0.3)' }}>
+          <div className="text-5xl">🎉</div>
+          <div className="text-4xl font-black" style={{ color: '#4ade80' }}>{finalPct}%</div>
+          <p className="text-lg font-black text-white">Einheit {unitIndex} bestanden!</p>
+          <p className="text-sm text-white/55">
+            {earnedXp} von {maxXp} XP · {hearts} von {HEARTS_START} Leben übrig
+          </p>
         </div>
-      )}
 
-      {/* Phase 3 — Guided practice */}
-      {learningPhase === 'practice' && (() => {
-        const q = practiceQuestions[practice.currentIdx];
-        if (!q) return <div className="text-center py-12 text-white/40">Keine Übungsfragen vorhanden.</div>;
-        const progressPct = Math.round((practice.currentIdx / practiceQuestions.length) * 100);
-        const isLast = practice.currentIdx === practiceQuestions.length - 1;
+        {savingCompletion && (
+          <div className="flex items-center justify-center gap-2 text-[#30E3CA]/70 text-xs">
+            <Loader2 size={13} className="animate-spin" />
+            <span>Fortschritt wird gespeichert…</span>
+          </div>
+        )}
+        {saveError && (
+          <div className="rounded-xl px-4 py-3.5 space-y-3" style={{ background: 'rgba(248,113,113,0.06)', border: '1px solid rgba(248,113,113,0.25)' }}>
+            <p className="text-xs text-red-400/85 leading-relaxed">{saveError}</p>
+            <button onClick={() => persistCompletion(finalPct)} disabled={savingCompletion}
+              className="w-full py-2.5 rounded-lg font-bold text-xs text-white/80 transition-all hover:bg-white/5 disabled:opacity-40"
+              style={{ border: '1px solid rgba(255,255,255,0.12)' }}>
+              Erneut speichern
+            </button>
+          </div>
+        )}
 
-        return (
-          <div className="space-y-5" style={{ animation: 'lp_fadeUp 0.35s ease' }}>
-            <div className="space-y-1.5">
-              <div className="flex items-center justify-between text-xs">
-                <span className="text-white/35 font-bold">Übungsfrage {practice.currentIdx + 1} / {practiceQuestions.length}</span>
-                <span className="text-[#30E3CA] font-black">{progressPct}%</span>
+        <button
+          onClick={() => onUnitCompleted(unitIndex, finalPct)}
+          className="w-full py-4 rounded-2xl font-black text-[15px] text-black flex items-center justify-center gap-2 transition-all hover:scale-[1.02] active:scale-[0.98]"
+          style={{ background: 'linear-gradient(135deg,#22c55e,#4ade80)', boxShadow: '0 4px 24px rgba(34,197,94,0.3)' }}>
+          Weiter zur Übersicht
+          <ArrowRight size={18} />
+        </button>
+      </div>
+    );
+  }
+
+  // ── FAILED ─────────────────────────────────────────────────────────────────
+
+  if (phase === 'failed') {
+    return (
+      <div className="max-w-2xl mx-auto space-y-4" style={{ animation: 'lp_fadeUp 0.4s ease' }}>
+        <style>{GLOBAL_STYLES}</style>
+        <div className="rounded-2xl p-6 text-center space-y-3"
+          style={{ background: 'rgba(248,113,113,0.06)', border: '1px solid rgba(248,113,113,0.25)' }}>
+          <div className="text-5xl">{heartsGone ? '💔' : '📉'}</div>
+          <p className="text-lg font-black text-white">
+            {heartsGone ? 'Keine Leben mehr' : 'XP-Schwelle nicht erreicht'}
+          </p>
+          <p className="text-sm text-white/55 leading-relaxed">
+            {heartsGone
+              ? 'Du hast alle drei Leben verbraucht. Kein Problem — starte die Einheit neu und versuche es erneut.'
+              : `Du hast ${finalPct}% der XP erreicht — für das Bestehen sind mindestens ${MIN_PASS_SCORE}% nötig. Wiederhole die Einheit.`}
+          </p>
+        </div>
+        <button
+          onClick={restart}
+          className="w-full py-4 rounded-2xl font-black text-[15px] text-black flex items-center justify-center gap-2 transition-all hover:scale-[1.02] active:scale-[0.98]"
+          style={{ background: 'linear-gradient(135deg,#66c0b6,#30E3CA)', boxShadow: '0 4px 20px rgba(48,227,202,0.25)' }}>
+          <RefreshCw size={16} />
+          Einheit wiederholen
+        </button>
+      </div>
+    );
+  }
+
+  // ── STEPS ──────────────────────────────────────────────────────────────────
+
+  const progressPct = steps.length > 0 ? Math.round((stepIdx / steps.length) * 100) : 0;
+  const isTeach = step?.type === 'teach';
+
+  return (
+    <div className="space-y-5 max-w-2xl mx-auto" style={{ animation: 'lp_fadeUp 0.35s ease' }}>
+      <style>{GLOBAL_STYLES}</style>
+
+      {/* Top bar — progress + hearts + xp */}
+      <div className="flex items-center gap-3">
+        <div className="flex-1 h-2.5 rounded-full overflow-hidden" style={{ background: 'rgba(255,255,255,0.08)' }}>
+          <div className="h-full rounded-full transition-all duration-500 ease-out"
+            style={{ width: `${progressPct}%`, background: 'linear-gradient(90deg,#66c0b6,#30E3CA)' }} />
+        </div>
+        <div className="flex items-center gap-0.5 flex-shrink-0">
+          {Array.from({ length: HEARTS_START }, (_, i) => (
+            <span key={i} className="text-base leading-none" style={{ opacity: i < hearts ? 1 : 0.4, filter: i < hearts ? 'none' : 'grayscale(1)' }}>
+              {i < hearts ? '❤️' : '🤍'}
+            </span>
+          ))}
+        </div>
+        <div className="flex-shrink-0 flex items-center gap-1 px-2 py-1 rounded-lg text-xs font-black"
+          style={{ background: 'rgba(48,227,202,0.1)', border: '1px solid rgba(48,227,202,0.2)', color: '#30E3CA' }}>
+          ⚡ {earnedXp}
+        </div>
+      </div>
+
+      <p className="text-[10px] font-black uppercase tracking-widest text-white/25 px-1">
+        Schritt {stepIdx + 1} / {steps.length}
+      </p>
+
+      {/* ── teach ── */}
+      {isTeach && (
+        <div className="space-y-5" style={{ animation: 'lp_fadeUp 0.3s ease' }}>
+          <div className="rounded-2xl overflow-hidden"
+            style={{ background: 'linear-gradient(135deg,rgba(48,227,202,0.08) 0%,rgba(6,7,15,0.98) 60%)', border: '1px solid rgba(48,227,202,0.2)' }}>
+            <div className="p-6 space-y-4">
+              <div className="flex items-center gap-3">
+                <div className="w-11 h-11 rounded-2xl flex items-center justify-center text-xl"
+                  style={{ background: 'rgba(48,227,202,0.12)', border: '1px solid rgba(48,227,202,0.28)' }}>
+                  {iconEmoji(step.icon)}
+                </div>
+                <h3 className="text-lg font-black text-white leading-tight">{step.title}</h3>
               </div>
-              <div className="h-1.5 rounded-full bg-white/[0.06] overflow-hidden">
-                <div className="h-full rounded-full transition-all duration-500"
-                  style={{ width: `${progressPct}%`, background: 'linear-gradient(90deg,#66c0b6,#30E3CA)' }} />
-              </div>
-            </div>
-
-            {practice.currentIdx > 0 && (
-              <div className="flex items-center gap-2 text-xs text-white/35">
-                <div className="w-1.5 h-1.5 rounded-full bg-green-400/60" />
-                <span>{practice.correct} von {practice.currentIdx} richtig bisher</span>
-              </div>
-            )}
-
-            <div className="rounded-2xl overflow-hidden"
-              style={{ border: `1px solid ${practice.revealed ? (practice.selected === q.correct_key ? 'rgba(74,222,128,0.35)' : 'rgba(248,113,113,0.35)') : 'rgba(255,255,255,0.1)'}` }}>
-              <div className="px-5 py-4" style={{ background: 'rgba(255,255,255,0.03)' }}>
-                <p className="text-base font-bold text-white leading-snug">{q.question}</p>
-                {q.clt_rating && <p className="text-[10px] text-white/20 mt-1.5">{q.clt_rating}</p>}
-              </div>
-              <div className="p-4 space-y-2">
-                {(Object.entries(q.options) as [string, string][]).map(([key, text]) => {
-                  const isSelected = practice.selected === key;
-                  const isCorrectOpt = key === q.correct_key;
-                  let bg = 'rgba(255,255,255,0.03)';
-                  let border = 'rgba(255,255,255,0.09)';
-                  let color = 'rgba(255,255,255,0.75)';
-                  if (practice.revealed) {
-                    if (isCorrectOpt) { bg = 'rgba(74,222,128,0.1)'; border = 'rgba(74,222,128,0.4)'; color = '#4ade80'; }
-                    else if (isSelected) { bg = 'rgba(248,113,113,0.08)'; border = 'rgba(248,113,113,0.3)'; color = '#f87171'; }
-                    else { color = 'rgba(255,255,255,0.25)'; }
-                  } else if (isSelected) {
-                    bg = 'rgba(48,227,202,0.1)'; border = 'rgba(48,227,202,0.35)'; color = '#30E3CA';
-                  }
-                  return (
-                    <button key={key}
-                      disabled={practice.revealed}
-                      onClick={() => {
-                        if (practice.revealed) return;
-                        const correct = key === q.correct_key;
-                        setPractice(p => ({ ...p, selected: key, revealed: true, correct: p.correct + (correct ? 1 : 0) }));
-                      }}
-                      className="w-full text-left flex items-start gap-3 px-4 py-3 rounded-xl transition-all hover:scale-[1.005] active:scale-[0.995]"
-                      style={{ background: bg, border: `1px solid ${border}`, color }}>
-                      <span className="flex-shrink-0 w-6 h-6 rounded-lg flex items-center justify-center text-xs font-black"
-                        style={{ background: 'rgba(255,255,255,0.06)', border: `1px solid ${border}` }}>{key}</span>
-                      <span className="text-sm leading-relaxed">{text}</span>
-                    </button>
-                  );
-                })}
-              </div>
-
-              {practice.revealed && (
-                <div className="px-5 pb-5 space-y-3">
-                  <div className="flex gap-2.5 items-start p-3.5 rounded-xl"
-                    style={{ background: practice.selected === q.correct_key ? 'rgba(74,222,128,0.06)' : 'rgba(248,113,113,0.06)', border: `1px solid ${practice.selected === q.correct_key ? 'rgba(74,222,128,0.2)' : 'rgba(248,113,113,0.2)'}` }}>
-                    <div className="flex-shrink-0 mt-0.5">
-                      {practice.selected === q.correct_key
-                        ? <svg width="14" height="14" viewBox="0 0 14 14"><circle cx="7" cy="7" r="6" fill="rgba(74,222,128,0.15)" stroke="#4ade80" strokeWidth="1.5" /><polyline points="4,7 6,9 10,5" fill="none" stroke="#4ade80" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" /></svg>
-                        : <svg width="14" height="14" viewBox="0 0 14 14"><circle cx="7" cy="7" r="6" fill="rgba(248,113,113,0.15)" stroke="#f87171" strokeWidth="1.5" /><line x1="4.5" y1="4.5" x2="9.5" y2="9.5" stroke="#f87171" strokeWidth="1.5" strokeLinecap="round" /><line x1="9.5" y1="4.5" x2="4.5" y2="9.5" stroke="#f87171" strokeWidth="1.5" strokeLinecap="round" /></svg>
-                      }
-                    </div>
-                    <div>
-                      <p className="text-xs font-black" style={{ color: practice.selected === q.correct_key ? '#4ade80' : '#f87171' }}>
-                        {practice.selected === q.correct_key ? 'Richtig!' : `Falsch — richtig wäre: ${q.correct_key}`}
-                      </p>
-                      {q.rationale && <p className="text-xs text-white/55 mt-1 leading-relaxed">{q.rationale}</p>}
-                    </div>
-                  </div>
-
-                  <button
-                    onClick={() => {
-                      if (isLast) {
-                        setLearningPhase('consolidation');
-                      } else {
-                        setPractice(p => ({ ...p, currentIdx: p.currentIdx + 1, selected: null, revealed: false }));
-                      }
-                    }}
-                    className="w-full py-3.5 rounded-xl font-black text-sm text-black flex items-center justify-center gap-2 transition-all hover:scale-[1.01] active:scale-[0.99]"
-                    style={{ background: 'linear-gradient(135deg,#66c0b6,#30E3CA)' }}>
-                    {isLast ? 'Zur Vertiefung' : 'Nächste Frage'}
-                    <ArrowRight size={15} />
-                  </button>
+              {step.body && <p className="text-sm text-white/75 leading-relaxed whitespace-pre-line">{step.body}</p>}
+              {step.example && (
+                <div className="rounded-xl px-4 py-3" style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.08)' }}>
+                  <p className="text-[10px] font-black uppercase tracking-widest text-[#66c0b6]/70 mb-1">Beispiel</p>
+                  <p className="text-sm text-white/60 leading-relaxed">{step.example}</p>
                 </div>
               )}
             </div>
           </div>
-        );
-      })()}
+          <button onClick={onContinue}
+            className="w-full py-4 rounded-2xl font-black text-[15px] text-black flex items-center justify-center gap-2 transition-all hover:scale-[1.02] active:scale-[0.98]"
+            style={{ background: 'linear-gradient(135deg,#66c0b6,#30E3CA)', boxShadow: '0 4px 20px rgba(48,227,202,0.25)' }}>
+            Verstanden
+            <ArrowRight size={18} />
+          </button>
+        </div>
+      )}
 
-      {/* Phase 4 — Consolidation */}
-      {learningPhase === 'consolidation' && (() => {
-        const practiceThreshold = Math.ceil(practiceQuestions.length * 0.6);
-        const practiceStrong = practice.correct >= practiceThreshold;
-        return (
-          <div className="space-y-5" style={{ animation: 'lp_fadeUp 0.4s ease' }}>
-            <div className="rounded-2xl p-5 text-center space-y-2"
-              style={{
-                background: practiceStrong ? 'rgba(74,222,128,0.06)' : 'rgba(248,197,100,0.06)',
-                border: `1px solid ${practiceStrong ? 'rgba(74,222,128,0.25)' : 'rgba(248,197,100,0.2)'}`,
-              }}>
-              <div className="text-4xl font-black" style={{ color: practiceStrong ? '#4ade80' : '#fbbf24' }}>
-                {practice.correct}/{practiceQuestions.length}
-              </div>
-              <p className="text-white font-black">Übungsphase abgeschlossen</p>
-              <p className="text-xs text-white/45 leading-relaxed">
-                {practiceStrong
-                  ? 'Gute Leistung! Du bist bereit für den Einheitentest.'
-                  : 'Gehe die Erklärungen nochmal durch — im Einheitentest stehen die gleichen Themen an.'}
-              </p>
-            </div>
+      {/* ── interactive ── */}
+      {!isTeach && step && (
+        <div className="space-y-4" style={{ animation: 'lp_fadeUp 0.3s ease' }}>
 
-            {competencies.length > 0 && (
-              <div>
-                <p className="text-[10px] font-black uppercase tracking-widest text-white/30 px-1 mb-3">Was du gelernt hast</p>
-                <div className="space-y-2">
-                  {competencies.slice(0, 3).map((comp, i) => (
-                    <div key={i} className="flex items-center gap-3 px-4 py-2.5 rounded-xl"
-                      style={{ background: 'rgba(48,227,202,0.04)', border: '1px solid rgba(48,227,202,0.1)' }}>
-                      <svg width="13" height="13" viewBox="0 0 13 13"><circle cx="6.5" cy="6.5" r="5.5" fill="rgba(48,227,202,0.1)" stroke="#30E3CA" strokeWidth="1.2" /><polyline points="3.5,6.5 5.5,8.5 9.5,4.5" fill="none" stroke="#30E3CA" strokeWidth="1.2" strokeLinecap="round" strokeLinejoin="round" /></svg>
-                      <p className="text-xs text-white/65 leading-relaxed">{comp}</p>
-                    </div>
-                  ))}
-                </div>
+          {/* Prompt / question */}
+          <div className="rounded-2xl px-5 py-4" style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.09)' }}>
+            {step.type === 'scenario' && step.situation && (
+              <div className="mb-3 rounded-xl px-3.5 py-3" style={{ background: 'rgba(129,140,248,0.08)', border: '1px solid rgba(129,140,248,0.2)' }}>
+                <p className="text-[10px] font-black uppercase tracking-widest text-[#818cf8]/80 mb-1">Situation</p>
+                <p className="text-sm text-white/75 leading-relaxed">{step.situation}</p>
               </div>
             )}
-
-            <div className="rounded-xl px-4 py-3.5"
-              style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.08)' }}>
-              <p className="text-xs font-black text-white/70 mb-1">Jetzt: Einheitentest</p>
-              <p className="text-xs text-white/40 leading-relaxed">
-                {questions.length} Fragen zu allen Themen dieser Einheit. Diesmal ohne Feedback nach jeder Antwort — erst am Ende siehst du dein Ergebnis. Mindestens {MIN_PASS_SCORE}% zum Bestehen.
-              </p>
-            </div>
-
-            <button
-              onClick={() => setLearningPhase('exam')}
-              className="w-full py-4 rounded-2xl font-black text-[15px] text-black flex items-center justify-center gap-2 transition-all hover:scale-[1.02] active:scale-[0.98]"
-              style={{ background: 'linear-gradient(135deg,#66c0b6,#30E3CA)', boxShadow: '0 4px 20px rgba(48,227,202,0.3)' }}>
-              Einheitentest starten
-              <ArrowRight size={18} />
-            </button>
+            <p className="text-base font-bold text-white leading-snug">
+              {step.type === 'true_false' ? step.statement
+                : step.type === 'scenario' ? step.question
+                : step.type === 'fill_blank'
+                  ? <span>{step.text_before} <span className="px-2 text-[#30E3CA]">____</span> {step.text_after}</span>
+                  : step.prompt}
+            </p>
+            {step.type === 'choice' && Array.isArray(step.correct) && step.correct.length > 1 && (
+              <p className="text-[11px] text-white/35 mt-1.5">Mehrfachauswahl möglich</p>
+            )}
           </div>
-        );
-      })()}
 
-      {/* Phase 5 — Unit test */}
-      {learningPhase === 'exam' && (
-        <div className="space-y-4" style={{ animation: 'lp_fadeUp 0.4s ease' }}>
-          {!examSubmitted && (
-            <div className="flex items-center justify-between px-1">
-              <p className="text-[11px] font-black uppercase tracking-widest text-white/30">Einheitentest · {questions.length} Fragen</p>
-              <span className="text-xs text-white/40">{Object.keys(examAnswers).length}/{questions.length} beantwortet</span>
+          {/* choice */}
+          {step.type === 'choice' && (
+            <div className="space-y-2">
+              {(step.options as string[]).map((opt, i) => {
+                const selected = ans.multi.includes(i);
+                const isMulti = Array.isArray(step.correct) && step.correct.length > 1;
+                let bg = 'rgba(255,255,255,0.03)', border = 'rgba(255,255,255,0.09)', color = 'rgba(255,255,255,0.8)';
+                if (revealed) {
+                  const isCorrect = (step.correct as number[]).includes(i);
+                  if (isCorrect) { bg = 'rgba(74,222,128,0.1)'; border = 'rgba(74,222,128,0.4)'; color = '#4ade80'; }
+                  else if (selected) { bg = 'rgba(248,113,113,0.08)'; border = 'rgba(248,113,113,0.3)'; color = '#f87171'; }
+                  else color = 'rgba(255,255,255,0.25)';
+                } else if (selected) { bg = 'rgba(48,227,202,0.1)'; border = 'rgba(48,227,202,0.35)'; color = '#30E3CA'; }
+                return (
+                  <button key={i} disabled={revealed}
+                    onClick={() => setAns((a) => isMulti
+                      ? { ...a, multi: a.multi.includes(i) ? a.multi.filter((x) => x !== i) : [...a.multi, i] }
+                      : { ...a, multi: [i] })}
+                    className="w-full text-left flex items-center gap-3 px-4 py-3 rounded-xl transition-all"
+                    style={{ background: bg, border: `1px solid ${border}`, color }}>
+                    <span className="flex-shrink-0 w-5 h-5 rounded-md flex items-center justify-center"
+                      style={{ background: 'rgba(255,255,255,0.06)', border: `1px solid ${border}` }}>
+                      {selected && <svg width="10" height="10" viewBox="0 0 10 10"><polyline points="2,5 4,7 8,3" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" /></svg>}
+                    </span>
+                    <span className="text-sm leading-relaxed">{opt}</span>
+                  </button>
+                );
+              })}
             </div>
           )}
 
-          {!examSubmitted ? (
-            <>
-              {questions.map((q, idx) => {
-                const selected = examAnswers[q.question_id];
+          {/* true_false */}
+          {step.type === 'true_false' && (
+            <div className="grid grid-cols-2 gap-2">
+              {[{ v: true, label: 'Wahr' }, { v: false, label: 'Falsch' }].map(({ v, label }) => {
+                const selected = ans.bool === v;
+                let bg = 'rgba(255,255,255,0.03)', border = 'rgba(255,255,255,0.09)', color = 'rgba(255,255,255,0.8)';
+                if (revealed) {
+                  if (v === step.answer) { bg = 'rgba(74,222,128,0.1)'; border = 'rgba(74,222,128,0.4)'; color = '#4ade80'; }
+                  else if (selected) { bg = 'rgba(248,113,113,0.08)'; border = 'rgba(248,113,113,0.3)'; color = '#f87171'; }
+                } else if (selected) { bg = 'rgba(48,227,202,0.1)'; border = 'rgba(48,227,202,0.35)'; color = '#30E3CA'; }
                 return (
-                  <div key={q.question_id} className="rounded-xl overflow-hidden"
-                    style={{ border: selected ? '1px solid rgba(48,227,202,0.2)' : '1px solid rgba(255,255,255,0.08)' }}>
-                    <div className="px-4 py-3" style={{ background: 'rgba(255,255,255,0.03)' }}>
-                      <div className="flex items-start gap-2">
-                        <span className="flex-shrink-0 text-xs font-black text-white/25 mt-0.5">{idx + 1}.</span>
-                        <p className="text-sm font-semibold text-white leading-snug">{q.question}</p>
-                      </div>
-                    </div>
-                    <div className="p-3 space-y-2">
-                      {(Object.entries(q.options) as [string, string][]).map(([key, text]) => {
-                        const isSelected = selected === key;
-                        return (
-                          <button key={key}
-                            onClick={() => setExamAnswers(prev => ({ ...prev, [q.question_id]: key }))}
-                            className="w-full text-left flex items-start gap-2.5 px-3 py-2.5 rounded-lg transition-all hover:scale-[1.003]"
-                            style={{
-                              background: isSelected ? 'rgba(48,227,202,0.1)' : 'rgba(255,255,255,0.03)',
-                              border: `1px solid ${isSelected ? 'rgba(48,227,202,0.35)' : 'rgba(255,255,255,0.08)'}`,
-                              color: isSelected ? '#30E3CA' : 'rgba(255,255,255,0.7)',
-                            }}>
-                            <span className="flex-shrink-0 w-5 h-5 rounded-md flex items-center justify-center text-xs font-black"
-                              style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)' }}>{key}</span>
-                            <span className="text-xs leading-relaxed">{text}</span>
-                          </button>
-                        );
-                      })}
-                    </div>
-                  </div>
+                  <button key={label} disabled={revealed} onClick={() => setAns((a) => ({ ...a, bool: v }))}
+                    className="py-4 rounded-xl font-black text-sm transition-all"
+                    style={{ background: bg, border: `1px solid ${border}`, color }}>
+                    {label}
+                  </button>
                 );
               })}
-              <button
-                disabled={!allExamAnswered}
-                onClick={async () => {
-                  const correct = questions.filter(q => examAnswers[q.question_id] === q.correct_key).length;
-                  const pct = questions.length > 0 ? Math.round((correct / questions.length) * 100) : 0;
-                  setExamSubmitted(true);
-                  if (pct >= MIN_PASS_SCORE) await saveUnitCompletion(pct);
-                }}
-                className="w-full py-4 rounded-2xl font-black text-[15px] text-black flex items-center justify-center gap-2 transition-all disabled:opacity-40 disabled:cursor-not-allowed hover:scale-[1.02] active:scale-[0.98]"
-                style={{ background: 'linear-gradient(135deg,#66c0b6,#30E3CA)', boxShadow: allExamAnswered ? '0 4px 20px rgba(48,227,202,0.25)' : 'none' }}>
-                Test abschicken
-                <Check size={18} />
-              </button>
-            </>
-          ) : (
-            <div className="space-y-4">
-              <div className="rounded-2xl p-6 text-center space-y-3"
-                style={{ background: examPassed ? 'rgba(74,222,128,0.06)' : 'rgba(248,113,113,0.06)', border: `1px solid ${examPassed ? 'rgba(74,222,128,0.25)' : 'rgba(248,113,113,0.25)'}` }}>
-                <div className="text-5xl font-black" style={{ color: examPassed ? '#4ade80' : '#f87171' }}>
-                  {examScoreRaw}/{questions.length}
+            </div>
+          )}
+
+          {/* fill_blank & scenario — single choice from options */}
+          {(step.type === 'fill_blank' || step.type === 'scenario') && (
+            <div className="space-y-2">
+              {(step.options as string[]).map((opt, i) => {
+                const selected = ans.single === i;
+                let bg = 'rgba(255,255,255,0.03)', border = 'rgba(255,255,255,0.09)', color = 'rgba(255,255,255,0.8)';
+                if (revealed) {
+                  if (i === step.correct) { bg = 'rgba(74,222,128,0.1)'; border = 'rgba(74,222,128,0.4)'; color = '#4ade80'; }
+                  else if (selected) { bg = 'rgba(248,113,113,0.08)'; border = 'rgba(248,113,113,0.3)'; color = '#f87171'; }
+                  else color = 'rgba(255,255,255,0.25)';
+                } else if (selected) { bg = 'rgba(48,227,202,0.1)'; border = 'rgba(48,227,202,0.35)'; color = '#30E3CA'; }
+                return (
+                  <button key={i} disabled={revealed} onClick={() => setAns((a) => ({ ...a, single: i }))}
+                    className="w-full text-left flex items-center gap-3 px-4 py-3 rounded-xl transition-all"
+                    style={{ background: bg, border: `1px solid ${border}`, color }}>
+                    <span className="flex-shrink-0 w-6 h-6 rounded-lg flex items-center justify-center text-xs font-black"
+                      style={{ background: 'rgba(255,255,255,0.06)', border: `1px solid ${border}` }}>{String.fromCharCode(65 + i)}</span>
+                    <span className="text-sm leading-relaxed">{opt}</span>
+                  </button>
+                );
+              })}
+            </div>
+          )}
+
+          {/* order — tap items into sequence */}
+          {step.type === 'order' && (
+            <div className="space-y-2">
+              {orderDisplay.map((origIdx) => {
+                const pos = ans.order.indexOf(origIdx);
+                const placed = pos >= 0;
+                return (
+                  <button key={origIdx} disabled={revealed || placed}
+                    onClick={() => setAns((a) => ({ ...a, order: [...a.order, origIdx] }))}
+                    className="w-full text-left flex items-center gap-3 px-4 py-3 rounded-xl transition-all"
+                    style={{
+                      background: placed ? 'rgba(48,227,202,0.1)' : 'rgba(255,255,255,0.03)',
+                      border: `1px solid ${placed ? 'rgba(48,227,202,0.35)' : 'rgba(255,255,255,0.09)'}`,
+                      color: placed ? '#30E3CA' : 'rgba(255,255,255,0.8)', opacity: placed ? 0.7 : 1,
+                    }}>
+                    <span className="flex-shrink-0 w-6 h-6 rounded-lg flex items-center justify-center text-xs font-black"
+                      style={{ background: placed ? 'rgba(48,227,202,0.2)' : 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.1)' }}>
+                      {placed ? pos + 1 : '·'}
+                    </span>
+                    <span className="text-sm leading-relaxed">{step.items[origIdx]}</span>
+                  </button>
+                );
+              })}
+              {ans.order.length > 0 && !revealed && (
+                <button onClick={() => setAns((a) => ({ ...a, order: [] }))}
+                  className="text-xs text-white/40 hover:text-white/70 transition-colors px-1">Zurücksetzen</button>
+              )}
+            </div>
+          )}
+
+          {/* match — tap left then right */}
+          {step.type === 'match' && (
+            <div className="space-y-3">
+              <div className="grid grid-cols-2 gap-3">
+                <div className="space-y-2">
+                  {(step.pairs as any[]).map((p, li) => {
+                    const matchedRight = ans.match[li];
+                    const isMatched = matchedRight !== undefined;
+                    const isActive = ans.activeLeft === li;
+                    const col = PAIR_COLORS[li % PAIR_COLORS.length];
+                    return (
+                      <button key={li} disabled={revealed}
+                        onClick={() => setAns((a) => {
+                          if (a.match[li] !== undefined) { const m = { ...a.match }; delete m[li]; return { ...a, match: m, activeLeft: null }; }
+                          return { ...a, activeLeft: li };
+                        })}
+                        className="w-full text-left flex items-center gap-2 px-3 py-2.5 rounded-xl text-sm transition-all"
+                        style={{
+                          background: isMatched ? `${col}18` : isActive ? 'rgba(48,227,202,0.12)' : 'rgba(255,255,255,0.03)',
+                          border: `1px solid ${isMatched ? `${col}55` : isActive ? 'rgba(48,227,202,0.4)' : 'rgba(255,255,255,0.09)'}`,
+                          color: isMatched ? col : 'rgba(255,255,255,0.8)',
+                        }}>
+                        {isMatched && <span className="flex-shrink-0 w-4 h-4 rounded-full text-[9px] font-black flex items-center justify-center" style={{ background: col, color: '#04121a' }}>{li + 1}</span>}
+                        <span className="leading-snug">{p.left}</span>
+                      </button>
+                    );
+                  })}
                 </div>
-                <p className="text-lg font-bold text-white">{examPassed ? 'Bestanden!' : 'Nicht bestanden'}</p>
-                <p className="text-sm text-white/55">
-                  {examPassed
-                    ? `${examScoreRaw} von ${questions.length} Fragen richtig. Herzlichen Glückwunsch!`
-                    : `${examScoreRaw} von ${questions.length} richtig — mindestens ${requiredCorrect} benötigt (${MIN_PASS_SCORE}%).`}
-                </p>
+                <div className="space-y-2">
+                  {matchRights.map((r, ri) => {
+                    const usedByLeft = Object.keys(ans.match).find((k) => ans.match[Number(k)] === ri);
+                    const isUsed = usedByLeft !== undefined;
+                    const col = isUsed ? PAIR_COLORS[Number(usedByLeft) % PAIR_COLORS.length] : '';
+                    return (
+                      <button key={ri} disabled={revealed || isUsed || ans.activeLeft === null}
+                        onClick={() => setAns((a) => a.activeLeft === null ? a : ({ ...a, match: { ...a.match, [a.activeLeft]: ri }, activeLeft: null }))}
+                        className="w-full text-left flex items-center gap-2 px-3 py-2.5 rounded-xl text-sm transition-all"
+                        style={{
+                          background: isUsed ? `${col}18` : 'rgba(255,255,255,0.03)',
+                          border: `1px solid ${isUsed ? `${col}55` : 'rgba(255,255,255,0.09)'}`,
+                          color: isUsed ? col : 'rgba(255,255,255,0.8)', opacity: isUsed ? 0.85 : 1,
+                        }}>
+                        {isUsed && <span className="flex-shrink-0 w-4 h-4 rounded-full text-[9px] font-black flex items-center justify-center" style={{ background: col, color: '#04121a' }}>{Number(usedByLeft) + 1}</span>}
+                        <span className="leading-snug">{r.text}</span>
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+              {Object.keys(ans.match).length > 0 && !revealed && (
+                <button onClick={() => setAns((a) => ({ ...a, match: {}, activeLeft: null }))}
+                  className="text-xs text-white/40 hover:text-white/70 transition-colors px-1">Zurücksetzen</button>
+              )}
+            </div>
+          )}
+
+          {/* Footer — check / feedback / continue */}
+          {!revealed ? (
+            <button disabled={!canCheck} onClick={onCheck}
+              className="w-full py-4 rounded-2xl font-black text-[15px] text-black flex items-center justify-center gap-2 transition-all disabled:opacity-40 disabled:cursor-not-allowed hover:scale-[1.02] active:scale-[0.98]"
+              style={{ background: 'linear-gradient(135deg,#66c0b6,#30E3CA)', boxShadow: canCheck ? '0 4px 20px rgba(48,227,202,0.25)' : 'none' }}>
+              Prüfen
+              <Check size={18} />
+            </button>
+          ) : (
+            <div className="space-y-3">
+              <div className="flex gap-2.5 items-start p-3.5 rounded-xl"
+                style={{ background: lastCorrect ? 'rgba(74,222,128,0.06)' : 'rgba(248,113,113,0.06)', border: `1px solid ${lastCorrect ? 'rgba(74,222,128,0.2)' : 'rgba(248,113,113,0.2)'}` }}>
+                <div className="flex-shrink-0 mt-0.5">
+                  {lastCorrect
+                    ? <svg width="16" height="16" viewBox="0 0 16 16"><circle cx="8" cy="8" r="7" fill="rgba(74,222,128,0.15)" stroke="#4ade80" strokeWidth="1.5" /><polyline points="4.5,8 7,10.5 11.5,5" fill="none" stroke="#4ade80" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" /></svg>
+                    : <svg width="16" height="16" viewBox="0 0 16 16"><circle cx="8" cy="8" r="7" fill="rgba(248,113,113,0.15)" stroke="#f87171" strokeWidth="1.5" /><line x1="5.5" y1="5.5" x2="10.5" y2="10.5" stroke="#f87171" strokeWidth="1.6" strokeLinecap="round" /><line x1="10.5" y1="5.5" x2="5.5" y2="10.5" stroke="#f87171" strokeWidth="1.6" strokeLinecap="round" /></svg>}
+                </div>
+                <div>
+                  <p className="text-sm font-black" style={{ color: lastCorrect ? '#4ade80' : '#f87171' }}>
+                    {lastCorrect ? (wasWrong ? 'Richtig!' : `Richtig! +${stepXp(step)} XP`) : 'Nicht ganz'}
+                  </p>
+                  {step.explanation && <p className="text-xs text-white/55 mt-1 leading-relaxed">{step.explanation}</p>}
+                  {!lastCorrect && <p className="text-[11px] text-white/35 mt-1.5">Ein Leben verloren · {hearts} übrig</p>}
+                </div>
               </div>
 
-              <p className="text-[10px] font-black uppercase tracking-widest text-white/25 px-1">Antworten im Überblick</p>
-              {questions.map((q, idx) => {
-                const selected = examAnswers[q.question_id];
-                const isCorrect = selected === q.correct_key;
-                return (
-                  <div key={q.question_id} className="rounded-xl overflow-hidden"
-                    style={{ border: `1px solid ${isCorrect ? 'rgba(74,222,128,0.25)' : 'rgba(248,113,113,0.25)'}` }}>
-                    <div className="px-4 py-3 flex items-start gap-2" style={{ background: 'rgba(255,255,255,0.02)' }}>
-                      <span className="flex-shrink-0 text-xs font-black text-white/25 mt-0.5">{idx + 1}.</span>
-                      <div className="flex-1 min-w-0">
-                        <p className="text-xs font-semibold text-white/80 leading-snug">{q.question}</p>
-                        <div className="flex items-center gap-1.5 mt-1.5">
-                          {isCorrect
-                            ? <span className="text-[10px] font-black text-green-400/70">Richtig · {q.correct_key}</span>
-                            : <span className="text-[10px] font-black text-red-400/70">Falsch · Deine Antwort: {selected} · Richtig: {q.correct_key}</span>}
-                        </div>
-                        {q.rationale && <p className="text-[10px] text-white/35 mt-1 leading-relaxed">{q.rationale}</p>}
-                      </div>
-                    </div>
-                  </div>
-                );
-              })}
-
-              {examPassed ? (
-                <div className="space-y-3">
-                  {savingCompletion && (
-                    <div className="flex items-center justify-center gap-2 text-[#30E3CA]/70 text-xs">
-                      <Loader2 size={13} className="animate-spin" />
-                      <span>Fortschritt wird gespeichert…</span>
-                    </div>
-                  )}
-                  {saveError && (
-                    <div className="rounded-xl px-4 py-3 text-xs text-red-400/80"
-                      style={{ background: 'rgba(248,113,113,0.06)', border: '1px solid rgba(248,113,113,0.25)' }}>
-                      {saveError}
-                    </div>
-                  )}
-                  <div className="rounded-xl px-4 py-3.5 flex items-center gap-3"
-                    style={{ background: 'rgba(34,197,94,0.07)', border: '1px solid rgba(34,197,94,0.25)' }}>
-                    <svg width="16" height="16" viewBox="0 0 16 16"><circle cx="8" cy="8" r="7" fill="rgba(34,197,94,0.15)" stroke="#22c55e" strokeWidth="1.5" /><polyline points="4,8 6.5,10.5 12,5" fill="none" stroke="#22c55e" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" /></svg>
-                    <div>
-                      <p className="text-xs font-black text-green-400/90">Einheit {unitIndex} bestanden!</p>
-                      <p className="text-[10px] text-white/40 mt-0.5">Score: {examScorePct}% — weiter zur nächsten Einheit oder zurück zur Übersicht.</p>
-                    </div>
-                  </div>
-                </div>
+              {lastCorrect ? (
+                <button onClick={onContinue}
+                  className="w-full py-4 rounded-2xl font-black text-[15px] text-black flex items-center justify-center gap-2 transition-all hover:scale-[1.02] active:scale-[0.98]"
+                  style={{ background: 'linear-gradient(135deg,#22c55e,#4ade80)', boxShadow: '0 4px 20px rgba(34,197,94,0.25)' }}>
+                  {stepIdx < steps.length - 1 ? 'Weiter' : 'Einheit abschließen'}
+                  <ArrowRight size={18} />
+                </button>
+              ) : heartsGone ? (
+                <button onClick={() => setPhase('failed')}
+                  className="w-full py-4 rounded-2xl font-black text-[15px] text-white flex items-center justify-center gap-2 transition-all"
+                  style={{ background: 'rgba(248,113,113,0.12)', border: '1px solid rgba(248,113,113,0.3)' }}>
+                  Zum Ergebnis
+                  <ArrowRight size={18} />
+                </button>
               ) : (
-                <button
-                  onClick={() => { setExamSubmitted(false); setExamAnswers({}); }}
-                  className="w-full py-3 rounded-xl font-bold text-sm text-white/70 transition-all hover:bg-white/5"
-                  style={{ border: '1px solid rgba(255,255,255,0.1)' }}>
-                  Test wiederholen
+                <button onClick={onRetry}
+                  className="w-full py-4 rounded-2xl font-black text-[15px] text-black flex items-center justify-center gap-2 transition-all hover:scale-[1.02] active:scale-[0.98]"
+                  style={{ background: 'linear-gradient(135deg,#66c0b6,#30E3CA)' }}>
+                  <RefreshCw size={16} />
+                  Nochmal versuchen
                 </button>
               )}
             </div>
@@ -1528,7 +1696,6 @@ function LearningContent({
     </div>
   );
 }
-
 // ── Module overview ───────────────────────────────────────────────────────────
 
 const ARCS_PHASES = [
