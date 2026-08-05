@@ -271,20 +271,22 @@ export const ClassicCVTemplate: React.FC<CVTemplateProps> = ({
                     Wörtern um. Exakt das Muster der Berufserfahrung, die nie
                     gestapelt hat. Das Datum daneben ist mit `w-32` fest, kann das
                     Feld also nicht quetschen. */}
-                {/* FIX (zeichenweises Stapeln der Ausbildung): der `wrap`-Modus
-                    der geteilten EditableText senkt die min-content-Breite auf
-                    1 Zeichen, wodurch das flex-1-Feld zeichenweise kollabiert.
-                    Diese expliziten Styles überschreiben das: volle Breite +
-                    Umbruch nur an Wortgrenzen (identisch zu Professional, das
-                    sauber rendert). */}
-                <EditableText
-                  value={item.degree || item.title || ''}
-                  onChange={(val) => onUpdateSectionItem(educationIndex, idx, 'degree', val)}
-                  className="font-bold leading-tight flex-1"
-                  style={{ fontSize: '11px', color: t.text, width: '100%', minWidth: 0, whiteSpace: 'normal', wordBreak: 'normal', overflowWrap: 'break-word', overflow: 'visible' }}
-                  placeholder="Abschluss / Studiengang"
-                  wrap
-                />
+                {/* WARUM NUR CLASSIC STAPELTE: hier war das EditableText SELBST
+                    ein flex-1-Item — Flexbox darf es auf seine min-content-Breite
+                    (im wrap-Modus = 1 Zeichen) schrumpfen → zeichenweises Stapeln.
+                    Minimal legt das Feld dagegen in einen flex-1-Wrapper und lässt
+                    das EditableText ein normaler Block sein (füllt 100%, kann nicht
+                    kollabieren). Exakt diese Struktur übernehmen wir jetzt. */}
+                <div className="flex-1">
+                  <EditableText
+                    value={item.degree || item.title || ''}
+                    onChange={(val) => onUpdateSectionItem(educationIndex, idx, 'degree', val)}
+                    className="font-bold leading-tight"
+                    style={{ fontSize: '11px', color: t.text }}
+                    placeholder="Abschluss / Studiengang"
+                    wrap
+                  />
+                </div>
                 {renderDateRange(educationIndex, idx, item)}
               </div>
 
@@ -416,14 +418,16 @@ export const ClassicCVTemplate: React.FC<CVTemplateProps> = ({
 
             return (
               <li key={idx} className="flex flex-nowrap justify-between items-center gap-2" style={{ fontSize: '9px' }}>
-                <EditableText
-                  value={language}
-                  onChange={(val) => onUpdateSectionItem(languagesIndex, idx, 'language', val)}
-                  className="font-medium flex-1"
-                  style={{ fontSize: '9px', color: t.text }}
-                  placeholder="Sprache"
-                  wrap
-                />
+                <div className="flex-1">
+                  <EditableText
+                    value={language}
+                    onChange={(val) => onUpdateSectionItem(languagesIndex, idx, 'language', val)}
+                    className="font-medium"
+                    style={{ fontSize: '9px', color: t.text }}
+                    placeholder="Sprache"
+                    wrap
+                  />
+                </div>
                 <EditableText
                   value={level}
                   onChange={(val) => onUpdateSectionItem(languagesIndex, idx, 'level', val)}
