@@ -258,54 +258,59 @@ export default function LearningPathWaitingPage() {
 
   // ── Boot ──────────────────────────────────────────────────────────────────────
 
-  useEffect(() => {
-    if (!pathId) { navigate('/', { replace: true }); return; }
-    if (bootedRef.current) return;
-    bootedRef.current = true;
+// ── Boot ──────────────────────────────────────────────────────────────────────
 
-    doneRef.current = false;
-    setPhase('waiting');
-    startProgressAnimation();
+useEffect(() => {
+  if (!pathId) { navigate('/', { replace: true }); return; }
+  if (bootedRef.current) return;
+  bootedRef.current = true;
 
-    (async () => {
-      const { data: lp, error: lpErr } = await supabase
-        .from('learning_paths').select('*').eq('id', pathId).maybeSingle();
+  doneRef.current = false;
+  setPhase('waiting');
+  startProgressAnimation();
 
-      if (lpErr) { markError('Lernpfad konnte nicht geladen werden.'); return; }
-      if (!lp)   { navigate('/dashboard', { replace: true }); return; }
+  (async () => {
+    const { data: lp, error: lpErr } = await supabase
+      .from('learning_paths').select('*').eq('id', pathId).maybeSingle();
 
-      if (lp.target_job) setTargetJob(lp.target_job);
+    if (lpErr) { markError('Lernpfad konnte nicht geladen werden.'); return; }
+    if (!lp)   { navigate('/dashboard', { replace: true }); return; }
 
-      if (!lp.is_paid) {
-        console.log('[LPW] Pfad nicht bezahlt — zurück zur Lernpfad-Seite');
-        navigate(`/learning-path/${pathId}`, { replace: true });
-        return;
-      }
+    if (lp.target_job) setTargetJob(lp.target_job);
 
-      if (!(lp as any).skill && skillFromUrl) {
-        await supabase.from('learning_paths')
-          .update({ skill: skillFromUrl, updated_at: new Date().toISOString() })
-          .eq('id', pathId);
-      }
+    if (!lp.is_paid) {
+      console.log('[LPW] Pfad nicht bezahlt — zurück zur Lernpfad-Seite');
+      navigate(`/learning-path/${pathId}`, { replace: true });
+      return;
+    }
 
-      const first = await checkForContent();
-      if (first === 'done')   { markDone(); return; }
-      if (first === 'failed') { markError('Die KI konnte deinen Lernpfad nicht erstellen.'); return; }
+    if (!(lp as any).skill && skillFromUrl) {
+      await supabase.from('learning_paths')
+        .update({ skill: skillFromUrl, updated_at: new Date().toISOString() })
+        .eq('id', pathId);
+    }
 
-      startRealtime();
-      startPolling();
+    // 1. Erst prüfen, ob ECHTER Content da ist
+    const first = await checkForContent();
+    if (first === 'done')   { markDone(); return; }
+    if (first === 'failed') { markError('Die KI konnte deinen Lernpfad nicht erstellen.'); return; }
 
-      if (lp.status === 'in_progress') {
-        console.log('[LPW] Bereits in_progress — nur warten, kein neuer Trigger');
-      } else {
-        const ok = await triggerLearningpath();
-        if (!ok) { markError('Der Lernpfad konnte nicht gestartet werden. Bitte versuche es erneut.'); return; }
-      }
-    })();
+    // 2. Realtime & Polling starten
+    startRealtime();
+    startPolling();
 
-    return () => { cleanup(); bootedRef.current = false; };
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [pathId]);
+    // 3. TRIGGER IMMER AUSFÜHREN (Status-Sperre entfernt)
+    console.log('[LPW] Starte Webhook-Trigger...');
+    const ok = await triggerLearningpath();
+    if (!ok) { 
+      markError('Der Lernpfad konnte nicht gestartet werden. Bitte versuche es erneut.'); 
+      return; 
+    }
+  })();
+
+  return () => { cleanup(); bootedRef.current = false; };
+// eslint-disable-next-line react-hooks/exhaustive-deps
+}, [pathId]);
 
   // ── Retry ───────────────────────────────────────────────────────────────────
 
