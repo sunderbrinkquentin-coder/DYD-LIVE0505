@@ -699,18 +699,29 @@ function extractUnits(content: unknown): any[] {
  * array of 5 units, or 5 rows each holding one unit, the result is identical.
  * Downstream code (parseContentUnit / countContentUnits) then works unchanged.
  */
-function mergeUnitRows(rows: LearningResultRow[] | null): LearningResultRow | null {
+function mergeUnitRows(rows: (LearningResultRow & { unit_id?: unknown })[] | null): LearningResultRow | null {
   if (!rows || rows.length === 0) return null;
 
   const unitsById = new Map<number, any>();
   let positional = 0;
 
   for (const row of rows) {
-    for (const unit of extractUnits(row.content)) {
-      const id = typeof unit?.unit_id === 'number' ? unit.unit_id : ++positional;
+    // Primäre ID: die DB-Spalte unit_id (garantiert 1..5, siehe Screenshot).
+    // Fallback 1: unit_id-Feld im geparsten content. Fallback 2: laufende Position.
+    const colId = Number((row as any).unit_id);
+    const colIdValid = Number.isFinite(colId) && colId > 0;
+
+    const units = extractUnits(row.content);
+    for (const unit of units) {
+      const fieldIdRaw = unit?.unit_id;
+      const fieldId = Number(fieldIdRaw);
+      const fieldIdValid = Number.isFinite(fieldId) && fieldId > 0;
+
+      // Reihenfolge der Wahrheit: DB-Spalte > content-Feld > Position.
+      const id = colIdValid ? colId : fieldIdValid ? fieldId : ++positional;
+
       const existing = unitsById.get(id);
-      // First row wins on conflicts; later rows fill in missing fields
-      // (e.g. one row carries variant_a, another variant_b).
+      // Bei Konflikt gewinnt die zuerst geladene Row; spätere füllen nur Lücken.
       unitsById.set(id, existing ? { ...unit, ...existing } : unit);
     }
   }
@@ -723,7 +734,7 @@ function mergeUnitRows(rows: LearningResultRow[] | null): LearningResultRow | nu
   const certRow = rows.find(r => r.certificate_metadata != null);
 
   return {
-    id: rows[0].id,                       // any real row id is fine for FK use
+    id: rows[0].id,
     content: units,
     status: rows[0].status ?? null,
     final_exam: examRow?.final_exam ?? null,
@@ -2136,7 +2147,7 @@ export default function LearningPathPage() {
     // was a direct cause of the endless-loading state.
     const { data } = await supabase
       .from('learning_results')
-      .select('id, content, status, final_exam, certificate_metadata, created_at')
+      .select('id, content, status, final_exam, certificate_metadata, created_at, unit_id')
       .eq('learning_path_id', id)
       .order('created_at', { ascending: true });
     const merged = mergeUnitRows((data as LearningResultRow[] | null) ?? null);
