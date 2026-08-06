@@ -1,11 +1,15 @@
-import { useState } from 'react';
 import { motion, useReducedMotion, type Variants } from 'framer-motion';
 import {
   Layers, Flag, Calendar, MapPin, Users, CheckCircle2,
-  GraduationCap, Award, Lock, Mail, Linkedin, CalendarClock,
-  Building2, BookOpen
+  GraduationCap, Award, Lock, Mail, Linkedin, CalendarClock
 } from 'lucide-react';
 import { b2bContent } from './content';
+
+type Segment = 'unternehmen' | 'bildungstraeger';
+
+interface PlatformOverviewProps {
+  activeTab: Segment;
+}
 
 function useSectionAnims() {
   const reduce = useReducedMotion() ?? false;
@@ -27,13 +31,9 @@ function useSectionAnims() {
 
 const VIEWPORT = { once: true, margin: '-80px' } as const;
 
-/* ─── 1. Platform-Umschalter ─── */
-
-export function PlatformOverviewSection() {
-  const [activeTab, setActiveTab] = useState<'enterprise' | 'education'>('enterprise');
-
+export function PlatformOverviewSection({ activeTab }: PlatformOverviewProps) {
   const products = {
-    enterprise: {
+    unternehmen: {
       brandName: "DYD ORBIT",
       acronymList: [
         { letter: 'O', word: 'ptimized' },
@@ -46,7 +46,7 @@ export function PlatformOverviewSection() {
       heading: "Strategic Workforce Planning & Skill Mapping",
       subheading: "Lösen Sie Ihre Fachkräfteherausforderung mit präziser Skill-Intelligence."
     },
-    education: {
+    bildungstraeger: {
       brandName: "DYD NEXUS",
       acronymList: [
         { letter: 'N', word: 'ext-Skill' },
@@ -67,35 +67,7 @@ export function PlatformOverviewSection() {
     <section aria-labelledby="b2b-platform-title" className="relative bg-[#F8FAFC] py-16 px-4 sm:px-6 lg:px-8">
       <div className="max-w-5xl mx-auto">
         
-        {/* DIREKTE REITER-AUSWAHL OBEN */}
-        <div className="flex justify-center mb-8">
-          <div className="inline-flex p-1.5 rounded-2xl bg-white border border-slate-200 shadow-sm">
-            <button
-              onClick={() => setActiveTab('enterprise')}
-              className={`flex items-center gap-2 px-6 py-3 rounded-xl font-poppins font-bold text-sm transition-all duration-300 ${
-                activeTab === 'enterprise'
-                  ? 'bg-[#0F1E34] text-white shadow-md'
-                  : 'text-slate-600 hover:text-slate-900 hover:bg-slate-50'
-              }`}
-            >
-              <Building2 className="w-4 h-4" />
-              <span>Unternehmen (HR & L&D)</span>
-            </button>
-            <button
-              onClick={() => setActiveTab('education')}
-              className={`flex items-center gap-2 px-6 py-3 rounded-xl font-poppins font-bold text-sm transition-all duration-300 ${
-                activeTab === 'education'
-                  ? 'bg-gradient-to-r from-sky-500 to-cyan-400 text-white shadow-md'
-                  : 'text-slate-600 hover:text-slate-900 hover:bg-slate-50'
-              }`}
-            >
-              <BookOpen className="w-4 h-4" />
-              <span>Bildungsträger & Akademien</span>
-            </button>
-          </div>
-        </div>
-
-        {/* PRODUKT-NAME & AKRONYM GANZ OBEN (Mit sichtbaren Anfangsbuchstaben) */}
+        {/* 1. PRODUKTNAME & AKRONYM MIT HEVORGEHOBENEN ANFANGSBUCHSTABEN (Ganz oben) */}
         <motion.div
           key={activeTab}
           initial={{ opacity: 0, y: 10 }}
@@ -108,7 +80,7 @@ export function PlatformOverviewSection() {
             {activeProduct.brandName}
           </h2>
 
-          {/* Akronyme mit hervorgehobenen Anfangsbuchstaben */}
+          {/* Akronym mit farbigen/unterstrichenen Anfangsbuchstaben */}
           <div className="flex flex-wrap items-center justify-center gap-x-3 gap-y-1 mb-4 text-base sm:text-lg font-poppins">
             {activeProduct.acronymList.map((item, idx) => (
               <span key={item.word} className="inline-flex items-center">
@@ -131,7 +103,7 @@ export function PlatformOverviewSection() {
           </p>
         </motion.div>
 
-        {/* ZIEL-ÜBERSCHRIFTEN DIREKT DARUNTER */}
+        {/* 2. INHALT DIREKT DARUNTER */}
         <motion.div 
           key={`content-${activeTab}`}
           initial={{ opacity: 0 }}
@@ -166,6 +138,8 @@ export function PlatformOverviewSection() {
     </section>
   );
 }
+
+/* ─── TrustSection & EventsSection bleiben unverändert ─── */
 
 /* ─── 2. Vertrauen & Glaubwürdigkeit ─── */
 
