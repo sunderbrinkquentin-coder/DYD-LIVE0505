@@ -195,8 +195,14 @@ export const b2bContent = {
   'Workshop-Speaker an deutschen Hochschulen (u. a. Hochschule Fresenius) für KI-gestützte Bewerbungsoptimierung',
   'Veranstalter des Harmony Festivals – organisiert ein eigenes Musik- und Comedy-Event',
 ],
-      photoAlt: 'Porträt von Quentin Sunderbrink, Gründer von DYD',
-      photoSrc: '/profile-picture.png',
+      {/* Foto mit Gradient-Ring */}
+<div className="flex-shrink-0 rounded-2xl p-[3px]" style={{ background: 'linear-gradient(135deg, #38BDF8, #DEFF9A)' }}>
+  <img
+    src={trust.founder.photoSrc}
+    alt={trust.founder.photoAlt}
+    className="w-28 h-28 sm:w-32 sm:h-32 rounded-[14px] object-cover bg-[#0A192F]"
+  />
+</div>
       email: 'quentin@decide-your-dream.de',
       phone: '+49 211 12345678',
       linkedin: 'https://www.linkedin.com/in/quentin-sunderbrink',
