@@ -1231,7 +1231,7 @@ const certReady = learningPaths.filter(
                 )}
 
                 {/* ── 4. Zertifikate ───────────────────────────────────────── */}
-{(certPaths.length > 0 || certReady.length > 0) && (
+{(certPaths.length > 0 || certReady.length > 0 || learningPaths.length > 0) && (
                   <div className="space-y-3">
                     <div className="flex items-center gap-2">
                       <div className="w-5 h-5 rounded-lg flex items-center justify-center" style={{ background: 'rgba(251,191,36,0.12)', border: '1px solid rgba(251,191,36,0.25)' }}>
@@ -1304,7 +1304,7 @@ const certReady = learningPaths.filter(
                       </div>
                     ))}
 
-                    {certPaths.length >= 2 && (
+                    {certPaths.length >= 2 ? (
                       <button
                         onClick={() => setProfileNameDialog(true)}
                         disabled={issuingProfile}
@@ -1326,6 +1326,26 @@ const certReady = learningPaths.filter(
                           {issuingProfile ? 'Wird erstellt…' : 'Erstellen'}
                         </span>
                       </button>
+                    ) : (
+                      <div
+                        className="w-full flex items-center gap-3 px-4 py-3.5 rounded-2xl opacity-60"
+                        style={{ background: 'rgba(102,192,182,0.05)', border: '1px solid rgba(102,192,182,0.15)' }}
+                      >
+                        <div className="w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0" style={{ background: 'rgba(102,192,182,0.1)', border: '1px solid rgba(102,192,182,0.2)' }}>
+                          <FileStack size={18} className="text-[#66c0b6]/50" />
+                        </div>
+                        <div className="flex-1 text-left min-w-0">
+                          <p className="text-sm font-black text-white/60 leading-tight">
+                            Kompetenzprofil
+                          </p>
+                          <p className="text-[10px] text-white/35 mt-0.5">
+                            {certPaths.length === 1 ? 'Noch 1 weiteres Zertifikat nötig' : 'Absolviere 2 Lernpfade mit Zertifikat — dann werden alle zu einem Kompetenzprofil zusammengefasst'}
+                          </p>
+                        </div>
+                        <span className="text-[10px] font-bold text-white/30 flex-shrink-0">
+                          {certPaths.length}/2
+                        </span>
+                      </div>
                     )}
                   </div>
                 )}

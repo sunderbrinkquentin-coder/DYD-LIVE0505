@@ -963,7 +963,7 @@ export default function LandingPage() {
               </p>
             </motion.div>
 
-            <div className="grid sm:grid-cols-3 gap-5 mb-10">
+            <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-5 mb-10">
               {[
                 { icon: Search, title: 'Skill-Gap-Analyse', desc: 'KI vergleicht dein Profil mit den Anforderungen deiner Zielposition.' },
                 { icon: Layers, title: 'Individueller Lernpfad', desc: '5 kompakte Lerneinheiten, zugeschnitten auf genau deine Lücken.' },
