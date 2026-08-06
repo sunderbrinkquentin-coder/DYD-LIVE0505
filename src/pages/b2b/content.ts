@@ -48,15 +48,15 @@ export const b2bContent = {
         ],
       },
       process: {
-        title: 'Skill-Transformation-Prozess',
-        steps: [
-          { title: 'Skill-Mapping', desc: 'Profile automatisch erfassen' },
-          { title: 'Zielrollen-Match', desc: 'Zukunftsbedarf abgleichen' },
-          { title: 'Gap-Analyse', desc: 'Fehlbedarf ermitteln' },
-          { title: 'Lernpfad', desc: 'Module zuweisen' },
-          { title: 'Mobilität', desc: 'intern upskillen' },
-        ],
-      },
+  title: 'Der Skill-Transformation-Prozess',
+  steps: [
+    { title: 'Skill-Mapping',   desc: 'Profile automatisch erfassen', icon: 'scan' },
+    { title: 'Zielrollen-Match', desc: 'Zukunftsbedarf abgleichen',    icon: 'target' },
+    { title: 'Gap-Analyse',     desc: 'Fehlbedarf ermitteln',         icon: 'gap' },
+    { title: 'Lernpfad',        desc: 'Module zuweisen',              icon: 'route' },
+    { title: 'Mobilität',       desc: 'Intern upskillen',             icon: 'growth' },
+  ],
+}
       modules: [
         {
           title: 'Internal Talent Marketplace',
