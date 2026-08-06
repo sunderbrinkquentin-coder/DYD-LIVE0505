@@ -13,7 +13,7 @@ const LINE_GRADIENT_V = 'linear-gradient(180deg, #38BDF8, #DEFF9A)';
 const PULSE_BG = 'radial-gradient(circle, #DEFF9A 0%, #38BDF8 70%)';
 const RING = 'conic-gradient(from 180deg, #38BDF8, #DEFF9A, #38BDF8)';
 
-export default function ProcessRail({ steps }: { steps: ProcessStep[] }) {
+export default function ProcessRail({ steps }: { steps: readonly ProcessStep[] }) {
   const reduce = useReducedMotion() ?? false;
   const n = Math.max(steps.length, 1);
   const inset = `${50 / n}%`; // trifft die Mitte des ersten/letzten Badges

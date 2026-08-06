@@ -2,7 +2,7 @@ import { useEffect, useRef, useState, type FormEvent } from 'react';
 import { motion, AnimatePresence, useReducedMotion } from 'framer-motion';
 import { X, Send, CheckCircle2, Building2, GraduationCap, Loader2 } from 'lucide-react';
 // TODO: Pfad an deinen bestehenden Supabase-Client anpassen:
-import { supabase } from '../lib/supabase';
+import { supabase } from '../../lib/supabase';
 
 type Segment = 'unternehmen' | 'bildungstraeger';
 

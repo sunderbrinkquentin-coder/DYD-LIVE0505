@@ -9,8 +9,6 @@ import CVPreview from '../pages/CVPreview';
 import CVEditor from '../pages/CVEditor';
 import AgentFlow from '../pages/AgentFlow';
 import { DashboardPage } from '../pages/DashboardPage';
-import B2BLanding from '../pages/B2BLanding';
-import B2BDashboard from '../pages/B2BDashboard';
 import B2BLandingPage from '../pages/B2BLandingPage';
 import { CVWizard } from '../pages/CVWizard';
 import CVCheckPage from '../pages/CVCheckPage';
@@ -34,8 +32,6 @@ import LearningPathPage from '../pages/LearningPathPage';
 import LearningPathWaitingPage from '../pages/LearningPathWaitingPage';
 import HarmonyFestivalPage from '../pages/HarmonyFestivalPage';
 import FestivalPaymentSuccessPage from '../pages/FestivalPaymentSuccessPage';
-import B2BPage from './pages/b2b/B2BPage';
-
 // 🔐 AUTH GUARD IMPORT
 import { PrivateRoute } from '../components/PrivateRoute';
 
@@ -103,7 +99,7 @@ export const router = createHashRouter([
   { path: '/career-vision', element: <CareerVisionPage /> },
   { path: '/learning-path/:pathId', element: <LearningPathPage /> },
   { path: '/learning-path-waiting/:pathId', element: <LearningPathWaitingPage /> },
-  { path: '/business', element: <B2Bpage />},
+  { path: '/business', element: <B2BLandingPage />},
 
   // 🔐 Dashboard → jetzt geschützt
  {
