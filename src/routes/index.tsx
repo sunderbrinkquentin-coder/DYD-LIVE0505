@@ -34,6 +34,7 @@ import LearningPathPage from '../pages/LearningPathPage';
 import LearningPathWaitingPage from '../pages/LearningPathWaitingPage';
 import HarmonyFestivalPage from '../pages/HarmonyFestivalPage';
 import FestivalPaymentSuccessPage from '../pages/FestivalPaymentSuccessPage';
+import B2BPage from './pages/b2b/B2BPage';
 
 // 🔐 AUTH GUARD IMPORT
 import { PrivateRoute } from '../components/PrivateRoute';
