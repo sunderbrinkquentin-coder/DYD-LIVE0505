@@ -10,6 +10,7 @@ type Segment = 'unternehmen' | 'bildungstraeger';
 export default function B2BPage() {
   const [tab, setTab] = useState<Segment>('unternehmen');
   const [lead, setLead] = useState<{ open: boolean; segment?: Segment }>({ open: false });
+
   const openLead = (segment?: Segment) => setLead({ open: true, segment });
   const closeLead = () => setLead({ open: false });
 
@@ -18,8 +19,11 @@ export default function B2BPage() {
       <B2BHeader onContact={() => openLead()} />
       <main>
         <B2BHero onCtaClick={(seg) => setTab(seg)} />
+        {/* B2BTabs ist die EINZIGE Schalter-Leiste oben */}
         <B2BTabs activeTab={tab} onTabChange={setTab} onRequestDemo={openLead} />
-        <PlatformOverviewSection />
+        
+        {/* Reagiert direkt auf den Klick oben */}
+        <PlatformOverviewSection activeTab={tab} />
         <TrustSection onContactClick={() => openLead(tab)} />
       </main>
       <LeadRequestModal open={lead.open} segment={lead.segment} onClose={closeLead} />
