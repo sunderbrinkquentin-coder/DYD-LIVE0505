@@ -1,141 +1,96 @@
 import { motion, useReducedMotion, type Variants } from 'framer-motion';
-import {
-  Layers, Flag, Calendar, MapPin, Users, CheckCircle2,
-  GraduationCap, Award, Lock, Mail, Linkedin, CalendarClock
-} from 'lucide-react';
+import { Layers, Brain, ShieldCheck, Flag, Sparkles } from 'lucide-react';
 import { b2bContent } from './content';
 
-type Segment = 'unternehmen' | 'bildungstraeger';
+// Zuordnung der Icon-Strings aus content.ts zu Lucide-Icon-Komponenten
+const iconMap: Record<string, React.ComponentType<{ className?: string }>> = {
+  layers: Layers,
+  brain: Brain,
+  shield: ShieldCheck,
+  flag: Flag,
+};
 
-interface PlatformOverviewProps {
-  activeTab: Segment;
-}
-
-function useSectionAnims() {
+export function PlatformOverviewSection() {
+  const { platformOverview } = b2bContent;
   const reduce = useReducedMotion() ?? false;
-  const container: Variants = { hidden: {}, show: { transition: { staggerChildren: reduce ? 0 : 0.1 } } };
+
+  const container: Variants = {
+    hidden: {},
+    show: {
+      transition: {
+        staggerChildren: reduce ? 0 : 0.1,
+      },
+    },
+  };
+
   const fadeUp: Variants = {
-    hidden: { opacity: 0, y: reduce ? 0 : 22 },
+    hidden: { opacity: 0, y: reduce ? 0 : 20 },
     show: { opacity: 1, y: 0, transition: { duration: reduce ? 0 : 0.5 } },
   };
-  const fadeLeft: Variants = {
-    hidden: { opacity: 0, x: reduce ? 0 : -20 },
-    show: { opacity: 1, x: 0, transition: { duration: reduce ? 0 : 0.5 } },
-  };
-  const fadeRight: Variants = {
-    hidden: { opacity: 0, x: reduce ? 0 : 20 },
-    show: { opacity: 1, x: 0, transition: { duration: reduce ? 0 : 0.5 } },
-  };
-  return { reduce, container, fadeUp, fadeLeft, fadeRight };
-}
-
-const VIEWPORT = { once: true, margin: '-80px' } as const;
-
-/* ─── 1. Platform Overview Section ─── */
-
-export function PlatformOverviewSection({ activeTab }: PlatformOverviewProps) {
-  const products = {
-    unternehmen: {
-      brandName: "DYD ORBIT",
-      acronymList: [
-        { letter: 'O', word: 'ptimized' },
-        { letter: 'R', word: 'eskilling' },
-        { letter: 'B', word: 'usiness' },
-        { letter: 'I', word: 'ntelligence' },
-        { letter: 'T', word: 'ool' },
-      ],
-      tagline: "Die prädikative Steuerungsplattform für KI-gestütztes Skill-Mapping & interne Mobilität.",
-      heading: "Strategic Workforce Planning & Skill Mapping",
-      subheading: "Lösen Sie Ihre Fachkräfteherausforderung mit präziser Skill-Intelligence."
-    },
-    bildungstraeger: {
-      brandName: "DYD NEXUS",
-      acronymList: [
-        { letter: 'N', word: 'ext-Skill' },
-        { letter: 'E', word: 'volution' },
-        { letter: 'X', word: '-Learning' },
-        { letter: 'U', word: 'niversal' },
-        { letter: 'S', word: 'ystem' },
-      ],
-      tagline: "Die KI-Schnittstelle zur Standardisierung von Kursangeboten nach EU-ESCO Taxonomie.",
-      heading: "Verwandeln Sie Skill-Nachfrage in passgenaue Bildungsangebote",
-      subheading: "Standardisieren und optimieren Sie Ihre Qualifizierungspfade nach ESCO-Standard."
-    }
-  };
-
-  const activeProduct = products[activeTab];
 
   return (
-    <section aria-labelledby="b2b-platform-title" className="relative bg-[#F8FAFC] py-16 px-4 sm:px-6 lg:px-8">
-      <div className="max-w-5xl mx-auto">
-        
-        {/* Produktname & Akronym mit hervorgehobenen Anfangsbuchstaben */}
-        <motion.div
-          key={activeTab}
-          initial={{ opacity: 0, y: 10 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.3 }}
-          className="bg-white rounded-2xl p-6 sm:p-8 border border-slate-200 shadow-sm mb-10 text-center"
-        >
-          {/* Hauptname */}
-          <h2 id="b2b-platform-title" className="font-poppins font-black text-4xl sm:text-5xl text-[#0F1E34] tracking-tight mb-3">
-            {activeProduct.brandName}
+    <section className="relative py-24 bg-[#0A192F] overflow-hidden border-t border-white/5">
+      {/* Background Micro-Glow */}
+      <div
+        className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[300px] rounded-full pointer-events-none"
+        style={{
+          background: 'radial-gradient(circle, rgba(56,189,248,0.08), transparent 70%)',
+          filter: 'blur(80px)',
+        }}
+        aria-hidden="true"
+      />
+
+      <div className="relative z-10 max-w-5xl mx-auto px-4 sm:px-6 lg:px-8">
+        {/* Header */}
+        <div className="text-center max-w-3xl mx-auto mb-16">
+          <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-[#38BDF8]/10 border border-[#38BDF8]/20 mb-4">
+            <Sparkles className="w-3.5 h-3.5 text-[#38BDF8]" />
+            <span className="text-xs font-arimo font-bold tracking-wider text-[#38BDF8] uppercase">
+              DYD Standard
+            </span>
+          </div>
+          
+          <h2 className="font-poppins font-black text-white text-3xl sm:text-4xl lg:text-5xl tracking-tight mb-6">
+            {platformOverview.title}
           </h2>
-
-          {/* Akronym mit farbigen/unterstrichenen Anfangsbuchstaben */}
-          <div className="flex flex-wrap items-center justify-center gap-x-3 gap-y-1 mb-4 text-base sm:text-lg font-poppins">
-            {activeProduct.acronymList.map((item, idx) => (
-              <span key={item.word} className="inline-flex items-center">
-                <span className="font-black text-sky-500 text-xl underline decoration-2 underline-offset-4">
-                  {item.letter}
-                </span>
-                <span className="text-slate-700 font-semibold ml-0.5">
-                  {item.word}
-                </span>
-                {idx < activeProduct.acronymList.length - 1 && (
-                  <span className="text-slate-300 ml-3">•</span>
-                )}
-              </span>
-            ))}
-          </div>
-
-          {/* Subtitel / Tagline */}
-          <p className="font-arimo text-slate-600 text-base sm:text-lg max-w-2xl mx-auto">
-            {activeProduct.tagline}
+          
+          <p className="font-arimo text-lg text-white/70 leading-relaxed">
+            {platformOverview.subtitle}
           </p>
-        </motion.div>
+        </div>
 
-        {/* Inhalt direkt darunter */}
-        <motion.div 
-          key={`content-${activeTab}`}
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          transition={{ duration: 0.3 }}
-          className="bg-white p-8 rounded-2xl border border-slate-200 shadow-sm"
+        {/* Feature Grid */}
+        <motion.div
+          variants={container}
+          initial="hidden"
+          whileInView="show"
+          viewport={{ once: true, margin: '-50px' }}
+          className="grid grid-cols-1 md:grid-cols-2 gap-6"
         >
-          <h3 className="font-poppins font-bold text-2xl sm:text-3xl text-[#0F1E34] mb-3">
-            {activeProduct.heading}
-          </h3>
-          <p className="text-slate-600 font-arimo leading-relaxed mb-6 text-base sm:text-lg">
-            {activeProduct.subheading}
-          </p>
+          {platformOverview.features.map((feature) => {
+            const IconComponent = iconMap[feature.icon] || Layers;
 
-          <div className="grid sm:grid-cols-3 gap-4">
-            <div className="p-4 rounded-xl bg-slate-50 border border-slate-100">
-              <div className="font-bold text-[#0F1E34] mb-1">ESCO Alignment</div>
-              <div className="text-xs text-slate-500">Standardisierte Skill-Taxonomie für präzise Analysen.</div>
-            </div>
-            <div className="p-4 rounded-xl bg-slate-50 border border-slate-100">
-              <div className="font-bold text-[#0F1E34] mb-1">Echtzeit-Matching</div>
-              <div className="text-xs text-slate-500">Direkter Abgleich von Anforderungen und Profilen.</div>
-            </div>
-            <div className="p-4 rounded-xl bg-slate-50 border border-slate-100">
-              <div className="font-bold text-[#0F1E34] mb-1">Gezielte Pfade</div>
-              <div className="text-xs text-slate-500">Automatisierte Empfehlungen für Reskilling & Upskilling.</div>
-            </div>
-          </div>
+            return (
+              <motion.div
+                key={feature.title} /* ✅ Hier stand vorher fehlerhaft brandName */
+                variants={fadeUp}
+                className="group relative p-8 rounded-2xl bg-white/[0.03] border border-white/10 transition-all duration-300 hover:bg-white/[0.06] hover:border-[#38BDF8]/30 hover:-translate-y-1"
+              >
+                <div className="w-12 h-12 rounded-xl bg-[#38BDF8]/10 border border-[#38BDF8]/20 flex items-center justify-center mb-6 text-[#38BDF8] group-hover:scale-110 group-hover:bg-[#38BDF8]/20 transition-transform">
+                  <IconComponent className="w-6 h-6" />
+                </div>
+
+                <h3 className="font-poppins font-bold text-xl text-white mb-3">
+                  {feature.title} /* ✅ Geändert von brandName auf title */
+                </h3>
+
+                <p className="font-arimo text-white/65 text-sm leading-relaxed">
+                  {feature.desc}
+                </p>
+              </motion.div>
+            );
+          })}
         </motion.div>
-
       </div>
     </section>
   );
