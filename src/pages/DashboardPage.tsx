@@ -1,7 +1,7 @@
 // src/pages/DashboardPage.tsx
 import { useState, useEffect } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
-import { Plus, Briefcase, LogOut, ClipboardCheck, Coins, CheckCircle, Target, Lock, Calendar, FileSearch, ChevronDown, ChevronUp, Download, FileText, X, Zap, ArrowRight, Settings, CreditCard as Edit2, Award, Sparkles } from 'lucide-react';
+import { Plus, Briefcase, LogOut, ClipboardCheck, Coins, CheckCircle, Target, Lock, Calendar, FileSearch, ChevronDown, ChevronUp, Download, FileText, X, Zap, ArrowRight, Settings, CreditCard as Edit2, Award, Sparkles, GraduationCap } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import { cvStorageService } from '../services/cvStorageService';
 import { tokenService } from '../services/tokenService';
@@ -887,58 +887,61 @@ const handleIssueCertificate = async (pathId: string) => {
               <button
                 onClick={() => navigate('/career-vision')}
                 className="flex-1 sm:flex-none px-4 py-2 rounded-lg text-black font-semibold hover:opacity-90 transition-all flex items-center justify-center gap-2 text-sm shadow-lg"
-                style={{ background: 'linear-gradient(135deg,#66c0b6,#30E3CA)' }}
+                style={{ background: 'linear-gradient(135deg, #fbbf24, #f59e0b)' }}
               >
-                <Target size={18} />
-                <span className="hidden sm:inline">Career Vision</span>
-                <span className="sm:hidden">Vision</span>
+                <GraduationCap size={18} />
+                <span className="hidden sm:inline">Career Academy</span>
+                <span className="sm:hidden">Academy</span>
               </button>
             </div>
           </div>
 
-          {/* One-Click CV Hero Banner */}
-          {userCVs.filter((cv) => cv.source !== 'check' && cv.cv_data).length > 0 && (
-            <div
-              onClick={handleCreateCV}
-              className="relative overflow-hidden rounded-2xl border border-[#66c0b6]/40 bg-gradient-to-r from-[#0d2a28] via-[#0f3330] to-[#0a1f1d] cursor-pointer group hover:border-[#66c0b6]/70 transition-all duration-300 hover:shadow-xl hover:shadow-[#66c0b6]/10"
-            >
-              <div className="absolute inset-0 bg-gradient-to-r from-[#66c0b6]/5 via-transparent to-[#30E3CA]/5 opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
-              <div className="relative flex flex-col sm:flex-row items-center gap-5 px-6 py-5">
-                <div className="flex-shrink-0 w-14 h-14 rounded-2xl bg-gradient-to-br from-[#66c0b6] to-[#30E3CA] flex items-center justify-center shadow-lg shadow-[#66c0b6]/30">
-                  <Zap size={26} className="text-black" />
+          {/* Career Academy Promo — prominent, always visible */}
+          <div
+            onClick={() => navigate('/career-vision')}
+            className="relative overflow-hidden rounded-2xl cursor-pointer group transition-all duration-300 hover:scale-[1.005]"
+            style={{
+              background: 'linear-gradient(135deg, #0d2a28 0%, #0f3330 50%, #0a1f1d 100%)',
+              border: '1px solid rgba(48,227,202,0.35)',
+              boxShadow: '0 8px 40px rgba(48,227,202,0.08)',
+            }}
+          >
+            <div className="absolute inset-0 opacity-40" style={{ background: 'radial-gradient(circle at 85% 50%, rgba(48,227,202,0.12), transparent 55%)' }} />
+            <div className="relative flex flex-col sm:flex-row items-center gap-5 px-6 py-6">
+              <div className="flex-shrink-0 w-16 h-16 rounded-2xl flex items-center justify-center" style={{ background: 'linear-gradient(135deg, #66c0b6, #30E3CA)', boxShadow: '0 4px 24px rgba(48,227,202,0.45)' }}>
+                <GraduationCap size={30} className="text-black" />
+              </div>
+              <div className="flex-1 text-center sm:text-left">
+                <div className="flex items-center justify-center sm:justify-start gap-2 mb-1.5">
+                  <span className="text-lg sm:text-xl font-black text-white">Career Academy</span>
+                  <span className="px-2.5 py-0.5 rounded-full text-xs font-black text-black" style={{ background: 'linear-gradient(135deg, #fbbf24, #f59e0b)' }}>NEU</span>
                 </div>
-                <div className="flex-1 text-center sm:text-left">
-                  <div className="flex items-center justify-center sm:justify-start gap-2 mb-1">
-                    <span className="text-base sm:text-lg font-bold text-white">Neuen CV in Minuten erstellen</span>
-                    <span className="px-2 py-0.5 rounded-full text-xs font-bold bg-[#66c0b6]/20 text-[#66c0b6] border border-[#66c0b6]/30">One-Click</span>
-                  </div>
-                  <p className="text-sm text-white/60">
-                    Deine Daten sind bereits gespeichert. Trage nur noch die Wunschstelle ein – wir erstellen deinen optimierten CV automatisch.
-                  </p>
-                  <div className="flex flex-wrap items-center justify-center sm:justify-start gap-3 mt-2">
-                    <span className="text-xs text-white/50 flex items-center gap-1.5">
-                      <span className="w-1.5 h-1.5 rounded-full bg-[#66c0b6]" />
-                      CV-Daten automatisch vorausgefüllt
-                    </span>
-                    <span className="text-xs text-white/50 flex items-center gap-1.5">
-                      <span className="w-1.5 h-1.5 rounded-full bg-[#66c0b6]" />
-                      KI-Optimierung auf Wunschstelle
-                    </span>
-                    <span className="text-xs text-white/50 flex items-center gap-1.5">
-                      <span className="w-1.5 h-1.5 rounded-full bg-[#66c0b6]" />
-                      PDF sofort downloadbar
-                    </span>
-                  </div>
+                <p className="text-sm text-white/65 max-w-xl">
+                  Lass deine Bewerbungs-Fähigkeiten analysieren und erhalte personalisierte Lernpfade mit Zertifikat – direkt aus deinem Lebenslauf.
+                </p>
+                <div className="flex flex-wrap items-center justify-center sm:justify-start gap-3 mt-3">
+                  <span className="text-xs text-white/55 flex items-center gap-1.5">
+                    <CheckCircle size={12} className="text-[#30E3CA]" />
+                    KI-gestützte Analyse
+                  </span>
+                  <span className="text-xs text-white/55 flex items-center gap-1.5">
+                    <CheckCircle size={12} className="text-[#30E3CA]" />
+                    Personalisierte Lernpfade
+                  </span>
+                  <span className="text-xs text-white/55 flex items-center gap-1.5">
+                    <CheckCircle size={12} className="text-[#30E3CA]" />
+                    Zertifikat nach Abschluss
+                  </span>
                 </div>
-                <div className="flex-shrink-0">
-                  <div className="flex items-center gap-2 px-5 py-2.5 rounded-xl bg-gradient-to-r from-[#66c0b6] to-[#30E3CA] text-black font-bold text-sm shadow-lg group-hover:shadow-[#66c0b6]/40 transition-all">
-                    <Plus size={16} />
-                    Jetzt erstellen
-                  </div>
+              </div>
+              <div className="flex-shrink-0">
+                <div className="flex items-center gap-2 px-6 py-3 rounded-xl text-black font-bold text-sm shadow-lg group-hover:scale-105 transition-all" style={{ background: 'linear-gradient(135deg, #66c0b6, #30E3CA)' }}>
+                  <Target size={18} />
+                  {learningPaths.length > 0 ? 'Neue Analyse' : 'Jetzt starten'}
                 </div>
               </div>
             </div>
-          )}
+          </div>
 
           {/* ══════════════════════════════════════════════════════════════════
               Career Vision — Analysen → Lernpfade → Noch freizuschalten
@@ -994,13 +997,14 @@ const certReady = learningPaths.filter(
                       <Target size={16} className="text-[#30E3CA]" />
                     </div>
                     <div>
-                      <h2 className="text-base font-black text-white leading-none">Career Vision</h2>
-                      <p className="text-[11px] text-white/40 mt-0.5">Dein persönlicher Karriere-Fahrplan</p>
+                      <h2 className="text-lg sm:text-xl font-black text-white leading-none">Career Academy</h2>
+                      <p className="text-xs text-[#30E3CA]/70 mt-0.5">Analysen, Lernpfade & Zertifikate</p>
                     </div>
                   </div>
                   <button
                     onClick={() => navigate('/career-vision')}
-                    className="text-[11px] text-[#66c0b6]/70 hover:text-[#66c0b6] transition-colors font-semibold flex items-center gap-1"
+                    className="px-3 py-1.5 rounded-lg text-[11px] font-black transition-all hover:scale-105 flex items-center gap-1"
+                    style={{ background: 'rgba(48,227,202,0.12)', border: '1px solid rgba(48,227,202,0.3)', color: '#30E3CA' }}
                   >
                     Neue Analyse <ArrowRight size={11} />
                   </button>
