@@ -1,7 +1,7 @@
 // src/pages/DashboardPage.tsx
 import { useState, useEffect } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
-import { Plus, Briefcase, LogOut, ClipboardCheck, Coins, CheckCircle, Target, Lock, Calendar, FileSearch, ChevronDown, ChevronUp, Download, FileText, X, Zap, ArrowRight, Settings, CreditCard as Edit2, Award, Sparkles, GraduationCap } from 'lucide-react';
+import { Plus, Briefcase, LogOut, ClipboardCheck, Coins, CheckCircle, Target, Lock, Calendar, FileSearch, ChevronDown, ChevronUp, Download, FileText, X, Zap, ArrowRight, Settings, CreditCard as Edit2, Award, Sparkles, GraduationCap, FileStack } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import { cvStorageService } from '../services/cvStorageService';
 import { tokenService } from '../services/tokenService';
@@ -16,6 +16,8 @@ import { WizardCVOverview } from '../components/dashboard/WizardCVOverview';
 import { CareerVisionCard } from '../components/career/CareerVisionCard';
 import { HarmonyTicketsSection } from '../components/dashboard/HarmonyTicketsSection';
 import { AccountSettingsModal } from '../components/dashboard/AccountSettingsModal';
+import { CertificateNameDialog } from '../components/dashboard/CertificateNameDialog';
+import { competencyProfileService } from '../services/competencyProfileService';
 import { AtsResultDisplay } from '../components/AtsResultDisplay';
 import { parseAtsJson } from '../types/ats';
 import { useAuth } from '../contexts/AuthContext';
@@ -109,6 +111,9 @@ export function DashboardPage() {
   const [showNewCvCheckBanner, setShowNewCvCheckBanner] = useState(false);
   const [newCvUnlockId, setNewCvUnlockId] = useState<string | null>(null);
   const [issuingCertId, setIssuingCertId] = useState<string | null>(null);
+  const [certNameDialog, setCertNameDialog] = useState<{ pathId: string } | null>(null);
+  const [profileNameDialog, setProfileNameDialog] = useState(false);
+  const [issuingProfile, setIssuingProfile] = useState(false);
 
   // ---------- Ladefunktionen ----------
 
@@ -704,15 +709,31 @@ const handleWizardOverviewContinue = async (updatedData: any) => {
     await logout();
     navigate('/');
   };
-const handleIssueCertificate = async (pathId: string) => {
+const handleIssueCertificate = async (pathId: string, recipientName?: string) => {
   setIssuingCertId(pathId);
   try {
-    await careerService.generateCertificate(pathId);
+    await careerService.generateCertificate(pathId, { recipientName });
     await loadLearningPaths();
   } catch (err: any) {
     alert(err?.message || 'Das Zertifikat konnte nicht erstellt werden.');
   } finally {
     setIssuingCertId(null);
+    setCertNameDialog(null);
+  }
+};
+
+const handleGenerateCompetencyProfile = async (recipientName: string) => {
+  setIssuingProfile(true);
+  try {
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) throw new Error('Kein Nutzer angemeldet.');
+    await competencyProfileService.generateAndDownload(user.id, recipientName);
+    if (recipientName) await careerService.saveFullName(user.id, recipientName);
+  } catch (err: any) {
+    alert(err?.message === 'NO_CERTIFICATES' ? 'Du benötigst mindestens ein Zertifikat, um ein Kompetenzprofil zu erstellen.' : (err?.message || 'Das Kompetenzprofil konnte nicht erstellt werden.'));
+  } finally {
+    setIssuingProfile(false);
+    setProfileNameDialog(false);
   }
 };
   // ---------- Render ----------
@@ -917,7 +938,7 @@ const handleIssueCertificate = async (pathId: string) => {
                   <span className="px-2.5 py-0.5 rounded-full text-xs font-black text-black" style={{ background: 'linear-gradient(135deg, #fbbf24, #f59e0b)' }}>NEU</span>
                 </div>
                 <p className="text-sm text-white/65 max-w-xl">
-                  Lass deine Bewerbungs-Fähigkeiten analysieren und erhalte personalisierte Lernpfade mit Zertifikat – direkt aus deinem Lebenslauf.
+                  Lass deine Bewerbungs-Fähigkeiten analysieren und erhalte personalisierte Lernpfade mit Zertifikat – direkt aus deinem Lebenslauf. Absolviere mehrere Lernpfade und bau dir dein dokumentiertes Kompetenzprofil auf.
                 </p>
                 <div className="flex flex-wrap items-center justify-center sm:justify-start gap-3 mt-3">
                   <span className="text-xs text-white/55 flex items-center gap-1.5">
@@ -1242,7 +1263,7 @@ const certReady = learningPaths.filter(
                           </p>
                         </div>
                         <button
-                          onClick={() => handleIssueCertificate(path.id)}
+                          onClick={() => setCertNameDialog({ pathId: path.id })}
                           disabled={issuingCertId === path.id}
                           className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-[11px] font-black transition-all hover:scale-105 flex-shrink-0 disabled:opacity-50"
                           style={{ background: 'rgba(251,191,36,0.15)', border: '1px solid rgba(251,191,36,0.35)', color: '#fbbf24' }}
@@ -1282,8 +1303,52 @@ const certReady = learningPaths.filter(
                         </a>
                       </div>
                     ))}
+
+                    {certPaths.length >= 2 && (
+                      <button
+                        onClick={() => setProfileNameDialog(true)}
+                        disabled={issuingProfile}
+                        className="w-full flex items-center gap-3 px-4 py-3.5 rounded-2xl transition-all hover:scale-[1.01] disabled:opacity-50"
+                        style={{ background: 'linear-gradient(135deg,rgba(102,192,182,0.1),rgba(48,227,202,0.08))', border: '1px solid rgba(102,192,182,0.3)' }}
+                      >
+                        <div className="w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0" style={{ background: 'rgba(102,192,182,0.15)', border: '1px solid rgba(102,192,182,0.3)' }}>
+                          <FileStack size={18} className="text-[#66c0b6]" />
+                        </div>
+                        <div className="flex-1 text-left min-w-0">
+                          <p className="text-sm font-black text-white leading-tight">
+                            Kompetenzprofil erstellen
+                          </p>
+                          <p className="text-[10px] text-white/45 mt-0.5">
+                            Alle {certPaths.length} Zertifikate in einem Dokument zusammengefasst
+                          </p>
+                        </div>
+                        <span className="text-[11px] font-black text-[#66c0b6] flex-shrink-0">
+                          {issuingProfile ? 'Wird erstellt…' : 'Erstellen'}
+                        </span>
+                      </button>
+                    )}
                   </div>
                 )}
+
+                <CertificateNameDialog
+                  open={certNameDialog !== null}
+                  onClose={() => setCertNameDialog(null)}
+                  onConfirm={(name) => {
+                    if (certNameDialog) handleIssueCertificate(certNameDialog.pathId, name);
+                  }}
+                  initialName={profile?.full_name || ''}
+                  variant="certificate"
+                  busy={issuingCertId !== null}
+                />
+
+                <CertificateNameDialog
+                  open={profileNameDialog}
+                  onClose={() => setProfileNameDialog(false)}
+                  onConfirm={(name) => handleGenerateCompetencyProfile(name)}
+                  initialName={profile?.full_name || ''}
+                  variant="profile"
+                  busy={issuingProfile}
+                />
               </div>
             );
           })()}

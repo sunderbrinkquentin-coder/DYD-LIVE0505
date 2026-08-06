@@ -8,6 +8,7 @@ import { useAuth } from '../contexts/AuthContext';
 import { LearningPathPaywall } from '../components/career/LearningPathPaywall';
 import { careerService } from '../services/careerService';
 import { certificateService } from '../services/certificateService';
+import { CertificateNameDialog } from '../components/dashboard/CertificateNameDialog';
 import { LearningPath } from '../types/learningPath';
 import { supabase } from '../lib/supabase';
 import { parseSkills, skillDisplayName, skillFromPath, RawSkill } from '../utils/skills';
@@ -2476,26 +2477,30 @@ navigate(
     return meta?.full_name || meta?.name || user?.email?.split('@')[0] || 'Teilnehmer';
   }, [user]);
 
-const issueCertificate = useCallback(async (path: LearningPath) => {
+const [certDialogOpen, setCertDialogOpen] = useState(false);
+const [certDialogBusy, setCertDialogBusy] = useState(false);
+
+const issueCertificate = useCallback(async (path: LearningPath, recipientName?: string) => {
   setIssuingCertificate(true);
+  setCertDialogBusy(true);
   setCertificateError(null);
   try {
-    // Score steht zu diesem Zeitpunkt bereits in der DB (siehe handleFinalExamSubmit).
-    // certificateService schreibt certificate_url, certificate_id und
-    // certificate_issued_at selbst — hier nur noch den Prüfungsstatus abschließen.
-const url = await careerService.generateCertificate(path.id);
-if (!url) throw new Error('generateCertificate lieferte keine URL');
-setCertificateUrl(url);
-
-await supabase.from('learning_paths')
-  .update({ final_exam_status: 'done', updated_at: new Date().toISOString() })
-  .eq('id', path.id);
-
+    const url = await careerService.generateCertificate(path.id, { recipientName });
+    if (!url) throw new Error('generateCertificate lieferte keine URL');
     setCertificateUrl(url);
+
+    await supabase.from('learning_paths')
+      .update({ final_exam_status: 'done', updated_at: new Date().toISOString() })
+      .eq('id', path.id);
   } catch (err: any) {
-    setCertificateError(err?.message || 'Das Zertifikat konnte nicht erstellt werden.');
+    if (err?.message === 'MISSING_NAME') {
+      setCertDialogOpen(true);
+    } else {
+      setCertificateError(err?.message || 'Das Zertifikat konnte nicht erstellt werden.');
+    }
   } finally {
     setIssuingCertificate(false);
+    setCertDialogBusy(false);
   }
 }, []);
 
@@ -2770,7 +2775,7 @@ const handleFinalExamSubmit = async () => {
                         style={{ background: 'rgba(248,113,113,0.06)', border: '1px solid rgba(248,113,113,0.25)' }}>
                         <p className="text-xs text-red-400/85 leading-relaxed">{certificateError}</p>
                         <button
-                          onClick={() => issueCertificate(learningPath)}
+                          onClick={() => setCertDialogOpen(true)}
                           disabled={issuingCertificate}
                           className="w-full py-2.5 rounded-lg font-bold text-xs text-white/80 transition-all hover:bg-white/5 disabled:opacity-40"
                           style={{ border: '1px solid rgba(255,255,255,0.12)' }}>
@@ -2810,6 +2815,18 @@ const handleFinalExamSubmit = async () => {
             )}
           </div>
         )}
+
+        <CertificateNameDialog
+          open={certDialogOpen}
+          onClose={() => setCertDialogOpen(false)}
+          onConfirm={(name) => {
+            setCertDialogOpen(false);
+            issueCertificate(learningPath, name);
+          }}
+          initialName={(user as any)?.user_metadata?.full_name || recipientName()}
+          variant="certificate"
+          busy={certDialogBusy}
+        />
       </div>
     </div>
   );

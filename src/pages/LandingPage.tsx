@@ -37,6 +37,7 @@ import {
   Search,
   Kanban,
   Layers,
+  FileStack,
 } from 'lucide-react';
 import { useState } from 'react';
 import { useAuth } from '../contexts/AuthContext';
@@ -847,7 +848,7 @@ export default function LandingPage() {
                   icon: GraduationCap,
                   title: 'Career Academy',
                   description:
-                    'Finde deine Skill-Gaps zum Traumjob und bekomme einen personalisierten Lernpfad mit Zertifikat.',
+                    'Finde deine Skill-Gaps zum Traumjob und bekomme einen personalisierten Lernpfad mit Zertifikat — absolvierst du mehrere, entsteht dein Kompetenzprofil.',
                 },
               ].map((feature, index) => (
                 <motion.div
@@ -967,6 +968,7 @@ export default function LandingPage() {
                 { icon: Search, title: 'Skill-Gap-Analyse', desc: 'KI vergleicht dein Profil mit den Anforderungen deiner Zielposition.' },
                 { icon: Layers, title: 'Individueller Lernpfad', desc: '5 kompakte Lerneinheiten, zugeschnitten auf genau deine Lücken.' },
                 { icon: Award, title: 'Anerkanntes Zertifikat', desc: 'Bestehe die Abschlussprüfung und sichere dir dein Zertifikat.' },
+                { icon: FileStack, title: 'Kompetenzprofil', desc: 'Absolviere mehrere Lernpfade — alle Zertifikate werden zu einem dokumentierten Kompetenzprofil zusammengefasst.' },
               ].map((item, i) => (
                 <motion.div
                   key={i}
@@ -999,7 +1001,7 @@ export default function LandingPage() {
                 Skill-Gap kostenlos analysieren
                 <ArrowRight className="w-4 h-4" />
               </button>
-              <p className="text-xs text-white/30 mt-3">Analyse kostenlos · Lernpfad ab 5 € · Zertifikat inklusive</p>
+              <p className="text-xs text-white/30 mt-3">Analyse kostenlos · Lernpfad ab 5 € · Zertifikat inklusive · Kompetenzprofil ab 2 Zertifikaten</p>
             </motion.div>
           </div>
         </section>
