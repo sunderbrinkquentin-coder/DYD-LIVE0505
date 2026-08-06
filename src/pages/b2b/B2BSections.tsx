@@ -1,4 +1,4 @@
-import { motion } from 'framer-motion';
+import { motion, useReducedMotion, type Variants } from 'framer-motion';
 import {
   Layers,
   Brain,
@@ -22,28 +22,64 @@ const iconMap: Record<string, typeof Layers> = {
   flag: Flag,
 };
 
+/**
+ * Gemeinsame Scroll-Animationen für alle Sections.
+ * Bei prefers-reduced-motion werden Versatz und Dauer neutralisiert,
+ * sodass Inhalte sofort und ohne Bewegung erscheinen.
+ */
+function useSectionAnims() {
+  const reduce = useReducedMotion() ?? false;
+  const container: Variants = {
+    hidden: {},
+    show: { transition: { staggerChildren: reduce ? 0 : 0.1 } },
+  };
+  const fadeUp: Variants = {
+    hidden: { opacity: 0, y: reduce ? 0 : 22 },
+    show: { opacity: 1, y: 0, transition: { duration: reduce ? 0 : 0.5 } },
+  };
+  const fadeLeft: Variants = {
+    hidden: { opacity: 0, x: reduce ? 0 : -20 },
+    show: { opacity: 1, x: 0, transition: { duration: reduce ? 0 : 0.5 } },
+  };
+  const fadeRight: Variants = {
+    hidden: { opacity: 0, x: reduce ? 0 : 20 },
+    show: { opacity: 1, x: 0, transition: { duration: reduce ? 0 : 0.5 } },
+  };
+  return { reduce, container, fadeUp, fadeLeft, fadeRight };
+}
+
+const VIEWPORT = { once: true, margin: '-80px' } as const;
+
 /* ─── Plattform-Überblick ─── */
 
 export function PlatformOverviewSection() {
   const { platformOverview } = b2bContent;
+  const { fadeUp, container } = useSectionAnims();
 
   return (
-    <section className="relative bg-[#0A192F] py-20 px-4 sm:px-6 lg:px-8">
+    <section
+      aria-labelledby="b2b-platform-title"
+      className="relative bg-[#0A192F] py-20 px-4 sm:px-6 lg:px-8"
+    >
       <div className="max-w-6xl mx-auto">
         <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          whileInView={{ opacity: 1, y: 0 }}
-          viewport={{ once: true }}
-          transition={{ duration: 0.5 }}
+          variants={fadeUp}
+          initial="hidden"
+          whileInView="show"
+          viewport={VIEWPORT}
           className="text-center mb-14"
         >
           <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full mb-4 border border-[#38BDF8]/30 bg-[#38BDF8]/5">
-            <Sparkles className="w-3.5 h-3.5 text-[#38BDF8]" />
+            <Sparkles className="w-3.5 h-3.5 text-[#38BDF8]" aria-hidden="true" />
             <span className="font-arimo text-xs font-bold text-[#38BDF8] uppercase tracking-wide">
               Plattform-Überblick
             </span>
           </div>
-          <h2 className="font-poppins font-black text-3xl sm:text-4xl text-white mb-4" style={{ letterSpacing: '-0.03em' }}>
+          <h2
+            id="b2b-platform-title"
+            className="font-poppins font-black text-3xl sm:text-4xl text-white mb-4"
+            style={{ letterSpacing: '-0.03em' }}
+          >
             {platformOverview.title}
           </h2>
           <p className="font-arimo text-white/55 text-base sm:text-lg max-w-2xl mx-auto leading-relaxed">
@@ -51,30 +87,33 @@ export function PlatformOverviewSection() {
           </p>
         </motion.div>
 
-        <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-6">
-          {platformOverview.features.map((feat, i) => {
+        <motion.div
+          variants={container}
+          initial="hidden"
+          whileInView="show"
+          viewport={VIEWPORT}
+          className="grid sm:grid-cols-2 lg:grid-cols-4 gap-6"
+        >
+          {platformOverview.features.map((feat) => {
             const Icon = iconMap[feat.icon] ?? Layers;
             return (
               <motion.div
-                key={i}
-                initial={{ opacity: 0, y: 24 }}
-                whileInView={{ opacity: 1, y: 0 }}
-                viewport={{ once: true }}
-                transition={{ delay: i * 0.1, duration: 0.5 }}
+                key={feat.title}
+                variants={fadeUp}
                 className="rounded-2xl p-6 border border-white/10 bg-white/[0.03] hover:bg-white/[0.06] transition-colors"
               >
                 <div
                   className="w-12 h-12 rounded-xl flex items-center justify-center mb-5"
                   style={{ background: 'linear-gradient(135deg, rgba(56,189,248,0.12), rgba(222,255,154,0.08))' }}
                 >
-                  <Icon className="w-6 h-6 text-[#38BDF8]" />
+                  <Icon className="w-6 h-6 text-[#38BDF8]" aria-hidden="true" />
                 </div>
                 <h3 className="font-poppins font-bold text-base text-white mb-2">{feat.title}</h3>
                 <p className="font-arimo text-sm text-white/50 leading-relaxed">{feat.desc}</p>
               </motion.div>
             );
           })}
-        </div>
+        </motion.div>
       </div>
     </section>
   );
@@ -84,6 +123,7 @@ export function PlatformOverviewSection() {
 
 export function TrustSection() {
   const { trust } = b2bContent;
+  const { fadeUp, fadeLeft, fadeRight, container } = useSectionAnims();
   const badgeIcons: Record<string, typeof Lock> = {
     DSGVO: Lock,
     ESCO: Layers,
@@ -91,16 +131,23 @@ export function TrustSection() {
   };
 
   return (
-    <section className="relative bg-[#F6F9FD] py-20 px-4 sm:px-6 lg:px-8">
+    <section
+      aria-labelledby="b2b-trust-title"
+      className="relative bg-[#F6F9FD] py-20 px-4 sm:px-6 lg:px-8"
+    >
       <div className="max-w-6xl mx-auto">
         <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          whileInView={{ opacity: 1, y: 0 }}
-          viewport={{ once: true }}
-          transition={{ duration: 0.5 }}
+          variants={fadeUp}
+          initial="hidden"
+          whileInView="show"
+          viewport={VIEWPORT}
           className="text-center mb-14"
         >
-          <h2 className="font-poppins font-black text-3xl sm:text-4xl text-[#0F1E34] mb-4" style={{ letterSpacing: '-0.03em' }}>
+          <h2
+            id="b2b-trust-title"
+            className="font-poppins font-black text-3xl sm:text-4xl text-[#0F1E34] mb-4"
+            style={{ letterSpacing: '-0.03em' }}
+          >
             {trust.title}
           </h2>
         </motion.div>
@@ -108,14 +155,14 @@ export function TrustSection() {
         <div className="grid lg:grid-cols-2 gap-8">
           {/* Partner */}
           <motion.div
-            initial={{ opacity: 0, x: -20 }}
-            whileInView={{ opacity: 1, x: 0 }}
-            viewport={{ once: true }}
-            transition={{ duration: 0.5 }}
+            variants={fadeLeft}
+            initial="hidden"
+            whileInView="show"
+            viewport={VIEWPORT}
             className="rounded-2xl p-8 bg-white border border-[#E3EBF5] hover:shadow-lg transition-shadow"
           >
             <div className="flex items-center gap-2 mb-4">
-              <GraduationCap className="w-5 h-5 text-[#38BDF8]" />
+              <GraduationCap className="w-5 h-5 text-[#38BDF8]" aria-hidden="true" />
               <span className="font-arimo text-xs font-bold uppercase tracking-wide text-[#55637A]">
                 {trust.partner.label}
               </span>
@@ -128,20 +175,23 @@ export function TrustSection() {
 
           {/* Founder */}
           <motion.div
-            initial={{ opacity: 0, x: 20 }}
-            whileInView={{ opacity: 1, x: 0 }}
-            viewport={{ once: true }}
-            transition={{ duration: 0.5 }}
+            variants={fadeRight}
+            initial="hidden"
+            whileInView="show"
+            viewport={VIEWPORT}
             className="rounded-2xl p-8 bg-white border border-[#E3EBF5] hover:shadow-lg transition-shadow"
           >
             <div className="flex items-start gap-5">
-              {/* Photo placeholder */}
+              {/* Foto-Platzhalter */}
               <div
+                role="img"
+                aria-label={trust.founder.photoAlt}
                 className="flex-shrink-0 w-20 h-20 rounded-2xl flex items-center justify-center"
                 style={{ background: 'linear-gradient(135deg, #0A192F, #38BDF8)' }}
-                aria-label={trust.founder.photoAlt}
               >
-                <span className="font-poppins font-black text-2xl text-[#DEFF9A]">QS</span>
+                <span className="font-poppins font-black text-2xl text-[#DEFF9A]" aria-hidden="true">
+                  QS
+                </span>
               </div>
               <div className="flex-1">
                 <span className="font-arimo text-xs font-bold uppercase tracking-wide text-[#55637A]">
@@ -151,9 +201,9 @@ export function TrustSection() {
                   {trust.founder.name}
                 </h3>
                 <ul className="space-y-1">
-                  {trust.founder.roles.map((role, i) => (
-                    <li key={i} className="flex items-center gap-2">
-                      <CheckCircle2 className="w-3.5 h-3.5 text-[#38BDF8] flex-shrink-0" />
+                  {trust.founder.roles.map((role) => (
+                    <li key={role} className="flex items-center gap-2">
+                      <CheckCircle2 className="w-3.5 h-3.5 text-[#38BDF8] flex-shrink-0" aria-hidden="true" />
                       <span className="font-arimo text-sm text-[#55637A]">{role}</span>
                     </li>
                   ))}
@@ -165,23 +215,24 @@ export function TrustSection() {
 
         {/* Badges */}
         <motion.div
-          initial={{ opacity: 0, y: 16 }}
-          whileInView={{ opacity: 1, y: 0 }}
-          viewport={{ once: true }}
-          transition={{ duration: 0.5, delay: 0.2 }}
+          variants={container}
+          initial="hidden"
+          whileInView="show"
+          viewport={VIEWPORT}
           className="flex flex-wrap items-center justify-center gap-4 mt-10"
         >
-          {trust.badges.map((badge, i) => {
+          {trust.badges.map((badge) => {
             const Icon = badgeIcons[badge] ?? Award;
             return (
-              <div
-                key={i}
+              <motion.div
+                key={badge}
+                variants={fadeUp}
                 className="inline-flex items-center gap-2 px-5 py-2.5 rounded-full border-2"
                 style={{ borderColor: 'rgba(56,189,248,0.25)', background: 'rgba(56,189,248,0.04)' }}
               >
-                <Icon className="w-4 h-4 text-[#38BDF8]" />
+                <Icon className="w-4 h-4 text-[#38BDF8]" aria-hidden="true" />
                 <span className="font-poppins font-bold text-sm text-[#0F1E34]">{badge}</span>
-              </div>
+              </motion.div>
             );
           })}
         </motion.div>
@@ -194,24 +245,32 @@ export function TrustSection() {
 
 export function EventsSection() {
   const { events } = b2bContent;
+  const { fadeUp, fadeLeft, container } = useSectionAnims();
 
   return (
-    <section className="relative bg-[#0A192F] py-20 px-4 sm:px-6 lg:px-8">
+    <section
+      aria-labelledby="b2b-events-title"
+      className="relative bg-[#0A192F] py-20 px-4 sm:px-6 lg:px-8"
+    >
       <div className="max-w-5xl mx-auto">
         <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          whileInView={{ opacity: 1, y: 0 }}
-          viewport={{ once: true }}
-          transition={{ duration: 0.5 }}
+          variants={fadeUp}
+          initial="hidden"
+          whileInView="show"
+          viewport={VIEWPORT}
           className="text-center mb-14"
         >
           <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full mb-4 border border-[#DEFF9A]/30 bg-[#DEFF9A]/5">
-            <Calendar className="w-3.5 h-3.5 text-[#DEFF9A]" />
+            <Calendar className="w-3.5 h-3.5 text-[#DEFF9A]" aria-hidden="true" />
             <span className="font-arimo text-xs font-bold text-[#DEFF9A] uppercase tracking-wide">
               Live vor Ort
             </span>
           </div>
-          <h2 className="font-poppins font-black text-3xl sm:text-4xl text-white mb-4" style={{ letterSpacing: '-0.03em' }}>
+          <h2
+            id="b2b-events-title"
+            className="font-poppins font-black text-3xl sm:text-4xl text-white mb-4"
+            style={{ letterSpacing: '-0.03em' }}
+          >
             {events.title}
           </h2>
           <p className="font-arimo text-white/55 text-base sm:text-lg max-w-2xl mx-auto leading-relaxed">
@@ -221,8 +280,9 @@ export function EventsSection() {
 
         {/* Timeline */}
         <div className="relative">
-          {/* Vertical line */}
+          {/* Vertikale Linie */}
           <div
+            aria-hidden="true"
             className="absolute left-4 sm:left-6 top-0 bottom-0 w-[2px] rounded-full"
             style={{
               background: 'linear-gradient(180deg, #38BDF8, #DEFF9A)',
@@ -230,95 +290,96 @@ export function EventsSection() {
             }}
           />
 
-          <div className="space-y-6">
-            {events.entries.map((entry, i) => (
-              <motion.div
-                key={i}
-                initial={{ opacity: 0, x: -16 }}
-                whileInView={{ opacity: 1, x: 0 }}
-                viewport={{ once: true }}
-                transition={{ delay: i * 0.1, duration: 0.45 }}
-                className="relative pl-14 sm:pl-20"
-              >
-                {/* Node */}
-                <div
-                  className={`absolute left-0 top-2 w-8 sm:w-12 h-8 sm:h-12 rounded-full flex items-center justify-center z-10 ${
-                    entry.placeholder ? '' : ''
-                  }`}
-                  style={{
-                    background: '#0A192F',
-                    border: `2px solid ${entry.placeholder ? 'rgba(255,255,255,0.15)' : '#38BDF8}'}`,
-                    boxShadow: entry.placeholder ? 'none' : '0 0 12px rgba(56,189,248,0.25)',
-                  }}
-                >
-                  <Calendar
-                    className={`w-4 h-4 ${entry.placeholder ? 'text-white/25' : 'text-[#DEFF9A]'}`}
-                  />
-                </div>
-
-                {/* Card */}
-                <div
-                  className={`rounded-2xl p-6 border ${
-                    entry.placeholder
-                      ? 'border-dashed border-white/15 bg-white/[0.02]'
-                      : 'border-white/10 bg-white/[0.04] hover:bg-white/[0.07]'
-                  } transition-colors`}
-                >
-                  <div className="flex flex-wrap items-center gap-3 mb-3">
-                    <span
-                      className={`font-poppins font-bold text-sm ${
-                        entry.placeholder ? 'text-white/40' : 'text-[#38BDF8]'
-                      }`}
-                    >
-                      {entry.date}
-                    </span>
+          <motion.div
+            variants={container}
+            initial="hidden"
+            whileInView="show"
+            viewport={VIEWPORT}
+            className="space-y-6"
+          >
+            {events.entries.map((entry) => {
+              const accent = !entry.placeholder;
+              return (
+                <motion.div key={entry.title} variants={fadeLeft} className="relative pl-14 sm:pl-20">
+                  {/* Node */}
+                  <div
+                    className="absolute left-0 top-2 w-8 sm:w-12 h-8 sm:h-12 rounded-full flex items-center justify-center z-10"
+                    style={{
+                      background: '#0A192F',
+                      border: `2px solid ${accent ? '#38BDF8' : 'rgba(255,255,255,0.15)'}`,
+                      boxShadow: accent ? '0 0 12px rgba(56,189,248,0.25)' : 'none',
+                    }}
+                  >
+                    <Calendar
+                      className={`w-4 h-4 ${accent ? 'text-[#DEFF9A]' : 'text-white/25'}`}
+                      aria-hidden="true"
+                    />
                   </div>
-                  <h3
-                    className={`font-poppins font-bold text-lg mb-3 ${
-                      entry.placeholder ? 'text-white/40' : 'text-white'
+
+                  {/* Card */}
+                  <div
+                    className={`rounded-2xl p-6 border transition-colors ${
+                      entry.placeholder
+                        ? 'border-dashed border-white/15 bg-white/[0.02]'
+                        : 'border-white/10 bg-white/[0.04] hover:bg-white/[0.07]'
                     }`}
                   >
-                    {entry.title}
-                  </h3>
-                  <div className="flex flex-wrap gap-4">
-                    {entry.location && (
-                      <div className="flex items-center gap-1.5">
-                        <MapPin className="w-3.5 h-3.5 text-white/40" />
-                        <span className="font-arimo text-sm text-white/50">{entry.location}</span>
-                      </div>
-                    )}
-                    {entry.audience && (
-                      <div className="flex items-center gap-1.5">
-                        <Users className="w-3.5 h-3.5 text-white/40" />
-                        <span className="font-arimo text-sm text-white/50">{entry.audience}</span>
+                    <div className="flex flex-wrap items-center gap-3 mb-3">
+                      <span
+                        className={`font-poppins font-bold text-sm ${
+                          accent ? 'text-[#38BDF8]' : 'text-white/40'
+                        }`}
+                      >
+                        {entry.date}
+                      </span>
+                    </div>
+                    <h3
+                      className={`font-poppins font-bold text-lg mb-3 ${
+                        accent ? 'text-white' : 'text-white/40'
+                      }`}
+                    >
+                      {entry.title}
+                    </h3>
+                    <div className="flex flex-wrap gap-4">
+                      {entry.location && (
+                        <div className="flex items-center gap-1.5">
+                          <MapPin className="w-3.5 h-3.5 text-white/40" aria-hidden="true" />
+                          <span className="font-arimo text-sm text-white/50">{entry.location}</span>
+                        </div>
+                      )}
+                      {entry.audience && (
+                        <div className="flex items-center gap-1.5">
+                          <Users className="w-3.5 h-3.5 text-white/40" aria-hidden="true" />
+                          <span className="font-arimo text-sm text-white/50">{entry.audience}</span>
+                        </div>
+                      )}
+                    </div>
+                    {entry.topics?.length > 0 && (
+                      <div className="flex flex-wrap gap-2 mt-4">
+                        {entry.topics.map((topic) => (
+                          <span
+                            key={topic}
+                            className="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-arimo font-semibold"
+                            style={{ background: 'rgba(222,255,154,0.10)', color: '#DEFF9A' }}
+                          >
+                            {topic}
+                          </span>
+                        ))}
                       </div>
                     )}
                   </div>
-                  {entry.topics.length > 0 && (
-                    <div className="flex flex-wrap gap-2 mt-4">
-                      {entry.topics.map((topic, ti) => (
-                        <span
-                          key={ti}
-                          className="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-arimo font-semibold"
-                          style={{ background: 'rgba(222,255,154,0.10)', color: '#DEFF9A' }}
-                        >
-                          {topic}
-                        </span>
-                      ))}
-                    </div>
-                  )}
-                </div>
-              </motion.div>
-            ))}
-          </div>
+                </motion.div>
+              );
+            })}
+          </motion.div>
         </div>
 
-        {/* Note */}
+        {/* Hinweis */}
         <motion.div
-          initial={{ opacity: 0 }}
-          whileInView={{ opacity: 1 }}
-          viewport={{ once: true }}
-          transition={{ duration: 0.5 }}
+          variants={fadeUp}
+          initial="hidden"
+          whileInView="show"
+          viewport={VIEWPORT}
           className="mt-8 rounded-2xl p-5 border border-dashed border-[#DEFF9A]/30 bg-[#DEFF9A]/[0.03]"
         >
           <p className="font-arimo text-sm text-white/40 italic text-center">{events.note}</p>
