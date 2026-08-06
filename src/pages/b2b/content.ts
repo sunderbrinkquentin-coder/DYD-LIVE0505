@@ -1,7 +1,7 @@
 export const b2bContent = {
   header: {
     logoAlt: 'DYD – Decide Your Dream',
-    applicantUrl: 'https://www.decide-your-dream.de',
+    applicantUrl: '/',
     toggleApplicant: 'Für Bewerber',
     toggleBusiness: 'Für Business',
     cta: 'Demo anfragen',
@@ -148,5 +148,86 @@ export const b2bContent = {
       },
       cta: 'Partner werden',
     },
+  },
+  platformOverview: {
+    title: 'Eine Plattform, ein Standard',
+    subtitle:
+      'DYD baut auf einem einheitlichen Kompetenz-Framework auf – europaweit anschlussfähig, datenschutzkonform und in Deutschland entwickelt.',
+    features: [
+      {
+        icon: 'layers',
+        title: 'ESCO-basierte Skill-Taxonomie',
+        desc: 'Vollständig kompatibel zur europäischen ESCO-Klassifikation – Kompetenzen über Branchen und Grenzen hinweg vergleichbar.',
+      },
+      {
+        icon: 'brain',
+        title: 'KI-Analyse',
+        desc: 'Automatisches Auslesen von Kompetenzen aus Lebensläufen und Profiltexten – ohne manuelles Tagging.',
+      },
+      {
+        icon: 'shield',
+        title: 'DSGVO-konform',
+        desc: 'Datenverarbeitung ausschließlich auf europäischen Servern. Keine Drittanbieter-Tracking, keine Cloud-Extrawege.',
+      },
+      {
+        icon: 'flag',
+        title: 'Made in Germany',
+        desc: 'Entwickelt und betreut in Düsseldorf – von einem Team mit Praxis in HR, Beratung und Hochschulbildung.',
+      },
+    ],
+  },
+  trust: {
+    title: 'Vertrauen & Glaubwürdigkeit',
+    partner: {
+      label: 'Kooperationspartner',
+      name: 'Hochschule Fresenius',
+      desc: 'Eine der größten privaten Hochschulen Deutschlands – mit DYD in Workshop-Präsenz und pilotierten KI-Bewerbungstrainings.',
+    },
+    founder: {
+      label: 'Gründer & Senior Consultant',
+      name: 'Quentin Sunderbrink',
+      roles: ['Gründer', 'Senior Consultant', 'IHK-Prüfer', 'Workshop-Speaker für KI-Bewerbungsoptimierung an deutschen Hochschulen'],
+      photoAlt: 'Porträt von Quentin Sunderbrink, Gründer von DYD',
+    },
+    badges: ['DSGVO', 'ESCO', 'Made in Germany'],
+  },
+  events: {
+    title: 'DYD live: Workshops & Messeauftritte',
+    subtitle: 'Präsenz vor Ort und praktische KI-Anwendung – hier entsteht Skill Intelligence zum Anfassen.',
+    entries: [
+      {
+        date: '28. Mai 2026',
+        title: 'Beyond the Template: Dein CV-Boost im KI-Zeitalter',
+        location: 'Hochschule Fresenius',
+        audience: '~50 Top-Studierende',
+        topics: ['ATS', 'Storytelling', 'Personal Branding im KI-Zeitalter'],
+        placeholder: false,
+      },
+      {
+        date: '[BITTE AUSFÜLLEN]',
+        title: '[BITTE AUSFÜLLEN: Titel]',
+        location: '[BITTE AUSFÜLLEN: Ort]',
+        audience: '',
+        topics: [],
+        placeholder: true,
+      },
+      {
+        date: '[BITTE AUSFÜLLEN]',
+        title: '[BITTE AUSFÜLLEN: Titel]',
+        location: '[BITTE AUSFÜLLEN: Ort]',
+        audience: '',
+        topics: [],
+        placeholder: true,
+      },
+      {
+        date: '[BITTE AUSFÜLLEN]',
+        title: '[BITTE AUSFÜLLEN: Titel]',
+        location: '[BITTE AUSFÜLLEN: Ort]',
+        audience: '',
+        topics: [],
+        placeholder: true,
+      },
+    ],
+    note: '[BITTE AUSFÜLLEN] Ersetze diesen Absatz durch eure weiteren Workshops und Messeauftritte (Datum, Titel, Ort, kurze Beschreibung), wie sie auf der bestehenden Landingpage stehen.',
   },
 } as const;
