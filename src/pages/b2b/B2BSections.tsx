@@ -13,12 +13,22 @@ function useSectionAnims() {
     },
   };
 
+// 1. Viewport-Konstante definieren (behebt VIEWPORT is not defined)
+const VIEWPORT = { once: true, margin: '-50px' } as const;
+
+// 2. Animations-Hook (falls useSectionAnims auch noch irgendwo fehlt)
+function useSectionAnims() {
+  const reduce = useReducedMotion() ?? false;
+  const container: Variants = {
+    hidden: {},
+    show: { transition: { staggerChildren: reduce ? 0 : 0.1 } },
+  };
   const fadeUp: Variants = {
     hidden: { opacity: 0, y: reduce ? 0 : 20 },
     show: { opacity: 1, y: 0, transition: { duration: reduce ? 0 : 0.5 } },
   };
-
   return { container, fadeUp, reduce };
+}
 }
 
 // Zuordnung der Icon-Strings aus content.ts zu Lucide-Icon-Komponenten
