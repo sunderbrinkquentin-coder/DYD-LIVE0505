@@ -106,10 +106,9 @@ export default function B2BTabs({
   };
 
   // Tab-CTA: das ist die eigentliche Conversion – zum Lead-Formular, Segment vorwählen.
-  const requestDemo = (segment: TabId) => {
-    onRequestDemo?.(segment);
-    scrollTo(document.getElementById('lead-form'));
-  };
+ const requestDemo = (segment: TabId) => {
+  onRequestDemo?.(segment);
+};
 
   return (
     <section
