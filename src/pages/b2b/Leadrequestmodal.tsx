@@ -1,8 +1,8 @@
 import { useEffect, useRef, useState, type FormEvent } from 'react';
 import { motion, AnimatePresence, useReducedMotion } from 'framer-motion';
-import { X, Send, CheckCircle2, Building2, GraduationCap, Loader2 } from 'lucide-react';
+import { X, Send, CheckCircle2, Building2, GraduationCap, Loader2, Clock } from 'lucide-react';
 // TODO: Pfad an deinen bestehenden Supabase-Client anpassen:
-import { supabase } from '../../lib/supabase';
+import { supabase } from '../lib/supabase';
 
 type Segment = 'unternehmen' | 'bildungstraeger';
 
@@ -10,6 +10,9 @@ const SEGMENT_META: Record<Segment, { label: string; Icon: typeof Building2 }> =
   unternehmen: { label: 'Unternehmen', Icon: Building2 },
   bildungstraeger: { label: 'Bildungsträger', Icon: GraduationCap },
 };
+
+// Optionale Zeitfenster für den 15-Minuten-Austausch
+const SLOTS = ['Vormittags', 'Mittags', 'Nachmittags', 'Flexibel'];
 
 type LeadRequestModalProps = {
   open: boolean;
@@ -27,19 +30,19 @@ export default function LeadRequestModal({ open, onClose, segment }: LeadRequest
 
   const [seg, setSeg] = useState<Segment>(segment ?? 'unternehmen');
   const [form, setForm] = useState(EMPTY);
+  const [slot, setSlot] = useState('');
   const [company_website, setCompanyWebsite] = useState(''); // Honeypot (unsichtbar)
   const [status, setStatus] = useState<'idle' | 'sending' | 'done' | 'error'>('idle');
   const [errorMsg, setErrorMsg] = useState('');
 
-  // Segment aus dem Kontext übernehmen, wenn das Modal geöffnet wird
   useEffect(() => {
     if (open && segment) setSeg(segment);
   }, [open, segment]);
 
-  // Beim Öffnen: State zurücksetzen, Fokus setzen, Body-Scroll sperren
   useEffect(() => {
     if (!open) return;
     setForm(EMPTY);
+    setSlot('');
     setCompanyWebsite('');
     setStatus('idle');
     setErrorMsg('');
@@ -54,7 +57,6 @@ export default function LeadRequestModal({ open, onClose, segment }: LeadRequest
     };
   }, [open]);
 
-  // Escape schließt, Tab bleibt im Dialog (einfacher Focus-Trap)
   useEffect(() => {
     if (!open) return;
     const onKey = (e: KeyboardEvent) => {
@@ -86,7 +88,6 @@ export default function LeadRequestModal({ open, onClose, segment }: LeadRequest
     e.preventDefault();
     if (status === 'sending') return;
 
-    // Honeypot: von Bots ausgefüllt → still verwerfen (so tun als ob erfolgreich)
     if (company_website) {
       setStatus('done');
       return;
@@ -107,6 +108,7 @@ export default function LeadRequestModal({ open, onClose, segment }: LeadRequest
       phone: form.phone.trim() || null,
       company: form.company.trim() || null,
       message: form.message.trim() || null,
+      preferred_slot: slot || null,
       source: 'b2b_page',
     });
 
@@ -132,14 +134,8 @@ export default function LeadRequestModal({ open, onClose, segment }: LeadRequest
           exit={{ opacity: 0 }}
           transition={{ duration: reduce ? 0 : 0.2 }}
         >
-          {/* Backdrop */}
-          <div
-            className="absolute inset-0 bg-[#0A192F]/70 backdrop-blur-sm"
-            onClick={onClose}
-            aria-hidden="true"
-          />
+          <div className="absolute inset-0 bg-[#0A192F]/70 backdrop-blur-sm" onClick={onClose} aria-hidden="true" />
 
-          {/* Dialog */}
           <motion.div
             ref={dialogRef}
             role="dialog"
@@ -151,11 +147,7 @@ export default function LeadRequestModal({ open, onClose, segment }: LeadRequest
             transition={{ duration: reduce ? 0 : 0.28, ease: 'easeOut' }}
             className="relative w-full max-w-md bg-white rounded-2xl shadow-2xl overflow-hidden max-h-[90vh] overflow-y-auto"
           >
-            {/* Kopf mit Farbverlauf */}
-            <div
-              className="px-6 py-5 text-white relative"
-              style={{ background: 'linear-gradient(135deg, #0A192F, #38BDF8)' }}
-            >
+            <div className="px-6 py-5 text-white relative" style={{ background: 'linear-gradient(135deg, #0A192F, #38BDF8)' }}>
               <button
                 type="button"
                 onClick={onClose}
@@ -164,21 +156,15 @@ export default function LeadRequestModal({ open, onClose, segment }: LeadRequest
               >
                 <X className="w-5 h-5" aria-hidden="true" />
               </button>
-              <h2 id="lead-modal-title" className="font-poppins font-black text-xl pr-8">
-                Informationen anfragen
-              </h2>
+              <h2 id="lead-modal-title" className="font-poppins font-black text-xl pr-8">Kontakt aufnehmen</h2>
               <p className="font-arimo text-sm text-white/70 mt-1">
-                Wir melden uns zeitnah mit passenden Informationen zu Ihrem Pilotprojekt.
+                Wir melden uns zeitnah mit passenden Informationen – auf Wunsch mit einem kurzen 15-Minuten-Austausch.
               </p>
             </div>
 
             {status === 'done' ? (
-              /* Erfolgsansicht */
               <div className="px-6 py-10 text-center">
-                <div
-                  className="w-14 h-14 mx-auto mb-4 rounded-full flex items-center justify-center"
-                  style={{ background: 'rgba(18,185,129,0.12)' }}
-                >
+                <div className="w-14 h-14 mx-auto mb-4 rounded-full flex items-center justify-center" style={{ background: 'rgba(18,185,129,0.12)' }}>
                   <CheckCircle2 className="w-8 h-8 text-[#12b981]" aria-hidden="true" />
                 </div>
                 <h3 className="font-poppins font-bold text-lg text-[#0F1E34] mb-2">Vielen Dank!</h3>
@@ -195,9 +181,7 @@ export default function LeadRequestModal({ open, onClose, segment }: LeadRequest
                 </button>
               </div>
             ) : (
-              /* Formular */
               <form onSubmit={handleSubmit} className="px-6 py-5 space-y-4">
-                {/* Segment-Auswahl (vorbelegt aus dem Kontext) */}
                 <div>
                   <span className={labelCls}>Ich frage an als</span>
                   <div className="grid grid-cols-2 gap-2" role="radiogroup" aria-label="Bereich">
@@ -212,9 +196,7 @@ export default function LeadRequestModal({ open, onClose, segment }: LeadRequest
                           aria-checked={active}
                           onClick={() => setSeg(key)}
                           className={`flex items-center justify-center gap-2 px-3 py-2.5 rounded-xl text-sm font-arimo font-bold border transition focus:outline-none focus-visible:ring-2 focus-visible:ring-[#38BDF8]/40 ${
-                            active
-                              ? 'border-[#38BDF8] bg-[#38BDF8]/8 text-[#0F1E34]'
-                              : 'border-[#E3EBF5] text-[#55637A] hover:border-[#38BDF8]/40'
+                            active ? 'border-[#38BDF8] bg-[#38BDF8]/8 text-[#0F1E34]' : 'border-[#E3EBF5] text-[#55637A] hover:border-[#38BDF8]/40'
                           }`}
                         >
                           <Icon className="w-4 h-4 text-[#38BDF8]" aria-hidden="true" />
@@ -226,100 +208,68 @@ export default function LeadRequestModal({ open, onClose, segment }: LeadRequest
                 </div>
 
                 <div>
-                  <label htmlFor="lead-name" className={labelCls}>
-                    Name*
-                  </label>
-                  <input
-                    id="lead-name"
-                    ref={firstFieldRef}
-                    type="text"
-                    required
-                    autoComplete="name"
-                    value={form.name}
-                    onChange={update('name')}
-                    className={inputCls}
-                    placeholder="Vor- und Nachname"
-                  />
+                  <label htmlFor="lead-name" className={labelCls}>Name*</label>
+                  <input id="lead-name" ref={firstFieldRef} type="text" required autoComplete="name" value={form.name} onChange={update('name')} className={inputCls} placeholder="Vor- und Nachname" />
                 </div>
 
                 <div className="grid sm:grid-cols-2 gap-4">
                   <div>
-                    <label htmlFor="lead-email" className={labelCls}>
-                      E-Mail*
-                    </label>
-                    <input
-                      id="lead-email"
-                      type="email"
-                      required
-                      autoComplete="email"
-                      value={form.email}
-                      onChange={update('email')}
-                      className={inputCls}
-                      placeholder="name@firma.de"
-                    />
+                    <label htmlFor="lead-email" className={labelCls}>E-Mail*</label>
+                    <input id="lead-email" type="email" required autoComplete="email" value={form.email} onChange={update('email')} className={inputCls} placeholder="name@firma.de" />
                   </div>
                   <div>
-                    <label htmlFor="lead-phone" className={labelCls}>
-                      Telefon
-                    </label>
-                    <input
-                      id="lead-phone"
-                      type="tel"
-                      autoComplete="tel"
-                      value={form.phone}
-                      onChange={update('phone')}
-                      className={inputCls}
-                      placeholder="optional"
-                    />
+                    <label htmlFor="lead-phone" className={labelCls}>Telefon</label>
+                    <input id="lead-phone" type="tel" autoComplete="tel" value={form.phone} onChange={update('phone')} className={inputCls} placeholder="optional" />
                   </div>
                 </div>
 
                 <div>
-                  <label htmlFor="lead-company" className={labelCls}>
-                    Unternehmen / Institution
-                  </label>
-                  <input
-                    id="lead-company"
-                    type="text"
-                    autoComplete="organization"
-                    value={form.company}
-                    onChange={update('company')}
-                    className={inputCls}
-                    placeholder="Name Ihrer Organisation"
-                  />
+                  <label htmlFor="lead-company" className={labelCls}>Unternehmen / Institution</label>
+                  <input id="lead-company" type="text" autoComplete="organization" value={form.company} onChange={update('company')} className={inputCls} placeholder="Name Ihrer Organisation" />
                 </div>
 
                 <div>
-                  <label htmlFor="lead-message" className={labelCls}>
-                    Ihre Nachricht
-                  </label>
-                  <textarea
-                    id="lead-message"
-                    rows={3}
-                    value={form.message}
-                    onChange={update('message')}
-                    className={`${inputCls} resize-none`}
-                    placeholder="Worum geht es? (optional)"
-                  />
+                  <label htmlFor="lead-message" className={labelCls}>Ihre Nachricht</label>
+                  <textarea id="lead-message" rows={3} value={form.message} onChange={update('message')} className={`${inputCls} resize-none`} placeholder="Worum geht es? (optional)" />
+                </div>
+
+                {/* Optionales Zeitfenster für einen 15-Minuten-Austausch */}
+                <div>
+                  <span className={labelCls}>
+                    <Clock className="inline w-3.5 h-3.5 text-[#38BDF8] mr-1 -mt-0.5" aria-hidden="true" />
+                    15-Minuten-Austausch? <span className="font-normal text-[#94a3b8]">(optional)</span>
+                  </span>
+                  <div className="flex flex-wrap gap-2" role="group" aria-label="Bevorzugtes Zeitfenster">
+                    {SLOTS.map((s) => {
+                      const active = slot === s;
+                      return (
+                        <button
+                          type="button"
+                          key={s}
+                          aria-pressed={active}
+                          onClick={() => setSlot(active ? '' : s)}
+                          className={`px-3 py-1.5 rounded-lg text-xs font-arimo font-bold border transition focus:outline-none focus-visible:ring-2 focus-visible:ring-[#38BDF8]/40 ${
+                            active ? 'border-[#38BDF8] bg-[#38BDF8]/8 text-[#0F1E34]' : 'border-[#E3EBF5] text-[#55637A] hover:border-[#38BDF8]/40'
+                          }`}
+                        >
+                          {s}
+                        </button>
+                      );
+                    })}
+                  </div>
+                  <p className="font-arimo text-[11px] text-[#94a3b8] mt-1.5">
+                    Grobes Zeitfenster genügt – den genauen Termin stimmen wir per E-Mail ab.
+                  </p>
                 </div>
 
                 {/* Honeypot – für Menschen unsichtbar */}
                 <div aria-hidden="true" className="hidden">
                   <label htmlFor="company_website">Website</label>
-                  <input
-                    id="company_website"
-                    type="text"
-                    tabIndex={-1}
-                    autoComplete="off"
-                    value={company_website}
-                    onChange={(e) => setCompanyWebsite(e.target.value)}
-                  />
+                  <input id="company_website" type="text" tabIndex={-1} autoComplete="off" value={company_website} onChange={(e) => setCompanyWebsite(e.target.value)} />
                 </div>
 
                 {status === 'error' && (
-                  <p className="font-arimo text-sm text-[#EF5350]" role="alert">
-                    {errorMsg}
-                  </p>
+                  <p className="font-arimo text-sm text-[#EF5350]" role="alert">{errorMsg}</p>
                 )}
 
                 <button
@@ -336,17 +286,14 @@ export default function LeadRequestModal({ open, onClose, segment }: LeadRequest
                   ) : (
                     <>
                       <Send className="w-4 h-4" aria-hidden="true" />
-                      Kontakt aufnehmen
+                      Absenden
                     </>
                   )}
                 </button>
 
                 <p className="font-arimo text-[11px] text-[#94a3b8] text-center leading-relaxed">
                   Mit dem Absenden stimmen Sie der Verarbeitung Ihrer Daten gemäß unserer{' '}
-                  <a href="/#/datenschutz" className="underline hover:text-[#55637A]">
-                    Datenschutzerklärung
-                  </a>{' '}
-                  zu.
+                  <a href="/#/datenschutz" className="underline hover:text-[#55637A]">Datenschutzerklärung</a> zu.
                 </p>
               </form>
             )}
