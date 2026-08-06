@@ -27,7 +27,7 @@ function useSectionAnims() {
 
 const VIEWPORT = { once: true, margin: '-80px' } as const;
 
-/* ─── 1. Header-Swapper & Dynamischer Name ─── */
+/* ─── 1. Platform-Umschalter ─── */
 
 export function PlatformOverviewSection() {
   const [activeTab, setActiveTab] = useState<'enterprise' | 'education'>('enterprise');
@@ -43,6 +43,8 @@ export function PlatformOverviewSection() {
         { letter: 'T', word: 'ool' },
       ],
       tagline: "Die prädikative Steuerungsplattform für KI-gestütztes Skill-Mapping & interne Mobilität.",
+      heading: "Strategic Workforce Planning & Skill Mapping",
+      subheading: "Lösen Sie Ihre Fachkräfteherausforderung mit präziser Skill-Intelligence."
     },
     education: {
       brandName: "DYD NEXUS",
@@ -54,6 +56,8 @@ export function PlatformOverviewSection() {
         { letter: 'S', word: 'ystem' },
       ],
       tagline: "Die KI-Schnittstelle zur Standardisierung von Kursangeboten nach EU-ESCO Taxonomie.",
+      heading: "Verwandeln Sie Skill-Nachfrage in passgenaue Bildungsangebote",
+      subheading: "Standardisieren und optimieren Sie Ihre Qualifizierungspfade nach ESCO-Standard."
     }
   };
 
@@ -63,7 +67,7 @@ export function PlatformOverviewSection() {
     <section aria-labelledby="b2b-platform-title" className="relative bg-[#F8FAFC] py-16 px-4 sm:px-6 lg:px-8">
       <div className="max-w-5xl mx-auto">
         
-        {/* TAB-BUTTONS GANZ OBEN */}
+        {/* DIREKTE REITER-AUSWAHL OBEN */}
         <div className="flex justify-center mb-8">
           <div className="inline-flex p-1.5 rounded-2xl bg-white border border-slate-200 shadow-sm">
             <button
@@ -91,20 +95,20 @@ export function PlatformOverviewSection() {
           </div>
         </div>
 
-        {/* PRODUKT-NAME & AKRONYM MIT SICHTBAREN ANFANGSBUCHSTABEN */}
+        {/* PRODUKT-NAME & AKRONYM GANZ OBEN (Mit sichtbaren Anfangsbuchstaben) */}
         <motion.div
           key={activeTab}
           initial={{ opacity: 0, y: 10 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.3 }}
-          className="bg-white rounded-2xl p-6 sm:p-8 border border-slate-200 shadow-sm mb-12 text-center"
+          className="bg-white rounded-2xl p-6 sm:p-8 border border-slate-200 shadow-sm mb-10 text-center"
         >
           {/* Hauptname */}
           <h2 id="b2b-platform-title" className="font-poppins font-black text-4xl sm:text-5xl text-[#0F1E34] tracking-tight mb-3">
             {activeProduct.brandName}
           </h2>
 
-          {/* Akronym mit hervorgehobenem Anfangsbuchstaben */}
+          {/* Akronyme mit hervorgehobenen Anfangsbuchstaben */}
           <div className="flex flex-wrap items-center justify-center gap-x-3 gap-y-1 mb-4 text-base sm:text-lg font-poppins">
             {activeProduct.acronymList.map((item, idx) => (
               <span key={item.word} className="inline-flex items-center">
@@ -127,13 +131,19 @@ export function PlatformOverviewSection() {
           </p>
         </motion.div>
 
-        {/* NORMALE SEITE (Verlauf ohne Kacheln/Dopplung) */}
-        <div className="bg-white p-8 rounded-2xl border border-slate-200 shadow-sm">
-          <h3 className="font-poppins font-bold text-2xl text-[#0F1E34] mb-4">
-            Übersicht & Plattform-Funktionen
+        {/* ZIEL-ÜBERSCHRIFTEN DIREKT DARUNTER */}
+        <motion.div 
+          key={`content-${activeTab}`}
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ duration: 0.3 }}
+          className="bg-white p-8 rounded-2xl border border-slate-200 shadow-sm"
+        >
+          <h3 className="font-poppins font-bold text-2xl sm:text-3xl text-[#0F1E34] mb-3">
+            {activeProduct.heading}
           </h3>
-          <p className="text-slate-600 font-arimo leading-relaxed mb-6">
-            Unsere Skill-Intelligence-Technologie analysiert Anforderungsprofile und gleicht diese automatisiert mit den EU-ESCO Standards ab. Dadurch erhalten Sie volle Transparenz über vorhandene Potenziale und gezielte Entwicklungspfade.
+          <p className="text-slate-600 font-arimo leading-relaxed mb-6 text-base sm:text-lg">
+            {activeProduct.subheading}
           </p>
 
           <div className="grid sm:grid-cols-3 gap-4">
@@ -150,7 +160,7 @@ export function PlatformOverviewSection() {
               <div className="text-xs text-slate-500">Automatisierte Empfehlungen für Reskilling & Upskilling.</div>
             </div>
           </div>
-        </div>
+        </motion.div>
 
       </div>
     </section>
