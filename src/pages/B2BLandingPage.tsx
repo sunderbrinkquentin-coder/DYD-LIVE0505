@@ -29,7 +29,7 @@ export default function B2BLandingPage() {
       <B2BHeader onContact={() => openContact(activeTab)} />
       <B2BHero onCtaClick={handleHeroCta} />
       <B2BTabs activeTab={activeTab} onTabChange={setActiveTab} onRequestDemo={openContact} />
-      <PlatformOverviewSection />
+      <PlatformOverviewSection activeTab={activeTab} />
       <TrustSection onContactClick={() => openContact(activeTab)} />
       <B2BContactModal open={modalOpen} onClose={() => setModalOpen(false)} segment={modalSegment} />
     </div>
