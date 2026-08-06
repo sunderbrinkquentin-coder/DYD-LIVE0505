@@ -157,31 +157,14 @@ export function TrustSection({ onContactClick }: { onContactClick: () => void })
                   ))}
                 </ul>
                 {/* Contact details */}
-                <div className="flex flex-wrap gap-3 pt-2 border-t border-[#E3EBF5]">
-                  <a
-                    href={`mailto:${trust.founder.email}`}
-                    className="inline-flex items-center gap-1.5 font-arimo text-xs text-[#55637A] hover:text-[#38BDF8] transition-colors"
-                  >
-                    <Mail className="w-3.5 h-3.5" />
-                    {trust.founder.email}
-                  </a>
-                  <a
-                    href={`tel:${trust.founder.phone.replace(/\s/g, '')}`}
-                    className="inline-flex items-center gap-1.5 font-arimo text-xs text-[#55637A] hover:text-[#38BDF8] transition-colors"
-                  >
-                    <Phone className="w-3.5 h-3.5" />
-                    {trust.founder.phone}
-                  </a>
-                  <a
-                    href={trust.founder.linkedin}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="inline-flex items-center gap-1.5 font-arimo text-xs text-[#55637A] hover:text-[#38BDF8] transition-colors"
-                  >
-                    <Linkedin className="w-3.5 h-3.5" />
-                    LinkedIn
-                  </a>
-                </div>
+                <div className="flex flex-wrap gap-2 mt-4">
+  <a href={`mailto:${trust.founder.email}`} className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-arimo font-bold text-[#0F1E34] border border-[#E3EBF5] hover:border-[#38BDF8]/40 transition-colors">
+    <Mail className="w-3.5 h-3.5 text-[#38BDF8]" aria-hidden="true" /> E-Mail
+  </a>
+  <a href={trust.founder.linkedin} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-arimo font-bold text-[#0F1E34] border border-[#E3EBF5] hover:border-[#38BDF8]/40 transition-colors">
+    <Linkedin className="w-3.5 h-3.5 text-[#38BDF8]" aria-hidden="true" /> LinkedIn
+  </a>
+</div>
               </div>
             </div>
           </motion.div>
