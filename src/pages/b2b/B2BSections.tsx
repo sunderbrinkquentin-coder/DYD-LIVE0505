@@ -1,9 +1,10 @@
+import { useState } from 'react';
 import { motion, useReducedMotion, type Variants } from 'framer-motion';
 import {
   Layers, Brain, Shield, Flag,
   Calendar, MapPin, Users, CheckCircle2,
   GraduationCap, Award, Lock, Sparkles,
-  Mail, Linkedin, CalendarClock,
+  Mail, Linkedin, CalendarClock, ArrowRight, Building2, BookOpen
 } from 'lucide-react';
 import { b2bContent } from './content';
 
