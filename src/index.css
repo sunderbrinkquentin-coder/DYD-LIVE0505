@@ -1,5 +1,7 @@
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap');
 @import url('https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@700;900&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;700;800;900&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Arimo:wght@400;600;700&display=swap');
 
 @tailwind base;
 @tailwind components;
@@ -386,3 +388,48 @@
      all viewport sizes uniformly. No responsive overrides — they would
      break the WYSIWYG guarantee that mobile = desktop = PDF. */
 }
+
+/* ========================================
+   B2B LANDING PAGE — DYD Corporate Identity
+   ======================================== */
+
+.b2b-hero-bg {
+  background-color: #0A192F;
+  background-image:
+    radial-gradient(ellipse 80% 60% at 20% 10%, rgba(56,189,248,0.18), transparent 60%),
+    radial-gradient(ellipse 60% 50% at 85% 20%, rgba(222,255,154,0.10), transparent 55%),
+    radial-gradient(ellipse 70% 60% at 50% 100%, rgba(56,189,248,0.12), transparent 60%);
+}
+
+.b2b-dot-grid {
+  background-image: radial-gradient(circle, rgba(255,255,255,0.045) 1px, transparent 1px);
+  background-size: 28px 28px;
+}
+
+.b2b-focus-ring:focus-visible {
+  outline: 2px solid #38BDF8;
+  outline-offset: 2px;
+  border-radius: 8px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .b2b-glow-blob,
+  .b2b-glow-blob-2 {
+    animation: none !important;
+  }
+}
+
+@keyframes b2b-drift {
+  0%, 100% { transform: translate(0, 0) scale(1); }
+  33% { transform: translate(30px, -20px) scale(1.05); }
+  66% { transform: translate(-20px, 15px) scale(0.97); }
+}
+
+.b2b-glow-blob {
+  animation: b2b-drift 14s ease-in-out infinite;
+}
+
+.b2b-glow-blob-2 {
+  animation: b2b-drift 18s ease-in-out infinite reverse;
+}
+

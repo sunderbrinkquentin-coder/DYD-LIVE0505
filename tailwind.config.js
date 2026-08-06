@@ -14,9 +14,19 @@ export default {
         success: '#4CAF50',
         warning: '#FFA726',
         error: '#EF5350',
+        // B2B Design System
+        navy: '#0A192F',
+        sky: '#38BDF8',
+        lime: '#DEFF9A',
+        'b2b-surface': '#F6F9FD',
+        'b2b-border': '#E3EBF5',
+        'b2b-body': '#55637A',
+        'b2b-heading': '#0F1E34',
       },
       fontFamily: {
         sans: ['Inter', 'system-ui', 'sans-serif'],
+        poppins: ['Poppins', 'sans-serif'],
+        arimo: ['Arimo', 'Arial', 'sans-serif'],
       },
       borderRadius: {
         sm: '8px',
