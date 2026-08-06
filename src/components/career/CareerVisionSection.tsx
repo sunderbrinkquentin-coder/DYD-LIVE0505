@@ -13,6 +13,7 @@ import { LearningPathPaywall } from './LearningPathPaywall';
 import { SkillGapPaywall } from './SkillGapPaywall';
 import { FollowRewardPopup, shouldShowFollowPopup } from '../landing/FollowRewardPopup';
 import { parseSkills, skillDisplayName, RawSkill } from '../../utils/skills';
+import RegisterModal from '../RegisterModal';
 
 // ── Constants ──────────────────────────────────────────────────────────────────
 
@@ -865,6 +866,10 @@ export function CareerVisionSection({ cvId: initialCvId, onAnalysisComplete, res
   // done anything, and burned the once-per-session flag on an empty form.
   const [followPopupOpen, setFollowPopupOpen] = useState(false);
 
+  // Login modal — shown when unauthenticated user tries to start analysis
+  const [showLoginModal, setShowLoginModal] = useState(false);
+  const [pendingAnalysis, setPendingAnalysis] = useState(false);
+
   useEffect(() => {
     if (phase === 'done' && shouldShowFollowPopup()) {
       setFollowPopupOpen(true);
@@ -922,6 +927,16 @@ export function CareerVisionSection({ cvId: initialCvId, onAnalysisComplete, res
   }, []);
 
   useEffect(() => () => cleanupListeners(), [cleanupListeners]);
+
+  // Auto-continue analysis after login
+  useEffect(() => {
+    if (user?.id && pendingAnalysis) {
+      setShowLoginModal(false);
+      setPendingAnalysis(false);
+      runAnalysis();
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [user?.id, pendingAnalysis]);
 
   // ── Success handler ─────────────────────────────────────────────────────────
 
@@ -1034,7 +1049,12 @@ export function CareerVisionSection({ cvId: initialCvId, onAnalysisComplete, res
 
 const runAnalysis = useCallback(async () => {
     if (!targetJob.trim()) { setFormError('Bitte gib eine Zielposition ein.'); return; }
-    if (!user?.id)          { setFormError('Bitte melde dich zuerst an.'); return; }
+    if (!user?.id)          {
+      setFormError(null);
+      setPendingAnalysis(true);
+      setShowLoginModal(true);
+      return;
+    }
     setFormError(null);
     setApiError(null);
     setResult(null);
@@ -1426,6 +1446,14 @@ const runAnalysis = useCallback(async () => {
           targetCompany={targetCompany || undefined}
         />
       )}
+
+      {/* Login modal */}
+      <RegisterModal
+        isOpen={showLoginModal}
+        onClose={() => { setShowLoginModal(false); setPendingAnalysis(false); }}
+        onSuccess={() => { setShowLoginModal(false); }}
+        initialMode="signup"
+      />
 
       {/* Input form */}
       {showForm && (
