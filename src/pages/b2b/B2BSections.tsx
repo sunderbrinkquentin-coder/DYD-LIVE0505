@@ -1,6 +1,10 @@
 import { motion, useReducedMotion, type Variants } from 'framer-motion';
-import { Layers, Brain, ShieldCheck, Flag, Sparkles } from 'lucide-react';
+import { Layers, Brain, ShieldCheck, Flag, Sparkles, Building2, GraduationCap } from 'lucide-react';
 import { b2bContent } from './content';
+
+// 1. Globale Hilfskonstanten & Animations-Hook (behebt 'VIEWPORT' & 'useSectionAnims' Error)
+const VIEWPORT = { once: true, margin: '-50px' } as const;
+
 function useSectionAnims() {
   const reduce = useReducedMotion() ?? false;
 
@@ -13,25 +17,15 @@ function useSectionAnims() {
     },
   };
 
-// 1. Viewport-Konstante definieren (behebt VIEWPORT is not defined)
-const VIEWPORT = { once: true, margin: '-50px' } as const;
-
-// 2. Animations-Hook (falls useSectionAnims auch noch irgendwo fehlt)
-function useSectionAnims() {
-  const reduce = useReducedMotion() ?? false;
-  const container: Variants = {
-    hidden: {},
-    show: { transition: { staggerChildren: reduce ? 0 : 0.1 } },
-  };
   const fadeUp: Variants = {
     hidden: { opacity: 0, y: reduce ? 0 : 20 },
     show: { opacity: 1, y: 0, transition: { duration: reduce ? 0 : 0.5 } },
   };
+
   return { container, fadeUp, reduce };
 }
-}
 
-// Zuordnung der Icon-Strings aus content.ts zu Lucide-Icon-Komponenten
+// Icon-Mapping für PlatformOverviewSection
 const iconMap: Record<string, React.ComponentType<{ className?: string }>> = {
   layers: Layers,
   brain: Brain,
@@ -39,27 +33,14 @@ const iconMap: Record<string, React.ComponentType<{ className?: string }>> = {
   flag: Flag,
 };
 
+/* ─── 1. Platform Overview Section ─── */
 export function PlatformOverviewSection() {
   const { platformOverview } = b2bContent;
-  const reduce = useReducedMotion() ?? false;
-
-  const container: Variants = {
-    hidden: {},
-    show: {
-      transition: {
-        staggerChildren: reduce ? 0 : 0.1,
-      },
-    },
-  };
-
-  const fadeUp: Variants = {
-    hidden: { opacity: 0, y: reduce ? 0 : 20 },
-    show: { opacity: 1, y: 0, transition: { duration: reduce ? 0 : 0.5 } },
-  };
+  const { container, fadeUp } = useSectionAnims();
 
   return (
     <section className="relative py-24 bg-[#0A192F] overflow-hidden border-t border-white/5">
-      {/* Background Micro-Glow */}
+      {/* Glow Backdrop */}
       <div
         className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[300px] rounded-full pointer-events-none"
         style={{
@@ -78,22 +59,22 @@ export function PlatformOverviewSection() {
               DYD Standard
             </span>
           </div>
-          
+
           <h2 className="font-poppins font-black text-white text-3xl sm:text-4xl lg:text-5xl tracking-tight mb-6">
             {platformOverview.title}
           </h2>
-          
+
           <p className="font-arimo text-lg text-white/70 leading-relaxed">
             {platformOverview.subtitle}
           </p>
         </div>
 
-        {/* Feature Grid */}
+        {/* Features Grid */}
         <motion.div
           variants={container}
           initial="hidden"
           whileInView="show"
-          viewport={{ once: true, margin: '-50px' }}
+          viewport={VIEWPORT}
           className="grid grid-cols-1 md:grid-cols-2 gap-6"
         >
           {platformOverview.features.map((feature) => {
@@ -101,7 +82,7 @@ export function PlatformOverviewSection() {
 
             return (
               <motion.div
-                key={feature.title} /* ✅ Hier stand vorher fehlerhaft brandName */
+                key={feature.title} /* ✅ Basiert sauber auf feature.title */
                 variants={fadeUp}
                 className="group relative p-8 rounded-2xl bg-white/[0.03] border border-white/10 transition-all duration-300 hover:bg-white/[0.06] hover:border-[#38BDF8]/30 hover:-translate-y-1"
               >
@@ -110,7 +91,7 @@ export function PlatformOverviewSection() {
                 </div>
 
                 <h3 className="font-poppins font-bold text-xl text-white mb-3">
-                  {feature.title} /* ✅ Geändert von brandName auf title */
+                  {feature.title}
                 </h3>
 
                 <p className="font-arimo text-white/65 text-sm leading-relaxed">
@@ -125,6 +106,65 @@ export function PlatformOverviewSection() {
   );
 }
 
+/* ─── 2. Trust Section ─── */
+export function TrustSection() {
+  const { trust } = b2bContent;
+  const { container, fadeUp } = useSectionAnims();
+
+  return (
+    <section className="py-24 bg-[#0A192F] text-white border-t border-white/5">
+      <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8">
+        <motion.div
+          variants={container}
+          initial="hidden"
+          whileInView="show"
+          viewport={VIEWPORT} /* ✅ Greift jetzt sicher auf VIEWPORT zu */
+          className="space-y-12"
+        >
+          <motion.div variants={fadeUp} className="text-center">
+            <h2 className="font-poppins font-black text-3xl sm:text-4xl mb-4">
+              {trust.title}
+            </h2>
+          </motion.div>
+
+          {/* Partner & Founder Cards */}
+          <div className="grid md:grid-cols-2 gap-8">
+            <motion.div
+              variants={fadeUp}
+              className="p-8 rounded-2xl bg-white/5 border border-white/10"
+            >
+              <span className="text-xs font-bold text-[#38BDF8] uppercase tracking-wider block mb-2">
+                {trust.partner.label}
+              </span>
+              <h3 className="text-2xl font-bold mb-4">{trust.partner.name}</h3>
+              <p className="text-white/70 text-sm leading-relaxed">
+                {trust.partner.desc}
+              </p>
+            </motion.div>
+
+            <motion.div
+              variants={fadeUp}
+              className="p-8 rounded-2xl bg-white/5 border border-white/10"
+            >
+              <span className="text-xs font-bold text-[#DEFF9A] uppercase tracking-wider block mb-2">
+                {trust.founder.label}
+              </span>
+              <h3 className="text-2xl font-bold mb-4">{trust.founder.name}</h3>
+              <ul className="space-y-2 text-sm text-white/70">
+                {trust.founder.roles.slice(0, 3).map((role) => (
+                  <li key={role} className="flex items-start gap-2">
+                    <span className="text-[#DEFF9A] mt-1">•</span>
+                    <span>{role}</span>
+                  </li>
+                ))}
+              </ul>
+            </motion.div>
+          </div>
+        </motion.div>
+      </div>
+    </section>
+  );
+}
 /* ─── 2. Vertrauen & Glaubwürdigkeit ─── */
 
 type TrustSectionProps = {
