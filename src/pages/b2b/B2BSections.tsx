@@ -32,40 +32,167 @@ function useSectionAnims() {
 
 const VIEWPORT = { once: true, margin: '-80px' } as const;
 
-/* ─── Plattform-Überblick ─── */
+/* ─── Akronym Daten-Struktur für Conversion ─── */
+const ACRONYM_DATA = {
+  enterprise: {
+    badge: "Für B2B Enterprises & HR Teams",
+    brandName: "DYD ORBIT",
+    subline: "Optimized Reskilling & Business Intelligence Tool",
+    description: "Die Steuerung für strategische Personalentwicklung und interne Mobilität.",
+    letters: [
+      { letter: 'O', word: 'Optimized', desc: 'Maximierte Effizienz bei der internen Besetzung' },
+      { letter: 'R', word: 'Reskilling', desc: 'ESCO-gestützte Weiterbildungspfade für IT & Fachkräfte' },
+      { letter: 'B', word: 'Business', desc: 'Ausrichtung der Skill-Entwicklung an echten ROI-Zielen' },
+      { letter: 'I', word: 'Intelligence', desc: 'Prädikative KI-Analytik für Skill-Lücken & Workforce' },
+      { letter: 'T', word: 'Tool', desc: 'Nahtlose Enterprise-Integration (Workday, SAP, Moodle)' }
+    ],
+    ctaText: "DYD ORBIT für Enterprise anfragen",
+    ctaLink: "#contact"
+  },
+  education: {
+    badge: "Für Bildungsträger & Akademien",
+    brandName: "DYD NEXUS",
+    subline: "Next-Skill Evolution & X-Learning Universal System",
+    description: "Der universelle Schnittpunkt zwischen didaktischem Angebot und Arbeitsmarkt.",
+    letters: [
+      { letter: 'N', word: 'Next-Skill', desc: 'Identifikation von Zukunfts-Skills vor dem Markt' },
+      { letter: 'E', word: 'Evolution', desc: 'Didaktische Weiterentwicklung von Kurs-Lehrplänen' },
+      { letter: 'X', word: 'X-Learning', desc: 'Schnittstellenübergreifendes Matching von Bildungsangeboten' },
+      { letter: 'U', word: 'Universal', desc: 'Standardisiertes Alignment nach EU-ESCO Taxonomie' },
+      { letter: 'S', word: 'System', desc: 'Automatisierte Employability-Dashboarding & Analytics' }
+    ],
+    ctaText: "DYD NEXUS für Akademien testen",
+    ctaLink: "#contact"
+  }
+};
+
+/* ─── Überarbeitete Plattform-Überblick Section ─── */
 
 export function PlatformOverviewSection() {
-  const { platformOverview } = b2bContent;
+  const [activeTab, setActiveTab] = useState<'enterprise' | 'education'>('enterprise');
   const { fadeUp, container } = useSectionAnims();
 
+  const currentData = ACRONYM_DATA[activeTab];
+
   return (
-    <section aria-labelledby="b2b-platform-title" className="relative bg-[#0A192F] py-20 px-4 sm:px-6 lg:px-8">
-      <div className="max-w-6xl mx-auto">
-        <motion.div variants={fadeUp} initial="hidden" whileInView="show" viewport={VIEWPORT} className="text-center mb-14">
+    <section aria-labelledby="b2b-platform-title" className="relative bg-[#0A192F] py-20 px-4 sm:px-6 lg:px-8 overflow-hidden">
+      {/* Subtle Ambient Glow */}
+      <div className="absolute top-1/4 left-1/2 -translate-x-1/2 w-[600px] h-[300px] bg-[#38BDF8]/5 blur-[120px] rounded-full pointer-events-none" />
+
+      <div className="max-w-6xl mx-auto relative z-10">
+        
+        {/* Header Badge & Title */}
+        <motion.div variants={fadeUp} initial="hidden" whileInView="show" viewport={VIEWPORT} className="text-center mb-10">
           <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full mb-4 border border-[#38BDF8]/30 bg-[#38BDF8]/5">
             <Sparkles className="w-3.5 h-3.5 text-[#38BDF8]" aria-hidden="true" />
-            <span className="font-arimo text-xs font-bold text-[#38BDF8] uppercase tracking-wide">Plattform-Überblick</span>
+            <span className="font-arimo text-xs font-bold text-[#38BDF8] uppercase tracking-wide">
+              Die Plattform-Architektur
+            </span>
           </div>
-          <h2 id="b2b-platform-title" className="font-poppins font-black text-3xl sm:text-4xl text-white mb-4" style={{ letterSpacing: '-0.03em' }}>
-            {platformOverview.title}
+          <h2 id="b2b-platform-title" className="font-poppins font-black text-3xl sm:text-5xl text-white mb-4" style={{ letterSpacing: '-0.03em' }}>
+            Smartes Intelligence-Design.
           </h2>
-          <p className="font-arimo text-white/55 text-base sm:text-lg max-w-2xl mx-auto leading-relaxed">{platformOverview.subtitle}</p>
+          <p className="font-arimo text-white/60 text-base sm:text-lg max-w-2xl mx-auto leading-relaxed">
+            Wähle deine Perspektive, um zu sehen, wie DYD den Transfer von Skills in messbaren Erfolg übersetzt.
+          </p>
         </motion.div>
 
-        <motion.div variants={container} initial="hidden" whileInView="show" viewport={VIEWPORT} className="grid sm:grid-cols-2 lg:grid-cols-4 gap-6">
-          {platformOverview.features.map((feat) => {
-            const Icon = iconMap[feat.icon] ?? Layers;
-            return (
-              <motion.div key={feat.title} variants={fadeUp} className="rounded-2xl p-6 border border-white/10 bg-white/[0.03] hover:bg-white/[0.06] transition-colors">
-                <div className="w-12 h-12 rounded-xl flex items-center justify-center mb-5" style={{ background: 'linear-gradient(135deg, rgba(56,189,248,0.12), rgba(222,255,154,0.08))' }}>
-                  <Icon className="w-6 h-6 text-[#38BDF8]" aria-hidden="true" />
-                </div>
-                <h3 className="font-poppins font-bold text-base text-white mb-2">{feat.title}</h3>
-                <p className="font-arimo text-sm text-white/50 leading-relaxed">{feat.desc}</p>
-              </motion.div>
-            );
-          })}
+        {/* Dynamic Dual-Tab Switcher */}
+        <div className="flex justify-center mb-12">
+          <div className="inline-flex p-1.5 rounded-2xl bg-white/[0.04] border border-white/10 backdrop-blur-md">
+            <button
+              onClick={() => setActiveTab('enterprise')}
+              className={`flex items-center gap-2.5 px-5 py-3 rounded-xl font-poppins font-bold text-sm transition-all duration-300 ${
+                activeTab === 'enterprise'
+                  ? 'bg-gradient-to-r from-[#38BDF8] to-[#2b7fd4] text-[#0A192F] shadow-lg shadow-[#38BDF8]/20'
+                  : 'text-white/60 hover:text-white hover:bg-white/5'
+              }`}
+            >
+              <Building2 className="w-4 h-4" />
+              <span>Unternehmen (DYD ORBIT)</span>
+            </button>
+            <button
+              onClick={() => setActiveTab('education')}
+              className={`flex items-center gap-2.5 px-5 py-3 rounded-xl font-poppins font-bold text-sm transition-all duration-300 ${
+                activeTab === 'education'
+                  ? 'bg-gradient-to-r from-[#DEFF9A] to-[#38BDF8] text-[#0A192F] shadow-lg shadow-[#DEFF9A]/20'
+                  : 'text-white/60 hover:text-white hover:bg-white/5'
+              }`}
+            >
+              <BookOpen className="w-4 h-4" />
+              <span>Bildungsträger (DYD NEXUS)</span>
+            </button>
+          </div>
+        </div>
+
+        {/* Active Sub-Banner */}
+        <motion.div 
+          key={activeTab}
+          initial={{ opacity: 0, y: 10 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.3 }}
+          className="text-center mb-10"
+        >
+          <span className="font-arimo text-xs font-bold uppercase tracking-wider text-[#DEFF9A] mb-1 block">
+            {currentData.badge}
+          </span>
+          <h3 className="font-poppins font-black text-2xl sm:text-3xl text-white tracking-tight">
+            {currentData.brandName} <span className="text-white/40 font-normal text-lg sm:text-xl">({currentData.subline})</span>
+          </h3>
+          <p className="font-arimo text-white/50 text-sm sm:text-base mt-2 max-w-xl mx-auto">
+            {currentData.description}
+          </p>
         </motion.div>
+
+        {/* Interactive Acronym Cards */}
+        <motion.div 
+          key={`cards-${activeTab}`}
+          variants={container} 
+          initial="hidden" 
+          animate="show"
+          className="grid grid-cols-1 sm:grid-cols-5 gap-3 mb-12"
+        >
+          {currentData.letters.map((item) => (
+            <motion.div
+              key={item.letter}
+              variants={fadeUp}
+              className="group relative rounded-2xl p-5 border border-white/10 bg-white/[0.03] hover:bg-white/[0.08] hover:border-[#38BDF8]/40 transition-all duration-300 flex flex-col justify-between"
+            >
+              <div>
+                {/* Big Glowing Letter */}
+                <div className="font-poppins font-black text-4xl sm:text-5xl text-[#38BDF8] group-hover:text-[#DEFF9A] transition-colors mb-2">
+                  {item.letter}
+                </div>
+                {/* Word */}
+                <div className="font-poppins font-bold text-base text-white mb-2 tracking-wide">
+                  {item.word}
+                </div>
+                {/* Description */}
+                <p className="font-arimo text-xs text-white/50 group-hover:text-white/80 transition-colors leading-relaxed">
+                  {item.desc}
+                </p>
+              </div>
+              
+              {/* Subtle Indicator Line */}
+              <div className="w-full h-1 bg-white/5 rounded-full mt-4 overflow-hidden">
+                <div className="w-0 group-hover:w-full h-full bg-gradient-to-r from-[#38BDF8] to-[#DEFF9A] transition-all duration-500" />
+              </div>
+            </motion.div>
+          ))}
+        </motion.div>
+
+        {/* Conversion CTA Footer */}
+        <motion.div variants={fadeUp} initial="hidden" whileInView="show" viewport={VIEWPORT} className="text-center">
+          <a
+            href={currentData.ctaLink}
+            className="inline-flex items-center gap-3 px-8 py-4 rounded-xl font-poppins font-bold text-base text-[#0A192F] transition-all duration-300 hover:scale-105 hover:shadow-xl hover:shadow-[#38BDF8]/20"
+            style={{ background: 'linear-gradient(135deg, #DEFF9A 0%, #38BDF8 100%)' }}
+          >
+            <span>{currentData.ctaText}</span>
+            <ArrowRight className="w-5 h-5" />
+          </a>
+        </motion.div>
+
       </div>
     </section>
   );
