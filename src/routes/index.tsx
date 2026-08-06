@@ -106,7 +106,6 @@ export const router = createHashRouter([
   { path: '/business', element: <B2BPage />}
 
   // 🔐 Dashboard → jetzt geschützt
-  {
     path: '/dashboard',
     element: (
       <PrivateRoute>
