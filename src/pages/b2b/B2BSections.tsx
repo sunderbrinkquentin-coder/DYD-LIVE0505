@@ -134,14 +134,14 @@ export function TrustSection({ onContactClick }: { onContactClick: () => void })
             transition={{ duration: 0.5 }}
             className="rounded-2xl p-8 bg-white border border-[#E3EBF5] hover:shadow-lg transition-shadow"
           >
-            <div className="flex items-start gap-5">
-              {/* Real photo */}
-              <img
-                src={trust.founder.photoSrc}
-                alt={trust.founder.photoAlt}
-                className="flex-shrink-0 w-20 h-20 rounded-2xl object-cover"
-                style={{ border: '2px solid #38BDF8' }}
-              />
+           {/* Foto mit Gradient-Ring */}
+<div className="flex-shrink-0 rounded-2xl p-[3px]" style={{ background: 'linear-gradient(135deg, #38BDF8, #DEFF9A)' }}>
+  <img
+    src={trust.founder.photoSrc}
+    alt={trust.founder.photoAlt}
+    className="w-28 h-28 sm:w-32 sm:h-32 rounded-[14px] object-cover bg-[#0A192F]"
+  />
+</div>
               <div className="flex-1">
                 <span className="font-arimo text-xs font-bold uppercase tracking-wide text-[#55637A]">
                   {trust.founder.label}
