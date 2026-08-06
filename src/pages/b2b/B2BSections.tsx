@@ -31,6 +31,8 @@ function useSectionAnims() {
 
 const VIEWPORT = { once: true, margin: '-80px' } as const;
 
+/* ─── 1. Platform Overview Section ─── */
+
 export function PlatformOverviewSection({ activeTab }: PlatformOverviewProps) {
   const products = {
     unternehmen: {
@@ -67,7 +69,7 @@ export function PlatformOverviewSection({ activeTab }: PlatformOverviewProps) {
     <section aria-labelledby="b2b-platform-title" className="relative bg-[#F8FAFC] py-16 px-4 sm:px-6 lg:px-8">
       <div className="max-w-5xl mx-auto">
         
-        {/* 1. PRODUKTNAME & AKRONYM MIT HEVORGEHOBENEN ANFANGSBUCHSTABEN (Ganz oben) */}
+        {/* Produktname & Akronym mit hervorgehobenen Anfangsbuchstaben */}
         <motion.div
           key={activeTab}
           initial={{ opacity: 0, y: 10 }}
@@ -103,7 +105,7 @@ export function PlatformOverviewSection({ activeTab }: PlatformOverviewProps) {
           </p>
         </motion.div>
 
-        {/* 2. INHALT DIREKT DARUNTER */}
+        {/* Inhalt direkt darunter */}
         <motion.div 
           key={`content-${activeTab}`}
           initial={{ opacity: 0 }}
@@ -139,21 +141,20 @@ export function PlatformOverviewSection({ activeTab }: PlatformOverviewProps) {
   );
 }
 
-/* ─── TrustSection & EventsSection bleiben unverändert ─── */
-
 /* ─── 2. Vertrauen & Glaubwürdigkeit ─── */
 
 type TrustSectionProps = {
   onContact?: () => void;
+  onContactClick?: () => void;
 };
 
-export function TrustSection({ onContact }: TrustSectionProps) {
+export function TrustSection({ onContact, onContactClick }: TrustSectionProps) {
   const { trust } = b2bContent;
   const { fadeUp, fadeLeft, fadeRight, container } = useSectionAnims();
   const badgeIcons: Record<string, typeof Lock> = { DSGVO: Lock, ESCO: Layers, 'Made in Germany': Flag };
 
   const f = trust.founder as typeof trust.founder & { calendarUrl?: string };
-  const handleContact = onContact ?? (() => { window.location.href = `mailto:${f.email}`; });
+  const handleContact = onContactClick ?? onContact ?? (() => { window.location.href = `mailto:${f.email}`; });
 
   return (
     <section aria-labelledby="b2b-trust-title" className="relative bg-[#F6F9FD] py-20 px-4 sm:px-6 lg:px-8">
