@@ -48,15 +48,15 @@ export const b2bContent = {
         ],
       },
       process: {
-  title: 'Der Skill-Transformation-Prozess',
-  steps: [
-    { title: 'Skill-Mapping',   desc: 'Profile automatisch erfassen', icon: 'scan' },
-    { title: 'Zielrollen-Match', desc: 'Zukunftsbedarf abgleichen',    icon: 'target' },
-    { title: 'Gap-Analyse',     desc: 'Fehlbedarf ermitteln',         icon: 'gap' },
-    { title: 'Lernpfad',        desc: 'Module zuweisen',              icon: 'route' },
-    { title: 'Mobilität',       desc: 'Intern upskillen',             icon: 'growth' },
-  ],
-}, 
+        title: 'Der Skill-Transformation-Prozess',
+        steps: [
+          { title: 'Skill-Mapping', desc: 'Profile automatisch erfassen', icon: 'scan' },
+          { title: 'Zielrollen-Match', desc: 'Zukunftsbedarf abgleichen', icon: 'target' },
+          { title: 'Gap-Analyse', desc: 'Fehlbedarf ermitteln', icon: 'gap' },
+          { title: 'Lernpfad', desc: 'Module zuweisen', icon: 'route' },
+          { title: 'Mobilität', desc: 'Intern upskillen', icon: 'growth' },
+        ],
+      },
       modules: [
         {
           title: 'Internal Talent Marketplace',
@@ -69,9 +69,9 @@ export const b2bContent = {
           tag: 'Strategic Planning',
         },
         {
-          title: 'LMS & HRIS Integration',
-          desc: 'Nahtlose Anbindung an Workday, SAP SuccessFactors oder Moodle.',
-          tag: 'Enterprise API',
+          title: 'Skill-Gap-Report',
+          desc: 'Automatische Auswertung der größten Kompetenzlücken je Team – als Grundlage für gezielte Entwicklung.',
+          tag: 'Analytics',
         },
       ],
       roi: [
@@ -111,12 +111,12 @@ export const b2bContent = {
       process: {
         title: 'Skill-Matching-Prozess',
         steps: [
-          { title: 'Profil', desc: 'Werdegang erfassen' },
-          { title: 'Erfahrung', desc: 'Skills auslesen' },
-          { title: 'Zielrolle', desc: 'Wunsch abgleichen' },
-          { title: 'Skill-Gap', desc: 'Lücke berechnen' },
-          { title: 'Kurs', desc: 'Passung finden' },
-          { title: 'Lead', desc: 'qualifiziert übergeben' },
+          { title: 'Profil', desc: 'Werdegang erfassen', icon: 'user' },
+          { title: 'Erfahrung', desc: 'Skills auslesen', icon: 'briefcase' },
+          { title: 'Zielrolle', desc: 'Wunsch abgleichen', icon: 'target' },
+          { title: 'Skill-Gap', desc: 'Lücke berechnen', icon: 'search' },
+          { title: 'Kurs', desc: 'Passung finden', icon: 'book' },
+          { title: 'Lead', desc: 'qualifiziert übergeben', icon: 'lead' },
         ],
       },
       benefits: [
@@ -167,7 +167,7 @@ export const b2bContent = {
       {
         icon: 'shield',
         title: 'DSGVO-konform',
-        desc: 'Datenverarbeitung ausschließlich auf europäischen Servern. Keine Drittanbieter-Tracking, keine Cloud-Extrawege.',
+        desc: 'Datenverarbeitung ausschließlich auf europäischen Servern. Kein Drittanbieter-Tracking, keine Cloud-Extrawege.',
       },
       {
         icon: 'flag',
@@ -187,22 +187,16 @@ export const b2bContent = {
       label: 'Gründer & Senior Consultant',
       name: 'Quentin Sunderbrink, B. Eng.',
       roles: [
-  'Gründer & CEO von DYD – KI-Karriereplattform, made in Germany',
-  'Senior Consultant mit vier Jahren Praxis in der Personaldienstleistung – kennt Auswahl und Entwicklung aus erster Hand',
-  'IHK-Prüfer – bewertet Qualifikationen nach anerkanntem Standard',
-  'Wirtschaftsingenieur (B. Eng.) – verbindet technisches Systemdenken mit HR-Praxis',
-  '9 Jahre Abendschule parallel zum Vollzeitjob – lebt das Upskilling-Prinzip, das DYD ermöglicht',
-  'Workshop-Speaker an deutschen Hochschulen (u. a. Hochschule Fresenius) für KI-gestützte Bewerbungsoptimierung',
-  'Veranstalter des Harmony Festivals – organisiert ein eigenes Musik- und Comedy-Event',
-],
-      {/* Foto mit Gradient-Ring */}
-<div className="flex-shrink-0 rounded-2xl p-[3px]" style={{ background: 'linear-gradient(135deg, #38BDF8, #DEFF9A)' }}>
-  <img
-    src={trust.founder.photoSrc}
-    alt={trust.founder.photoAlt}
-    className="w-28 h-28 sm:w-32 sm:h-32 rounded-[14px] object-cover bg-[#0A192F]"
-  />
-</div>
+        'Gründer & CEO von DYD – KI-Karriereplattform, made in Germany',
+        'Senior Consultant mit vier Jahren Praxis in der Personaldienstleistung – kennt Auswahl und Entwicklung aus erster Hand',
+        'IHK-Prüfer – bewertet Qualifikationen nach anerkanntem Standard',
+        'Wirtschaftsingenieur (B. Eng.) – verbindet technisches Systemdenken mit HR-Praxis',
+        '9 Jahre Abendschule parallel zum Vollzeitjob – lebt das Upskilling-Prinzip, das DYD ermöglicht',
+        'Workshop-Speaker an deutschen Hochschulen (u. a. Hochschule Fresenius) für KI-gestützte Bewerbungsoptimierung',
+        'Veranstalter des Harmony Festivals – organisiert ein eigenes Musik- und Comedy-Event',
+      ],
+      photoAlt: 'Porträt von Quentin Sunderbrink, Gründer von DYD',
+      photoSrc: '/profile-picture.png',
       email: 'quentin@decide-your-dream.de',
       phone: '+49 211 12345678',
       linkedin: 'https://www.linkedin.com/in/quentin-sunderbrink',
