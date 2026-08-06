@@ -4,13 +4,9 @@ import {
   Layers, Brain, Shield, Flag,
   Calendar, MapPin, Users, CheckCircle2,
   GraduationCap, Award, Lock, Sparkles,
-  Mail, Linkedin, CalendarClock, ArrowRight, Building2, BookOpen
+  Mail, Linkedin, CalendarClock, Building2, BookOpen
 } from 'lucide-react';
 import { b2bContent } from './content';
-
-const iconMap: Record<string, typeof Layers> = {
-  layers: Layers, brain: Brain, shield: Shield, flag: Flag,
-};
 
 function useSectionAnims() {
   const reduce = useReducedMotion() ?? false;
@@ -32,58 +28,12 @@ function useSectionAnims() {
 
 const VIEWPORT = { once: true, margin: '-80px' } as const;
 
-/* ─── Produktdaten für ORBIT & NEXUS ─── */
-const SOLUTIONS = {
-  enterprise: {
-    badge: "Für Unternehmen & B2B Enterprise",
-    brandName: "DYD ORBIT",
-    acronymList: [
-      { letter: 'O', word: 'ptimized' },
-      { letter: 'R', word: 'eskilling' },
-      { letter: 'B', word: 'usiness' },
-      { letter: 'I', word: 'ntelligence' },
-      { letter: 'T', word: 'ool' },
-    ],
-    tagline: "Die prädikative Steuerungsplattform für KI-gestütztes Skill-Mapping, ESCO-Analytik & interne Mobilität.",
-    highlights: [
-      "Präzise Skill-Gap-Analytik nach EU-ESCO Standard",
-      "Automatisierte Karriere- & Weiterbildungspfade",
-      "Nahtlose Integration in SAP, Workday & Moodle"
-    ],
-    ctaText: "DYD ORBIT Demo anfragen",
-    ctaLink: "#contact",
-    accentColor: "#38BDF8",
-    secondaryColor: "#DEFF9A"
-  },
-  education: {
-    badge: "Für Bildungsträger & Akademien",
-    brandName: "DYD NEXUS",
-    acronymList: [
-      { letter: 'N', word: 'ext-Skill' },
-      { letter: 'E', word: 'volution' },
-      { letter: 'X', word: '-Learning' },
-      { letter: 'U', word: 'niversal' },
-      { letter: 'S', word: 'ystem' },
-    ],
-    tagline: "Die KI-Schnittstelle zur Standardisierung von Kursangeboten nach EU-ESCO Taxonomie und zur Maximierung der Employability.",
-    highlights: [
-      "Lehrplan-Alignment mit aktuellen Arbeitsmarktdaten",
-      "Echtzeit-Matching von Kursinhalten mit Anforderungsprofilen",
-      "Messbare Steigerung der Vermittlungsquote von Absolventen"
-    ],
-    ctaText: "DYD NEXUS für Akademien testen",
-    ctaLink: "#contact",
-    accentColor: "#DEFF9A",
-    secondaryColor: "#38BDF8"
-  }
-};
-
-/* ─── Plattform-Überblick Section ─── */
+/* ─── 1. Header-Swapper & Dynamischer Name ─── */
 
 export function PlatformOverviewSection() {
   const [activeTab, setActiveTab] = useState<'enterprise' | 'education'>('enterprise');
 
-  const content = {
+  const products = {
     enterprise: {
       brandName: "DYD ORBIT",
       acronymList: [
@@ -94,18 +44,6 @@ export function PlatformOverviewSection() {
         { letter: 'T', word: 'ool' },
       ],
       tagline: "Die prädikative Steuerungsplattform für KI-gestütztes Skill-Mapping & interne Mobilität.",
-      challengeTitle: "Herausforderung",
-      challengeItems: [
-        "Ineffiziente Skill-Mapping Prozesse ohne Echtzeitdaten",
-        "Fehlende Transparenz über interne Talent-Potenziale",
-        "Hohe Rekrutierungskosten statt gezieltem Reskilling"
-      ],
-      solutionTitle: "DYD Skill Intelligence",
-      solutionItems: [
-        "Echtzeit Skill-Gap-Analytik nach EU-ESCO Standard",
-        "Automatisierte Karriere- & Reskilling-Pfade für Mitarbeiter",
-        "Nahtlose Integration in SAP, Workday & Moodle"
-      ]
     },
     education: {
       brandName: "DYD NEXUS",
@@ -116,29 +54,17 @@ export function PlatformOverviewSection() {
         { letter: 'U', word: 'niversal' },
         { letter: 'S', word: 'ystem' },
       ],
-      tagline: "Verwandeln Sie Skill-Nachfrage in qualifizierte Leads.",
-      challengeTitle: "Herausforderung",
-      challengeItems: [
-        "Generische Kurslisten ohne Bezug zur Zielrolle",
-        "Weder Erfahrung noch individuelle Skill-Lücken berücksichtigt",
-        "Teure Reichweite statt echter Nachfrage – hoher Streuverlust"
-      ],
-      solutionTitle: "DYD Skill Intelligence",
-      solutionItems: [
-        "KI verbindet Profil, Ziel und ESCO-Skills automatisch",
-        "Erkennt die konkrete Kompetenzlücke jedes Nutzers",
-        "Spielt passgenaue Weiterbildungen als qualifizierten Lead aus"
-      ]
+      tagline: "Die KI-Schnittstelle zur Standardisierung von Kursangeboten nach EU-ESCO Taxonomie.",
     }
   };
 
-  const activeContent = content[activeTab];
+  const activeProduct = products[activeTab];
 
   return (
     <section aria-labelledby="b2b-platform-title" className="relative bg-[#F8FAFC] py-16 px-4 sm:px-6 lg:px-8">
       <div className="max-w-5xl mx-auto">
         
-        {/* 1. DIE REITERTAB-LEISTE GANZ OBEN */}
+        {/* BUTTON-LEISTE OBEN (Bleibt immer gleich) */}
         <div className="flex justify-center mb-8">
           <div className="inline-flex p-1.5 rounded-2xl bg-white border border-slate-200 shadow-sm">
             <button
@@ -166,74 +92,59 @@ export function PlatformOverviewSection() {
           </div>
         </div>
 
-        {/* 2. HAUPTÜBERSCHRIFT-BOX DIREKT UNTER DEN REITERN */}
+        {/* DYNAMISCHER NAME (Wechselt je nach Button) */}
         <motion.div
           key={activeTab}
           initial={{ opacity: 0, y: 10 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.3 }}
-          className="bg-white rounded-2xl p-6 sm:p-8 border border-slate-200 shadow-sm mb-8 text-center"
+          className="bg-white rounded-2xl p-6 sm:p-8 border border-slate-200 shadow-sm mb-12 text-center"
         >
-          {/* PRODUKTNAME ALS GROSSE ÜBERSCHRIFT */}
           <h2 id="b2b-platform-title" className="font-poppins font-black text-4xl sm:text-5xl text-[#0F1E34] tracking-tight mb-2">
-            {activeContent.brandName}
+            {activeProduct.brandName}
           </h2>
 
-          {/* AKRONYM-AUFLÖSUNG DIREKT DARUNTER */}
           <div className="flex flex-wrap items-center justify-center gap-x-2 gap-y-1 mb-4 text-sm sm:text-base font-poppins font-semibold">
-            {activeContent.acronymList.map((item, idx) => (
+            {activeProduct.acronymList.map((item, idx) => (
               <span key={item.word} className="inline-flex items-center">
-                <span className="font-black text-sky-500">
-                  {item.letter}
-                </span>
-                <span className="text-slate-600 font-medium">
-                  {item.word}
-                </span>
-                {idx < activeContent.acronymList.length - 1 && (
+                <span className="font-black text-sky-500">{item.letter}</span>
+                <span className="text-slate-600 font-medium">{item.word}</span>
+                {idx < activeProduct.acronymList.length - 1 && (
                   <span className="text-slate-300 ml-2">•</span>
                 )}
               </span>
             ))}
           </div>
 
-          {/* Slogan / Subtitel */}
           <p className="font-arimo text-slate-700 text-lg sm:text-xl font-bold max-w-3xl mx-auto">
-            {activeContent.tagline}
+            {activeProduct.tagline}
           </p>
         </motion.div>
 
-        {/* 3. ZWEI KACHELN NEBENEINANDER (HERAUSFORDERUNG VS. SOLUTION) */}
-        <div className="grid md:grid-cols-2 gap-6">
-          {/* Herausforderung Card */}
-          <div className="bg-red-50/50 rounded-2xl p-6 border border-red-100">
-            <div className="flex items-center gap-2 mb-4 text-red-600 font-poppins font-bold text-lg">
-              <span className="p-1 bg-red-100 rounded-lg">⚠️</span>
-              <h3>{activeContent.challengeTitle}</h3>
-            </div>
-            <ul className="space-y-3 font-arimo text-sm text-slate-700">
-              {activeContent.challengeItems.map((item, i) => (
-                <li key={i} className="flex items-start gap-2">
-                  <span className="text-red-400 font-bold mt-0.5">•</span>
-                  <span>{item}</span>
-                </li>
-              ))}
-            </ul>
-          </div>
+        {/* NORMALE SEITE DARUNTER (Fließt gewohnt weiter) */}
+        <div className="space-y-8">
+          <div className="bg-white p-8 rounded-2xl border border-slate-200 shadow-sm">
+            <h3 className="font-poppins font-bold text-2xl text-[#0F1E34] mb-4">
+              Übersicht & Plattform-Funktionen
+            </h3>
+            <p className="text-slate-600 font-arimo leading-relaxed mb-6">
+              Unsere Skill-Intelligence-Technologie analysiert Anforderungsprofile und gleicht diese automatisiert mit den EU-ESCO Standards ab. Dadurch erhalten Sie volle Transparenz über vorhandene Potenziale und gezielte Entwicklungspfade.
+            </p>
 
-          {/* DYD Skill Intelligence Card */}
-          <div className="bg-sky-50/50 rounded-2xl p-6 border border-sky-100">
-            <div className="flex items-center gap-2 mb-4 text-sky-600 font-poppins font-bold text-lg">
-              <Sparkles className="w-5 h-5 text-sky-500" />
-              <h3>{activeContent.solutionTitle}</h3>
+            <div className="grid sm:grid-cols-3 gap-4">
+              <div className="p-4 rounded-xl bg-slate-50 border border-slate-100">
+                <div className="font-bold text-[#0F1E34] mb-1">ESCO Alignment</div>
+                <div className="text-xs text-slate-500">Standardisierte Skill-Taxonomie für präzise Analysen.</div>
+              </div>
+              <div className="p-4 rounded-xl bg-slate-50 border border-slate-100">
+                <div className="font-bold text-[#0F1E34] mb-1">Echtzeit-Matching</div>
+                <div className="text-xs text-slate-500">Direkter Abgleich von Anforderungen und Profilen.</div>
+              </div>
+              <div className="p-4 rounded-xl bg-slate-50 border border-slate-100">
+                <div className="font-bold text-[#0F1E34] mb-1">Gezielte Pfade</div>
+                <div className="text-xs text-slate-500">Automatisierte Empfehlungen für Reskilling & Upskilling.</div>
+              </div>
             </div>
-            <ul className="space-y-3 font-arimo text-sm text-slate-700">
-              {activeContent.solutionItems.map((item, i) => (
-                <li key={i} className="flex items-start gap-2">
-                  <span className="text-sky-400 font-bold mt-0.5">•</span>
-                  <span>{item}</span>
-                </li>
-              ))}
-            </ul>
           </div>
         </div>
 
@@ -242,10 +153,9 @@ export function PlatformOverviewSection() {
   );
 }
 
-/* ─── Vertrauen & Glaubwürdigkeit ─── */
+/* ─── 2. Vertrauen & Glaubwürdigkeit (Normaler Seitenabschnitt) ─── */
 
 type TrustSectionProps = {
-  /** Öffnet das Kontakt-Modal; wenn nicht gesetzt, fällt der Kontakt-Button auf mailto zurück. */
   onContact?: () => void;
 };
 
@@ -281,10 +191,9 @@ export function TrustSection({ onContact }: TrustSectionProps) {
             </div>
           </motion.div>
 
-          {/* Founder */}
+          {/* Gründer */}
           <motion.div variants={fadeRight} initial="hidden" whileInView="show" viewport={VIEWPORT} className="rounded-2xl bg-white border border-[#E3EBF5] overflow-hidden hover:shadow-lg transition-shadow">
             <div className="flex flex-col sm:flex-row">
-              {/* Foto-Panel (Verlauf NUR hier) */}
               <div className="relative sm:w-44 flex-shrink-0 flex items-center justify-center p-6" style={{ background: 'linear-gradient(155deg, #0A192F 0%, #123059 55%, #2b7fd4 130%)' }}>
                 <img
                   src={f.photoSrc}
@@ -294,7 +203,6 @@ export function TrustSection({ onContact }: TrustSectionProps) {
                 />
               </div>
 
-              {/* Inhalt (Weiß, gut lesbar) */}
               <div className="flex-1 p-6 sm:p-7">
                 <span className="font-arimo text-xs font-bold uppercase tracking-wide text-[#55637A]">{f.label}</span>
                 <h3 className="font-poppins font-black text-xl text-[#0F1E34] mb-4">{f.name}</h3>
@@ -308,7 +216,6 @@ export function TrustSection({ onContact }: TrustSectionProps) {
                   ))}
                 </ul>
 
-                {/* Buttons: Termin (primär) · Kontakt · LinkedIn */}
                 <div className="flex flex-wrap gap-2.5">
                   {f.calendarUrl ? (
                     <a
@@ -370,7 +277,7 @@ export function TrustSection({ onContact }: TrustSectionProps) {
   );
 }
 
-/* ─── DYD live: Workshops & Messeauftritte ─── */
+/* ─── 3. Events Section (Normaler Seitenabschnitt) ─── */
 
 export function EventsSection() {
   const { events } = b2bContent as typeof b2bContent & {
