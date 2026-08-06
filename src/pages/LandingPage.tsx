@@ -269,15 +269,28 @@ export default function LandingPage() {
                 />
               </motion.div>
 
-              {/* B2B Switcher — top-left */}
-              <a
-                href="#/business"
-                className="hidden sm:inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-bold text-white/80 border border-white/15 bg-white/5 hover:bg-white/10 hover:text-white transition-all"
-                aria-label="Zur B2B-Version für Unternehmen und Bildungsträger"
-              >
-                <Building2 className="w-3.5 h-3.5 text-[#66c0b6]" />
-                Für Business
-              </a>
+            
+{/* B2B Switcher — top-left */}
+
+  href="#/business"
+  aria-label="Zur B2B-Version für Unternehmen und Bildungsträger"
+  className="group hidden sm:inline-flex rounded-full p-[1px] transition-all duration-300 hover:-translate-y-0.5 hover:shadow-[0_10px_28px_-10px_rgba(102,192,182,0.55)] focus:outline-none focus-visible:ring-2 focus-visible:ring-[#66c0b6]/60 focus-visible:ring-offset-2 focus-visible:ring-offset-[#0A192F]"
+  style={{
+    background:
+      'linear-gradient(120deg, rgba(102,192,182,0.9), rgba(56,189,248,0.5), rgba(102,192,182,0.15))',
+  }}
+>
+  <span className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full text-xs font-bold text-white/90 bg-[#0A192F]/70 backdrop-blur-sm transition-colors group-hover:bg-[#0A192F]/50">
+    <span
+      className="flex items-center justify-center w-5 h-5 rounded-full"
+      style={{ background: 'rgba(102,192,182,0.18)' }}
+    >
+      <Building2 className="w-3 h-3 text-[#66c0b6]" />
+    </span>
+    Für Business
+    <ArrowRight className="w-3.5 h-3.5 text-[#66c0b6] transition-transform duration-300 group-hover:translate-x-0.5" />
+  </span>
+</a>
 
               <div className="hidden md:flex items-center gap-6">
                 <motion.button
