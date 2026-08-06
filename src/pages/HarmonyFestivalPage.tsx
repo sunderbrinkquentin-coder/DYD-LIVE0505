@@ -1755,7 +1755,7 @@ signal: controller.signal,
               <div className="flex flex-wrap items-center gap-4">
                 <motion.div animate={{ opacity: [1, 0.3, 1] }} transition={{ repeat: Infinity, duration: 2.2 }}
                   className="flex items-center gap-2" style={{ fontFamily: "'Inter', sans-serif", fontSize: '13px', fontWeight: 600, color: C.cyan }}>
-                  <Clock className="w-3.5 h-3.5" /> Deadline: 15.07.2026
+                  <Clock className="w-3.5 h-3.5" /> Deadline: 14.08.2026
                 </motion.div>
                 <motion.a
                   whileHover={{ scale: 1.04 }}
