@@ -3,7 +3,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
 import {
   FileText, Target, Briefcase, ArrowRight, Check, ChevronRight,
-  TrendingUp, Map, Award, GraduationCap, Sparkles,
+  TrendingUp, Map, Award, GraduationCap, Sparkles, FileStack, Download,
 } from 'lucide-react';
 
 const ACCENT = '#66c0b6';
@@ -20,9 +20,10 @@ const tabs = [
 type TabId = (typeof tabs)[number]['id'];
 
 const academySubTabs = [
-  { id: 'skillgap',    label: 'Skill-Gaps',   icon: TrendingUp, color: '#f97316' },
-  { id: 'lernpfade',   label: 'Lernpfade',    icon: Map,        color: ACCENT2  },
-  { id: 'zertifikate', label: 'Zertifikate',  icon: Award,      color: GOLD     },
+  { id: 'skillgap',       label: 'Skill-Gaps',      icon: TrendingUp, color: '#f97316' },
+  { id: 'lernpfade',      label: 'Lernpfade',       icon: Map,        color: ACCENT2  },
+  { id: 'zertifikate',    label: 'Zertifikate',     icon: Award,      color: GOLD     },
+  { id: 'kompetenzprofil', label: 'Kompetenzprofil', icon: FileStack,  color: ACCENT   },
 ] as const;
 
 type AcademySubId = (typeof academySubTabs)[number]['id'];
@@ -351,6 +352,69 @@ function ZertifikateVisual() {
   );
 }
 
+function KompetenzprofilVisual() {
+  const certs = [
+    { title: 'Talent Sourcing',       date: '12.03.2026', color: '#f97316' },
+    { title: 'People Analytics',      date: '28.03.2026', color: ACCENT2   },
+    { title: 'KI im Recruiting',       date: '15.04.2026', color: GOLD      },
+  ];
+
+  return (
+    <div className="h-full flex items-center justify-center p-4">
+      <motion.div
+        initial={{ opacity: 0, y: 16 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.45 }}
+        className="w-full max-w-xs rounded-2xl overflow-hidden"
+        style={{ background: 'linear-gradient(160deg,rgba(102,192,182,0.10),rgba(10,14,20,0.98))', border: `1px solid ${ACCENT}30` }}
+      >
+        <div className="h-[3px]" style={{ background: `linear-gradient(90deg,${ACCENT},${ACCENT2},transparent)` }} />
+        <div className="p-5 space-y-4">
+          <div className="flex items-center gap-3">
+            <div className="w-11 h-11 rounded-xl flex items-center justify-center flex-shrink-0" style={{ background: `${ACCENT}18`, border: `1px solid ${ACCENT}40` }}>
+              <FileStack className="w-5 h-5" style={{ color: ACCENT }} />
+            </div>
+            <div>
+              <p className="text-[9px] font-black uppercase tracking-widest" style={{ color: `${ACCENT}99` }}>Dein Kompetenzprofil</p>
+              <p className="text-sm font-black text-white leading-tight">3 Zertifikate gebündelt</p>
+            </div>
+          </div>
+
+          <div className="space-y-2">
+            {certs.map((cert, i) => (
+              <motion.div
+                key={i}
+                initial={{ opacity: 0, x: -12 }}
+                animate={{ opacity: 1, x: 0 }}
+                transition={{ delay: 0.3 + i * 0.1 }}
+                className="flex items-center gap-2.5 px-3 py-2.5 rounded-xl"
+                style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.07)' }}
+              >
+                <div className="w-7 h-7 rounded-lg flex items-center justify-center flex-shrink-0" style={{ background: `${cert.color}15`, border: `1px solid ${cert.color}35` }}>
+                  <Award className="w-3.5 h-3.5" style={{ color: cert.color }} />
+                </div>
+                <div className="flex-1 min-w-0">
+                  <p className="text-[11px] font-bold text-white leading-tight truncate">{cert.title}</p>
+                  <p className="text-[9px] text-white/35">Bestanden · {cert.date}</p>
+                </div>
+                <Check className="w-3.5 h-3.5 flex-shrink-0" style={{ color: cert.color }} />
+              </motion.div>
+            ))}
+          </div>
+
+          <div className="flex items-center justify-between px-3 py-2.5 rounded-xl" style={{ background: `${ACCENT}08`, border: `1px solid ${ACCENT}20` }}>
+            <div className="flex items-center gap-1.5">
+              <Download className="w-3.5 h-3.5" style={{ color: ACCENT }} />
+              <span className="text-[10px] font-bold" style={{ color: ACCENT }}>PDF-Download bereit</span>
+            </div>
+            <span className="text-[10px] text-white/40">1 Dokument</span>
+          </div>
+        </div>
+      </motion.div>
+    </div>
+  );
+}
+
 /* ── Tab content data ───────────────────────────────────── */
 
 const tabContent = {
@@ -444,6 +508,18 @@ const academyContent: Record<AcademySubId, {
     stat: { value: '80%', label: 'Bestehensgrenze' },
     cta: 'Zur Career Academy',
     Visual: ZertifikateVisual,
+  },
+  kompetenzprofil: {
+    heading: 'Kompetenzprofil',
+    sub: 'Alle Zertifikate in einem professionellen Dokument',
+    bullets: [
+      'Absolvierst du mehrere Lernpfade, werden alle Zertifikate automatisch zu einem Kompetenzprofil gebündelt.',
+      'Ein professionelles PDF-Dokument, das deine nachweisbar erworbenen Kompetenzen zusammenfasst.',
+      'Ideal für Bewerbungen und LinkedIn – zeige Arbeitgebern nicht nur einen Lebenslauf, sondern belegte Skills.',
+    ],
+    stat: { value: 'ab 2', label: 'Zertifikaten verfügbar' },
+    cta: 'Lernpfad starten',
+    Visual: KompetenzprofilVisual,
   },
 };
 
@@ -645,7 +721,7 @@ export function ProcessTimeline() {
                 <div className="flex items-center gap-2 mb-5 px-3.5 py-2.5 rounded-xl" style={{ background: 'rgba(48,227,202,0.06)', border: '1px solid rgba(48,227,202,0.16)' }}>
                   <Sparkles className="w-3.5 h-3.5 text-[#30E3CA] flex-shrink-0" />
                   <p className="text-[12px] text-[#30E3CA]/85 leading-snug">
-                    Neu: der Career Academy Campus ist live – Skill-Gaps, Lernpfade und Zertifikate an einem Ort.
+                    Neu: der Career Academy Campus ist live – Skill-Gaps, Lernpfade, Zertifikate und Kompetenzprofil an einem Ort.
                   </p>
                 </div>
               )}
