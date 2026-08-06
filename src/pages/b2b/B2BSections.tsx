@@ -32,14 +32,10 @@ function useSectionAnims() {
 
 const VIEWPORT = { once: true, margin: '-80px' } as const;
 
-/* ─── Präsentations-Daten für ORBIT & NEXUS ─── */
-const PRODUCT_SOLUTIONS = [
-  {
-    id: "orbit",
-    categoryBadge: "B2B Enterprise HR & Personalentwicklung",
-    categoryIcon: Building2,
-    badgeColor: "#38BDF8",
-    accentColor: "#DEFF9A",
+/* ─── Produktdaten für ORBIT & NEXUS ─── */
+const SOLUTIONS = {
+  enterprise: {
+    badge: "Für Unternehmen & B2B Enterprise",
     brandName: "DYD ORBIT",
     acronymList: [
       { letter: 'O', word: 'ptimized' },
@@ -48,21 +44,19 @@ const PRODUCT_SOLUTIONS = [
       { letter: 'I', word: 'ntelligence' },
       { letter: 'T', word: 'ool' },
     ],
-    tagline: "Die prädikative Steuerungsplattform für KI-gestütztes Skill-Mapping & interne Mobilität.",
+    tagline: "Die prädikative Steuerungsplattform für KI-gestütztes Skill-Mapping, ESCO-Analytik & interne Mobilität.",
     highlights: [
-      "Echtzeit Skill-Gap-Analytik nach ESCO-Standard",
-      "Automatisierte Karriere- & Reskilling-Pfade",
-      "Seamless Integration in SAP, Workday & Moodle"
+      "Präzise Skill-Gap-Analytik nach EU-ESCO Standard",
+      "Automatisierte Karriere- & Weiterbildungspfade",
+      "Nahtlose Integration in SAP, Workday & Moodle"
     ],
     ctaText: "DYD ORBIT Demo anfragen",
-    ctaLink: "#contact"
-  },
-  {
-    id: "nexus",
-    categoryBadge: "Bildungsträger & Akademien",
-    categoryIcon: BookOpen,
-    badgeColor: "#DEFF9A",
+    ctaLink: "#contact",
     accentColor: "#38BDF8",
+    secondaryColor: "#DEFF9A"
+  },
+  education: {
+    badge: "Für Bildungsträger & Akademien",
     brandName: "DYD NEXUS",
     acronymList: [
       { letter: 'N', word: 'ext-Skill' },
@@ -71,130 +65,141 @@ const PRODUCT_SOLUTIONS = [
       { letter: 'U', word: 'niversal' },
       { letter: 'S', word: 'ystem' },
     ],
-    tagline: "Die universelle Schnittstelle zur Standardisierung von Bildungsangeboten & Maximierung der Employability.",
+    tagline: "Die KI-Schnittstelle zur Standardisierung von Kursangeboten nach EU-ESCO Taxonomie und zur Maximierung der Employability.",
     highlights: [
-      "Lehrplan-Alignment mit der EU-ESCO Taxonomie",
-      "Echtzeit-Abgleich von Kursinhalten mit dem Arbeitsmarkt",
-      "Messbare Steigerung der Absolventen-Vermittlungsquote"
+      "Lehrplan-Alignment mit aktuellen Arbeitsmarktdaten",
+      "Echtzeit-Matching von Kursinhalten mit Anforderungsprofilen",
+      "Messbare Steigerung der Vermittlungsquote von Absolventen"
     ],
     ctaText: "DYD NEXUS für Akademien testen",
-    ctaLink: "#contact"
+    ctaLink: "#contact",
+    accentColor: "#DEFF9A",
+    secondaryColor: "#38BDF8"
   }
-];
+};
 
-/* ─── High-End Plattform-Überblick Section ─── */
+/* ─── Plattform-Überblick Section ─── */
 
 export function PlatformOverviewSection() {
-  const { fadeUp, container } = useSectionAnims();
+  const [activeTab, setActiveTab] = useState<'enterprise' | 'education'>('enterprise');
+  const { fadeUp } = useSectionAnims();
+
+  const current = SOLUTIONS[activeTab];
 
   return (
-    <section aria-labelledby="b2b-platform-title" className="relative bg-[#0A192F] py-24 px-4 sm:px-6 lg:px-8 overflow-hidden">
-      {/* Background Ambient Glows */}
-      <div className="absolute top-1/4 left-1/2 -translate-x-1/2 w-[800px] h-[400px] bg-[#38BDF8]/5 blur-[140px] rounded-full pointer-events-none" />
-      <div className="absolute bottom-10 right-10 w-[400px] h-[400px] bg-[#DEFF9A]/5 blur-[120px] rounded-full pointer-events-none" />
+    <section aria-labelledby="b2b-platform-title" className="relative bg-[#0A192F] py-20 px-4 sm:px-6 lg:px-8 overflow-hidden">
+      {/* Background Ambient Glow */}
+      <div className="absolute top-1/3 left-1/2 -translate-x-1/2 w-[600px] h-[300px] bg-[#38BDF8]/5 blur-[130px] rounded-full pointer-events-none" />
 
-      <div className="max-w-6xl mx-auto relative z-10">
+      <div className="max-w-4xl mx-auto relative z-10">
         
-        {/* Header Title */}
-        <motion.div variants={fadeUp} initial="hidden" whileInView="show" viewport={VIEWPORT} className="text-center mb-16">
-          <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full mb-4 border border-[#38BDF8]/30 bg-[#38BDF8]/5">
+        {/* Top Header Badge */}
+        <motion.div variants={fadeUp} initial="hidden" whileInView="show" viewport={VIEWPORT} className="text-center mb-8">
+          <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full mb-3 border border-[#38BDF8]/30 bg-[#38BDF8]/5">
             <Sparkles className="w-3.5 h-3.5 text-[#38BDF8]" aria-hidden="true" />
             <span className="font-arimo text-xs font-bold text-[#38BDF8] uppercase tracking-wider">
-              Die DYD Produkt-Architektur
+              Die Plattform-Architektur
             </span>
           </div>
-          <h2 id="b2b-platform-title" className="font-poppins font-black text-3xl sm:text-5xl text-white mb-4 tracking-tight">
-            Echtzeit-Skill-Intelligence.
+          <h2 id="b2b-platform-title" className="font-poppins font-black text-2xl sm:text-4xl text-white tracking-tight">
+            Zielgerichtete Skill-Intelligence
           </h2>
-          <p className="font-arimo text-white/60 text-base sm:text-lg max-w-2xl mx-auto leading-relaxed">
-            Zwei spezialisierte Kernsysteme für maximale Wirksamkeit am Arbeitsmarkt und in der Unternehmensentwicklung.
-          </p>
         </motion.div>
 
-        {/* Die beiden Flaggschiff-Produkte im Überblick */}
-        <motion.div 
-          variants={container} 
-          initial="hidden" 
-          whileInView="show" 
-          viewport={VIEWPORT} 
-          className="grid lg:grid-cols-2 gap-8"
+        {/* 1. SWITCHER GANZ OBEN */}
+        <div className="flex justify-center mb-8">
+          <div className="inline-flex p-1.5 rounded-2xl bg-white/[0.04] border border-white/10 backdrop-blur-md">
+            <button
+              onClick={() => setActiveTab('enterprise')}
+              className={`flex items-center gap-2 px-5 py-2.5 rounded-xl font-poppins font-bold text-sm transition-all duration-300 ${
+                activeTab === 'enterprise'
+                  ? 'bg-[#38BDF8] text-[#0A192F] shadow-lg shadow-[#38BDF8]/20'
+                  : 'text-white/60 hover:text-white hover:bg-white/5'
+              }`}
+            >
+              <Building2 className="w-4 h-4" />
+              <span>Für Unternehmen</span>
+            </button>
+            <button
+              onClick={() => setActiveTab('education')}
+              className={`flex items-center gap-2 px-5 py-2.5 rounded-xl font-poppins font-bold text-sm transition-all duration-300 ${
+                activeTab === 'education'
+                  ? 'bg-[#DEFF9A] text-[#0A192F] shadow-lg shadow-[#DEFF9A]/20'
+                  : 'text-white/60 hover:text-white hover:bg-white/5'
+              }`}
+            >
+              <BookOpen className="w-4 h-4" />
+              <span>Für Bildungsträger</span>
+            </button>
+          </div>
+        </div>
+
+        {/* 2. HAUPTKARTE MIT NAME SOFORT OBEN */}
+        <motion.div
+          key={activeTab}
+          initial={{ opacity: 0, y: 15 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.35 }}
+          className="rounded-3xl p-8 sm:p-12 border border-white/10 bg-gradient-to-b from-white/[0.05] to-white/[0.02] backdrop-blur-md text-center relative overflow-hidden shadow-2xl"
         >
-          {PRODUCT_SOLUTIONS.map((product) => {
-            const Icon = product.categoryIcon;
-            return (
-              <motion.div
-                key={product.id}
-                variants={fadeUp}
-                className="group relative rounded-3xl p-8 sm:p-10 border border-white/10 bg-gradient-to-b from-white/[0.05] to-white/[0.02] backdrop-blur-md flex flex-col justify-between hover:border-[#38BDF8]/40 transition-all duration-500 hover:shadow-2xl hover:shadow-[#38BDF8]/10"
-              >
-                <div>
-                  {/* Category Badge */}
-                  <div className="flex items-center gap-2 mb-6">
-                    <div className="p-2 rounded-xl bg-white/5 border border-white/10">
-                      <Icon className="w-4 h-4" style={{ color: product.badgeColor }} />
-                    </div>
-                    <span className="font-arimo text-xs font-bold uppercase tracking-wider text-white/70">
-                      {product.categoryBadge}
-                    </span>
-                  </div>
+          {/* Badge */}
+          <span 
+            className="font-arimo text-xs font-bold uppercase tracking-wider px-3 py-1 rounded-full inline-block mb-3 border"
+            style={{ 
+              color: current.accentColor, 
+              backgroundColor: `${current.accentColor}10`,
+              borderColor: `${current.accentColor}30`
+            }}
+          >
+            {current.badge}
+          </span>
 
-                  {/* MASSIVER PRODUKTNAME (ORBIT / NEXUS) */}
-                  <h3 className="font-poppins font-black text-5xl sm:text-6xl text-white tracking-tight mb-3 group-hover:scale-[1.02] transition-transform origin-left">
-                    {product.brandName}
-                  </h3>
+          {/* MASSIVER PRODUKTNAME (ORBIT / NEXUS) SOFORT UNTER DEM SWITCHER */}
+          <h3 className="font-poppins font-black text-5xl sm:text-7xl text-white tracking-tight mb-2">
+            {current.brandName}
+          </h3>
 
-                  {/* DEZENTE AKRONYM-BEDEUTUNGEN DIREKT DARUNTER */}
-                  <div className="flex flex-wrap items-center gap-x-2.5 gap-y-1 mb-6 text-sm sm:text-base font-poppins font-semibold">
-                    {product.acronymList.map((item, idx) => (
-                      <span key={item.word} className="inline-flex items-center">
-                        <span style={{ color: product.accentColor }} className="font-black text-base sm:text-lg">
-                          {item.letter}
-                        </span>
-                        <span className="text-white/60 font-medium">
-                          {item.word}
-                        </span>
-                        {idx < product.acronymList.length - 1 && (
-                          <span className="text-white/20 ml-2.5">•</span>
-                        )}
-                      </span>
-                    ))}
-                  </div>
+          {/* AKRONYM DEZENT DIREKT DARUNTER */}
+          <div className="flex flex-wrap items-center justify-center gap-x-2 gap-y-1 mb-6 text-sm sm:text-lg font-poppins font-semibold">
+            {current.acronymList.map((item, idx) => (
+              <span key={item.word} className="inline-flex items-center">
+                <span style={{ color: current.accentColor }} className="font-black">
+                  {item.letter}
+                </span>
+                <span className="text-white/60 font-medium">
+                  {item.word}
+                </span>
+                {idx < current.acronymList.length - 1 && (
+                  <span className="text-white/20 ml-2">•</span>
+                )}
+              </span>
+            ))}
+          </div>
 
-                  {/* Tagline / Kurzbeschreibung */}
-                  <p className="font-arimo text-white/70 text-sm sm:text-base mb-8 leading-relaxed">
-                    {product.tagline}
-                  </p>
+          {/* Tagline */}
+          <p className="font-arimo text-white/70 text-base sm:text-lg max-w-xl mx-auto mb-8 leading-relaxed">
+            {current.tagline}
+          </p>
 
-                  {/* Bullet Highlights */}
-                  <div className="space-y-3 mb-10 border-t border-white/10 pt-6">
-                    {product.highlights.map((feat) => (
-                      <div key={feat} className="flex items-start gap-3">
-                        <CheckCircle2 className="w-4 h-4 mt-0.5 flex-shrink-0 text-[#38BDF8]" />
-                        <span className="font-arimo text-xs sm:text-sm text-white/80 leading-snug">
-                          {feat}
-                        </span>
-                      </div>
-                    ))}
-                  </div>
-                </div>
+          {/* Highlights Grid */}
+          <div className="grid sm:grid-cols-3 gap-4 mb-10 text-left border-t border-b border-white/10 py-6">
+            {current.highlights.map((feat) => (
+              <div key={feat} className="flex items-start gap-2.5">
+                <CheckCircle2 className="w-4 h-4 mt-0.5 flex-shrink-0" style={{ color: current.accentColor }} />
+                <span className="font-arimo text-xs sm:text-sm text-white/80 leading-snug">{feat}</span>
+              </div>
+            ))}
+          </div>
 
-                {/* Call to Action Button */}
-                <div>
-                  <a
-                    href={product.ctaLink}
-                    className="inline-flex items-center justify-center gap-3 w-full py-4 rounded-xl font-poppins font-bold text-sm text-[#0A192F] transition-all duration-300 hover:scale-[1.02] hover:shadow-lg"
-                    style={{ background: `linear-gradient(135deg, ${product.badgeColor}, ${product.accentColor})` }}
-                  >
-                    <span>{product.ctaText}</span>
-                    <ArrowRight className="w-4 h-4" />
-                  </a>
-                </div>
-
-                {/* Subtle Glow Indicator on Hover */}
-                <div className="absolute inset-0 rounded-3xl border border-white/0 group-hover:border-[#38BDF8]/30 pointer-events-none transition-all duration-500" />
-              </motion.div>
-            );
-          })}
+          {/* CTA */}
+          <a
+            href={current.ctaLink}
+            className="inline-flex items-center gap-3 px-8 py-4 rounded-xl font-poppins font-bold text-sm sm:text-base text-[#0A192F] transition-all duration-300 hover:scale-105 shadow-lg"
+            style={{ background: `linear-gradient(135deg, ${current.accentColor}, ${current.secondaryColor})` }}
+          >
+            <span>{current.ctaText}</span>
+            <ArrowRight className="w-4 h-4" />
+          </a>
         </motion.div>
 
       </div>
