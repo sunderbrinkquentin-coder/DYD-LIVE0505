@@ -7,6 +7,7 @@ import {
   Shield,
   FileText,
   TrendingUp,
+  Download,
   Users,
   Award,
   Smartphone,
@@ -1002,6 +1003,80 @@ export default function LandingPage() {
                 <ArrowRight className="w-4 h-4" />
               </button>
               <p className="text-xs text-white/30 mt-3">Analyse kostenlos · Lernpfad ab 5 € · Zertifikat inklusive · Kompetenzprofil ab 2 Zertifikaten</p>
+            </motion.div>
+          </div>
+        </section>
+
+        <section
+          id="kompetenzprofil"
+          className="py-20 px-4 sm:px-6 lg:px-8 relative overflow-hidden"
+          aria-label="Kompetenzprofil – alle Zertifikate in einem professionellen Dokument"
+        >
+          <div className="absolute inset-0 pointer-events-none">
+            <div className="absolute top-0 left-1/4 w-96 h-96 bg-[#66c0b6]/8 rounded-full blur-3xl" />
+            <div className="absolute bottom-0 right-1/4 w-80 h-80 bg-purple-500/6 rounded-full blur-3xl" />
+          </div>
+
+          <div className="max-w-5xl mx-auto relative z-10">
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: true }}
+              className="text-center mb-12"
+            >
+              <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-[#66c0b6]/15 border border-[#66c0b6]/30 text-[#66c0b6] text-sm font-bold mb-5">
+                <FileStack className="w-4 h-4" /> Kompetenzprofil
+              </div>
+              <h2 className="text-3xl sm:text-5xl font-black mb-4">
+                Alle deine Zertifikate in{' '}
+                <span className="bg-gradient-to-r from-[#66c0b6] to-purple-400 bg-clip-text text-transparent">einem Dokument</span>
+              </h2>
+              <p className="text-lg text-white/60 max-w-2xl mx-auto">
+                Absolviere mehrere Lernpfade der Career Academy und bündelst du alle Zertifikate
+                automatisch zu einem professionellen Kompetenzprofil – bereit zum Download.
+              </p>
+            </motion.div>
+
+            <div className="grid sm:grid-cols-2 gap-5 mb-10">
+              {[
+                { icon: Layers, title: 'Automatisch gebündelt', desc: 'Sobald du 2 oder mehr Zertifikate hast, werden sie zu einem Kompetenzprofil zusammengefasst.' },
+                { icon: Download, title: 'PDF-Download', desc: 'Lade dein Kompetenzprofil als professionelles PDF herunter – ideal für Bewerbungen und LinkedIn.' },
+                { icon: Award, title: 'Anerkannte Inhalte', desc: 'Jedes Zertifikat basiert auf echten Lerninhalten und einer Abschlussprüfung mit Prüfungszertifikat.' },
+                { icon: TrendingUp, title: 'Karriere-Boost', desc: 'Zeige Arbeitgebern nicht nur einen Lebenslauf, sondern deine nachweisbar erworbenen Kompetenzen.' },
+              ].map((item, i) => (
+                <motion.div
+                  key={i}
+                  initial={{ opacity: 0, x: i % 2 === 0 ? -20 : 20 }}
+                  whileInView={{ opacity: 1, x: 0 }}
+                  viewport={{ once: true }}
+                  transition={{ delay: i * 0.1 }}
+                  className="flex items-start gap-4 bg-white/5 border border-white/10 rounded-2xl p-6 hover:border-[#66c0b6]/30 transition-all"
+                >
+                  <div className="w-11 h-11 rounded-xl bg-[#66c0b6]/15 border border-[#66c0b6]/25 flex items-center justify-center flex-shrink-0">
+                    <item.icon className="w-5 h-5 text-[#66c0b6]" />
+                  </div>
+                  <div>
+                    <h3 className="text-base font-bold mb-1">{item.title}</h3>
+                    <p className="text-white/55 text-sm leading-relaxed">{item.desc}</p>
+                  </div>
+                </motion.div>
+              ))}
+            </div>
+
+            <motion.div
+              initial={{ opacity: 0 }}
+              whileInView={{ opacity: 1 }}
+              viewport={{ once: true }}
+              className="text-center"
+            >
+              <button
+                onClick={() => goWithFollowGate('/career-vision')}
+                className="inline-flex items-center gap-2 px-8 py-4 rounded-2xl bg-gradient-to-r from-[#66c0b6] to-purple-500 text-white font-bold hover:opacity-90 transition-all shadow-xl"
+              >
+                Lernpfad starten & Zertifikate sammeln
+                <ArrowRight className="w-4 h-4" />
+              </button>
+              <p className="text-xs text-white/30 mt-3">Kompetenzprofil ab 2 absolvierten Lernpfaden verfügbar · PDF-Download inklusive</p>
             </motion.div>
           </div>
         </section>
