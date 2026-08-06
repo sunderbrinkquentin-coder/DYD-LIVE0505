@@ -1,5 +1,21 @@
 import { motion, useReducedMotion, type Variants } from 'framer-motion';
-import { Layers, Brain, ShieldCheck, Flag, Sparkles } from 'lucide-react';
+import { 
+  Layers, 
+  Brain, 
+  ShieldCheck, 
+  Flag, 
+  Sparkles, 
+  Lock, 
+  GraduationCap, 
+  CheckCircle2, 
+  CalendarClock, 
+  Mail, 
+  Linkedin, 
+  Award, 
+  Calendar, 
+  MapPin, 
+  Users 
+} from 'lucide-react';
 import { b2bContent } from './content';
 
 // 1. Zentrale Hilfskonstante für Viewport
@@ -44,7 +60,7 @@ const iconMap: Record<string, React.ComponentType<{ className?: string }>> = {
   flag: Flag,
 };
 
-/* ─── 4. Platform Overview Section ─── */
+/* ─── 1. Platform Overview Section ─── */
 export function PlatformOverviewSection() {
   const { platformOverview } = b2bContent;
   const { container, fadeUp } = useSectionAnims();
@@ -114,64 +130,6 @@ export function PlatformOverviewSection() {
   );
 }
 
-/* ─── 5. Trust Section ─── */
-export function TrustSection() {
-  const { trust } = b2bContent;
-  const { container, fadeUp, fadeLeft, fadeRight } = useSectionAnims();
-
-  return (
-    <section className="py-24 bg-[#0A192F] text-white border-t border-white/5">
-      <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8">
-        <motion.div
-          variants={container}
-          initial="hidden"
-          whileInView="show"
-          viewport={VIEWPORT}
-          className="space-y-12"
-        >
-          <motion.div variants={fadeUp} className="text-center">
-            <h2 className="font-poppins font-black text-3xl sm:text-4xl mb-4">
-              {trust.title}
-            </h2>
-          </motion.div>
-
-          <div className="grid md:grid-cols-2 gap-8">
-            <motion.div
-              variants={fadeLeft}
-              className="p-8 rounded-2xl bg-white/5 border border-white/10"
-            >
-              <span className="text-xs font-bold text-[#38BDF8] uppercase tracking-wider block mb-2">
-                {trust.partner.label}
-              </span>
-              <h3 className="text-2xl font-bold mb-4">{trust.partner.name}</h3>
-              <p className="text-white/70 text-sm leading-relaxed">
-                {trust.partner.desc}
-              </p>
-            </motion.div>
-
-            <motion.div
-              variants={fadeRight}
-              className="p-8 rounded-2xl bg-white/5 border border-white/10"
-            >
-              <span className="text-xs font-bold text-[#DEFF9A] uppercase tracking-wider block mb-2">
-                {trust.founder.label}
-              </span>
-              <h3 className="text-2xl font-bold mb-4">{trust.founder.name}</h3>
-              <ul className="space-y-2 text-sm text-white/70">
-                {trust.founder.roles.slice(0, 3).map((role) => (
-                  <li key={role} className="flex items-start gap-2">
-                    <span className="text-[#DEFF9A] mt-1">•</span>
-                    <span>{role}</span>
-                  </li>
-                ))}
-              </ul>
-            </motion.div>
-          </div>
-        </motion.div>
-      </div>
-    </section>
-  );
-}
 /* ─── 2. Vertrauen & Glaubwürdigkeit ─── */
 
 type TrustSectionProps = {
