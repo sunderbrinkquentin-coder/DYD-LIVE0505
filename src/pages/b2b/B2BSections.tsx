@@ -141,7 +141,7 @@ export function TrustSection({ onContactClick }: { onContactClick: () => void })
     alt={trust.founder.photoAlt}
     className="w-28 h-28 sm:w-32 sm:h-32 rounded-[14px] object-cover bg-[#0A192F]"
   />
-/>
+
               <div className="flex-1">
                 <span className="font-arimo text-xs font-bold uppercase tracking-wide text-[#55637A]">
                   {trust.founder.label}
