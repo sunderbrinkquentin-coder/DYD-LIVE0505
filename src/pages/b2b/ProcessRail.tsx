@@ -1,111 +1,144 @@
+import { Fragment } from 'react';
 import { motion, useReducedMotion, type Variants } from 'framer-motion';
+import {
+  ScanSearch, Target, Gauge, Route, GraduationCap, Rocket,
+  User, Briefcase, Search, BookOpen, Send, TrendingUp,
+  ArrowDownRight, ArrowUpRight, ArrowDown,
+} from 'lucide-react';
 
-/** Defensiv typisiert: unterstützt sowohl {title,desc} als auch {label,sub}. */
+/** Defensiv: unterstützt {title,desc} oder {label,sub}, optional icon-Key. */
 export type ProcessStep = {
   title?: string;
   label?: string;
   desc?: string;
   sub?: string;
+  icon?: string;
 };
 
-const LINE_GRADIENT_H = 'linear-gradient(90deg, #38BDF8, #DEFF9A)';
-const LINE_GRADIENT_V = 'linear-gradient(180deg, #38BDF8, #DEFF9A)';
-const PULSE_BG = 'radial-gradient(circle, #DEFF9A 0%, #38BDF8 70%)';
-const RING = 'conic-gradient(from 180deg, #38BDF8, #DEFF9A, #38BDF8)';
+// Optionale Icon-Zuordnung aus content.ts (step.icon = 'target' …)
+const iconMap: Record<string, typeof Target> = {
+  scan: ScanSearch, target: Target, gap: Gauge, route: Route,
+  grad: GraduationCap, rocket: Rocket, user: User, briefcase: Briefcase,
+  search: Search, book: BookOpen, lead: Send, growth: TrendingUp,
+};
+// Fallback, falls kein icon gesetzt ist – wird zyklisch verwendet
+const DEFAULT_ICONS = [ScanSearch, Target, Gauge, Route, GraduationCap, Rocket];
 
-export default function ProcessRail({ steps }: { steps: readonly ProcessStep[] }) {
+const OFFSET = 20; // Zickzack-Versatz in px
+
+export default function ProcessRail({ steps }: { steps: ProcessStep[] }) {
   const reduce = useReducedMotion() ?? false;
-  const n = Math.max(steps.length, 1);
-  const inset = `${50 / n}%`; // trifft die Mitte des ersten/letzten Badges
+  const n = steps.length;
 
   const container: Variants = {
     hidden: {},
-    show: { transition: { staggerChildren: reduce ? 0 : 0.12 } },
+    show: { transition: { staggerChildren: reduce ? 0 : 0.1 } },
   };
-  const item: Variants = {
-    hidden: { opacity: 0, y: reduce ? 0 : 18 },
-    show: { opacity: 1, y: 0, transition: { duration: reduce ? 0 : 0.45 } },
+  const cardVariant = (offset: number): Variants => ({
+    hidden: { opacity: 0, y: reduce ? offset : offset + 14 },
+    show: { opacity: 1, y: offset, transition: { duration: reduce ? 0 : 0.45, ease: 'easeOut' } },
+  });
+  const connVariant: Variants = {
+    hidden: { opacity: 0 },
+    show: { opacity: 1, transition: { duration: reduce ? 0 : 0.3 } },
+  };
+
+  const resolve = (step: ProcessStep, i: number) => ({
+    title: step.title ?? step.label ?? '',
+    desc: step.desc ?? step.sub,
+    Icon: (step.icon && iconMap[step.icon]) ?? DEFAULT_ICONS[i % DEFAULT_ICONS.length],
+  });
+
+  const Card = ({ step, i, offset }: { step: ProcessStep; i: number; offset: number }) => {
+    const { title, desc, Icon } = resolve(step, i);
+    return (
+      <motion.div variants={cardVariant(offset)} role="listitem" className="flex-1 min-w-0">
+        <div className="group relative h-full rounded-2xl bg-white border border-[#E3EBF5] p-4 transition-all duration-300 hover:-translate-y-1 hover:border-[#38BDF8]/40 hover:shadow-xl hover:shadow-[#38BDF8]/10">
+          {/* Ghost-Nummer für editorialen Look */}
+          <span
+            aria-hidden="true"
+            className="absolute top-1.5 right-3 font-poppins font-black text-4xl leading-none select-none text-[#0A192F]/5"
+          >
+            {i + 1}
+          </span>
+
+          {/* Icon-Chip mit Nummern-Badge */}
+          <div className="relative inline-flex mb-3">
+            <div
+              className="w-11 h-11 rounded-xl flex items-center justify-center"
+              style={{
+                background: 'linear-gradient(135deg, rgba(56,189,248,0.15), rgba(222,255,154,0.20))',
+                border: '1px solid rgba(56,189,248,0.28)',
+              }}
+            >
+              <Icon className="w-5 h-5 text-[#0A192F]" aria-hidden="true" />
+            </div>
+            <span
+              className="absolute -top-1.5 -right-1.5 w-5 h-5 rounded-full flex items-center justify-center text-[10px] font-poppins font-black text-[#0A192F]"
+              style={{ background: 'linear-gradient(135deg, #38BDF8, #DEFF9A)' }}
+            >
+              {i + 1}
+            </span>
+          </div>
+
+          <h4 className="font-poppins font-bold text-sm text-[#0F1E34] leading-tight mb-1">{title}</h4>
+          {desc && <p className="font-arimo text-xs text-[#55637A] leading-snug">{desc}</p>}
+        </div>
+      </motion.div>
+    );
   };
 
   return (
-    <div className="relative pt-4">
-      {/* ── Connector Desktop (horizontal) ── */}
-      <div
-        className="hidden md:block absolute h-[2px] rounded-full"
-        style={{ top: 24, left: inset, right: inset, background: LINE_GRADIENT_H, opacity: 0.5 }}
-        aria-hidden="true"
-      >
-        {!reduce && (
-          <motion.span
-            className="absolute top-1/2 w-2.5 h-2.5 rounded-full -translate-x-1/2 -translate-y-1/2"
-            style={{ background: PULSE_BG, boxShadow: '0 0 14px 3px rgba(222,255,154,0.6)' }}
-            initial={{ left: '0%' }}
-            animate={{ left: ['0%', '100%'] }}
-            transition={{ duration: n * 0.7, ease: 'linear', repeat: Infinity }}
-          />
-        )}
-      </div>
-
-      {/* ── Connector Mobile (vertikal) ── */}
-      <div
-        className="md:hidden absolute w-[2px] rounded-full"
-        style={{ left: 23, top: 24, bottom: 24, background: LINE_GRADIENT_V, opacity: 0.5 }}
-        aria-hidden="true"
-      >
-        {!reduce && (
-          <motion.span
-            className="absolute left-1/2 w-2.5 h-2.5 rounded-full -translate-x-1/2 -translate-y-1/2"
-            style={{ background: PULSE_BG, boxShadow: '0 0 14px 3px rgba(222,255,154,0.6)' }}
-            initial={{ top: '0%' }}
-            animate={{ top: ['0%', '100%'] }}
-            transition={{ duration: n * 0.7, ease: 'linear', repeat: Infinity }}
-          />
-        )}
-      </div>
-
-      {/* ── Steps ── */}
-      <motion.ol
+    <div className="pt-6 pb-2">
+      {/* ── Desktop: Zickzack-Reihe mit diagonalen Verbindern ── */}
+      <motion.div
         variants={container}
         initial="hidden"
         whileInView="show"
         viewport={{ once: true, margin: '-60px' }}
-        className="relative flex flex-col md:grid gap-8 md:gap-4 list-none m-0 p-0"
-        style={{ gridTemplateColumns: `repeat(${n}, minmax(0, 1fr))` }}
+        role="list"
+        className="hidden md:flex items-stretch justify-center gap-1"
       >
         {steps.map((step, i) => {
-          const title = step.title ?? step.label ?? '';
-          const desc = step.desc ?? step.sub;
+          const up = i % 2 === 0;
+          const goesDown = up; // von „oben"-Karte zur nächsten „unten"-Karte
           return (
-            <motion.li
-              key={title || i}
-              variants={item}
-              className="group relative z-10 flex md:flex-col items-start md:items-center gap-4 md:gap-3"
-            >
-              {/* Nummern-Badge mit Conic-Ring */}
-              <div
-                className="flex-shrink-0 w-12 h-12 rounded-full p-[2px] transition-transform duration-300 group-hover:scale-110"
-                style={{ background: RING, boxShadow: '0 6px 18px -6px rgba(56,189,248,0.5)' }}
-              >
-                <div className="w-full h-full rounded-full bg-[#0A192F] flex items-center justify-center">
-                  <span className="font-poppins font-black text-lg text-[#DEFF9A]" aria-hidden="true">
-                    {i + 1}
-                  </span>
-                </div>
-              </div>
-
-              {/* Text */}
-              <div className="md:text-center md:px-1">
-                <h4 className="font-poppins font-bold text-[15px] text-[#0F1E34] leading-tight mb-1">
-                  {title}
-                </h4>
-                {desc && (
-                  <p className="font-arimo text-xs text-[#55637A] leading-snug">{desc}</p>
-                )}
-              </div>
-            </motion.li>
+            <Fragment key={(step.title ?? step.label ?? '') + i}>
+              <Card step={step} i={i} offset={up ? -OFFSET : OFFSET} />
+              {i < n - 1 && (
+                <motion.div variants={connVariant} aria-hidden="true" className="flex-none self-center px-0.5">
+                  {goesDown ? (
+                    <ArrowDownRight className="w-5 h-5 text-[#38BDF8]" />
+                  ) : (
+                    <ArrowUpRight className="w-5 h-5 text-[#38BDF8]" />
+                  )}
+                </motion.div>
+              )}
+            </Fragment>
           );
         })}
-      </motion.ol>
+      </motion.div>
+
+      {/* ── Mobile: gestapelt mit Abwärtspfeilen ── */}
+      <motion.div
+        variants={container}
+        initial="hidden"
+        whileInView="show"
+        viewport={{ once: true, margin: '-60px' }}
+        role="list"
+        className="md:hidden flex flex-col items-stretch gap-0"
+      >
+        {steps.map((step, i) => (
+          <Fragment key={(step.title ?? step.label ?? '') + i}>
+            <Card step={step} i={i} offset={0} />
+            {i < n - 1 && (
+              <motion.div variants={connVariant} aria-hidden="true" className="self-center py-1.5">
+                <ArrowDown className="w-5 h-5 text-[#38BDF8]" />
+              </motion.div>
+            )}
+          </Fragment>
+        ))}
+      </motion.div>
     </div>
   );
 }
