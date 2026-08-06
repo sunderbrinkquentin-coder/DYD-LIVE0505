@@ -114,12 +114,6 @@ export const router = createHashRouter([
       </PrivateRoute>
     ),
   },
-
-  // B2B (ENTSCHEIDE SELBST OB GESCHÜTZT)
-  { path: '/business', element: <B2BLandingPage /> },
-  { path: '/unternehmen', element: <B2BLanding /> },
-  { path: '/unternehmen/dashboard', element: <B2BDashboard /> },
-
   // Legacy
   { path: '/email', element: <EmailCapture /> },
   { path: '/chat', element: <AgentFlow /> },
