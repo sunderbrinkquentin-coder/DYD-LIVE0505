@@ -1,8 +1,8 @@
 import { motion, useReducedMotion, type Variants } from 'framer-motion';
-import { Layers, Brain, ShieldCheck, Flag, Sparkles, Building2, GraduationCap } from 'lucide-react';
+import { Layers, Brain, ShieldCheck, Flag, Sparkles } from 'lucide-react';
 import { b2bContent } from './content';
 
-// 1. Globale Hilfskonstanten & Animations-Hook (behebt 'VIEWPORT' & 'useSectionAnims' Error)
+// 1. Globale Hilfskonstanten & Animations-Hook (EINMALIG deklariert)
 const VIEWPORT = { once: true, margin: '-50px' } as const;
 
 function useSectionAnims() {
@@ -22,7 +22,17 @@ function useSectionAnims() {
     show: { opacity: 1, y: 0, transition: { duration: reduce ? 0 : 0.5 } },
   };
 
-  return { container, fadeUp, reduce };
+  const fadeLeft: Variants = {
+    hidden: { opacity: 0, x: reduce ? 0 : -30 },
+    show: { opacity: 1, x: 0, transition: { duration: reduce ? 0 : 0.5 } },
+  };
+
+  const fadeRight: Variants = {
+    hidden: { opacity: 0, x: reduce ? 0 : 30 },
+    show: { opacity: 1, x: 0, transition: { duration: reduce ? 0 : 0.5 } },
+  };
+
+  return { container, fadeUp, fadeLeft, fadeRight, reduce };
 }
 
 // Icon-Mapping für PlatformOverviewSection
@@ -82,7 +92,7 @@ export function PlatformOverviewSection() {
 
             return (
               <motion.div
-                key={feature.title} /* ✅ Basiert sauber auf feature.title */
+                key={feature.title}
                 variants={fadeUp}
                 className="group relative p-8 rounded-2xl bg-white/[0.03] border border-white/10 transition-all duration-300 hover:bg-white/[0.06] hover:border-[#38BDF8]/30 hover:-translate-y-1"
               >
@@ -109,7 +119,7 @@ export function PlatformOverviewSection() {
 /* ─── 2. Trust Section ─── */
 export function TrustSection() {
   const { trust } = b2bContent;
-  const { container, fadeUp } = useSectionAnims();
+  const { container, fadeUp, fadeLeft, fadeRight } = useSectionAnims();
 
   return (
     <section className="py-24 bg-[#0A192F] text-white border-t border-white/5">
@@ -118,7 +128,7 @@ export function TrustSection() {
           variants={container}
           initial="hidden"
           whileInView="show"
-          viewport={VIEWPORT} /* ✅ Greift jetzt sicher auf VIEWPORT zu */
+          viewport={VIEWPORT}
           className="space-y-12"
         >
           <motion.div variants={fadeUp} className="text-center">
@@ -130,7 +140,7 @@ export function TrustSection() {
           {/* Partner & Founder Cards */}
           <div className="grid md:grid-cols-2 gap-8">
             <motion.div
-              variants={fadeUp}
+              variants={fadeLeft}
               className="p-8 rounded-2xl bg-white/5 border border-white/10"
             >
               <span className="text-xs font-bold text-[#38BDF8] uppercase tracking-wider block mb-2">
@@ -143,7 +153,7 @@ export function TrustSection() {
             </motion.div>
 
             <motion.div
-              variants={fadeUp}
+              variants={fadeRight}
               className="p-8 rounded-2xl bg-white/5 border border-white/10"
             >
               <span className="text-xs font-bold text-[#DEFF9A] uppercase tracking-wider block mb-2">
