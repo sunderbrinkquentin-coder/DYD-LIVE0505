@@ -56,7 +56,7 @@ export const b2bContent = {
     { title: 'Lernpfad',        desc: 'Module zuweisen',              icon: 'route' },
     { title: 'Mobilität',       desc: 'Intern upskillen',             icon: 'growth' },
   ],
-}, }
+}, 
       modules: [
         {
           title: 'Internal Talent Marketplace',
