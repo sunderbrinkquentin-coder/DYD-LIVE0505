@@ -4,7 +4,7 @@ export const b2bContent = {
     applicantUrl: '/',
     toggleApplicant: 'Für Bewerber',
     toggleBusiness: 'Für Business',
-    cta: 'Demo anfragen',
+    cta: 'Kontakt aufnehmen',
   },
   hero: {
     eyebrow: 'B2B & Partnerschaften',
@@ -86,7 +86,7 @@ export const b2bContent = {
           desc: 'Präzise Budget-Allokation nur auf tatsächliche Skill-Gaps statt Gießkanne.',
         },
       ],
-      cta: 'Enterprise-Demo anfragen',
+      cta: 'Infromationen anfragen',
     },
     tabB: {
       id: 'bildungstraeger',
@@ -146,7 +146,7 @@ export const b2bContent = {
         delta: '−75 %',
         deltaLabel: 'Akquisekosten',
       },
-      cta: 'Partner werden',
+      cta: 'Informationen anfragen',
     },
   },
   platformOverview: {
