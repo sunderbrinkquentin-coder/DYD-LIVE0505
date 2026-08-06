@@ -186,7 +186,15 @@ export const b2bContent = {
     founder: {
       label: 'Gründer & Senior Consultant',
       name: 'Quentin Sunderbrink, B. Eng.',
-      roles: ['Gründer', 'Senior Consultant', 'IHK-Prüfer', 'Workshop-Speaker für KI-Bewerbungsoptimierung an deutschen Hochschulen'],
+      roles: [
+  'Gründer & CEO von DYD – KI-Karriereplattform, made in Germany',
+  'Senior Consultant mit vier Jahren Praxis in der Personaldienstleistung – kennt Auswahl und Entwicklung aus erster Hand',
+  'IHK-Prüfer – bewertet Qualifikationen nach anerkanntem Standard',
+  'Wirtschaftsingenieur (B. Eng.) – verbindet technisches Systemdenken mit HR-Praxis',
+  '9 Jahre Abendschule parallel zum Vollzeitjob – lebt das Upskilling-Prinzip, das DYD ermöglicht',
+  'Workshop-Speaker an deutschen Hochschulen (u. a. Hochschule Fresenius) für KI-gestützte Bewerbungsoptimierung',
+  'Veranstalter des Harmony Festivals – organisiert ein eigenes Musik- und Comedy-Event',
+],
       photoAlt: 'Porträt von Quentin Sunderbrink, Gründer von DYD',
       photoSrc: '/profile-picture.png',
       email: 'quentin@decide-your-dream.de',
