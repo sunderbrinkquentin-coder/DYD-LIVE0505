@@ -4,7 +4,9 @@ import { b2bContent } from './content';
 
 const trustIcons = [ShieldCheck, Award, GraduationCap, Globe];
 
-export default function B2BHero() {
+type HeroTabId = 'unternehmen' | 'bildungstraeger';
+
+export default function B2BHero({ onCtaClick }: { onCtaClick?: (tab: HeroTabId) => void }) {
   const { hero } = b2bContent;
 
   return (
@@ -83,6 +85,7 @@ export default function B2BHero() {
           className="flex flex-col sm:flex-row gap-4 justify-center items-center mb-12"
         >
           <button
+            onClick={() => onCtaClick?.('unternehmen')}
             className="group inline-flex items-center gap-2 px-7 py-3.5 rounded-2xl font-arimo font-bold text-[#0A192F] b2b-focus-ring transition-all hover:shadow-xl hover:shadow-[#DEFF9A]/25 hover:-translate-y-0.5"
             style={{
               background: 'linear-gradient(135deg, #DEFF9A, #38BDF8)',
@@ -94,6 +97,7 @@ export default function B2BHero() {
             <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
           </button>
           <button
+            onClick={() => onCtaClick?.('bildungstraeger')}
             className="group inline-flex items-center gap-2 px-7 py-3.5 rounded-2xl font-arimo font-bold text-white b2b-focus-ring transition-all hover:bg-white/10 hover:-translate-y-0.5"
             style={{
               background: 'rgba(255,255,255,0.05)',

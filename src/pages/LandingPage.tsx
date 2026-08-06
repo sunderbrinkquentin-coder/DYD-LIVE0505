@@ -269,6 +269,16 @@ export default function LandingPage() {
                 />
               </motion.div>
 
+              {/* B2B Switcher — top-left */}
+              <a
+                href="#/business"
+                className="hidden sm:inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-bold text-white/80 border border-white/15 bg-white/5 hover:bg-white/10 hover:text-white transition-all"
+                aria-label="Zur B2B-Version für Unternehmen und Bildungsträger"
+              >
+                <Building2 className="w-3.5 h-3.5 text-[#66c0b6]" />
+                Für Business
+              </a>
+
               <div className="hidden md:flex items-center gap-6">
                 <motion.button
                   type="button"
