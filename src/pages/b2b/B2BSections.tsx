@@ -82,125 +82,160 @@ const SOLUTIONS = {
 
 export function PlatformOverviewSection() {
   const [activeTab, setActiveTab] = useState<'enterprise' | 'education'>('enterprise');
-  const { fadeUp } = useSectionAnims();
 
-  const current = SOLUTIONS[activeTab];
+  const content = {
+    enterprise: {
+      brandName: "DYD ORBIT",
+      acronymList: [
+        { letter: 'O', word: 'ptimized' },
+        { letter: 'R', word: 'eskilling' },
+        { letter: 'B', word: 'usiness' },
+        { letter: 'I', word: 'ntelligence' },
+        { letter: 'T', word: 'ool' },
+      ],
+      tagline: "Die prädikative Steuerungsplattform für KI-gestütztes Skill-Mapping & interne Mobilität.",
+      challengeTitle: "Herausforderung",
+      challengeItems: [
+        "Ineffiziente Skill-Mapping Prozesse ohne Echtzeitdaten",
+        "Fehlende Transparenz über interne Talent-Potenziale",
+        "Hohe Rekrutierungskosten statt gezieltem Reskilling"
+      ],
+      solutionTitle: "DYD Skill Intelligence",
+      solutionItems: [
+        "Echtzeit Skill-Gap-Analytik nach EU-ESCO Standard",
+        "Automatisierte Karriere- & Reskilling-Pfade für Mitarbeiter",
+        "Nahtlose Integration in SAP, Workday & Moodle"
+      ]
+    },
+    education: {
+      brandName: "DYD NEXUS",
+      acronymList: [
+        { letter: 'N', word: 'ext-Skill' },
+        { letter: 'E', word: 'volution' },
+        { letter: 'X', word: '-Learning' },
+        { letter: 'U', word: 'niversal' },
+        { letter: 'S', word: 'ystem' },
+      ],
+      tagline: "Verwandeln Sie Skill-Nachfrage in qualifizierte Leads.",
+      challengeTitle: "Herausforderung",
+      challengeItems: [
+        "Generische Kurslisten ohne Bezug zur Zielrolle",
+        "Weder Erfahrung noch individuelle Skill-Lücken berücksichtigt",
+        "Teure Reichweite statt echter Nachfrage – hoher Streuverlust"
+      ],
+      solutionTitle: "DYD Skill Intelligence",
+      solutionItems: [
+        "KI verbindet Profil, Ziel und ESCO-Skills automatisch",
+        "Erkennt die konkrete Kompetenzlücke jedes Nutzers",
+        "Spielt passgenaue Weiterbildungen als qualifizierten Lead aus"
+      ]
+    }
+  };
+
+  const activeContent = content[activeTab];
 
   return (
-    <section aria-labelledby="b2b-platform-title" className="relative bg-[#0A192F] py-20 px-4 sm:px-6 lg:px-8 overflow-hidden">
-      {/* Background Ambient Glow */}
-      <div className="absolute top-1/3 left-1/2 -translate-x-1/2 w-[600px] h-[300px] bg-[#38BDF8]/5 blur-[130px] rounded-full pointer-events-none" />
-
-      <div className="max-w-4xl mx-auto relative z-10">
+    <section aria-labelledby="b2b-platform-title" className="relative bg-[#F8FAFC] py-16 px-4 sm:px-6 lg:px-8">
+      <div className="max-w-5xl mx-auto">
         
-        {/* Top Header Badge */}
-        <motion.div variants={fadeUp} initial="hidden" whileInView="show" viewport={VIEWPORT} className="text-center mb-8">
-          <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full mb-3 border border-[#38BDF8]/30 bg-[#38BDF8]/5">
-            <Sparkles className="w-3.5 h-3.5 text-[#38BDF8]" aria-hidden="true" />
-            <span className="font-arimo text-xs font-bold text-[#38BDF8] uppercase tracking-wider">
-              Die Plattform-Architektur
-            </span>
-          </div>
-          <h2 id="b2b-platform-title" className="font-poppins font-black text-2xl sm:text-4xl text-white tracking-tight">
-            Zielgerichtete Skill-Intelligence
-          </h2>
-        </motion.div>
-
-        {/* 1. SWITCHER GANZ OBEN */}
+        {/* 1. DIE REITERTAB-LEISTE GANZ OBEN */}
         <div className="flex justify-center mb-8">
-          <div className="inline-flex p-1.5 rounded-2xl bg-white/[0.04] border border-white/10 backdrop-blur-md">
+          <div className="inline-flex p-1.5 rounded-2xl bg-white border border-slate-200 shadow-sm">
             <button
               onClick={() => setActiveTab('enterprise')}
-              className={`flex items-center gap-2 px-5 py-2.5 rounded-xl font-poppins font-bold text-sm transition-all duration-300 ${
+              className={`flex items-center gap-2 px-6 py-3 rounded-xl font-poppins font-bold text-sm transition-all duration-300 ${
                 activeTab === 'enterprise'
-                  ? 'bg-[#38BDF8] text-[#0A192F] shadow-lg shadow-[#38BDF8]/20'
-                  : 'text-white/60 hover:text-white hover:bg-white/5'
+                  ? 'bg-[#0F1E34] text-white shadow-md'
+                  : 'text-slate-600 hover:text-slate-900 hover:bg-slate-50'
               }`}
             >
               <Building2 className="w-4 h-4" />
-              <span>Für Unternehmen</span>
+              <span>Unternehmen (HR & L&D)</span>
             </button>
             <button
               onClick={() => setActiveTab('education')}
-              className={`flex items-center gap-2 px-5 py-2.5 rounded-xl font-poppins font-bold text-sm transition-all duration-300 ${
+              className={`flex items-center gap-2 px-6 py-3 rounded-xl font-poppins font-bold text-sm transition-all duration-300 ${
                 activeTab === 'education'
-                  ? 'bg-[#DEFF9A] text-[#0A192F] shadow-lg shadow-[#DEFF9A]/20'
-                  : 'text-white/60 hover:text-white hover:bg-white/5'
+                  ? 'bg-gradient-to-r from-sky-500 to-cyan-400 text-white shadow-md'
+                  : 'text-slate-600 hover:text-slate-900 hover:bg-slate-50'
               }`}
             >
               <BookOpen className="w-4 h-4" />
-              <span>Für Bildungsträger</span>
+              <span>Bildungsträger & Akademien</span>
             </button>
           </div>
         </div>
 
-        {/* 2. HAUPTKARTE MIT NAME SOFORT OBEN */}
+        {/* 2. HAUPTÜBERSCHRIFT-BOX DIREKT UNTER DEN REITERN */}
         <motion.div
           key={activeTab}
-          initial={{ opacity: 0, y: 15 }}
+          initial={{ opacity: 0, y: 10 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.35 }}
-          className="rounded-3xl p-8 sm:p-12 border border-white/10 bg-gradient-to-b from-white/[0.05] to-white/[0.02] backdrop-blur-md text-center relative overflow-hidden shadow-2xl"
+          transition={{ duration: 0.3 }}
+          className="bg-white rounded-2xl p-6 sm:p-8 border border-slate-200 shadow-sm mb-8 text-center"
         >
-          {/* Badge */}
-          <span 
-            className="font-arimo text-xs font-bold uppercase tracking-wider px-3 py-1 rounded-full inline-block mb-3 border"
-            style={{ 
-              color: current.accentColor, 
-              backgroundColor: `${current.accentColor}10`,
-              borderColor: `${current.accentColor}30`
-            }}
-          >
-            {current.badge}
-          </span>
+          {/* PRODUKTNAME ALS GROSSE ÜBERSCHRIFT */}
+          <h2 id="b2b-platform-title" className="font-poppins font-black text-4xl sm:text-5xl text-[#0F1E34] tracking-tight mb-2">
+            {activeContent.brandName}
+          </h2>
 
-          {/* MASSIVER PRODUKTNAME (ORBIT / NEXUS) SOFORT UNTER DEM SWITCHER */}
-          <h3 className="font-poppins font-black text-5xl sm:text-7xl text-white tracking-tight mb-2">
-            {current.brandName}
-          </h3>
-
-          {/* AKRONYM DEZENT DIREKT DARUNTER */}
-          <div className="flex flex-wrap items-center justify-center gap-x-2 gap-y-1 mb-6 text-sm sm:text-lg font-poppins font-semibold">
-            {current.acronymList.map((item, idx) => (
+          {/* AKRONYM-AUFLÖSUNG DIREKT DARUNTER */}
+          <div className="flex flex-wrap items-center justify-center gap-x-2 gap-y-1 mb-4 text-sm sm:text-base font-poppins font-semibold">
+            {activeContent.acronymList.map((item, idx) => (
               <span key={item.word} className="inline-flex items-center">
-                <span style={{ color: current.accentColor }} className="font-black">
+                <span className="font-black text-sky-500">
                   {item.letter}
                 </span>
-                <span className="text-white/60 font-medium">
+                <span className="text-slate-600 font-medium">
                   {item.word}
                 </span>
-                {idx < current.acronymList.length - 1 && (
-                  <span className="text-white/20 ml-2">•</span>
+                {idx < activeContent.acronymList.length - 1 && (
+                  <span className="text-slate-300 ml-2">•</span>
                 )}
               </span>
             ))}
           </div>
 
-          {/* Tagline */}
-          <p className="font-arimo text-white/70 text-base sm:text-lg max-w-xl mx-auto mb-8 leading-relaxed">
-            {current.tagline}
+          {/* Slogan / Subtitel */}
+          <p className="font-arimo text-slate-700 text-lg sm:text-xl font-bold max-w-3xl mx-auto">
+            {activeContent.tagline}
           </p>
+        </motion.div>
 
-          {/* Highlights Grid */}
-          <div className="grid sm:grid-cols-3 gap-4 mb-10 text-left border-t border-b border-white/10 py-6">
-            {current.highlights.map((feat) => (
-              <div key={feat} className="flex items-start gap-2.5">
-                <CheckCircle2 className="w-4 h-4 mt-0.5 flex-shrink-0" style={{ color: current.accentColor }} />
-                <span className="font-arimo text-xs sm:text-sm text-white/80 leading-snug">{feat}</span>
-              </div>
-            ))}
+        {/* 3. ZWEI KACHELN NEBENEINANDER (HERAUSFORDERUNG VS. SOLUTION) */}
+        <div className="grid md:grid-cols-2 gap-6">
+          {/* Herausforderung Card */}
+          <div className="bg-red-50/50 rounded-2xl p-6 border border-red-100">
+            <div className="flex items-center gap-2 mb-4 text-red-600 font-poppins font-bold text-lg">
+              <span className="p-1 bg-red-100 rounded-lg">⚠️</span>
+              <h3>{activeContent.challengeTitle}</h3>
+            </div>
+            <ul className="space-y-3 font-arimo text-sm text-slate-700">
+              {activeContent.challengeItems.map((item, i) => (
+                <li key={i} className="flex items-start gap-2">
+                  <span className="text-red-400 font-bold mt-0.5">•</span>
+                  <span>{item}</span>
+                </li>
+              ))}
+            </ul>
           </div>
 
-          {/* CTA */}
-          <a
-            href={current.ctaLink}
-            className="inline-flex items-center gap-3 px-8 py-4 rounded-xl font-poppins font-bold text-sm sm:text-base text-[#0A192F] transition-all duration-300 hover:scale-105 shadow-lg"
-            style={{ background: `linear-gradient(135deg, ${current.accentColor}, ${current.secondaryColor})` }}
-          >
-            <span>{current.ctaText}</span>
-            <ArrowRight className="w-4 h-4" />
-          </a>
-        </motion.div>
+          {/* DYD Skill Intelligence Card */}
+          <div className="bg-sky-50/50 rounded-2xl p-6 border border-sky-100">
+            <div className="flex items-center gap-2 mb-4 text-sky-600 font-poppins font-bold text-lg">
+              <Sparkles className="w-5 h-5 text-sky-500" />
+              <h3>{activeContent.solutionTitle}</h3>
+            </div>
+            <ul className="space-y-3 font-arimo text-sm text-slate-700">
+              {activeContent.solutionItems.map((item, i) => (
+                <li key={i} className="flex items-start gap-2">
+                  <span className="text-sky-400 font-bold mt-0.5">•</span>
+                  <span>{item}</span>
+                </li>
+              ))}
+            </ul>
+          </div>
+        </div>
 
       </div>
     </section>
