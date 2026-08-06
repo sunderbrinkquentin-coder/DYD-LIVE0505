@@ -103,9 +103,10 @@ export const router = createHashRouter([
   { path: '/career-vision', element: <CareerVisionPage /> },
   { path: '/learning-path/:pathId', element: <LearningPathPage /> },
   { path: '/learning-path-waiting/:pathId', element: <LearningPathWaitingPage /> },
-  { path: '/business', element: <B2BPage />}
+  { path: '/business', element: <B2BPage />},
 
   // 🔐 Dashboard → jetzt geschützt
+ {
     path: '/dashboard',
     element: (
       <PrivateRoute>
