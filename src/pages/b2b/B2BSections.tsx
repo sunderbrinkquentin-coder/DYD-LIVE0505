@@ -1,6 +1,25 @@
 import { motion, useReducedMotion, type Variants } from 'framer-motion';
 import { Layers, Brain, ShieldCheck, Flag, Sparkles } from 'lucide-react';
 import { b2bContent } from './content';
+function useSectionAnims() {
+  const reduce = useReducedMotion() ?? false;
+
+  const container: Variants = {
+    hidden: {},
+    show: {
+      transition: {
+        staggerChildren: reduce ? 0 : 0.1,
+      },
+    },
+  };
+
+  const fadeUp: Variants = {
+    hidden: { opacity: 0, y: reduce ? 0 : 20 },
+    show: { opacity: 1, y: 0, transition: { duration: reduce ? 0 : 0.5 } },
+  };
+
+  return { container, fadeUp, reduce };
+}
 
 // Zuordnung der Icon-Strings aus content.ts zu Lucide-Icon-Komponenten
 const iconMap: Record<string, React.ComponentType<{ className?: string }>> = {
