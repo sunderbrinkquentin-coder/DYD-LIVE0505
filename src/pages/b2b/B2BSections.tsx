@@ -2,9 +2,10 @@ import { motion, useReducedMotion, type Variants } from 'framer-motion';
 import { Layers, Brain, ShieldCheck, Flag, Sparkles } from 'lucide-react';
 import { b2bContent } from './content';
 
-// 1. Globale Hilfskonstanten & Animations-Hook (EINMALIG deklariert)
+// 1. Zentrale Hilfskonstante für Viewport
 const VIEWPORT = { once: true, margin: '-50px' } as const;
 
+// 2. Einziger Animations-Hook für alle Sektionen in dieser Datei
 function useSectionAnims() {
   const reduce = useReducedMotion() ?? false;
 
@@ -35,7 +36,7 @@ function useSectionAnims() {
   return { container, fadeUp, fadeLeft, fadeRight, reduce };
 }
 
-// Icon-Mapping für PlatformOverviewSection
+// 3. Icon-Mapping
 const iconMap: Record<string, React.ComponentType<{ className?: string }>> = {
   layers: Layers,
   brain: Brain,
@@ -43,14 +44,13 @@ const iconMap: Record<string, React.ComponentType<{ className?: string }>> = {
   flag: Flag,
 };
 
-/* ─── 1. Platform Overview Section ─── */
+/* ─── 4. Platform Overview Section ─── */
 export function PlatformOverviewSection() {
   const { platformOverview } = b2bContent;
   const { container, fadeUp } = useSectionAnims();
 
   return (
     <section className="relative py-24 bg-[#0A192F] overflow-hidden border-t border-white/5">
-      {/* Glow Backdrop */}
       <div
         className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[300px] rounded-full pointer-events-none"
         style={{
@@ -61,7 +61,6 @@ export function PlatformOverviewSection() {
       />
 
       <div className="relative z-10 max-w-5xl mx-auto px-4 sm:px-6 lg:px-8">
-        {/* Header */}
         <div className="text-center max-w-3xl mx-auto mb-16">
           <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-[#38BDF8]/10 border border-[#38BDF8]/20 mb-4">
             <Sparkles className="w-3.5 h-3.5 text-[#38BDF8]" />
@@ -79,7 +78,6 @@ export function PlatformOverviewSection() {
           </p>
         </div>
 
-        {/* Features Grid */}
         <motion.div
           variants={container}
           initial="hidden"
@@ -116,7 +114,7 @@ export function PlatformOverviewSection() {
   );
 }
 
-/* ─── 2. Trust Section ─── */
+/* ─── 5. Trust Section ─── */
 export function TrustSection() {
   const { trust } = b2bContent;
   const { container, fadeUp, fadeLeft, fadeRight } = useSectionAnims();
@@ -137,7 +135,6 @@ export function TrustSection() {
             </h2>
           </motion.div>
 
-          {/* Partner & Founder Cards */}
           <div className="grid md:grid-cols-2 gap-8">
             <motion.div
               variants={fadeLeft}
