@@ -59,7 +59,12 @@ function SegmentToggle({
   );
 }
 
-export default function B2BHeader() {
+type B2BHeaderProps = {
+  /** Öffnet das Kontakt-/Lead-Modal (ohne Segment → Nutzer wählt im Modal). */
+  onContact?: () => void;
+};
+
+export default function B2BHeader({ onContact }: B2BHeaderProps) {
   const [scrolled, setScrolled] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
   const reduceMotion = useReducedMotion() ?? false;
@@ -91,6 +96,11 @@ export default function B2BHeader() {
     };
   }, [mobileOpen, closeMobile]);
 
+  const handleContact = () => {
+    closeMobile();
+    onContact?.();
+  };
+
   return (
     <header
       className={`fixed top-0 inset-x-0 z-50 transition-all duration-300 ${
@@ -121,14 +131,15 @@ export default function B2BHeader() {
           {/* Desktop: Toggle + CTA */}
           <div className="hidden md:flex items-center gap-4">
             <SegmentToggle reduceMotion={reduceMotion} />
-            <a
-              href="#lead-form"
+            <button
+              type="button"
+              onClick={handleContact}
               className="inline-flex items-center gap-1.5 px-5 py-2.5 rounded-full text-sm font-arimo font-bold text-[#0A192F] b2b-focus-ring transition-shadow hover:shadow-lg hover:shadow-[#38BDF8]/30"
               style={{ background: CTA_GRADIENT }}
             >
               {b2bContent.header.cta}
               <ArrowRight className="w-3.5 h-3.5" aria-hidden="true" />
-            </a>
+            </button>
           </div>
 
           {/* Mobile: Hamburger */}
@@ -160,16 +171,17 @@ export default function B2BHeader() {
             transition={{ duration: reduceMotion ? 0 : 0.25, ease: 'easeInOut' }}
             className="md:hidden overflow-hidden bg-[#0A192F]/95 backdrop-blur-xl border-b border-white/10"
           >
-            <div className="px-4 py-4 space-y-3" onClick={closeMobile}>
+            <div className="px-4 py-4 space-y-3">
               <SegmentToggle fluid reduceMotion={reduceMotion} />
-              <a
-                href="#lead-form"
+              <button
+                type="button"
+                onClick={handleContact}
                 className="flex items-center justify-center gap-1.5 w-full px-5 py-3 rounded-full text-sm font-arimo font-bold text-[#0A192F] b2b-focus-ring"
                 style={{ background: CTA_GRADIENT }}
               >
                 {b2bContent.header.cta}
                 <ArrowRight className="w-4 h-4" aria-hidden="true" />
-              </a>
+              </button>
             </div>
           </motion.div>
         )}
