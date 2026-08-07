@@ -42,6 +42,11 @@ export const b2bContent = {
         tagline:
           'Die Workforce-Intelligence-Lösung für HR & L&D: NEXUS macht die Skills Ihrer Belegschaft sichtbar und entwickelt sie gezielt für die Rollen von morgen.',
       },
+      narrative: {
+        title: 'Hinter jedem Skill-Gap steht ein Mensch mit Potenzial.',
+        body: 'Ihre nächsten Führungskräfte, Spezialistinnen und Vordenker sitzen oft längst im Haus – nur unsichtbar. NEXUS macht dieses Potenzial sichtbar und gibt Menschen einen Weg nach vorne, statt sie zu übersehen.',
+        scenario: 'So könnte es aussehen: Aus einer Marketing-Managerin wird über einen klaren Lernpfad Ihre nächste Data-Lead. Intern. In Monaten, nicht Jahren.',
+      },
       intro:
         'Strategic Workforce Transformation: vorhandene Talente sichtbar machen, Skill-Gaps automatisiert aufdecken und Mitarbeitende gezielt für zukünftige Rollen entwickeln – statt teuer extern nachzubesetzen.',
       challenge: {
@@ -138,6 +143,11 @@ export const b2bContent = {
         ],
         tagline:
           'Das Lead-Intelligence-Tool für Bildungsträger: ORBIT verwandelt Skill-Nachfrage in passgenaue, qualifizierte Weiterbildungs-Leads.',
+      },
+      narrative: {
+        title: 'Menschen suchen keine Kurse. Sie suchen ihre Zukunft.',
+        body: 'Der richtige Kurs zur richtigen Zeit kann eine Laufbahn verändern. ORBIT bringt genau Ihr Angebot zu genau der Person, der genau dieser Skill fehlt – im entscheidenden Moment.',
+        scenario: 'So könnte es aussehen: Statt teurer Streuwerbung erreicht Ihr Data-Bootcamp die Interessentin, deren Zielrolle exakt diese Kompetenz verlangt.',
       },
       intro: 'Verwandeln Sie Skill-Nachfrage in qualifizierte Leads.',
       challenge: {
@@ -256,6 +266,7 @@ export const b2bContent = {
     founder: {
       label: 'Gründer & CEO',
       name: 'Quentin Sunderbrink, B. Eng.',
+      quote: 'Ich baue DYD, weil zu viele Talente an fehlenden Skills scheitern – nicht am Willen.',
       roles: [
         'Ich gründe und führe DYD – eine KI-Karriereplattform, made in Germany',
         'Vier Jahre Praxis in der Personaldienstleistung – ich kenne Auswahl und Entwicklung aus erster Hand',
