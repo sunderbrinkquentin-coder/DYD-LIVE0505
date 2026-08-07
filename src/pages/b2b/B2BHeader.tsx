@@ -117,15 +117,8 @@ export default function B2BHeader({ onContact }: B2BHeaderProps) {
             className="flex items-center gap-1.5 b2b-focus-ring"
             aria-label={b2bContent.header.logoAlt}
           >
-            <span
-              className="font-poppins font-black text-xl tracking-tight text-white"
-              style={{ letterSpacing: '-0.04em' }}
-            >
-              DYD
-            </span>
-            <span className="text-[10px] font-arimo font-semibold text-[#38BDF8] leading-tight hidden sm:block">
-              Decide Your Dream
-            </span>
+            <span className="font-poppins font-black text-xl tracking-tight text-white" ...>DYD</span>
+<span className="text-[10px] ...">Decide Your Dream</span>
           </a>
 
           {/* Desktop: Toggle + CTA */}
