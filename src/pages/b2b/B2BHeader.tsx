@@ -117,8 +117,11 @@ export default function B2BHeader({ onContact }: B2BHeaderProps) {
             className="flex items-center gap-1.5 b2b-focus-ring"
             aria-label={b2bContent.header.logoAlt}
           >
-            <span className="font-poppins font-black text-xl tracking-tight text-white" ...>DYD</span>
-<span className="text-[10px] ...">Decide Your Dream</span>
+         <img
+  src={b2bContent.header.logoSrc}
+  alt={b2bContent.header.logoAlt}
+  className="h-8 w-auto"
+/>
           </a>
 
           {/* Desktop: Toggle + CTA */}
