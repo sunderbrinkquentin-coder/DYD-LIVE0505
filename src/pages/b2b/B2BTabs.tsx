@@ -111,6 +111,34 @@ function Delivery() {
   );
 }
 
+/* ─── Emotionaler Narrativ-Block ─── */
+function Narrative({ n }: { n: { title: string; body: string; scenario: string } }) {
+  const { fadeUp } = useAnims();
+  const [head, ...rest] = n.scenario.split(':');
+  return (
+    <motion.div
+      variants={fadeUp}
+      initial="hidden"
+      whileInView="show"
+      viewport={VIEWPORT}
+      className="relative overflow-hidden rounded-3xl px-6 py-10 sm:px-12 sm:py-14 text-center"
+      style={{ background: 'radial-gradient(600px 260px at 50% 0%, rgba(86,212,255,0.22), transparent 70%), linear-gradient(150deg, #0A192F, #123059)' }}
+    >
+      <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full mb-5 border border-white/15 bg-white/5">
+        <Sparkles className="w-3.5 h-3.5 text-[#DEFF9A]" aria-hidden="true" />
+        <span className="font-arimo text-[11px] font-bold text-[#DEFF9A] uppercase tracking-wide">Warum das zählt</span>
+      </div>
+      <h3 className="font-poppins font-black text-white text-2xl sm:text-3xl leading-tight max-w-2xl mx-auto mb-4" style={{ letterSpacing: '-0.02em' }}>{n.title}</h3>
+      <p className="font-arimo text-white/70 text-base sm:text-lg max-w-2xl mx-auto leading-relaxed mb-6">{n.body}</p>
+      <div className="max-w-xl mx-auto rounded-2xl px-5 py-4 text-left" style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(222,255,154,0.25)' }}>
+        <p className="font-arimo text-sm text-[#e8f6d8] leading-relaxed">
+          <span className="font-bold text-[#DEFF9A]">{head}:</span>{rest.join(':')}
+        </p>
+      </div>
+    </motion.div>
+  );
+}
+
 /* ─── FAQ-Akkordeon ─── */
 function FAQ({ items }: { items: readonly { q: string; a: string }[] }) {
   const { reduce, container, fadeUp } = useAnims();
@@ -226,6 +254,8 @@ function TabAContent({ onDemo }: { onDemo: () => void }) {
     <div className="space-y-16">
       <ProductIntro eyebrow={tabA.eyebrow} product={tabA.product} mockup={<NexusMockup />} />
 
+      <Narrative n={tabA.narrative} />
+
       <div className="grid md:grid-cols-2 gap-6">
         <motion.div variants={fadeLeft} initial="hidden" whileInView="show" viewport={VIEWPORT} className="rounded-2xl p-6 sm:p-8 border-2" style={{ borderColor: 'rgba(239,83,80,0.25)', background: 'rgba(239,83,80,0.03)' }}>
           <div className="flex items-center gap-2 mb-5"><AlertTriangle className="w-5 h-5 text-[#EF5350]" aria-hidden="true" /><h3 className="font-poppins font-bold text-lg text-[#0F1E34]">{tabA.challenge.title}</h3></div>
@@ -284,6 +314,8 @@ function TabBContent({ onDemo }: { onDemo: () => void }) {
   return (
     <div className="space-y-16">
       <ProductIntro eyebrow={tabB.eyebrow} product={tabB.product} mockup={<OrbitMockup />} />
+
+      <Narrative n={tabB.narrative} />
 
       <div className="grid md:grid-cols-2 gap-6">
         <motion.div variants={fadeLeft} initial="hidden" whileInView="show" viewport={VIEWPORT} className="rounded-2xl p-6 sm:p-8 border-2" style={{ borderColor: 'rgba(239,83,80,0.25)', background: 'rgba(239,83,80,0.03)' }}>
