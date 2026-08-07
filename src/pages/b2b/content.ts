@@ -29,6 +29,19 @@ export const b2bContent = {
     tabA: {
       id: 'unternehmen',
       label: 'Unternehmen (HR & L&D)',
+      eyebrow: 'Für Unternehmen · HR & L&D',
+      product: {
+        name: 'DYD NEXUS',
+        acronym: [
+          { letter: 'N', word: 'Next-Skill' },
+          { letter: 'E', word: 'Evolution' },
+          { letter: 'X', word: 'X-Learning' },
+          { letter: 'U', word: 'Universal' },
+          { letter: 'S', word: 'System' },
+        ],
+        tagline:
+          'Die Workforce-Intelligence-Lösung für HR & L&D: NEXUS macht die Skills Ihrer Belegschaft sichtbar und entwickelt sie gezielt für die Rollen von morgen.',
+      },
       intro:
         'Strategic Workforce Transformation: vorhandene Talente sichtbar machen, Skill-Gaps automatisiert aufdecken und Mitarbeitende gezielt für zukünftige Rollen entwickeln – statt teuer extern nachzubesetzen.',
       challenge: {
@@ -40,7 +53,7 @@ export const b2bContent = {
         ],
       },
       solution: {
-        title: 'Mit DYD Workforce',
+        title: 'Mit DYD NEXUS',
         items: [
           'Echtzeit-Inventar aller Kompetenzen nach ESCO-Norm',
           'Automatisches Gap-Matching auf zukünftige Zielrollen',
@@ -86,11 +99,46 @@ export const b2bContent = {
           desc: 'Präzise Budget-Allokation nur auf tatsächliche Skill-Gaps statt Gießkanne.',
         },
       ],
+      faq: [
+        {
+          q: 'Wie schnell ist NEXUS einsatzbereit?',
+          a: 'Für die Pilotphase genügen wenige Tage: Wir starten mit einem abgegrenzten Team, das Skill-Mapping läuft automatisiert.',
+        },
+        {
+          q: 'Woher kommen die Skill-Daten?',
+          a: 'Aus vorhandenen Profilen, Lebensläufen und Selbstauskünften – automatisch nach ESCO-Norm ausgelesen, ohne manuelles Tagging.',
+        },
+        {
+          q: 'Ist das DSGVO-konform?',
+          a: 'Ja. Verarbeitung ausschließlich auf europäischen Servern, kein Drittanbieter-Tracking. Made in Germany.',
+        },
+        {
+          q: 'Müssen wir bestehende Systeme ersetzen?',
+          a: 'Nein. NEXUS ergänzt Ihre HR-Landschaft; eine tiefere Systemintegration ist optional und keine Voraussetzung für den Start.',
+        },
+        {
+          q: 'Was kostet die Pilotphase?',
+          a: 'Early-Access-Partner erhalten bevorzugte Konditionen. Den konkreten Rahmen stimmen wir im kurzen Erstgespräch ab.',
+        },
+      ],
       cta: 'Informationen anfragen',
     },
     tabB: {
       id: 'bildungstraeger',
       label: 'Bildungsträger & Akademien',
+      eyebrow: 'Für Bildungsträger & Akademien',
+      product: {
+        name: 'DYD ORBIT',
+        acronym: [
+          { letter: 'O', word: 'Optimized' },
+          { letter: 'R', word: 'Reskilling' },
+          { letter: 'B', word: 'Business' },
+          { letter: 'I', word: 'Intelligence' },
+          { letter: 'T', word: 'Tool' },
+        ],
+        tagline:
+          'Das Lead-Intelligence-Tool für Bildungsträger: ORBIT verwandelt Skill-Nachfrage in passgenaue, qualifizierte Weiterbildungs-Leads.',
+      },
       intro: 'Verwandeln Sie Skill-Nachfrage in qualifizierte Leads.',
       challenge: {
         title: 'Herausforderung',
@@ -101,7 +149,7 @@ export const b2bContent = {
         ],
       },
       solution: {
-        title: 'DYD Skill Intelligence',
+        title: 'Mit DYD ORBIT',
         items: [
           'KI verbindet Profil, Ziel und ESCO-Skills automatisch',
           'Erkennt die konkrete Kompetenzlücke jedes Nutzers',
@@ -139,13 +187,35 @@ export const b2bContent = {
         classicDesc: 'Google & LinkedIn Ads',
         classicValue: '300–500 €',
         classicUnit: 'CPA',
-        dydLabel: 'Mit DYD',
+        dydLabel: 'Mit DYD ORBIT',
         dydDesc: 'Skill-Matching',
         dydValue: '75 €',
         dydUnit: 'CPA (Ziel)',
         delta: '−75 %',
         deltaLabel: 'Akquisekosten',
       },
+      faq: [
+        {
+          q: 'Wie werden die Leads qualifiziert?',
+          a: 'Über eine echte Skill-Gap-Analyse: Nutzer mit nachgewiesenem Entwicklungsbedarf, passend zu Ihrem Kursportfolio.',
+        },
+        {
+          q: 'Wie hoch ist der Aufwand für uns?',
+          a: 'Gering. Sie hinterlegen Ihr Kursportfolio, ORBIT übernimmt Matching und Lead-Übergabe.',
+        },
+        {
+          q: 'Was kostet ORBIT?',
+          a: 'Wir arbeiten auf ein CPA-Ziel von rund 75 € hin. Das genaue Modell klären wir im Erstgespräch.',
+        },
+        {
+          q: 'Ist das DSGVO-konform?',
+          a: 'Ja, vollständig – Verarbeitung in Europa, Made in Germany.',
+        },
+        {
+          q: 'Wann startet ORBIT?',
+          a: 'Early Access ab Q4 2026, Launch Q1 2027. Pilotpartner gestalten die Roadmap aktiv mit.',
+        },
+      ],
       cta: 'Informationen anfragen',
     },
   },
@@ -184,23 +254,67 @@ export const b2bContent = {
       desc: 'Eine der größten privaten Hochschulen Deutschlands – mit DYD in Workshop-Präsenz und pilotierten KI-Bewerbungstrainings.',
     },
     founder: {
-      label: 'Gründer & Senior Consultant',
+      label: 'Gründer & CEO',
       name: 'Quentin Sunderbrink, B. Eng.',
       roles: [
-        'Gründer & CEO von DYD – KI-Karriereplattform, made in Germany',
-        'Senior Consultant mit vier Jahren Praxis in der Personaldienstleistung – kennt Auswahl und Entwicklung aus erster Hand',
-        'IHK-Prüfer – bewertet Qualifikationen nach anerkanntem Standard',
-        'Wirtschaftsingenieur (B. Eng.) – verbindet technisches Systemdenken mit HR-Praxis',
-        '9 Jahre Abendschule parallel zum Vollzeitjob – lebt das Upskilling-Prinzip, das DYD ermöglicht',
-        'Workshop-Speaker an deutschen Hochschulen (u. a. Hochschule Fresenius) für KI-gestützte Bewerbungsoptimierung',
-        'Veranstalter des Harmony Festivals – organisiert ein eigenes Musik- und Comedy-Event',
+        'Ich gründe und führe DYD – eine KI-Karriereplattform, made in Germany',
+        'Vier Jahre Praxis in der Personaldienstleistung – ich kenne Auswahl und Entwicklung aus erster Hand',
+        'Als IHK-Prüfer bewerte ich Qualifikationen nach anerkanntem Standard',
+        'Als Wirtschaftsingenieur (B. Eng.) verbinde ich technisches Systemdenken mit HR-Praxis',
+        'Seit 9 Jahren bilde ich mich an der Abendschule neben dem Vollzeitjob weiter – gelebtes Upskilling',
+        'Ich halte Workshops an deutschen Hochschulen (u. a. Hochschule Fresenius) zu KI-gestützter Bewerbungsoptimierung',
+        'Ich veranstalte das Harmony Festival – ein eigenes Musik- und Comedy-Event',
       ],
       photoAlt: 'Porträt von Quentin Sunderbrink, Gründer von DYD',
       photoSrc: '/profile-picture.png',
-      email: 'quentin@decide-your-dream.de',
+      email: 'kontakt.dyd@googlemail.com',
       phone: '+49 211 12345678',
       linkedin: 'https://www.linkedin.com/in/quentin-sunderbrink',
     },
     badges: ['DSGVO', 'ESCO', 'Made in Germany'],
+  },
+  events: {
+    title: 'DYD live: Workshops & Messeauftritte',
+    subtitle: 'Praxisnah unterwegs – auf dem Campus und bei Partnern.',
+    note: '[BITTE AUSFÜLLEN] Weitere Workshops & Messeauftritte hier ergänzen.',
+    entries: [
+      {
+        date: '28. Mai 2026',
+        title: 'Beyond the Template: Dein CV-Boost im KI-Zeitalter',
+        location: 'Hochschule Fresenius',
+        audience: '~50 Top-Studierende',
+        topics: ['ATS', 'Storytelling', 'Personal Branding im KI-Zeitalter'],
+      },
+      {
+        date: '[BITTE AUSFÜLLEN]',
+        title: '[BITTE AUSFÜLLEN: Titel – Ort]',
+        placeholder: true,
+        topics: [],
+      },
+    ],
+  },
+  finalCta: {
+    title: 'Bereit für Ihr Pilotprojekt?',
+    subtitle:
+      'Werden Sie Early-Access-Partner – früher Zugang, Mitgestaltung und bevorzugte Konditionen zum Launch (Q4 2026 / Q1 2027).',
+    cta: 'Kontakt aufnehmen',
+  },
+  footer: {
+    blurb: 'KI-gestützte Skill Intelligence für Unternehmen und Bildungsträger. Made in Germany, DSGVO-konform.',
+    email: 'kontakt.dyd@googlemail.com',
+    linkedin: 'https://www.linkedin.com/in/quentin-sunderbrink',
+    applicantUrl: '/',
+    legalLinks: [
+      { label: 'Impressum', href: '/#/impressum' },
+      { label: 'Datenschutz', href: '/#/datenschutz' },
+    ],
+    impressum: {
+      heading: 'Impressum',
+      provider: 'DYD – Decide Your Dream',
+      owner: 'Quentin Sunderbrink',
+      addressLines: ['[BITTE AUSFÜLLEN: Straße Nr.]', '[BITTE AUSFÜLLEN: PLZ Ort]'],
+      email: 'kontakt.dyd@googlemail.com',
+      responsible: 'Verantwortlich i. S. d. § 18 Abs. 2 MStV: Quentin Sunderbrink',
+    },
   },
 } as const;
