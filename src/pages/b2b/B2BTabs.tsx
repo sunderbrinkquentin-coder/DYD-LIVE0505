@@ -3,9 +3,11 @@ import { motion, AnimatePresence, useReducedMotion, type Variants } from 'framer
 import {
   Building2, GraduationCap, AlertTriangle, Sparkles, ArrowRight,
   TrendingDown, TrendingUp, Target, Filter, Megaphone, Zap, Plus,
+  Palette, Code2, Check,
 } from 'lucide-react';
 import { b2bContent } from './content';
 import ProcessRail from './ProcessRail';
+import { NexusMockup, OrbitMockup } from './ProductMockups';
 
 type TabId = 'unternehmen' | 'bildungstraeger';
 
@@ -26,53 +28,86 @@ function useAnims() {
   return { reduce, container, fadeUp, fadeLeft, fadeRight, scaleIn, letter };
 }
 
-/* ─── Produkt-Intro mit Akronym-Reveal ─── */
+/* ─── Produkt-Intro + Mockup ─── */
 function ProductIntro({
-  eyebrow,
-  product,
+  eyebrow, product, mockup,
 }: {
   eyebrow: string;
   product: { name: string; tagline: string; acronym: readonly { letter: string; word: string }[] };
+  mockup: React.ReactNode;
 }) {
   const { container, fadeUp, letter } = useAnims();
   return (
-    <motion.div variants={container} initial="hidden" whileInView="show" viewport={VIEWPORT} className="text-center">
-      <motion.div variants={fadeUp} className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full mb-5 border border-[#38BDF8]/30 bg-[#38BDF8]/5">
-        <Sparkles className="w-3.5 h-3.5 text-[#38BDF8]" aria-hidden="true" />
-        <span className="font-arimo text-xs font-bold text-[#38BDF8] uppercase tracking-wide">{eyebrow}</span>
+    <div className="space-y-10">
+      <motion.div variants={container} initial="hidden" whileInView="show" viewport={VIEWPORT} className="text-center">
+        <motion.div variants={fadeUp} className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full mb-5 border border-[#38BDF8]/30 bg-[#38BDF8]/5">
+          <Sparkles className="w-3.5 h-3.5 text-[#38BDF8]" aria-hidden="true" />
+          <span className="font-arimo text-xs font-bold text-[#38BDF8] uppercase tracking-wide">{eyebrow}</span>
+        </motion.div>
+
+        <motion.h2 variants={fadeUp} className="font-poppins font-black leading-none mb-6" style={{ fontSize: 'clamp(2.25rem, 6vw, 4rem)', letterSpacing: '-0.04em', background: NAVY_SKY, WebkitBackgroundClip: 'text', backgroundClip: 'text', color: 'transparent' }}>
+          {product.name}
+        </motion.h2>
+
+        <motion.div variants={container} className="flex flex-wrap justify-center gap-2.5 sm:gap-3 mb-6">
+          {product.acronym.map((a) => (
+            <motion.div key={a.letter + a.word} variants={letter} className="flex items-center gap-2.5 pl-2.5 pr-4 py-2 rounded-xl bg-white border border-[#E3EBF5] hover:border-[#38BDF8]/40 hover:shadow-md transition-all">
+              <span className="font-poppins font-black text-2xl w-9 h-9 flex items-center justify-center rounded-lg text-[#0A192F]" style={{ background: SKY_LIME }}>{a.letter}</span>
+              <span className="font-arimo font-bold text-sm text-[#0F1E34]">{a.word}</span>
+            </motion.div>
+          ))}
+        </motion.div>
+
+        <motion.p variants={fadeUp} className="font-arimo text-[#55637A] text-base sm:text-lg max-w-2xl mx-auto leading-relaxed">{product.tagline}</motion.p>
       </motion.div>
 
-      <motion.h2
-        variants={fadeUp}
-        className="font-poppins font-black leading-none mb-6"
-        style={{ fontSize: 'clamp(2.25rem, 6vw, 4rem)', letterSpacing: '-0.04em', background: NAVY_SKY, WebkitBackgroundClip: 'text', backgroundClip: 'text', color: 'transparent' }}
-      >
-        {product.name}
-      </motion.h2>
+      {/* Produkt-Mockup */}
+      <motion.div initial={{ opacity: 0, y: 24 }} whileInView={{ opacity: 1, y: 0 }} viewport={VIEWPORT} transition={{ duration: 0.6 }} className="max-w-3xl mx-auto">
+        {mockup}
+        <p className="text-center font-arimo text-xs text-[#94a3b8] mt-3">Illustrative Produktvorschau – Design in Entwicklung.</p>
+      </motion.div>
+    </div>
+  );
+}
 
-      {/* Akronym als Buchstaben-Karten */}
-      <motion.div variants={container} className="flex flex-wrap justify-center gap-2.5 sm:gap-3 mb-6">
-        {product.acronym.map((a) => (
-          <motion.div
-            key={a.letter + a.word}
-            variants={letter}
-            className="group flex items-center gap-2.5 pl-2.5 pr-4 py-2 rounded-xl bg-white border border-[#E3EBF5] hover:border-[#38BDF8]/40 hover:shadow-md transition-all"
-          >
-            <span
-              className="font-poppins font-black text-2xl w-9 h-9 flex items-center justify-center rounded-lg text-[#0A192F]"
-              style={{ background: SKY_LIME }}
-            >
-              {a.letter}
-            </span>
-            <span className="font-arimo font-bold text-sm text-[#0F1E34]">{a.word}</span>
-          </motion.div>
-        ))}
+/* ─── White Label / API ─── */
+function Delivery() {
+  const { delivery } = b2bContent;
+  const { container, fadeUp } = useAnims();
+  const iconMap: Record<string, typeof Palette> = { palette: Palette, code: Code2 };
+
+  return (
+    <div>
+      <motion.div variants={fadeUp} initial="hidden" whileInView="show" viewport={VIEWPORT} className="text-center mb-8">
+        <h3 className="font-poppins font-bold text-xl sm:text-2xl text-[#0F1E34] mb-2">{delivery.title}</h3>
+        <p className="font-arimo text-[#55637A] max-w-2xl mx-auto leading-relaxed">{delivery.subtitle}</p>
       </motion.div>
 
-      <motion.p variants={fadeUp} className="font-arimo text-[#55637A] text-base sm:text-lg max-w-2xl mx-auto leading-relaxed">
-        {product.tagline}
-      </motion.p>
-    </motion.div>
+      <motion.div variants={container} initial="hidden" whileInView="show" viewport={VIEWPORT} className="grid sm:grid-cols-2 gap-6 max-w-4xl mx-auto">
+        {delivery.options.map((o) => {
+          const Icon = iconMap[o.icon] ?? Code2;
+          return (
+            <motion.div key={o.title} variants={fadeUp} className="rounded-2xl p-6 bg-white border border-[#E3EBF5] hover:shadow-lg hover:border-[#38BDF8]/40 transition-all">
+              <div className="flex items-center gap-3 mb-3">
+                <div className="w-11 h-11 rounded-xl flex items-center justify-center" style={{ background: SKY_LIME }}>
+                  <Icon className="w-5 h-5 text-[#0A192F]" aria-hidden="true" />
+                </div>
+                <h4 className="font-poppins font-black text-lg text-[#0F1E34]">{o.title}</h4>
+              </div>
+              <p className="font-arimo text-sm text-[#55637A] leading-relaxed mb-4">{o.desc}</p>
+              <ul className="space-y-2">
+                {o.points.map((pt) => (
+                  <li key={pt} className="flex items-start gap-2">
+                    <Check className="w-4 h-4 text-[#38BDF8] flex-shrink-0 mt-0.5" aria-hidden="true" />
+                    <span className="font-arimo text-sm text-[#0F1E34]">{pt}</span>
+                  </li>
+                ))}
+              </ul>
+            </motion.div>
+          );
+        })}
+      </motion.div>
+    </div>
   );
 }
 
@@ -80,41 +115,21 @@ function ProductIntro({
 function FAQ({ items }: { items: readonly { q: string; a: string }[] }) {
   const { reduce, container, fadeUp } = useAnims();
   const [open, setOpen] = useState<number | null>(0);
-
   return (
     <div>
-      <motion.h3 variants={fadeUp} initial="hidden" whileInView="show" viewport={VIEWPORT} className="font-poppins font-bold text-xl text-[#0F1E34] mb-6 text-center">
-        Häufige Fragen
-      </motion.h3>
+      <motion.h3 variants={fadeUp} initial="hidden" whileInView="show" viewport={VIEWPORT} className="font-poppins font-bold text-xl text-[#0F1E34] mb-6 text-center">Häufige Fragen</motion.h3>
       <motion.div variants={container} initial="hidden" whileInView="show" viewport={VIEWPORT} className="max-w-3xl mx-auto space-y-3">
         {items.map((item, i) => {
           const isOpen = open === i;
           return (
             <motion.div key={item.q} variants={fadeUp} className="rounded-2xl bg-white border border-[#E3EBF5] overflow-hidden">
-              <button
-                type="button"
-                onClick={() => setOpen(isOpen ? null : i)}
-                aria-expanded={isOpen}
-                aria-controls={`faq-panel-${i}`}
-                className="w-full flex items-center justify-between gap-4 px-5 py-4 text-left b2b-focus-ring"
-              >
+              <button type="button" onClick={() => setOpen(isOpen ? null : i)} aria-expanded={isOpen} aria-controls={`faq-panel-${i}`} className="w-full flex items-center justify-between gap-4 px-5 py-4 text-left b2b-focus-ring">
                 <span className="font-poppins font-bold text-sm sm:text-base text-[#0F1E34]">{item.q}</span>
-                <Plus
-                  className={`w-5 h-5 text-[#38BDF8] flex-shrink-0 transition-transform ${isOpen ? 'rotate-45' : ''}`}
-                  style={{ transitionDuration: reduce ? '0ms' : '250ms' }}
-                  aria-hidden="true"
-                />
+                <Plus className={`w-5 h-5 text-[#38BDF8] flex-shrink-0 transition-transform ${isOpen ? 'rotate-45' : ''}`} style={{ transitionDuration: reduce ? '0ms' : '250ms' }} aria-hidden="true" />
               </button>
               <AnimatePresence initial={false}>
                 {isOpen && (
-                  <motion.div
-                    id={`faq-panel-${i}`}
-                    initial={{ height: 0, opacity: 0 }}
-                    animate={{ height: 'auto', opacity: 1 }}
-                    exit={{ height: 0, opacity: 0 }}
-                    transition={{ duration: reduce ? 0 : 0.25, ease: 'easeInOut' }}
-                    className="overflow-hidden"
-                  >
+                  <motion.div id={`faq-panel-${i}`} initial={{ height: 0, opacity: 0 }} animate={{ height: 'auto', opacity: 1 }} exit={{ height: 0, opacity: 0 }} transition={{ duration: reduce ? 0 : 0.25, ease: 'easeInOut' }} className="overflow-hidden">
                     <p className="font-arimo text-sm text-[#55637A] leading-relaxed px-5 pb-5">{item.a}</p>
                   </motion.div>
                 )}
@@ -168,31 +183,16 @@ export default function B2BTabs({ initialTab = 'unternehmen', activeTab: control
   const requestDemo = (segment: TabId) => { onRequestDemo?.(segment); };
 
   return (
-    <section
-      ref={tabSectionRef}
-      id="b2b-tabs"
-      aria-label="DYD für Unternehmen und Bildungsträger"
-      className="relative bg-[#F6F9FD] py-20 px-4 sm:px-6 lg:px-8 scroll-mt-20 lg:scroll-mt-24"
-    >
+    <section ref={tabSectionRef} id="b2b-tabs" aria-label="DYD für Unternehmen und Bildungsträger" className="relative bg-[#F6F9FD] py-20 px-4 sm:px-6 lg:px-8 scroll-mt-20 lg:scroll-mt-24">
       <div className="max-w-6xl mx-auto">
-        {/* Umschalter */}
         <div className="flex gap-2 p-1.5 rounded-2xl bg-white border border-[#E3EBF5] shadow-sm mb-12 max-w-xl mx-auto" role="tablist" aria-label="Zielgruppe wählen" onKeyDown={onTabKeyDown}>
           {tabMeta.map((t, i) => {
             const selected = activeTab === t.id;
             const Icon = t.Icon;
             return (
-              <button
-                key={t.id}
-                ref={(el) => (tabRefs.current[i] = el)}
-                role="tab"
-                id={`tab-${t.id}`}
-                aria-selected={selected}
-                aria-controls={`panel-${t.id}`}
-                tabIndex={selected ? 0 : -1}
-                onClick={() => handleTabClick(t.id)}
+              <button key={t.id} ref={(el) => (tabRefs.current[i] = el)} role="tab" id={`tab-${t.id}`} aria-selected={selected} aria-controls={`panel-${t.id}`} tabIndex={selected ? 0 : -1} onClick={() => handleTabClick(t.id)}
                 className={`flex-1 flex items-center justify-center gap-2 px-4 py-3 rounded-xl text-sm font-arimo font-bold transition b2b-focus-ring ${selected ? 'text-white shadow-md' : 'text-[#55637A] hover:text-[#0F1E34]'}`}
-                style={selected ? { background: NAVY_SKY } : undefined}
-              >
+                style={selected ? { background: NAVY_SKY } : undefined}>
                 <Icon className="w-4 h-4" aria-hidden="true" />
                 <span className="hidden sm:inline">{t.label}</span>
                 <span className="sm:hidden">{t.short}</span>
@@ -203,13 +203,11 @@ export default function B2BTabs({ initialTab = 'unternehmen', activeTab: control
 
         <AnimatePresence mode="wait">
           {activeTab === 'unternehmen' ? (
-            <motion.div key="panel-a" role="tabpanel" id="panel-unternehmen" aria-labelledby="tab-unternehmen" tabIndex={0}
-              initial={{ opacity: 0, y: reduce ? 0 : 16 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: reduce ? 0 : -16 }} transition={{ duration: reduce ? 0 : 0.35 }} className="b2b-focus-ring rounded-2xl">
+            <motion.div key="panel-a" role="tabpanel" id="panel-unternehmen" aria-labelledby="tab-unternehmen" tabIndex={0} initial={{ opacity: 0, y: reduce ? 0 : 16 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: reduce ? 0 : -16 }} transition={{ duration: reduce ? 0 : 0.35 }} className="b2b-focus-ring rounded-2xl">
               <TabAContent onDemo={() => requestDemo('unternehmen')} />
             </motion.div>
           ) : (
-            <motion.div key="panel-b" role="tabpanel" id="panel-bildungstraeger" aria-labelledby="tab-bildungstraeger" tabIndex={0}
-              initial={{ opacity: 0, y: reduce ? 0 : 16 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: reduce ? 0 : -16 }} transition={{ duration: reduce ? 0 : 0.35 }} className="b2b-focus-ring rounded-2xl">
+            <motion.div key="panel-b" role="tabpanel" id="panel-bildungstraeger" aria-labelledby="tab-bildungstraeger" tabIndex={0} initial={{ opacity: 0, y: reduce ? 0 : 16 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: reduce ? 0 : -16 }} transition={{ duration: reduce ? 0 : 0.35 }} className="b2b-focus-ring rounded-2xl">
               <TabBContent onDemo={() => requestDemo('bildungstraeger')} />
             </motion.div>
           )}
@@ -226,7 +224,7 @@ function TabAContent({ onDemo }: { onDemo: () => void }) {
 
   return (
     <div className="space-y-16">
-      <ProductIntro eyebrow={tabA.eyebrow} product={tabA.product} />
+      <ProductIntro eyebrow={tabA.eyebrow} product={tabA.product} mockup={<NexusMockup />} />
 
       <div className="grid md:grid-cols-2 gap-6">
         <motion.div variants={fadeLeft} initial="hidden" whileInView="show" viewport={VIEWPORT} className="rounded-2xl p-6 sm:p-8 border-2" style={{ borderColor: 'rgba(239,83,80,0.25)', background: 'rgba(239,83,80,0.03)' }}>
@@ -267,12 +265,11 @@ function TabAContent({ onDemo }: { onDemo: () => void }) {
         ))}
       </motion.div>
 
+      <Delivery />
       <FAQ items={tabA.faq} />
 
       <div className="text-center">
-        <button type="button" onClick={onDemo} className="inline-flex items-center gap-2 px-8 py-4 rounded-2xl font-arimo font-bold text-white b2b-focus-ring transition hover:shadow-xl hover:shadow-[#38BDF8]/25 hover:-translate-y-0.5" style={{ background: NAVY_SKY }}>
-          {tabA.cta}<ArrowRight className="w-4 h-4" aria-hidden="true" />
-        </button>
+        <button type="button" onClick={onDemo} className="inline-flex items-center gap-2 px-8 py-4 rounded-2xl font-arimo font-bold text-white b2b-focus-ring transition hover:shadow-xl hover:shadow-[#38BDF8]/25 hover:-translate-y-0.5" style={{ background: NAVY_SKY }}>{tabA.cta}<ArrowRight className="w-4 h-4" aria-hidden="true" /></button>
       </div>
     </div>
   );
@@ -286,7 +283,7 @@ function TabBContent({ onDemo }: { onDemo: () => void }) {
 
   return (
     <div className="space-y-16">
-      <ProductIntro eyebrow={tabB.eyebrow} product={tabB.product} />
+      <ProductIntro eyebrow={tabB.eyebrow} product={tabB.product} mockup={<OrbitMockup />} />
 
       <div className="grid md:grid-cols-2 gap-6">
         <motion.div variants={fadeLeft} initial="hidden" whileInView="show" viewport={VIEWPORT} className="rounded-2xl p-6 sm:p-8 border-2" style={{ borderColor: 'rgba(239,83,80,0.25)', background: 'rgba(239,83,80,0.03)' }}>
@@ -334,12 +331,11 @@ function TabBContent({ onDemo }: { onDemo: () => void }) {
         <div className="mt-6 flex items-center justify-center gap-3"><span className="font-poppins font-black text-3xl text-[#0F1E34]">{tabB.cpa.delta}</span><span className="font-arimo font-bold text-[#0F1E34]">{tabB.cpa.deltaLabel}</span></div>
       </motion.div>
 
+      <Delivery />
       <FAQ items={tabB.faq} />
 
       <div className="text-center">
-        <button type="button" onClick={onDemo} className="inline-flex items-center gap-2 px-8 py-4 rounded-2xl font-arimo font-bold text-[#0A192F] b2b-focus-ring transition hover:shadow-xl hover:shadow-[#DEFF9A]/25 hover:-translate-y-0.5" style={{ background: LIME_SKY }}>
-          {tabB.cta}<ArrowRight className="w-4 h-4" aria-hidden="true" />
-        </button>
+        <button type="button" onClick={onDemo} className="inline-flex items-center gap-2 px-8 py-4 rounded-2xl font-arimo font-bold text-[#0A192F] b2b-focus-ring transition hover:shadow-xl hover:shadow-[#DEFF9A]/25 hover:-translate-y-0.5" style={{ background: LIME_SKY }}>{tabB.cta}<ArrowRight className="w-4 h-4" aria-hidden="true" /></button>
       </div>
     </div>
   );
