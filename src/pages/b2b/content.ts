@@ -299,6 +299,26 @@ export const b2bContent = {
       'Werden Sie Early-Access-Partner – früher Zugang, Mitgestaltung und bevorzugte Konditionen zum Launch (Q4 2026 / Q1 2027).',
     cta: 'Kontakt aufnehmen',
   },
+  delivery: {
+    title: 'Flexibel ausrollen: White Label oder API',
+    subtitle:
+      'Bringen Sie NEXUS und ORBIT unter Ihrer eigenen Marke an den Start – oder integrieren Sie die DYD-Skill-Engine direkt in Ihre bestehenden Systeme.',
+    options: [
+      {
+        icon: 'palette',
+        title: 'White Label',
+        desc: 'Ihre Marke, Ihr Look: DYD läuft im Hintergrund, Ihre Kundinnen und Kunden sehen ausschließlich Ihr Branding.',
+        points: ['Eigenes Logo, eigene Farben, eigene Domain', 'Schneller Go-live ohne eigene Entwicklung', 'Ideal für Bildungsträger, Berater & Plattformen'],
+      },
+      {
+        icon: 'code',
+        title: 'API',
+        desc: 'Skill-Extraktion, ESCO-Matching und Gap-Berechnung als saubere Endpunkte – nahtlos in Ihr Produkt oder Portal integriert.',
+        points: ['REST-Endpunkte für Skill- & Gap-Analyse', 'ESCO-normierte, strukturierte Ergebnisse', 'Volle Kontrolle über die eigene Experience'],
+      },
+    ],
+  },
+
   footer: {
     blurb: 'KI-gestützte Skill Intelligence für Unternehmen und Bildungsträger. Made in Germany, DSGVO-konform.',
     email: 'kontakt.dyd@googlemail.com',
