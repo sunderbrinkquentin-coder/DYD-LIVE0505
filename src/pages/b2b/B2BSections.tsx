@@ -53,7 +53,7 @@ export function PlatformOverviewSection() {
   );
 }
 
-/* ─── 2. Trust ─── */
+/* ─── 2. Trust: Foto links-oben, Fresenius darunter, Gründer rechts ─── */
 type TrustSectionProps = { onContact?: () => void };
 
 export function TrustSection({ onContact }: TrustSectionProps) {
@@ -71,49 +71,56 @@ export function TrustSection({ onContact }: TrustSectionProps) {
           <h2 id="b2b-trust-title" className="font-poppins font-black text-3xl sm:text-4xl text-[#0F1E34] mb-4" style={{ letterSpacing: '-0.03em' }}>{trust.title}</h2>
         </motion.div>
 
-        <div className="grid lg:grid-cols-2 gap-8 items-start">
-          {/* Partner */}
-          <motion.div variants={fadeLeft} initial="hidden" whileInView="show" viewport={VIEWPORT} className="rounded-2xl p-8 bg-white border border-[#E3EBF5] hover:shadow-lg transition-shadow">
-            <div className="flex items-center gap-2 mb-4"><GraduationCap className="w-5 h-5 text-[#38BDF8]" aria-hidden="true" /><span className="font-arimo text-xs font-bold uppercase tracking-wide text-[#55637A]">{trust.partner.label}</span></div>
-            <h3 className="font-poppins font-black text-2xl text-[#0F1E34] mb-3">{trust.partner.name}</h3>
-            <p className="font-arimo text-[#55637A] leading-relaxed mb-5">{trust.partner.desc}</p>
-            <div className="flex flex-wrap gap-2">
-              <span className="inline-flex items-center px-3 py-1.5 rounded-lg text-xs font-arimo font-bold text-[#0F1E34] bg-[#38BDF8]/8 border border-[#38BDF8]/20">Workshop-Präsenz</span>
-              <span className="inline-flex items-center px-3 py-1.5 rounded-lg text-xs font-arimo font-bold text-[#0F1E34] bg-[#38BDF8]/8 border border-[#38BDF8]/20">Pilotierte KI-Trainings</span>
-            </div>
-          </motion.div>
+        <div className="grid lg:grid-cols-2 gap-8 items-stretch">
+          {/* Linke Spalte: Foto (oben) + Kooperationspartner (darunter) */}
+          <div className="flex flex-col gap-8">
+            {/* Foto */}
+            <motion.div variants={fadeLeft} initial="hidden" whileInView="show" viewport={VIEWPORT} className="rounded-2xl p-1" style={{ background: 'linear-gradient(135deg, #38BDF8, #DEFF9A)' }}>
+              <img
+                src={f.photoSrc}
+                alt={f.photoAlt}
+                className="w-full h-60 sm:h-72 object-cover rounded-[14px] bg-[#0A192F]"
+                style={{ objectPosition: '50% 20%' }}
+              />
+            </motion.div>
 
-          {/* Gründer – größeres Foto, kein Termin-Button */}
-          <motion.div variants={fadeRight} initial="hidden" whileInView="show" viewport={VIEWPORT} className="rounded-2xl bg-white border border-[#E3EBF5] overflow-hidden hover:shadow-lg transition-shadow">
-            <div className="flex flex-col sm:flex-row">
-              <div className="relative sm:w-56 flex-shrink-0 flex items-center justify-center p-6" style={{ background: 'linear-gradient(155deg, #0A192F 0%, #123059 55%, #2b7fd4 130%)' }}>
-                <img
-                  src={f.photoSrc}
-                  alt={f.photoAlt}
-                  className="w-44 h-44 sm:w-52 sm:h-52 rounded-2xl object-cover"
-                  style={{ boxShadow: '0 14px 34px -8px rgba(0,0,0,0.6)', outline: '3px solid rgba(255,255,255,0.16)' }}
-                />
+            {/* Kooperationspartner */}
+            <motion.div variants={fadeLeft} initial="hidden" whileInView="show" viewport={VIEWPORT} className="flex-1 rounded-2xl p-8 bg-white border border-[#E3EBF5] hover:shadow-lg transition-shadow">
+              <div className="flex items-center gap-2 mb-4"><GraduationCap className="w-5 h-5 text-[#38BDF8]" aria-hidden="true" /><span className="font-arimo text-xs font-bold uppercase tracking-wide text-[#55637A]">{trust.partner.label}</span></div>
+              <h3 className="font-poppins font-black text-2xl text-[#0F1E34] mb-3">{trust.partner.name}</h3>
+              <p className="font-arimo text-[#55637A] leading-relaxed mb-5">{trust.partner.desc}</p>
+              <div className="flex flex-wrap gap-2">
+                <span className="inline-flex items-center px-3 py-1.5 rounded-lg text-xs font-arimo font-bold text-[#0F1E34] bg-[#38BDF8]/8 border border-[#38BDF8]/20">Workshop-Präsenz</span>
+                <span className="inline-flex items-center px-3 py-1.5 rounded-lg text-xs font-arimo font-bold text-[#0F1E34] bg-[#38BDF8]/8 border border-[#38BDF8]/20">Pilotierte KI-Trainings</span>
               </div>
-              <div className="flex-1 p-6 sm:p-7">
-                <span className="font-arimo text-xs font-bold uppercase tracking-wide text-[#55637A]">{f.label}</span>
-                <h3 className="font-poppins font-black text-xl text-[#0F1E34] mb-4">{f.name}</h3>
-                <ul className="space-y-2 mb-6">
-                  {f.roles.map((role) => (
-                    <li key={role} className="flex items-start gap-2">
-                      <CheckCircle2 className="w-4 h-4 text-[#38BDF8] flex-shrink-0 mt-0.5" aria-hidden="true" />
-                      <span className="font-arimo text-sm text-[#55637A] leading-snug">{role}</span>
-                    </li>
-                  ))}
-                </ul>
-                <div className="flex flex-wrap gap-2.5">
-                  <button type="button" onClick={handleContact} className="inline-flex items-center gap-1.5 px-4 py-2 rounded-lg text-sm font-arimo font-bold text-[#0A192F] transition hover:shadow-lg hover:shadow-[#38BDF8]/25" style={{ background: 'linear-gradient(135deg, #DEFF9A, #38BDF8)' }}>
-                    <Mail className="w-4 h-4" aria-hidden="true" /> Kontakt aufnehmen
-                  </button>
-                  <a href={f.linkedin} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1.5 px-4 py-2 rounded-lg text-sm font-arimo font-bold text-[#0F1E34] border border-[#E3EBF5] hover:border-[#38BDF8]/40 transition-colors">
-                    <Linkedin className="w-4 h-4 text-[#38BDF8]" aria-hidden="true" /> LinkedIn
-                  </a>
-                </div>
-              </div>
+            </motion.div>
+          </div>
+
+          {/* Rechte Spalte: Gründer */}
+          <motion.div variants={fadeRight} initial="hidden" whileInView="show" viewport={VIEWPORT} className="rounded-2xl p-8 bg-white border border-[#E3EBF5] hover:shadow-lg transition-shadow flex flex-col">
+            <span className="font-arimo text-xs font-bold uppercase tracking-wide text-[#55637A]">{f.label}</span>
+            <h3 className="font-poppins font-black text-2xl text-[#0F1E34] mb-3">{f.name}</h3>
+
+            {'quote' in f && f.quote && (
+              <p className="font-arimo italic text-[#0F1E34] text-[15px] leading-relaxed mb-5 pl-4 border-l-2 border-[#38BDF8]">„{f.quote}"</p>
+            )}
+
+            <ul className="space-y-2.5 mb-6 flex-1">
+              {f.roles.map((role) => (
+                <li key={role} className="flex items-start gap-2">
+                  <CheckCircle2 className="w-4 h-4 text-[#38BDF8] flex-shrink-0 mt-0.5" aria-hidden="true" />
+                  <span className="font-arimo text-sm text-[#55637A] leading-snug">{role}</span>
+                </li>
+              ))}
+            </ul>
+
+            <div className="flex flex-wrap gap-2.5">
+              <button type="button" onClick={handleContact} className="inline-flex items-center gap-1.5 px-4 py-2 rounded-lg text-sm font-arimo font-bold text-[#0A192F] transition hover:shadow-lg hover:shadow-[#38BDF8]/25" style={{ background: 'linear-gradient(135deg, #DEFF9A, #38BDF8)' }}>
+                <Mail className="w-4 h-4" aria-hidden="true" /> Kontakt aufnehmen
+              </button>
+              <a href={f.linkedin} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1.5 px-4 py-2 rounded-lg text-sm font-arimo font-bold text-[#0F1E34] border border-[#E3EBF5] hover:border-[#38BDF8]/40 transition-colors">
+                <Linkedin className="w-4 h-4 text-[#38BDF8]" aria-hidden="true" /> LinkedIn
+              </a>
             </div>
           </motion.div>
         </div>
