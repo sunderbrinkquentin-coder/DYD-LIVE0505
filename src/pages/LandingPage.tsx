@@ -273,7 +273,7 @@ export default function LandingPage() {
               <a
   href="#/business"
   aria-label="Zur B2B-Version für Unternehmen und Bildungsträger"
-  className="group inline-flex sm:hidden rounded-full p-[1px] transition-all duration-300 hover:-translate-y-0.5 hover:shadow-[0_10px_28px_-10px_rgba(102,192,182,0.55)] focus:outline-none focus-visible:ring-2 focus-visible:ring-[#66c0b6]/60 focus-visible:ring-offset-2 focus-visible:ring-offset-[#0A192F]"
+  className="group inline-flex rounded-full p-[1px] transition-all duration-300 hover:-translate-y-0.5 hover:shadow-[0_10px_28px_-10px_rgba(102,192,182,0.55)] focus:outline-none focus-visible:ring-2 focus-visible:ring-[#66c0b6]/60 focus-visible:ring-offset-2 focus-visible:ring-offset-[#0A192F]"
   style={{
     background:
       'linear-gradient(120deg, rgba(102,192,182,0.9), rgba(56,189,248,0.5), rgba(102,192,182,0.15))',
