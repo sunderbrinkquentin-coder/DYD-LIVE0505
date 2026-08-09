@@ -45,9 +45,14 @@ export default function B2BFooter({ onContact }: B2BFooterProps) {
         <div className="grid gap-10 md:grid-cols-4">
           {/* Marke */}
           <div className="md:col-span-2">
-            <div className="flex items-center gap-1.5 mb-4">
-              <span className="font-poppins font-black text-xl tracking-tight" style={{ letterSpacing: '-0.04em' }}>DYD</span>
-              <span className="text-[10px] font-arimo font-semibold text-[#38BDF8]">Decide Your Dream</span>
+            <div className="flex items-center gap-2.5 mb-4">
+              <span className="flex items-center justify-center w-10 h-10 rounded-xl bg-white p-1.5">
+                <img src={b2bContent.header.logoColorSrc} alt="" aria-hidden="true" className="w-full h-full object-contain" />
+              </span>
+              <span className="flex flex-col leading-none">
+                <span className="font-poppins font-black text-lg tracking-tight" style={{ letterSpacing: '-0.04em' }}>DYD</span>
+                <span className="text-[9px] font-arimo font-semibold text-[#66c0b6]">Decide Your Dream</span>
+              </span>
             </div>
             <p className="font-arimo text-sm text-white/55 max-w-sm leading-relaxed mb-5">{footer.blurb}</p>
             <div className="flex gap-2.5">
