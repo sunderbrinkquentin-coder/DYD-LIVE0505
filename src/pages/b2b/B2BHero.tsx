@@ -1,6 +1,7 @@
 import { motion, useReducedMotion, type Variants } from 'framer-motion';
 import { ArrowRight, Building2, GraduationCap, ShieldCheck, Award, Globe, Sparkles } from 'lucide-react';
 import { b2bContent } from './content';
+import DydLogo from './DydLogo';
 
 const trustIcons = [ShieldCheck, Award, GraduationCap, Globe];
 const CTA_GRADIENT = 'linear-gradient(135deg, #DEFF9A, #38BDF8)';
@@ -51,6 +52,28 @@ export default function B2BHero({ onCtaClick }: { onCtaClick?: (tab: HeroTabId) 
         animate="show"
         className="relative z-10 max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-20 text-center"
       >
+        {/* Prominentes, animiertes Logo */}
+        <motion.div variants={fadeUp} className="flex justify-center mb-6">
+          <div className="relative">
+            {!reduce && (
+              <motion.span
+                aria-hidden="true"
+                className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 rounded-full"
+                style={{ width: 190, height: 190, background: 'radial-gradient(circle, rgba(102,192,182,0.5), transparent 65%)' }}
+                animate={{ scale: [1, 1.18, 1], opacity: [0.6, 0.25, 0.6] }}
+                transition={{ duration: 4, repeat: Infinity, ease: 'easeInOut' }}
+              />
+            )}
+            <motion.div
+              animate={reduce ? {} : { y: [0, -8, 0] }}
+              transition={{ duration: 5, repeat: Infinity, ease: 'easeInOut' }}
+              className="relative"
+            >
+              <DydLogo variant="gradient" className="w-20 h-20 sm:w-24 sm:h-24 drop-shadow-[0_8px_24px_rgba(102,192,182,0.35)]" />
+            </motion.div>
+          </div>
+        </motion.div>
+
         {/* Eyebrow */}
         <motion.div
           variants={fadeUp}
