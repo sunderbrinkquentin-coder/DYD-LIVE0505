@@ -215,11 +215,7 @@ export default function B2BTabs({ initialTab = 'unternehmen', activeTab: control
   );
 }
 
-/* ─── White Label / API ─── */
-function Delivery() {
-  const { delivery } = content;
-  const { container, fadeUp } = useAnims();
-  const iconMap: Record<string, typeof Palette> = { palette: Palette, code: Code2 };
+
 
   return (
     <div>
