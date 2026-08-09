@@ -142,25 +142,146 @@ function FAQ({ items }: { items: readonly { q: string; a: string }[] }) {
   );
 }
 
-/* ─── DYD-Logo als dynamischer Dreh-Punkt zwischen den Reitern ─── */
-function BrandPivot({ activeTab, reduce }: { activeTab: TabId; reduce: boolean }) {
+type B2BTabsProps = {
+  initialTab?: TabId;
+  activeTab?: TabId;
+  onTabChange?: (tab: TabId) => void;
+  onRequestDemo?: (segment: TabId) => void;
+};
+
+export default function B2BTabs({ initialTab = 'unternehmen', activeTab: controlledTab, onTabChange, onRequestDemo }: B2BTabsProps) {
+  const [internalTab, setInternalTab] = useState<TabId>(initialTab);
+  const activeTab = controlledTab ?? internalTab;
+  const reduce = useReducedMotion() ?? false;
+
+  const tabSectionRef = useRef<HTMLElement>(null);
+  const tabRefs = useRef<(HTMLButtonElement | null)[]>([]);
+
+  const { tabA, tabB } = b2bContent.tabs;
+  const tabMeta = [
+    { id: 'unternehmen' as const, Icon: Building2, label: tabA.label, short: 'Unternehmen' },
+    { id: 'bildungstraeger' as const, Icon: GraduationCap, label: tabB.label, short: 'Bildungsträger' },
+  ];
+
+  const selectTab = (tab: TabId) => { if (onTabChange) onTabChange(tab); else setInternalTab(tab); };
+  const scrollTo = (el: Element | null | undefined) => el?.scrollIntoView({ behavior: reduce ? 'auto' : 'smooth', block: 'start' });
+  const handleTabClick = (tab: TabId) => { selectTab(tab); requestAnimationFrame(() => scrollTo(tabSectionRef.current)); };
+
+  const onTabKeyDown = (e: KeyboardEvent<HTMLDivElement>) => {
+    const idx = tabMeta.findIndex((t) => t.id === activeTab);
+    let next = idx;
+    if (e.key === 'ArrowRight' || e.key === 'ArrowDown') next = (idx + 1) % tabMeta.length;
+    else if (e.key === 'ArrowLeft' || e.key === 'ArrowUp') next = (idx - 1 + tabMeta.length) % tabMeta.length;
+    else if (e.key === 'Home') next = 0;
+    else if (e.key === 'End') next = tabMeta.length - 1;
+    else return;
+    e.preventDefault();
+    selectTab(tabMeta[next].id);
+    tabRefs.current[next]?.focus();
+  };
+
+  const requestDemo = (segment: TabId) => { onRequestDemo?.(segment); };
+
   return (
-    <div className="relative flex-shrink-0 mx-0.5 sm:mx-1" aria-hidden="true">
-      {!reduce && (
-        <motion.span
-          className="absolute -inset-1 rounded-full"
-          style={{ background: 'radial-gradient(circle, rgba(102,192,182,0.4), transparent 70%)' }}
-          animate={{ scale: [1, 1.35, 1], opacity: [0.55, 0.1, 0.55] }}
-          transition={{ duration: 3, repeat: Infinity, ease: 'easeInOut' }}
-        />
-      )}
-      <motion.div
-        className="relative w-11 h-11 sm:w-12 sm:h-12 rounded-full bg-white flex items-center justify-center border border-[#E3EBF5]"
-        style={{ boxShadow: '0 8px 20px -6px rgba(45,83,101,0.45)' }}
-        animate={{ rotate: reduce ? 0 : activeTab === 'unternehmen' ? -12 : 12 }}
-        transition={{ type: 'spring', stiffness: 260, damping: 16 }}
-      >
-        <img src={b2bContent.header.logoColorSrc} alt="" className="w-6 h-6 sm:w-7 sm:h-7" />
+    <div className="space-y-10">
+      <motion.div variants={container} initial="hidden" whileInView="show" viewport={VIEWPORT} className="text-center">
+        <motion.div variants={fadeUp} className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full mb-5 border border-[#38BDF8]/30 bg-[#38BDF8]/5">
+          <Sparkles className="w-3.5 h-3.5 text-[#38BDF8]" aria-hidden="true" />
+          <span className="font-arimo text-xs font-bold text-[#38BDF8] uppercase tracking-wide">{eyebrow}</span>
+        </motion.div>
+
+        <motion.h2 variants={fadeUp} className="font-poppins font-black leading-none mb-6" style={{ fontSize: 'clamp(2.25rem, 6vw, 4rem)', letterSpacing: '-0.04em', background: NAVY_SKY, WebkitBackgroundClip: 'text', backgroundClip: 'text', color: 'transparent' }}>
+          {product.name}
+        </motion.h2>
+
+        <motion.div variants={container} className="flex flex-wrap justify-center gap-2.5 sm:gap-3 mb-6">
+          {product.acronym.map((a) => (
+            <motion.div key={a.letter + a.word} variants={letter} className="flex items-center gap-2.5 pl-2.5 pr-4 py-2 rounded-xl bg-white border border-[#E3EBF5] hover:border-[#38BDF8]/40 hover:shadow-md transition-all">
+              <span className="font-poppins font-black text-2xl w-9 h-9 flex items-center justify-center rounded-lg text-[#0A192F]" style={{ background: SKY_LIME }}>{a.letter}</span>
+              <span className="font-arimo font-bold text-sm text-[#0F1E34]">{a.word}</span>
+            </motion.div>
+          ))}
+        </motion.div>
+
+        <motion.p variants={fadeUp} className="font-arimo text-[#55637A] text-base sm:text-lg max-w-2xl mx-auto leading-relaxed">{product.tagline}</motion.p>
+      </motion.div>
+
+      {/* Produkt-Mockup */}
+      <motion.div initial={{ opacity: 0, y: 24 }} whileInView={{ opacity: 1, y: 0 }} viewport={VIEWPORT} transition={{ duration: 0.6 }} className="max-w-3xl mx-auto">
+        {mockup}
+        <p className="text-center font-arimo text-xs text-[#94a3b8] mt-3">Illustrative Produktvorschau – Design in Entwicklung.</p>
+      </motion.div>
+    </div>
+  );
+}
+
+/* ─── White Label / API ─── */
+function Delivery() {
+  const { delivery } = b2bContent;
+  const { container, fadeUp } = useAnims();
+  const iconMap: Record<string, typeof Palette> = { palette: Palette, code: Code2 };
+
+  return (
+    <div>
+      <motion.div variants={fadeUp} initial="hidden" whileInView="show" viewport={VIEWPORT} className="text-center mb-8">
+        <h3 className="font-poppins font-bold text-xl sm:text-2xl text-[#0F1E34] mb-2">{delivery.title}</h3>
+        <p className="font-arimo text-[#55637A] max-w-2xl mx-auto leading-relaxed">{delivery.subtitle}</p>
+      </motion.div>
+
+      <motion.div variants={container} initial="hidden" whileInView="show" viewport={VIEWPORT} className="grid sm:grid-cols-2 gap-6 max-w-4xl mx-auto">
+        {delivery.options.map((o) => {
+          const Icon = iconMap[o.icon] ?? Code2;
+          return (
+            <motion.div key={o.title} variants={fadeUp} className="rounded-2xl p-6 bg-white border border-[#E3EBF5] hover:shadow-lg hover:border-[#38BDF8]/40 transition-all">
+              <div className="flex items-center gap-3 mb-3">
+                <div className="w-11 h-11 rounded-xl flex items-center justify-center" style={{ background: SKY_LIME }}>
+                  <Icon className="w-5 h-5 text-[#0A192F]" aria-hidden="true" />
+                </div>
+                <h4 className="font-poppins font-black text-lg text-[#0F1E34]">{o.title}</h4>
+              </div>
+              <p className="font-arimo text-sm text-[#55637A] leading-relaxed mb-4">{o.desc}</p>
+              <ul className="space-y-2">
+                {o.points.map((pt) => (
+                  <li key={pt} className="flex items-start gap-2">
+                    <Check className="w-4 h-4 text-[#38BDF8] flex-shrink-0 mt-0.5" aria-hidden="true" />
+                    <span className="font-arimo text-sm text-[#0F1E34]">{pt}</span>
+                  </li>
+                ))}
+              </ul>
+            </motion.div>
+          );
+        })}
+      </motion.div>
+    </div>
+  );
+}
+
+/* ─── FAQ-Akkordeon ─── */
+function FAQ({ items }: { items: readonly { q: string; a: string }[] }) {
+  const { reduce, container, fadeUp } = useAnims();
+  const [open, setOpen] = useState<number | null>(0);
+  return (
+    <div>
+      <motion.h3 variants={fadeUp} initial="hidden" whileInView="show" viewport={VIEWPORT} className="font-poppins font-bold text-xl text-[#0F1E34] mb-6 text-center">Häufige Fragen</motion.h3>
+      <motion.div variants={container} initial="hidden" whileInView="show" viewport={VIEWPORT} className="max-w-3xl mx-auto space-y-3">
+        {items.map((item, i) => {
+          const isOpen = open === i;
+          return (
+            <motion.div key={item.q} variants={fadeUp} className="rounded-2xl bg-white border border-[#E3EBF5] overflow-hidden">
+              <button type="button" onClick={() => setOpen(isOpen ? null : i)} aria-expanded={isOpen} aria-controls={`faq-panel-${i}`} className="w-full flex items-center justify-between gap-4 px-5 py-4 text-left b2b-focus-ring">
+                <span className="font-poppins font-bold text-sm sm:text-base text-[#0F1E34]">{item.q}</span>
+                <Plus className={`w-5 h-5 text-[#38BDF8] flex-shrink-0 transition-transform ${isOpen ? 'rotate-45' : ''}`} style={{ transitionDuration: reduce ? '0ms' : '250ms' }} aria-hidden="true" />
+              </button>
+              <AnimatePresence initial={false}>
+                {isOpen && (
+                  <motion.div id={`faq-panel-${i}`} initial={{ height: 0, opacity: 0 }} animate={{ height: 'auto', opacity: 1 }} exit={{ height: 0, opacity: 0 }} transition={{ duration: reduce ? 0 : 0.25, ease: 'easeInOut' }} className="overflow-hidden">
+                    <p className="font-arimo text-sm text-[#55637A] leading-relaxed px-5 pb-5">{item.a}</p>
+                  </motion.div>
+                )}
+              </AnimatePresence>
+            </motion.div>
+          );
+        })}
       </motion.div>
     </div>
   );
@@ -233,10 +354,20 @@ export default function B2BTabs({ initialTab = 'unternehmen', activeTab: control
   return (
     <section ref={tabSectionRef} id="b2b-tabs" aria-label="DYD für Unternehmen und Bildungsträger" className="relative bg-[#F6F9FD] py-20 px-4 sm:px-6 lg:px-8 scroll-mt-20 lg:scroll-mt-24">
       <div className="max-w-6xl mx-auto">
-        <div className="flex items-center gap-2 p-1.5 rounded-2xl bg-white border border-[#E3EBF5] shadow-sm mb-12 max-w-2xl mx-auto" role="tablist" aria-label="Zielgruppe wählen" onKeyDown={onTabKeyDown}>
-          {renderTab(0)}
-          <BrandPivot activeTab={activeTab} reduce={reduce} />
-          {renderTab(1)}
+        <div className="flex gap-2 p-1.5 rounded-2xl bg-white border border-[#E3EBF5] shadow-sm mb-12 max-w-xl mx-auto" role="tablist" aria-label="Zielgruppe wählen" onKeyDown={onTabKeyDown}>
+          {tabMeta.map((t, i) => {
+            const selected = activeTab === t.id;
+            const Icon = t.Icon;
+            return (
+              <button key={t.id} ref={(el) => (tabRefs.current[i] = el)} role="tab" id={`tab-${t.id}`} aria-selected={selected} aria-controls={`panel-${t.id}`} tabIndex={selected ? 0 : -1} onClick={() => handleTabClick(t.id)}
+                className={`flex-1 flex items-center justify-center gap-2 px-4 py-3 rounded-xl text-sm font-arimo font-bold transition b2b-focus-ring ${selected ? 'text-white shadow-md' : 'text-[#55637A] hover:text-[#0F1E34]'}`}
+                style={selected ? { background: NAVY_SKY } : undefined}>
+                <Icon className="w-4 h-4" aria-hidden="true" />
+                <span className="hidden sm:inline">{t.label}</span>
+                <span className="sm:hidden">{t.short}</span>
+              </button>
+            );
+          })}
         </div>
 
         <AnimatePresence mode="wait">
