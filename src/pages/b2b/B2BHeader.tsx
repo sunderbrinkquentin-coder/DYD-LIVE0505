@@ -114,14 +114,16 @@ export default function B2BHeader({ onContact }: B2BHeaderProps) {
           {/* Logo */}
           <a
             href="#/business"
-            className="flex items-center gap-1.5 b2b-focus-ring"
+            className="flex items-center gap-2.5 b2b-focus-ring"
             aria-label={b2bContent.header.logoAlt}
           >
-         <img
-  src={b2bContent.header.logoSrc}
-  alt={b2bContent.header.logoAlt}
-  className="h-8 w-auto"
-/>
+            <span className="flex items-center justify-center w-10 h-10 rounded-xl bg-white p-1.5 shadow-lg shadow-black/20">
+              <img src={b2bContent.header.logoColorSrc} alt="" aria-hidden="true" className="w-full h-full object-contain" />
+            </span>
+            <span className="flex flex-col leading-none">
+              <span className="font-poppins font-black text-lg text-white tracking-tight" style={{ letterSpacing: '-0.04em' }}>DYD</span>
+              <span className="text-[9px] font-arimo font-semibold text-[#66c0b6] hidden sm:block">Decide Your Dream</span>
+            </span>
           </a>
 
           {/* Desktop: Toggle + CTA */}
