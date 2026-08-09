@@ -111,34 +111,6 @@ function Delivery() {
   );
 }
 
-/* ─── Emotionaler Narrativ-Block ─── */
-function Narrative({ n }: { n: { title: string; body: string; scenario: string } }) {
-  const { fadeUp } = useAnims();
-  const [head, ...rest] = n.scenario.split(':');
-  return (
-    <motion.div
-      variants={fadeUp}
-      initial="hidden"
-      whileInView="show"
-      viewport={VIEWPORT}
-      className="relative overflow-hidden rounded-3xl px-6 py-10 sm:px-12 sm:py-14 text-center"
-      style={{ background: 'radial-gradient(600px 260px at 50% 0%, rgba(86,212,255,0.22), transparent 70%), linear-gradient(150deg, #0A192F, #123059)' }}
-    >
-      <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full mb-5 border border-white/15 bg-white/5">
-        <Sparkles className="w-3.5 h-3.5 text-[#DEFF9A]" aria-hidden="true" />
-        <span className="font-arimo text-[11px] font-bold text-[#DEFF9A] uppercase tracking-wide">Warum das zählt</span>
-      </div>
-      <h3 className="font-poppins font-black text-white text-2xl sm:text-3xl leading-tight max-w-2xl mx-auto mb-4" style={{ letterSpacing: '-0.02em' }}>{n.title}</h3>
-      <p className="font-arimo text-white/70 text-base sm:text-lg max-w-2xl mx-auto leading-relaxed mb-6">{n.body}</p>
-      <div className="max-w-xl mx-auto rounded-2xl px-5 py-4 text-left" style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(222,255,154,0.25)' }}>
-        <p className="font-arimo text-sm text-[#e8f6d8] leading-relaxed">
-          <span className="font-bold text-[#DEFF9A]">{head}:</span>{rest.join(':')}
-        </p>
-      </div>
-    </motion.div>
-  );
-}
-
 /* ─── FAQ-Akkordeon ─── */
 function FAQ({ items }: { items: readonly { q: string; a: string }[] }) {
   const { reduce, container, fadeUp } = useAnims();
@@ -165,6 +137,30 @@ function FAQ({ items }: { items: readonly { q: string; a: string }[] }) {
             </motion.div>
           );
         })}
+      </motion.div>
+    </div>
+  );
+}
+
+/* ─── DYD-Logo als dynamischer Dreh-Punkt zwischen den Reitern ─── */
+function BrandPivot({ activeTab, reduce }: { activeTab: TabId; reduce: boolean }) {
+  return (
+    <div className="relative flex-shrink-0 mx-0.5 sm:mx-1" aria-hidden="true">
+      {!reduce && (
+        <motion.span
+          className="absolute -inset-1 rounded-full"
+          style={{ background: 'radial-gradient(circle, rgba(102,192,182,0.4), transparent 70%)' }}
+          animate={{ scale: [1, 1.35, 1], opacity: [0.55, 0.1, 0.55] }}
+          transition={{ duration: 3, repeat: Infinity, ease: 'easeInOut' }}
+        />
+      )}
+      <motion.div
+        className="relative w-11 h-11 sm:w-12 sm:h-12 rounded-full bg-white flex items-center justify-center border border-[#E3EBF5]"
+        style={{ boxShadow: '0 8px 20px -6px rgba(45,83,101,0.45)' }}
+        animate={{ rotate: reduce ? 0 : activeTab === 'unternehmen' ? -12 : 12 }}
+        transition={{ type: 'spring', stiffness: 260, damping: 16 }}
+      >
+        <img src={b2bContent.header.logoColorSrc} alt="" className="w-6 h-6 sm:w-7 sm:h-7" />
       </motion.div>
     </div>
   );
@@ -210,23 +206,37 @@ export default function B2BTabs({ initialTab = 'unternehmen', activeTab: control
 
   const requestDemo = (segment: TabId) => { onRequestDemo?.(segment); };
 
+  const renderTab = (i: number) => {
+    const t = tabMeta[i];
+    const selected = activeTab === t.id;
+    const Icon = t.Icon;
+    return (
+      <button
+        key={t.id}
+        ref={(el) => (tabRefs.current[i] = el)}
+        role="tab"
+        id={`tab-${t.id}`}
+        aria-selected={selected}
+        aria-controls={`panel-${t.id}`}
+        tabIndex={selected ? 0 : -1}
+        onClick={() => handleTabClick(t.id)}
+        className={`flex-1 flex items-center justify-center gap-2 px-4 py-3 rounded-xl text-sm font-arimo font-bold transition b2b-focus-ring ${selected ? 'text-white shadow-md' : 'text-[#55637A] hover:text-[#0F1E34]'}`}
+        style={selected ? { background: NAVY_SKY } : undefined}
+      >
+        <Icon className="w-4 h-4" aria-hidden="true" />
+        <span className="hidden sm:inline">{t.label}</span>
+        <span className="sm:hidden">{t.short}</span>
+      </button>
+    );
+  };
+
   return (
     <section ref={tabSectionRef} id="b2b-tabs" aria-label="DYD für Unternehmen und Bildungsträger" className="relative bg-[#F6F9FD] py-20 px-4 sm:px-6 lg:px-8 scroll-mt-20 lg:scroll-mt-24">
       <div className="max-w-6xl mx-auto">
-        <div className="flex gap-2 p-1.5 rounded-2xl bg-white border border-[#E3EBF5] shadow-sm mb-12 max-w-xl mx-auto" role="tablist" aria-label="Zielgruppe wählen" onKeyDown={onTabKeyDown}>
-          {tabMeta.map((t, i) => {
-            const selected = activeTab === t.id;
-            const Icon = t.Icon;
-            return (
-              <button key={t.id} ref={(el) => (tabRefs.current[i] = el)} role="tab" id={`tab-${t.id}`} aria-selected={selected} aria-controls={`panel-${t.id}`} tabIndex={selected ? 0 : -1} onClick={() => handleTabClick(t.id)}
-                className={`flex-1 flex items-center justify-center gap-2 px-4 py-3 rounded-xl text-sm font-arimo font-bold transition b2b-focus-ring ${selected ? 'text-white shadow-md' : 'text-[#55637A] hover:text-[#0F1E34]'}`}
-                style={selected ? { background: NAVY_SKY } : undefined}>
-                <Icon className="w-4 h-4" aria-hidden="true" />
-                <span className="hidden sm:inline">{t.label}</span>
-                <span className="sm:hidden">{t.short}</span>
-              </button>
-            );
-          })}
+        <div className="flex items-center gap-2 p-1.5 rounded-2xl bg-white border border-[#E3EBF5] shadow-sm mb-12 max-w-2xl mx-auto" role="tablist" aria-label="Zielgruppe wählen" onKeyDown={onTabKeyDown}>
+          {renderTab(0)}
+          <BrandPivot activeTab={activeTab} reduce={reduce} />
+          {renderTab(1)}
         </div>
 
         <AnimatePresence mode="wait">
@@ -253,8 +263,6 @@ function TabAContent({ onDemo }: { onDemo: () => void }) {
   return (
     <div className="space-y-16">
       <ProductIntro eyebrow={tabA.eyebrow} product={tabA.product} mockup={<NexusMockup />} />
-
-      <Narrative n={tabA.narrative} />
 
       <div className="grid md:grid-cols-2 gap-6">
         <motion.div variants={fadeLeft} initial="hidden" whileInView="show" viewport={VIEWPORT} className="rounded-2xl p-6 sm:p-8 border-2" style={{ borderColor: 'rgba(239,83,80,0.25)', background: 'rgba(239,83,80,0.03)' }}>
@@ -314,8 +322,6 @@ function TabBContent({ onDemo }: { onDemo: () => void }) {
   return (
     <div className="space-y-16">
       <ProductIntro eyebrow={tabB.eyebrow} product={tabB.product} mockup={<OrbitMockup />} />
-
-      <Narrative n={tabB.narrative} />
 
       <div className="grid md:grid-cols-2 gap-6">
         <motion.div variants={fadeLeft} initial="hidden" whileInView="show" viewport={VIEWPORT} className="rounded-2xl p-6 sm:p-8 border-2" style={{ borderColor: 'rgba(239,83,80,0.25)', background: 'rgba(239,83,80,0.03)' }}>
