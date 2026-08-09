@@ -1,7 +1,8 @@
 export const b2bContent = {
   header: {
     logoAlt: 'DYD – Decide Your Dream',
-    logoSrc: '/dyd-logo-white.svg',   // ← diese Zeile fehlt bei dir
+    logoSrc: '/dyd-logo-white.svg',
+    logoColorSrc: '/DYD%20Logo%20RGB.svg',
     applicantUrl: '/',
     toggleApplicant: 'Für Bewerber',
     toggleBusiness: 'Für Business',
