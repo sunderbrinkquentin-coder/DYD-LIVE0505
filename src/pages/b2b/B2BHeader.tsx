@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { motion, AnimatePresence, useReducedMotion } from 'framer-motion';
 import { Menu, X, ArrowRight } from 'lucide-react';
 import { b2bContent } from './content';
+import DydLogo from './DydLogo';
 
 // Zentrale Gradients – einmal definiert, überall konsistent
 const PILL_GRADIENT = 'linear-gradient(135deg, #38BDF8, #DEFF9A)';
@@ -117,9 +118,7 @@ export default function B2BHeader({ onContact }: B2BHeaderProps) {
             className="flex items-center gap-2.5 b2b-focus-ring"
             aria-label={b2bContent.header.logoAlt}
           >
-            <span className="flex items-center justify-center w-10 h-10 rounded-xl bg-white p-1.5 shadow-lg shadow-black/20">
-              <img src={b2bContent.header.logoColorSrc} alt="" aria-hidden="true" className="w-full h-full object-contain" />
-            </span>
+            <DydLogo variant="white" className="h-9 w-9" />
             <span className="flex flex-col leading-none">
               <span className="font-poppins font-black text-lg text-white tracking-tight" style={{ letterSpacing: '-0.04em' }}>DYD</span>
               <span className="text-[9px] font-arimo font-semibold text-[#66c0b6] hidden sm:block">Decide Your Dream</span>
