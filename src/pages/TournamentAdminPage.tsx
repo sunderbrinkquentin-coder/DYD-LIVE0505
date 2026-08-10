@@ -1,22 +1,21 @@
 // src/pages/TournamentAdminPage.tsx
 import { useEffect, useState } from 'react';
 import { supabase } from '../lib/supabase';
-import { useTournament, type Match } from '../hooks/useTournament';
+import { useTournament } from '../hooks/useTournament';
 import { useCountdown, formatTime } from '../hooks/useCountdown';
 import {
-  TOURNAMENT_ADMIN_ID, createTournament, addTeams, deleteTeam, drawGroups,
+  TOURNAMENT_ADMIN_ID, createTournament, addTeams, syncBierpongTeams, deleteTeam, drawGroups,
   startNextWave, submitResult, generateKo, setTableCount, adjustTimer, stopTimer,
 } from '../lib/tournamentApi';
 
 export default function TournamentAdminPage() {
   const [authorized, setAuthorized] = useState<boolean | null>(null);
-  const { tournament, groups, teams, matches, loading, reload } = useTournament();
+  const { tournament, teams, matches, loading, reload } = useTournament();
   const remaining = useCountdown(tournament?.round_ends_at ?? null);
 
   const [msg, setMsg] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
 
-  // Create-Form
   const [name, setName] = useState('Bierpong-Turnier');
   const [tableCount, setTC] = useState(3);
   const [advance, setAdvance] = useState(2);
@@ -24,7 +23,6 @@ export default function TournamentAdminPage() {
   const [koSec, setKoSec] = useState(780);
   const [teamText, setTeamText] = useState('');
 
-  // Score-Inputs
   const [scores, setScores] = useState<Record<string, { a: string; b: string }>>({});
 
   useEffect(() => {
@@ -47,16 +45,14 @@ export default function TournamentAdminPage() {
   if (!authorized) return <Gate>Kein Zugriff. Bitte als Admin einloggen.</Gate>;
   if (loading) return <Gate>Lädt…</Gate>;
 
-  const live = matches.filter((m) => m.status === 'live');
+  const live = matches.filter((m) => m.status === 'live').sort((a, b) => (a.table_no ?? 99) - (b.table_no ?? 99));
   const groupPending = matches.filter((m) => m.phase === 'group' && m.status === 'pending');
   const groupAllDone =
     matches.some((m) => m.phase === 'group') &&
     matches.filter((m) => m.phase === 'group').every((m) => m.status === 'done');
   const koExists = matches.some((m) => m.phase === 'ko');
   const canStartWave =
-    (tournament?.status === 'group_stage' || tournament?.status === 'ko_stage') &&
-    live.length === 0;
-
+    (tournament?.status === 'group_stage' || tournament?.status === 'ko_stage') && live.length === 0;
   const needSetup = !tournament || tournament.status === 'setup';
 
   return (
@@ -68,9 +64,7 @@ export default function TournamentAdminPage() {
         </div>
 
         {msg && (
-          <div className="rounded-lg bg-slate-800 border border-slate-700 px-4 py-2 text-sm">
-            {msg}
-          </div>
+          <div className="rounded-lg bg-slate-800 border border-slate-700 px-4 py-2 text-sm">{msg}</div>
         )}
 
         {/* ---------- SETUP ---------- */}
@@ -82,20 +76,16 @@ export default function TournamentAdminPage() {
             </Field>
             <div className="grid grid-cols-2 gap-3">
               <Field label="Tische (live änderbar)">
-                <input type="number" min={1} className={inp} value={tableCount}
-                  onChange={(e) => setTC(+e.target.value)} />
+                <input type="number" min={1} className={inp} value={tableCount} onChange={(e) => setTC(+e.target.value)} />
               </Field>
               <Field label="Aufsteiger pro Gruppe">
-                <input type="number" min={1} className={inp} value={advance}
-                  onChange={(e) => setAdvance(+e.target.value)} />
+                <input type="number" min={1} className={inp} value={advance} onChange={(e) => setAdvance(+e.target.value)} />
               </Field>
               <Field label="Gruppenspiel (Sek.)">
-                <input type="number" min={60} step={30} className={inp} value={groupSec}
-                  onChange={(e) => setGroupSec(+e.target.value)} />
+                <input type="number" min={60} step={30} className={inp} value={groupSec} onChange={(e) => setGroupSec(+e.target.value)} />
               </Field>
               <Field label="KO-Spiel (Sek.)">
-                <input type="number" min={60} step={30} className={inp} value={koSec}
-                  onChange={(e) => setKoSec(+e.target.value)} />
+                <input type="number" min={60} step={30} className={inp} value={koSec} onChange={(e) => setKoSec(+e.target.value)} />
               </Field>
             </div>
             {!tournament && (
@@ -112,8 +102,25 @@ export default function TournamentAdminPage() {
 
             {tournament && (
               <>
-                <h2 className="pt-2 font-semibold">2 · Teams (eine pro Zeile)</h2>
-                <textarea rows={6} className={inp} value={teamText}
+                <h2 className="pt-2 font-semibold">2 · Teams</h2>
+
+                {/* Automatischer Import aus Ticketkäufen */}
+                <div className="rounded-xl bg-emerald-950/30 border border-emerald-800 p-4 space-y-2">
+                  <p className="text-sm text-emerald-200">
+                    Teams direkt aus den Bierpong-Ticketkäufen ziehen. Beliebig oft ausführbar —
+                    es werden nur neue Teams ergänzt, nichts überschrieben.
+                  </p>
+                  <button className={btnPrimary} disabled={busy}
+                    onClick={() => run(async () => {
+                      const n = await syncBierpongTeams(tournament.id);
+                      setMsg(n > 0 ? `${n} Team(s) aus Ticketkäufen importiert.` : 'Keine neuen Teams gefunden.');
+                    })}>
+                    ⤵ Teams aus Ticketkäufen importieren
+                  </button>
+                </div>
+
+                <p className="pt-1 text-sm text-slate-400">Oder manuell (eine pro Zeile):</p>
+                <textarea rows={5} className={inp} value={teamText}
                   onChange={(e) => setTeamText(e.target.value)}
                   placeholder={'Team Alpha\nTeam Bravo\n…'} />
                 <button className={btn} disabled={busy}
@@ -121,25 +128,22 @@ export default function TournamentAdminPage() {
                     await addTeams(tournament.id, teamText.split('\n'));
                     setTeamText('');
                   }, 'Teams hinzugefügt.')}>
-                  Teams speichern
+                  Manuelle Teams speichern
                 </button>
 
                 {teams.length > 0 && (
                   <div className="flex flex-wrap gap-2 pt-2">
                     {teams.map((t) => (
-                      <span key={t.id}
-                        className="flex items-center gap-1 rounded-full bg-slate-800 px-3 py-1 text-sm">
+                      <span key={t.id} className="flex items-center gap-1 rounded-full bg-slate-800 px-3 py-1 text-sm">
                         {t.name}
-                        <button className="text-slate-500 hover:text-red-400"
-                          onClick={() => run(() => deleteTeam(t.id))}>✕</button>
+                        <button className="text-slate-500 hover:text-red-400" onClick={() => run(() => deleteTeam(t.id))}>✕</button>
                       </span>
                     ))}
                   </div>
                 )}
 
                 <button className={btnPrimary} disabled={busy || teams.length < 2}
-                  onClick={() => run(() => drawGroups(tournament.id),
-                    'Gruppen ausgelost & Spielplan erstellt.')}>
+                  onClick={() => run(() => drawGroups(tournament.id), 'Gruppen ausgelost & Spielplan erstellt.')}>
                   3 · Gruppen auslosen & Spielplan erstellen ({teams.length} Teams)
                 </button>
               </>
@@ -155,9 +159,7 @@ export default function TournamentAdminPage() {
                 {tournament.round_label ?? 'Bereit'}
               </div>
               <div className={`font-mono text-5xl font-bold tabular-nums ${
-                tournament.round_ends_at
-                  ? remaining <= 30 ? 'text-red-400' : 'text-emerald-400'
-                  : 'text-slate-600'}`}>
+                tournament.round_ends_at ? (remaining <= 30 ? 'text-red-400' : 'text-emerald-400') : 'text-slate-600'}`}>
                 {tournament.round_ends_at ? formatTime(remaining) : '–:––'}
               </div>
 
@@ -165,70 +167,54 @@ export default function TournamentAdminPage() {
                 <button className={btnPrimary} disabled={busy || !canStartWave}
                   onClick={() => run(async () => {
                     const n = await startNextWave(tournament.id);
-                    setMsg(`${n} Spiel(e) gestartet.`);
+                    setMsg(`${n} Spiel(e) gestartet (Tische 1–${n}).`);
                   })}>
                   ▶ Nächste Welle starten
                 </button>
                 <button className={btn} disabled={busy || !tournament.round_ends_at}
-                  onClick={() => run(() => adjustTimer(tournament.id, tournament.round_ends_at, 60))}>
-                  +1 min
-                </button>
+                  onClick={() => run(() => adjustTimer(tournament.id, tournament.round_ends_at, 60))}>+1 min</button>
                 <button className={btn} disabled={busy || !tournament.round_ends_at}
-                  onClick={() => run(() => adjustTimer(tournament.id, tournament.round_ends_at, 120))}>
-                  +2 min
-                </button>
+                  onClick={() => run(() => adjustTimer(tournament.id, tournament.round_ends_at, 120))}>+2 min</button>
                 <button className={btn} disabled={busy || !tournament.round_ends_at}
-                  onClick={() => run(() => adjustTimer(tournament.id, tournament.round_ends_at, -60))}>
-                  −1 min
-                </button>
+                  onClick={() => run(() => adjustTimer(tournament.id, tournament.round_ends_at, -60))}>−1 min</button>
                 <button className={btn} disabled={busy || !tournament.round_ends_at}
-                  onClick={() => run(() => stopTimer(tournament.id))}>
-                  ■ Timer stoppen
-                </button>
+                  onClick={() => run(() => stopTimer(tournament.id))}>■ Timer stoppen</button>
               </div>
 
               <div className="mt-4 flex items-center justify-center gap-2 text-sm">
                 <span className="text-slate-400">Tische:</span>
                 {[2, 3, 4, 5].map((n) => (
                   <button key={n} disabled={busy}
-                    className={`rounded px-3 py-1 ${
-                      tournament.table_count === n
-                        ? 'bg-emerald-600 text-white'
-                        : 'bg-slate-800 text-slate-300'}`}
-                    onClick={() => run(() => setTableCount(tournament.id, n))}>
-                    {n}
-                  </button>
+                    className={`rounded px-3 py-1 ${tournament.table_count === n ? 'bg-emerald-600 text-white' : 'bg-slate-800 text-slate-300'}`}
+                    onClick={() => run(() => setTableCount(tournament.id, n))}>{n}</button>
                 ))}
               </div>
               {!canStartWave && live.length > 0 && (
-                <p className="mt-3 text-sm text-amber-300">
-                  Erst alle laufenden Ergebnisse eintragen, dann nächste Welle.
-                </p>
+                <p className="mt-3 text-sm text-amber-300">Erst alle laufenden Ergebnisse eintragen, dann nächste Welle.</p>
               )}
             </section>
 
-            {/* Laufende Spiele -> Ergebnis */}
             {live.length > 0 && (
               <section className="space-y-3">
                 <h2 className="font-semibold">Ergebnisse eintragen</h2>
                 {live.map((m) => {
                   const s = scores[m.id] ?? { a: '', b: '' };
                   return (
-                    <div key={m.id}
-                      className="rounded-xl bg-slate-900 border border-slate-800 p-4">
-                      <div className="mb-2 text-xs text-slate-400">{m.label ?? 'Gruppe'}</div>
+                    <div key={m.id} className="rounded-xl bg-slate-900 border border-slate-800 p-4">
+                      <div className="mb-2 flex items-center gap-2 text-xs">
+                        {m.table_no != null && (
+                          <span className="rounded bg-emerald-600 px-2 py-0.5 font-semibold text-white">Tisch {m.table_no}</span>
+                        )}
+                        <span className="text-slate-400">{m.label ?? 'Gruppe'}</span>
+                      </div>
                       <div className="grid grid-cols-[1fr_auto_1fr] items-center gap-3">
                         <div className="text-right truncate">{nameOf(m.team_a)}</div>
                         <div className="flex items-center gap-2">
-                          <input type="number" min={0} className={`${inp} w-16 text-center`}
-                            value={s.a}
-                            onChange={(e) =>
-                              setScores({ ...scores, [m.id]: { ...s, a: e.target.value } })} />
+                          <input type="number" min={0} className={`${inp} w-16 text-center`} value={s.a}
+                            onChange={(e) => setScores({ ...scores, [m.id]: { ...s, a: e.target.value } })} />
                           <span>:</span>
-                          <input type="number" min={0} className={`${inp} w-16 text-center`}
-                            value={s.b}
-                            onChange={(e) =>
-                              setScores({ ...scores, [m.id]: { ...s, b: e.target.value } })} />
+                          <input type="number" min={0} className={`${inp} w-16 text-center`} value={s.b}
+                            onChange={(e) => setScores({ ...scores, [m.id]: { ...s, b: e.target.value } })} />
                         </div>
                         <div className="truncate">{nameOf(m.team_b)}</div>
                       </div>
@@ -250,18 +236,14 @@ export default function TournamentAdminPage() {
               </section>
             )}
 
-            {/* Übergang zum KO */}
             {tournament.status === 'group_stage' && groupAllDone && !koExists && (
               <button className={`${btnPrimary} w-full`} disabled={busy}
-                onClick={() => run(() => generateKo(tournament.id),
-                  'KO-Bracket erstellt.')}>
+                onClick={() => run(() => generateKo(tournament.id), 'KO-Bracket erstellt.')}>
                 Gruppenphase fertig → KO-Bracket erstellen
               </button>
             )}
             {tournament.status === 'group_stage' && (
-              <p className="text-center text-sm text-slate-400">
-                Offene Gruppenspiele: {groupPending.length}
-              </p>
+              <p className="text-center text-sm text-slate-400">Offene Gruppenspiele: {groupPending.length}</p>
             )}
           </>
         )}
@@ -274,7 +256,7 @@ export default function TournamentAdminPage() {
 
         {tournament && (
           <p className="text-center text-xs text-slate-500">
-            Öffentliches Tableau: <code>/#/turnier/{tournament.id}</code>
+            Öffentliches Tableau: <code>/#/turnier/{tournament.id}</code> · Festival-Seite zeigt es automatisch.
           </p>
         )}
       </div>
@@ -282,12 +264,9 @@ export default function TournamentAdminPage() {
   );
 }
 
-const inp =
-  'w-full rounded-lg bg-slate-800 border border-slate-700 px-3 py-2 text-slate-100 outline-none focus:border-emerald-500';
-const btn =
-  'rounded-lg bg-slate-800 border border-slate-700 px-4 py-2 text-sm font-medium hover:bg-slate-700 disabled:opacity-40';
-const btnPrimary =
-  'rounded-lg bg-emerald-600 px-4 py-2 text-sm font-semibold text-white hover:bg-emerald-500 disabled:opacity-40';
+const inp = 'w-full rounded-lg bg-slate-800 border border-slate-700 px-3 py-2 text-slate-100 outline-none focus:border-emerald-500';
+const btn = 'rounded-lg bg-slate-800 border border-slate-700 px-4 py-2 text-sm font-medium hover:bg-slate-700 disabled:opacity-40';
+const btnPrimary = 'rounded-lg bg-emerald-600 px-4 py-2 text-sm font-semibold text-white hover:bg-emerald-500 disabled:opacity-40';
 
 function Field({ label, children }: { label: string; children: React.ReactNode }) {
   return (
@@ -299,8 +278,6 @@ function Field({ label, children }: { label: string; children: React.ReactNode }
 }
 function Gate({ children }: { children: React.ReactNode }) {
   return (
-    <div className="flex min-h-screen items-center justify-center bg-slate-950 text-slate-300">
-      {children}
-    </div>
+    <div className="flex min-h-screen items-center justify-center bg-slate-950 text-slate-300">{children}</div>
   );
 }
