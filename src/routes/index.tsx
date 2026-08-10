@@ -34,7 +34,7 @@ import HarmonyFestivalPage from '../pages/HarmonyFestivalPage';
 import FestivalPaymentSuccessPage from '../pages/FestivalPaymentSuccessPage';
 // 🔐 AUTH GUARD IMPORT
 import { PrivateRoute } from '../components/PrivateRoute';
-import FestivalTournamentBoardPage from '../components/festival/FestivalTournamentBoardPage';
+import FestivalTournamentBoard from '../components/festival/FestivalTournamentBoard';
 
 export const router = createHashRouter([
   // Landing
