@@ -22,6 +22,7 @@ export interface Match {
   score_a: number | null; score_b: number | null;
   status: MatchStatus; winner: string | null;
   next_match_id: string | null; next_slot: 'a' | 'b' | null; label: string | null;
+  table_no: number | null;
 }
 export interface Standing {
   tournament_id: string; group_id: string; team_id: string; team_name: string;
