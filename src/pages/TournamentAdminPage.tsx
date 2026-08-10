@@ -67,15 +67,17 @@ export default function TournamentAdminPage() {
           <div className="rounded-lg bg-slate-800 border border-slate-700 px-4 py-2 text-sm">{msg}</div>
         )}
 
-        {/* ---------- SETUP ---------- */}
+      {/* ---------- SETUP ---------- */}
         {needSetup && (
-          <section className="space-y-4 rounded-2xl bg-slate-900 border border-slate-800 p-5">
-            <h2 className="font-semibold">1 · Turnier anlegen</h2>
-            <Field label="Name">
+          <section className="space-y-6 rounded-2xl bg-slate-900 border border-slate-800 p-5">
+            <h2 className="text-lg font-bold text-white">1 · Turnier & Einstellungen</h2>
+            
+            <Field label="Turniername">
               <input className={inp} value={name} onChange={(e) => setName(e.target.value)} />
             </Field>
+
             <div className="grid grid-cols-2 gap-3">
-              <Field label="Tische (live änderbar)">
+              <Field label="Tische">
                 <input type="number" min={1} className={inp} value={tableCount} onChange={(e) => setTC(+e.target.value)} />
               </Field>
               <Field label="Aufsteiger pro Gruppe">
@@ -88,69 +90,113 @@ export default function TournamentAdminPage() {
                 <input type="number" min={60} step={30} className={inp} value={koSec} onChange={(e) => setKoSec(+e.target.value)} />
               </Field>
             </div>
+
             {!tournament && (
-              <button className={btn} disabled={busy}
+              <button className={`${btnPrimary} w-full py-3`} disabled={busy}
                 onClick={() => run(async () => {
                   await createTournament({
                     name, table_count: tableCount, advance_per_group: advance,
                     group_round_seconds: groupSec, ko_round_seconds: koSec,
                   });
                 }, 'Turnier angelegt.')}>
-                Turnier erstellen
+                Turnier erstellen & weiter zu den Teams
               </button>
             )}
 
             {tournament && (
-              <>
-                <h2 className="pt-2 font-semibold">2 · Teams</h2>
+              <div className="space-y-5 pt-4 border-t border-slate-800">
+                <div className="flex items-center justify-between">
+                  <h2 className="text-lg font-bold text-white">2 · Teams verwalten</h2>
+                  <span className="text-xs font-semibold px-2.5 py-1 rounded-full bg-emerald-950 text-emerald-400 border border-emerald-800">
+                    {teams.length} Teams bereit
+                  </span>
+                </div>
 
-                {/* Automatischer Import aus Ticketkäufen */}
-                <div className="rounded-xl bg-emerald-950/30 border border-emerald-800 p-4 space-y-2">
-                  <p className="text-sm text-emerald-200">
-                    Teams direkt aus den Bierpong-Ticketkäufen ziehen. Beliebig oft ausführbar —
-                    es werden nur neue Teams ergänzt, nichts überschrieben.
+                {/* Schnell-Eingabe (Einzelnes Team hinzufügen) */}
+                <div className="space-y-2">
+                  <span className="text-xs text-slate-400 font-medium">Neues Team hinzufügen</span>
+                  <div className="flex gap-2">
+                    <input
+                      className={inp}
+                      value={teamText}
+                      onChange={(e) => setTeamText(e.target.value)}
+                      placeholder="Teamname eingeben (z. B. Bieritaten)..."
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter' && teamText.trim()) {
+                          e.preventDefault();
+                          run(async () => {
+                            await addTeams(tournament.id, [teamText.trim()]);
+                            setTeamText('');
+                          });
+                        }
+                      }}
+                    />
+                    <button
+                      className={`${btnPrimary} whitespace-nowrap px-5`}
+                      disabled={busy || !teamText.trim()}
+                      onClick={() => run(async () => {
+                        await addTeams(tournament.id, [teamText.trim()]);
+                        setTeamText('');
+                      }, 'Team hinzugefügt.')}
+                    >
+                      + Hinzufügen
+                    </button>
+                  </div>
+                </div>
+
+                {/* Automatischer Ticket-Import */}
+                <div className="rounded-xl bg-slate-950/60 border border-slate-800 p-3 flex flex-wrap items-center justify-between gap-3">
+                  <p className="text-xs text-slate-400">
+                    Tickets synchonisieren?
                   </p>
-                  <button className={btnPrimary} disabled={busy}
+                  <button className={`${btn} text-xs py-1.5`} disabled={busy}
                     onClick={() => run(async () => {
                       const n = await syncBierpongTeams(tournament.id);
-                      setMsg(n > 0 ? `${n} Team(s) aus Ticketkäufen importiert.` : 'Keine neuen Teams gefunden.');
+                      setMsg(n > 0 ? `${n} Team(s) importiert.` : 'Keine neuen Ticket-Teams.');
                     })}>
                     ⤵ Teams aus Ticketkäufen importieren
                   </button>
                 </div>
 
-                <p className="pt-1 text-sm text-slate-400">Oder manuell (eine pro Zeile):</p>
-                <textarea rows={5} className={inp} value={teamText}
-                  onChange={(e) => setTeamText(e.target.value)}
-                  placeholder={'Team Alpha\nTeam Bravo\n…'} />
-                <button className={btn} disabled={busy}
-                  onClick={() => run(async () => {
-                    await addTeams(tournament.id, teamText.split('\n'));
-                    setTeamText('');
-                  }, 'Teams hinzugefügt.')}>
-                  Manuelle Teams speichern
-                </button>
-
-                {teams.length > 0 && (
-                  <div className="flex flex-wrap gap-2 pt-2">
-                    {teams.map((t) => (
-                      <span key={t.id} className="flex items-center gap-1 rounded-full bg-slate-800 px-3 py-1 text-sm">
-                        {t.name}
-                        <button className="text-slate-500 hover:text-red-400" onClick={() => run(() => deleteTeam(t.id))}>✕</button>
-                      </span>
-                    ))}
+                {/* Übersicht der angelegten Teams als Grid/Badges */}
+                {teams.length > 0 ? (
+                  <div className="space-y-2">
+                    <span className="text-xs text-slate-400">Aktuelle Teams:</span>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 max-h-60 overflow-y-auto pr-1">
+                      {teams.map((t, idx) => (
+                        <div key={t.id} className="flex items-center justify-between gap-2 rounded-lg bg-slate-800/80 border border-slate-700/60 px-3 py-2 text-sm">
+                          <span className="truncate font-medium text-slate-200">
+                            <span className="text-xs text-slate-500 mr-2">#{idx + 1}</span>
+                            {t.name}
+                          </span>
+                          <button
+                            title="Team löschen"
+                            className="text-slate-500 hover:text-red-400 p-1 transition"
+                            onClick={() => run(() => deleteTeam(t.id))}
+                          >
+                            ✕
+                          </button>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                ) : (
+                  <div className="rounded-lg border border-dashed border-slate-800 p-6 text-center text-xs text-slate-500">
+                    Noch keine Teams angelegt.
                   </div>
                 )}
 
-                <button className={btnPrimary} disabled={busy || teams.length < 2}
-                  onClick={() => run(() => drawGroups(tournament.id), 'Gruppen ausgelost & Spielplan erstellt.')}>
-                  3 · Gruppen auslosen & Spielplan erstellen ({teams.length} Teams)
-                </button>
-              </>
+                {/* Auslosungs-Button */}
+                <div className="pt-2">
+                  <button className={`${btnPrimary} w-full py-3 text-base`} disabled={busy || teams.length < 2}
+                    onClick={() => run(() => drawGroups(tournament.id), 'Gruppen ausgelost & Spielplan erstellt.')}>
+                    🎲 3 · Gruppen auslosen & Turnier starten ({teams.length} Teams)
+                  </button>
+                </div>
+              </div>
             )}
           </section>
         )}
-
         {/* ---------- LIVE-STEUERUNG ---------- */}
         {tournament && (tournament.status === 'group_stage' || tournament.status === 'ko_stage') && (
           <>
