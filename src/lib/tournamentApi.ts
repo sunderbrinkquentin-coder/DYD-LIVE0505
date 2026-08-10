@@ -23,6 +23,12 @@ export async function addTeams(tournamentId: string, names: string[]): Promise<v
   if (error) throw error;
 }
 
+export async function syncBierpongTeams(tournamentId: string): Promise<number> {
+  const { data, error } = await supabase.rpc('sync_bierpong_teams', { p_tournament: tournamentId });
+  if (error) throw error;
+  return (data as number) ?? 0;
+}
+
 export async function deleteTeam(id: string): Promise<void> {
   const { error } = await supabase.from('teams').delete().eq('id', id);
   if (error) throw error;
