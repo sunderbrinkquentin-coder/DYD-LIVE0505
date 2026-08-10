@@ -1561,6 +1561,8 @@ signal: controller.signal,
         </div>
       </section>
 
+{/* ── LIVE-TABLEAU (nur sichtbar, wenn Turnier läuft) ── */}
+      <FestivalTournamentBoard />
 
       {/* ── CONTENT ─────────────────────────────────────────────── */}
       <div className="relative z-10">
