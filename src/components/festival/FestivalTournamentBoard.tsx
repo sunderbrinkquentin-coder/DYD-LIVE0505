@@ -3,6 +3,7 @@
 // und die nächsten Teams mit (vorhergesagter) Tisch-Nr.
 // Teamnamen maskiert bis REVEAL_AT — außer für den eingeloggten Admin.
 import { useEffect, useMemo, useState } from 'react';
+import { Loader2 } from 'lucide-react';
 import { useTournament, type Match } from '../../hooks/useTournament';
 import { useCountdown, formatTime } from '../../hooks/useCountdown';
 import { useAuth } from '../../contexts/AuthContext';
