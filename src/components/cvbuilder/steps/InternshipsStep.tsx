@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { ArrowLeft, ArrowRight, Plus, Trash2, Sparkles } from 'lucide-react';
-import { AvatarSidebar } from '../AvatarSidebar';
+import { SmartCoach, SmartCoachBar } from '../SmartCoach';
 import { WorkExperience } from '../../../types/cvBuilder';
 
 interface InternshipsStepProps {
@@ -246,6 +246,8 @@ export function InternshipsStep({ data, onChange, onNext, onBack }: InternshipsS
 
   const presets = TASK_PRESETS[active.jobTitle] || DEFAULT_TASKS;
 
+  const coachFallback = 'Jede Erfahrung zählt! Praktika, Ferienjobs oder Ehrenamt – zeige, dass du anpackst. Kein Eintrag? Kein Problem, einfach überspringen.';
+
   return (
     <div className="flex flex-col lg:flex-row gap-8 lg:p-6 lg:max-w-7xl lg:mx-auto">
       <div className="flex-1 space-y-4 animate-fade-in max-w-3xl mx-auto w-full pb-28 lg:pb-0 px-4 lg:px-0">
@@ -463,8 +465,10 @@ export function InternshipsStep({ data, onChange, onNext, onBack }: InternshipsS
         </div>
 
         {/* Mobile Navigation */}
-        <div className="lg:hidden fixed bottom-0 left-0 right-0 bg-gradient-to-t from-[#020617] via-[#020617]/95 to-transparent z-50 px-4 pb-4 pt-3">
-          <div className="flex justify-between items-center gap-3">
+        <div className="lg:hidden fixed bottom-0 left-0 right-0 bg-gradient-to-t from-[#020617] via-[#020617]/95 to-transparent z-50 pb-4 pt-3">
+          {/* Dynamischer Coach – schließt die bisherige Mobile-Tipp-Lücke */}
+          <SmartCoachBar section="internships" data={{}} entry={active} fallbackMessage={coachFallback} />
+          <div className="flex justify-between items-center gap-3 px-4">
             <button onClick={onBack} className="flex items-center gap-1.5 px-4 py-3 rounded-xl text-white/70 hover:text-white transition-all min-w-[90px]">
               <ArrowLeft size={18} />
               <span className="font-medium text-sm">Zurück</span>
@@ -479,12 +483,9 @@ export function InternshipsStep({ data, onChange, onNext, onBack }: InternshipsS
         </div>
       </div>
 
+      {/* Dynamischer Coach – Desktop-Karte (ersetzt AvatarSidebar) */}
       <div className="hidden lg:block">
-        <AvatarSidebar
-          message="Jede Erfahrung zählt!"
-          stepInfo="Praktika, Ferienjobs oder Ehrenamt – zeige, dass du anpackst. Kein Eintrag? Kein Problem, einfach überspringen."
-          currentStepId="workExperience"
-        />
+        <SmartCoach section="internships" data={{}} entry={active} fallbackMessage={coachFallback} />
       </div>
     </div>
   );
