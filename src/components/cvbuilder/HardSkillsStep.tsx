@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { ArrowRight, ArrowLeft, Plus, X, Star } from 'lucide-react';
-import { AvatarSidebar } from './AvatarSidebar';
+import { SmartCoach, SmartCoachBar } from './SmartCoach';
 import { HardSkill, Language } from '../../types/cvBuilder';
 import { HARD_SKILLS_BY_INDUSTRY, COMMON_LANGUAGES } from '../../config/cvBuilderSteps';
 
@@ -79,6 +79,9 @@ export function HardSkillsStep({
       level: levelNumberToString(levels[s] ?? 3),
       numericLevel: levels[s] ?? 3,
     } as any));
+
+  // Live-Daten für den Coach (Anzahl Skills + Sprachen steuern die Regeln)
+  const coachData = { hardSkills: buildAllSkills(selectedSkills, skillLevels), languages };
 
   const toggleSkill = (skill: string) => {
     if (selectedSkills.includes(skill)) {
@@ -438,6 +441,13 @@ export function HardSkillsStep({
             </div>
           </div>
 
+          {/* Dynamischer Coach – Mobile-Leiste (Desktop-Karte steht rechts) */}
+          <SmartCoachBar
+            section="hardSkills"
+            data={coachData}
+            fallbackMessage="Hard Skills und Sprachen sind wichtig für ATS-Systeme. Füge alle relevanten hinzu."
+          />
+
           <div className="flex justify-between pt-4">
             <button
               onClick={onBack}
@@ -458,11 +468,12 @@ export function HardSkillsStep({
         </div>
       </div>
 
+      {/* Dynamischer Coach – Desktop-Karte (ersetzt AvatarSidebar) */}
       <div className="hidden lg:block">
-        <AvatarSidebar
-          message="Hard Skills und Sprachen sind wichtig für ATS-Systeme."
-          stepInfo="Füge alle relevanten Skills und Sprachkenntnisse hinzu. Sprachen werden jetzt direkt hier erfasst."
-          currentStepId="hardSkills"
+        <SmartCoach
+          section="hardSkills"
+          data={coachData}
+          fallbackMessage="Hard Skills und Sprachen sind wichtig für ATS-Systeme. Füge alle relevanten Skills und Sprachkenntnisse hinzu."
         />
       </div>
 
