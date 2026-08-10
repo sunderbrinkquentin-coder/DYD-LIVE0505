@@ -1563,6 +1563,22 @@ signal: controller.signal,
 
 {/* ── LIVE-TABLEAU (nur sichtbar, wenn Turnier läuft) ── */}
       <FestivalTournamentBoard />
+{/* 🏆 TURNIER TABLEAU SECTION */}
+        <motion.section 
+          id="tableau" 
+          {...{ initial: { opacity: 0, y: 24 }, whileInView: { opacity: 1, y: 0 }, viewport: { once: true }, transition: { duration: 0.5 } }} 
+          className="relative z-10 mt-16 lg:mt-24"
+        >
+          <div className="tag-label mb-6">Live-Spielplan</div>
+          <h2 className="graffiti mb-10" style={{ fontSize: 'clamp(32px, 5vw, 52px)', color: '#fff', lineHeight: 0.95 }}>
+            Bierpong Turnier-Tableau
+            <Sparkles className="inline-block ml-3 w-7 h-7 text-lime-400 opacity-80" style={{ verticalAlign: 'super' }} />
+          </h2>
+          
+          <div className="p-1 rounded-3xl" style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.08)' }}>
+            <FestivalTournamentBoard />
+          </div>
+        </motion.section>
 
       {/* ── CONTENT ─────────────────────────────────────────────── */}
       <div className="relative z-10">
