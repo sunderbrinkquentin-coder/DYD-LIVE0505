@@ -1,7 +1,4 @@
 // src/components/festival/FestivalTournamentBoard.tsx
-// Read-only Live-Tableau. Zeigt Rundenzeit, laufende Spiele mit Tisch-Nr.
-// und die nächsten Teams mit (vorhergesagter) Tisch-Nr.
-// Teamnamen maskiert bis REVEAL_AT — außer für den eingeloggten Admin.
 import { useEffect, useMemo, useState } from 'react';
 import { Loader2 } from 'lucide-react';
 import { useTournament, type Match } from '../../hooks/useTournament';
@@ -10,8 +7,48 @@ import { useAuth } from '../../contexts/AuthContext';
 import { TOURNAMENT_ADMIN_ID } from '../../lib/tournamentApi';
 
 const REVEAL_AT = new Date('2026-08-22T17:00:00').getTime();
-
 const C = { cyan: '#00d4d4', lime: '#c8e840', orange: '#f07820', sky: '#4dc8e8' };
+
+// 🛠️ MOCK-DATEN FÜR DEMO / VORSCHAU (falls kein DB-Turnier existiert)
+const MOCK_DATA = {
+  tournament: {
+    id: 'demo-1',
+    name: 'Harmony Bierpong Cup 2026',
+    status: 'group_stage',
+    table_count: 3,
+    advance_per_group: 2,
+    round_ends_at: new Date(Date.now() + 12 * 60 * 1000).toISOString(), // 12 Min Restzeit
+    round_label: 'Vorrunde · Spiel 2',
+  },
+  groups: [
+    { id: 'g1', name: 'A' },
+    { id: 'g2', name: 'B' },
+  ],
+  teams: [
+    { id: 't1', name: 'Bieritaten', group_id: 'g1' },
+    { id: 't2', name: 'Pong Pong Girls', group_id: 'g1' },
+    { id: 't3', name: 'Becher-Giganten', group_id: 'g1' },
+    { id: 't4', name: 'Saufstark 04', group_id: 'g2' },
+    { id: 't5', name: 'Trefferversuch', group_id: 'g2' },
+    { id: 't6', name: 'Ex und Hopp', group_id: 'g2' },
+  ],
+  matches: [
+    // Laufende Spiele
+    { id: 'm1', phase: 'group', round: 1, position: 1, status: 'live', table_no: 1, team_a: 't1', team_b: 't2', score_a: 6, score_b: 4 },
+    { id: 'm2', phase: 'group', round: 1, position: 2, status: 'live', table_no: 2, team_a: 't4', team_b: 't5', score_a: 8, score_b: 9 },
+    // Nächste Spiele
+    { id: 'm3', phase: 'group', round: 2, position: 1, status: 'pending', table_no: null, team_a: 't2', team_b: 't3', score_a: null, score_b: null },
+    { id: 'm4', phase: 'group', round: 2, position: 2, status: 'pending', table_no: null, team_a: 't5', team_b: 't6', score_a: null, score_b: null },
+  ],
+  standings: [
+    { team_id: 't1', group_id: 'g1', group_rank: 1, played: 1, points: 3, cup_diff: 4 },
+    { team_id: 't2', group_id: 'g1', group_rank: 2, played: 1, points: 0, cup_diff: -2 },
+    { team_id: 't3', group_id: 'g1', group_rank: 3, played: 0, points: 0, cup_diff: 0 },
+    { team_id: 't4', group_id: 'g2', group_rank: 1, played: 1, points: 3, cup_diff: 2 },
+    { team_id: 't5', group_id: 'g2', group_rank: 2, played: 1, points: 0, cup_diff: -1 },
+    { team_id: 't6', group_id: 'g2', group_rank: 3, played: 0, points: 0, cup_diff: 0 },
+  ],
+};
 
 function formatReveal(ms: number): string {
   if (ms <= 0) return '00:00:00';
@@ -28,9 +65,18 @@ function formatReveal(ms: number): string {
 }
 
 export default function FestivalTournamentBoard() {
-  const { tournament, groups, teams, matches, standings, loading } = useTournament();
-  const remaining = useCountdown(tournament?.round_ends_at ?? null);
+  const { tournament: realTournament, groups: realGroups, teams: realTeams, matches: realMatches, standings: realStandings, loading } = useTournament();
   const { user } = useAuth();
+
+  // Falls in DB vorhanden -> nutze echte Daten; sonst -> MOCK-Daten
+  const isMock = !realTournament && !loading;
+  const tournament = realTournament ?? (isMock ? MOCK_DATA.tournament : null);
+  const groups = realGroups.length > 0 ? realGroups : (isMock ? MOCK_DATA.groups : []);
+  const teams = realTeams.length > 0 ? realTeams : (isMock ? MOCK_DATA.teams : []);
+  const matches = realMatches.length > 0 ? realMatches : (isMock ? (MOCK_DATA.matches as Match[]) : []);
+  const standings = realStandings.length > 0 ? realStandings : (isMock ? MOCK_DATA.standings : []);
+
+  const remaining = useCountdown(tournament?.round_ends_at ?? null);
 
   const [now, setNow] = useState(Date.now());
   useEffect(() => {
@@ -57,41 +103,29 @@ export default function FestivalTournamentBoard() {
     return maskMap.get(id) ?? 'Team ??';
   };
 
- if (loading) {
-  return (
-    <div className="flex justify-center items-center p-8 text-cyan-400">
-      <Loader2 className="w-6 h-6 animate-spin mr-2" />
-      <span style={{ fontFamily: "'Inter', sans-serif", fontSize: 14 }}>
-        Lade Tableau...
-      </span>
-    </div>
-  );
-}
+  if (loading) {
+    return (
+      <div className="flex justify-center items-center p-8 text-cyan-400">
+        <Loader2 className="w-6 h-6 animate-spin mr-2" />
+        <span style={{ fontFamily: "'Inter', sans-serif", fontSize: 14 }}>Lade Spielplan...</span>
+      </div>
+    );
+  }
 
-if (!tournament) {
-  return (
-    <div className="glass rounded-2xl p-8 text-center" style={{ border: '1px solid rgba(0,212,212,0.12)' }}>
-      <p style={{ fontFamily: "'Inter', sans-serif", fontSize: 14, color: 'rgba(160,230,230,0.55)' }}>
-        Aktuell ist kein aktives Turnier-Tableau verfügbar.
-      </p>
-    </div>
-  );
-}
+  if (!tournament) return null;
 
   const tableCount = tournament.table_count ?? 3;
   const advance = tournament.advance_per_group ?? 2;
   const hasBracket = groups.length > 0 || matches.length > 0;
 
-  // Laufende Spiele: nach echter Tisch-Nr. sortiert
   const live = matches
     .filter((m) => m.status === 'live')
     .sort((a, b) => (a.table_no ?? 99) - (b.table_no ?? 99));
 
-  // Globale Warteschlange spielbereiter Spiele (aktuelle Phase), Reihenfolge = Startreihenfolge
   const playablePending = matches
     .filter((m) => m.status === 'pending' && m.team_a && m.team_b)
     .sort((a, b) => a.round - b.round || a.position - b.position);
-  const nextUp = playablePending.slice(0, tableCount);      // Tisch 1..N (Vorschau)
+  const nextUp = playablePending.slice(0, tableCount);
   const laterQueue = playablePending.slice(tableCount, tableCount * 2);
 
   const koMatches = matches.filter((m) => m.phase === 'ko');
@@ -100,6 +134,13 @@ if (!tournament) {
   return (
     <section id="turnier" className="relative z-10" style={{ borderTop: '1px solid rgba(200,232,64,0.12)', borderBottom: '1px solid rgba(200,232,64,0.12)' }}>
       <div className="max-w-6xl mx-auto px-6 sm:px-10 py-16">
+
+        {/* Demo-Hinweis */}
+        {isMock && (
+          <div className="mb-6 px-4 py-2 rounded-lg text-center text-xs tracking-wider uppercase font-semibold" style={{ background: 'rgba(0,212,212,0.1)', border: '1px solid rgba(0,212,212,0.3)', color: C.cyan }}>
+            💡 Vorschau-Modus (Beispielsdaten)
+          </div>
+        )}
 
         {/* Header */}
         <div className="flex flex-wrap items-end justify-between gap-4 mb-8">
@@ -112,7 +153,7 @@ if (!tournament) {
           <StatusBadge status={tournament.status} />
         </div>
 
-        {/* Reveal-Banner (Nicht-Admins vor 17:00) */}
+        {/* Reveal-Banner */}
         {!revealed && (
           <div className="rounded-2xl px-6 py-5 mb-6 flex flex-wrap items-center justify-between gap-4"
             style={{ background: 'rgba(200,232,64,0.06)', border: '1px solid rgba(200,232,64,0.28)' }}>
@@ -138,16 +179,6 @@ if (!tournament) {
           </div>
         )}
 
-        {isAdmin && now < REVEAL_AT && (
-          <div className="rounded-xl px-4 py-3 mb-6 flex items-center gap-2"
-            style={{ background: 'rgba(0,212,212,0.06)', border: '1px solid rgba(0,212,212,0.22)' }}>
-            <span style={{ fontSize: 15 }}>👁</span>
-            <span style={{ fontFamily: "'Inter', sans-serif", fontSize: 12.5, color: 'rgba(160,230,230,0.75)' }}>
-              Admin-Ansicht — du siehst alle Namen. Öffentlich verborgen bis 22.08. 17:00.
-            </span>
-          </div>
-        )}
-
         {/* Rundenzeit */}
         <div className="glass rounded-2xl p-6 text-center mb-6" style={{ border: `1px solid rgba(200,232,64,0.18)` }}>
           <div style={{ fontFamily: "'Barlow Condensed', sans-serif", fontWeight: 700, fontSize: '11px', letterSpacing: '0.34em', textTransform: 'uppercase', color: 'rgba(200,232,64,0.7)' }}>
@@ -161,23 +192,9 @@ if (!tournament) {
           }}>
             {tournament.round_ends_at ? formatTime(remaining) : '–:––'}
           </div>
-          {tournament.round_ends_at && remaining === 0 && (
-            <div style={{ fontFamily: "'Barlow Condensed', sans-serif", fontWeight: 700, fontSize: '14px', color: C.orange, marginTop: '4px' }}>
-              Zeit abgelaufen
-            </div>
-          )}
         </div>
 
-        {!hasBracket && (
-          <div className="glass rounded-2xl p-8 text-center" style={{ border: '1px solid rgba(0,212,212,0.12)' }}>
-            <div className="graffiti" style={{ fontSize: 24, color: '#fff', marginBottom: 6 }}>Die Auslosung folgt</div>
-            <p style={{ fontFamily: "'Inter', sans-serif", fontSize: 14, color: 'rgba(160,230,230,0.55)' }}>
-              Sobald die Teams gesetzt sind, erscheinen hier Tische, Gruppen und Bracket.
-            </p>
-          </div>
-        )}
-
-        {/* JETZT AM TISCH (laufende Spiele mit echter Tisch-Nr.) */}
+        {/* JETZT AM TISCH */}
         {live.length > 0 && (
           <div className="mb-8">
             <SubHead>Jetzt am Tisch</SubHead>
@@ -190,7 +207,7 @@ if (!tournament) {
           </div>
         )}
 
-        {/* ALS NÄCHSTES (nächste N Spiele, vorhergesagte Tisch-Nr.) */}
+        {/* ALS NÄCHSTES */}
         {nextUp.length > 0 && (
           <div className="mb-8">
             <SubHead>Als Nächstes{live.length === 0 ? '' : ' · nach dieser Runde'}</SubHead>
@@ -200,17 +217,6 @@ if (!tournament) {
                   tableLabel={`Tisch ${i + 1}`} upcoming />
               ))}
             </div>
-            {laterQueue.length > 0 && (
-              <div className="mt-3 flex flex-wrap gap-2">
-                <span style={{ fontFamily: "'Inter', sans-serif", fontSize: 12, color: 'rgba(160,230,230,0.4)' }}>Danach:</span>
-                {laterQueue.map((m) => (
-                  <span key={m.id} className="rounded-full px-3 py-1"
-                    style={{ fontFamily: "'Inter', sans-serif", fontSize: 12, color: 'rgba(255,255,255,0.6)', background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)' }}>
-                    {shownName(m.team_a)} vs {shownName(m.team_b)}
-                  </span>
-                ))}
-              </div>
-            )}
           </div>
         )}
 
@@ -221,43 +227,31 @@ if (!tournament) {
             <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
               {groups.map((g) => {
                 const rows = standings.filter((s) => s.group_id === g.id).sort((a, b) => a.group_rank - b.group_rank);
-                const teamsInGroup = teams.filter((t) => t.group_id === g.id).sort((a, b) => a.id.localeCompare(b.id));
                 return (
                   <div key={g.id} className="glass rounded-2xl p-4" style={{ border: '1px solid rgba(0,212,212,0.12)' }}>
                     <div className="graffiti mb-3" style={{ fontSize: '20px', color: '#fff' }}>Gruppe {g.name}</div>
-                    {rows.length > 0 ? (
-                      <table className="w-full" style={{ fontFamily: "'Inter', sans-serif", fontSize: '13px' }}>
-                        <thead>
-                          <tr style={{ color: 'rgba(160,230,230,0.4)', textAlign: 'left' }}>
-                            <th className="py-1 font-medium">#</th><th className="font-medium">Team</th>
-                            <th className="text-center font-medium">Sp</th><th className="text-center font-medium">Pkt</th><th className="text-center font-medium">Diff</th>
-                          </tr>
-                        </thead>
-                        <tbody>
-                          {rows.map((s) => {
-                            const up = s.group_rank <= advance;
-                            return (
-                              <tr key={s.team_id} style={{ color: up ? C.lime : 'rgba(255,255,255,0.8)' }}>
-                                <td className="py-1.5">{s.group_rank}</td>
-                                <td className="truncate" style={{ maxWidth: '120px', fontWeight: up ? 700 : 400 }}>{shownName(s.team_id)}</td>
-                                <td className="text-center">{s.played}</td>
-                                <td className="text-center font-bold">{s.points}</td>
-                                <td className="text-center">{s.cup_diff > 0 ? `+${s.cup_diff}` : s.cup_diff}</td>
-                              </tr>
-                            );
-                          })}
-                        </tbody>
-                      </table>
-                    ) : (
-                      <div className="space-y-1.5">
-                        {teamsInGroup.map((t) => (
-                          <div key={t.id} className="flex items-center gap-2" style={{ fontFamily: "'Inter', sans-serif", fontSize: 13.5, color: 'rgba(255,255,255,0.8)' }}>
-                            <span style={{ width: 5, height: 5, borderRadius: '50%', background: 'rgba(200,232,64,0.5)', flexShrink: 0 }} />
-                            <span className="truncate">{shownName(t.id)}</span>
-                          </div>
-                        ))}
-                      </div>
-                    )}
+                    <table className="w-full" style={{ fontFamily: "'Inter', sans-serif", fontSize: '13px' }}>
+                      <thead>
+                        <tr style={{ color: 'rgba(160,230,230,0.4)', textAlign: 'left' }}>
+                          <th className="py-1 font-medium">#</th><th className="font-medium">Team</th>
+                          <th className="text-center font-medium">Sp</th><th className="text-center font-medium">Pkt</th><th className="text-center font-medium">Diff</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {rows.map((s) => {
+                          const up = s.group_rank <= advance;
+                          return (
+                            <tr key={s.team_id} style={{ color: up ? C.lime : 'rgba(255,255,255,0.8)' }}>
+                              <td className="py-1.5">{s.group_rank}</td>
+                              <td className="truncate" style={{ maxWidth: '120px', fontWeight: up ? 700 : 400 }}>{shownName(s.team_id)}</td>
+                              <td className="text-center">{s.played}</td>
+                              <td className="text-center font-bold">{s.points}</td>
+                              <td className="text-center">{s.cup_diff > 0 ? `+${s.cup_diff}` : s.cup_diff}</td>
+                            </tr>
+                          );
+                        })}
+                      </tbody>
+                    </table>
                   </div>
                 );
               })}
@@ -265,34 +259,6 @@ if (!tournament) {
           </div>
         )}
 
-        {/* KO-Bracket */}
-        {koRounds.length > 0 && (
-          <div className="mb-2">
-            <SubHead>KO-Runde</SubHead>
-            <div className="flex gap-4 overflow-x-auto pb-2">
-              {koRounds.map((r) => {
-                const col = koMatches.filter((m) => m.round === r).sort((a, b) => a.position - b.position);
-                return (
-                  <div key={r} className="min-w-[220px] space-y-3">
-                    <div style={{ fontFamily: "'Barlow Condensed', sans-serif", fontWeight: 700, fontSize: '12px', letterSpacing: '0.14em', textTransform: 'uppercase', color: 'rgba(160,230,230,0.5)' }}>
-                      {col[0]?.label ?? `Runde ${r}`}
-                    </div>
-                    {col.map((m) => (
-                      <MatchCard key={m.id} m={m} nameOf={shownName} highlight={m.status === 'live'}
-                        tableLabel={m.status === 'live' && m.table_no != null ? `Tisch ${m.table_no}` : undefined} />
-                    ))}
-                  </div>
-                );
-              })}
-            </div>
-          </div>
-        )}
-
-        {tournament.status === 'done' && (
-          <div className="glass rounded-2xl p-6 text-center mt-6" style={{ border: `1px solid ${C.lime}44` }}>
-            <span className="graffiti" style={{ fontSize: '28px', color: C.lime }}>🏆 Turnier beendet</span>
-          </div>
-        )}
       </div>
     </section>
   );
