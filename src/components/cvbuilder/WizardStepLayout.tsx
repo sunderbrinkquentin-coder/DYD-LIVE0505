@@ -2,6 +2,8 @@ import { useState, ReactNode } from 'react';
 import { ArrowLeft, ArrowRight, SkipForward } from 'lucide-react';
 import { ProgressBar } from './ProgressBar';
 import { AvatarSidebar } from './AvatarSidebar';
+import { SmartCoach, SmartCoachBar } from './SmartCoach';
+import type { CVBuilderData } from '../../types/cvBuilder';
 
 interface WizardStepLayoutProps {
   currentStep?: number;
@@ -18,6 +20,14 @@ interface WizardStepLayoutProps {
   nextButtonText?: string;
   hideProgress?: boolean;
   validationMessage?: string;
+  // ── Dynamischer Coach (optional) ──────────────────────────────────────────
+  // Wird coachData übergeben, ersetzt der SmartCoach die statische AvatarSidebar
+  // (Desktop) und blendet zusätzlich eine Mobile-Leiste ein. Ohne coachData
+  // bleibt alles beim Alten (AvatarSidebar, nur Desktop).
+  coachSection?: string;            // Default: currentStepId
+  coachData?: CVBuilderData;
+  coachEntry?: any;
+  onCoachCta?: (field?: string) => void;
   children: ReactNode;
 }
 
@@ -36,9 +46,15 @@ export function WizardStepLayout({
   nextButtonText = 'Weiter',
   hideProgress = false,
   validationMessage,
+  coachSection,
+  coachData,
+  coachEntry,
+  onCoachCta,
   children
 }: WizardStepLayoutProps) {
   const [showValidationHint, setShowValidationHint] = useState(false);
+
+  const resolvedSection = coachSection || currentStepId || '';
 
   const handleNextClick = () => {
     if (isNextDisabled) {
@@ -123,6 +139,16 @@ export function WizardStepLayout({
 
         {/* Bottom Navigation - Fixed on Mobile */}
         <div className="lg:hidden fixed bottom-0 left-0 right-0 bg-gradient-to-t from-[#020617] via-[#020617]/95 to-transparent z-50 pt-3">
+          {/* Dynamischer Coach – schließt die bisherige Mobile-Tipp-Lücke */}
+          {coachData && (
+            <SmartCoachBar
+              section={resolvedSection}
+              data={coachData}
+              entry={coachEntry}
+              fallbackMessage={avatarMessage}
+              onCtaClick={onCoachCta}
+            />
+          )}
           <ValidationHint />
           <div className="flex justify-between items-center gap-3 px-4 pb-safe pb-4">
             <button
@@ -154,14 +180,24 @@ export function WizardStepLayout({
         </div>
       </div>
 
-      {/* Avatar Sidebar - Desktop Only */}
-      {avatarMessage && (
+      {/* Sidebar - Desktop Only: dynamischer Coach, sonst statische AvatarSidebar */}
+      {(coachData || avatarMessage) && (
         <div className="hidden lg:block">
-          <AvatarSidebar
-            message={avatarMessage}
-            stepInfo={avatarStepInfo}
-            currentStepId={currentStepId}
-          />
+          {coachData ? (
+            <SmartCoach
+              section={resolvedSection}
+              data={coachData}
+              entry={coachEntry}
+              fallbackMessage={avatarMessage}
+              onCtaClick={onCoachCta}
+            />
+          ) : (
+            <AvatarSidebar
+              message={avatarMessage!}
+              stepInfo={avatarStepInfo}
+              currentStepId={currentStepId}
+            />
+          )}
         </div>
       )}
     </div>
