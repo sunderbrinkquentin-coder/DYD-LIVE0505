@@ -1,7 +1,7 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { ArrowLeft, ArrowRight, Plus, Trash2, Wrench, Info, FolderOpen, CheckCircle, AlertCircle, X, ChevronRight, Briefcase, SkipForward } from 'lucide-react';
 import { AnimatePresence } from 'framer-motion';
-import { AvatarSidebar } from '../AvatarSidebar';
+import { SmartCoach, SmartCoachBar } from '../SmartCoach';
 import { WorkExperience, ExperienceLevel, Project } from '../../../types/cvBuilder';
 import { STARCoachingBanner } from '../TasksWithMetricsInput';
 import { CategorizedTasksInput } from '../CategorizedTasksInput';
@@ -162,6 +162,11 @@ export function WorkExperienceStep({
   const [achievementsSuggestions, setAchievementsSuggestions] = useState<string[]>([]);
   const [isLoadingSuggestions, setIsLoadingSuggestions] = useState(false);
 
+  // Refs für die Coach-CTAs (scroll-to-field)
+  const toolsBlockRef = useRef<HTMLDivElement | null>(null);
+  const kpiBlockRef = useRef<HTMLDivElement | null>(null);
+  const tasksBlockRef = useRef<HTMLDivElement | null>(null);
+
   const activeExp = experiences[activeIndex];
   const expLevel: ExperienceLevel = experienceLevel || 'beginner';
 
@@ -285,6 +290,18 @@ export function WorkExperienceStep({
     });
   };
 
+  // Coach-CTA: springt zum passenden Feld
+  const handleCoachCta = (field?: string) => {
+    if (field === 'tools') {
+      toolsBlockRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    } else if (field === 'teamSize') {
+      kpiBlockRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    } else if (field === 'achievements') {
+      setActiveTab('tasks');
+      setTimeout(() => tasksBlockRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' }), 60);
+    }
+  };
+
   useEffect(() => {
     const loadSuggestions = async () => {
       if (!activeExp) return;
@@ -344,6 +361,8 @@ export function WorkExperienceStep({
     `${selectBase} ${attempted && !value ? 'border-red-500/70 focus:border-red-400' : ''}`;
 
   const stationProjects = activeExp.stationProjects || [];
+
+  const coachFallback = 'Tools & Zahlen sind Gold wert! Recruiter scannen CVs in Sekunden – konkrete Zahlen und bekannte Software-Namen fallen sofort auf.';
 
   return (
     <div className="flex flex-col lg:flex-row gap-8 lg:p-6 lg:max-w-7xl lg:mx-auto">
@@ -535,7 +554,7 @@ export function WorkExperienceStep({
           </div>
 
           {/* Block 3: Tools & Software */}
-          <div>
+          <div ref={toolsBlockRef}>
             <label className="flex items-center gap-2 text-white/80 text-sm font-medium mb-1.5">
               <Wrench size={14} className="text-[#66c0b6]" />
               Tools & Software
@@ -554,7 +573,7 @@ export function WorkExperienceStep({
           </div>
 
           {/* Block 4: KPIs & Kontext */}
-          <div>
+          <div ref={kpiBlockRef}>
             <div className="flex items-center gap-2 mb-3">
               <p className="text-xs font-semibold text-[#66c0b6] uppercase tracking-wider">Kontext & KPIs</p>
               <span className="text-xs text-white/40">(optional – aber sehr empfohlen)</span>
@@ -663,7 +682,7 @@ export function WorkExperienceStep({
                     onChange={(tasks) => updateTasksWithMetrics(activeIndex, tasks)}
                   />
                 </div>
-                <div>
+                <div ref={tasksBlockRef}>
                   <p className="text-xs font-semibold text-[#66c0b6] uppercase tracking-wider mb-1.5">Messbare Erfolge</p>
                   <p className="text-xs text-white/45 mb-3">Optional – Recruiter entscheiden oft anhand von Zahlen.</p>
                   <TasksWithMetricsInput
@@ -792,6 +811,14 @@ export function WorkExperienceStep({
 
         {/* Mobile Navigation */}
         <div className="lg:hidden fixed bottom-0 left-0 right-0 bg-gradient-to-t from-[#020617] via-[#020617]/95 to-transparent z-50 pt-3">
+          {/* Dynamischer Coach – schließt die bisherige Mobile-Tipp-Lücke */}
+          <SmartCoachBar
+            section="workExperience"
+            data={{}}
+            entry={activeExp}
+            fallbackMessage={coachFallback}
+            onCtaClick={handleCoachCta}
+          />
           {showValidationHint && !isValidExperience && (
             <div className="mx-4 mb-2 p-3 rounded-xl bg-red-500/10 border border-red-500/25 animate-fade-in">
               <p className="text-red-400 text-sm font-medium mb-1">Rot markierte Felder ausfüllen:</p>
@@ -834,11 +861,14 @@ export function WorkExperienceStep({
         </div>
       </div>
 
+      {/* Dynamischer Coach – Desktop-Karte (ersetzt AvatarSidebar) */}
       <div className="hidden lg:block">
-        <AvatarSidebar
-          message="Tools & Zahlen sind Gold wert! Recruiter scannen CVs in Sekunden – konkrete Zahlen und bekannte Software-Namen fallen sofort auf."
-          stepInfo="Tipp: Gib alle Tools kommagetrennt ein. Je mehr Kontext (Teamgröße, Umsatz, KPIs), desto stärker werden die KI-Bulletpoints."
-          currentStepId="workExperience"
+        <SmartCoach
+          section="workExperience"
+          data={{}}
+          entry={activeExp}
+          fallbackMessage={coachFallback}
+          onCtaClick={handleCoachCta}
         />
       </div>
 
