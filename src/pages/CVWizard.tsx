@@ -3,7 +3,7 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { supabase } from '../lib/supabase';
-import { ArrowRight, ArrowLeft, Check, Loader2, AlertTriangle, X as XIcon } from 'lucide-react';
+import { ArrowRight, ArrowLeft, Check, Loader2, AlertTriangle, X as XIcon, ChevronRight, Plus } from 'lucide-react';
 
 function CVWizardLoadingScreen({ onTimeout }: { onTimeout?: () => void }) {
   const [showHint, setShowHint] = useState(false);
@@ -59,11 +59,205 @@ import { CertificatesStep } from '../components/cvbuilder/steps/CertificatesStep
 import { CVBuilderData } from '../types/cvBuilder';
 import { mapEditorDataToWizard } from '../utils/cvDataMapper';
 import { checkStepCompleteness, getIncompleteRequiredSteps } from '../utils/wizardCompleteness';
+import {
+  isSectionSkipped,
+  GATE_WORK_EXPERIENCE,
+  GATE_FORMAL_EDUCATION,
+  GATE_EXTRAS,
+} from '../config/cvQuestions';
 
 import { useAuth } from '../contexts/AuthContext';
 import { sessionManager } from '../utils/sessionManager';
 import { getOrCreateTempId, clearTempId } from '../utils/tempIdManager';
 import { cvProfileService } from '../services/cvProfileService';
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Flow-Umbau: Zuordnung Step-Index → Section-Key (aus der renderStep-Reihenfolge)
+// Nur verzweigbare/überspringbare Sektionen. Schulbildung (2) bleibt immer
+// sichtbar und ist bewusst NICHT hier gelistet.
+// ─────────────────────────────────────────────────────────────────────────────
+const STEP_SECTION: Record<number, string> = {
+  3: 'professionalEducation',
+  4: 'workExperience',
+  5: 'projects',
+  6: 'stipendien',
+  7: 'volunteerWork',
+  8: 'certificates',
+  12: 'hobbies',
+};
+
+const SECTION_STEP: Record<string, number> = {
+  professionalEducation: 3,
+  workExperience: 4,
+  projects: 5,
+  stipendien: 6,
+  volunteerWork: 7,
+  certificates: 8,
+  hobbies: 12,
+};
+
+const SECTION_LABEL: Record<string, string> = {
+  professionalEducation: 'Ausbildung/Studium',
+  workExperience: 'Berufserfahrung',
+  projects: 'Projekte',
+  stipendien: 'Stipendien',
+  volunteerWork: 'Ehrenamt',
+  certificates: 'Zertifikate',
+  hobbies: 'Hobbys',
+};
+
+// section-key → extras-value (Cluster nutzt 'volunteer', Section heißt 'volunteerWork')
+const EXTRAS_VALUE: Record<string, string> = {
+  projects: 'projects',
+  stipendien: 'stipendien',
+  volunteerWork: 'volunteer',
+  certificates: 'certificates',
+  hobbies: 'hobbies',
+};
+
+/** Leitet Gate-Flags aus vorhandenen Daten ab (Import-Fall), ohne bereits
+ *  gesetzte Antworten zu überschreiben. Extras bleibt bewusst offen, damit das
+ *  Cluster noch erscheint und die erkannten Sektionen dort vorausgewählt sind. */
+function deriveFlags(d: any): CVBuilderData['flags'] {
+  const flags = { ...(d?.flags || {}) };
+  if (flags.hasWorkExperience === undefined && (d?.workExperiences?.length ?? 0) > 0) {
+    flags.hasWorkExperience = true;
+  }
+  if (flags.hasFormalEducation === undefined && (d?.professionalEducation?.length ?? 0) > 0) {
+    flags.hasFormalEducation = true;
+  }
+  return flags;
+}
+
+/** Vorauswahl der Cluster-Chips anhand vorhandener Inhalte. */
+function deriveExtrasFromContent(d: any): string[] {
+  const out: string[] = [];
+  if ((d?.projects?.length ?? 0) > 0) out.push('projects');
+  if ((d?.stipendien?.length ?? 0) > 0) out.push('stipendien');
+  if ((d?.volunteerWork?.length ?? 0) > 0) out.push('volunteer');
+  if ((d?.certificates?.length ?? 0) > 0) out.push('certificates');
+  if ((d?.hobbies?.hobbies?.length ?? 0) > 0 || d?.hobbies?.details) out.push('hobbies');
+  return out;
+}
+
+// ── Gate-Screen (eine Frage, große Antwortkarten, Auto-Advance) ───────────────
+function GateScreen({
+  gate,
+  onAnswer,
+  onBack,
+}: {
+  gate: typeof GATE_WORK_EXPERIENCE;
+  onAnswer: (setsFlags: any) => void;
+  onBack: () => void;
+}) {
+  return (
+    <div className="min-h-screen w-full bg-[#020617] text-white flex flex-col">
+      <div className="flex-1 flex flex-col items-center justify-center px-6 py-10">
+        <div className="w-full max-w-md">
+          <button
+            onClick={onBack}
+            className="mb-8 flex items-center gap-2 text-white/50 hover:text-white text-sm transition-colors"
+          >
+            <ArrowLeft size={18} /> Zurück
+          </button>
+          <h1 className="text-2xl font-semibold mb-2 leading-snug">{gate.prompt}</h1>
+          {gate.helper && <p className="text-white/50 mb-8">{gate.helper}</p>}
+          <div className="flex flex-col gap-3">
+            {gate.options.map((opt: any) => (
+              <button
+                key={opt.value}
+                onClick={() => onAnswer(opt.setsFlags || {})}
+                className="flex items-center gap-4 p-4 rounded-2xl bg-white/5 border border-white/10 hover:border-[#66c0b6]/60 hover:bg-[#66c0b6]/10 transition-all text-left"
+              >
+                <div className="flex-1">
+                  <p className="font-medium text-white">{opt.label}</p>
+                  {opt.hint && <p className="text-xs text-white/40 mt-0.5">{opt.hint}</p>}
+                </div>
+                <ChevronRight size={18} className="text-white/40" />
+              </button>
+            ))}
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ── „Noch etwas?"-Cluster (Mehrfachauswahl, ersetzt die tote Mitte) ───────────
+function ExtrasClusterScreen({
+  initialSelected,
+  onConfirm,
+  onBack,
+}: {
+  initialSelected: string[];
+  onConfirm: (selected: string[]) => void;
+  onBack: () => void;
+}) {
+  const [sel, setSel] = useState<Set<string>>(new Set(initialSelected));
+  const toggle = (v: string) =>
+    setSel((prev) => {
+      const n = new Set(prev);
+      n.has(v) ? n.delete(v) : n.add(v);
+      return n;
+    });
+
+  return (
+    <div className="min-h-screen w-full bg-[#020617] text-white flex flex-col">
+      <div className="flex-1 flex flex-col items-center justify-center px-6 py-10">
+        <div className="w-full max-w-md">
+          <button
+            onClick={onBack}
+            className="mb-8 flex items-center gap-2 text-white/50 hover:text-white text-sm transition-colors"
+          >
+            <ArrowLeft size={18} /> Zurück
+          </button>
+          <h1 className="text-2xl font-semibold mb-2 leading-snug">{GATE_EXTRAS.prompt}</h1>
+          {GATE_EXTRAS.helper && <p className="text-white/50 mb-8">{GATE_EXTRAS.helper}</p>}
+          <div className="grid grid-cols-1 gap-3 mb-8">
+            {GATE_EXTRAS.options.map((c: any) => {
+              const active = sel.has(c.value);
+              return (
+                <button
+                  key={c.value}
+                  onClick={() => toggle(c.value)}
+                  className={`flex items-center gap-4 p-4 rounded-2xl border transition-all text-left ${
+                    active
+                      ? 'bg-[#66c0b6]/15 border-[#66c0b6]/60'
+                      : 'bg-white/5 border-white/10 hover:bg-white/10 hover:border-white/20'
+                  }`}
+                >
+                  <div className="flex-1">
+                    <p className="font-medium text-white">{c.label}</p>
+                    {c.hint && <p className="text-xs text-white/40 mt-0.5">{c.hint}</p>}
+                  </div>
+                  <div
+                    className={`w-7 h-7 rounded-lg border flex items-center justify-center ${
+                      active ? 'border-[#66c0b6] bg-[#66c0b6]/20 text-[#66c0b6]' : 'border-white/15 text-white/40'
+                    }`}
+                  >
+                    {active ? <Check size={15} /> : <Plus size={15} />}
+                  </div>
+                </button>
+              );
+            })}
+          </div>
+          <button
+            onClick={() => onConfirm(Array.from(sel))}
+            className="w-full px-6 py-4 rounded-2xl bg-gradient-to-r from-[#66c0b6] to-[#30E3CA] text-black font-bold hover:opacity-90 transition-all flex items-center justify-center gap-2"
+          >
+            Weiter <ArrowRight size={20} />
+          </button>
+          <button
+            onClick={() => onConfirm(Array.from(new Set(initialSelected)))}
+            className="w-full mt-2 py-2 text-white/50 hover:text-white/70 text-sm transition-colors"
+          >
+            Nichts weiter hinzufügen
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
 
 function adaptParsedCvToBuilderData(parsed: any): CVBuilderData {
   if (!parsed || typeof parsed !== 'object') return {};
@@ -139,6 +333,11 @@ const [cvData, setCVData] = useState<CVBuilderData>({
   const [currentStep, setCurrentStep] = useState(0);
   const [showMotivation, setShowMotivation] = useState(false);
   const [motivationVariant, setMotivationVariant] = useState<1 | 2 | 3>(1);
+
+  // ---- Flow-Umbau: Interstitials (Gate-Fragen / Cluster) ----
+  const [interstitial, setInterstitial] = useState<'edu' | 'work' | 'extras' | null>(null);
+  const [pendingSectionStep, setPendingSectionStep] = useState<number | null>(null);
+  const [pendingStep, setPendingStep] = useState<number | null>(null);
 
   const [isHydrated, setIsHydrated] = useState(false);
   const [showEntryScreen, setShowEntryScreen] = useState(false);
@@ -336,7 +535,7 @@ const [cvData, setCVData] = useState<CVBuilderData>({
               // Coming from CV-Check: always skip entry screen and start at step 1
               console.log('[CVWizard] importFrom: skipping entry screen, starting at step 1, firstName:', prefillMapped?.personalData?.firstName);
               setTimeout(() => {
-                if (prefillMapped) setCVData({ ...prefillMapped });
+                if (prefillMapped) setCVData({ ...prefillMapped, flags: deriveFlags(prefillMapped) });
                 setDataWasImported(true);
                 setIsHydrated(true);
                 setIsLoading(false);
@@ -417,7 +616,7 @@ const [cvData, setCVData] = useState<CVBuilderData>({
             const hasContent = !!(baseData.personalData?.firstName || (baseData.workExperiences?.length ?? 0) > 0);
             if (hasContent) {
               console.log('[CVWizard] System: Applying imported data to state...');
-              setCVData({ ...baseData });
+              setCVData({ ...baseData, flags: deriveFlags(baseData) });
               setTimeout(() => {
                 setIsHydrated(true);
                 isInitialLoadRef.current = false;
@@ -509,25 +708,138 @@ const [cvData, setCVData] = useState<CVBuilderData>({
     setCVData((prev) => ({ ...prev, [key]: value }));
   };
 
+  // ---- Step Configuration (früh, weil Navigation sie referenziert) ----
+  const totalSteps = 14;
+  const isBeginner = cvData.experienceLevel === 'beginner';
+
+  // ─────────────────────────────────────────────────────────────────────────
+  // Flow-Umbau: Skip-Prädikate + Interstitial-Auflösung
+  // ─────────────────────────────────────────────────────────────────────────
+  const isSkippedAt = (d: CVBuilderData, index: number): boolean => {
+    const section = STEP_SECTION[index];
+    return section ? isSectionSkipped(section, d) : false;
+  };
+
+  const nextVisible = (d: CVBuilderData, from: number): number => {
+    let i = from;
+    while (i < totalSteps && isSkippedAt(d, i)) i++;
+    return i;
+  };
+
+  const gateAt = (d: CVBuilderData, step: number, beginner: boolean): 'edu' | 'work' | null => {
+    if (step === 3 && d.flags?.hasFormalEducation === undefined) return 'edu';
+    if (step === 4 && !beginner && d.flags?.hasWorkExperience === undefined) return 'work';
+    return null;
+  };
+
+  const clusterAt = (d: CVBuilderData, step: number): boolean =>
+    step >= 5 && step <= 8 && d.flags?.extras === undefined;
+
+  type EntryResolution = { interstitial: 'edu' | 'work' | 'extras'; sectionStep: number } | { step: number };
+
+  const resolveEntry = (d: CVBuilderData, targetRaw: number, beginner: boolean): EntryResolution => {
+    const t = nextVisible(d, targetRaw);
+    const g = gateAt(d, t, beginner);
+    if (g) return { interstitial: g, sectionStep: t };
+    if (clusterAt(d, t)) return { interstitial: 'extras', sectionStep: t };
+    return { step: t };
+  };
+
   // ---- Navigation Logic ----
   const nextStep = () => {
-    if ((currentStep + 1) % 3 === 0 && currentStep > 0 && currentStep < 13) {
-      setMotivationVariant((((currentStep + 1) / 3) % 3 + 1) as 1 | 2 | 3);
+    const from = currentStep;
+    const res = resolveEntry(cvData, from + 1, isBeginner);
+    if ('interstitial' in res) {
+      setPendingSectionStep(res.sectionStep);
+      setInterstitial(res.interstitial);
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+      return;
+    }
+    const target = res.step;
+    if ((from + 1) % 3 === 0 && from > 0 && from < 13) {
+      setPendingStep(target);
+      setMotivationVariant((((from + 1) / 3) % 3 + 1) as 1 | 2 | 3);
       setShowMotivation(true);
     } else {
-      setCurrentStep((prev) => prev + 1);
+      setCurrentStep(target);
     }
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
   const prevStep = () => {
-    setCurrentStep((prev) => Math.max(0, prev - 1));
+    let t = currentStep - 1;
+    while (t > 0 && isSkippedAt(cvData, t)) t--;
+    setCurrentStep(Math.max(0, t));
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
   const handleMotivationContinue = () => {
     setShowMotivation(false);
-    setCurrentStep((prev) => prev + 1);
+    setCurrentStep(pendingStep != null ? pendingStep : currentStep + 1);
+    setPendingStep(null);
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
+
+  // ---- Gate / Cluster Handler ----
+  const handleGateAnswer = (setsFlags: any) => {
+    const newData: CVBuilderData = { ...cvData, flags: { ...(cvData.flags || {}), ...setsFlags } };
+    setCVData(newData);
+    setInterstitial(null);
+    const target = pendingSectionStep ?? currentStep + 1;
+    const res = resolveEntry(newData, target, isBeginner);
+    if ('interstitial' in res) {
+      setPendingSectionStep(res.sectionStep);
+      setInterstitial(res.interstitial);
+    } else {
+      setCurrentStep(res.step);
+    }
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
+
+  const handleClusterConfirm = (selected: string[]) => {
+    const newData: CVBuilderData = { ...cvData, flags: { ...(cvData.flags || {}), extras: selected as any } };
+    setCVData(newData);
+    setInterstitial(null);
+    const target = pendingSectionStep ?? currentStep + 1;
+    const res = resolveEntry(newData, target, isBeginner);
+    if ('interstitial' in res) {
+      setPendingSectionStep(res.sectionStep);
+      setInterstitial(res.interstitial);
+    } else {
+      setCurrentStep(res.step);
+    }
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
+
+  const handleGateBack = () => {
+    // currentStep wurde beim Anzeigen des Interstitials nie verändert
+    setInterstitial(null);
+    setPendingStep(null);
+  };
+
+  // ---- Ausgeblendete Sektion jederzeit wieder einblenden ----
+  const unhideSection = (section: string) => {
+    const newFlags: any = { ...(cvData.flags || {}) };
+    if (section === 'workExperience') newFlags.hasWorkExperience = true;
+    else if (section === 'professionalEducation') newFlags.hasFormalEducation = true;
+    else {
+      const val = EXTRAS_VALUE[section];
+      newFlags.extras = Array.from(new Set([...(newFlags.extras || []), val]));
+    }
+    const newData: CVBuilderData = { ...cvData, flags: newFlags };
+    setCVData(newData);
+    const idx = SECTION_STEP[section];
+    if (idx != null) setCurrentStep(idx);
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
+
+  const goToIndex = (index: number) => {
+    const section = STEP_SECTION[index];
+    if (section && isSectionSkipped(section, cvData)) {
+      unhideSection(section);
+      return;
+    }
+    setCurrentStep(index);
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
@@ -537,10 +849,11 @@ const [cvData, setCVData] = useState<CVBuilderData>({
 
   const applyImportedData = (imported: CVBuilderData) => {
     const merged = { ...cvData, ...imported };
-    setCVData(merged);
-    saveProgress(merged);
-    const isBeginner = merged.experienceLevel === 'beginner';
-    const incompleteMandatory = getIncompleteRequiredSteps(merged, isBeginner);
+    const withFlags: CVBuilderData = { ...merged, flags: deriveFlags(merged) };
+    setCVData(withFlags);
+    saveProgress(withFlags);
+    const isBeginnerLevel = withFlags.experienceLevel === 'beginner';
+    const incompleteMandatory = getIncompleteRequiredSteps(withFlags, isBeginnerLevel);
     setIncompleteStepsSet(new Set(incompleteMandatory));
     setDataWasImported(true);
     setCurrentStep(1);
@@ -634,10 +947,6 @@ const finalData: CVBuilderData = {
       state: { cvId: resolvedCvId, cvData: finalData, tempId },
     });
   };
-
-  // ---- Step Configuration ----
-  const totalSteps = 14;
-  const isBeginner = cvData.experienceLevel === 'beginner';
 
   const getStepInfo = (step: number) => {
     if (isBeginner) {
@@ -936,6 +1245,21 @@ const finalData: CVBuilderData = {
     );
   }
 
+  // ---- Interstitials: Gate-Fragen / „Noch etwas?"-Cluster ----
+  if (interstitial === 'work' || interstitial === 'edu') {
+    const gate = interstitial === 'work' ? GATE_WORK_EXPERIENCE : GATE_FORMAL_EDUCATION;
+    return <GateScreen gate={gate} onAnswer={handleGateAnswer} onBack={handleGateBack} />;
+  }
+  if (interstitial === 'extras') {
+    return (
+      <ExtrasClusterScreen
+        initialSelected={deriveExtrasFromContent(cvData)}
+        onConfirm={handleClusterConfirm}
+        onBack={handleGateBack}
+      />
+    );
+  }
+
   // ---- Main Wizard UI ----
   const completedSteps = new Set<number>();
   const stepCompletenessData = checkStepCompleteness(cvData, isBeginner);
@@ -965,6 +1289,11 @@ const finalData: CVBuilderData = {
     .map(i => wizardStepsForLevel[i]?.shortLabel || wizardStepsForLevel[i]?.label)
     .filter(Boolean);
 
+  // Aktuell ausgeblendete Sektionen (für die „Immer nachtragbar"-Leiste)
+  const hiddenSections = Object.values(STEP_SECTION).filter(
+    (sec, idx, arr) => arr.indexOf(sec) === idx && isSectionSkipped(sec, cvData)
+  );
+
   console.log('[CVWizard] Rendering Step', currentStep, 'with data:', cvData.personalData?.firstName, '| isLoading:', isLoading, '| isInitialLoad:', isInitialLoadRef.current);
 
   return (
@@ -985,8 +1314,7 @@ const finalData: CVBuilderData = {
           incompleteSteps={liveIncompleteSteps}
           onStepClick={(index) => {
             if (index !== currentStep) {
-              setCurrentStep(index);
-              window.scrollTo({ top: 0, behavior: 'smooth' });
+              goToIndex(index);
             }
           }}
         />
@@ -1046,6 +1374,23 @@ const finalData: CVBuilderData = {
         style={{ paddingTop: progressBarHeight + (dataWasImported && importBannerIncomplete.length > 0 ? 32 : 0) }}
         className="min-h-screen flex flex-col"
       >
+        {/* „Immer nachtragbar"-Leiste: ausgeblendete Sektionen wieder einblenden */}
+        {hiddenSections.length > 0 && currentStep > 0 && currentStep < 13 && (
+          <div className="max-w-3xl mx-auto w-full px-4 pt-3">
+            <div className="flex flex-wrap items-center gap-2 text-xs">
+              <span className="text-white/40">Ausgeblendet:</span>
+              {hiddenSections.map((sec) => (
+                <button
+                  key={sec}
+                  onClick={() => unhideSection(sec)}
+                  className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-white/5 border border-white/10 text-white/60 hover:text-white hover:border-[#66c0b6]/50 transition-colors"
+                >
+                  <Plus size={11} /> {SECTION_LABEL[sec] || sec}
+                </button>
+              ))}
+            </div>
+          </div>
+        )}
         {renderStep()}
       </div>
     </div>
