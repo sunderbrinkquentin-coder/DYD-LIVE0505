@@ -35,6 +35,7 @@ import FestivalPaymentSuccessPage from '../pages/FestivalPaymentSuccessPage';
 // 🔐 AUTH GUARD IMPORT
 import { PrivateRoute } from '../components/PrivateRoute';
 import FestivalTournamentBoard from '../components/festival/FestivalTournamentBoard';
+import TournamentAdminPage from '../pages/TournamentAdminPage'
 
 export const router = createHashRouter([
   // Landing
