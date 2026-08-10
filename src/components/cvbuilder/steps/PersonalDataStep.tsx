@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useRef } from 'react';
 import { WizardStepLayout } from '../WizardStepLayout';
 import { PersonalData } from '../../../types/cvBuilder';
 
@@ -20,6 +20,9 @@ export function PersonalDataStep({
   showValidationImmediately = false,
 }: PersonalDataStepProps) {
   const [attempted, setAttempted] = useState(showValidationImmediately);
+
+  const headlineRef = useRef<HTMLInputElement | null>(null);
+  const linkedinRef = useRef<HTMLInputElement | null>(null);
 
   const missing = {
     firstName: !data.firstName,
@@ -43,6 +46,18 @@ export function PersonalDataStep({
     onNext();
   };
 
+  // Coach-CTA: springt/fokussiert das passende Feld
+  const handleCoachCta = (field?: string) => {
+    const el =
+      field === 'headline' ? headlineRef.current :
+      field === 'linkedin' ? linkedinRef.current :
+      null;
+    if (el) {
+      el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      el.focus();
+    }
+  };
+
   const fieldClass = (invalid: boolean) =>
     `w-full px-3 py-2.5 rounded-xl border-2 bg-white/5 text-white text-sm sm:text-base placeholder:text-white/40 focus:outline-none focus:bg-white/10 transition-all touch-manipulation ${
       attempted && invalid
@@ -57,6 +72,8 @@ export function PersonalDataStep({
       avatarMessage="Recruiter möchten dich schnell kontaktieren können."
       avatarStepInfo="Datenschutz ist wichtig – vollständige Adresse ist nicht nötig, Stadt reicht aus."
       currentStepId="personalData"
+      coachData={{ personalData: data }}
+      onCoachCta={handleCoachCta}
       onPrev={onBack}
       onNext={handleNext}
       onSkip={onSkip}
@@ -95,6 +112,21 @@ export function PersonalDataStep({
               <p className="text-red-400 text-xs mt-1">Bitte Nachnamen eingeben</p>
             )}
           </div>
+        </div>
+
+        <div>
+          <label className="block text-sm sm:text-base font-semibold text-white/90 mb-2">
+            Überschrift <span className="text-white/40 font-normal">(optional)</span>
+          </label>
+          <input
+            ref={headlineRef}
+            type="text"
+            value={data.headline || ''}
+            onChange={(e) => update('headline', e.target.value)}
+            placeholder="z. B. Marketing Manager · B2B SaaS"
+            className="w-full px-3 py-2.5 rounded-xl border-2 border-white/10 bg-white/5 text-white text-sm sm:text-base placeholder:text-white/40 focus:outline-none focus:border-[#66c0b6] focus:bg-white/10 transition-all touch-manipulation"
+          />
+          <p className="text-xs text-white/40 mt-1">Deine Ein-Zeilen-Überschrift ganz oben im Lebenslauf.</p>
         </div>
 
         <div>
@@ -151,6 +183,7 @@ export function PersonalDataStep({
             LinkedIn (optional)
           </label>
           <input
+            ref={linkedinRef}
             type="url"
             value={data.linkedin || ''}
             onChange={(e) => update('linkedin', e.target.value)}
