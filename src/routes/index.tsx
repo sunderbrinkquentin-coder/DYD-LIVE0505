@@ -102,8 +102,8 @@ export const router = createHashRouter([
   { path: '/learning-path-waiting/:pathId', element: <LearningPathWaitingPage /> },
   { path: '/business', element: <B2BLandingPage />},
   
-  { path: '/turnier', element: <FestivalTournamentBoardPage /> },              // öffentliches Live-Tableau (neuestes Turnier)
-{ path: '/turnier/:tournamentId', element: <FestivalTournamentBoardPage /> },
+  { path: '/turnier', element: <FestivalTournamentBoard /> },              // öffentliches Live-Tableau (neuestes Turnier)
+{ path: '/turnier/:tournamentId', element: <FestivalTournamentBoard /> },
 { path: '/admin/turnier', element: <TournamentAdminPage /> },        // nur du (RLS + UI-Gate)
 
   // 🔐 Dashboard → jetzt geschützt
