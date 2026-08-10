@@ -57,7 +57,26 @@ export default function FestivalTournamentBoard() {
     return maskMap.get(id) ?? 'Team ??';
   };
 
-  if (loading || !tournament) return null;
+ if (loading) {
+  return (
+    <div className="flex justify-center items-center p-8 text-cyan-400">
+      <Loader2 className="w-6 h-6 animate-spin mr-2" />
+      <span style={{ fontFamily: "'Inter', sans-serif", fontSize: 14 }}>
+        Lade Tableau...
+      </span>
+    </div>
+  );
+}
+
+if (!tournament) {
+  return (
+    <div className="glass rounded-2xl p-8 text-center" style={{ border: '1px solid rgba(0,212,212,0.12)' }}>
+      <p style={{ fontFamily: "'Inter', sans-serif", fontSize: 14, color: 'rgba(160,230,230,0.55)' }}>
+        Aktuell ist kein aktives Turnier-Tableau verfügbar.
+      </p>
+    </div>
+  );
+}
 
   const tableCount = tournament.table_count ?? 3;
   const advance = tournament.advance_per_group ?? 2;
