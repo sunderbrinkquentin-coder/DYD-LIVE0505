@@ -1561,8 +1561,6 @@ signal: controller.signal,
         </div>
       </section>
 
-{/* ── LIVE-TABLEAU (nur sichtbar, wenn Turnier läuft) ── */}
-      <FestivalTournamentBoard />
 {/* 🏆 TURNIER TABLEAU SECTION */}
         <motion.section 
           id="tableau" 
