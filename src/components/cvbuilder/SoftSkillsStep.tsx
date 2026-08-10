@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { ArrowRight, ArrowLeft, Plus, X, Check, ChevronDown, Sparkles } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { AvatarSidebar } from './AvatarSidebar';
+import { SmartCoach, SmartCoachBar } from './SmartCoach';
 import { SoftSkill } from '../../types/cvBuilder';
 import { SOFT_SKILL_SITUATIONS } from '../../config/cvBuilderSteps';
 
@@ -157,6 +157,15 @@ export function SoftSkillsStep({
   const [situationModal, setSituationModal] = useState<{ skillKey: string; label: string } | null>(null);
   const [customSkill, setCustomSkill] = useState('');
   const [customSkills, setCustomSkills] = useState<string[]>([]);
+
+  // Live-Daten für den Coach (Skills ohne Situation triggern den Nudge)
+  const coachData = {
+    softSkills: selected.map(s => ({
+      skill: s.displayLabel,
+      situation: s.situation || '',
+      example: s.example,
+    })),
+  };
 
   const isParentSelected = (val: string) =>
     selected.some(s => s.parentValue === val);
@@ -444,6 +453,13 @@ export function SoftSkillsStep({
             </div>
           </div>
 
+          {/* Dynamischer Coach – Mobile-Leiste (Desktop-Karte steht rechts) */}
+          <SmartCoachBar
+            section="softSkills"
+            data={coachData}
+            fallbackMessage="Spezifische Ausprägungen machen dich einzigartig – wähle 4–8 Skills mit konkreten Situationsbeispielen."
+          />
+
           {/* Navigation */}
           <div className="flex justify-between pt-6">
             <button
@@ -463,11 +479,12 @@ export function SoftSkillsStep({
         </div>
       </div>
 
+      {/* Dynamischer Coach – Desktop-Karte (ersetzt AvatarSidebar) */}
       <div className="hidden lg:block">
-        <AvatarSidebar
-          message="Spezifische Ausprägungen machen dich einzigartig. 'Verhandlungsführung' klingt stärker als nur 'Kommunikation'."
-          stepInfo="Wähle 4–8 Skills mit konkreten Situationsbeispielen für maximale Glaubwürdigkeit."
-          currentStepId="softSkills"
+        <SmartCoach
+          section="softSkills"
+          data={coachData}
+          fallbackMessage="Spezifische Ausprägungen machen dich einzigartig. 'Verhandlungsführung' klingt stärker als nur 'Kommunikation'."
         />
       </div>
 
