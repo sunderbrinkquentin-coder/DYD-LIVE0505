@@ -115,6 +115,13 @@ const EXTRAS_VALUE: Record<string, string> = {
   hobbies: 'hobbies',
 };
 
+// Runde 2: Motivation-Screens entschärft. Statt der mechanischen %-3-Kadenz
+// (4 Interrupts) erscheint nur noch beim BETRETEN dieser Steps ein Screen.
+// Bewusst reduziert auf einen sinnvollen Meilenstein; leicht erweiterbar.
+const MOTIVATION_ON_ENTER: Record<number, 1 | 2 | 3> = {
+  9: 2, // Übergang von Inhalten zu den Skills – „starke Basis, jetzt die Skills"
+};
+
 /** Leitet Gate-Flags aus vorhandenen Daten ab (Import-Fall), ohne bereits
  *  gesetzte Antworten zu überschreiben. Extras bleibt bewusst offen, damit das
  *  Cluster noch erscheint und die erkannten Sektionen dort vorausgewählt sind. */
@@ -746,6 +753,20 @@ const [cvData, setCVData] = useState<CVBuilderData>({
   };
 
   // ---- Navigation Logic ----
+  // Runde 2: zentrales „Landen" auf einem Step — zeigt ggf. EINEN Motivations-
+  // Screen beim Betreten bestimmter Steps (statt der alten %-3-Kadenz).
+  const landOn = (target: number) => {
+    const variant = MOTIVATION_ON_ENTER[target];
+    if (variant && target !== currentStep) {
+      setPendingStep(target);
+      setMotivationVariant(variant);
+      setShowMotivation(true);
+    } else {
+      setCurrentStep(target);
+    }
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
+
   const nextStep = () => {
     const from = currentStep;
     const res = resolveEntry(cvData, from + 1, isBeginner);
@@ -755,15 +776,7 @@ const [cvData, setCVData] = useState<CVBuilderData>({
       window.scrollTo({ top: 0, behavior: 'smooth' });
       return;
     }
-    const target = res.step;
-    if ((from + 1) % 3 === 0 && from > 0 && from < 13) {
-      setPendingStep(target);
-      setMotivationVariant((((from + 1) / 3) % 3 + 1) as 1 | 2 | 3);
-      setShowMotivation(true);
-    } else {
-      setCurrentStep(target);
-    }
-    window.scrollTo({ top: 0, behavior: 'smooth' });
+    landOn(res.step);
   };
 
   const prevStep = () => {
@@ -790,10 +803,10 @@ const [cvData, setCVData] = useState<CVBuilderData>({
     if ('interstitial' in res) {
       setPendingSectionStep(res.sectionStep);
       setInterstitial(res.interstitial);
+      window.scrollTo({ top: 0, behavior: 'smooth' });
     } else {
-      setCurrentStep(res.step);
+      landOn(res.step);
     }
-    window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
   const handleClusterConfirm = (selected: string[]) => {
@@ -805,10 +818,10 @@ const [cvData, setCVData] = useState<CVBuilderData>({
     if ('interstitial' in res) {
       setPendingSectionStep(res.sectionStep);
       setInterstitial(res.interstitial);
+      window.scrollTo({ top: 0, behavior: 'smooth' });
     } else {
-      setCurrentStep(res.step);
+      landOn(res.step);
     }
-    window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
   const handleGateBack = () => {
