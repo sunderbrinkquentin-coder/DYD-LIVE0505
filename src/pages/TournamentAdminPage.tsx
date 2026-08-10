@@ -269,21 +269,66 @@ export default function TournamentAdminPage() {
               </section>
             )}
 
-            {/* 🔮 VORSCHAU AUF DIE NÄCHSTE RUNDE / PENDING MATCHES */}
-            {pendingMatches.length > 0 && (
-              <section className="space-y-3 pt-4 border-t border-slate-800">
-                <h2 className="text-lg font-bold text-slate-300">Nächste Runden / Ausstehende Spiele ({pendingMatches.length})</h2>
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 max-h-48 overflow-y-auto pr-1">
-                  {pendingMatches.map((m) => (
-                    <div key={m.id} className="flex items-center justify-between rounded-lg bg-slate-900/60 border border-slate-800 p-2.5 text-xs text-slate-400">
-                      <span className="truncate flex-1 text-right">{nameOf(m.team_a)}</span>
-                      <span className="px-2 font-bold text-slate-600">vs</span>
-                      <span className="truncate flex-1 text-left">{nameOf(m.team_b)}</span>
+         {/* 🔮 GEKENNZEICHNETE VORSCHAU AUF DIE NÄCHSTEN RUNDEN */}
+            {pendingMatches.length > 0 && (() => {
+              const currentTableCount = tournament.table_count ?? 3;
+              
+              // Welle 1: Die Nächstfolgenden Spiele (Anzahl = Tischanzahl)
+              const nextWave = pendingMatches.slice(0, currentTableCount);
+              
+              // Welle 2: Die Übernächsten Spiele
+              const followingWave = pendingMatches.slice(currentTableCount, currentTableCount * 2);
+
+              return (
+                <section className="space-y-4 pt-4 border-t border-slate-800">
+                  <h2 className="text-xl font-bold text-white flex items-center justify-between">
+                    <span>Vorschau & Aufruf</span>
+                    <span className="text-xs font-normal text-slate-400">
+                      Tische: {currentTableCount}
+                    </span>
+                  </h2>
+
+                  {/* ⚡ NÄCHSTE WELLE (GLEICH DRAN) */}
+                  {nextWave.length > 0 && (
+                    <div className="space-y-2">
+                      <div className="flex items-center gap-2 text-xs font-bold uppercase tracking-wider text-amber-400">
+                        <span className="h-2 w-2 rounded-full bg-amber-400 animate-ping"></span>
+                        ⚡ Gleich dran (Nächste Welle)
+                      </div>
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                        {nextWave.map((m, idx) => (
+                          <div key={m.id} className="flex items-center justify-between rounded-xl bg-amber-950/20 border border-amber-500/40 p-3 text-xs">
+                            <span className="font-bold text-amber-300 mr-2">#{idx + 1}</span>
+                            <span className="truncate flex-1 text-right font-medium text-slate-200">{nameOf(m.team_a)}</span>
+                            <span className="px-2 font-bold text-amber-500/60">vs</span>
+                            <span className="truncate flex-1 text-left font-medium text-slate-200">{nameOf(m.team_b)}</span>
+                          </div>
+                        ))}
+                      </div>
                     </div>
-                  ))}
-                </div>
-              </section>
-            )}
+                  )}
+
+                  {/* ⏳ ÜBERNÄCHSTE WELLE (IN VORBEREITUNG) */}
+                  {followingWave.length > 0 && (
+                    <div className="space-y-2 pt-2">
+                      <div className="flex items-center gap-2 text-xs font-bold uppercase tracking-wider text-sky-400">
+                        <span>⏳ In Vorbereitung (Übernächste Welle)</span>
+                      </div>
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                        {followingWave.map((m, idx) => (
+                          <div key={m.id} className="flex items-center justify-between rounded-xl bg-sky-950/20 border border-sky-500/30 p-2.5 text-xs">
+                            <span className="font-bold text-sky-400 mr-2">#{idx + 1 + currentTableCount}</span>
+                            <span className="truncate flex-1 text-right text-slate-300">{nameOf(m.team_a)}</span>
+                            <span className="px-2 font-bold text-sky-500/50">vs</span>
+                            <span className="truncate flex-1 text-left text-slate-300">{nameOf(m.team_b)}</span>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                </section>
+              );
+            })()}
 
             {/* KO-PHASE GENERIEREN */}
             {tournament.status === 'group_stage' && groupAllDone && !koExists && (
