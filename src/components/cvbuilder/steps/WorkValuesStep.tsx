@@ -1,7 +1,6 @@
 import { useState } from 'react';
 import { WizardStepLayout } from '../WizardStepLayout';
 import { WorkValues } from '../../../types/cvBuilder';
-
 interface WorkValuesStepProps {
   currentStep: number;
   totalSteps: number;
@@ -9,7 +8,6 @@ interface WorkValuesStepProps {
   onNext: (values: WorkValues) => void;
   onPrev: () => void;
 }
-
 const WORK_VALUE_OPTIONS = [
   "Teamwork",
   "Eigenverantwortung",
@@ -22,7 +20,6 @@ const WORK_VALUE_OPTIONS = [
   "Lernkultur",
   "Stabilität & Sicherheit",
 ];
-
 const WORK_STYLE_OPTIONS = [
   "Hands-on",
   "Analytisch",
@@ -33,7 +30,6 @@ const WORK_STYLE_OPTIONS = [
   "Detailorientiert",
   "Kommunikativ",
 ];
-
 export function WorkValuesStep({
   currentStep,
   totalSteps,
@@ -41,23 +37,18 @@ export function WorkValuesStep({
   onNext,
   onPrev,
 }: WorkValuesStepProps) {
-
   const [values, setValues] = useState<string[]>(initialValues?.values ?? []);
   const [workStyle, setWorkStyle] = useState<string[]>(initialValues?.workStyle ?? []);
-
   const toggleValue = (list: string[], setter: (v: string[]) => void, item: string) => {
     setter(list.includes(item) ? list.filter((v) => v !== item) : [...list, item]);
   };
-
   const handleNext = () => {
     onNext({
       values,
       workStyle,
     });
   };
-
   const disableNext = values.length === 0 && workStyle.length === 0;
-
   return (
     <WizardStepLayout
       currentStep={currentStep}
@@ -65,6 +56,7 @@ export function WorkValuesStep({
       title="Arbeitswerte & Arbeitsweise"
       subtitle="Wähle 3–5 Werte und Eigenschaften aus, die deinen Stil am besten widerspiegeln."
       currentStepId="workValues"
+      coachData={{ workValues: { values, workStyle } }}
       onPrev={onPrev}
       onNext={handleNext}
       isNextDisabled={disableNext}
@@ -73,7 +65,6 @@ export function WorkValuesStep({
       avatarStepInfo="Wähle, was dich im Arbeitsalltag wirklich ausmacht."
     >
       <div className="space-y-6">
-
         {/* Arbeitswerte */}
         <div>
           <h2 className="text-base font-semibold text-white mb-1.5">Arbeitswerte</h2>
@@ -100,7 +91,6 @@ export function WorkValuesStep({
             })}
           </div>
         </div>
-
         {/* Arbeitsstil */}
         <div>
           <h2 className="text-base font-semibold text-white mb-1.5">Arbeitsstil</h2>
