@@ -1,6 +1,6 @@
 import { Check, ArrowRight, ArrowLeft } from 'lucide-react';
 import { ExperienceLevel } from '../../../types/cvBuilder';
-import { AvatarSidebar } from '../AvatarSidebar';
+import { SmartCoach, SmartCoachBar } from '../SmartCoach';
 
 interface ExperienceLevelStepProps {
   value?: ExperienceLevel;
@@ -30,6 +30,9 @@ const options = [
     benefit: '💼 Wir machen deine Erfolge messbar & konkret'
   }
 ];
+
+const COACH_FALLBACK =
+  'Deine Antwort hilft uns, die perfekten Fragen für deinen CV zu wählen. Jeder Karriereweg ist einzigartig – wir passen uns deiner Situation an.';
 
 export function ExperienceLevelStep({
   onNext,
@@ -90,8 +93,10 @@ export function ExperienceLevelStep({
           </p>
         </div>
 
-        <div className="lg:hidden fixed bottom-0 left-0 right-0 bg-gradient-to-t from-[#020617] via-[#020617]/95 to-transparent z-50 px-4 pb-safe pb-4 pt-3">
-          <div className="flex items-center">
+        <div className="lg:hidden fixed bottom-0 left-0 right-0 bg-gradient-to-t from-[#020617] via-[#020617]/95 to-transparent z-50 pb-safe pb-4 pt-3">
+          {/* Dynamischer Coach – schließt die bisherige Mobile-Tipp-Lücke */}
+          <SmartCoachBar section="experienceLevel" data={{}} fallbackMessage={COACH_FALLBACK} />
+          <div className="flex items-center px-4">
             <button
               onClick={onBack}
               disabled={!onBack}
@@ -115,12 +120,9 @@ export function ExperienceLevelStep({
         </div>
       </div>
 
+      {/* Dynamischer Coach – Desktop-Karte (ersetzt AvatarSidebar) */}
       <div className="lg:block hidden">
-        <AvatarSidebar
-          message="Deine Antwort hilft uns, die perfekten Fragen und Empfehlungen für deinen CV zu geben."
-          stepInfo="Jeder Karriereweg ist einzigartig – wir passen uns deiner Situation an."
-          currentStepId="experienceLevel"
-        />
+        <SmartCoach section="experienceLevel" data={{}} fallbackMessage={COACH_FALLBACK} />
       </div>
     </div>
   );
