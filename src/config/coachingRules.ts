@@ -340,6 +340,8 @@ const RULES_BY_SECTION: Record<string, CoachRule[]> = {
   softSkills: SOFT_SKILLS_RULES,
   schoolEducation: SCHOOL_RULES,
   professionalEducation: PROF_EDU_RULES,
+  // Gemergter Bildungs-Step: Schul- + Ausbildungs-Regeln zusammen.
+  education: [...SCHOOL_RULES, ...PROF_EDU_RULES],
   projects: PROJECT_RULES,
 };
 
