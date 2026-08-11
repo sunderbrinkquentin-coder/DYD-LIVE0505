@@ -85,6 +85,7 @@ export function CertificatesStep({ data, onChange, onNext, onBack }: Certificate
       avatarMessage="Zertifikate und Preise sind starke Belege für deine Fähigkeiten – trag sie unbedingt ein!"
       avatarStepInfo="Füge Zertifikate, Kurse oder Auszeichnungen hinzu. Dieser Schritt ist optional."
       currentStepId="certificates"
+      coachData={{ certificates: entries }}
       onPrev={onBack}
       onNext={onNext}
       hideProgress
