@@ -860,7 +860,7 @@ export const ModernCVTemplate: React.FC<CVTemplateProps> = ({
         flexDirection: 'column',
         backgroundColor: CI.canvas,
         borderLeft: `4px solid ${CI.primary}`,
-        wordBreak: 'break-word',
+        wordBreak: 'normal',
         overflowWrap: 'anywhere',
       }}
     >
