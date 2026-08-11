@@ -42,7 +42,7 @@ import { WIZARD_STEPS, getStepByIndex } from '../config/wizardSteps';
 // Step Components
 import { ExperienceLevelStep } from '../components/cvbuilder/steps/ExperienceLevelStep';
 import { PersonalDataStep } from '../components/cvbuilder/steps/PersonalDataStep';
-import { EducationStep } from '../components/cvbuilder/steps/EducationStep';
+import { Educationstep } from '../components/cvbuilder/steps/Educationstep';
 import { WorkExperienceStep } from '../components/cvbuilder/steps/WorkExperienceStep';
 import { InternshipsStep } from '../components/cvbuilder/steps/InternshipsStep';
 import { ProjectsStep } from '../components/cvbuilder/steps/ProjectsStep';
