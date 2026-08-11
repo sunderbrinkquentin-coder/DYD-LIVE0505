@@ -68,6 +68,7 @@ export function StipendienStep({ data, onChange, onNext, onBack }: StipendienSte
       avatarMessage="Wenn du ein Stipendium erhalten hast, solltest du es unbedingt im CV erwähnen!"
       avatarStepInfo="Trag deine Stipendien ein oder überspringe diesen Schritt."
       currentStepId="stipendien"
+      coachData={{ stipendien: entries }}
       onPrev={onBack}
       onNext={onNext}
       hideProgress
