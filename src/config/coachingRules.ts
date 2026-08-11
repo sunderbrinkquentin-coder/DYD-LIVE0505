@@ -252,12 +252,39 @@ const SOFT_SKILLS_RULES: CoachRule[] = [
   },
 ];
 
+const SCHOOL_RULES: CoachRule[] = [
+  {
+    id: 'school.noFocus',
+    priority: 55,
+    when: ({ data }) => {
+      const started = (data.schoolEducation || []).filter(e => e.type || e.school);
+      return started.length > 0 && started.some(e => !(e.focus && e.focus.length > 0));
+    },
+    tip: () => ({
+      id: 'school.noFocus',
+      tone: 'guide',
+      message: 'Leistungskurse oder Schwerpunkte machen deinen Abschluss aussagekräftiger – besonders das, was zum Wunschjob passt.',
+    }),
+  },
+  {
+    id: 'school.solid',
+    priority: 35,
+    when: ({ data }) => (data.schoolEducation || []).some(e => !!(e.type && e.school && e.focus && e.focus.length > 0)),
+    tip: () => ({
+      id: 'school.solid',
+      tone: 'praise',
+      message: 'Sauber – Abschluss samt Schwerpunkten ist erfasst. Genau das ordnet dich klar ein.',
+    }),
+  },
+];
+
 const RULES_BY_SECTION: Record<string, CoachRule[]> = {
   workExperience: WORK_RULES,
   internships: INTERNSHIP_RULES,
   personalData: PERSONAL_RULES,
   hardSkills: HARD_SKILLS_RULES,
   softSkills: SOFT_SKILLS_RULES,
+  schoolEducation: SCHOOL_RULES,
 };
 
 // ── Öffentliche API ────────────────────────────────────────────────────────────
