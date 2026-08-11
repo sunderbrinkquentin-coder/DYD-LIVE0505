@@ -109,6 +109,7 @@ export function VolunteerStep({ data, onChange, onNext, onBack }: VolunteerStepP
       avatarMessage="Ehrenamt ist im CV oft unterschätzt – dabei beeindruckt es viele Arbeitgeber sehr!"
       avatarStepInfo="Trage dein Engagement ein oder überspringe diesen Schritt."
       currentStepId="volunteerWork"
+      coachData={{ volunteerWork: entries }}
       onPrev={onBack}
       onNext={onNext}
       hideProgress
