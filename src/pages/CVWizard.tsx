@@ -42,8 +42,7 @@ import { WIZARD_STEPS, getStepByIndex } from '../config/wizardSteps';
 // Step Components
 import { ExperienceLevelStep } from '../components/cvbuilder/steps/ExperienceLevelStep';
 import { PersonalDataStep } from '../components/cvbuilder/steps/PersonalDataStep';
-import { SchoolEducationStep } from '../components/cvbuilder/steps/SchoolEducationStep';
-import { ProfessionalEducationStep } from '../components/cvbuilder/steps/ProfessionalEducationStep';
+import { EducationStep } from '../components/cvbuilder/steps/EducationStep';
 import { WorkExperienceStep } from '../components/cvbuilder/steps/WorkExperienceStep';
 import { InternshipsStep } from '../components/cvbuilder/steps/InternshipsStep';
 import { ProjectsStep } from '../components/cvbuilder/steps/ProjectsStep';
@@ -76,28 +75,27 @@ import { cvProfileService } from '../services/cvProfileService';
 // Nur verzweigbare/überspringbare Sektionen. Schulbildung (2) bleibt immer
 // sichtbar und ist bewusst NICHT hier gelistet.
 // ─────────────────────────────────────────────────────────────────────────────
+// Merge Schule+Ausbildung → EIN Bildungs-Step (Index 2, immer sichtbar, nie
+// übersprungen → daher NICHT in STEP_SECTION). Alle Indizes ab Work um 1 nach vorn.
 const STEP_SECTION: Record<number, string> = {
-  3: 'professionalEducation',
-  4: 'workExperience',
-  5: 'projects',
-  6: 'stipendien',
-  7: 'volunteerWork',
-  8: 'certificates',
-  12: 'hobbies',
+  3: 'workExperience',
+  4: 'projects',
+  5: 'stipendien',
+  6: 'volunteerWork',
+  7: 'certificates',
+  11: 'hobbies',
 };
 
 const SECTION_STEP: Record<string, number> = {
-  professionalEducation: 3,
-  workExperience: 4,
-  projects: 5,
-  stipendien: 6,
-  volunteerWork: 7,
-  certificates: 8,
-  hobbies: 12,
+  workExperience: 3,
+  projects: 4,
+  stipendien: 5,
+  volunteerWork: 6,
+  certificates: 7,
+  hobbies: 11,
 };
 
 const SECTION_LABEL: Record<string, string> = {
-  professionalEducation: 'Ausbildung/Studium',
   workExperience: 'Berufserfahrung',
   projects: 'Projekte',
   stipendien: 'Stipendien',
@@ -118,8 +116,9 @@ const EXTRAS_VALUE: Record<string, string> = {
 // Runde 2: Motivation-Screens entschärft. Statt der mechanischen %-3-Kadenz
 // (4 Interrupts) erscheint nur noch beim BETRETEN dieser Steps ein Screen.
 // Bewusst reduziert auf einen sinnvollen Meilenstein; leicht erweiterbar.
+// (Hard Skills nach dem Merge = Step 8.)
 const MOTIVATION_ON_ENTER: Record<number, 1 | 2 | 3> = {
-  9: 2, // Übergang von Inhalten zu den Skills – „starke Basis, jetzt die Skills"
+  8: 2, // Übergang von Inhalten zu den Skills – „starke Basis, jetzt die Skills"
 };
 
 /** Leitet Gate-Flags aus vorhandenen Daten ab (Import-Fall), ohne bereits
@@ -716,7 +715,7 @@ const [cvData, setCVData] = useState<CVBuilderData>({
   };
 
   // ---- Step Configuration (früh, weil Navigation sie referenziert) ----
-  const totalSteps = 14;
+  const totalSteps = 13;
   const isBeginner = cvData.experienceLevel === 'beginner';
 
   // ─────────────────────────────────────────────────────────────────────────
@@ -733,14 +732,17 @@ const [cvData, setCVData] = useState<CVBuilderData>({
     return i;
   };
 
-  const gateAt = (d: CVBuilderData, step: number, beginner: boolean): 'edu' | 'work' | null => {
-    if (step === 3 && d.flags?.hasFormalEducation === undefined) return 'edu';
-    if (step === 4 && !beginner && d.flags?.hasWorkExperience === undefined) return 'work';
+  // Nach dem Bildungs-Merge gibt es keine separate Ausbildungs-Gate mehr –
+  // der Bildungs-Step (2) ist immer sichtbar. Nur noch die Berufserfahrungs-Gate,
+  // jetzt vor Step 3.
+  const gateAt = (d: CVBuilderData, step: number, beginner: boolean): 'work' | null => {
+    if (step === 3 && !beginner && d.flags?.hasWorkExperience === undefined) return 'work';
     return null;
   };
 
+  // Optionaler Block startet nach dem Merge bei Step 4 (Projekte … Zertifikate).
   const clusterAt = (d: CVBuilderData, step: number): boolean =>
-    step >= 5 && step <= 8 && d.flags?.extras === undefined;
+    step >= 4 && step <= 7 && d.flags?.extras === undefined;
 
   type EntryResolution = { interstitial: 'edu' | 'work' | 'extras'; sectionStep: number } | { step: number };
 
@@ -966,8 +968,7 @@ const finalData: CVBuilderData = {
       const steps = [
         { title: 'Erfahrungslevel', message: 'Lass uns deinen Start bestimmen' },
         { title: 'Persönliche Daten', message: 'Erzähl uns ein bisschen über dich' },
-        { title: 'Schulbildung', message: 'Welche Schule besuchst du / hast du besucht?' },
-        { title: 'Ausbildung / Studium', message: 'Machst du eine Ausbildung oder studierst du?' },
+        { title: 'Deine Bildung', message: 'Schulbildung, Ausbildung oder Studium' },
         { title: 'Praktika & Nebenjobs', message: 'Hast du erste praktische Erfahrungen gesammelt?' },
         { title: 'Projekte', message: 'Zeig, was du außerhalb der Schule geleistet hast' },
         { title: 'Stipendien', message: 'Hast du ein Stipendium erhalten?' },
@@ -984,8 +985,7 @@ const finalData: CVBuilderData = {
     const steps = [
       { title: 'Erfahrungslevel', message: 'Lass uns dein Erfahrungslevel bestimmen' },
       { title: 'Persönliche Daten', message: 'Erzähl uns ein bisschen über dich' },
-      { title: 'Schulbildung', message: 'Welche Schule hast du besucht?' },
-      { title: 'Ausbildung/Studium', message: 'Deine berufliche Ausbildung' },
+      { title: 'Deine Bildung', message: 'Schulbildung, Ausbildung & Studium' },
       { title: 'Berufserfahrung', message: 'Deine praktischen Erfahrungen' },
       { title: 'Projekte', message: 'Besondere Projekte, an denen du gearbeitet hast' },
       { title: 'Stipendien', message: 'Hast du ein Stipendium erhalten?' },
@@ -1038,9 +1038,12 @@ const finalData: CVBuilderData = {
 
       case 2:
         return (
-          <SchoolEducationStep
-            data={cvData.schoolEducation || []}
-            onChange={(data) => updateCVData('schoolEducation', data)}
+          <EducationStep
+            schoolData={cvData.schoolEducation || []}
+            professionalData={cvData.professionalEducation || []}
+            experienceLevel={cvData.experienceLevel}
+            onSchoolChange={(data) => updateCVData('schoolEducation', data)}
+            onProfessionalChange={(data) => updateCVData('professionalEducation', data)}
             onNext={nextStep}
             onBack={prevStep}
             onSkip={nextStep}
@@ -1048,18 +1051,6 @@ const finalData: CVBuilderData = {
         );
 
       case 3:
-        return (
-          <ProfessionalEducationStep
-            data={cvData.professionalEducation || []}
-            experienceLevel={cvData.experienceLevel}
-            onChange={(data) => updateCVData('professionalEducation', data)}
-            onNext={nextStep}
-            onBack={prevStep}
-            onSkip={nextStep}
-          />
-        );
-
-      case 4:
         return isBeginner ? (
           <InternshipsStep
             data={cvData.workExperiences || []}
@@ -1078,7 +1069,7 @@ const finalData: CVBuilderData = {
           />
         );
 
-      case 5:
+      case 4:
         return (
           <ProjectsStep
             data={cvData.projects || []}
@@ -1089,7 +1080,7 @@ const finalData: CVBuilderData = {
           />
         );
 
-      case 6:
+      case 5:
         return (
           <StipendienStep
             data={cvData.stipendien || []}
@@ -1099,7 +1090,7 @@ const finalData: CVBuilderData = {
           />
         );
 
-      case 7:
+      case 6:
         return (
           <VolunteerStep
             data={cvData.volunteerWork || []}
@@ -1109,7 +1100,7 @@ const finalData: CVBuilderData = {
           />
         );
 
-      case 8:
+      case 7:
         return (
           <CertificatesStep
             data={cvData.certificates || []}
@@ -1119,7 +1110,7 @@ const finalData: CVBuilderData = {
           />
         );
 
-      case 9:
+      case 8:
         return (
           <HardSkillsStep
             skills={cvData.hardSkills || []}
@@ -1131,7 +1122,7 @@ const finalData: CVBuilderData = {
           />
         );
 
-      case 10:
+      case 9:
         return (
           <SoftSkillsStep
             data={cvData.softSkills || []}
@@ -1141,7 +1132,7 @@ const finalData: CVBuilderData = {
           />
         );
 
-      case 11:
+      case 10:
         return (
           <WorkValuesStep
             currentStep={currentStep}
@@ -1155,7 +1146,7 @@ const finalData: CVBuilderData = {
           />
         );
 
-      case 12:
+      case 11:
         return (
           <HobbiesStep
             data={cvData.hobbies || { hobbies: [], details: '' }}
@@ -1165,7 +1156,7 @@ const finalData: CVBuilderData = {
           />
         );
 
-      case 13:
+      case 12:
         return (
           <CompletionStep
             cvData={cvData}
@@ -1281,21 +1272,29 @@ const finalData: CVBuilderData = {
       completedSteps.add(i);
     }
   }
-  const REQUIRED_STEP_INDICES = new Set([1, 4, 9, 10]);
+  // Nach dem Merge: Personal(1) · Berufserfahrung(3) · Hard(8) · Soft(9)
+  const REQUIRED_STEP_INDICES = new Set([1, 3, 8, 9]);
   const liveIncompleteSteps = dataWasImported
     ? new Set(stepCompletenessData
         .filter(s => REQUIRED_STEP_INDICES.has(s.stepIndex) && s.stepIndex < currentStep && !s.isComplete)
         .map(s => s.stepIndex))
     : incompleteStepsSet;
 
+  // WIZARD_STEPS hat noch 14 Einträge (Schule + Ausbildung getrennt). Wir mergen
+  // sie hier zu 13 Einträgen (ein „Bildung"-Schritt), ohne wizardSteps.ts anzufassen.
+  const mergedWizardSteps = (() => {
+    const src = WIZARD_STEPS as any[];
+    const education = { ...(src[2] || {}), label: 'Bildung', shortLabel: 'Bildung' };
+    return [src[0], src[1], education, ...src.slice(4)];
+  })();
+
   const wizardStepsForLevel = isBeginner
-    ? WIZARD_STEPS.map((s, i) => {
-        if (i === 4) return { ...s, label: 'Praktika & Nebenjobs', shortLabel: 'Praktika' };
-        if (i === 5) return { ...s, label: 'Projekte', shortLabel: 'Projekte' };
-        if (i === 3) return { ...s, label: 'Ausbildung / Studium', shortLabel: 'Ausbildung' };
+    ? mergedWizardSteps.map((s: any, i: number) => {
+        if (i === 3) return { ...s, label: 'Praktika & Nebenjobs', shortLabel: 'Praktika' };
+        if (i === 4) return { ...s, label: 'Projekte', shortLabel: 'Projekte' };
         return s;
       })
-    : WIZARD_STEPS;
+    : mergedWizardSteps;
 
   const importBannerIncomplete = Array.from(liveIncompleteSteps)
     .filter(i => i !== currentStep)
@@ -1353,7 +1352,7 @@ const finalData: CVBuilderData = {
         </div>
       )}
 {/* Level-Switcher: jederzeit zwischen den Erfahrungsstufen wechseln */}
-{currentStep > 0 && currentStep < 13 && (
+{currentStep > 0 && currentStep < 12 && (
   <div
     className="fixed z-30 right-4"
     style={{ top: progressBarHeight + (dataWasImported && importBannerIncomplete.length > 0 ? 40 : 8) }}
@@ -1388,7 +1387,7 @@ const finalData: CVBuilderData = {
         className="min-h-screen flex flex-col"
       >
         {/* „Immer nachtragbar"-Leiste: ausgeblendete Sektionen wieder einblenden */}
-        {hiddenSections.length > 0 && currentStep > 0 && currentStep < 13 && (
+        {hiddenSections.length > 0 && currentStep > 0 && currentStep < 12 && (
           <div className="max-w-3xl mx-auto w-full px-4 pt-3">
             <div className="flex flex-wrap items-center gap-2 text-xs">
               <span className="text-white/40">Ausgeblendet:</span>
