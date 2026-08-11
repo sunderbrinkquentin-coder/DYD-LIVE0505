@@ -90,17 +90,25 @@ export const EditableText: React.FC<EditableTextProps> = ({
   const flows = multiline || wrap;
 
   /**
-   * `overflowWrap: 'anywhere'` senkt die min-content-Breite eines Elements
-   * auf ein einzelnes Zeichen. Steht ein solches Feld in einer Flex-Zeile
-   * neben einem festbreiten Nachbarn (z. B. einer Datums-Badge), quetscht
-   * Flexbox es bei Platzmangel bis auf 1 Zeichen zusammen — der Text stapelt
-   * sich senkrecht, Buchstabe für Buchstabe. `break-word` bricht weiterhin
-   * lange Wörter um, senkt die min-content-Breite aber nur bis zum längsten
-   * WORT, nicht bis zu einem einzelnen Zeichen.
+   * WICHTIG — hier lag die eigentliche Wurzel des „Buchstaben-Stapelns".
+   *
+   * `overflowWrap: 'anywhere'` UND `wordBreak: 'break-word'` senken beide die
+   * min-content-Breite eines Elements auf EIN Zeichen. Steht so ein Feld in
+   * einer Flex-Zeile neben einem festbreiten Nachbarn (Datums-Badge, Spalte),
+   * quetscht Flexbox es bei Platzmangel bis auf 1 Zeichen — der Text stapelt
+   * sich senkrecht.
+   *
+   * Deshalb:
+   *   wordBreak: 'normal'          → min-content = längstes WORT (nie 1 Zeichen)
+   *   overflowWrap: 'break-word'   → überlange Wörter brechen NUR bei echtem
+   *                                  Überlauf um, ohne die min-content-Breite
+   *                                  zu senken.
+   * Damit ist zeichenweises Stapeln strukturell unmöglich — unabhängig davon,
+   * wie eng die Spalte wird.
    */
   const flowStyle: React.CSSProperties = {
     whiteSpace: multiline ? 'pre-wrap' : wrap ? 'normal' : 'nowrap',
-    wordBreak: flows ? 'break-word' : 'normal',
+    wordBreak: 'normal',
     overflow: flows ? 'visible' : 'hidden',
     textOverflow: flows ? 'unset' : 'ellipsis',
     ...(flows ? { overflowWrap: 'break-word' as const } : {}),
