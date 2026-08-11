@@ -385,26 +385,41 @@ export function computeBreakPoints(
       if (pos > best) best = pos;
     }
 
-if (best < 0) {
-      // Kein legaler Kandidat oberhalb der Mindestfüllung. Bei ZWEISPALTIGEN
-      // Templates (Modern) regelmäßig, weil die Zonen BEIDER Spalten dasselbe
-      // Y-Fenster abdecken.
+    if (best < 0) {
+      // Kein sauberer Schnitt oberhalb der Mindestfüllung. Bei ZWEISPALTIGEN
+      // Templates (Modern, Professional, Minimal, Creative, Classic) passiert
+      // das regelmäßig: die Item-Zonen der linken und der rechten Spalte
+      // kacheln dasselbe Y-Fenster, aber ihre Lücken liegen auf
+      // UNTERSCHIEDLICHEN Höhen. Ein waagerechter Schnitt, der in Spalte A durch
+      // eine Lücke geht, trifft in Spalte B mitten in eine Station.
       //
-      // FIX: Zuerst den tiefsten Schnitt, der durch KEINE Zone läuft — also
-      // durch beide Spalten sauber geht (isInsideZone prüft alle Zonen). Erst
-      // wenn es gar keinen sauberen Schnitt gibt, auf straddler.top / hardMax
-      // ausweichen. Vorher wurde straddler.top SOFORT genommen; diese
-      // Y-Position konnte in der anderen Spalte mitten durch eine kürzere
-      // Station laufen — genau der Schnitt „mitten im Block".
-      const cleanBelow = candidates.filter(
-        (p) => p > cursor + tolerancePx && p <= hardMax && !isInsideZone(p, zones, tolerancePx)
+      // BUG, der hier lag: Der frühere `cleanBelow`-Zweig nahm den tiefsten
+      // sauberen Schnitt UNTERHALB hardMax — OHNE die Mindestfüllung zu
+      // beachten. Gibt es zwischen softMin und hardMax keinen sauberen Schnitt
+      // (zwei Spalten!), ist der einzige saubere Schnitt oft der VOR beiden
+      // Spalten — direkt hinter Kopf/Profil bei y≈250. Ergebnis: eine fast
+      // leere Seite, der gesamte Rest ab der nächsten. Exakt die
+      // „Seite fast leer"-Bilder.
+      //
+      // FIX: Die Notlösung darf eine Seite NIE unter die Hälfte füllen.
+      //   1. Tiefster sauberer Schnitt, der die Seite mind. halb füllt.
+      //   2. Sonst: eine straddelnde Zone nach unten schieben — aber nur, wenn
+      //      ihr Kopf selbst mind. die halbe Seite voll lässt.
+      //   3. Sonst: hart bei hardMax schneiden. Eine einzelne, am Seitenrand
+      //      geteilte Zeile ist deutlich besser als eine halbleere Seite — und
+      //      da die Folgeseite exakt bei hardMax weiterzeigt, läuft der Inhalt
+      //      optisch nahtlos weiter.
+      const fillFloor = cursor + pageHeight * 0.5;
+
+      const cleanAboveFloor = candidates.filter(
+        (p) => p > fillFloor && p <= hardMax && !isInsideZone(p, zones, tolerancePx)
       );
 
-      if (cleanBelow.length > 0) {
-        best = cleanBelow[cleanBelow.length - 1];
+      if (cleanAboveFloor.length > 0) {
+        best = cleanAboveFloor[cleanAboveFloor.length - 1];
       } else {
         const straddler = straddlingZone(hardMax, zones, tolerancePx);
-        best = straddler && straddler.top > cursor + tolerancePx ? straddler.top : hardMax;
+        best = straddler && straddler.top > fillFloor ? straddler.top : hardMax;
       }
     }
 
