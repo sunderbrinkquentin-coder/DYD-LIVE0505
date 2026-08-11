@@ -861,7 +861,7 @@ export const ModernCVTemplate: React.FC<CVTemplateProps> = ({
         backgroundColor: CI.canvas,
         borderLeft: `4px solid ${CI.primary}`,
         wordBreak: 'normal',
-        overflowWrap: 'anywhere',
+        overflowWrap: 'break-word',
       }}
     >
       <div>
