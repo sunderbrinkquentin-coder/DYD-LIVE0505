@@ -160,6 +160,7 @@ export function SchoolEducationStep({ data = [], onChange, onNext, onBack, onSki
       avatarMessage="Die Schulbildung zeigt deine Basis und ist für ATS-Systeme wichtig."
       avatarStepInfo="Gib mindestens deinen höchsten Abschluss an."
       currentStepId="schoolEducation"
+      coachData={{ schoolEducation: entries }}
       onPrev={onBack}
       onNext={handleNext}
       onSkip={onSkip}
