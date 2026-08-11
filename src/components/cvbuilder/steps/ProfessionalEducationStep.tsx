@@ -168,6 +168,7 @@ export function ProfessionalEducationStep({ data = [], experienceLevel, onChange
       avatarMessage={isBeginner ? 'Deine Ausbildung ist dein Fundament!' : 'Ausbildung zeigt Recruiter deine fachliche Qualifikation.'}
       avatarStepInfo="Gib alle relevanten Abschlüsse an - auch unvollständige sind wertvoll."
       currentStepId="professionalEducation"
+      coachData={{ professionalEducation: entries }}
       onPrev={onBack}
       onNext={handleNext}
       onSkip={onSkip}
