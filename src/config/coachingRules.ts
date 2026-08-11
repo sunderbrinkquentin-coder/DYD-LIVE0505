@@ -278,6 +278,60 @@ const SCHOOL_RULES: CoachRule[] = [
   },
 ];
 
+const PROF_EDU_RULES: CoachRule[] = [
+  {
+    id: 'profedu.grades',
+    priority: 40,
+    when: ({ data }) =>
+      (data.professionalEducation || []).some(
+        e => !!(e.institution && e.degree && e.startYear && e.endYear) && (!e.grades || !e.grades.trim()),
+      ),
+    tip: () => ({
+      id: 'profedu.grades',
+      tone: 'guide',
+      message: 'Ist deine Abschlussnote stark? Dann nimm sie mit rein – sie spricht sofort für dich. Sonst einfach weglassen.',
+    }),
+  },
+  {
+    id: 'profedu.solid',
+    priority: 35,
+    when: ({ data }) =>
+      (data.professionalEducation || []).some(e => !!(e.institution && e.degree && e.startYear && e.endYear && e.grades && e.grades.trim())),
+    tip: () => ({
+      id: 'profedu.solid',
+      tone: 'praise',
+      message: 'Sauber – deine Qualifikation ist vollständig erfasst.',
+    }),
+  },
+];
+
+const PROJECT_RULES: CoachRule[] = [
+  {
+    id: 'proj.noBullets',
+    priority: 50,
+    when: ({ data }) => {
+      const started = (data.projects || []).filter(p => p.title && p.title.trim());
+      return started.length > 0 && started.some(p => !((p.bulletPoints || []).filter(Boolean).length > 0));
+    },
+    tip: () => ({
+      id: 'proj.noBullets',
+      tone: 'guide',
+      message: 'Ein paar konkrete Punkte – was du gemacht und erreicht hast – machen dein Projekt erst aussagekräftig.',
+    }),
+  },
+  {
+    id: 'proj.solid',
+    priority: 30,
+    when: ({ data }) =>
+      (data.projects || []).some(p => !!(p.title && p.title.trim()) && (p.bulletPoints || []).filter(Boolean).length > 0),
+    tip: () => ({
+      id: 'proj.solid',
+      tone: 'praise',
+      message: 'Stark – ein Projekt mit konkreten Punkten zeigt Verantwortung und Wirkung.',
+    }),
+  },
+];
+
 const RULES_BY_SECTION: Record<string, CoachRule[]> = {
   workExperience: WORK_RULES,
   internships: INTERNSHIP_RULES,
@@ -285,6 +339,8 @@ const RULES_BY_SECTION: Record<string, CoachRule[]> = {
   hardSkills: HARD_SKILLS_RULES,
   softSkills: SOFT_SKILLS_RULES,
   schoolEducation: SCHOOL_RULES,
+  professionalEducation: PROF_EDU_RULES,
+  projects: PROJECT_RULES,
 };
 
 // ── Öffentliche API ────────────────────────────────────────────────────────────
