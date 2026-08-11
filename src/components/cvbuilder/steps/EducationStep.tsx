@@ -112,7 +112,7 @@ export function EducationStep({
       ...professionalData.map((p) => ({ id: nextId(), kind: 'professional' as const, professional: p })),
       ...schoolData.map((s) => ({ id: nextId(), kind: 'school' as const, school: s })),
     ];
-    return initial.length > 0 ? initial : [{ id: nextId(), kind: 'school', school: emptySchool() }];
+    return initial;
   });
 
   // UI-only state (pro Zeile): Bundesland-Auswahl, "Gesetzt!"-Badge, Schwerpunkte-Rohtext
@@ -457,7 +457,16 @@ export function EducationStep({
             </motion.div>
           );
         })}
-
+{/* ── ✅ HIER EINFÜGEN: Platzhalter-Box, wenn die Liste komplett leer ist ── */}
+        {rows.length === 0 && (
+          <div className="text-center py-10 px-4 rounded-2xl border-2 border-dashed border-white/10 bg-white/5">
+            <GraduationCap className="mx-auto text-[#66c0b6] mb-3 opacity-70 animate-pulse" size={40} />
+            <h3 className="text-base font-semibold text-white mb-1">Wie sieht dein Bildungsweg aus?</h3>
+            <p className="text-sm text-white/60 max-w-md mx-auto">
+              Wähle unten aus, ob du deinen Schulabschluss, ein Studium, eine Ausbildung oder eine Weiterbildung hinzufügen möchtest.
+            </p>
+          </div>
+        )}
         {/* Zwei getrennte Add-Buttons – so wählt man den Eintragstyp explizit */}
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
           <button onClick={addSchool} type="button"
