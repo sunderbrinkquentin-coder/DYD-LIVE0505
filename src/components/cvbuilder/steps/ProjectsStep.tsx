@@ -205,6 +205,7 @@ export function ProjectsStep({
           : 'Auch kleine Projekte zeigen, dass du Verantwortung übernimmst und Dinge zu Ende bringst.'
       }
       currentStepId="projects"
+      coachData={{ projects }}
       onPrev={onBack}
       onNext={handleNext}
       isNextDisabled={false}
