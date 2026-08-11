@@ -67,6 +67,7 @@ export function HobbiesStep({ data, onChange, onNext, onBack }: HobbiesStepProps
       avatarMessage="Hobbys machen dein Profil menschlicher und helfen beim Einstieg ins Gespräch."
       avatarStepInfo="Wähle 3-5 Hobbys aus, die zu deiner Zielposition passen."
       currentStepId="hobbies"
+      coachData={{ hobbies: { hobbies, details: data?.details || '' } }}
       onPrev={onBack}
       onNext={onNext}
       hideProgress
