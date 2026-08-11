@@ -7,27 +7,27 @@ export interface StepCompleteness {
   missingCount: number;
 }
 
-// Step-Index → Section-Key. Spiegelt STEP_SECTION aus CVWizard.tsx.
-// Nur verzweigbare/überspringbare Sektionen; Schulbildung (2) bleibt immer
-// sichtbar und ist daher bewusst NICHT gelistet.
+// Step-Index → Section-Key. Spiegelt STEP_SECTION aus CVWizard.tsx (nach dem
+// Bildungs-Merge: 13 Steps, Bildung = Index 2 ist immer sichtbar und daher NICHT
+// gelistet). Nur verzweigbare/überspringbare Sektionen.
 const STEP_SECTION: Record<number, string> = {
-  3: 'professionalEducation',
-  4: 'workExperience',
-  5: 'projects',
-  6: 'stipendien',
-  7: 'volunteerWork',
-  8: 'certificates',
-  12: 'hobbies',
+  3: 'workExperience',
+  4: 'projects',
+  5: 'stipendien',
+  6: 'volunteerWork',
+  7: 'certificates',
+  11: 'hobbies',
 };
 
 // Pflichtschritte: Persönliche Daten, Berufserfahrung, Hard Skills, Soft Skills.
 // Muss mit REQUIRED_STEP_INDICES in CVWizard.tsx übereinstimmen.
-const REQUIRED_STEPS = [1, 4, 9, 10];
+const REQUIRED_STEPS = [1, 3, 8, 9];
 
 /**
- * Vollständigkeit pro Step — jetzt für alle 14 echten Indizes (0–13) und
- * branch-aware: Eine per Gate/Cluster ausgeblendete Sektion zählt als erledigt,
- * damit sie in der Fortschrittsanzeige nicht als „offen" erscheint.
+ * Vollständigkeit pro Step — für alle 13 echten Indizes (0–12) nach dem
+ * Bildungs-Merge und branch-aware: Eine per Gate/Cluster ausgeblendete Sektion
+ * zählt als erledigt, damit sie in der Fortschrittsanzeige nicht als „offen"
+ * erscheint.
  */
 export function checkStepCompleteness(cvData: CVBuilderData, _isBeginner: boolean): StepCompleteness[] {
   const results: StepCompleteness[] = [];
@@ -35,7 +35,6 @@ export function checkStepCompleteness(cvData: CVBuilderData, _isBeginner: boolea
   const push = (stepIndex: number, isComplete: boolean, missingCount = isComplete ? 0 : 1) => {
     const section = STEP_SECTION[stepIndex];
     if (section && isSectionSkipped(section, cvData)) {
-      // Ausgeblendet → gilt als erledigt (nicht offen)
       results.push({ stepIndex, isComplete: true, missingCount: 0 });
     } else {
       results.push({ stepIndex, isComplete, missingCount });
@@ -50,45 +49,44 @@ export function checkStepCompleteness(cvData: CVBuilderData, _isBeginner: boolea
   const missingPersonal = [!pd.firstName, !pd.lastName, !pd.city, !pd.email, !pd.phone].filter(Boolean).length;
   push(1, missingPersonal === 0, missingPersonal);
 
-  // 2: Schulbildung (optional, immer sichtbar)
-  push(2, (cvData.schoolEducation || []).length > 0);
+  // 2: Bildung (Schule ODER Ausbildung/Studium) – immer sichtbar
+  const hasEducation =
+    (cvData.schoolEducation || []).length > 0 || (cvData.professionalEducation || []).length > 0;
+  push(2, hasEducation);
 
-  // 3: Ausbildung / Studium
-  push(3, (cvData.professionalEducation || []).length > 0);
+  // 3: Berufserfahrung / Praktika (Pflicht)
+  push(3, (cvData.workExperiences || []).length > 0);
 
-  // 4: Berufserfahrung / Praktika (Pflicht)
-  push(4, (cvData.workExperiences || []).length > 0);
+  // 4: Projekte
+  push(4, (cvData.projects || []).length > 0);
 
-  // 5: Projekte
-  push(5, (cvData.projects || []).length > 0);
+  // 5: Stipendien
+  push(5, (cvData.stipendien || []).length > 0);
 
-  // 6: Stipendien
-  push(6, (cvData.stipendien || []).length > 0);
+  // 6: Ehrenamt
+  push(6, (cvData.volunteerWork || []).length > 0);
 
-  // 7: Ehrenamt
-  push(7, (cvData.volunteerWork || []).length > 0);
+  // 7: Zertifikate
+  push(7, (cvData.certificates || []).length > 0);
 
-  // 8: Zertifikate
-  push(8, (cvData.certificates || []).length > 0);
+  // 8: Hard Skills (Pflicht)
+  push(8, (cvData.hardSkills || []).length > 0);
 
-  // 9: Hard Skills (Pflicht)
-  push(9, (cvData.hardSkills || []).length > 0);
+  // 9: Soft Skills (Pflicht)
+  push(9, (cvData.softSkills || []).length > 0);
 
-  // 10: Soft Skills (Pflicht)
-  push(10, (cvData.softSkills || []).length > 0);
-
-  // 11: Werte & Arbeitsstil
+  // 10: Werte & Arbeitsstil
   const wv = cvData.workValues;
   const hasWorkValues = (wv?.values?.length ?? 0) > 0 || (wv?.workStyle?.length ?? 0) > 0;
-  push(11, hasWorkValues);
+  push(10, hasWorkValues);
 
-  // 12: Hobbys
+  // 11: Hobbys
   const hb = cvData.hobbies;
   const hasHobbies = (hb?.hobbies?.length ?? 0) > 0 || !!hb?.details?.trim();
-  push(12, hasHobbies);
+  push(11, hasHobbies);
 
-  // 13: Abschluss
-  push(13, true, 0);
+  // 12: Abschluss
+  push(12, true, 0);
 
   return results;
 }
@@ -105,8 +103,7 @@ export function findFirstIncompleteStep(cvData: CVBuilderData, isBeginner: boole
 
 export function getIncompleteRequiredSteps(cvData: CVBuilderData, isBeginner: boolean): number[] {
   const completeness = checkStepCompleteness(cvData, isBeginner);
-  // Übersprungene Pflicht-Sektionen (z. B. Berufserfahrung bei „Nein")
-  // sind durch die branch-aware Logik oben bereits als erledigt markiert
-  // und fallen hier automatisch heraus.
+  // Übersprungene Pflicht-Sektionen (z. B. Berufserfahrung bei „Nein") sind durch
+  // die branch-aware Logik oben bereits als erledigt markiert und fallen hier raus.
   return REQUIRED_STEPS.filter(i => !completeness[i]?.isComplete);
 }
