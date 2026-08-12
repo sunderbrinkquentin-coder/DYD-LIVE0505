@@ -710,15 +710,12 @@ export default function CVEditor() {
           </div>
 
           <div
-            className="mx-auto shadow-2xl"
-            style={{
-              transform: `scale(${zoom / 100})`,
-              transformOrigin: 'top center',
-              width: `${(100 / zoom) * 100}%`,
-            }}
-          >
-            {renderTemplate()}
-          </div>
+                        onMouseDownCapture={swallowMouseDown}
+                        onClickCapture={openFocus}
+                        style={{ position: 'absolute', top: `${-pageStart}px`, left: 0, width: '794px' }}
+                      >
+                        {renderTemplate()}
+                      </div>
         </div>
       </div>
     </div>
