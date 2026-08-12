@@ -41,7 +41,7 @@ export const router = createHashRouter([
   // Landing
   {
     path: '/',
-    element: <ModernLandingPage />,
+    element: <LandingPage />,
     errorElement: <ErrorBoundary />,
   },
 
