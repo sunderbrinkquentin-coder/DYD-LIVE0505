@@ -276,6 +276,10 @@ export function CVLiveEditorPage() {
   const autoDownloadTriggeredRef = useRef(false);
 
   const [scale, setScale] = useState(1);
+    const [focus, setFocus] = useState
+    null | { index: number; bx: number; by: number; bw: number; bh: number }
+  >(null);
+  const cloneRef = useRef<HTMLDivElement | null>(null);
 
   // ───────────────────────────────────────────────────────────────────────────
   // DIE UMBRUCH-ENGINE
