@@ -1983,7 +1983,11 @@ const reorderSections = (fromIndex: number, toIndex: number) => {
                     style={{ top: `${frameTop}px`, left: 0, backgroundColor: TEMPLATE_PAGE_BG[selectedTemplate] ?? '#ffffff', transform: `scale(${scale})`, transformOrigin: 'top left' }}
                   >
                     <div style={{ position: 'relative', width: '794px', height: `${visibleHeight}px`, overflow: 'hidden' }}>
-                      <div style={{ position: 'absolute', top: `${-pageStart}px`, left: 0, width: '794px' }}>
+                      <div
+                        onMouseDownCapture={swallowMouseDown}
+                        onClickCapture={openFocus}
+                        style={{ position: 'absolute', top: `${-pageStart}px`, left: 0, width: '794px' }}
+                      >
                         {renderTemplate()}
                       </div>
                     </div>
