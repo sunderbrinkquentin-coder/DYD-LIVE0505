@@ -1949,6 +1949,7 @@ const reorderSections = (fromIndex: number, toIndex: number) => {
             (pageCount * PAGE_HEIGHT_PX * scale) + ((pageCount - 1) * SHEET_GAP_PX * scale);
 
           return (
+            <>
             <div style={{ width: `${794 * scale}px`, height: `${containerHeight}px`, position: 'relative', margin: '0 auto', flexShrink: 0 }}>
 
               {/* ── Der gemessene Render ──────────────────────────────────────
