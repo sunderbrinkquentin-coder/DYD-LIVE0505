@@ -1988,9 +1988,91 @@ const reorderSections = (fromIndex: number, toIndex: number) => {
                       </div>
                     </div>
                   </div>
-                );
+               );
               })}
+
+              {/* ── In-Place-Fokus ────────────────────────────────────────────
+                  Skalierter Ausschnitt DESSELBEN Renders, absolut über der
+                  Original-Box. Nichts im A4 verschiebt sich — reiner Vordergrund. */}
+              {focus && (() => {
+                const FOCUS = 1.8;
+                const containerW = 794 * scale;
+
+                const w0 = focus.bw * scale;
+                const h0 = focus.bh * scale;
+                const x0 = focus.bx * scale;
+
+                let pageIdx = 0;
+                for (let i = 0; i < breaks.cuts.length; i++) {
+                  if (focus.by >= breaks.cuts[i] - 1) pageIdx = i;
+                }
+                const y0 =
+                  pageIdx * (PAGE_HEIGHT_PX + SHEET_GAP_PX) * scale +
+                  (focus.by - breaks.cuts[pageIdx]) * scale;
+
+                const fitRatio = (containerW - 8) / w0;
+                const k = Math.max(1, Math.min(FOCUS, fitRatio));
+
+                const w1 = w0 * k;
+                const h1 = h0 * k;
+                const left = Math.max(0, Math.min(containerW - w1, x0 - (w1 - w0) / 2));
+                const top = y0 - (h1 - h0) / 2;
+                const s = scale * k;
+
+                const bg = TEMPLATE_PAGE_BG[selectedTemplate] ?? '#ffffff';
+                const maxH = typeof window !== 'undefined' ? window.innerHeight - 120 : h1;
+
+                return (
+                  <div
+                    ref={cloneRef}
+                    style={{
+                      position: 'absolute',
+                      top: `${top}px`,
+                      left: `${left}px`,
+                      width: `${w1}px`,
+                      height: `${Math.min(h1, maxH)}px`,
+                      overflow: h1 > maxH ? 'auto' : 'hidden',
+                      background: bg,
+                      borderRadius: 8,
+                      boxShadow: '0 18px 50px rgba(0,0,0,0.55), 0 0 0 1px rgba(102,192,182,0.55)',
+                      zIndex: 50,
+                    }}
+                  >
+                    <div style={{ position: 'relative', width: `${w1}px`, height: `${h1}px` }}>
+                      <div
+                        style={{
+                          position: 'absolute',
+                          top: 0,
+                          left: 0,
+                          width: '794px',
+                          transformOrigin: 'top left',
+                          transform: `translate(${-focus.bx * s}px, ${-focus.by * s}px) scale(${s})`,
+                          backgroundColor: bg,
+                        }}
+                      >
+                        {renderTemplate()}
+                      </div>
+                    </div>
+                  </div>
+                );
+              })()}
             </div>
+
+            {focus && (
+              <button
+                onMouseDown={(e) => e.preventDefault()}
+                onClick={() => setFocus(null)}
+                style={{
+                  position: 'fixed', bottom: 20, left: '50%', transform: 'translateX(-50%)',
+                  zIndex: 60, background: 'linear-gradient(90deg,#66c0b6,#30E3CA)', color: '#000',
+                  fontWeight: 700, fontSize: 14, border: 'none', borderRadius: 999,
+                  padding: '10px 26px', boxShadow: '0 8px 24px rgba(0,0,0,0.45)', cursor: 'pointer',
+                }}
+              >
+                Fertig
+              </button>
+            )}
+            </>
           );
         })()}
 
