@@ -52,7 +52,7 @@ export default function LandingPage() {
         </motion.div>
       </div>
 
-      {/* NAVIGATION */}
+{/* NAVIGATION */}
       <nav className="fixed top-0 w-full z-50 bg-black/40 backdrop-blur-xl border-b border-white/10">
         <div className="max-w-7xl mx-auto px-6">
           <div className="h-16 flex items-center justify-between">
@@ -63,6 +63,7 @@ export default function LandingPage() {
               whileHover={{ scale: 1.05 }}
             />
 
+            {/* Desktop-Nav */}
             <div className="hidden md:flex items-center gap-6">
               <motion.a href="#prozess" className="text-white/70 hover:text-white">
                 So funktioniert's
@@ -98,6 +99,22 @@ export default function LandingPage() {
               >
                 Kostenlos starten
               </motion.button>
+            </div>
+
+            {/* Mobile-Nav: Login + Start direkt sichtbar (kein Menü nötig) */}
+            <div className="flex md:hidden items-center gap-2">
+              <button
+                onClick={() => navigate(user ? "/dashboard" : "/login")}
+                className="px-4 py-2 rounded-lg border border-white/20 text-white/85 text-sm font-semibold active:scale-95 transition-transform"
+              >
+                {user ? (profile?.full_name ? profile.full_name.split(' ')[0] : 'Konto') : 'Login'}
+              </button>
+              <button
+                onClick={() => navigate("/cv-check")}
+                className="px-4 py-2 rounded-lg bg-gradient-to-r from-[#66c0b6] to-[#30E3CA] text-black text-sm font-bold shadow-lg active:scale-95 transition-transform"
+              >
+                Start
+              </button>
             </div>
           </div>
         </div>
