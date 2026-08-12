@@ -244,203 +244,126 @@ export default function LandingPage() {
       </div>
 
       <div className="relative z-10">
-        <nav className="fixed top-0 w-full z-50 bg-black/40 backdrop-blur-xl border-b border-white/10">
-          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-            <div className="flex items-center justify-between h-16">
-              <motion.div
-                className="flex items-center gap-3 cursor-pointer"
-                whileHover={{ scale: 1.05, rotate: 2 }}
-                whileTap={{ scale: 0.98 }}
-                onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}
-              >
-                <motion.img
-                  src="/DYD Logo RGB copy copy.svg"
-                  alt="DYD Logo"
-                  className="h-10 w-auto opacity-90 drop-shadow-lg"
-                  animate={{
-                    filter: [
-                      'drop-shadow(0 0 8px rgba(102,192,182,0.3))',
-                      'drop-shadow(0 0 12px rgba(102,192,182,0.5))',
-                      'drop-shadow(0 0 8px rgba(102,192,182,0.3))',
-                    ],
-                  }}
-                  transition={{ duration: 3, repeat: Infinity, ease: 'easeInOut' }}
-                  onError={(e) => { e.currentTarget.style.display = 'none'; }}
-                />
-              </motion.div>
+        // 1. SCHRITT: Ganz oben in deiner LandingPage-Komponente (wo auch die anderen States sind)
+// fügst du diesen State hinzu:
+const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
-              {/* B2B Switcher — top-left */}
-              <a
-  href="#/business"
-  aria-label="Zur B2B-Version für Unternehmen und Bildungsträger"
-  className="group inline-flex rounded-full p-[1px] transition-all duration-300 hover:-translate-y-0.5 hover:shadow-[0_10px_28px_-10px_rgba(102,192,182,0.55)] focus:outline-none focus-visible:ring-2 focus-visible:ring-[#66c0b6]/60 focus-visible:ring-offset-2 focus-visible:ring-offset-[#0A192F]"
-  style={{
-    background:
-      'linear-gradient(120deg, rgba(102,192,182,0.9), rgba(56,189,248,0.5), rgba(102,192,182,0.15))',
-  }}
->
-  <span className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full text-xs font-bold text-white/90 bg-[#0A192F]/70 backdrop-blur-sm transition-colors group-hover:bg-[#0A192F]/50">
-    <span
-      className="flex items-center justify-center w-5 h-5 rounded-full"
-      style={{ background: 'rgba(102,192,182,0.18)' }}
-    >
-      <Building2 className="w-3 h-3 text-[#66c0b6]" />
-    </span>
-    Für Business
-    <ArrowRight className="w-3.5 h-3.5 text-[#66c0b6] transition-transform duration-300 group-hover:translate-x-0.5" />
-  </span>
-</a>
 
-              <div className="hidden md:flex items-center gap-6">
-                <motion.button
+// 2. SCHRITT: Ersetze deinen kompletten <nav>-Block mit diesem hier:
+<nav className="fixed top-0 w-full z-50 bg-black/40 backdrop-blur-xl border-b border-white/10">
+  <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+    <div className="flex items-center justify-between h-16">
+      
+      {/* LOGO (Links) */}
+      <div 
+        className="flex items-center gap-3 cursor-pointer"
+        onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}
+      >
+        <img src="/DYD Logo RGB copy copy.svg" alt="DYD Logo" className="h-10 w-auto" />
+      </div>
+
+      {/* DESKTOP MENÜ (Mitte/Rechts) - Verschwindet auf Handys durch "hidden md:flex" */}
+      <div className="hidden md:flex items-center gap-6">
+        <button onClick={() => scrollToId('prozess')}>So funktioniert's</button>
+        <button onClick={() => scrollToId('career-academy')}>Career Academy</button>
+        <button onClick={() => scrollToId('preise')}>Preise</button>
+        {/* ... dein restliches Desktop-Festival-Dropdown ... */}
+      </div>
+
+      {/* HANDY-NAVIGATION TRIGGER (Ganz rechts) - Sichtbar nur auf Handys durch "md:hidden" */}
+      <div className="flex items-center gap-4 md:hidden">
+        <button
+          type="button"
+          onClick={() => goWithFollowGate('/cv-check')}
+          className="px-3 py-1.5 rounded-lg bg-gradient-to-r from-[#66c0b6] to-[#30E3CA] text-black font-semibold text-xs"
+        >
+          Checken
+        </button>
+        
+        {/* Burger-Button */}
+        <button
+          type="button"
+          onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+          className="text-white/70 hover:text-white p-2 focus:outline-none"
+        >
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+            {mobileMenuOpen ? (
+              <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+            ) : (
+              <path strokeLinecap="round" strokeLinejoin="round" d="M4 6h16M4 12h16M4 18h16" />
+            )}
+          </svg>
+        </button>
+      </div>
+
+    </div>
+  </div>
+
+  {/* DAS MOBILE AUSKLAPP-MENÜ (Wird direkt unter die Navbar gehängt) */}
+  <AnimatePresence>
+    {mobileMenuOpen && (
+      <motion.div
+        initial={{ opacity: 0, height: 0 }}
+        animate={{ opacity: 1, height: 'auto' }}
+        exit={{ opacity: 0, height: 0 }}
+        transition={{ duration: 0.23, ease: 'easeInOut' }}
+        className="md:hidden w-full bg-[#0a0a0f]/95 backdrop-blur-2xl border-t border-white/10 overflow-hidden"
+      >
+        <div className="px-4 pt-2 pb-6 space-y-3 flex flex-col">
+          <button
+            type="button"
+            onClick={() => { scrollToId('prozess'); setMobileMenuOpen(false); }}
+            className="text-left py-2.5 text-white/80 border-b border-white/5"
+          >
+            So funktioniert's
+          </button>
+          
+          <button
+            type="button"
+            onClick={() => { scrollToId('career-academy'); setMobileMenuOpen(false); }}
+            className="text-left py-2.5 text-white/80 border-b border-white/5"
+          >
+            Career Academy
+          </button>
+          
+          <button
+            type="button"
+            onClick={() => { scrollToId('preise'); setMobileMenuOpen(false); }}
+            className="text-left py-2.5 text-white/80 border-b border-white/5"
+          >
+            Preise
+          </button>
+
+          {/* Festival-Kompakt-Bereich für das Smartphone */}
+          <div className="py-2.5 space-y-2">
+            <div className="text-xs font-bold text-[#00d4d4] uppercase tracking-wider">Festival 2026</div>
+            <div className="grid grid-cols-2 gap-2 bg-white/5 p-3 rounded-xl">
+              {FESTIVAL_SECTIONS.map((section) => (
+                <button
+                  key={section.anchor}
                   type="button"
-                  onClick={() => scrollToId('prozess')}
-                  className="text-white/70 hover:text-white transition-colors"
-                  whileHover={{ scale: 1.05, y: -2 }}
-                  whileTap={{ scale: 0.95 }}
+                  onClick={() => { handleFestivalSectionClick(section.anchor); setMobileMenuOpen(false); }}
+                  className="text-left text-sm text-white/70 py-1 flex items-center gap-1.5"
                 >
-                  So funktioniert&apos;s
-                </motion.button>
-
-                <motion.button
-                  type="button"
-                  onClick={() => scrollToId('career-academy')}
-                  className="text-white/70 hover:text-white transition-colors"
-                  whileHover={{ scale: 1.05, y: -2 }}
-                  whileTap={{ scale: 0.95 }}
-                >
-                  Career Academy
-                </motion.button>
-
-                <motion.button
-                  type="button"
-                  onClick={() => scrollToId('preise')}
-                  className="text-white/70 hover:text-white transition-colors"
-                  whileHover={{ scale: 1.05, y: -2 }}
-                  whileTap={{ scale: 0.95 }}
-                >
-                  Preise
-                </motion.button>
-
-                <div
-                  className="relative"
-                  onMouseEnter={() => setFestivalOpen(true)}
-                  onMouseLeave={() => setFestivalOpen(false)}
-                >
-                  <motion.button
-                    type="button"
-                    onClick={() => navigate('/festival')}
-                    className="flex items-center gap-1.5 text-white/70 hover:text-white transition-colors"
-                    whileHover={{ scale: 1.05, y: -2 }}
-                    whileTap={{ scale: 0.95 }}
-                  >
-                    Festival
-                    <motion.svg
-                      width="12" height="12" viewBox="0 0 24 24"
-                      fill="none" stroke="currentColor" strokeWidth="2.5"
-                      strokeLinecap="round" strokeLinejoin="round"
-                      animate={{ rotate: festivalOpen ? 180 : 0 }}
-                      transition={{ duration: 0.2 }}
-                    >
-                      <polyline points="6 9 12 15 18 9" />
-                    </motion.svg>
-                  </motion.button>
-
-                  <AnimatePresence>
-                    {festivalOpen && (
-                      <motion.div
-                        initial={{ opacity: 0, y: 8, scale: 0.97 }}
-                        animate={{ opacity: 1, y: 0, scale: 1 }}
-                        exit={{ opacity: 0, y: 8, scale: 0.97 }}
-                        transition={{ duration: 0.18, ease: [0.22, 1, 0.36, 1] }}
-                        className="absolute top-full left-1/2 -translate-x-1/2 mt-3 w-52 rounded-2xl overflow-hidden"
-                        style={{
-                          background: 'rgba(8,12,16,0.97)',
-                          border: '1px solid rgba(0,212,212,0.18)',
-                          boxShadow: '0 16px 48px rgba(0,0,0,0.6), 0 0 40px rgba(0,212,212,0.08)',
-                          backdropFilter: 'blur(20px)',
-                        }}
-                      >
-                        <div style={{ height: '2px', background: 'linear-gradient(to right, transparent, rgba(0,212,212,0.7), transparent)' }} />
-
-                        <button
-                          type="button"
-                          onClick={() => navigate('/festival')}
-                          className="w-full flex items-center gap-3 px-4 py-3 text-left transition-colors"
-                          style={{ borderBottom: '1px solid rgba(0,212,212,0.08)' }}
-                          onMouseEnter={e => (e.currentTarget.style.background = 'rgba(0,212,212,0.06)')}
-                          onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}
-                        >
-                          <span style={{ fontSize: '15px' }}>🎪</span>
-                          <div>
-                            <div style={{ fontFamily: "'Inter', sans-serif", fontSize: '13px', fontWeight: 700, color: '#00d4d4' }}>
-                              Zum Festival
-                            </div>
-                            <div style={{ fontFamily: "'Inter', sans-serif", fontSize: '10px', color: 'rgba(0,212,212,0.45)', marginTop: '1px' }}>
-                              22. August 2026 · Düsseldorf
-                            </div>
-                          </div>
-                        </button>
-
-                        <div className="py-1">
-                          {FESTIVAL_SECTIONS.map((section) => (
-                            <button
-                              key={section.anchor}
-                              type="button"
-                              onClick={() => {
-                                navigate(`/festival#${section.anchor}`);
-                                setTimeout(() => {
-                                  const el = document.getElementById(section.anchor);
-                                  if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' });
-                                }, 100);
-                              }}
-                              className="w-full flex items-center gap-3 px-4 py-2.5 text-left transition-colors"
-                              onMouseEnter={e => (e.currentTarget.style.background = 'rgba(255,255,255,0.04)')}
-                              onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}
-                            >
-                              <span style={{ fontSize: '14px', flexShrink: 0 }}>{section.emoji}</span>
-                              <span style={{ fontFamily: "'Inter', sans-serif", fontSize: '13px', fontWeight: 500, color: 'rgba(200,240,240,0.75)' }}>
-                                {section.label}
-                              </span>
-                            </button>
-                          ))}
-                        </div>
-
-                        <div style={{ height: '1px', background: 'linear-gradient(to right, transparent, rgba(0,212,212,0.2), transparent)' }} />
-                      </motion.div>
-                    )}
-                  </AnimatePresence>
-                </div>
-
-                <motion.button
-                  onClick={() => navigate(user ? '/dashboard' : '/login')}
-                  className="text-white/70 hover:text-white transition-colors"
-                  whileHover={{ scale: 1.05, y: -2 }}
-                  whileTap={{ scale: 0.95 }}
-                >
-                  {user ? 'Dashboard' : 'Login'}
-                </motion.button>
-
-                <motion.button
-                  onClick={() => goWithFollowGate('/cv-check')}
-                  className="px-6 py-2 rounded-xl bg-gradient-to-r from-[#66c0b6] to-[#30E3CA] text-black font-semibold shadow-lg shadow-[#66c0b6]/20 relative overflow-hidden group"
-                  whileHover={{ scale: 1.05, y: -2 }}
-                  whileTap={{ scale: 0.98 }}
-                >
-                  <span className="absolute inset-0 bg-gradient-to-r from-white/0 via-white/30 to-white/0 translate-x-[-100%] group-hover:translate-x-[100%] transition-transform duration-500"></span>
-                  <span className="relative">Kostenlos checken</span>
-                </motion.button>
-              </div>
-
-              <button
-                onClick={() => goWithFollowGate('/cv-check')}
-                className="md:hidden px-4 py-2 rounded-lg bg-gradient-to-r from-[#66c0b6] to-[#30E3CA] text-black font-semibold text-sm"
-              >
-                Kostenlos checken
-              </button>
+                  <span>{section.emoji}</span>
+                  <span className="truncate">{section.label}</span>
+                </button>
+              ))}
             </div>
           </div>
-        </nav>
+
+          <button
+            type="button"
+            onClick={() => { navigate(user ? '/dashboard' : '/login'); setMobileMenuOpen(false); }}
+            className="text-left py-2.5 text-white/80"
+          >
+            {user ? 'Dashboard' : 'Login'}
+          </button>
+        </div>
+      </motion.div>
+    )}
+  </AnimatePresence>
+</nav>
         <main id="main-content" aria-label="DYD Hauptinhalt – KI-Lebenslauf-Optimierung für Deutschland">
 
         <section
