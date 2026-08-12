@@ -15,38 +15,93 @@ const MOCK_DATA = {
     id: 'demo-1',
     name: 'Harmony Bierpong Cup 2026',
     status: 'group_stage',
-    table_count: 3,
+    table_count: 4,
     advance_per_group: 2,
     round_ends_at: new Date(Date.now() + 12 * 60 * 1000).toISOString(), // 12 Min Restzeit
-    round_label: 'Vorrunde · Spiel 2',
+    round_label: 'Vorrunde · Runde 2 · Welle 1',
   },
   groups: [
     { id: 'g1', name: 'A' },
     { id: 'g2', name: 'B' },
+    { id: 'g3', name: 'C' },
+    { id: 'g4', name: 'D' },
   ],
   teams: [
-    { id: 't1', name: 'Bieritaten', group_id: 'g1' },
-    { id: 't2', name: 'Pong Pong Girls', group_id: 'g1' },
-    { id: 't3', name: 'Becher-Giganten', group_id: 'g1' },
-    { id: 't4', name: 'Saufstark 04', group_id: 'g2' },
-    { id: 't5', name: 'Trefferversuch', group_id: 'g2' },
-    { id: 't6', name: 'Ex und Hopp', group_id: 'g2' },
+    // Gruppe A
+    { id: 't1',  name: 'Bieritaten',        group_id: 'g1' },
+    { id: 't2',  name: 'Pong Pong Girls',   group_id: 'g1' },
+    { id: 't3',  name: 'Becher-Giganten',   group_id: 'g1' },
+    { id: 't4',  name: 'Saufstark 04',      group_id: 'g1' },
+    // Gruppe B
+    { id: 't5',  name: 'Trefferversuch',    group_id: 'g2' },
+    { id: 't6',  name: 'Ex und Hopp',       group_id: 'g2' },
+    { id: 't7',  name: 'Die Wurfmaschinen', group_id: 'g2' },
+    { id: 't8',  name: 'Prost Mahlzeit',    group_id: 'g2' },
+    // Gruppe C
+    { id: 't9',  name: 'Zielwasser',        group_id: 'g3' },
+    { id: 't10', name: 'Schaumschläger',    group_id: 'g3' },
+    { id: 't11', name: 'Team Absturz',      group_id: 'g3' },
+    { id: 't12', name: 'Hopfen & Malz',     group_id: 'g3' },
+    // Gruppe D
+    { id: 't13', name: 'Die Restalkoholiker', group_id: 'g4' },
+    { id: 't14', name: 'Wurf & Weg',          group_id: 'g4' },
+    { id: 't15', name: 'Cup Crusher',         group_id: 'g4' },
+    { id: 't16', name: 'Pils Peaks',          group_id: 'g4' },
   ],
   matches: [
-    // Laufende Spiele
-    { id: 'm1', phase: 'group', round: 1, position: 1, status: 'live', table_no: 1, team_a: 't1', team_b: 't2', score_a: 6, score_b: 4 },
-    { id: 'm2', phase: 'group', round: 1, position: 2, status: 'live', table_no: 2, team_a: 't4', team_b: 't5', score_a: 8, score_b: 9 },
-    // Nächste Spiele
-    { id: 'm3', phase: 'group', round: 2, position: 1, status: 'pending', table_no: null, team_a: 't2', team_b: 't3', score_a: null, score_b: null },
-    { id: 'm4', phase: 'group', round: 2, position: 2, status: 'pending', table_no: null, team_a: 't5', team_b: 't6', score_a: null, score_b: null },
+    // ── Runde 1: fertig gespielt (füllt die Tabellen) ──
+    { id: 'r1a1', phase: 'group', round: 1, position: 1, status: 'done', table_no: null, team_a: 't1',  team_b: 't2',  score_a: 7,  score_b: 4 },
+    { id: 'r1a2', phase: 'group', round: 1, position: 2, status: 'done', table_no: null, team_a: 't3',  team_b: 't4',  score_a: 6,  score_b: 4 },
+    { id: 'r1b1', phase: 'group', round: 1, position: 3, status: 'done', table_no: null, team_a: 't5',  team_b: 't6',  score_a: 8,  score_b: 6 },
+    { id: 'r1b2', phase: 'group', round: 1, position: 4, status: 'done', table_no: null, team_a: 't7',  team_b: 't8',  score_a: 7,  score_b: 6 },
+    { id: 'r1c1', phase: 'group', round: 1, position: 5, status: 'done', table_no: null, team_a: 't9',  team_b: 't10', score_a: 9,  score_b: 5 },
+    { id: 'r1c2', phase: 'group', round: 1, position: 6, status: 'done', table_no: null, team_a: 't11', team_b: 't12', score_a: 8,  score_b: 5 },
+    { id: 'r1d1', phase: 'group', round: 1, position: 7, status: 'done', table_no: null, team_a: 't13', team_b: 't14', score_a: 6,  score_b: 5 },
+    { id: 'r1d2', phase: 'group', round: 1, position: 8, status: 'done', table_no: null, team_a: 't15', team_b: 't16', score_a: 10, score_b: 5 },
+
+    // ── Runde 2 · Welle 1: LÄUFT JETZT (4 Tische) ──
+    { id: 'r2a1', phase: 'group', round: 2, position: 1, status: 'live', table_no: 1, team_a: 't1',  team_b: 't3',  score_a: 5, score_b: 3 },
+    { id: 'r2b1', phase: 'group', round: 2, position: 2, status: 'live', table_no: 2, team_a: 't5',  team_b: 't7',  score_a: 4, score_b: 6 },
+    { id: 'r2c1', phase: 'group', round: 2, position: 3, status: 'live', table_no: 3, team_a: 't9',  team_b: 't11', score_a: 7, score_b: 7 },
+    { id: 'r2d1', phase: 'group', round: 2, position: 4, status: 'live', table_no: 4, team_a: 't13', team_b: 't15', score_a: 2, score_b: 5 },
+
+    // ── Runde 2 · Welle 2: ALS NÄCHSTES (Vorschau Tisch 1–4) ──
+    { id: 'r2a2', phase: 'group', round: 2, position: 5, status: 'pending', table_no: null, team_a: 't2',  team_b: 't4',  score_a: null, score_b: null },
+    { id: 'r2b2', phase: 'group', round: 2, position: 6, status: 'pending', table_no: null, team_a: 't6',  team_b: 't8',  score_a: null, score_b: null },
+    { id: 'r2c2', phase: 'group', round: 2, position: 7, status: 'pending', table_no: null, team_a: 't10', team_b: 't12', score_a: null, score_b: null },
+    { id: 'r2d2', phase: 'group', round: 2, position: 8, status: 'pending', table_no: null, team_a: 't14', team_b: 't16', score_a: null, score_b: null },
+
+    // ── Runde 3: DANACH (landet in der "Danach"-Leiste) ──
+    { id: 'r3a1', phase: 'group', round: 3, position: 1, status: 'pending', table_no: null, team_a: 't1',  team_b: 't4',  score_a: null, score_b: null },
+    { id: 'r3a2', phase: 'group', round: 3, position: 2, status: 'pending', table_no: null, team_a: 't2',  team_b: 't3',  score_a: null, score_b: null },
+    { id: 'r3b1', phase: 'group', round: 3, position: 3, status: 'pending', table_no: null, team_a: 't5',  team_b: 't8',  score_a: null, score_b: null },
+    { id: 'r3b2', phase: 'group', round: 3, position: 4, status: 'pending', table_no: null, team_a: 't6',  team_b: 't7',  score_a: null, score_b: null },
+    { id: 'r3c1', phase: 'group', round: 3, position: 5, status: 'pending', table_no: null, team_a: 't9',  team_b: 't12', score_a: null, score_b: null },
+    { id: 'r3c2', phase: 'group', round: 3, position: 6, status: 'pending', table_no: null, team_a: 't10', team_b: 't11', score_a: null, score_b: null },
+    { id: 'r3d1', phase: 'group', round: 3, position: 7, status: 'pending', table_no: null, team_a: 't13', team_b: 't16', score_a: null, score_b: null },
+    { id: 'r3d2', phase: 'group', round: 3, position: 8, status: 'pending', table_no: null, team_a: 't14', team_b: 't15', score_a: null, score_b: null },
   ],
   standings: [
-    { team_id: 't1', group_id: 'g1', group_rank: 1, played: 1, points: 3, cup_diff: 4 },
-    { team_id: 't2', group_id: 'g1', group_rank: 2, played: 1, points: 0, cup_diff: -2 },
-    { team_id: 't3', group_id: 'g1', group_rank: 3, played: 0, points: 0, cup_diff: 0 },
-    { team_id: 't4', group_id: 'g2', group_rank: 1, played: 1, points: 3, cup_diff: 2 },
-    { team_id: 't5', group_id: 'g2', group_rank: 2, played: 1, points: 0, cup_diff: -1 },
-    { team_id: 't6', group_id: 'g2', group_rank: 3, played: 0, points: 0, cup_diff: 0 },
+    // Gruppe A  (nach Runde 1: t1 & t3 vorn)
+    { team_id: 't1',  group_id: 'g1', group_rank: 1, played: 1, points: 3, cup_diff:  3 },
+    { team_id: 't3',  group_id: 'g1', group_rank: 2, played: 1, points: 3, cup_diff:  2 },
+    { team_id: 't4',  group_id: 'g1', group_rank: 3, played: 1, points: 0, cup_diff: -2 },
+    { team_id: 't2',  group_id: 'g1', group_rank: 4, played: 1, points: 0, cup_diff: -3 },
+    // Gruppe B
+    { team_id: 't5',  group_id: 'g2', group_rank: 1, played: 1, points: 3, cup_diff:  2 },
+    { team_id: 't7',  group_id: 'g2', group_rank: 2, played: 1, points: 3, cup_diff:  1 },
+    { team_id: 't8',  group_id: 'g2', group_rank: 3, played: 1, points: 0, cup_diff: -1 },
+    { team_id: 't6',  group_id: 'g2', group_rank: 4, played: 1, points: 0, cup_diff: -2 },
+    // Gruppe C
+    { team_id: 't9',  group_id: 'g3', group_rank: 1, played: 1, points: 3, cup_diff:  4 },
+    { team_id: 't11', group_id: 'g3', group_rank: 2, played: 1, points: 3, cup_diff:  3 },
+    { team_id: 't12', group_id: 'g3', group_rank: 3, played: 1, points: 0, cup_diff: -3 },
+    { team_id: 't10', group_id: 'g3', group_rank: 4, played: 1, points: 0, cup_diff: -4 },
+    // Gruppe D  (t15 vorn dank hoher Becher-Differenz)
+    { team_id: 't15', group_id: 'g4', group_rank: 1, played: 1, points: 3, cup_diff:  5 },
+    { team_id: 't13', group_id: 'g4', group_rank: 2, played: 1, points: 3, cup_diff:  1 },
+    { team_id: 't14', group_id: 'g4', group_rank: 3, played: 1, points: 0, cup_diff: -1 },
+    { team_id: 't16', group_id: 'g4', group_rank: 4, played: 1, points: 0, cup_diff: -5 },
   ],
 };
 
