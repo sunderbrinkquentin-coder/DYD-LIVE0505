@@ -19,7 +19,7 @@ import { X, Plus } from 'lucide-react';
 
 /** Abstand zwischen zwei sichtbaren A4-Blättern in der Vorschau. */
 const SHEET_GAP_PX = 32;
-
+const BOX_SELECTOR = '[data-break-item],[data-break-atomic],[data-pdf-section],header';
 /**
  * Sektionen, deren Items chronologisch absteigend sortiert werden.
  *
