@@ -322,6 +322,72 @@ const [focus, setFocus] = useState<null | { index: number; bx: number; by: numbe
     };
   }, []);
 
+  /** Misst die Box mit Index `index` im versteckten, UNSKALIERTEN Root → Template-Pixel. */
+  const measureBox = (index: number) => {
+    const root = cvPreviewRef.current;
+    if (!root) return null;
+    const el = root.querySelectorAll<HTMLElement>(BOX_SELECTOR)[index];
+    if (!el) return null;
+    const rr = root.getBoundingClientRect();
+    const r = el.getBoundingClientRect();
+    return { bx: r.left - rr.left, by: r.top - rr.top, bw: r.width, bh: r.height };
+  };
+
+  /** Klick auf ein sichtbares Blatt → nächstliegende Box öffnen. Index in dieser
+   *  Kopie == Index im versteckten Root (identisches DOM). */
+  const openFocus = (e: React.MouseEvent) => {
+    const copyRoot = e.currentTarget as HTMLElement;
+    const box = (e.target as HTMLElement).closest(BOX_SELECTOR) as HTMLElement | null;
+    if (!box || !copyRoot.contains(box)) return;
+    const index = Array.from(copyRoot.querySelectorAll<HTMLElement>(BOX_SELECTOR)).indexOf(box);
+    if (index < 0) return;
+    e.preventDefault();
+    e.stopPropagation();
+    const b = measureBox(index);
+    if (!b) return;
+    setFocus({ index, ...b });
+  };
+
+  /** mousedown auf einer Box NICHT fokussieren lassen — sonst poppt die Tastatur
+   *  auf dem winzigen Blatt-Feld auf, bevor die große Box öffnet. */
+  const swallowMouseDown = (e: React.MouseEvent) => {
+    if ((e.target as HTMLElement).closest(BOX_SELECTOR)) e.preventDefault();
+  };
+
+  // Wächst die Box beim Tippen (neuer Bullet), Bounds nachziehen. Diff-Guard
+  // verhindert die Endlosschleife.
+  useLayoutEffect(() => {
+    if (focus == null) return;
+    setFocus((f) => {
+      if (!f) return f;
+      const b = measureBox(f.index);
+      if (!b) return f;
+      if (
+        Math.abs(b.bx - f.bx) <= 1 && Math.abs(b.by - f.by) <= 1 &&
+        Math.abs(b.bw - f.bw) <= 1 && Math.abs(b.bh - f.bh) <= 1
+      ) return f;
+      return { ...f, ...b };
+    });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [editorData, selectedTemplate, scale, breaks.pageCount, focus?.index]);
+
+  // Klick außerhalb der großen Box / Escape schließt.
+  useEffect(() => {
+    if (focus == null) return;
+    const onDown = (e: MouseEvent) => {
+      const c = cloneRef.current;
+      if (c && e.target instanceof Node && c.contains(e.target)) return;
+      setFocus(null);
+    };
+    const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') setFocus(null); };
+    document.addEventListener('mousedown', onDown, true);
+    document.addEventListener('keydown', onKey);
+    return () => {
+      document.removeEventListener('mousedown', onDown, true);
+      document.removeEventListener('keydown', onKey);
+    };
+  }, [focus?.index]);
+
   const isInitialLoadRef = useRef(true);
   const saveTimeoutRef = useRef<number | null>(null);
 
