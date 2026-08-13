@@ -287,6 +287,23 @@ function PosterSwitcher() {
     setProgress(0);
   };
 
+  const startTimers = () => {
+    if (intervalRef.current) clearInterval(intervalRef.current);
+    if (progressRef.current) clearInterval(progressRef.current);
+    setProgress(0);
+
+    intervalRef.current = setInterval(() => {
+      setActive(prev => (prev + 1) % total);
+      setProgress(0);
+    }, AUTOPLAY_INTERVAL);
+
+    const tickMs = 50;
+    progressRef.current = setInterval(() => {
+      setProgress(prev => Math.min(prev + (tickMs / AUTOPLAY_INTERVAL) * 100, 100));
+    }, tickMs);
+  };
+
+  const stopTimers = () => {
 // Ersetze diese Funktionen und den useEffect in deiner Komponente:
 
 const startTimers = () => {
@@ -331,27 +348,6 @@ const handleManualNav = (idx: number) => {
 const handleManualNext = () => {
   handleManualNav((active + 1) % total);
 };
-
-  useEffect(() => {
-    if (!paused) {
-      startTimers();
-    } else {
-      stopTimers();
-    }
-    return stopTimers;
-  }, [paused, active]);
-
-  const handleManualNav = (idx: number) => {
-    goTo(idx);
-    if (!paused) {
-      stopTimers();
-      startTimers();
-    }
-  };
-
-  const handleManualNext = () => {
-    handleManualNav((active + 1) % total);
-  };
 
   const handleCta = (target: string) => {
     const el = document.getElementById(target);
