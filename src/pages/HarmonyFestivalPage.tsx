@@ -545,6 +545,11 @@ function PosterSwitcher() {
                   boxShadow: `0 6px 26px ${current.glow}, 0 0 0 1px ${current.accentAlpha}`,
                   transition: 'background 0.4s ease, box-shadow 0.4s ease',
                 }}
+                // Nächstes Bild vorladen, damit der Wechsel ruckelfrei ist
+  useEffect(() => {
+    const img = new Image();
+    img.src = nextSlide.src;
+  }, [nextSlide.src]);
               >
                 {current.cta.label}
                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#080c10" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
@@ -1628,7 +1633,10 @@ signal: controller.signal,
           </div>
         </div>
       </section>
-
+{/* ── POSTER SWITCHER (über dem Tableau) ── */}
+      <section className="relative z-10 max-w-6xl mx-auto px-6 sm:px-10 mt-16 lg:mt-24">
+        <PosterSwitcher />
+      </section>
 {/* 🏆 TURNIER TABLEAU SECTION */}
         <motion.section 
           id="tableau" 
@@ -1662,8 +1670,7 @@ signal: controller.signal,
           />
 
           <div className="divider" />
-          {/* ── POSTER ───────────────────────────────────────────── */}
-          <PosterSwitcher />
+        
 
           <div className="divider" />
 
