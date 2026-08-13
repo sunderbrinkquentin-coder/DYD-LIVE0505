@@ -1948,6 +1948,41 @@ signal: controller.signal,
                   </div>
                 </div>
               </div>
+              {/* Pizzeria Lupo – Lokaler Sponsor */}
+              <div className="mb-6 rounded-2xl p-6" style={{ background: 'rgba(200,55,45,0.06)', border: '1px solid rgba(200,55,45,0.2)' }}>
+                <div className="flex items-center gap-3 mb-5">
+                  <div className="w-2 h-2 rounded-full" style={{ background: '#C8372D', boxShadow: '0 0 8px #C8372D88' }} />
+                  <div style={{ fontFamily: "'Barlow Condensed', sans-serif", fontWeight: 700, fontSize: '13px', color: 'rgba(220,100,80,0.9)', letterSpacing: '0.12em', textTransform: 'uppercase' }}>
+                    Lokaler Sponsor
+                  </div>
+                </div>
+
+                <div className="rounded-xl px-6 py-5 mb-4" style={{ background: '#fff', maxWidth: '300px' }}>
+                  <img src="/pizzeria-lupo-logo.png" alt="Pizzeria Lupo – seit 1988" style={{ display: 'block', width: '100%', height: 'auto' }} />
+                </div>
+
+                <h4 style={{ fontFamily: "'Barlow Condensed', sans-serif", fontWeight: 700, fontSize: '20px', color: '#fff', marginBottom: '4px' }}>Pizzeria Lupo</h4>
+                <p style={{ fontFamily: "'Inter', sans-serif", fontSize: '13px', color: 'rgba(160,230,230,0.55)', lineHeight: 1.65, marginBottom: '16px' }}>
+                  Eine der besten Pizzerien der Düsseldorfer Altstadt – seit 1988. Echtes italienisches Handwerk, direkt ums Eck vom Festival.
+                </p>
+
+                {/* Harmony-Ticket Deal */}
+                <div className="rounded-xl px-5 py-4" style={{ background: 'linear-gradient(135deg, rgba(200,55,45,0.14), rgba(200,55,45,0.04))', border: '1px solid rgba(200,55,45,0.3)' }}>
+                  <div className="flex items-start gap-3">
+                    <span style={{ fontSize: '26px', lineHeight: 1, flexShrink: 0 }}>🍕</span>
+                    <div style={{ flex: 1, minWidth: 0 }}>
+                      <div className="flex items-center flex-wrap gap-2 mb-1.5">
+                        <span style={{ fontFamily: "'Bebas Neue', sans-serif", fontSize: '12px', letterSpacing: '0.14em', background: '#C8372D', color: '#fff', padding: '2px 10px', borderRadius: '5px', fontWeight: 700 }}>HARMONY-DEAL</span>
+                        <span style={{ fontFamily: "'Barlow Condensed', sans-serif", fontWeight: 700, fontSize: '16px', color: '#fff' }}>2 € Rabatt auf alles</span>
+                      </div>
+                      <p style={{ fontFamily: "'Inter', sans-serif", fontSize: '13px', color: 'rgba(230,195,190,0.75)', lineHeight: 1.6 }}>
+                        Zeig dein Harmony-Ticket und bekomm <strong style={{ color: '#fff', fontWeight: 600 }}>2 € auf alles</strong> – Pizza schon ab 6 €.{' '}
+                        <a href="https://www.pizzerialupo.de/" target="_blank" rel="noopener noreferrer" style={{ color: '#e8756a', textDecoration: 'underline', textUnderlineOffset: '3px', fontWeight: 600 }}>Zur Speisekarte</a>
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              </div>
 
               {/* Medienpartner & Reichweite */}
               <div className="mb-6 rounded-2xl p-6" style={{ background: 'rgba(0,140,212,0.05)', border: '1px solid rgba(0,140,212,0.18)' }}>
