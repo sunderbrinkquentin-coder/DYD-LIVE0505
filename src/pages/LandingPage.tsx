@@ -39,8 +39,11 @@ import {
   Kanban,
   Layers,
   FileStack,
+  Menu,
+  LogIn,
+  LayoutDashboard,
 } from 'lucide-react';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import { CareerVisionSection } from '../components/landing/CareerVisionSection';
 import { AboutSection } from '../components/landing/AboutSection';
@@ -60,8 +63,13 @@ export default function LandingPage() {
   const navigate = useNavigate();
   const { user, profile } = useAuth();
   const [expandedFAQ, setExpandedFAQ] = useState<number | null>(null);
-  const [festivalOpen, setFestivalOpen] = useState(false);
-  const { scrollYProgress } = useScroll();
+  Kanban,
+  Layers,
+  FileStack,
+  Menu,
+  LogIn,
+  LayoutDashboard,
+} from 'lucide-react';
 
   const [followPopupOpen, setFollowPopupOpen] = useState(false);
   const [pendingNavTarget, setPendingNavTarget] = useState<string | null>(null);
@@ -87,6 +95,21 @@ export default function LandingPage() {
     if (!el) return;
     const y = el.getBoundingClientRect().top + window.scrollY - 80;
     window.scrollTo({ top: y, behavior: 'smooth' });
+  };
+
+  const mobileNav = (target: string) => {
+    setMobileMenuOpen(false);
+    navigate(target);
+  };
+
+  const mobileGate = (target: string) => {
+    setMobileMenuOpen(false);
+    goWithFollowGate(target);
+  };
+
+  const mobileScroll = (id: string) => {
+    setMobileMenuOpen(false);
+    setTimeout(() => scrollToId(id), 80);
   };
 
   const handleOptimizationClick = (plan: 'single' | 'bundle-5' | 'bundle-10' = 'single') => {
@@ -432,15 +455,140 @@ export default function LandingPage() {
                 </motion.button>
               </div>
 
-              <button
-                onClick={() => goWithFollowGate('/cv-check')}
-                className="md:hidden px-4 py-2 rounded-lg bg-gradient-to-r from-[#66c0b6] to-[#30E3CA] text-black font-semibold text-sm"
-              >
-                Kostenlos checken
-              </button>
+              {/* Mobile: kompakter Free-CTA + Burger */}
+              <div className="flex items-center gap-2 md:hidden">
+                <button
+                  onClick={() => goWithFollowGate('/cv-check')}
+                  className="px-3.5 py-2 rounded-lg bg-gradient-to-r from-[#66c0b6] to-[#30E3CA] text-black font-semibold text-sm whitespace-nowrap"
+                >
+                  Kostenlos checken
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setMobileMenuOpen((v) => !v)}
+                  aria-label={mobileMenuOpen ? 'Menü schließen' : 'Menü öffnen'}
+                  aria-expanded={mobileMenuOpen}
+                  aria-controls="mobile-menu"
+                  className="w-10 h-10 flex items-center justify-center rounded-lg border border-white/15 bg-white/5 text-white/80 hover:text-white hover:bg-white/10 transition-colors"
+                >
+                  {mobileMenuOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
+                </button>
+              </div>
             </div>
           </div>
         </nav>
+
+        {/* Mobile-Menü Overlay */}
+        <AnimatePresence>
+          {mobileMenuOpen && (
+            <>
+              <motion.div
+                key="mobile-backdrop"
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                transition={{ duration: 0.2 }}
+                className="fixed inset-0 top-16 z-40 bg-black/60 backdrop-blur-sm md:hidden"
+                onClick={() => setMobileMenuOpen(false)}
+              />
+              <motion.div
+                key="mobile-panel"
+                id="mobile-menu"
+                initial={{ opacity: 0, y: -12 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -12 }}
+                transition={{ duration: 0.22, ease: [0.22, 1, 0.36, 1] }}
+                className="fixed top-16 inset-x-0 z-40 md:hidden max-h-[calc(100dvh-4rem)] overflow-y-auto border-b border-white/10 bg-[#070709]/95 backdrop-blur-xl"
+              >
+                <div className="px-4 py-5 space-y-6">
+                  {/* Tools */}
+                  <div>
+                    <p className="px-1 mb-2 text-[10px] font-black uppercase tracking-widest text-white/30">
+                      Tools
+                    </p>
+                    <div className="space-y-1">
+                      {[
+                        { icon: Search, label: 'CV kostenlos checken', sub: 'ATS-Score in Sekunden', onClick: () => mobileGate('/cv-check') },
+                        { icon: FileText, label: 'CV erstellen', sub: 'KI-Wizard in 10 Min.', onClick: () => mobileGate('/cv-wizard') },
+                        { icon: GraduationCap, label: 'Career Academy · Skill-Gap', sub: 'Lücken finden & schließen', onClick: () => mobileGate('/career-vision') },
+                        { icon: Kanban, label: 'Bewerbermanagement', sub: 'Kanban für alle Bewerbungen', onClick: () => mobileNav(user ? '/dashboard' : '/login?redirect=/dashboard') },
+                      ].map((item) => (
+                        <button
+                          key={item.label}
+                          type="button"
+                          onClick={item.onClick}
+                          className="w-full flex items-center gap-3 px-3 py-3 rounded-xl text-left hover:bg-white/5 transition-colors"
+                        >
+                          <span className="flex-shrink-0 w-9 h-9 rounded-lg bg-[#66c0b6]/15 border border-[#66c0b6]/25 flex items-center justify-center">
+                            <item.icon className="w-4 h-4 text-[#66c0b6]" />
+                          </span>
+                          <span className="min-w-0">
+                            <span className="block text-sm font-semibold text-white truncate">{item.label}</span>
+                            <span className="block text-xs text-white/45 truncate">{item.sub}</span>
+                          </span>
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+
+                  {/* Entdecken */}
+                  <div>
+                    <p className="px-1 mb-2 text-[10px] font-black uppercase tracking-widest text-white/30">
+                      Entdecken
+                    </p>
+                    <div className="space-y-1">
+                      <button type="button" onClick={() => mobileScroll('prozess')} className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-left hover:bg-white/5 transition-colors">
+                        <TrendingUp className="w-4 h-4 text-white/50 flex-shrink-0" />
+                        <span className="text-sm text-white/80">So funktioniert&apos;s</span>
+                      </button>
+                      <button type="button" onClick={() => mobileScroll('preise')} className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-left hover:bg-white/5 transition-colors">
+                        <Star className="w-4 h-4 text-white/50 flex-shrink-0" />
+                        <span className="text-sm text-white/80">Preise</span>
+                      </button>
+                      <button type="button" onClick={() => mobileNav('/festival')} className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-left hover:bg-white/5 transition-colors">
+                        <Music className="w-4 h-4 text-[#00d4d4] flex-shrink-0" />
+                        <span className="text-sm text-white/80">Harmony Festival</span>
+                        <span className="ml-auto text-[10px] font-bold text-[#00d4d4]/70">22.08.26</span>
+                      </button>
+                      <button type="button" onClick={() => mobileNav('/business')} className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-left hover:bg-white/5 transition-colors">
+                        <Building2 className="w-4 h-4 text-white/50 flex-shrink-0" />
+                        <span className="text-sm text-white/80">Für Business</span>
+                      </button>
+                    </div>
+                  </div>
+
+                  {/* Konto */}
+                  <div>
+                    <p className="px-1 mb-2 text-[10px] font-black uppercase tracking-widest text-white/30">
+                      Konto
+                    </p>
+                    <div className="space-y-1">
+                      <button type="button" onClick={() => mobileNav(user ? '/dashboard' : '/login')} className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-left hover:bg-white/5 transition-colors">
+                        {user
+                          ? <LayoutDashboard className="w-4 h-4 text-white/50 flex-shrink-0" />
+                          : <LogIn className="w-4 h-4 text-white/50 flex-shrink-0" />}
+                        <span className="text-sm text-white/80">{user ? 'Dashboard' : 'Login'}</span>
+                      </button>
+                      <button type="button" onClick={() => mobileNav('/faq')} className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-left hover:bg-white/5 transition-colors">
+                        <Lightbulb className="w-4 h-4 text-white/50 flex-shrink-0" />
+                        <span className="text-sm text-white/80">FAQ</span>
+                      </button>
+                    </div>
+                  </div>
+
+                  {/* Primär-CTA im Menü */}
+                  <button
+                    type="button"
+                    onClick={() => mobileGate('/cv-check')}
+                    className="w-full py-3.5 rounded-xl bg-gradient-to-r from-[#66c0b6] to-[#30E3CA] text-black font-bold text-sm shadow-lg shadow-[#66c0b6]/20"
+                  >
+                    CV jetzt kostenlos checken
+                  </button>
+                </div>
+              </motion.div>
+            </>
+          )}
+        </AnimatePresence>
         <main id="main-content" aria-label="DYD Hauptinhalt – KI-Lebenslauf-Optimierung für Deutschland">
 
         <section
