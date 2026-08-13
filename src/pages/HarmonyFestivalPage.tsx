@@ -158,51 +158,113 @@ function GraffitiCanvas() {
 const POSTER_SLIDES = [
   {
     src: '/22.08.2026_(8).png',
-    alt: 'Harmony Festival 2026 Poster',
+    alt: 'Harmony Festival 2026 – Das offizielle Poster',
     label: 'Das Poster',
+    hook: 'Ein Abend, vier Acts – ab 8,50 €.',
+    cta: { label: 'Tickets sichern', target: 'tickets' },
     accent: 'rgba(0,212,212,1)',
     accentAlpha: 'rgba(0,212,212,0.18)',
     glow: 'rgba(0,212,212,0.1)',
   },
   {
     src: '/Gewinne_das_Bierpongturnier_(3).png',
-    alt: 'Gewinne das Bierpongturnier',
+    alt: 'Gewinne das Bierpong-Turnier',
     label: 'Bierpong-Turnier',
+    hook: 'Gewinnen = den ganzen Abend gratis trinken.',
+    cta: { label: 'Team-Platz sichern', target: 'tickets' },
     accent: 'rgba(185,215,55,1)',
     accentAlpha: 'rgba(185,215,55,0.2)',
     glow: 'rgba(185,215,55,0.08)',
   },
   {
+    src: '/how-to-gamble.png',
+    alt: 'How-to-Gamble – Zeigen. Gewinnen. Gratis trinken.',
+    label: 'How to Gamble',
+    hook: 'Timer in der Gewinn-Zone stoppen → Bestellung gratis.',
+    cta: { label: 'Jetzt mitmachen', target: 'tickets' },
+    accent: 'rgba(120,220,60,1)',
+    accentAlpha: 'rgba(120,220,60,0.18)',
+    glow: 'rgba(120,220,60,0.09)',
+  },
+  {
+    src: '/drink-menu-regional.png',
+    alt: 'Drink Menu – Regionale Getränke & Cocktails',
+    label: 'Cocktails & Drinks',
+    hook: 'Fraperol & Frozen Pinacolada – schon ab 4 €.',
+    cta: { label: 'Ab 8,50 € dabei sein', target: 'tickets' },
+    accent: 'rgba(0,190,150,1)',
+    accentAlpha: 'rgba(0,190,150,0.18)',
+    glow: 'rgba(0,180,140,0.08)',
+  },
+  {
     src: '/Stand-Up_LineUp.png',
     alt: 'Stand-Up Comedy Line-Up',
     label: 'Stand-Up Line-Up',
+    hook: 'Sechs Comedians aus der lokalen Szene – live.',
+    cta: { label: 'Comedy-Ticket', target: 'tickets' },
     accent: 'rgba(240,120,32,1)',
     accentAlpha: 'rgba(240,120,32,0.18)',
     glow: 'rgba(240,120,32,0.08)',
   },
   {
+    src: '/drink-menu-bier.png',
+    alt: 'Drink Menu – Fränkisches Bier & Düsseldorfer Alt',
+    label: 'Die Bier-Brücke',
+    hook: 'Fränkisches Bier & Düsseldorfer Alt – 4 €.',
+    cta: { label: 'Tickets sichern', target: 'tickets' },
+    accent: 'rgba(200,232,64,1)',
+    accentAlpha: 'rgba(200,232,64,0.18)',
+    glow: 'rgba(200,232,64,0.08)',
+  },
+  {
     src: '/Unbenannt.jpg',
-    alt: 'Zirkel.WTF – Das ist die Tour',
+    alt: 'Zirkel.WTF – Live in Düsseldorf',
     label: 'Zirkel.WTF',
+    hook: 'Pop-Punk hautnah – nur an diesem Abend.',
+    cta: { label: 'Konzert-Ticket', target: 'tickets' },
     accent: 'rgba(255,255,255,1)',
     accentAlpha: 'rgba(255,255,255,0.15)',
     glow: 'rgba(200,200,200,0.06)',
   },
   {
+    src: '/bierpong-flyer.png',
+    alt: 'Bierpong – 2 Bier zum Start, 5 € pro Person',
+    label: 'Bierpong · Facts',
+    hook: '2 Bier zum Start · 5 €/Person · Plätze limitiert.',
+    cta: { label: 'Team-Platz sichern', target: 'tickets' },
+    accent: 'rgba(240,150,40,1)',
+    accentAlpha: 'rgba(240,150,40,0.18)',
+    glow: 'rgba(240,150,40,0.08)',
+  },
+  {
+    src: '/how-to-gamble-app.png',
+    alt: 'How-to-Gamble – Win: komplette Bestellung gratis',
+    label: 'How to Gamble · App',
+    hook: 'Triff die Zeit – deine ganze Bestellung geht aufs Haus.',
+    cta: { label: 'Ticket sichern', target: 'tickets' },
+    accent: 'rgba(240,190,80,1)',
+    accentAlpha: 'rgba(240,190,80,0.18)',
+    glow: 'rgba(240,190,80,0.08)',
+  },
+  {
     src: '/BobMarley.png',
-    alt: 'Harmony Festival – Hauptposter',
+    alt: 'Harmony Festival – Empfehlung',
     label: 'Empfehlung Bob',
+    hook: 'Lass uns schauen, was uns verbindet.',
+    cta: { label: 'Tickets sichern', target: 'tickets' },
     accent: 'rgba(0,190,150,1)',
     accentAlpha: 'rgba(0,190,150,0.18)',
     glow: 'rgba(0,180,140,0.08)',
   },
-   {
-    src: 'Soli_Shirt.png',
-    alt: 'Harmony Festival – Hauptposter',
-    label: 'Soli Shirt',
-    accent: 'rgba(0,190,150,1)',
-    accentAlpha: 'rgba(0,190,150,0.18)',
-    glow: 'rgba(0,180,140,0.08)',
+  {
+    src: '/Soli_Shirt.png',
+    alt: 'Harmony Soli-Shirt für KeinBockAufNazis e.V.',
+    label: 'Soli-Shirt',
+    hook: 'Danke an alle Supporter – Aktion beendet.',
+    cta: { label: 'Mehr erfahren', target: 'shirts' },
+    accent: 'rgba(220,50,50,1)',
+    accentAlpha: 'rgba(220,50,50,0.18)',
+    glow: 'rgba(220,50,50,0.08)',
   },
 ];
 
@@ -224,6 +286,278 @@ function PosterSwitcher() {
     setActive(idx);
     setProgress(0);
   };
+
+  const startTimers = () => {
+    if (intervalRef.current) clearInterval(intervalRef.current);
+    if (progressRef.current) clearInterval(progressRef.current);
+    setProgress(0);
+
+    intervalRef.current = setInterval(() => {
+      setActive(prev => (prev + 1) % total);
+      setProgress(0);
+    }, AUTOPLAY_INTERVAL);
+
+    const tickMs = 50;
+    progressRef.current = setInterval(() => {
+      setProgress(prev => Math.min(prev + (tickMs / AUTOPLAY_INTERVAL) * 100, 100));
+    }, tickMs);
+  };
+
+  const stopTimers = () => {
+    if (intervalRef.current) clearInterval(intervalRef.current);
+    if (progressRef.current) clearInterval(progressRef.current);
+  };
+
+  useEffect(() => {
+    if (!paused) {
+      startTimers();
+    } else {
+      stopTimers();
+    }
+    return stopTimers;
+  }, [paused, active]);
+
+  const handleManualNav = (idx: number) => {
+    goTo(idx);
+    if (!paused) {
+      stopTimers();
+      startTimers();
+    }
+  };
+
+  const handleManualNext = () => {
+    handleManualNav((active + 1) % total);
+  };
+
+  const handleCta = (target: string) => {
+    const el = document.getElementById(target);
+    if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  };
+
+  return (
+    <section>
+      <motion.div {...{ initial: { opacity: 0, y: 28 }, whileInView: { opacity: 1, y: 0 }, viewport: { once: true }, transition: { duration: 0.6 } }}>
+        {/* Label + Counter + Pause */}
+        <div className="flex items-center justify-center gap-3 mb-2">
+          <div className="tag-label">{current.label}</div>
+          <span style={{
+            fontFamily: "'Barlow Condensed', sans-serif",
+            fontWeight: 700, fontSize: '10px', letterSpacing: '0.2em',
+            color: 'rgba(255,255,255,0.3)',
+          }}>
+            {String(active + 1).padStart(2, '0')} / {String(total).padStart(2, '0')}
+          </span>
+          <button
+            type="button"
+            onClick={() => setPaused(p => !p)}
+            title={paused ? 'Autoplay starten' : 'Autoplay pausieren'}
+            style={{
+              width: '28px', height: '28px', borderRadius: '50%',
+              background: 'rgba(255,255,255,0.07)', border: '1px solid rgba(255,255,255,0.14)',
+              cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center',
+              flexShrink: 0, transition: 'background 0.18s',
+            }}
+          >
+            {paused ? (
+              <svg width="10" height="12" viewBox="0 0 10 12" fill="rgba(255,255,255,0.7)">
+                <path d="M0 0L10 6L0 12Z" />
+              </svg>
+            ) : (
+              <svg width="10" height="12" viewBox="0 0 10 12" fill="rgba(255,255,255,0.7)">
+                <rect x="0" y="0" width="3.5" height="12" rx="1" />
+                <rect x="6.5" y="0" width="3.5" height="12" rx="1" />
+              </svg>
+            )}
+          </button>
+        </div>
+
+        {/* Conversion-Hook pro Slide (accent-getönt) */}
+        <div
+          className="text-center mb-7 px-4"
+          style={{
+            fontFamily: "'Barlow Condensed', sans-serif",
+            fontWeight: 700, fontStyle: 'italic',
+            fontSize: 'clamp(15px, 2.2vw, 19px)', letterSpacing: '0.02em',
+            lineHeight: 1.25, minHeight: '24px',
+            color: current.accent,
+            transition: 'color 0.4s ease',
+          }}
+        >
+          {current.hook}
+        </div>
+
+        <div className="relative mx-auto" style={{ maxWidth: '600px', paddingRight: '36px' }}>
+          <div className="flex items-start gap-0" style={{ position: 'relative' }}>
+
+            {/* Main image */}
+            <div style={{ flex: '1 1 0', minWidth: 0, position: 'relative' }}>
+              <div
+                style={{
+                  borderRadius: '16px',
+                  boxShadow: `0 0 0 1px ${current.accentAlpha}, 0 8px 40px rgba(0,0,0,0.5), 0 0 60px ${current.glow}`,
+                  overflow: 'hidden',
+                  lineHeight: 0,
+                  transition: 'box-shadow 0.4s ease',
+                }}
+              >
+                <AnimatePresence mode="wait">
+                  <motion.img
+                    key={active}
+                    src={current.src}
+                    alt={current.alt}
+                    initial={{ opacity: 0, scale: 1.0 }}
+                    animate={{ opacity: 1, scale: 1.06 }}
+                    exit={{ opacity: 0, scale: 1.08 }}
+                    transition={{
+                      opacity: { duration: 0.5, ease: [0.22, 1, 0.36, 1] },
+                      scale: { duration: AUTOPLAY_INTERVAL / 1000, ease: 'linear' },
+                    }}
+                    style={{ display: 'block', width: '100%', height: 'auto' }}
+                  />
+                </AnimatePresence>
+              </div>
+
+              {/* Progress bar */}
+              {!paused && (
+                <div style={{
+                  position: 'absolute', bottom: 0, left: 0, right: 0, height: '3px',
+                  background: 'rgba(255,255,255,0.1)', borderRadius: '0 0 16px 16px', overflow: 'hidden',
+                }}>
+                  <div style={{
+                    height: '100%', width: `${progress}%`,
+                    background: current.accent, transition: 'width 0.05s linear',
+                    borderRadius: '0 0 16px 16px',
+                  }} />
+                </div>
+              )}
+            </div>
+
+            {/* Next slide preview */}
+            <div
+              style={{
+                width: '90px', flexShrink: 0, position: 'relative', display: 'flex',
+                alignItems: 'center', justifyContent: 'flex-end', paddingLeft: '10px',
+              }}
+            >
+              <div
+                style={{
+                  position: 'relative', width: '80px', cursor: 'pointer', borderRadius: '12px',
+                  overflow: 'hidden', opacity: 0.55, filter: 'blur(0.5px)',
+                  transition: 'opacity 0.25s, filter 0.25s, transform 0.2s', flexShrink: 0,
+                }}
+                onMouseEnter={e => {
+                  const el = e.currentTarget as HTMLDivElement;
+                  el.style.opacity = '0.85';
+                  el.style.filter = 'blur(0px)';
+                  el.style.transform = 'scale(1.04)';
+                }}
+                onMouseLeave={e => {
+                  const el = e.currentTarget as HTMLDivElement;
+                  el.style.opacity = '0.55';
+                  el.style.filter = 'blur(0.5px)';
+                  el.style.transform = 'scale(1)';
+                }}
+                onClick={handleManualNext}
+              >
+                <AnimatePresence mode="wait">
+                  <motion.img
+                    key={next}
+                    src={nextSlide.src}
+                    alt={nextSlide.alt}
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    exit={{ opacity: 0 }}
+                    transition={{ duration: 0.25 }}
+                    style={{ display: 'block', width: '100%', height: 'auto', borderRadius: '12px' }}
+                  />
+                </AnimatePresence>
+                <div style={{
+                  position: 'absolute', inset: 0,
+                  background: 'linear-gradient(to right, rgba(0,0,0,0) 0%, rgba(0,0,0,0.35) 100%)',
+                  borderRadius: '12px', pointerEvents: 'none',
+                }} />
+                <div style={{
+                  position: 'absolute', bottom: '6px', left: 0, right: 0, textAlign: 'center',
+                  fontFamily: "'Inter', sans-serif", fontSize: '8px', fontWeight: 700,
+                  letterSpacing: '0.1em', textTransform: 'uppercase',
+                  color: 'rgba(255,255,255,0.6)', pointerEvents: 'none',
+                }}>
+                  {nextSlide.label}
+                </div>
+              </div>
+
+              <button
+                onClick={handleManualNext}
+                style={{
+                  position: 'absolute', right: '-18px', top: '50%', transform: 'translateY(-50%)',
+                  width: '44px', height: '44px', borderRadius: '50%',
+                  background: current.accent, border: 'none', cursor: 'pointer',
+                  display: 'flex', alignItems: 'center', justifyContent: 'center',
+                  boxShadow: `0 0 24px ${current.glow}, 0 4px 16px rgba(0,0,0,0.5)`,
+                  zIndex: 10, transition: 'transform 0.2s ease, box-shadow 0.2s ease', flexShrink: 0,
+                }}
+                onMouseEnter={e => {
+                  (e.currentTarget as HTMLButtonElement).style.transform = 'translateY(-50%) scale(1.12)';
+                }}
+                onMouseLeave={e => {
+                  (e.currentTarget as HTMLButtonElement).style.transform = 'translateY(-50%) scale(1)';
+                }}
+              >
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#000" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M5 12h14M13 6l6 6-6 6" />
+                </svg>
+              </button>
+            </div>
+          </div>
+
+          {/* Dot indicators */}
+          <div className="flex justify-center gap-2 mt-6">
+            {POSTER_SLIDES.map((s, i) => (
+              <button
+                key={i}
+                onClick={() => handleManualNav(i)}
+                style={{
+                  width: i === active ? '24px' : '8px', height: '8px', borderRadius: '999px',
+                  background: i === active ? s.accent : 'rgba(255,255,255,0.18)',
+                  border: 'none', cursor: 'pointer', transition: 'all 0.3s ease', padding: 0,
+                }}
+              />
+            ))}
+          </div>
+
+          {/* Slide-spezifischer CTA (Conversion) */}
+          {current.cta && (
+            <div className="flex justify-center mt-6">
+              <motion.button
+                key={active + '-cta'}
+                onClick={() => handleCta(current.cta.target)}
+                whileHover={{ scale: 1.04 }}
+                whileTap={{ scale: 0.97 }}
+                initial={{ opacity: 0, y: 8 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.35, delay: 0.1 }}
+                style={{
+                  display: 'inline-flex', alignItems: 'center', gap: 8,
+                  padding: '12px 26px', borderRadius: 999, border: 'none', cursor: 'pointer',
+                  fontFamily: "'Bebas Neue', 'Barlow Condensed', sans-serif",
+                  fontSize: 16, letterSpacing: '0.14em', textTransform: 'uppercase', fontWeight: 700,
+                  color: '#080c10', background: current.accent,
+                  boxShadow: `0 6px 26px ${current.glow}, 0 0 0 1px ${current.accentAlpha}`,
+                  transition: 'background 0.4s ease, box-shadow 0.4s ease',
+                }}
+              >
+                {current.cta.label}
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#080c10" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M5 12h14M13 6l6 6-6 6" />
+                </svg>
+              </motion.button>
+            </div>
+          )}
+        </div>
+      </motion.div>
+    </section>
+  );
+}
 
   const goNext = () => goTo((active + 1) % total);
 
