@@ -350,22 +350,6 @@ function PosterSwitcher() {
     const img = new Image();
     img.src = nextSlide.src;
   }, [nextSlide?.src]);
-
-  return (
-
-  const handleManualNext = () => {
-    handleManualNav((active + 1) % total);
-  };
-
-  const handleCta = (target: string) => {
-    const el = document.getElementById(target);
-    if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' });
-  };
-// Nächstes Bild vorladen, damit der Wechsel ruckelfrei ist
-  useEffect(() => {
-    const img = new Image();
-    img.src = nextSlide.src;
-  }, [nextSlide.src]);
   return (
     <section>
       <motion.div {...{ initial: { opacity: 0, y: 28 }, whileInView: { opacity: 1, y: 0 }, viewport: { once: true }, transition: { duration: 0.6 } }}>
