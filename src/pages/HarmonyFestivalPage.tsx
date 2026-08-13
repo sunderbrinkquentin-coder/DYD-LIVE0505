@@ -707,8 +707,6 @@ export default function HarmonyFestivalPage() {
   };
 // bfcache-Restore abfangen (Zurück von Stripe)
   useEffect(() => {
-// bfcache-Restore abfangen (Zurück von Stripe)
-  useEffect(() => {
     const onPageShow = (e: PageTransitionEvent) => {
       if (e.persisted) {
         setLoadingId(null);
