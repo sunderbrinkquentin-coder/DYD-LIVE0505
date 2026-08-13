@@ -350,6 +350,16 @@ function PosterSwitcher() {
     const img = new Image();
     img.src = nextSlide.src;
   }, [nextSlide?.src]);
+  useEffect(() => {
+  POSTER_SLIDES.forEach((slide) => {
+    const img = new Image();
+    img.src = slide.src;
+  });
+}, []);
+  useEffect(() => {
+  const img = new Image();
+  img.src = nextSlide.src;
+}, [nextSlide.src]);
   return (
     <section>
       <motion.div {...{ initial: { opacity: 0, y: 28 }, whileInView: { opacity: 1, y: 0 }, viewport: { once: true }, transition: { duration: 0.6 } }}>
