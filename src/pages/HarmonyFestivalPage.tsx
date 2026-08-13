@@ -477,20 +477,33 @@ function PosterSwitcher() {
                 }}
                 onClick={handleManualNext}
               >
-                <AnimatePresence mode="wait">
-                  <motion.img
-                    key={next}
-                    src={nextSlide.src}
-                    alt={nextSlide.alt}
-                      loading="eager"
+                <motion.img
+  src={current.src}
+  alt={current.alt}
+  loading="eager"
+  fetchPriority="high"
   decoding="async"
-                    initial={{ opacity: 0 }}
-                    animate={{ opacity: 1 }}
-                    exit={{ opacity: 0 }}
-                    transition={{ duration: 0.25 }}
-                    style={{ display: 'block', width: '100%', height: 'auto', borderRadius: '12px' }}
-                  />
-                </AnimatePresence>
+  initial={false}
+  animate={{
+    opacity: 1,
+    scale: 1.06,
+  }}
+  transition={{
+    opacity: {
+      duration: 0.4,
+      ease: [0.22, 1, 0.36, 1],
+    },
+    scale: {
+      duration: AUTOPLAY_INTERVAL / 1000,
+      ease: 'linear',
+    },
+  }}
+  style={{
+    display: 'block',
+    width: '100%',
+    height: 'auto',
+  }}
+/>
                 <div style={{
                   position: 'absolute', inset: 0,
                   background: 'linear-gradient(to right, rgba(0,0,0,0) 0%, rgba(0,0,0,0.35) 100%)',
