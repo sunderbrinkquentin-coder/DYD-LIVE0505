@@ -273,93 +273,62 @@ function PosterSwitcher() {
   const [active, setActive] = useState(0);
   const [paused, setPaused] = useState(false);
   const [progress, setProgress] = useState(0);
+  const [loaded, setLoaded] = useState<Record<number, boolean>>({});
 
   const total = POSTER_SLIDES.length;
-
   const next = (active + 1) % total;
+  const prev = (active - 1 + total) % total;
   const current = POSTER_SLIDES[active];
   const nextSlide = POSTER_SLIDES[next];
 
-  // Autoplay
-  useEffect(() => {
-    if (paused || total <= 1) {
-      return;
-    }
-
-    setProgress(0);
-
-    const timer = setTimeout(() => {
-      setActive(prev => (prev + 1) % total);
-    }, AUTOPLAY_INTERVAL);
-
-    return () => {
-      clearTimeout(timer);
-    };
-  }, [active, paused, total]);
-
-  // Progress bar
-  useEffect(() => {
-    if (paused || total <= 1) {
-      return;
-    }
-
-    const tickMs = 50;
-
-    const progressTimer = setInterval(() => {
-      setProgress(prev =>
-        Math.min(
-          prev + (tickMs / AUTOPLAY_INTERVAL) * 100,
-          100
-        )
-      );
-    }, tickMs);
-
-    return () => {
-      clearInterval(progressTimer);
-    };
-  }, [active, paused]);
-
   const goTo = (idx: number) => {
-    setActive(idx);
+    setActive(((idx % total) + total) % total);
     setProgress(0);
   };
-
-  const handleManualNav = (idx: number) => {
-    goTo(idx);
-  };
-
-  const handleManualNext = () => {
-    goTo((active + 1) % total);
-  };
+  const goNext = () => goTo(active + 1);
+  const goPrev = () => goTo(active - 1);
 
   const handleCta = (target: string) => {
     const el = document.getElementById(target);
-
-    if (el) {
-      el.scrollIntoView({
-        behavior: 'smooth',
-        block: 'start'
-      });
-    }
+    if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' });
   };
 
-  // Nächstes Bild vorladen
+  // Autoplay + Progress in EINEM Interval (synchron, kein Drift)
+  useEffect(() => {
+    if (paused || total <= 1) return;
+    setProgress(0);
+    const tickMs = 50;
+    const step = (tickMs / AUTOPLAY_INTERVAL) * 100;
+    const id = setInterval(() => {
+      setProgress(p => {
+        if (p + step >= 100) {
+          setActive(a => (a + 1) % total);
+          return 0;
+        }
+        return p + step;
+      });
+    }, tickMs);
+    return () => clearInterval(id);
+  }, [active, paused, total]);
+
+  // NUR das nächste Bild vorladen (kein Massen-Preload → schnelleres erstes Bild)
   useEffect(() => {
     if (!nextSlide?.src) return;
-
     const img = new Image();
     img.src = nextSlide.src;
   }, [nextSlide?.src]);
+
+  // Tastatur-Navigation
   useEffect(() => {
-  POSTER_SLIDES.forEach((slide) => {
-    const img = new Image();
-    img.src = slide.src;
-  });
-}, []);
-  useEffect(() => {
-  const img = new Image();
-  img.src = nextSlide.src;
-}, [nextSlide.src]);
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === 'ArrowRight') goNext();
+      else if (e.key === 'ArrowLeft') goPrev();
+      else if (e.key === ' ') { e.preventDefault(); setPaused(p => !p); }
+    };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [active, total]);
+
   return (
     <section>
       <motion.div {...{ initial: { opacity: 0, y: 28 }, whileInView: { opacity: 1, y: 0 }, viewport: { once: true }, transition: { duration: 0.6 } }}>
@@ -415,32 +384,45 @@ function PosterSwitcher() {
         <div className="relative mx-auto" style={{ maxWidth: '600px', paddingRight: '36px' }}>
           <div className="flex items-start gap-0" style={{ position: 'relative' }}>
 
-            {/* Main image */}
+            {/* Main image — Crossfade (KEIN mode="wait" → flüssig) */}
             <div style={{ flex: '1 1 0', minWidth: 0, position: 'relative' }}>
               <div
                 style={{
+                  position: 'relative',
                   borderRadius: '16px',
                   boxShadow: `0 0 0 1px ${current.accentAlpha}, 0 8px 40px rgba(0,0,0,0.5), 0 0 60px ${current.glow}`,
                   overflow: 'hidden',
                   lineHeight: 0,
                   transition: 'box-shadow 0.4s ease',
+                  aspectRatio: '4 / 5',
+                  background: 'rgba(255,255,255,0.03)',
                 }}
               >
-                <AnimatePresence mode="wait">
+                {/* Skeleton-Shimmer, solange das aktive Bild noch lädt */}
+                {!loaded[active] && (
+                  <div style={{
+                    position: 'absolute', inset: 0, zIndex: 1,
+                    background: 'linear-gradient(100deg, rgba(255,255,255,0.02) 30%, rgba(255,255,255,0.08) 50%, rgba(255,255,255,0.02) 70%)',
+                    backgroundSize: '200% 100%',
+                    animation: 'posterShimmer 1.2s ease-in-out infinite',
+                  }} />
+                )}
+                <AnimatePresence initial={false}>
                   <motion.img
                     key={active}
                     src={current.src}
                     alt={current.alt}
                     loading="eager"
                     decoding="async"
+                    onLoad={() => setLoaded(l => ({ ...l, [active]: true }))}
                     initial={{ opacity: 0, scale: 1.0 }}
                     animate={{ opacity: 1, scale: 1.06 }}
-                    exit={{ opacity: 0, scale: 1.08 }}
+                    exit={{ opacity: 0 }}
                     transition={{
-                      opacity: { duration: 0.5, ease: [0.22, 1, 0.36, 1] },
+                      opacity: { duration: 0.55, ease: [0.22, 1, 0.36, 1] },
                       scale: { duration: AUTOPLAY_INTERVAL / 1000, ease: 'linear' },
                     }}
-                    style={{ display: 'block', width: '100%', height: 'auto' }}
+                    style={{ position: 'absolute', inset: 0, display: 'block', width: '100%', height: '100%', objectFit: 'cover' }}
                   />
                 </AnimatePresence>
               </div>
@@ -449,7 +431,7 @@ function PosterSwitcher() {
               {!paused && (
                 <div style={{
                   position: 'absolute', bottom: 0, left: 0, right: 0, height: '3px',
-                  background: 'rgba(255,255,255,0.1)', borderRadius: '0 0 16px 16px', overflow: 'hidden',
+                  background: 'rgba(255,255,255,0.1)', borderRadius: '0 0 16px 16px', overflow: 'hidden', zIndex: 2,
                 }}>
                   <div style={{
                     height: '100%', width: `${progress}%`,
@@ -460,7 +442,7 @@ function PosterSwitcher() {
               )}
             </div>
 
-            {/* Next slide preview */}
+            {/* Next slide preview — zeigt jetzt WIRKLICH das nächste Bild */}
             <div
               style={{
                 width: '90px', flexShrink: 0, position: 'relative', display: 'flex',
@@ -468,6 +450,7 @@ function PosterSwitcher() {
               }}
             >
               <div
+                onClick={goNext}
                 style={{
                   position: 'relative', width: '80px', cursor: 'pointer', borderRadius: '12px',
                   overflow: 'hidden', opacity: 0.55, filter: 'blur(0.5px)',
@@ -475,45 +458,27 @@ function PosterSwitcher() {
                 }}
                 onMouseEnter={e => {
                   const el = e.currentTarget as HTMLDivElement;
-                  el.style.opacity = '0.85';
-                  el.style.filter = 'blur(0px)';
-                  el.style.transform = 'scale(1.04)';
+                  el.style.opacity = '0.85'; el.style.filter = 'blur(0px)'; el.style.transform = 'scale(1.04)';
                 }}
                 onMouseLeave={e => {
                   const el = e.currentTarget as HTMLDivElement;
-                  el.style.opacity = '0.55';
-                  el.style.filter = 'blur(0.5px)';
-                  el.style.transform = 'scale(1)';
+                  el.style.opacity = '0.55'; el.style.filter = 'blur(0.5px)'; el.style.transform = 'scale(1)';
                 }}
-                onClick={handleManualNext}
               >
-                <motion.img
-  src={current.src}
-  alt={current.alt}
-  loading="eager"
-  fetchPriority="high"
-  decoding="async"
-  initial={false}
-  animate={{
-    opacity: 1,
-    scale: 1.06,
-  }}
-  transition={{
-    opacity: {
-      duration: 0.4,
-      ease: [0.22, 1, 0.36, 1],
-    },
-    scale: {
-      duration: AUTOPLAY_INTERVAL / 1000,
-      ease: 'linear',
-    },
-  }}
-  style={{
-    display: 'block',
-    width: '100%',
-    height: 'auto',
-  }}
-/>
+                <AnimatePresence mode="wait">
+                  <motion.img
+                    key={next}
+                    src={nextSlide.src}
+                    alt={nextSlide.alt}
+                    loading="eager"
+                    decoding="async"
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    exit={{ opacity: 0 }}
+                    transition={{ duration: 0.25 }}
+                    style={{ display: 'block', width: '100%', height: 'auto', borderRadius: '12px' }}
+                  />
+                </AnimatePresence>
                 <div style={{
                   position: 'absolute', inset: 0,
                   background: 'linear-gradient(to right, rgba(0,0,0,0) 0%, rgba(0,0,0,0.35) 100%)',
@@ -530,7 +495,8 @@ function PosterSwitcher() {
               </div>
 
               <button
-                onClick={handleManualNext}
+                onClick={goNext}
+                aria-label="Nächstes Bild"
                 style={{
                   position: 'absolute', right: '-18px', top: '50%', transform: 'translateY(-50%)',
                   width: '44px', height: '44px', borderRadius: '50%',
@@ -539,12 +505,8 @@ function PosterSwitcher() {
                   boxShadow: `0 0 24px ${current.glow}, 0 4px 16px rgba(0,0,0,0.5)`,
                   zIndex: 10, transition: 'transform 0.2s ease, box-shadow 0.2s ease', flexShrink: 0,
                 }}
-                onMouseEnter={e => {
-                  (e.currentTarget as HTMLButtonElement).style.transform = 'translateY(-50%) scale(1.12)';
-                }}
-                onMouseLeave={e => {
-                  (e.currentTarget as HTMLButtonElement).style.transform = 'translateY(-50%) scale(1)';
-                }}
+                onMouseEnter={e => { (e.currentTarget as HTMLButtonElement).style.transform = 'translateY(-50%) scale(1.12)'; }}
+                onMouseLeave={e => { (e.currentTarget as HTMLButtonElement).style.transform = 'translateY(-50%) scale(1)'; }}
               >
                 <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#000" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
                   <path d="M5 12h14M13 6l6 6-6 6" />
@@ -558,7 +520,8 @@ function PosterSwitcher() {
             {POSTER_SLIDES.map((s, i) => (
               <button
                 key={i}
-                onClick={() => handleManualNav(i)}
+                onClick={() => goTo(i)}
+                aria-label={`Zu Slide ${i + 1}`}
                 style={{
                   width: i === active ? '24px' : '8px', height: '8px', borderRadius: '999px',
                   background: i === active ? s.accent : 'rgba(255,255,255,0.18)',
@@ -588,7 +551,6 @@ function PosterSwitcher() {
                   boxShadow: `0 6px 26px ${current.glow}, 0 0 0 1px ${current.accentAlpha}`,
                   transition: 'background 0.4s ease, box-shadow 0.4s ease',
                 }}
-                
               >
                 {current.cta.label}
                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#080c10" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
@@ -602,7 +564,6 @@ function PosterSwitcher() {
     </section>
   );
 }
-
   
 const BIERPONG_TICKET_IDS = new Set(['bierpong']);
 const NAV_SECTIONS = [
