@@ -268,7 +268,7 @@ const POSTER_SLIDES = [
   },
 ];
 
-const AUTOPLAY_INTERVAL = 5000;
+const AUTOPLAY_INTERVAL = 10000;
 
 function PosterSwitcher() {
   const [active, setActive] = useState(0);
@@ -303,50 +303,32 @@ function PosterSwitcher() {
     }, tickMs);
   };
 
- // Ersetze diese Funktionen und den useEffect in deiner Komponente:
+  const stopTimers = () => {
+    if (intervalRef.current) clearInterval(intervalRef.current);
+    if (progressRef.current) clearInterval(progressRef.current);
+  };
 
-const startTimers = () => {
-  if (progressRef.current) clearInterval(progressRef.current);
-  setProgress(0);
+  useEffect(() => {
+    if (!paused) {
+      startTimers();
+    } else {
+      stopTimers();
+    }
+    return stopTimers;
+  }, [paused, active]);
 
-  const tickMs = 50;
-  progressRef.current = setInterval(() => {
-    setProgress(prev => {
-      if (prev >= 100) {
-        // Fortschritt ist voll -> Nächsten Slide aktivieren
-        setActive(currentActive => (currentActive + 1) % total);
-        return 0;
-      }
-      return prev + (tickMs / AUTOPLAY_INTERVAL) * 100;
-    });
-  }, tickMs);
-};
+  const handleManualNav = (idx: number) => {
+    goTo(idx);
+    if (!paused) {
+      stopTimers();
+      startTimers();
+    }
+  };
 
-const stopTimers = () => {
-  if (progressRef.current) clearInterval(progressRef.current);
-};
+  const handleManualNext = () => {
+    handleManualNav((active + 1) % total);
+  };
 
-// Der useEffect reagiert jetzt NUR noch auf den Pause-Zustand.
-// 'active' muss hier nicht mehr überwacht werden!
-useEffect(() => {
-  if (!paused) {
-    startTimers();
-  } else {
-    stopTimers();
-  }
-  return stopTimers;
-}, [paused, total]);
-
-// Bei manueller Navigation setzen wir einfach den Zustand. 
-// Da das Intervall unabhängig von 'active' läuft, müssen wir es nicht neu starten.
-const handleManualNav = (idx: number) => {
-  setActive(idx);
-  setProgress(0);
-};
-
-const handleManualNext = () => {
-  handleManualNav((active + 1) % total);
-};
   const handleCta = (target: string) => {
     const el = document.getElementById(target);
     if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' });
@@ -706,7 +688,6 @@ export default function HarmonyFestivalPage() {
     }));
   };
 // bfcache-Restore abfangen (Zurück von Stripe)
- // bfcache-Restore abfangen (Zurück von Stripe)
   useEffect(() => {
     const onPageShow = (e: PageTransitionEvent) => {
       if (e.persisted) {
