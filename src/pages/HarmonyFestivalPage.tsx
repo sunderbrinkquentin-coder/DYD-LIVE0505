@@ -482,6 +482,8 @@ function PosterSwitcher() {
                     key={next}
                     src={nextSlide.src}
                     alt={nextSlide.alt}
+                      loading="eager"
+  decoding="async"
                     initial={{ opacity: 0 }}
                     animate={{ opacity: 1 }}
                     exit={{ opacity: 0 }}
