@@ -409,6 +409,8 @@ function PosterSwitcher() {
                     key={active}
                     src={current.src}
                     alt={current.alt}
+                    loading="eager"
+                    decoding="async"
                     initial={{ opacity: 0, scale: 1.0 }}
                     animate={{ opacity: 1, scale: 1.06 }}
                     exit={{ opacity: 0, scale: 1.08 }}
