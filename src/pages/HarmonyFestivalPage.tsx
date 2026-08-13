@@ -333,7 +333,11 @@ function PosterSwitcher() {
     const el = document.getElementById(target);
     if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' });
   };
-
+// Nächstes Bild vorladen, damit der Wechsel ruckelfrei ist
+  useEffect(() => {
+    const img = new Image();
+    img.src = nextSlide.src;
+  }, [nextSlide.src]);
   return (
     <section>
       <motion.div {...{ initial: { opacity: 0, y: 28 }, whileInView: { opacity: 1, y: 0 }, viewport: { once: true }, transition: { duration: 0.6 } }}>
@@ -545,11 +549,7 @@ function PosterSwitcher() {
                   boxShadow: `0 6px 26px ${current.glow}, 0 0 0 1px ${current.accentAlpha}`,
                   transition: 'background 0.4s ease, box-shadow 0.4s ease',
                 }}
-                // Nächstes Bild vorladen, damit der Wechsel ruckelfrei ist
-  useEffect(() => {
-    const img = new Image();
-    img.src = nextSlide.src;
-  }, [nextSlide.src]);
+                
               >
                 {current.cta.label}
                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#080c10" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
