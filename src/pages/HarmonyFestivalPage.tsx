@@ -268,7 +268,7 @@ const POSTER_SLIDES = [
   },
 ];
 
-const AUTOPLAY_INTERVAL = 10000;
+const AUTOPLAY_INTERVAL = 5000;
 
 function PosterSwitcher() {
   const [active, setActive] = useState(0);
