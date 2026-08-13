@@ -63,6 +63,18 @@ export default function LandingPage() {
   const navigate = useNavigate();
   const { user, profile } = useAuth();
   const [expandedFAQ, setExpandedFAQ] = useState<number | null>(null);
+  const [festivalOpen, setFestivalOpen] = useState(false);
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const { scrollYProgress } = useScroll();
+
+  useEffect(() => {
+    if (!mobileMenuOpen) return;
+    const prev = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+    return () => {
+      document.body.style.overflow = prev;
+    };
+  }, [mobileMenuOpen]);
 
   const [followPopupOpen, setFollowPopupOpen] = useState(false);
   const [pendingNavTarget, setPendingNavTarget] = useState<string | null>(null);
