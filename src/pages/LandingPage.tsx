@@ -63,13 +63,6 @@ export default function LandingPage() {
   const navigate = useNavigate();
   const { user, profile } = useAuth();
   const [expandedFAQ, setExpandedFAQ] = useState<number | null>(null);
-  Kanban,
-  Layers,
-  FileStack,
-  Menu,
-  LogIn,
-  LayoutDashboard,
-} from 'lucide-react';
 
   const [followPopupOpen, setFollowPopupOpen] = useState(false);
   const [pendingNavTarget, setPendingNavTarget] = useState<string | null>(null);
