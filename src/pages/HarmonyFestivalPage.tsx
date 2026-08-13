@@ -267,63 +267,91 @@ const POSTER_SLIDES = [
     glow: 'rgba(220,50,50,0.08)',
   },
 ];
-
 const AUTOPLAY_INTERVAL = 10000;
 
 function PosterSwitcher() {
   const [active, setActive] = useState(0);
   const [paused, setPaused] = useState(false);
   const [progress, setProgress] = useState(0);
-  const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
-  const progressRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   const total = POSTER_SLIDES.length;
+
   const next = (active + 1) % total;
   const current = POSTER_SLIDES[active];
   const nextSlide = POSTER_SLIDES[next];
+
+  // Autoplay
+  useEffect(() => {
+    if (paused || total <= 1) {
+      return;
+    }
+
+    setProgress(0);
+
+    const timer = setTimeout(() => {
+      setActive(prev => (prev + 1) % total);
+    }, AUTOPLAY_INTERVAL);
+
+    return () => {
+      clearTimeout(timer);
+    };
+  }, [active, paused, total]);
+
+  // Progress bar
+  useEffect(() => {
+    if (paused || total <= 1) {
+      return;
+    }
+
+    const tickMs = 50;
+
+    const progressTimer = setInterval(() => {
+      setProgress(prev =>
+        Math.min(
+          prev + (tickMs / AUTOPLAY_INTERVAL) * 100,
+          100
+        )
+      );
+    }, tickMs);
+
+    return () => {
+      clearInterval(progressTimer);
+    };
+  }, [active, paused]);
 
   const goTo = (idx: number) => {
     setActive(idx);
     setProgress(0);
   };
 
-  const startTimers = () => {
-    if (intervalRef.current) clearInterval(intervalRef.current);
-    if (progressRef.current) clearInterval(progressRef.current);
-    setProgress(0);
-
-    intervalRef.current = setInterval(() => {
-      setActive(prev => (prev + 1) % total);
-      setProgress(0);
-    }, AUTOPLAY_INTERVAL);
-
-    const tickMs = 50;
-    progressRef.current = setInterval(() => {
-      setProgress(prev => Math.min(prev + (tickMs / AUTOPLAY_INTERVAL) * 100, 100));
-    }, tickMs);
-  };
-
-  const stopTimers = () => {
-    if (intervalRef.current) clearInterval(intervalRef.current);
-    if (progressRef.current) clearInterval(progressRef.current);
-  };
-
-  useEffect(() => {
-    if (!paused) {
-      startTimers();
-    } else {
-      stopTimers();
-    }
-    return stopTimers;
-  }, [paused, active]);
-
   const handleManualNav = (idx: number) => {
     goTo(idx);
-    if (!paused) {
-      stopTimers();
-      startTimers();
+  };
+
+  const handleManualNext = () => {
+    goTo((active + 1) % total);
+  };
+
+  const handleCta = (target: string) => {
+    const el = document.getElementById(target);
+
+    if (el) {
+      el.scrollIntoView({
+        behavior: 'smooth',
+        block: 'start'
+      });
     }
   };
+
+  // Nächstes Bild vorladen
+  useEffect(() => {
+    if (!nextSlide?.src) return;
+
+    const img = new Image();
+    img.src = nextSlide.src;
+  }, [nextSlide?.src]);
+
+  return (
 
   const handleManualNext = () => {
     handleManualNav((active + 1) % total);
