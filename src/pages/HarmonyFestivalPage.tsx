@@ -177,7 +177,7 @@ const POSTER_SLIDES = [
     glow: 'rgba(185,215,55,0.08)',
   },
   {
-    src: '/how-to-gamble.png',
+    src: '/how-to-gamble.webp',
     alt: 'How-to-Gamble – Zeigen. Gewinnen. Gratis trinken.',
     label: 'How to Gamble',
     hook: 'Timer in der Gewinn-Zone stoppen → Bestellung gratis.',
@@ -187,7 +187,7 @@ const POSTER_SLIDES = [
     glow: 'rgba(120,220,60,0.09)',
   },
   {
-    src: '/drink-menu-regional.png',
+    src: '/drink-menu-regional.webp',
     alt: 'Drink Menu – Regionale Getränke & Cocktails',
     label: 'Cocktails & Drinks',
     hook: 'Fraperol & Frozen Pinacolada – schon ab 4 €.',
@@ -207,7 +207,7 @@ const POSTER_SLIDES = [
     glow: 'rgba(240,120,32,0.08)',
   },
   {
-    src: '/drink-menu-bier.png',
+    src: '/drink-menu-bier.webp',
     alt: 'Drink Menu – Fränkisches Bier & Düsseldorfer Alt',
     label: 'Die Bier-Brücke',
     hook: 'Fränkisches Bier & Düsseldorfer Alt – 4 €.',
@@ -237,7 +237,7 @@ const POSTER_SLIDES = [
     glow: 'rgba(240,150,40,0.08)',
   },
 {
-    src: '/trinkgeld.png',
+    src: '/trinkgeld.webp',
     alt: 'Trinkgeld – dein direkter Beitrag für die Künstler',
     label: 'Trinkgeld',
     hook: '100 % gehen ohne Abzug direkt an den gewählten Act.',
