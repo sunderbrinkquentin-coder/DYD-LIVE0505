@@ -706,6 +706,7 @@ export default function HarmonyFestivalPage() {
     }));
   };
 // bfcache-Restore abfangen (Zurück von Stripe)
+ // bfcache-Restore abfangen (Zurück von Stripe)
   useEffect(() => {
     const onPageShow = (e: PageTransitionEvent) => {
       if (e.persisted) {
@@ -717,14 +718,6 @@ export default function HarmonyFestivalPage() {
     window.addEventListener('pageshow', onPageShow);
     return () => window.removeEventListener('pageshow', onPageShow);
   }, []);
-
-  return (
-    <div className="min-h-screen text-white relative overflow-hidden" style={{ background: C.bg }}>
-      <GraffitiCanvas />
-      {/* Rest deiner Hauptkomponente */}
-    </div>
-  );
-}
 
   useEffect(() => {
     const target = new Date('2026-08-22T16:00:00').getTime();
