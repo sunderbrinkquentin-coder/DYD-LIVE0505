@@ -280,7 +280,7 @@ export const b2bContent = {
       ],
       photoAlt: 'Porträt von Quentin Sunderbrink, Gründer von DYD',
       photoSrc: '/profile-picture.png',
-      email: 'kontakt.dyd@googlemail.com',
+      email: 'quentin@decideyourdream.de',
       phone: '+49 211 12345678',
       linkedin: 'https://www.linkedin.com/in/quentin-sunderbrink',
     },
@@ -334,7 +334,7 @@ export const b2bContent = {
 
   footer: {
     blurb: 'KI-gestützte Skill Intelligence für Unternehmen und Bildungsträger. Made in Germany, DSGVO-konform.',
-    email: 'kontakt.dyd@googlemail.com',
+    email: 'quentin@decideyourdream.de',
     linkedin: 'https://www.linkedin.com/in/quentin-sunderbrink',
     applicantUrl: '/',
     legalLinks: [
@@ -346,7 +346,7 @@ export const b2bContent = {
       provider: 'DYD – Decide Your Dream',
       owner: 'Quentin Sunderbrink',
       addressLines: ['[BITTE AUSFÜLLEN: Straße Nr.]', '[BITTE AUSFÜLLEN: PLZ Ort]'],
-      email: 'kontakt.dyd@googlemail.com',
+      email: 'quentin@decideyourdream.de',
       responsible: 'Verantwortlich i. S. d. § 18 Abs. 2 MStV: Quentin Sunderbrink',
     },
   },
