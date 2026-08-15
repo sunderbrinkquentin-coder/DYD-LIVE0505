@@ -344,7 +344,7 @@ function ZirkelBlock({ onBuy }: { onBuy: () => void }) {
 
           <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: 14 }}>
             <button className="lu-cta" onClick={onBuy}>🎟 Konzert-Ticket · 17,50 €</button>
-            <span className="lu-metaline">oder im Bundle ab 39,99 € — mit Stand-Up, DJ &amp; Freigetränk</span>
+            <span className="lu-metaline">oder im Bundle ab 37,99 € — mit Stand-Up, DJ &amp; Freigetränk</span>
           </div>
         </div>
       </div>
