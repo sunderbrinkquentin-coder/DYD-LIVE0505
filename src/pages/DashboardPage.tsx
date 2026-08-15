@@ -24,6 +24,7 @@ import { useAuth } from '../contexts/AuthContext';
 import { LearningPath } from '../types/learningPath';
 import { mapEditorDataToWizard } from '../utils/cvDataMapper';
 import { parseSkills, skillDisplayName, skillFromPath } from '../utils/skills';
+import AppMobileMenu from '../components/AppMobileMenu';
 
 // ---------- FIX 2: Zentrale Helper — EINE Format-Erkennung für alle Flows ----------
 // Vorher war die Wizard/Optimizer-Prüfung 4x kopiert und im Payment-Flow
@@ -740,6 +741,7 @@ const handleGenerateCompetencyProfile = async (recipientName: string) => {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-[#0a0a0a] via-[#1a1a1a] to-[#0a0a0a] text-white">
+      <AppMobileMenu />
       {showPaymentSuccess && (
         <div className="fixed top-4 right-4 z-50 animate-in slide-in-from-top-2 duration-300">
           <div className="bg-gradient-to-r from-[#66c0b6] to-[#30E3CA] text-black px-6 py-4 rounded-xl shadow-2xl border-2 border-white/20 flex items-center gap-3 max-w-md">
