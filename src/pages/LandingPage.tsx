@@ -451,7 +451,7 @@ export default function LandingPage() {
                 </motion.button>
 
                 <motion.button
-                  onClick={() => goWithFollowGate('/cv-check')}
+                  onClick={() => navigate('/cv-check')}
                   className="px-6 py-2 rounded-xl bg-gradient-to-r from-[#66c0b6] to-[#30E3CA] text-black font-semibold shadow-lg shadow-[#66c0b6]/20 relative overflow-hidden group"
                   whileHover={{ scale: 1.05, y: -2 }}
                   whileTap={{ scale: 0.98 }}
@@ -464,7 +464,7 @@ export default function LandingPage() {
               {/* Mobile: kompakter Free-CTA + Burger */}
               <div className="flex items-center gap-2 md:hidden">
                 <button
-                  onClick={() => goWithFollowGate('/cv-check')}
+                  onClick={() => navigate('/cv-check')}
                   className="px-3.5 py-2 rounded-lg bg-gradient-to-r from-[#66c0b6] to-[#30E3CA] text-black font-semibold text-sm whitespace-nowrap"
                 >
                   Kostenlos checken
@@ -683,7 +683,7 @@ export default function LandingPage() {
                 className="grid grid-cols-1 sm:grid-cols-3 gap-3 max-w-4xl mx-auto pt-4"
               >
                 <motion.button
-                  onClick={() => goWithFollowGate('/cv-check')}
+                  onClick={() => navigate('/cv-check')}
                   className="group relative px-6 py-6 rounded-2xl bg-gradient-to-br from-[#66c0b6] to-[#30E3CA] text-black shadow-2xl shadow-[#66c0b6]/30 flex flex-col items-center gap-2 overflow-hidden"
                   whileHover={{ scale: 1.04, y: -4 }}
                   whileTap={{ scale: 0.98 }}
@@ -715,11 +715,11 @@ export default function LandingPage() {
                 >
                   <FileText className="w-6 h-6 text-[#66c0b6]" />
                   <span className="font-bold text-base">CV erstellen</span>
-                  <span className="text-xs font-medium text-white/50">Mit KI-Wizard in 10 Min.</span>
+                  <span className="text-xs font-medium text-white/50">Mit KI-Wizard in 5 Min.</span>
                 </motion.button>
 
                 <motion.button
-                  onClick={() => goWithFollowGate('/career-vision')}
+                  onClick={() => navigate('/career-vision')}
                   className="group relative px-6 py-6 rounded-2xl border border-purple-400/25 bg-purple-500/5 text-white backdrop-blur-sm flex flex-col items-center gap-2 hover:border-purple-400/50 hover:bg-purple-500/10 transition-colors"
                   whileHover={{ scale: 1.03, y: -3 }}
                   whileTap={{ scale: 0.98 }}
@@ -1173,7 +1173,7 @@ export default function LandingPage() {
               className="text-center"
             >
               <button
-                onClick={() => goWithFollowGate('/career-vision')}
+                onClick={() => navigate('/career-vision')}
                 className="inline-flex items-center gap-2 px-8 py-4 rounded-2xl bg-gradient-to-r from-purple-500 to-[#66c0b6] text-black font-bold hover:opacity-90 transition-all shadow-xl"
               >
                 Skill-Gap kostenlos analysieren
@@ -1929,7 +1929,7 @@ export default function LandingPage() {
                 Nicht in deiner Nähe? Kein Problem – nutze DYD jederzeit mobil!
               </div>
               <button
-                onClick={() => goWithFollowGate('/cv-check')}
+                onClick={() => navigate('/cv-check')}
                 className="px-8 sm:px-12 py-4 sm:py-5 rounded-2xl bg-gradient-to-r from-[#66c0b6] to-[#30E3CA] text-black font-bold text-base sm:text-lg hover:opacity-90 transition-all shadow-2xl"
               >
                 Jetzt online starten
@@ -2064,19 +2064,19 @@ export default function LandingPage() {
                 </div>
                 <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 max-w-2xl mx-auto">
                   <button
-                    onClick={() => goWithFollowGate('/cv-check')}
+                    onClick={() => navigate('/cv-check')}
                     className="px-6 py-5 rounded-2xl bg-black text-white font-bold hover:bg-black/90 transition-all shadow-2xl flex flex-col items-center gap-1"
                   >
                     <span>CV kostenlos checken</span>
                   </button>
                   <button
-                    onClick={() => goWithFollowGate('/cv-wizard')}
+                    onClick={() => navigate('/cv-wizard')}
                     className="px-6 py-5 rounded-2xl border border-black/20 bg-black/5 text-black/70 font-semibold hover:text-black hover:border-black/30 transition-all flex flex-col items-center gap-1"
                   >
                     <span>CV erstellen</span>
                   </button>
                   <button
-                    onClick={() => goWithFollowGate('/career-vision')}
+                    onClick={() => navigate('/career-vision')}
                     className="px-6 py-5 rounded-2xl border border-black/20 bg-black/5 text-black/70 font-semibold hover:text-black hover:border-black/30 transition-all flex flex-col items-center gap-1"
                   >
                     <span>Career Academy</span>
@@ -2191,7 +2191,7 @@ export default function LandingPage() {
                 <h4 className="font-bold mb-4 text-white">Produkt</h4>
                 <div className="space-y-3 text-white/60 text-sm">
                   <button
-                    onClick={() => goWithFollowGate('/cv-check')}
+                    onClick={() => navigate('/cv-check')}
                     className="block hover:text-[#66c0b6] transition-colors text-left"
                   >
                     CV-Check – kostenlos
@@ -2261,7 +2261,7 @@ export default function LandingPage() {
           transition={{ delay: 2, type: 'spring', stiffness: 200 }}
         >
           <motion.button
-            onClick={() => goWithFollowGate('/cv-check')}
+            onClick={() => navigate('/cv-check')}
             className="relative group w-16 h-16 rounded-full bg-gradient-to-r from-[#66c0b6] to-[#30E3CA] shadow-2xl flex items-center justify-center overflow-hidden"
             whileHover={{ scale: 1.15, rotate: 90 }}
             whileTap={{ scale: 0.95 }}
