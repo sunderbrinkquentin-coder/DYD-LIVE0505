@@ -708,7 +708,7 @@ export default function LandingPage() {
                 </motion.button>
 
                 <motion.button
-                  onClick={() => goWithFollowGate('/cv-wizard')}
+                  onClick={() => navigate('/cv-wizard')}
                   className="group relative px-6 py-6 rounded-2xl border border-white/15 bg-white/5 text-white backdrop-blur-sm flex flex-col items-center gap-2 hover:border-[#66c0b6]/40 hover:bg-white/10 transition-colors"
                   whileHover={{ scale: 1.03, y: -3 }}
                   whileTap={{ scale: 0.98 }}
@@ -1247,7 +1247,7 @@ export default function LandingPage() {
               className="text-center"
             >
               <button
-                onClick={() => goWithFollowGate('/career-vision')}
+                onClick={() => navigate('/career-vision')}
                 className="inline-flex items-center gap-2 px-8 py-4 rounded-2xl bg-gradient-to-r from-[#66c0b6] to-purple-500 text-white font-bold hover:opacity-90 transition-all shadow-xl"
               >
                 Lernpfad starten & Zertifikate sammeln
@@ -1470,7 +1470,7 @@ export default function LandingPage() {
               >
                 <p className="text-white/60 text-sm">
                   Noch unsicher?{' '}
-                  <button onClick={() => goWithFollowGate('/cv-check')} className="text-[#66c0b6] font-bold hover:underline">
+                  <button onClick={() => navigate('/cv-check')} className="text-[#66c0b6] font-bold hover:underline">
                     Starte kostenlos mit dem CV-Check
                   </button>{' '}
                   – kein Kauf nötig, kein Risiko.
