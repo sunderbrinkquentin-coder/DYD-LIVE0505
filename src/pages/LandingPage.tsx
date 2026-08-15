@@ -1109,6 +1109,7 @@ export default function LandingPage() {
         </section>
 
         <AboutSection />
+          <PodcastSection />
 
         <section
           id="career-academy"
@@ -1705,7 +1706,7 @@ export default function LandingPage() {
               </div>
             </motion.div>
             
-<PodcastSection />
+
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6 sm:gap-8">
               {[
                 {
