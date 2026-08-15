@@ -1,11 +1,27 @@
 import { motion } from 'framer-motion';
-import { Headphones, Mic, Play, ArrowRight } from 'lucide-react';
+import { Headphones, Mic, Play, ArrowRight, Calendar, Radio, Award } from 'lucide-react';
 
 const SPOTIFY_EPISODE_ID = '7aCJirzEJsctPd5D1AqnWi';
 const SPOTIFY_EPISODE_URL =
   'https://open.spotify.com/episode/7aCJirzEJsctPd5D1AqnWi?si=cNesit1BSMGoyltJW-0Ovw';
 
+// Optional: NUR füllen, wenn du vom Host (Bastian Hughes) eine echte,
+// belegbare monatliche Hörerzahl bekommst – z. B. '10.000+'.
+// Bleibt der Wert null, wird die Kachel automatisch nicht angezeigt.
+const MONTHLY_LISTENERS: string | null = null;
+
+// Belegbare Fakten (öffentlich verifizierbar über Apple/Spotify/player.fm)
+const PODCAST_STATS = [
+  { icon: Calendar, value: 'Seit 2017', label: 'Etablierter Karriere-Podcast' },
+  { icon: Radio, value: '300+ Folgen', label: 'Wöchentlich neue Episode' },
+  { icon: Award, value: 'Recruiting-Profi', label: 'Host mit 10 J. HR-Erfahrung' },
+];
+
 export function PodcastSection() {
+  const stats = MONTHLY_LISTENERS
+    ? [{ icon: Headphones, value: MONTHLY_LISTENERS, label: 'Hörer pro Monat' }, ...PODCAST_STATS]
+    : PODCAST_STATS;
+
   return (
     <section
       id="podcast"
@@ -41,6 +57,28 @@ export function PodcastSection() {
             <span className="text-white/80 font-semibold">Berufsoptimierer – Erfolg in Bewerbung und Karriere</span>{' '}
             und spricht über KI-gestützte Bewerbungen, ATS und wie DYD Chancengleichheit schafft.
           </p>
+        </motion.div>
+
+        {/* Stats-Leiste – belegbare Trust-Punkte */}
+        <motion.div
+          initial={{ opacity: 0, y: 16 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          viewport={{ once: true }}
+          transition={{ duration: 0.4 }}
+          className={`grid gap-4 mb-8 max-w-3xl mx-auto ${
+            stats.length === 4 ? 'grid-cols-2 sm:grid-cols-4' : 'grid-cols-1 sm:grid-cols-3'
+          }`}
+        >
+          {stats.map((stat, i) => (
+            <div
+              key={i}
+              className="flex flex-col items-center text-center gap-1.5 bg-white/5 border border-white/10 rounded-2xl px-4 py-5 hover:border-[#66c0b6]/30 transition-colors"
+            >
+              <stat.icon className="w-5 h-5 text-[#66c0b6] mb-1" />
+              <span className="text-xl font-black text-white">{stat.value}</span>
+              <span className="text-[11px] text-white/45 leading-tight">{stat.label}</span>
+            </div>
+          ))}
         </motion.div>
 
         <motion.div
