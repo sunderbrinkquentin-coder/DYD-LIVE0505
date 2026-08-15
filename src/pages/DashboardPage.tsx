@@ -24,7 +24,7 @@ import { useAuth } from '../contexts/AuthContext';
 import { LearningPath } from '../types/learningPath';
 import { mapEditorDataToWizard } from '../utils/cvDataMapper';
 import { parseSkills, skillDisplayName, skillFromPath } from '../utils/skills';
-import AppMobileMenu from '../components/AppMobileMenu';
+import AppMobileMenu from '../components/dashboard/AppMobileMenu';
 
 // ---------- FIX 2: Zentrale Helper — EINE Format-Erkennung für alle Flows ----------
 // Vorher war die Wizard/Optimizer-Prüfung 4x kopiert und im Payment-Flow
