@@ -61,7 +61,7 @@ export default function AppMobileMenu() {
         aria-label={open ? 'Menü schließen' : 'Menü öffnen'}
         aria-expanded={open}
         aria-controls="app-mobile-menu"
-        className="md:hidden fixed top-3 right-4 z-[60] w-10 h-10 flex items-center justify-center rounded-lg border border-white/15 bg-black/40 backdrop-blur-xl text-white/80 hover:text-white hover:bg-white/10 transition-colors"
+        className="fixed top-3 right-4 z-[60] w-10 h-10 flex items-center justify-center rounded-lg border border-white/15 bg-black/40 backdrop-blur-xl text-white/80 hover:text-white hover:bg-white/10 transition-colors"
       >
         {open ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
       </button>
@@ -75,7 +75,7 @@ export default function AppMobileMenu() {
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
               transition={{ duration: 0.2 }}
-              className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm md:hidden"
+              className=className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm"
               onClick={() => setOpen(false)}
             />
             <motion.div
@@ -85,7 +85,7 @@ export default function AppMobileMenu() {
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: -12 }}
               transition={{ duration: 0.22, ease: [0.22, 1, 0.36, 1] }}
-              className="fixed top-0 inset-x-0 z-50 md:hidden max-h-[100dvh] overflow-y-auto border-b border-white/10 bg-[#070709]/95 backdrop-blur-xl"
+              className="fixed top-0 inset-x-0 z-50 max-h-[100dvh] overflow-y-auto border-b border-white/10 bg-[#070709]/95 backdrop-blur-xl"
             >
               <div className="flex items-center justify-between px-4 h-16 border-b border-white/10">
                 <button
