@@ -15,7 +15,7 @@ import {
   LogIn,
   LayoutDashboard,
 } from 'lucide-react';
-import { useauth } from '../contexts/AuthContext';
+import { useAuth } from '../../contexts/AuthContext';
 
 /**
  * Wiederverwendbares Mobile-Burgermenü für alle Pages außerhalb der LandingPage
