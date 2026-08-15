@@ -50,6 +50,7 @@ import { AboutSection } from '../components/landing/AboutSection';
 import { ProcessTimeline } from '../components/landing/ProcessTimeline';
 import FestivalPopup from '../components/FestivalPopup';
 import { FollowRewardPopup, shouldShowFollowPopup } from '../components/landing/FollowRewardPopup';
+import { PodcastSection } from '../components/landing/PodcastSection';
 
 const FESTIVAL_SECTIONS = [
   { label: 'Programm',   anchor: 'programm',  emoji: '🎶' },
@@ -1703,7 +1704,8 @@ export default function LandingPage() {
                 </div>
               </div>
             </motion.div>
-
+            
+<PodcastSection />
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6 sm:gap-8">
               {[
                 {
