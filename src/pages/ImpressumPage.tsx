@@ -34,7 +34,7 @@ export default function ImpressumPage() {
 
             <div>
               <h2 className="text-white font-semibold mb-2 text-lg">Kontakt</h2>
-              <p>E-Mail: kontakt.dyd@gmail.com</p>
+              <p>E-Mail: quentin@decideyourdream.de</p>
             </div>
 
             <div>
