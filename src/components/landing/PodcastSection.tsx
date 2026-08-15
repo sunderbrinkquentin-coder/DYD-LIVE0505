@@ -5,10 +5,9 @@ const SPOTIFY_EPISODE_ID = '7aCJirzEJsctPd5D1AqnWi';
 const SPOTIFY_EPISODE_URL =
   'https://open.spotify.com/episode/7aCJirzEJsctPd5D1AqnWi?si=cNesit1BSMGoyltJW-0Ovw';
 
-// Optional: NUR füllen, wenn du vom Host (Bastian Hughes) eine echte,
-// belegbare monatliche Hörerzahl bekommst – z. B. '10.000+'.
+// Vom Podcast selbst publizierte Reichweite (Quelle: berufsoptimierer.de/kooperation).
 // Bleibt der Wert null, wird die Kachel automatisch nicht angezeigt.
-const MONTHLY_LISTENERS: string | null = null;
+const MONTHLY_LISTENERS: string | null = '20.000';
 
 // Belegbare Fakten (öffentlich verifizierbar über Apple/Spotify/player.fm)
 const PODCAST_STATS = [
@@ -19,7 +18,7 @@ const PODCAST_STATS = [
 
 export function PodcastSection() {
   const stats = MONTHLY_LISTENERS
-    ? [{ icon: Headphones, value: MONTHLY_LISTENERS, label: 'Hörer pro Monat' }, ...PODCAST_STATS]
+    ? [{ icon: Headphones, value: MONTHLY_LISTENERS, label: 'Hörer:innen pro Monat' }, ...PODCAST_STATS]
     : PODCAST_STATS;
 
   return (
