@@ -30,11 +30,13 @@ type Standup = {
 };
 
 const STANDUP: Standup[] = [
-  {
-    name: 'Alex Graf',
-    img: '/festival/alex-graf-1.webp',
-    // Alex hat (noch) keine Info-Seite -> läuft als Foto-only Karte.
-  },
+ {
+  name: 'Askim',
+  img: '/festival/askim-1.webp',
+  hook: 'Biografische Underground-Comedy ohne Filter — roh, ehrlich und verdammt lustig. Kein Schönreden, nur die ungeschminkte Wahrheit.',
+  themes: ['Drogen', 'Urlaub', 'Verbotenes mit life hacks'],
+  stages: ['Die Comedy Werkstatt', 'Pott Comedy', 'Blackway Comedy'],
+},
   {
     name: 'Larissa Magnus',
     img: '/festival/larissa-magnus-1.webp',
