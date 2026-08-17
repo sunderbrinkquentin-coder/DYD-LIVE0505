@@ -498,7 +498,7 @@ export default function FestivalPaymentSuccessPage() {
         </motion.div>
 
         <p className="text-center mt-6" style={{ fontFamily: "'Inter', sans-serif", fontSize: '12px', color: `rgba(160,230,230,0.3)`, letterSpacing: '0.04em' }}>
-          22.08.2026 · Burgplatz, Düsseldorf · 17:00–02:00 Uhr
+          22.08.2026 · Burgplatz, Düsseldorf · 16:00–02:00 Uhr
         </p>
       </motion.div>
     </div>
