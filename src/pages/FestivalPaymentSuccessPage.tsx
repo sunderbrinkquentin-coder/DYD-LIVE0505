@@ -463,7 +463,7 @@ export default function FestivalPaymentSuccessPage() {
 
         {/* Instagram */}
         <motion.a
-          href="https://www.instagram.com/dyd_harmony" target="_blank" rel="noopener noreferrer"
+          href="https://www.instagram.com/harmonyfestivaldus" target="_blank" rel="noopener noreferrer"
           initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.55, duration: 0.55 }}
           className="flex items-center gap-3.5 rounded-2xl px-5 py-4 mb-4 group"
           style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.08)', textDecoration: 'none' }}
@@ -474,7 +474,7 @@ export default function FestivalPaymentSuccessPage() {
           </div>
           <div className="flex-1 min-w-0">
             <p style={{ fontFamily: "'Inter', sans-serif", fontSize: '13px', color: 'rgba(255,255,255,0.55)', lineHeight: 1.45, marginBottom: '2px' }}>Nichts mehr verpassen?</p>
-            <p style={{ fontFamily: "'Inter', sans-serif", fontSize: '14px', fontWeight: 600, color: 'rgba(255,255,255,0.88)' }}>@dyd_harmony</p>
+            <p style={{ fontFamily: "'Inter', sans-serif", fontSize: '14px', fontWeight: 600, color: 'rgba(255,255,255,0.88)' }}>@harmonyfestivaldus</p>
           </div>
           <ArrowRight size={14} style={{ color: 'rgba(255,255,255,0.25)', flexShrink: 0 }} />
         </motion.a>
