@@ -320,15 +320,19 @@ function PosterSwitcher() {
   }, [nextSlide?.src]);
 
   // Tastatur-Navigation
-  useEffect(() => {
-    const onKey = (e: KeyboardEvent) => {
-      if (e.key === 'ArrowRight') goNext();
-      else if (e.key === 'ArrowLeft') goPrev();
-      else if (e.key === ' ') { e.preventDefault(); setPaused(p => !p); }
-    };
-    window.addEventListener('keydown', onKey);
-    return () => window.removeEventListener('keydown', onKey);
-  }, [active, total]);
+ useEffect(() => {
+  const onKey = (e: KeyboardEvent) => {
+    // Nicht eingreifen, während in einem Eingabefeld getippt wird
+    const el = e.target as HTMLElement;
+    if (el && (el.tagName === 'INPUT' || el.tagName === 'TEXTAREA' || el.isContentEditable)) return;
+
+    if (e.key === 'ArrowRight') goNext();
+    else if (e.key === 'ArrowLeft') goPrev();
+    else if (e.key === ' ') { e.preventDefault(); setPaused(p => !p); }
+  };
+  window.addEventListener('keydown', onKey);
+  return () => window.removeEventListener('keydown', onKey);
+}, [active, total]);
 
   return (
     <section>
