@@ -1,14 +1,16 @@
 import { useEffect, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { X, Ticket, Sparkles, Clock, ArrowRight } from 'lucide-react';
+import { X, Ticket, Sparkles, Clock, ArrowRight, Copy, Check } from 'lucide-react';
 
 const O = '#f07820';                                   // Kampagnen-Orange
 const DEADLINE = new Date('2026-08-18T23:59:59').getTime();
 const SESSION_KEY = 'harmony_giveaway_seen';
 
+
 export default function HarmonyGiveawayPopup() {
   const [open, setOpen] = useState(false);
   const [cd, setCd] = useState({ d: 0, h: 0, m: 0, s: 0 });
+  const [copied, setCopied] = useState(false);
 
   // Auto-Open: nur vor Deadline & einmal pro Session, nach kurzer Verzögerung
   useEffect(() => {
@@ -133,10 +135,22 @@ export default function HarmonyGiveawayPopup() {
                 <Unit v={cd.s} l="Sek" />
               </div>
 
-              {/* Rabattcode */}
-              <div style={{ position: 'relative', display: 'flex', alignItems: 'center', gap: 12, padding: '13px 16px', borderRadius: 14, marginBottom: 22, background: `linear-gradient(135deg, ${O}1f, ${O}0a)`, border: `1px dashed ${O}80` }}>
+              {/* Rabattcode – klick zum Kopieren */}
+              <button
+                type="button"
+                onClick={() => {
+                  navigator.clipboard?.writeText('HARMONY20')
+                    .then(() => { setCopied(true); setTimeout(() => setCopied(false), 2000); })
+                    .catch(() => { /* Clipboard nicht verfügbar */ });
+                }}
+                style={{
+                  width: '100%', display: 'flex', alignItems: 'center', gap: 12, padding: '13px 16px', borderRadius: 14, marginBottom: 22, cursor: 'pointer', textAlign: 'left',
+                  background: `linear-gradient(135deg, ${O}1f, ${O}0a)`, border: `1px dashed ${O}80`,
+                }}
+                title="Code kopieren"
+              >
                 <span style={{ fontSize: 26, lineHeight: 1, flexShrink: 0 }}>🎟️</span>
-                <div style={{ textAlign: 'left', lineHeight: 1.3 }}>
+                <div style={{ lineHeight: 1.3, flex: 1, minWidth: 0 }}>
                   <div style={{ fontFamily: "'Inter', sans-serif", fontSize: 12.5, color: 'rgba(240,215,195,0.75)' }}>
                     Und mit dem Code{' '}
                     <span style={{ fontFamily: "'Bebas Neue', sans-serif", fontSize: 17, letterSpacing: '0.08em', color: O, verticalAlign: '-1px' }}>HARMONY20</span>
@@ -145,7 +159,19 @@ export default function HarmonyGiveawayPopup() {
                     sparst du nochmal <span style={{ color: O }}>20 % extra</span>
                   </div>
                 </div>
-              </div>
+                <span style={{
+                  display: 'inline-flex', alignItems: 'center', gap: 5, flexShrink: 0, padding: '6px 11px', borderRadius: 9,
+                  fontFamily: "'Inter', sans-serif", fontSize: 12, fontWeight: 700,
+                  background: copied ? '#1db95422' : `${O}1c`,
+                  border: `1px solid ${copied ? '#1db95466' : `${O}55`}`,
+                  color: copied ? '#3ddc84' : O,
+                  transition: 'all 0.2s ease',
+                }}>
+                  {copied
+                    ? <><Check className="w-3.5 h-3.5" /> Kopiert</>
+                    : <><Copy className="w-3.5 h-3.5" /> Kopieren</>}
+                </span>
+              </button>
 
               {/* CTA */}
               <motion.button whileHover={{ scale: 1.03 }} whileTap={{ scale: 0.97 }}
