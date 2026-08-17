@@ -1631,7 +1631,7 @@ signal: controller.signal,
     </svg>
     @harmonyfestivaldus folgen
   </motion.a>
-</div>
+
 
       {/* ── COUNTDOWN ───────────────────────────────────────────── */}
       <section className="relative z-10 py-20" style={{ borderTop: '1px solid rgba(0,212,212,0.1)', borderBottom: '1px solid rgba(0,212,212,0.1)' }}>
