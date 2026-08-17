@@ -1610,6 +1610,28 @@ signal: controller.signal,
           </motion.div>
         </div>
       </section>
+  <div className="mt-5">
+  <motion.a
+    whileHover={{ scale: 1.04 }}
+    whileTap={{ scale: 0.97 }}
+    href="https://www.instagram.com/harmonyfestivaldus"
+    target="_blank"
+    rel="noopener noreferrer"
+    className="inline-flex items-center gap-2.5 px-6 py-3 rounded-xl"
+    style={{
+      background: 'linear-gradient(135deg, #F58529, #DD2A7B 50%, #8134AF)',
+      color: '#fff', fontFamily: "'Bebas Neue', sans-serif", fontSize: '16px',
+      letterSpacing: '0.1em', boxShadow: '0 4px 24px rgba(221,42,123,0.4)',
+    }}
+  >
+    <svg viewBox="0 0 24 24" fill="none" style={{ width: 18, height: 18 }} stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round">
+      <rect x="2" y="2" width="20" height="20" rx="5" ry="5" />
+      <circle cx="12" cy="12" r="4" />
+      <circle cx="17.5" cy="6.5" r="0.5" fill="currentColor" stroke="none" />
+    </svg>
+    @harmonyfestivaldus folgen
+  </motion.a>
+</div>
 
       {/* ── COUNTDOWN ───────────────────────────────────────────── */}
       <section className="relative z-10 py-20" style={{ borderTop: '1px solid rgba(0,212,212,0.1)', borderBottom: '1px solid rgba(0,212,212,0.1)' }}>
