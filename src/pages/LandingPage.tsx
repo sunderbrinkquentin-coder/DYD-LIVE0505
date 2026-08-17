@@ -2130,11 +2130,11 @@ export default function LandingPage() {
                   <p className="text-[10px] font-black uppercase tracking-widest text-white/30 mb-2.5">DYD</p>
                   <div className="flex items-center gap-3">
                     <a
-                      href="https://www.instagram.com/dyd_harmony"
+                      href="https://www.instagram.com/harmonyfestivaldus"
                       target="_blank"
                       rel="noopener noreferrer"
                       className="group w-10 h-10 rounded-lg bg-white/5 hover:bg-gradient-to-br hover:from-[#f09433] hover:via-[#e6683c] hover:to-[#dc2743] border border-white/10 hover:border-transparent flex items-center justify-center transition-all"
-                      title="@dyd_harmony auf Instagram"
+                      title="@harmonyfestivaldus auf Instagram"
                     >
                       <svg viewBox="0 0 24 24" fill="none" className="w-4 h-4 text-white/70 group-hover:text-white transition-colors" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
                         <rect x="2" y="2" width="20" height="20" rx="5" ry="5"/>
