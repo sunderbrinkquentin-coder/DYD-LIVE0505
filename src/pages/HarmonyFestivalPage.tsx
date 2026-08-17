@@ -677,8 +677,8 @@ export default function HarmonyFestivalPage() {
   const [shirtReceipt, setShirtReceipt] = useState<{ buyerName: string; shirtSize: string; amount: number; sessionId?: string } | null>(null);
 
   const [quantities, setQuantities] = useState<Record<string, number>>(
-    Object.fromEntries(TICKETS.map(t => [t.id, t.id === 'early_bird' ? 2 : 1]))
-  );
+  Object.fromEntries(TICKETS.map(t => [t.id, 1]))
+);
 
   const updateQty = (id: string, delta: number) => {
     setQuantities(prev => ({
