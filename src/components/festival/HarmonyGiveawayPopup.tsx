@@ -117,12 +117,12 @@ export default function HarmonyGiveawayPopup() {
               </h2>
 
               {/* Text */}
-              <p style={{ fontFamily: "'Inter', sans-serif", fontSize: 14.5, color: 'rgba(240,215,195,0.7)', lineHeight: 1.7, maxWidth: 360, margin: '0 auto 22px' }}>
+              <p style={{ fontFamily: "'Inter', sans-serif", fontSize: 14.5, color: 'rgba(240,215,195,0.7)', lineHeight: 1.7, maxWidth: 360, margin: '0 auto 18px' }}>
                 Kauf dein Ticket bis zum <strong style={{ color: '#fff' }}>18.08.</strong> und mit etwas Glück gewinnst du <strong style={{ color: '#fff' }}>1 von 3 Bändchen</strong> — damit trinkst du den ganzen Abend gratis.
               </p>
 
               {/* Countdown */}
-              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, padding: '12px 16px', borderRadius: 16, marginBottom: 22, background: `${O}0f`, border: `1px solid ${O}2e` }}>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, padding: '12px 16px', borderRadius: 16, marginBottom: 16, background: `${O}0f`, border: `1px solid ${O}2e` }}>
                 <Clock className="w-4 h-4" style={{ color: O, flexShrink: 0, marginRight: 4 }} />
                 <Unit v={cd.d} l="Tage" />
                 <span style={{ color: `${O}66`, fontFamily: "'Bebas Neue', sans-serif", fontSize: 22, paddingBottom: 12 }}>:</span>
@@ -131,6 +131,20 @@ export default function HarmonyGiveawayPopup() {
                 <Unit v={cd.m} l="Min" />
                 <span style={{ color: `${O}66`, fontFamily: "'Bebas Neue', sans-serif", fontSize: 22, paddingBottom: 12 }}>:</span>
                 <Unit v={cd.s} l="Sek" />
+              </div>
+
+              {/* Rabattcode */}
+              <div style={{ position: 'relative', display: 'flex', alignItems: 'center', gap: 12, padding: '13px 16px', borderRadius: 14, marginBottom: 22, background: `linear-gradient(135deg, ${O}1f, ${O}0a)`, border: `1px dashed ${O}80` }}>
+                <span style={{ fontSize: 26, lineHeight: 1, flexShrink: 0 }}>🎟️</span>
+                <div style={{ textAlign: 'left', lineHeight: 1.3 }}>
+                  <div style={{ fontFamily: "'Inter', sans-serif", fontSize: 12.5, color: 'rgba(240,215,195,0.75)' }}>
+                    Und mit dem Code{' '}
+                    <span style={{ fontFamily: "'Bebas Neue', sans-serif", fontSize: 17, letterSpacing: '0.08em', color: O, verticalAlign: '-1px' }}>HARMONY20</span>
+                  </div>
+                  <div style={{ fontFamily: "'Barlow Condensed', sans-serif", fontWeight: 700, fontSize: 16, color: '#fff' }}>
+                    sparst du nochmal <span style={{ color: O }}>20 % extra</span>
+                  </div>
+                </div>
               </div>
 
               {/* CTA */}
