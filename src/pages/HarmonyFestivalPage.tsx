@@ -25,7 +25,7 @@ const C = {
   bgCard:  'rgba(0,180,180,0.04)',
   border:  'rgba(0,212,212,0.14)',
 };
-
+const EVENT_CANCELLED = true;
 const TICKETS = [
   { id: 'early_bird',  priceId: import.meta.env.VITE_STRIPE_HARMONY_EARLY_BIRD,  label: 'Bundle',      price: 37.99, description: 'Das volle Programm: Live-Konzert mit Zirkel.WTF, Stand-Up Comedy Show & DJ Night in einem Paket – zum günstigsten Preis.', highlight: true,  badge: 'BELIEBT',   perk: '',                                     accent: 'rgba(0,175,175,0.85)',   accentAlpha: 'rgba(0,160,160,0.1)',   accentShadow: 'rgba(0,140,140,0.06)', time: null         },
   { id: 'standup',     priceId: import.meta.env.VITE_STRIPE_HARMONY_STANDUP,      label: 'Stand-Up Comedy',       price: 17.50, description: 'Kevin Küster, Larissa Magnus, Askim, Jahn Boie, Leon Blokesch & Julian Deters – frisch, direkt, aus der lokalen Szene.',                               highlight: false, badge: null,        perk: '',                                     accent: 'rgba(210,110,50,0.85)',  accentAlpha: 'rgba(200,100,40,0.1)',  accentShadow: 'rgba(180,85,30,0.06)', time: '16:30 Uhr'  },
@@ -770,7 +770,8 @@ useEffect(() => {
 }, []);
 
   const doCheckout = async (ticket: typeof TICKETS[0], name: string, bpTeam?: string, bpPartner?: string, shirtSize?: string, quantity = 1) => {
-    setError(null);
+  if (EVENT_CANCELLED) return;
+  setError(null);
     setLoadingId(ticket.id);
     setShowSlowHint(false);
 
@@ -906,9 +907,10 @@ signal: controller.signal,
     }
   };
 
-  const handleBuy = (ticket: typeof TICKETS[0]) => {
-    openTicketModal(ticket);
-  };
+ const handleBuy = (ticket: typeof TICKETS[0]) => {
+  if (EVENT_CANCELLED) return;
+  openTicketModal(ticket);
+};
 
   const handleAuthSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -1538,6 +1540,23 @@ signal: controller.signal,
         <motion.div className="relative w-full" style={{ paddingTop: '106px', y: bannerY, opacity: bannerOp }}>
           <img src="/22.08.2026_(2).jpg" alt="Harmony Festival 2026"
             style={{ display: 'block', width: '100%', height: 'auto', objectFit: 'cover', objectPosition: 'center top' }} />
+          <motion.div className="relative w-full" style={{ paddingTop: '106px', y: bannerY, opacity: bannerOp }}>
+  {/* ── ABGESAGT BANNER ── */}
+  <div className="w-full" style={{ background: 'linear-gradient(135deg, #dc3232 0%, #a01818 100%)', borderTop: '1px solid rgba(255,255,255,0.15)', borderBottom: '1px solid rgba(255,255,255,0.15)' }}>
+    <div className="max-w-6xl mx-auto px-6 sm:px-10 py-4 flex flex-col items-center justify-center gap-1 text-center">
+      <div className="flex items-center gap-2.5">
+        <span style={{ fontSize: '20px', flexShrink: 0 }}>⚠️</span>
+        <p style={{ fontFamily: "'Barlow Condensed', sans-serif", fontWeight: 800, fontSize: 'clamp(15px, 2.4vw, 20px)', letterSpacing: '0.04em', color: '#fff', textTransform: 'uppercase', lineHeight: 1.3 }}>
+          Veranstaltung abgesagt
+        </p>
+      </div>
+      <p style={{ fontFamily: "'Inter', sans-serif", fontSize: '13px', color: 'rgba(255,235,235,0.85)', lineHeight: 1.5, maxWidth: '560px' }}>
+        Harmony Festival 2026 findet leider nicht statt. Der Ticketverkauf ist geschlossen, bereits gekaufte Tickets werden erstattet.
+      </p>
+    </div>
+  </div>
+  <img src="/22.08.2026_(2).jpg" alt="Harmony Festival 2026"
+    style={{ display: 'block', width: '100%', height: 'auto', objectFit: 'cover', objectPosition: 'center top' }} />
           {/* subtle cyan tint at top of banner */}
           <div className="absolute inset-0 pointer-events-none" style={{ background: 'linear-gradient(180deg, rgba(0,212,212,0.05) 0%, transparent 25%)' }} />
           {/* bottom fade: banner bleeds into content area */}
