@@ -1534,28 +1534,25 @@ signal: controller.signal,
       )}
 
       {/* ── HERO ────────────────────────────────────────────────── */}
-      <section className="relative z-10">
+           <section className="relative z-10">
         {/* Banner — fully visible, pushed below nav */}
         <motion.div className="relative w-full" style={{ paddingTop: '106px', y: bannerY, opacity: bannerOp }}>
+          {/* ── ABGESAGT BANNER ── */}
+          <div className="w-full" style={{ background: 'linear-gradient(135deg, #dc3232 0%, #a01818 100%)', borderTop: '1px solid rgba(255,255,255,0.15)', borderBottom: '1px solid rgba(255,255,255,0.15)' }}>
+            <div className="max-w-6xl mx-auto px-6 sm:px-10 py-4 flex flex-col items-center justify-center gap-1 text-center">
+              <div className="flex items-center gap-2.5">
+                <span style={{ fontSize: '20px', flexShrink: 0 }}>⚠️</span>
+                <p style={{ fontFamily: "'Barlow Condensed', sans-serif", fontWeight: 800, fontSize: 'clamp(15px, 2.4vw, 20px)', letterSpacing: '0.04em', color: '#fff', textTransform: 'uppercase', lineHeight: 1.3 }}>
+                  Veranstaltung abgesagt
+                </p>
+              </div>
+              <p style={{ fontFamily: "'Inter', sans-serif", fontSize: '13px', color: 'rgba(255,235,235,0.85)', lineHeight: 1.5, maxWidth: '560px' }}>
+                Harmony Festival 2026 findet leider nicht statt. Der Ticketverkauf ist geschlossen, bereits gekaufte Tickets werden erstattet.
+              </p>
+            </div>
+          </div>
           <img src="/22.08.2026_(2).jpg" alt="Harmony Festival 2026"
             style={{ display: 'block', width: '100%', height: 'auto', objectFit: 'cover', objectPosition: 'center top' }} />
-          <motion.div className="relative w-full" style={{ paddingTop: '106px', y: bannerY, opacity: bannerOp }}>
-  {/* ── ABGESAGT BANNER ── */}
-  <div className="w-full" style={{ background: 'linear-gradient(135deg, #dc3232 0%, #a01818 100%)', borderTop: '1px solid rgba(255,255,255,0.15)', borderBottom: '1px solid rgba(255,255,255,0.15)' }}>
-    <div className="max-w-6xl mx-auto px-6 sm:px-10 py-4 flex flex-col items-center justify-center gap-1 text-center">
-      <div className="flex items-center gap-2.5">
-        <span style={{ fontSize: '20px', flexShrink: 0 }}>⚠️</span>
-        <p style={{ fontFamily: "'Barlow Condensed', sans-serif", fontWeight: 800, fontSize: 'clamp(15px, 2.4vw, 20px)', letterSpacing: '0.04em', color: '#fff', textTransform: 'uppercase', lineHeight: 1.3 }}>
-          Veranstaltung abgesagt
-        </p>
-      </div>
-      <p style={{ fontFamily: "'Inter', sans-serif", fontSize: '13px', color: 'rgba(255,235,235,0.85)', lineHeight: 1.5, maxWidth: '560px' }}>
-        Harmony Festival 2026 findet leider nicht statt. Der Ticketverkauf ist geschlossen, bereits gekaufte Tickets werden erstattet.
-      </p>
-    </div>
-  </div>
-  <img src="/22.08.2026_(2).jpg" alt="Harmony Festival 2026"
-    style={{ display: 'block', width: '100%', height: 'auto', objectFit: 'cover', objectPosition: 'center top' }} />
           {/* subtle cyan tint at top of banner */}
           <div className="absolute inset-0 pointer-events-none" style={{ background: 'linear-gradient(180deg, rgba(0,212,212,0.05) 0%, transparent 25%)' }} />
           {/* bottom fade: banner bleeds into content area */}
