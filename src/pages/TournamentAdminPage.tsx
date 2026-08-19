@@ -25,9 +25,6 @@ export default function TournamentAdminPage() {
   const [singleTeamInput, setSingleTeamInput] = useState('');
 
   const [scores, setScores] = useState<Record<string, { a: string; b: string }>>({});
-  
-  // 🍺 Interner Bier-Status (Checkbox-Zustand) pro Team-ID
-  const [beerReceived, setBeerReceived] = useState<Record<string, boolean>>({});
 
   useEffect(() => {
     supabase.auth.getUser().then(({ data }) => {
@@ -44,14 +41,6 @@ export default function TournamentAdminPage() {
 
   const nameOf = (id: string | null) =>
     id ? teams.find((t) => t.id === id)?.name ?? '—' : '—';
-
-  // 🍺 Bier-Haken umschalten
-  const handleToggleBeer = (teamId: string) => {
-    setBeerReceived((prev) => ({
-      ...prev,
-      [teamId]: !prev[teamId],
-    }));
-  };
 
   // 🗑️ Turnier löschen
   const handleDeleteTournament = async () => {
@@ -144,11 +133,11 @@ export default function TournamentAdminPage() {
           </section>
         )}
 
-        {/* 2️⃣ TEAMS MANAGEN & BIER-HAKEN */}
+        {/* 2️⃣ TEAMS MANAGEN (JEDERZEIT NEUE TEAMS HINZUFÜGEN) */}
         {tournament && (
           <section className="space-y-4 rounded-2xl bg-slate-900 border border-slate-800 p-6">
             <div className="flex items-center justify-between">
-              <h2 className="text-xl font-bold text-white">Teams verwalten & Bier-Status ({teams.length})</h2>
+              <h2 className="text-xl font-bold text-white">Teams verwalten ({teams.length})</h2>
               <button className={`${btn} text-xs`} disabled={busy}
                 onClick={() => run(async () => {
                   const n = await syncBierpongTeams(tournament.id);
@@ -158,7 +147,7 @@ export default function TournamentAdminPage() {
               </button>
             </div>
 
-            {/* Eingabe für neue Teams */}
+            {/* Eingabe für neue Teams (Auch während des laufenden Turniers!) */}
             <div className="flex gap-2">
               <input
                 className={inp}
@@ -187,33 +176,15 @@ export default function TournamentAdminPage() {
               </button>
             </div>
 
-            {/* Teamliste mit Bier-Haken Checkbox */}
+            {/* Teamliste */}
             {teams.length > 0 && (
-              <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-2.5 pt-2 max-h-60 overflow-y-auto pr-1">
-                {teams.map((t) => {
-                  const received = beerReceived[t.id] || false;
-                  return (
-                    <div key={t.id} className="flex items-center justify-between gap-2 rounded-xl bg-slate-800/80 border border-slate-700/60 px-3 py-2 text-xs">
-                      <span className="font-semibold text-slate-100 truncate flex-1">{t.name}</span>
-                      
-                      <div className="flex items-center gap-2 shrink-0">
-                        {/* Haken für Bier erhalten */}
-                        <label className="flex items-center gap-1.5 cursor-pointer bg-slate-900 px-2 py-1 rounded-lg border border-slate-700 hover:border-amber-500/50">
-                          <input 
-                            type="checkbox" 
-                            checked={received} 
-                            onChange={() => handleToggleBeer(t.id)}
-                            className="rounded bg-slate-800 border-slate-600 text-amber-500 focus:ring-0 cursor-pointer w-3.5 h-3.5"
-                          />
-                          <span className={`font-medium ${received ? 'text-amber-400' : 'text-slate-400'}`}>🍺 Bier</span>
-                        </label>
-
-                        {/* Team löschen */}
-                        <button className="text-slate-500 hover:text-red-400 p-1" title="Team löschen" onClick={() => run(() => deleteTeam(t.id))}>✕</button>
-                      </div>
-                    </div>
-                  );
-                })}
+              <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-2 pt-2 max-h-40 overflow-y-auto">
+                {teams.map((t) => (
+                  <div key={t.id} className="flex items-center justify-between gap-1 rounded-lg bg-slate-800 px-3 py-1.5 text-xs">
+                    <span className="truncate">{t.name}</span>
+                    <button className="text-slate-500 hover:text-red-400" onClick={() => run(() => deleteTeam(t.id))}>✕</button>
+                  </div>
+                ))}
               </div>
             )}
 
@@ -298,10 +269,14 @@ export default function TournamentAdminPage() {
               </section>
             )}
 
-           {/* 🔮 VORSCHAU AUF DIE NÄCHSTEN RUNDEN */}
+         {/* 🔮 GEKENNZEICHNETE VORSCHAU AUF DIE NÄCHSTEN RUNDEN */}
             {pendingMatches.length > 0 && (() => {
               const currentTableCount = tournament.table_count ?? 3;
+              
+              // Welle 1: Die Nächstfolgenden Spiele (Anzahl = Tischanzahl)
               const nextWave = pendingMatches.slice(0, currentTableCount);
+              
+              // Welle 2: Die Übernächsten Spiele
               const followingWave = pendingMatches.slice(currentTableCount, currentTableCount * 2);
 
               return (
@@ -313,6 +288,7 @@ export default function TournamentAdminPage() {
                     </span>
                   </h2>
 
+                  {/* ⚡ NÄCHSTE WELLE (GLEICH DRAN) */}
                   {nextWave.length > 0 && (
                     <div className="space-y-2">
                       <div className="flex items-center gap-2 text-xs font-bold uppercase tracking-wider text-amber-400">
@@ -332,6 +308,7 @@ export default function TournamentAdminPage() {
                     </div>
                   )}
 
+                  {/* ⏳ ÜBERNÄCHSTE WELLE (IN VORBEREITUNG) */}
                   {followingWave.length > 0 && (
                     <div className="space-y-2 pt-2">
                       <div className="flex items-center gap-2 text-xs font-bold uppercase tracking-wider text-sky-400">
