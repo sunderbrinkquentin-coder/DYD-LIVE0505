@@ -2941,12 +2941,22 @@ signal: controller.signal,
               ))}
             </div>
 
-            <motion.button whileHover={{ scale: 1.015 }} whileTap={{ scale: 0.98 }}
-              onClick={() => document.getElementById('tickets')?.scrollIntoView({ behavior: 'smooth' })}
-              className="btn-cyan w-full flex items-center justify-center gap-3 py-5 rounded-2xl"
-              style={{ fontSize: '18px' }}>
-              <Ticket className="w-5 h-5" /> Jetzt Ticket kaufen · 22.08.2026
-            </motion.button>
+                                <motion.button whileHover={EVENT_CANCELLED ? {} : { scale: 1.015 }} whileTap={EVENT_CANCELLED ? {} : { scale: 0.97 }}
+                      onClick={() => handleBuy(hero)} disabled={EVENT_CANCELLED || loadingId !== null}
+                      className="w-full flex items-center justify-center gap-3 py-4 rounded-2xl disabled:opacity-60 disabled:cursor-not-allowed"
+                      style={{
+                        background: EVENT_CANCELLED ? 'linear-gradient(90deg, #6b6b6b 0%, #4a4a4a 100%)' : `linear-gradient(90deg, #00c8c8 0%, #00a0a0 100%)`,
+                        color: EVENT_CANCELLED ? 'rgba(255,255,255,0.85)' : '#040c0c',
+                        fontFamily: "'Bebas Neue', sans-serif",
+                        fontSize: '22px', letterSpacing: '0.2em', fontWeight: 800,
+                        boxShadow: EVENT_CANCELLED ? 'none' : `0 4px 36px rgba(0,200,200,0.45), 0 1px 0 rgba(255,255,255,0.18) inset`,
+                      }}>
+                      {EVENT_CANCELLED
+                        ? <><X className="w-5 h-5" />Veranstaltung abgesagt</>
+                        : loadingId === hero.id
+                          ? <><Loader2 className="w-5 h-5 animate-spin" />Weiterleitung...</>
+                          : <><Ticket className="w-5 h-5" />Bundle sichern – {hero.price.toLocaleString('de-DE', { minimumFractionDigits: 2 })} €</>}
+                    </motion.button>
           </motion.section>
 
           {/* ── FAQ ──────────────────────────────────────────────── */}
