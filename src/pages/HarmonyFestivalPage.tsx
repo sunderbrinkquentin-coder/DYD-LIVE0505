@@ -772,8 +772,7 @@ useEffect(() => {
   const doCheckout = async (ticket: typeof TICKETS[0], name: string, bpTeam?: string, bpPartner?: string, shirtSize?: string, quantity = 1) => {
   if (EVENT_CANCELLED) return;
   setError(null);
-    setLoadingId(ticket.id);
-    setShowSlowHint(false);
+    
 
     if (!ticket.priceId) {
       setError('Ticket-Konfiguration fehlt. Bitte versuche es spaeter erneut.');
