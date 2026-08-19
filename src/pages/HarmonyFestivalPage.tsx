@@ -2610,18 +2610,19 @@ signal: controller.signal,
               )}
             </div>
 
-            <button
+                        <button
               onClick={() => handleBuy(ticket)}
-              disabled={loadingId !== null}
+              disabled={EVENT_CANCELLED || loadingId !== null}
               style={{
-                width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, padding: 13, borderRadius: 12, border: 'none', cursor: 'pointer',
+                width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, padding: 13, borderRadius: 12, border: 'none', cursor: EVENT_CANCELLED ? 'not-allowed' : 'pointer',
                 fontFamily: "'Bebas Neue', sans-serif", fontSize: 17, letterSpacing: '0.14em', fontWeight: 700,
-                background: `linear-gradient(135deg, ${solid}, ${withA(ticket.accent, 0.72)})`, color: '#08120a',
-                boxShadow: `0 4px 18px ${withA(ticket.accent, 0.35)}`,
-                opacity: loadingId !== null ? 0.5 : 1, position: 'relative', zIndex: 1,
+                background: EVENT_CANCELLED ? 'linear-gradient(135deg, #6b6b6b, #4a4a4a)' : `linear-gradient(135deg, ${solid}, ${withA(ticket.accent, 0.72)})`,
+                color: EVENT_CANCELLED ? 'rgba(255,255,255,0.85)' : '#08120a',
+                boxShadow: EVENT_CANCELLED ? 'none' : `0 4px 18px ${withA(ticket.accent, 0.35)}`,
+                opacity: EVENT_CANCELLED ? 0.6 : (loadingId !== null ? 0.5 : 1), position: 'relative', zIndex: 1,
               }}
             >
-              {loadingId === ticket.id ? 'Lädt…' : isBierpong ? 'Team-Platz sichern →' : 'Ticket sichern →'}
+              {EVENT_CANCELLED ? 'Abgesagt' : loadingId === ticket.id ? 'Lädt…' : isBierpong ? 'Team-Platz sichern →' : 'Ticket sichern →'}
             </button>
           </div>
 
