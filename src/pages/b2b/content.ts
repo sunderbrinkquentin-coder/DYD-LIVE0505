@@ -21,11 +21,11 @@ export const b2bContent = {
       'Kooperationspartner Hochschule Fresenius',
       'Made in Germany',
     ],
-statChips: [
-  { value: 'Niedrigere Kosten', label: 'pro qualifiziertem Lead' },
-  { value: 'Schnellere Besetzung', label: 'durch interne Mobilität' },
-  { value: 'Bessere Budget-Nutzung', label: 'im L&D-Bereich' },
-],
+    statChips: [
+      { value: 'Niedrigere Kosten', label: 'pro qualifiziertem Lead' },
+      { value: 'Schnellere Besetzung', label: 'durch interne Mobilität' },
+      { value: 'Bessere Budget-Nutzung', label: 'im L&D-Bereich' },
+    ],
   },
   tabs: {
     tabA: {
@@ -94,18 +94,18 @@ statChips: [
           tag: 'Analytics',
         },
       ],
-roi: [
-  {
-    value: 'Weniger Kosten',
-    label: 'bei der Personalbeschaffung',
-    desc: 'Interne Besetzung & gezieltes Reskilling statt teurer externer Beschaffung.',
-  },
-  {
-    value: 'Höhere Wirkung',
-    label: 'im L&D-Budget',
-    desc: 'Budget-Allokation orientiert sich an tatsächlichen Skill-Gaps statt am Gießkannenprinzip.',
-  },
-],
+      roi: [
+        {
+          value: 'Weniger Kosten',
+          label: 'bei der Personalbeschaffung',
+          desc: 'Interne Besetzung & gezieltes Reskilling statt teurer externer Beschaffung.',
+        },
+        {
+          value: 'Höhere Wirkung',
+          label: 'im L&D-Budget',
+          desc: 'Budget-Allokation orientiert sich an tatsächlichen Skill-Gaps statt am Gießkannenprinzip.',
+        },
+      ],
       faq: [
         {
           q: 'Wie schnell ist NEXUS einsatzbereit?',
