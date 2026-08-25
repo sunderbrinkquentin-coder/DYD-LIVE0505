@@ -22,9 +22,9 @@ export const b2bContent = {
       'Made in Germany',
     ],
     statChips: [
-      { value: '−75 %', label: 'CPA' },
-      { value: '−60 %', label: 'Recruiting-Kosten' },
-      { value: '+300 %', label: 'L&D-Effizienz' },
+      { value: 'Reduziert', label: 'Akquisekosten (CPA)' },
+      { value: 'Gesenkt', label: 'Recruiting-Kosten' },
+      { value: 'Gesteigert', label: 'L&D-Effizienz' },
     ],
   },
   tabs: {
@@ -96,14 +96,14 @@ export const b2bContent = {
       ],
       roi: [
         {
-          value: '−60 %',
+          value: 'Gesenkt',
           label: 'Recruiting-Kosten',
-          desc: 'Interne Besetzung & gezieltes Reskilling statt externer Beschaffung (Fee ~15–30k €).',
+          desc: 'Interne Besetzung & gezieltes Reskilling statt teurer externer Beschaffung.',
         },
         {
-          value: '+300 %',
+          value: 'Gesteigert',
           label: 'L&D-Effizienz',
-          desc: 'Präzise Budget-Allokation nur auf tatsächliche Skill-Gaps statt Gießkanne.',
+          desc: 'Budget-Allokation orientiert sich an tatsächlichen Skill-Gaps statt am Gießkannenprinzip.',
         },
       ],
       faq: [
@@ -197,14 +197,14 @@ export const b2bContent = {
         title: 'Business Case / CPA',
         classicLabel: 'Klassisch',
         classicDesc: 'Google & LinkedIn Ads',
-        classicValue: '300–500 €',
-        classicUnit: 'CPA',
+        classicValue: 'Hohe Kosten',
+        classicUnit: 'pro Lead',
         dydLabel: 'Mit DYD ORBIT',
         dydDesc: 'Skill-Matching',
-        dydValue: '75 €',
-        dydUnit: 'CPA (Ziel)',
-        delta: '−75 %',
-        deltaLabel: 'Akquisekosten',
+        dydValue: 'Niedrigere Kosten',
+        dydUnit: 'pro Lead (Zielgröße)',
+        delta: 'Spürbare Ersparnis',
+        deltaLabel: 'bei den Akquisekosten',
       },
       faq: [
         {
@@ -217,7 +217,7 @@ export const b2bContent = {
         },
         {
           q: 'Was kostet ORBIT?',
-          a: 'Wir arbeiten auf ein CPA-Ziel von rund 75 € hin. Das genaue Modell klären wir im Erstgespräch.',
+          a: 'Wir arbeiten mit einem klar definierten Kostenziel pro qualifiziertem Lead, das spürbar unter klassischen Ad-Kanälen liegt. Das genaue Modell klären wir im Erstgespräch.',
         },
         {
           q: 'Ist das DSGVO-konform?',
@@ -271,10 +271,10 @@ export const b2bContent = {
       quote: 'Ich baue DYD, weil zu viele Talente an fehlenden Skills scheitern – nicht am Willen.',
       roles: [
         'Ich gründe und führe DYD – eine KI-Karriereplattform, made in Germany',
-        'Vier Jahre Praxis in der Personaldienstleistung – ich kenne Auswahl und Entwicklung aus erster Hand',
+        'Mehrjährige Praxis in der Personaldienstleistung – ich kenne Auswahl und Entwicklung aus erster Hand',
         'Als IHK-Prüfer bewerte ich Qualifikationen nach anerkanntem Standard',
         'Als Wirtschaftsingenieur (B. Eng.) verbinde ich technisches Systemdenken mit HR-Praxis',
-        'Seit 9 Jahren bilde ich mich an der Abendschule neben dem Vollzeitjob weiter – gelebtes Upskilling',
+        'Seit Jahren bilde ich mich an der Abendschule neben dem Vollzeitjob weiter – gelebtes Upskilling',
         'Ich halte Workshops an deutschen Hochschulen (u. a. Hochschule Fresenius) zu KI-gestützter Bewerbungsoptimierung',
         'Ich veranstalte das Harmony Festival – ein eigenes Musik- und Comedy-Event',
       ],
@@ -295,7 +295,7 @@ export const b2bContent = {
         date: '28. Mai 2026',
         title: 'Beyond the Template: Dein CV-Boost im KI-Zeitalter',
         location: 'Hochschule Fresenius',
-        audience: '~50 Top-Studierende',
+        audience: 'Ausgewählte Gruppe von Top-Studierenden',
         topics: ['ATS', 'Storytelling', 'Personal Branding im KI-Zeitalter'],
       },
       {
@@ -331,7 +331,6 @@ export const b2bContent = {
       },
     ],
   },
-
   footer: {
     blurb: 'KI-gestützte Skill Intelligence für Unternehmen und Bildungsträger. Made in Germany, DSGVO-konform.',
     email: 'quentin@decideyourdream.de',
