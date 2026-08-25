@@ -94,18 +94,18 @@ statChips: [
           tag: 'Analytics',
         },
       ],
-      roi: [
-        {
-          value: 'Gesenkt',
-          label: 'Recruiting-Kosten',
-          desc: 'Interne Besetzung & gezieltes Reskilling statt teurer externer Beschaffung.',
-        },
-        {
-          value: 'Gesteigert',
-          label: 'L&D-Effizienz',
-          desc: 'Budget-Allokation orientiert sich an tatsächlichen Skill-Gaps statt am Gießkannenprinzip.',
-        },
-      ],
+roi: [
+  {
+    value: 'Weniger Kosten',
+    label: 'bei der Personalbeschaffung',
+    desc: 'Interne Besetzung & gezieltes Reskilling statt teurer externer Beschaffung.',
+  },
+  {
+    value: 'Höhere Wirkung',
+    label: 'im L&D-Budget',
+    desc: 'Budget-Allokation orientiert sich an tatsächlichen Skill-Gaps statt am Gießkannenprinzip.',
+  },
+],
       faq: [
         {
           q: 'Wie schnell ist NEXUS einsatzbereit?',
