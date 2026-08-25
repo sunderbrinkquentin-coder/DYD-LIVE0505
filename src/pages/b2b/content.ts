@@ -21,11 +21,11 @@ export const b2bContent = {
       'Kooperationspartner Hochschule Fresenius',
       'Made in Germany',
     ],
-    statChips: [
-      { value: 'Reduziert', label: 'Akquisekosten (CPA)' },
-      { value: 'Gesenkt', label: 'Recruiting-Kosten' },
-      { value: 'Gesteigert', label: 'L&D-Effizienz' },
-    ],
+statChips: [
+  { value: 'Niedrigere Kosten', label: 'pro qualifiziertem Lead' },
+  { value: 'Schnellere Besetzung', label: 'durch interne Mobilität' },
+  { value: 'Bessere Budget-Nutzung', label: 'im L&D-Bereich' },
+],
   },
   tabs: {
     tabA: {
