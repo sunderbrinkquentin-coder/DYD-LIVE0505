@@ -349,9 +349,23 @@ const cloneRef = useRef<HTMLDivElement | null>(null);
   };
 
   /** mousedown auf einer Box NICHT fokussieren lassen — sonst poppt die Tastatur
-   *  auf dem winzigen Blatt-Feld auf, bevor die große Box öffnet. */
+   *  auf dem winzigen Blatt-Feld auf, bevor die große Box öffnet.
+   *
+   * FIX: `dragProps()`/`itemDragProps()` setzen `draggable=true` GENAU auf dem
+   * Element, das auch `data-break-item`/`data-break-atomic`/`data-pdf-section`
+   * trägt (siehe z. B. ClassicCVTemplate `renderCredentialSection`). Native
+   * HTML5-Drags starten aber nur, wenn das auslösende `mousedown` NICHT
+   * `preventDefault()`-t wurde — das ist derselbe Trick, mit dem man das
+   * native Ziehen von <img>/<a> unterbindet. Diese Funktion hat also bisher
+   * JEDEN Drag-Start abgewürgt, sobald das Ziel in einer BOX_SELECTOR-Box lag
+   * — nicht nur den Fokus. Sichtbar draggable blieb nur, was zufällig NICHT
+   * unter BOX_SELECTOR fiel. Ausnahme jetzt: liegt ein `[draggable="true"]`
+   * zwischen Ziel und Box (oder ist die Box selbst draggable), lassen wir den
+   * nativen Drag zu und swallowen nicht. */
   const swallowMouseDown = (e: React.MouseEvent) => {
-    if ((e.target as HTMLElement).closest(BOX_SELECTOR)) e.preventDefault();
+    const target = e.target as HTMLElement;
+    if (target.closest('[draggable="true"]')) return;
+    if (target.closest(BOX_SELECTOR)) e.preventDefault();
   };
 
   // Wächst die Box beim Tippen (neuer Bullet), Bounds nachziehen. Diff-Guard
@@ -1571,7 +1585,7 @@ const addSectionItem = (sectionIndex: number, defaultItem: any) => {
     ];
 
     const INFOS = [
-      { tag: 'CV-Check', title: 'Was ist der CV-Check?', description: 'Der CV-Check analysiert deinen bestehenden Lebenslauf vollautomatisch: Er bewertet die ATS-Kompatibilität, erkennt inhaltliche Lücken und gibt dir konkrete Verbesserungsvorschläge — für nur 2,99€ und in Sekunden.', icon: <FileSearch size={20} className="text-[#66c0b6]" />, accent: '#66c0b6' },
+      { tag: 'CV-Check', title: 'Was ist der CV-Check?', description: 'Der CV-Check analysiert deinen bestehenden Lebenslauf vollautomatisch: Er bewertet die ATS-Kompatibilität, erkennt inhaltliche Lücken und gibt dir konkrete Verbesserungsvorschläge — kostenlos und in Sekunden.', icon: <FileSearch size={20} className="text-[#66c0b6]" />, accent: '#66c0b6' },
       { tag: 'CV-Erstellung', title: 'Wie funktioniert die CV-Optimierung?', description: 'Du gibst die Stellenanzeige ein — unsere KI liest deinen CV und passt jeden Abschnitt gezielt auf die Stelle an. Formulierungen werden jobspezifisch umgeschrieben, ATS-Keywords eingebaut und die Reihenfolge optimiert.', icon: <Sparkles size={20} className="text-[#66c0b6]" />, accent: '#66c0b6' },
       { tag: 'Career Academy', title: 'Was ist die Career Academy?', description: 'Die Career Academy hilft dir, deinen persönlichen Karrierepfad zu entwickeln. Mit KI-gestützten Gap-Analysen siehst du, welche Skills du noch brauchst, und bekommst individuell zusammengestellte Lernpfade.', icon: <GraduationCap size={20} className="text-[#66c0b6]" />, accent: '#66c0b6' },
       { tag: 'Harmony Festival', title: 'Was ist das Harmony Festival?', description: 'Ein Tag am Rhein — 22. August 2026. Live-Konzert, DJ-Sets, Stand-Up Comedy, Bierpong-Turnier und das beste Bier aus der Heimat. Kein Karriereevent — ein echtes Festival für echte Begegnung.', icon: <Music2 size={20} className="text-amber-400" />, accent: '#f59e0b', amber: true },
