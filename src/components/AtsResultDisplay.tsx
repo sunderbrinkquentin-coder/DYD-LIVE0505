@@ -13,6 +13,24 @@ import { CircularScore } from './ats/CircularScore';
 import { CategoryRow } from './ats/CategoryRow';
 import { DetailCard } from './ats/DetailCard';
 
+/**
+ * Splits a block of text into individual bullet points — same logic as
+ * DetailCard.tsx's splitIntoBullets. Needed here too because a single
+ * to-do entry from the backend can contain several "- " prefixed points
+ * run together as one string; without splitting them, CSS collapses the
+ * embedded newlines/markers and it reads as one run-on paragraph.
+ */
+function splitIntoBullets(raw: string): string[] {
+  const normalized = raw
+    .replace(/(?:^|\n)[ \t]*[-•*][ \t]+/g, '\n')
+    .replace(/(?:^|\n)[ \t]*\d+[.)][ \t]+/g, '\n');
+
+  return normalized
+    .split(/\n+|(?<=\.)\s+(?=[A-ZÄÖÜ])|;\s*/)
+    .map((s) => s.trim())
+    .filter((s) => s.length > 3);
+}
+
 type Props = {
   result: AtsResult | null;
   uploadId?: string;
@@ -373,6 +391,7 @@ export const AtsResultDisplay: React.FC<Props> = ({
                 <div className="space-y-1">
                   {todoEntries.map(([key, value], index) => {
                     const isChecked = checkedTodos[key] ?? false;
+                    const bullets = splitIntoBullets(value as string);
                     return (
                       <button
                         key={key}
@@ -394,9 +413,20 @@ export const AtsResultDisplay: React.FC<Props> = ({
                           <p className={`text-xs font-semibold mb-0.5 transition-colors ${isChecked ? 'text-[#66c0b6]' : 'text-white/50'}`}>
                             To-do {index + 1}
                           </p>
-                          <p className={`text-sm leading-snug transition-colors ${isChecked ? 'line-through text-white/30' : 'text-white/80'}`}>
-                            {value}
-                          </p>
+                          {bullets.length > 1 ? (
+                            <ul className={`space-y-1 transition-colors ${isChecked ? 'text-white/30' : 'text-white/80'}`}>
+                              {bullets.map((b, i) => (
+                                <li key={i} className={`flex items-start gap-1.5 text-sm leading-snug ${isChecked ? 'line-through' : ''}`}>
+                                  <span className={`flex-shrink-0 mt-1.5 w-1 h-1 rounded-full ${isChecked ? 'bg-white/20' : 'bg-white/40'}`} />
+                                  <span>{b}</span>
+                                </li>
+                              ))}
+                            </ul>
+                          ) : (
+                            <p className={`text-sm leading-snug transition-colors ${isChecked ? 'line-through text-white/30' : 'text-white/80'}`}>
+                              {value}
+                            </p>
+                          )}
                         </div>
                       </button>
                     );
