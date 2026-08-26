@@ -137,7 +137,7 @@ const IS_WEBCONTAINER_PREVIEW =
 
 // Stripe Price IDs Mapping
 const PRICE_IDS: Record<string, string> = {
-  cv_check: import.meta.env.VITE_STRIPE_PRICE_CV_CHECK || '',
+  cv_check: import.meta.env.VITE_STRIPE_PRICE_CV_CHECK_NEU || '',
   single: import.meta.env.VITE_STRIPE_PRICE_CV_OPT_1 || '',
   five: import.meta.env.VITE_STRIPE_PRICE_CV_OPT_5 || '',
   ten: import.meta.env.VITE_STRIPE_PRICE_CV_OPT_10 || '',
@@ -177,10 +177,10 @@ export default function CvPaywallPage() {
 
   const stripeValidation = useMemo(() => {
     if (isCvCheckFlow) {
-      const cvCheckPriceId = import.meta.env.VITE_STRIPE_PRICE_CV_CHECK;
+      const cvCheckPriceId = import.meta.env.VITE_STRIPE_PRICE_CV_CHECK_NEU;
       return {
         isValid: !!cvCheckPriceId && cvCheckPriceId.trim() !== '',
-        missingKeys: !cvCheckPriceId || cvCheckPriceId.trim() === '' ? ['VITE_STRIPE_PRICE_CV_CHECK'] : []
+        missingKeys: !cvCheckPriceId || cvCheckPriceId.trim() === '' ? ['VITE_STRIPE_PRICE_CV_CHECK_NEU'] : []
       };
     }
     return validateStripePriceIds();
@@ -423,7 +423,7 @@ export default function CvPaywallPage() {
       }
 
       if (!priceId || priceId.trim() === '') {
-        setError(`Keine Stripe Price ID konfiguriert${isCvCheckFlow ? ' (VITE_STRIPE_PRICE_CV_CHECK fehlt)' : ''}`);
+        setError(`Keine Stripe Price ID konfiguriert${isCvCheckFlow ? ' (VITE_STRIPE_PRICE_CV_CHECK_NEU fehlt)' : ''}`);
         clearTimeout(slowHintTimer);
         setIsProcessing(false);
         setProcessingPackageId(null);
