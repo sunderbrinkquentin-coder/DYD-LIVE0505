@@ -2,7 +2,7 @@
 import { useEffect, useState, useMemo } from 'react';
 import { useNavigate, useSearchParams, useLocation } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { Check, Loader, Sparkles, Shield, Zap, AlertCircle, Star, Coins } from 'lucide-react';
+import { Check, Loader, Sparkles, Shield, Zap, AlertCircle, Star, Coins, Lock, Quote, Lightbulb } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../contexts/AuthContext';
 import { validateStripePriceIds } from '../utils/stripeConfigValidator';
@@ -26,15 +26,29 @@ const CV_CHECK_PACKAGE: Package = {
   optimizations: 1,
   price: 2.99,
   pricePerUnit: 2.99,
+  // Bewusst konkret statt abstrakt formuliert — jeder Punkt beschreibt genau
+  // das, was die Detailanalyse tatsächlich zeigt (siehe DetailCard.tsx:
+  // Bewertung/feedback, Zitat aus dem CV, Recruiter-Empfehlung/tipp), damit
+  // beim Freischalten keine Erwartungslücke entsteht.
   features: [
-    'Detaillierte Kategorien-Bewertung',
-    'Individuelles Feedback',
-    'Konkrete Verbesserungsvorschläge',
-    'Top-3 Prioritäten',
-    'Direkt verfügbar',
+    'Bewertung & Feedback zu allen 6 Kategorien (Relevanz, Erfolge, Sprache, USP, Formales, Erfahrungstiefe)',
+    'Konkrete Zitate aus deinem CV mit direktem Recruiter-Kommentar dazu',
+    'Fertige Formulierungsvorschläge zum direkten Übernehmen',
+    'Deine persönlichen Top-Prioritäten für die größte Wirkung',
+    'Sofort einsehbar – keine Wartezeit',
   ],
   popular: true,
 };
+
+// Beispielhafte Vorschau-Zeilen für die "Das siehst du"-Teaser-Karte im
+// CV-Check-Paket — bewusst mit Platzhalter-Werten (keine echten Nutzerdaten),
+// aber in derselben Optik wie die echte Detailanalyse (siehe DetailCard.tsx),
+// damit der Kaeufer vor dem Freischalten weiss, was ihn erwartet.
+const PREVIEW_ROWS = [
+  { title: 'Erfolge & KPIs', score: 58, color: 'bg-amber-400' },
+  { title: 'Klarheit der Sprache', score: 74, color: 'bg-[#66c0b6]' },
+  { title: 'USP & Skills', score: 41, color: 'bg-red-400' },
+];
 
 const OPTIMIZER_PACKAGES: Package[] = [
   {
@@ -636,7 +650,12 @@ export default function CvPaywallPage() {
                     </p>
                   )}
                   {isCvCheckFlow && (
-                    <p className="text-sm text-white/60">Einmalige Zahlung</p>
+                    <>
+                      <p className="text-sm text-white/60">Einmalige Zahlung</p>
+                      <p className="text-xs text-white/40 mt-1 flex items-center justify-center gap-1.5">
+                        <span aria-hidden="true">☕</span> Weniger als ein kleiner Cappuccino
+                      </p>
+                    </>
                   )}
                   {!isCvCheckFlow && (
                     <p className="text-sm text-white/60">
@@ -645,7 +664,7 @@ export default function CvPaywallPage() {
                   )}
                 </div>
 
-                <ul className="space-y-3 mb-8">
+                <ul className="space-y-3 mb-6">
                   {pkg.features.map((feature, idx) => (
                     <li key={idx} className="flex items-start gap-3 text-sm text-white/80">
                       <Check size={18} className="text-[#66c0b6] flex-shrink-0 mt-0.5" />
@@ -653,6 +672,47 @@ export default function CvPaywallPage() {
                     </li>
                   ))}
                 </ul>
+
+                {/* Visuelle Vorschau — zeigt in derselben Optik wie die echte
+                    Detailanalyse (DetailCard.tsx: farbiger Punkt, Score-Balken,
+                    Zitat, Recruiter-Empfehlung), was nach dem Freischalten
+                    wartet. Platzhalter-Werte, keine echten Nutzerdaten. */}
+                {isCvCheckFlow && (
+                  <div className="mb-6 rounded-xl border border-white/10 bg-white/[0.03] overflow-hidden relative">
+                    <p className="text-[10px] font-semibold uppercase tracking-widest text-white/35 px-4 pt-3 pb-2">
+                      Das siehst du nach dem Freischalten
+                    </p>
+                    <div className="px-4 pb-4 space-y-3 blur-[1.5px] opacity-80 pointer-events-none select-none">
+                      {PREVIEW_ROWS.map((row) => (
+                        <div key={row.title} className="flex items-center gap-2.5">
+                          <span className={`w-2 h-2 rounded-full flex-shrink-0 ${row.color}`} />
+                          <span className="text-xs text-white/75 flex-1 truncate">{row.title}</span>
+                          <div className="hidden sm:block w-16 h-1 rounded-full bg-white/10 overflow-hidden">
+                            <div className={`h-full rounded-full ${row.color}`} style={{ width: `${row.score}%` }} />
+                          </div>
+                          <span className="text-[11px] font-bold text-white/40 w-10 text-right">{row.score}/100</span>
+                        </div>
+                      ))}
+                      <div className="flex gap-2 items-start pt-1">
+                        <Quote size={12} className="text-white/25 flex-shrink-0 mt-0.5" />
+                        <span className="text-[11px] text-white/45 italic leading-relaxed">
+                          "...verantwortlich für Kundenprojekte..." — zu unkonkret für Recruiter
+                        </span>
+                      </div>
+                      <div className="flex gap-2 items-start">
+                        <Lightbulb size={12} className="text-[#66c0b6]/70 flex-shrink-0 mt-0.5" />
+                        <span className="text-[11px] text-[#b8ede8]/70 leading-relaxed">
+                          Konkrete Umformulierung mit messbarem Ergebnis
+                        </span>
+                      </div>
+                    </div>
+                    <div className="absolute inset-x-0 bottom-0 h-16 bg-gradient-to-t from-[#0b1220] to-transparent flex items-end justify-center pb-2.5">
+                      <span className="flex items-center gap-1.5 text-[11px] font-medium text-white/70 bg-black/50 px-3 py-1 rounded-full border border-white/10">
+                        <Lock size={11} /> Erst nach Freischaltung sichtbar
+                      </span>
+                    </div>
+                  </div>
+                )}
 
                 <div className="space-y-3">
                   <button
