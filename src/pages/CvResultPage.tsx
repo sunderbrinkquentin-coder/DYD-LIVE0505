@@ -1,5 +1,4 @@
 // src/pages/CvResultPage.tsx
-
 import { useEffect, useState, useCallback } from 'react';
 import { useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -8,6 +7,7 @@ import { supabase } from '../lib/supabase';
 import { parseAtsJson, AtsResult } from '../types/ats';
 import { AtsResultDisplay } from '../components/AtsResultDisplay';
 import { useAuth } from '../contexts/AuthContext';
+import { triggerCvExtraction } from '../services/cvUploadService';
 
 type RouteParams = {
   uploadId: string;
@@ -25,10 +25,8 @@ export default function CvResultPage() {
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [isRetrying, setIsRetrying] = useState(false);
   const [retryError, setRetryError] = useState<string | null>(null);
-
   const [atsResult, setAtsResult] = useState<AtsResult | null>(null);
   const [visionText, setVisionText] = useState<string>('');
-
   const [isPaid, setIsPaid] = useState(false);
   const [paymentPending, setPaymentPending] = useState(false);
 
@@ -141,12 +139,14 @@ export default function CvResultPage() {
 
     const checkInitialPaymentStatus = async () => {
       try {
+        // status is needed alongside is_paid so the deferred CV-Check flow
+        // (upload happens before payment, analysis only starts after) knows
+        // whether it still has to kick off the analysis itself.
         const dbPromise = supabase
           .from('stored_cvs')
-          .select('is_paid')
+          .select('is_paid, status')
           .eq('id', uploadId)
           .maybeSingle();
-
         const stripePromise = (isPaymentSuccess && sessionId) ? confirmPaymentViaStripe() : Promise.resolve(false);
 
         const [dbResult, confirmed] = await Promise.all([dbPromise, stripePromise]);
@@ -156,13 +156,25 @@ export default function CvResultPage() {
           setIsPaid(true);
           setPaymentPending(false);
 
+          // Deferred flow: the CV-Check upload intentionally does NOT start
+          // the analysis (see CVCheckPage / uploadCvAndCreateRecord with
+          // triggerNow: false) — it only runs once payment is confirmed, to
+          // avoid Make/LLM costs for abandoned checkouts. Kick it off now.
+          const currentStatus = (data?.status as string | null)?.toLowerCase();
+          if (currentStatus === 'pending_payment') {
+            triggerCvExtraction(uploadId, 'check', user?.id ?? null).catch((err) => {
+              console.error('[CvResultPage] Failed to start deferred analysis:', err);
+              setErrorMessage('Die Analyse konnte nicht gestartet werden. Bitte versuche es erneut.');
+              setIsAnalyzing(false);
+            });
+          }
+
           if (confirmed) {
             const { data: freshRow } = await supabase
               .from('stored_cvs')
               .select('id, status, is_paid, ats_json, vision_text, error_message, created_at, updated_at, make_sent_at, processed_at')
               .eq('id', uploadId)
               .maybeSingle();
-
             if (freshRow?.ats_json && freshRow?.status === 'completed') {
               try {
                 const parsed = parseAtsJson(freshRow.ats_json);
@@ -177,6 +189,13 @@ export default function CvResultPage() {
         } else if (isPaymentSuccess) {
           setIsPaid(false);
           setPaymentPending(true);
+        } else if ((data?.status as string | null)?.toLowerCase() === 'pending_payment') {
+          // Not paid, not arriving from a payment redirect, and the
+          // analysis was never started — this CV is still waiting on the
+          // paywall. Send the user back there instead of spinning on a
+          // poll that will never resolve (e.g. a bookmarked or
+          // back-navigated /cv-result link before paying).
+          navigate(`/cv-paywall?cvId=${uploadId}&source=cv_unlock`, { replace: true });
         }
       } catch (_) {
         if (isPaymentSuccess) {
@@ -302,6 +321,8 @@ export default function CvResultPage() {
           const makeSentAt = result.data?.make_sent_at;
           const timeoutMsg = status === 'uploading'
             ? 'Der Upload dauert laenger als erwartet. Bitte ueberpruefe deine Internetverbindung und lade die Seite neu.'
+            : status === 'pending_payment'
+            ? 'Die Zahlung konnte nicht bestaetigt oder die Analyse nicht gestartet werden. Bitte versuche es erneut.'
             : status === 'pending' || (!makeSentAt && status === 'processing')
             ? 'Die Analyse wurde nicht gestartet. Bitte klicke auf "Analyse neu starten".'
             : status === 'processing'
@@ -396,8 +417,8 @@ export default function CvResultPage() {
 
     const pollPayment = async () => {
       if (cancelled) return;
-
       attempt++;
+
       if (attempt > MAX_ATTEMPTS) {
         if (!cancelled && sessionId) {
           const confirmed = await confirmPaymentViaStripe();
@@ -445,9 +466,7 @@ export default function CvResultPage() {
   // ---- Link CV to user when both atsResult and user are available ----
   useEffect(() => {
     if (!atsResult || !user || !uploadId) return;
-
     const tempId = sessionStorage.getItem('cv_check_temp_id') || localStorage.getItem('cv_temp_id');
-
     import('../services/cvCheckService').then(({ linkCVToUser }) => {
       linkCVToUser(uploadId, user.id, tempId || undefined).then((ok) => {
         if (ok) {
@@ -563,18 +582,15 @@ export default function CvResultPage() {
             >
               <Loader2 className="h-16 w-16 text-[#66c0b6]" />
             </motion.div>
-
             <h1 className="text-4xl md:text-5xl font-bold mb-4 bg-gradient-to-r from-white via-[#66c0b6] to-white bg-clip-text text-transparent">
               {isPaymentFlow ? 'Zahlung erfolgreich — Analyse wird geladen' : 'Dein CV wird jetzt analysiert'}
             </h1>
-
             <p className="text-lg text-white/70 mb-8 max-w-2xl mx-auto">
               {isPaymentFlow
                 ? 'Deine Zahlung wurde verarbeitet. Die Detailanalyse wird in Kuerze freigeschaltet.'
                 : 'Unser KI-gestuetztes System prueft deinen Lebenslauf nach professionellen Standards und gibt dir konkrete Verbesserungsvorschlaege.'
               }
             </p>
-
             {/* Progress Bar */}
             <div className="max-w-md mx-auto mb-6">
               <div className="w-full bg-white/10 rounded-full h-3 overflow-hidden shadow-inner">
@@ -591,7 +607,6 @@ export default function CvResultPage() {
               </div>
             </div>
           </motion.div>
-
           {/* Why is CV Check Important Section */}
           <motion.div
             initial={{ opacity: 0, y: 20 }}
@@ -627,7 +642,6 @@ export default function CvResultPage() {
               </div>
             </div>
           </motion.div>
-
           {/* Categories Grid */}
           <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4 mb-8">
             {categories.map((category) => (
@@ -685,21 +699,16 @@ export default function CvResultPage() {
                       </motion.div>
                     </div>
                   </motion.div>
-
                   <div className="text-4xl mb-3">{category.icon}</div>
-
                   <h3 className="text-xl font-bold text-white mb-2">
                     {category.title}
                   </h3>
-
                   <p className="text-[#66c0b6] text-sm font-medium mb-3">
                     {category.description}
                   </p>
-
                   <p className="text-white/60 text-sm leading-relaxed">
                     {category.details}
                   </p>
-
                   {/* Animated Progress Dots */}
                   <div className="flex gap-1 mt-4">
                     {[0, 1, 2].map((dot) => (
@@ -722,7 +731,6 @@ export default function CvResultPage() {
               </motion.div>
             ))}
           </div>
-
           {/* Footer Info */}
           <motion.div
             initial={{ opacity: 0 }}
