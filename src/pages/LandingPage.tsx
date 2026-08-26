@@ -671,9 +671,13 @@ export default function LandingPage() {
                 itemProp="description"
                 data-ai-fact="hero-value-prop"
               >
-                CV-Check mit ATS-Score · Automatische Optimierung für jede Stellenanzeige
+                ·CV-Check mit ATS-Score 
+                <br />
+                · Automatische Optimierung für jede Stellenanzeige
   <br />
-  Kostenloses Bewerbermanagement im Kanban · Career Academy für deine Skill-Gaps
+  · Kostenloses Bewerbermanagement im Kanban 
+                <br />
+                · Career Academy für deine Skill-Gaps
               </motion.p>
 
               <motion.div
