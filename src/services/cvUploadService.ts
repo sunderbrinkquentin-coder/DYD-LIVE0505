@@ -281,50 +281,80 @@ export async function triggerCvExtraction(
   source: UploadSource,
   userId: string | null,
 ): Promise<void> {
-  const { data: cv, error: loadError } = await supabase
-    .from('stored_cvs')
-    .select('file_url,file_path,file_name')
-    .eq('id', uploadId)
-    .maybeSingle();
+  // IMPORTANT: everything from here on is wrapped in one try/catch. Before
+  // this fix, only a structured `{ error }` response from
+  // supabase.functions.invoke() was handled — but a thrown exception (e.g.
+  // a CORS/network failure where the fetch itself rejects instead of
+  // resolving with an error object) propagated straight past that check.
+  // The row was then left stuck on status:'processing' forever with no
+  // error_message anywhere, and the caller's local .catch() only updated
+  // React state — nothing in the DB recorded what actually went wrong.
+  // Wrapping the whole thing means ANY failure now marks the row 'failed'
+  // with the real error message, so it surfaces in the UI immediately
+  // (via CvResultPage's existing status==='failed' handling) instead of
+  // silently hanging until the poll timeout.
+  try {
+    const { data: cv, error: loadError } = await supabase
+      .from('stored_cvs')
+      .select('file_url,file_path,file_name')
+      .eq('id', uploadId)
+      .maybeSingle();
 
-  if (loadError || !cv) {
-    throw new Error('CV-Datensatz nicht gefunden');
-  }
+    if (loadError || !cv) {
+      throw new Error('CV-Datensatz nicht gefunden');
+    }
 
-  // Signierte URL neu erzeugen — die aus dem Upload ist nach 1h abgelaufen.
-  let signedUrl: string | null = null;
-  if (cv.file_path) {
-    const { data: signed } = await supabase.storage
-      .from(CV_BUCKET)
-      .createSignedUrl(cv.file_path as string, 3600);
-    signedUrl = signed?.signedUrl ?? null;
-  }
+    // Signierte URL neu erzeugen — die aus dem Upload ist nach 1h abgelaufen.
+    let signedUrl: string | null = null;
+    if (cv.file_path) {
+      const { data: signed } = await supabase.storage
+        .from(CV_BUCKET)
+        .createSignedUrl(cv.file_path as string, 3600);
+      signedUrl = signed?.signedUrl ?? null;
+    }
 
-  await supabase.from('stored_cvs').update({ status: 'processing' }).eq('id', uploadId);
+    await supabase.from('stored_cvs').update({ status: 'processing' }).eq('id', uploadId);
 
-  const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
+    const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
 
-  logStep('Invoking trigger-cv-check (deferred)', { uploadId, source });
+    logStep('Invoking trigger-cv-check (deferred)', { uploadId, source });
 
-  const { error } = await supabase.functions.invoke('trigger-cv-check', {
-    body: {
-      upload_id: uploadId,
-      url: cv.file_url ?? '',
-      file_url: signedUrl || cv.file_url || '',
-      file_url_fallback: signedUrl ? cv.file_url : null,
-      file_name: cv.file_name ?? null,
-      file_path: cv.file_path ?? null,
-      source,
-      user_id: userId,
-      temp_id: null,
-      callback_url: `${supabaseUrl}/functions/v1/make-cv-callback`,
-      timestamp: new Date().toISOString(),
-    },
-  });
+    const { error } = await supabase.functions.invoke('trigger-cv-check', {
+      body: {
+        upload_id: uploadId,
+        url: cv.file_url ?? '',
+        file_url: signedUrl || cv.file_url || '',
+        file_url_fallback: signedUrl ? cv.file_url : null,
+        file_name: cv.file_name ?? null,
+        file_path: cv.file_path ?? null,
+        source,
+        user_id: userId,
+        temp_id: null,
+        callback_url: `${supabaseUrl}/functions/v1/make-cv-callback`,
+        timestamp: new Date().toISOString(),
+      },
+    });
 
-  if (error) {
-    logError('deferred trigger', error, { uploadId });
-    await supabase.from('stored_cvs').update({ status: 'failed' }).eq('id', uploadId);
-    throw new Error(`CV-Extraktion konnte nicht gestartet werden: ${error.message}`);
+    if (error) {
+      throw error;
+    }
+  } catch (err: any) {
+    logError('deferred trigger', err, { uploadId });
+    try {
+      await supabase
+        .from('stored_cvs')
+        .update({
+          status: 'failed',
+          error_message: `CV-Extraktion konnte nicht gestartet werden: ${(err?.message || String(err)).substring(0, 900)}`,
+          updated_at: new Date().toISOString(),
+        })
+        .eq('id', uploadId);
+    } catch (updateErr) {
+      // Last resort: even the "mark as failed" write failed. Nothing more
+      // we can do client-side — log it so it's at least visible in the
+      // browser console for a live-debugging session.
+      logError('deferred trigger — could not mark as failed', updateErr, { uploadId });
+    }
+    throw new Error(`CV-Extraktion konnte nicht gestartet werden: ${err?.message || String(err)}`);
   }
 }
