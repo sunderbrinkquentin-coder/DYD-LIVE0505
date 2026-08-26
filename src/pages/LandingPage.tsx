@@ -671,9 +671,9 @@ export default function LandingPage() {
                 itemProp="description"
                 data-ai-fact="hero-value-prop"
               >
-                ATS-Check mit Score ab 2,99€. Kostenloses Bewerbermanagement im Kanban.
-                <br />
-                One-Klick-CV-Optimierung für jede Stellenanzeige.
+                CV-Check mit ATS-Score · Automatische Optimierung für jede Stellenanzeige
+  <br />
+  Kostenloses Bewerbermanagement im Kanban · Career Academy für deine Skill-Gaps
               </motion.p>
 
               <motion.div
