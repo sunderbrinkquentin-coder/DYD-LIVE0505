@@ -263,31 +263,34 @@ export const ClassicCVTemplate: React.FC<CVTemplateProps> = ({
         <div className="space-y-5">
           {items.map((item: any, idx: number) => (
             <div key={idx} data-pdf-section data-break-item style={cardWrapper}>
-              <div className="flex items-baseline justify-between gap-3">
-                {/* MAXIMAL STABIL: KEIN min-w-0. Ein Flex-Feld mit min-w-0 darf
-                    unter seine min-content-Breite (= längstes Wort) schrumpfen —
-                    genau das erlaubt das zeichenweise Stapeln. Ohne min-w-0
-                    floored das Feld auf Wortbreite und bricht höchstens zwischen
-                    Wörtern um. Exakt das Muster der Berufserfahrung, die nie
-                    gestapelt hat. Das Datum daneben ist mit `w-32` fest, kann das
-                    Feld also nicht quetschen. */}
-                {/* WARUM NUR CLASSIC STAPELTE: hier war das EditableText SELBST
-                    ein flex-1-Item — Flexbox darf es auf seine min-content-Breite
-                    (im wrap-Modus = 1 Zeichen) schrumpfen → zeichenweises Stapeln.
-                    Minimal legt das Feld dagegen in einen flex-1-Wrapper und lässt
-                    das EditableText ein normaler Block sein (füllt 100%, kann nicht
-                    kollabieren). Exakt diese Struktur übernehmen wir jetzt. */}
-                <div className="flex-1">
-                  <EditableText
-                    value={item.degree || item.title || ''}
-                    onChange={(val) => onUpdateSectionItem(educationIndex, idx, 'degree', val)}
-                    className="font-bold leading-tight"
-                    style={{ fontSize: '11px', color: t.text }}
-                    placeholder="Abschluss / Studiengang"
-                    wrap
-                  />
+              {/* FIX (Wort-Stapeln trotz genug Platz): Die vorherige Zeile war
+                  `flex items-baseline justify-between` mit dem Titel als
+                  `flex-1`-Kind neben dem `w-32`-Datum. Rechnerisch blieb dem
+                  Titel genug Breite — trotzdem stapelte der Renderer (Editor
+                  wie PDF-Export) jedes Wort einzeln, weil ein `flex: 1 1 0%`
+                  -Kind seine finale Breite erst NACH der Flex-Verteilung
+                  bekommt und diese Verteilung beim Export nicht zuverlässig
+                  denselben Wert wie im Live-DOM ergibt. Ein `flex-1`-Titel
+                  neben einem festen Geschwister ist damit hier kein
+                  verlässliches Muster.
+                  Jetzt: keine Flexbox mehr für diese Zeile. Das Datum ist
+                  absolut in der oberen rechten Ecke verankert, der Titel ist
+                  ein normaler Block mit `width: 100%` und reserviertem
+                  `paddingRight` — seine Breite ist damit direkt aus der
+                  Container-Breite berechnet, nicht aus einer Flex-Verteilung,
+                  und kann nicht mehr auf Wortbreite kollabieren. */}
+              <div style={{ position: 'relative', paddingRight: '138px', minHeight: '14px' }}>
+                <div style={{ position: 'absolute', top: 0, right: 0 }}>
+                  {renderDateRange(educationIndex, idx, item)}
                 </div>
-                {renderDateRange(educationIndex, idx, item)}
+                <EditableText
+                  value={item.degree || item.title || ''}
+                  onChange={(val) => onUpdateSectionItem(educationIndex, idx, 'degree', val)}
+                  className="font-bold leading-tight"
+                  style={{ fontSize: '11px', color: t.text, width: '100%', whiteSpace: 'normal', wordBreak: 'normal', overflowWrap: 'break-word', overflow: 'visible' }}
+                  placeholder="Abschluss / Studiengang"
+                  wrap
+                />
               </div>
 
               <EditableText
