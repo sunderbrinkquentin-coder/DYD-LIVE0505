@@ -1,5 +1,4 @@
 // src/pages/CVCheckPage.tsx
-
 import { useState, useCallback, useEffect, useRef } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useDropzone } from 'react-dropzone';
@@ -81,14 +80,16 @@ export default function CVCheckPage() {
 
   useEffect(() => {
     if (authLoading || userDismissedExisting) return;
-
     let isMounted = true;
 
     const checkExistingAnalysis = async () => {
       try {
+        // is_paid is needed so the "resume" banner below can send an
+        // unpaid check back to the paywall instead of straight to the
+        // (now analysis-less) result page.
         const baseQuery = supabase
           .from('stored_cvs')
-          .select('id, created_at')
+          .select('id, created_at, is_paid')
           .eq('source', 'check')
           .order('created_at', { ascending: false })
           .limit(1);
@@ -117,7 +118,6 @@ export default function CVCheckPage() {
     };
 
     checkExistingAnalysis();
-
     return () => { isMounted = false; };
   }, [user, authLoading, userDismissedExisting, tempId]);
 
@@ -139,9 +139,10 @@ export default function CVCheckPage() {
       }
       return;
     }
-    if (!acceptedFiles || acceptedFiles.length === 0) return;
-    const selected = acceptedFiles[0];
 
+    if (!acceptedFiles || acceptedFiles.length === 0) return;
+
+    const selected = acceptedFiles[0];
     if (selected.size > MAX_FILE_SIZE_MB * 1024 * 1024) {
       setError(`Die Datei ist zu gross. Bitte lade eine PDF-Datei bis ${MAX_FILE_SIZE_MB} MB hoch.`);
       return;
@@ -172,7 +173,6 @@ export default function CVCheckPage() {
       setError('Bitte wähle zuerst eine PDF-Datei aus.');
       return;
     }
-
     if (uploadState === 'uploading') {
       return;
     }
@@ -195,10 +195,17 @@ export default function CVCheckPage() {
         setProgress(currentProgress);
       }, 400);
 
+      // Deferred flow: only upload the file + create the DB record here.
+      // The actual analysis (Make.com trigger) is intentionally NOT started
+      // yet — it only runs once payment is confirmed (see CvResultPage's
+      // deferred trigger via triggerCvExtraction). This means no Make/LLM
+      // costs are incurred for people who never finish the paywall.
       const result = await uploadCvAndCreateRecord(file, {
         source: 'check',
         userId: user?.id || null,
         tempId: tempId,
+        triggerNow: false,
+        status: 'pending_payment',
       });
 
       if (progressTimer) clearInterval(progressTimer);
@@ -208,22 +215,11 @@ export default function CVCheckPage() {
       }
 
       setProgress(100);
-
-      if (result.triggerFailed) {
-        setUploadState('error');
-        setProgress(0);
-        setError('Die Analyse konnte nicht gestartet werden. Bitte versuche den Upload erneut oder lade die Seite neu.');
-        return;
-      }
-
       setUploadState('success');
-
-      navigate(`/cv-result/${result.uploadId}`);
-
+      navigate(`/cv-paywall?cvId=${result.uploadId}&source=cv_unlock`);
     } catch (err: any) {
       if (progressTimer) clearInterval(progressTimer);
       console.error('[CVCheckPage] Upload error:', err?.message);
-
       setUploadState('error');
       setProgress(0);
 
@@ -239,7 +235,6 @@ export default function CVCheckPage() {
           userFriendlyError = err.message;
         }
       }
-
       setError(userFriendlyError);
     }
   };
@@ -276,7 +271,19 @@ export default function CVCheckPage() {
           <div className="mb-4 flex items-center justify-between gap-3 rounded-xl bg-teal-500/10 border border-teal-500/30 px-4 py-3">
             <div className="flex items-center gap-2 text-sm text-teal-300">
               <BarChart3 className="w-4 h-4 shrink-0" />
-              <span>Du hast bereits einen CV-Check. <button onClick={() => navigate(`/cv-result/${existingCheck.id}?retry=1`)} className="underline hover:text-teal-200">Ergebnis ansehen</button></span>
+              <span>
+                Du hast bereits einen CV-Check.{' '}
+                <button
+                  onClick={() => navigate(
+                    existingCheck.is_paid
+                      ? `/cv-result/${existingCheck.id}?retry=1`
+                      : `/cv-paywall?cvId=${existingCheck.id}&source=cv_unlock`
+                  )}
+                  className="underline hover:text-teal-200"
+                >
+                  {existingCheck.is_paid ? 'Ergebnis ansehen' : 'Jetzt freischalten'}
+                </button>
+              </span>
             </div>
             <button onClick={resetState} className="text-xs text-slate-400 hover:text-slate-200 shrink-0">Neuer Check</button>
           </div>
@@ -315,11 +322,13 @@ export default function CVCheckPage() {
               )}
             </div>
           )}
+
           {uploadState === 'error' && error && (
             <div className="flex items-start gap-2 text-xs text-red-400">
               <XCircle className="w-4 h-4 mt-[1px]" /> <span>{error}</span>
             </div>
           )}
+
           {progress > 0 && (
             <div className="w-full bg-slate-800 rounded-full h-1.5 overflow-hidden">
               <div className="h-1.5 bg-teal-400 transition-[width]" style={{ width: `${progress}%` }} />
