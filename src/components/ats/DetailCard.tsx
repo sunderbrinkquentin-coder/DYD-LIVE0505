@@ -76,6 +76,33 @@ function parseTippBullet(raw: string): { text: string; why?: string } {
   return { text: raw.trim() };
 }
 
+/**
+ * Splits a raw _tipp field into its individual bullets — a safety net for
+ * when the model chains several "- ... || Warum: ..." bullets on one line
+ * without real "\n" separators between them (seen intermittently once the
+ * Warum-explanation requirement made responses longer). splitIntoBullets()
+ * alone only catches a "-" at a line start, so a collapsed single line would
+ * otherwise render as one run-on paragraph with stray "-" characters in it.
+ *
+ * Strategy: run the normal splitter first. If it still returns just one
+ * chunk that contains more than one "|| Warum:" marker, we know several
+ * bullets got merged — re-split right before each "-" that is followed
+ * (before the next "-") by a "||", which reconstructs the real boundaries.
+ */
+function splitTippBullets(raw: string): string[] {
+  const bullets = splitIntoBullets(raw);
+  if (bullets.length > 1) return bullets;
+
+  const single = bullets[0] ?? raw.trim();
+  const warumMarkers = single.match(/\|\|\s*warum\s*:/gi) || [];
+  if (warumMarkers.length <= 1) return bullets.length ? bullets : [single];
+
+  return single
+    .split(/\s+-\s+(?=[^|]*\|\|)/)
+    .map((s) => s.replace(/^[-•*]\s*/, '').trim())
+    .filter((s) => s.length > 3);
+}
+
 export function DetailCard({ title, score, feedback, zitat, tipp, delay = 0 }: Props) {
   const [expanded, setExpanded] = useState(true);
   const [barWidth, setBarWidth] = useState(0);
@@ -169,7 +196,7 @@ export function DetailCard({ title, score, feedback, zitat, tipp, delay = 0 }: P
 
           {/* Tipp — Confidence: prominent green recommendation, bullet list */}
           {cleanTipp && (() => {
-            const bullets = splitIntoBullets(cleanTipp);
+            const bullets = splitTippBullets(cleanTipp);
             return (
               <div className="rounded-xl bg-[#0d2420] border border-[#66c0b6]/35 px-4 py-3">
                 <div className="flex gap-2.5 items-start">
