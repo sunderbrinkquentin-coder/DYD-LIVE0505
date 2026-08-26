@@ -484,6 +484,7 @@ export const ClassicCVTemplate: React.FC<CVTemplateProps> = ({
                 }}
               >
                 <EditableText
+                  as="span"
                   value={display}
                   onChange={(val) => onUpdateSectionItem(index, idx, 'skill', val)}
                   style={{
