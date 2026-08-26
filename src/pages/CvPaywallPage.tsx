@@ -24,8 +24,8 @@ const CV_CHECK_PACKAGE: Package = {
   id: 'cv_check',
   title: 'Detailanalyse',
   optimizations: 1,
-  price: 5,
-  pricePerUnit: 5,
+  price: 2.99,
+  pricePerUnit: 2.99,
   features: [
     'Detaillierte Kategorien-Bewertung',
     'Individuelles Feedback',
@@ -628,7 +628,7 @@ export default function CvPaywallPage() {
                 <div className="text-center mb-6">
                   <h3 className="text-xl font-bold text-white mb-3">{pkg.title}</h3>
                   <div className="mb-1">
-                    <span className="text-5xl md:text-6xl font-bold text-[#66c0b6]">{pkg.price}€</span>
+                    <span className="text-5xl md:text-6xl font-bold text-[#66c0b6]">{pkg.price.toFixed(2).replace('.', ',')}€</span>
                   </div>
                   {!isCvCheckFlow && pkg.optimizations > 1 && (
                     <p className="text-sm text-[#66c0b6]/70 font-medium mb-1">
