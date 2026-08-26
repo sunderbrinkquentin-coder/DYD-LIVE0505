@@ -51,6 +51,31 @@ function splitIntoBullets(raw: string): string[] {
     .filter((s) => s.length > 3);
 }
 
+/**
+ * Splits a single Tipp bullet into the concrete rewrite and the "Warum"
+ * explanation, when the backend sent them joined with "||" (new,
+ * deeper prompt format: "Neuformulierung || Warum: Begründung").
+ *
+ * Falls back to returning the whole string as `text` with no `why` when
+ * the delimiter is absent — this keeps older/unupdated Make.com output
+ * (plain bullets, no explanation) rendering exactly as before.
+ */
+function parseTippBullet(raw: string): { text: string; why?: string } {
+  const parts = raw.split(/\s*\|\|\s*/);
+  if (parts.length >= 2 && parts[1].trim().length > 0) {
+    return {
+      text: parts[0].trim(),
+      why: parts[1].replace(/^warum\s*:\s*/i, '').trim(),
+    };
+  }
+  // Fallback for a stray "... Warum: ..." without the "||" delimiter
+  const inlineMatch = raw.match(/^(.*?)(?:→|--?>)?\s*warum\s*:\s*(.+)$/i);
+  if (inlineMatch && inlineMatch[1].trim().length > 0) {
+    return { text: inlineMatch[1].trim(), why: inlineMatch[2].trim() };
+  }
+  return { text: raw.trim() };
+}
+
 export function DetailCard({ title, score, feedback, zitat, tipp, delay = 0 }: Props) {
   const [expanded, setExpanded] = useState(true);
   const [barWidth, setBarWidth] = useState(0);
@@ -154,17 +179,39 @@ export function DetailCard({ title, score, feedback, zitat, tipp, delay = 0 }: P
                       Recruiter-Empfehlung
                     </p>
                     {bullets.length > 1 ? (
-                      <ul className="space-y-1.5">
-                        {bullets.map((b, i) => (
-                          <li key={i} className="flex items-start gap-2">
-                            <span className="flex-shrink-0 mt-1.5 w-1.5 h-1.5 rounded-full bg-[#66c0b6]/60" />
-                            <span className="text-xs sm:text-sm text-[#b8ede8] leading-relaxed">{b}</span>
-                          </li>
-                        ))}
+                      <ul className="space-y-2.5">
+                        {bullets.map((b, i) => {
+                          const { text, why } = parseTippBullet(b);
+                          return (
+                            <li key={i} className="flex items-start gap-2">
+                              <span className="flex-shrink-0 mt-1.5 w-1.5 h-1.5 rounded-full bg-[#66c0b6]/60" />
+                              <div className="min-w-0">
+                                <span className="text-xs sm:text-sm text-[#b8ede8] leading-relaxed">{text}</span>
+                                {why && (
+                                  <p className="text-[11px] sm:text-xs text-[#66c0b6]/65 leading-relaxed mt-1">
+                                    <span className="font-semibold text-[#66c0b6]/85">Warum das wirkt: </span>
+                                    {why}
+                                  </p>
+                                )}
+                              </div>
+                            </li>
+                          );
+                        })}
                       </ul>
-                    ) : (
-                      <p className="text-xs sm:text-sm text-[#b8ede8] leading-relaxed">{cleanTipp}</p>
-                    )}
+                    ) : (() => {
+                      const { text, why } = parseTippBullet(cleanTipp);
+                      return (
+                        <div>
+                          <p className="text-xs sm:text-sm text-[#b8ede8] leading-relaxed">{text}</p>
+                          {why && (
+                            <p className="text-[11px] sm:text-xs text-[#66c0b6]/65 leading-relaxed mt-1">
+                              <span className="font-semibold text-[#66c0b6]/85">Warum das wirkt: </span>
+                              {why}
+                            </p>
+                          )}
+                        </div>
+                      );
+                    })()}
                   </div>
                 </div>
               </div>
