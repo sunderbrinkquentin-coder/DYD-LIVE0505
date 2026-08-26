@@ -455,7 +455,7 @@ export default function LandingPage() {
                   whileTap={{ scale: 0.98 }}
                 >
                   <span className="absolute inset-0 bg-gradient-to-r from-white/0 via-white/30 to-white/0 translate-x-[-100%] group-hover:translate-x-[100%] transition-transform duration-500"></span>
-                  <span className="relative">CV checken – 2,99€</span>
+                  <span className="relative">CV checken</span>
                 </motion.button>
               </div>
 
@@ -465,7 +465,7 @@ export default function LandingPage() {
                   onClick={() => navigate('/cv-check')}
                   className="px-3.5 py-2 rounded-lg bg-gradient-to-r from-[#66c0b6] to-[#30E3CA] text-black font-semibold text-sm whitespace-nowrap"
                 >
-                  CV checken – 2,99€
+                  CV checken
                 </button>
                 <button
                   type="button"
@@ -512,7 +512,7 @@ export default function LandingPage() {
                     </p>
                     <div className="space-y-1">
                       {[
-                        { icon: Search, label: 'CV checken – 2,99€', sub: 'ATS-Score in Sekunden', onClick: () => mobileGate('/cv-check') },
+                        { icon: Search, label: 'CV checken', sub: 'ATS-Score in Sekunden', onClick: () => mobileGate('/cv-check') },
                         { icon: FileText, label: 'CV erstellen', sub: 'KI-Wizard in 5 Min.', onClick: () => mobileGate('/cv-wizard') },
                         { icon: GraduationCap, label: 'Career Academy · Skill-Gap', sub: 'Lücken finden & schließen', onClick: () => mobileGate('/career-vision') },
                         { icon: Kanban, label: 'Bewerbermanagement', sub: 'Kanban für alle Bewerbungen', onClick: () => mobileNav(user ? '/dashboard' : '/login?redirect=/dashboard') },
@@ -586,7 +586,7 @@ export default function LandingPage() {
                     onClick={() => mobileGate('/cv-check')}
                     className="w-full py-3.5 rounded-xl bg-gradient-to-r from-[#66c0b6] to-[#30E3CA] text-black font-bold text-sm shadow-lg shadow-[#66c0b6]/20"
                   >
-                    CV jetzt checken – 2,99€
+                    CV jetzt checken
                   </button>
                 </div>
               </motion.div>
@@ -597,7 +597,7 @@ export default function LandingPage() {
 
         <section
           className="relative pt-32 pb-16 px-4 sm:px-6 lg:px-8"
-          aria-label="Hero – KI-CV-Check ab 2,99€ und kostenloses Bewerbermanagement"
+          aria-label="Hero – KI-CV-Check und kostenloses Bewerbermanagement"
           itemScope itemType="https://schema.org/WebPageElement"
         >
           <div className="max-w-6xl mx-auto">
@@ -626,7 +626,7 @@ export default function LandingPage() {
                 />
                 <Sparkles className="inline w-4 h-4 mr-2 animate-pulse" />
                 <span className="relative z-10">
-                  CV-Check ab 2,99€ · Bewerbermanagement kostenlos
+                  CV-Check · Bewerbermanagement kostenlos
                 </span>
               </motion.div>
 
@@ -703,9 +703,9 @@ export default function LandingPage() {
                     animate={{ x: ['-100%', '100%'] }}
                     transition={{ duration: 2.2, repeat: Infinity, ease: 'linear' }}
                   />
-                  <span className="absolute top-2 right-2 text-[9px] font-black uppercase tracking-widest bg-black/15 px-2 py-0.5 rounded-full">2,99€</span>
+                  <span className="absolute top-2 right-2 text-[9px] font-black uppercase tracking-widest bg-black/15 px-2 py-0.5 rounded-full">Check</span>
                   <Search className="relative w-6 h-6" />
-                  <span className="relative font-bold text-base">CV checken – 2,99€</span>
+                  <span className="relative font-bold text-base">CV checken</span>
                   <span className="relative text-xs font-medium opacity-70">ATS-Score in Sekunden</span>
                 </motion.button>
 
@@ -993,10 +993,10 @@ export default function LandingPage() {
               {[
                 {
                   icon: Sparkles,
-                  title: 'CV-Check ab 2,99€',
+                  title: 'CV-Check',
                   description:
-                    'Erhalte sofort einen detaillierten ATS-Score und konkrete Verbesserungsvorschläge – für nur 2,99€.',
-                  badge: '2,99€',
+                    'Erhalte sofort einen detaillierten ATS-Score und konkrete Verbesserungsvorschläge.',
+                  badge: 'Check',
                 },
                 {
                   icon: Kanban,
@@ -1473,7 +1473,7 @@ export default function LandingPage() {
                 <p className="text-white/60 text-sm">
                   Noch unsicher?{' '}
                   <button onClick={() => navigate('/cv-check')} className="text-[#66c0b6] font-bold hover:underline">
-                    Starte mit dem CV-Check – 2,99€
+                    Starte mit dem CV-Check
                   </button>{' '}
                   – dein erster Schritt zum perfekten CV.
                 </p>
@@ -2069,7 +2069,7 @@ export default function LandingPage() {
                     onClick={() => navigate('/cv-check')}
                     className="px-6 py-5 rounded-2xl bg-black text-white font-bold hover:bg-black/90 transition-all shadow-2xl flex flex-col items-center gap-1"
                   >
-                    <span>CV checken – 2,99€</span>
+                    <span>CV checken</span>
                   </button>
                   <button
                     onClick={() => navigate('/cv-wizard')}
@@ -2087,7 +2087,7 @@ export default function LandingPage() {
                 <div className="mt-8 text-sm text-black/60 flex flex-wrap justify-center gap-4">
                   <span className="flex items-center gap-1">
                     <CheckCircle className="w-4 h-4" />
-                    Ab 2,99€
+                    Keine Kreditkarte
                   </span>
                   <span className="flex items-center gap-1">
                     <CheckCircle className="w-4 h-4" />
@@ -2196,7 +2196,7 @@ export default function LandingPage() {
                     onClick={() => navigate('/cv-check')}
                     className="block hover:text-[#66c0b6] transition-colors text-left"
                   >
-                    CV-Check – 2,99€
+                    CV-Check
                   </button>
                   <button
                     onClick={() => navigate(user ? '/dashboard' : '/login?redirect=/dashboard')}
@@ -2290,7 +2290,7 @@ export default function LandingPage() {
             }}
             transition={{ duration: 1.5, repeat: Infinity }}
           >
-            2,99€
+            CHECK
           </motion.div>
         </motion.div>
 

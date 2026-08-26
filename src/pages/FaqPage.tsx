@@ -372,7 +372,7 @@ export default function FaqPage() {
                     className={`${designSystem.buttons.primary} group/btn inline-flex items-center justify-center`}
                   >
                     <Upload className="w-5 h-5 mr-2 group-hover/btn:scale-110 transition-transform" />
-                    CV analysieren – 2,99€
+                    CV analysieren
                   </button>
                   <button
                     onClick={() => navigate('/cv-wizard')}
