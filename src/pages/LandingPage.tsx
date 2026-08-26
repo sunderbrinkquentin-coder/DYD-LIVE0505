@@ -513,7 +513,7 @@ export default function LandingPage() {
                     <div className="space-y-1">
                       {[
                         { icon: Search, label: 'CV checken – 2,99€', sub: 'ATS-Score in Sekunden', onClick: () => mobileGate('/cv-check') },
-                        { icon: FileText, label: 'CV erstellen', sub: 'KI-Wizard in 10 Min.', onClick: () => mobileGate('/cv-wizard') },
+                        { icon: FileText, label: 'CV erstellen', sub: 'KI-Wizard in 5 Min.', onClick: () => mobileGate('/cv-wizard') },
                         { icon: GraduationCap, label: 'Career Academy · Skill-Gap', sub: 'Lücken finden & schließen', onClick: () => mobileGate('/career-vision') },
                         { icon: Kanban, label: 'Bewerbermanagement', sub: 'Kanban für alle Bewerbungen', onClick: () => mobileNav(user ? '/dashboard' : '/login?redirect=/dashboard') },
                       ].map((item) => (
@@ -2057,7 +2057,7 @@ export default function LandingPage() {
                   Bereit für deinen Traumjob?
                 </h2>
                 <div className="text-xl text-black/80 mb-8 max-w-2xl mx-auto">
-                  Starte mit CV-Check ab 2,99€ und kostenlosem Bewerbermanagement –
+                  Starte mit CV-Check und kostenlosem Bewerbermanagement –
                   danach optimiert die KI deinen CV für jede Stellenanzeige.
                 </div>
                 <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 max-w-2xl mx-auto">
