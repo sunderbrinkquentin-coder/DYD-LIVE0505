@@ -122,7 +122,7 @@ export default function AppMobileMenu() {
                     {[
                       { icon: Home, label: 'Startseite', sub: 'Zurück zur Landing Page', onClick: () => go('/') },
                       { icon: LayoutDashboard, label: 'Dashboard', sub: 'Dein Bewerbungs-Cockpit', onClick: () => go(user ? '/dashboard' : '/login?redirect=/dashboard') },
-                      { icon: Search, label: 'CV kostenlos checken', sub: 'ATS-Score in Sekunden', onClick: () => go('/cv-check') },
+                      { icon: Search, label: 'CV checken – 2,99€', sub: 'ATS-Score in Sekunden', onClick: () => go('/cv-check') },
                       { icon: FileText, label: 'CV erstellen', sub: 'KI-Wizard in 10 Min.', onClick: () => go('/cv-wizard') },
                       { icon: GraduationCap, label: 'Career Academy · Skill-Gap', sub: 'Lücken finden & schließen', onClick: () => go('/career-vision') },
                       { icon: Kanban, label: 'Bewerbermanagement', sub: 'Kanban für alle Bewerbungen', onClick: () => go(user ? '/dashboard' : '/login?redirect=/dashboard') },
@@ -188,7 +188,7 @@ export default function AppMobileMenu() {
                   onClick={() => go('/cv-check')}
                   className="w-full py-3.5 rounded-xl bg-gradient-to-r from-[#66c0b6] to-[#30E3CA] text-black font-bold text-sm shadow-lg shadow-[#66c0b6]/20"
                 >
-                  CV jetzt kostenlos checken
+                  CV jetzt checken – 2,99€
                 </button>
               </div>
             </motion.div>

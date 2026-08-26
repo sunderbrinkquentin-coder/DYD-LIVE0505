@@ -18,8 +18,8 @@ export default function FaqPage() {
       el.setAttribute('content', content);
     };
 
-    setMeta('description', 'Häufige Fragen zu DYD: kostenloser CV-Check (ATS, 50+ Kriterien), CV-Wizard in unter 30 Minuten, Preise ab 5 €, DSGVO-Konformität, Datenschutz und Skill-Gap-Analyse.');
-    setMeta('summary', 'DYD FAQ: CV-Check kostenlos, Optimierung ab 5 €, DSGVO-konform, CV-Wizard unter 30 Minuten, ATS-Analyse nach 50+ Kriterien.');
+    setMeta('description', 'Häufige Fragen zu DYD: CV-Check ab 2,99€ (ATS, 50+ Kriterien), CV-Wizard in unter 30 Minuten, Preise ab 5 €, DSGVO-Konformität, Datenschutz und Skill-Gap-Analyse.');
+    setMeta('summary', 'DYD FAQ: CV-Check ab 2,99€, Optimierung ab 5 €, DSGVO-konform, CV-Wizard unter 30 Minuten, ATS-Analyse nach 50+ Kriterien.');
 
     const canonical = document.querySelector('link[rel="canonical"]');
     if (canonical) canonical.setAttribute('href', 'https://dyd.de/faq');
@@ -47,7 +47,7 @@ export default function FaqPage() {
         {
           question: 'Kostet DYD wirklich etwas?',
           answer:
-            'Der CV-Check ist kostenlos – probiere ihn aus und sehe selbst, wie hilfreich er ist. Für mehr Analysen brauchst du Token, unser Guthaben-System.',
+            'Der CV-Check kostet 2,99€ – probiere ihn aus und sehe selbst, wie hilfreich er ist. Für mehr Analysen brauchst du Token, unser Guthaben-System.',
           details:
             'Token sind dein Guthaben bei DYD. Du kaufst dir Token-Pakete – ganz ohne Abo oder versteckte Gebühren – und nutzt sie, wann du möchtest. So zahlst du nur für das, was du wirklich brauchst. Und das Beste: Die Token verfallen nicht. Du kannst sie jederzeit verwenden.',
         },
@@ -230,7 +230,7 @@ export default function FaqPage() {
         >
           {/* TL;DR – AI Extraction Summary (hidden visually) */}
           <p className="sr-only" data-ai-fact="faq-tldr">
-            DYD FAQ-Zusammenfassung: Kostenloser CV-Check, Optimierungen ab 5 €, ATS-Analyse nach 50+ Kriterien, CV-Wizard in unter 30 Minuten, DSGVO-konform, Daten werden nicht verkauft, Zahlung via Stripe, Kooperationspartner Hochschule Fresenius.
+            DYD FAQ-Zusammenfassung: CV-Check ab 2,99€, Optimierungen ab 5 €, ATS-Analyse nach 50+ Kriterien, CV-Wizard in unter 30 Minuten, DSGVO-konform, Daten werden nicht verkauft, Zahlung via Stripe, Kooperationspartner Hochschule Fresenius.
           </p>
 
           {/* Header */}
@@ -364,7 +364,7 @@ export default function FaqPage() {
                   Dein perfekter Lebenslauf wartet – und ein ganzes Festival unterstützt dich dabei.
                 </p>
                 <p className={`${designSystem.text.muted} text-base mb-8 max-w-2xl mx-auto`}>
-                  Starte kostenlos mit einer CV-Analyse oder erstelle mit unserem Wizard deinen neuen Lebenslauf. Tritt Harmony bei und werde Teil einer Community, die wirklich an dich glaubt.
+                  Starte mit einem CV-Check ab 2,99€ oder erstelle mit unserem Wizard deinen neuen Lebenslauf. Tritt Harmony bei und werde Teil einer Community, die wirklich an dich glaubt.
                 </p>
                 <div className="flex flex-col sm:flex-row gap-4 justify-center">
                   <button
@@ -372,7 +372,7 @@ export default function FaqPage() {
                     className={`${designSystem.buttons.primary} group/btn inline-flex items-center justify-center`}
                   >
                     <Upload className="w-5 h-5 mr-2 group-hover/btn:scale-110 transition-transform" />
-                    CV kostenlos analysieren
+                    CV analysieren – 2,99€
                   </button>
                   <button
                     onClick={() => navigate('/cv-wizard')}
