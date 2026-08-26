@@ -48,7 +48,6 @@ import { useAuth } from '../contexts/AuthContext';
 import { CareerVisionSection } from '../components/landing/CareerVisionSection';
 import { AboutSection } from '../components/landing/AboutSection';
 import { ProcessTimeline } from '../components/landing/ProcessTimeline';
-import FestivalPopup from '../components/FestivalPopup';
 import { FollowRewardPopup, shouldShowFollowPopup } from '../components/landing/FollowRewardPopup';
 import { PodcastSection } from '../components/landing/PodcastSection';
 
@@ -154,7 +153,6 @@ export default function LandingPage() {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-[#050507] via-[#0a0a0f] to-[#050507] text-white relative overflow-hidden">
-      <FestivalPopup />
       <FollowRewardPopup
         open={followPopupOpen}
         onClose={() => setFollowPopupOpen(false)}
