@@ -13,6 +13,7 @@ interface Package {
   title: string;
   optimizations: number;
   price: number;
+  originalPrice?: number;
   pricePerUnit: number;
   features: string[];
   popular?: boolean;
@@ -25,6 +26,7 @@ const CV_CHECK_PACKAGE: Package = {
   title: 'Detailanalyse',
   optimizations: 1,
   price: 2.99,
+  originalPrice: 5,
   pricePerUnit: 2.99,
   // Bewusst konkret statt abstrakt formuliert — jeder Punkt beschreibt genau
   // das, was die Detailanalyse tatsächlich zeigt (siehe DetailCard.tsx:
@@ -37,7 +39,11 @@ const CV_CHECK_PACKAGE: Package = {
     'Deine persönlichen Top-Prioritäten für die größte Wirkung',
     'Sofort einsehbar – keine Wartezeit',
   ],
-  popular: true,
+  // bestValue statt nur popular: schaltet im Rendering unten den kraeftigen
+  // Gradient-Rahmen UND den kraeftigen Gradient-Button frei (statt des
+  // blassen outline-Buttons) — genau das Farb-/Prominenz-Defizit, das
+  // bisher bemaengelt wurde.
+  bestValue: true,
 };
 
 // Die drei zentralen Nutzenversprechen des CV-Checks — bewusst dieselben
@@ -46,16 +52,19 @@ const CV_CHECK_PACKAGE: Package = {
 const CV_CHECK_BENEFITS = [
   {
     icon: Target,
+    color: '#66c0b6',
     title: 'Zeigt dir genau, wo dein CV hängen bleibt',
     text: '90% der Unternehmen nutzen ATS-Systeme, die deinen CV automatisiert scannen, bevor ihn ein Mensch sieht. Wir zeigen dir Zeile für Zeile, woran er dort scheitern würde.',
   },
   {
     icon: Lightbulb,
+    color: '#fbbf24',
     title: 'Fertige Formulierungen statt allgemeiner Tipps',
     text: 'Keine generischen Ratschläge wie „mehr Zahlen einbauen" — sondern konkrete Umformulierungen für deine eigenen CV-Zeilen, die du direkt übernehmen kannst.',
   },
   {
     icon: TrendingUp,
+    color: '#c084fc',
     title: 'Mehr Einladungen zum Gespräch',
     text: 'Ein CV, der Ergebnisse statt Aufgaben zeigt, überzeugt Recruiter in den wenigen Sekunden, die er sich dafür Zeit nimmt — das erhöht deine Interview-Chancen spürbar.',
   },
@@ -558,7 +567,7 @@ export default function CvPaywallPage() {
         </div>
       </nav>
 
-      <div className={`relative z-10 max-w-6xl mx-auto px-4 py-6 md:py-12 ${isCvCheckFlow ? 'pb-28 sm:pb-8' : ''}`}>
+      <div className={`relative z-10 max-w-6xl mx-auto px-4 py-6 md:py-12 ${isCvCheckFlow ? 'pb-28' : ''}`}>
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
@@ -648,6 +657,42 @@ export default function CvPaywallPage() {
           </motion.div>
         )}
 
+        {/* Top-CTA — direkt unter der Headline, ohne dass man erst durch
+            Vorteile/Beispiel/Preiskarte scrollen muss. Zeigt den reduzierten
+            Preis als klaren, farbigen Rabatt statt nur den nackten Betrag. */}
+        {isCvCheckFlow && (
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="max-w-xl mx-auto mb-8"
+          >
+            <div className="rounded-2xl bg-gradient-to-r from-[#66c0b6]/20 via-[#30E3CA]/10 to-purple-500/10 border border-[#66c0b6]/40 shadow-lg shadow-[#66c0b6]/10 p-5 sm:p-6 flex flex-col sm:flex-row items-center gap-4">
+              <div className="flex items-center gap-2.5 flex-1">
+                {CV_CHECK_PACKAGE.originalPrice && (
+                  <span className="text-base text-white/40 line-through">
+                    {CV_CHECK_PACKAGE.originalPrice.toFixed(2).replace('.00', '').replace('.', ',')}€
+                  </span>
+                )}
+                <span className="text-3xl font-bold text-[#66c0b6]">
+                  {CV_CHECK_PACKAGE.price.toFixed(2).replace('.', ',')}€
+                </span>
+                {CV_CHECK_PACKAGE.originalPrice && (
+                  <span className="text-[10px] font-bold uppercase tracking-wide bg-orange-500/20 text-orange-300 px-2 py-1 rounded-full">
+                    -{Math.round((1 - CV_CHECK_PACKAGE.price / CV_CHECK_PACKAGE.originalPrice) * 100)}%
+                  </span>
+                )}
+              </div>
+              <button
+                onClick={() => handleSelectPackage(CV_CHECK_PACKAGE)}
+                disabled={isProcessing || !stripeValidation.isValid}
+                className="w-full sm:w-auto px-8 py-3.5 rounded-xl font-bold bg-gradient-to-r from-[#66c0b6] to-[#30E3CA] text-black hover:shadow-xl hover:shadow-[#66c0b6]/40 transition-all disabled:opacity-50 disabled:cursor-not-allowed whitespace-nowrap"
+              >
+                {isProcessing ? 'Weiterleitung...' : 'Jetzt freischalten →'}
+              </button>
+            </div>
+          </motion.div>
+        )}
+
         {/* Nutzenversprechen — dieselben Kernaussagen wie im Lade-Screen von
             CvResultPage, damit die Botschaft konsistent bleibt, hier aber
             gezielt auf den Kaufentscheid vor der Zahlung ausgerichtet. */}
@@ -663,8 +708,11 @@ export default function CvPaywallPage() {
                 key={benefit.title}
                 className="rounded-2xl bg-white/5 border border-white/10 p-5"
               >
-                <div className="w-9 h-9 rounded-lg bg-[#66c0b6]/10 flex items-center justify-center mb-3">
-                  <benefit.icon size={18} className="text-[#66c0b6]" />
+                <div
+                  className="w-9 h-9 rounded-lg flex items-center justify-center mb-3"
+                  style={{ backgroundColor: `${benefit.color}1f` }}
+                >
+                  <benefit.icon size={18} style={{ color: benefit.color }} />
                 </div>
                 <h3 className="text-sm font-semibold text-white mb-1.5">{benefit.title}</h3>
                 <p className="text-xs text-white/60 leading-relaxed">{benefit.text}</p>
@@ -754,8 +802,18 @@ export default function CvPaywallPage() {
               <div className={`h-full rounded-2xl backdrop-blur-xl p-6 md:p-8 transition-all ${pkg.bestValue ? 'bg-gradient-to-b from-[#66c0b6]/10 to-[#30E3CA]/5 border-2 border-[#66c0b6]/50 shadow-lg shadow-[#66c0b6]/10' : pkg.popular && !isCvCheckFlow ? 'bg-white/5 border border-white/20' : 'bg-white/5 border border-[#66c0b6]/30'}`}>
                 <div className="text-center mb-6">
                   <h3 className="text-xl font-bold text-white mb-3">{pkg.title}</h3>
-                  <div className="mb-1">
+                  <div className="mb-1 flex items-center justify-center gap-2.5 flex-wrap">
+                    {pkg.originalPrice && (
+                      <span className="text-xl text-white/35 line-through">
+                        {pkg.originalPrice.toFixed(2).replace('.00', '').replace('.', ',')}€
+                      </span>
+                    )}
                     <span className="text-5xl md:text-6xl font-bold text-[#66c0b6]">{pkg.price.toFixed(2).replace('.', ',')}€</span>
+                    {pkg.originalPrice && (
+                      <span className="text-[10px] font-bold uppercase tracking-wide bg-orange-500/20 text-orange-300 px-2 py-1 rounded-full">
+                        -{Math.round((1 - pkg.price / pkg.originalPrice) * 100)}%
+                      </span>
+                    )}
                   </div>
                   {!isCvCheckFlow && pkg.optimizations > 1 && (
                     <p className="text-sm text-[#66c0b6]/70 font-medium mb-1">
@@ -830,18 +888,22 @@ export default function CvPaywallPage() {
         </motion.div>
       </div>
 
-      {/* Sticky CTA — der Kauf-Button sitzt sonst ganz unten unter Vorteilen,
-          Beispiel und Feature-Liste; auf dem Handy waeren das mehrere
-          Bildschirme Scrollen, bevor man kaufen kann. Diese Leiste haelt
-          Preis + Button jederzeit erreichbar, unabhaengig vom Scrollstand. */}
+      {/* Sticky CTA — haelt Preis + Button jederzeit erreichbar, egal wie
+          weit gescrollt wurde (Vorteile, Beispiel und Feature-Liste sind
+          mittlerweile einiges an Inhalt oberhalb der Preiskarte). Bewusst
+          auf allen Bildschirmgroessen sichtbar, nicht nur mobil. */}
       {isCvCheckFlow && (
-        <div className="fixed bottom-0 inset-x-0 z-40 sm:hidden bg-[#0a0a0a]/95 backdrop-blur-xl border-t border-white/10 px-4 py-3">
+        <div className="fixed bottom-0 inset-x-0 z-40 bg-[#0a0a0a]/95 backdrop-blur-xl border-t border-[#66c0b6]/20 px-4 py-3">
           <div className="flex items-center gap-3 max-w-md mx-auto">
-            <div className="flex-shrink-0">
+            <div className="flex-shrink-0 flex items-baseline gap-1.5">
+              {CV_CHECK_PACKAGE.originalPrice && (
+                <span className="text-xs text-white/35 line-through">
+                  {CV_CHECK_PACKAGE.originalPrice.toFixed(2).replace('.00', '').replace('.', ',')}€
+                </span>
+              )}
               <p className="text-lg font-bold text-[#66c0b6] leading-none">
                 {CV_CHECK_PACKAGE.price.toFixed(2).replace('.', ',')}€
               </p>
-              <p className="text-[10px] text-white/40 mt-0.5">einmalig</p>
             </div>
             <button
               onClick={() => handleSelectPackage(CV_CHECK_PACKAGE)}
