@@ -13,6 +13,21 @@ type RouteParams = {
   uploadId: string;
 };
 
+// Module-level guard against firing the deferred Make.com trigger twice for
+// the same uploadId. Needed because React 18 StrictMode (dev/preview builds)
+// intentionally mounts -> unmounts -> remounts every component once, so the
+// "Check for payment success..." effect below runs its async body TWICE in
+// quick succession. Both invocations await confirmPaymentViaStripe() and the
+// DB read before checking `alreadySent`; if neither write has landed yet by
+// the time the second invocation checks, both see alreadySent === false and
+// both call triggerCvExtraction() — two parallel Make.com runs for the same
+// CV, racing to write ats_json to the same row (whichever finishes last
+// wins, which is exactly why results can come back incomplete/inconsistent,
+// e.g. a category missing or bullet formatting off). This Set makes the
+// "should I trigger" check-and-set atomic and synchronous, so only the
+// invocation that reaches it first actually fires the trigger.
+const triggerInFlightOrDone = new Set<string>();
+
 export default function CvResultPage() {
   const navigate = useNavigate();
   const { uploadId } = useParams<RouteParams>();
@@ -170,8 +185,13 @@ export default function CvResultPage() {
           // status string is what makes this robust against whatever other
           // processes (confirm-payment, a retry) may have written to status.
           const alreadySent = !!data?.make_sent_at || !!data?.ats_json;
-          if (!alreadySent) {
+          // Synchronous check-and-set (no await between them) — this is what
+          // makes the guard atomic even if this effect body runs twice (see
+          // triggerInFlightOrDone comment above).
+          if (!alreadySent && !triggerInFlightOrDone.has(uploadId)) {
+            triggerInFlightOrDone.add(uploadId);
             triggerCvExtraction(uploadId, 'check', user?.id ?? null).catch((err) => {
+              triggerInFlightOrDone.delete(uploadId); // allow a real retry to fire again
               console.error('[CvResultPage] Failed to start deferred analysis:', err);
               setErrorMessage('Die Analyse konnte nicht gestartet werden. Bitte versuche es erneut.');
               setIsAnalyzing(false);
