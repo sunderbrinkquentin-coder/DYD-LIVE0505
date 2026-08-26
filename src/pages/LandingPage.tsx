@@ -634,14 +634,14 @@ export default function LandingPage() {
                 variants={fadeInUp}
                 className="text-5xl md:text-7xl lg:text-8xl font-bold leading-tight"
                 itemProp="headline"
-                aria-label="DYD – Dein CV perfekt optimiert mit KI, CV-Check ab 2,99€ und kostenloses Bewerbermanagement"
+                aria-label="DYD – Deine Karriere perfekt aufgestellt: CV-Check, CV-Optimierung, Bewerbermanagement und Career Academy mit KI"
               >
                 <motion.span
                   animate={{ y: [0, -5, 0] }}
                   transition={{ duration: 2, repeat: Infinity, ease: 'easeInOut' }}
                   className="inline-block"
                 >
-                  Dein CV –{' '}
+                  Deine Karriere –{' '}
                 </motion.span>
                 <span className="relative inline-block">
                   <motion.span
@@ -660,7 +660,7 @@ export default function LandingPage() {
                     transition={{ duration: 5, repeat: Infinity, ease: 'linear' }}
                     style={{ backgroundSize: '200% 100%' }}
                   >
-                    perfekt optimiert
+                   perfekt aufgestellt
                   </motion.span>
                 </span>
               </motion.h1>
