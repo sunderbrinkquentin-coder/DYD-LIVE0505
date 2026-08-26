@@ -139,18 +139,23 @@ export default function CvResultPage() {
 
     const checkInitialPaymentStatus = async () => {
       try {
-        // status is needed alongside is_paid so the deferred CV-Check flow
-        // (upload happens before payment, analysis only starts after) knows
-        // whether it still has to kick off the analysis itself.
-        const dbPromise = supabase
+        // IMPORTANT: confirmPaymentViaStripe() is awaited FIRST, and the row
+        // is only read AFTER it resolves — not concurrently. Reading the row
+        // at the same time as confirm-payment was running (the previous
+        // version used Promise.all for both) raced against whatever that
+        // edge function itself writes to the row: if confirm-payment's
+        // write landed before our read, `status` could already reflect a
+        // post-confirmation value instead of 'pending_payment', so the
+        // exact-match check below would silently never trigger the deferred
+        // analysis — no error anywhere, because the trigger call was simply
+        // never made. Reading sequentially removes that race.
+        const confirmed = (isPaymentSuccess && sessionId) ? await confirmPaymentViaStripe() : false;
+
+        const { data } = await supabase
           .from('stored_cvs')
-          .select('is_paid, status')
+          .select('is_paid, status, ats_json, vision_text, make_sent_at')
           .eq('id', uploadId)
           .maybeSingle();
-        const stripePromise = (isPaymentSuccess && sessionId) ? confirmPaymentViaStripe() : Promise.resolve(false);
-
-        const [dbResult, confirmed] = await Promise.all([dbPromise, stripePromise]);
-        const data = dbResult.data;
 
         if (data?.is_paid === true || confirmed) {
           setIsPaid(true);
@@ -159,9 +164,13 @@ export default function CvResultPage() {
           // Deferred flow: the CV-Check upload intentionally does NOT start
           // the analysis (see CVCheckPage / uploadCvAndCreateRecord with
           // triggerNow: false) — it only runs once payment is confirmed, to
-          // avoid Make/LLM costs for abandoned checkouts. Kick it off now.
-          const currentStatus = (data?.status as string | null)?.toLowerCase();
-          if (currentStatus === 'pending_payment') {
+          // avoid Make/LLM costs for abandoned checkouts. Kick it off now,
+          // unless there's already objective evidence it was sent before
+          // (make_sent_at or ats_json) — checking THAT instead of an exact
+          // status string is what makes this robust against whatever other
+          // processes (confirm-payment, a retry) may have written to status.
+          const alreadySent = !!data?.make_sent_at || !!data?.ats_json;
+          if (!alreadySent) {
             triggerCvExtraction(uploadId, 'check', user?.id ?? null).catch((err) => {
               console.error('[CvResultPage] Failed to start deferred analysis:', err);
               setErrorMessage('Die Analyse konnte nicht gestartet werden. Bitte versuche es erneut.');
@@ -169,27 +178,24 @@ export default function CvResultPage() {
             });
           }
 
-          if (confirmed) {
-            const { data: freshRow } = await supabase
-              .from('stored_cvs')
-              .select('id, status, is_paid, ats_json, vision_text, error_message, created_at, updated_at, make_sent_at, processed_at')
-              .eq('id', uploadId)
-              .maybeSingle();
-            if (freshRow?.ats_json && freshRow?.status === 'completed') {
-              try {
-                const parsed = parseAtsJson(freshRow.ats_json);
-                if (parsed) {
-                  setAtsResult(parsed);
-                  setVisionText(freshRow.vision_text || '');
-                  setIsAnalyzing(false);
-                }
-              } catch (_) {}
-            }
+          if (data?.ats_json && data?.status === 'completed') {
+            try {
+              const parsed = parseAtsJson(data.ats_json);
+              if (parsed) {
+                setAtsResult(parsed);
+                setVisionText(data.vision_text || '');
+                setIsAnalyzing(false);
+              }
+            } catch (_) {}
           }
         } else if (isPaymentSuccess) {
           setIsPaid(false);
           setPaymentPending(true);
-        } else if ((data?.status as string | null)?.toLowerCase() === 'pending_payment') {
+        } else if (
+          !data?.make_sent_at &&
+          !data?.ats_json &&
+          (data?.status as string | null)?.toLowerCase() === 'pending_payment'
+        ) {
           // Not paid, not arriving from a payment redirect, and the
           // analysis was never started — this CV is still waiting on the
           // paywall. Send the user back there instead of spinning on a
