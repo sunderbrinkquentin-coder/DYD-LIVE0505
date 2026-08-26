@@ -190,7 +190,15 @@ export default function CvPaywallPage() {
       }
 
       if (storedData?.is_paid || storedData?.download_unlocked) {
-        navigate(`/cv-live-editor/${cvId}?payment=success`, { replace: true });
+        // The CV-Check flow unlocks the analysis result (CvResultPage),
+        // not the live editor — the live editor redirect only applies to
+        // the CV-optimizer packages flow.
+        navigate(
+          isCvCheckFlow
+            ? `/cv-result/${cvId}?payment=success`
+            : `/cv-live-editor/${cvId}?payment=success`,
+          { replace: true }
+        );
         return;
       }
 
@@ -365,8 +373,14 @@ export default function CvPaywallPage() {
         return;
       }
 
-      let successUrl: string;
-      successUrl = `${window.location.origin}/#/payment-success?cvId=${cvId}&session_id={CHECKOUT_SESSION_ID}${source ? `&source=${source}` : ''}`;
+      // The CV-Check flow goes straight back to the result page after
+      // Stripe redirects — CvResultPage already knows how to confirm the
+      // payment (via ?payment=success&session_id=...) and, once confirmed,
+      // kicks off the deferred analysis itself. Other flows keep using the
+      // shared /payment-success page.
+      const successUrl = isCvCheckFlow
+        ? `${window.location.origin}/#/cv-result/${cvId}?payment=success&session_id={CHECKOUT_SESSION_ID}`
+        : `${window.location.origin}/#/payment-success?cvId=${cvId}&session_id={CHECKOUT_SESSION_ID}${source ? `&source=${source}` : ''}`;
 
       const cancelUrl = `${window.location.origin}/#/cv-paywall?cvId=${cvId}&payment=cancelled${source ? `&source=${source}` : ''}`;
 
