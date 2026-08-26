@@ -125,15 +125,6 @@ const OPTIMIZER_PACKAGES: Package[] = [
 // Supabase Edge Function URL für stripe-checkout
 const STRIPE_CHECKOUT_URL = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/stripe-checkout`;
 
-// WebContainer-Vorschauen (Bolt.new / StackBlitz, Domain *.webcontainer-api.io)
-// koennen einen echten Stripe-Redirect nicht zurueck in die Sandbox
-// verarbeiten (Cannot navigate to .localservice@service_worker...) — das ist
-// eine Einschraenkung der Sandbox selbst, kein App-Bug. Der Dev-Bypass unten
-// simuliert nur die Zahlung (is_paid=true + Redirect zu /cv-result), damit
-// der Rest des Flows (triggerCvExtraction, Analyse, Ergebnis) trotzdem in
-// Bolt getestet werden kann. Greift nie auf der echten Domain.
-const IS_WEBCONTAINER_PREVIEW =
-  typeof window !== 'undefined' && window.location.hostname.includes('webcontainer-api.io');
 
 // Stripe Price IDs Mapping
 const PRICE_IDS: Record<string, string> = {
@@ -267,40 +258,6 @@ export default function CvPaywallPage() {
       console.error('[CvPaywall] Error checking payment:', err);
       setError('Fehler beim Prüfen des Zahlungsstatus');
       setIsChecking(false);
-    }
-  };
-
-  // Dev-only: simulates a successful payment without touching Stripe at all,
-  // so the post-payment flow (triggerCvExtraction -> analysis -> result) can
-  // be tested inside a WebContainer preview, where the real Stripe redirect
-  // back into the sandbox fails. Never rendered outside webcontainer-api.io.
-  const [isSimulatingPayment, setIsSimulatingPayment] = useState(false);
-
-  const handleSimulatePaymentDev = async () => {
-    if (!cvId) return;
-    setIsSimulatingPayment(true);
-    setError(null);
-    try {
-      const { error: updateError } = await supabase
-        .from('stored_cvs')
-        .update({
-          is_paid: true,
-          download_unlocked: true,
-          payment_date: new Date().toISOString(),
-          updated_at: new Date().toISOString(),
-        })
-        .eq('id', cvId);
-
-      if (updateError) {
-        setError(`Simulierte Zahlung fehlgeschlagen: ${updateError.message}`);
-        setIsSimulatingPayment(false);
-        return;
-      }
-
-      navigate(`/cv-result/${cvId}?payment=success`, { replace: true });
-    } catch (err: any) {
-      setError(`Simulierte Zahlung fehlgeschlagen: ${err?.message || String(err)}`);
-      setIsSimulatingPayment(false);
     }
   };
 
@@ -601,7 +558,7 @@ export default function CvPaywallPage() {
         </div>
       </nav>
 
-      <div className="relative z-10 max-w-6xl mx-auto px-4 py-6 md:py-12">
+      <div className={`relative z-10 max-w-6xl mx-auto px-4 py-6 md:py-12 ${isCvCheckFlow ? 'pb-28 sm:pb-8' : ''}`}>
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
@@ -846,21 +803,6 @@ export default function CvPaywallPage() {
                   {!stripeValidation.isValid && (
                     <p className="text-xs text-red-400 text-center">Checkout disabled until Stripe env is configured.</p>
                   )}
-                  {IS_WEBCONTAINER_PREVIEW && isCvCheckFlow && (
-                    <button
-                      onClick={handleSimulatePaymentDev}
-                      disabled={isSimulatingPayment}
-                      className="w-full py-3 rounded-xl font-semibold text-sm border border-dashed border-yellow-500/50 text-yellow-300 hover:bg-yellow-500/10 transition disabled:opacity-50 flex items-center justify-center gap-2"
-                    >
-                      {isSimulatingPayment ? (
-                        <>
-                          <Loader size={14} className="animate-spin" /> Simuliere Zahlung...
-                        </>
-                      ) : (
-                        <>🧪 Zahlung simulieren (nur Bolt-Vorschau)</>
-                      )}
-                    </button>
-                  )}
                 </div>
               </div>
             </motion.div>
@@ -887,6 +829,30 @@ export default function CvPaywallPage() {
           </button>
         </motion.div>
       </div>
+
+      {/* Sticky CTA — der Kauf-Button sitzt sonst ganz unten unter Vorteilen,
+          Beispiel und Feature-Liste; auf dem Handy waeren das mehrere
+          Bildschirme Scrollen, bevor man kaufen kann. Diese Leiste haelt
+          Preis + Button jederzeit erreichbar, unabhaengig vom Scrollstand. */}
+      {isCvCheckFlow && (
+        <div className="fixed bottom-0 inset-x-0 z-40 sm:hidden bg-[#0a0a0a]/95 backdrop-blur-xl border-t border-white/10 px-4 py-3">
+          <div className="flex items-center gap-3 max-w-md mx-auto">
+            <div className="flex-shrink-0">
+              <p className="text-lg font-bold text-[#66c0b6] leading-none">
+                {CV_CHECK_PACKAGE.price.toFixed(2).replace('.', ',')}€
+              </p>
+              <p className="text-[10px] text-white/40 mt-0.5">einmalig</p>
+            </div>
+            <button
+              onClick={() => handleSelectPackage(CV_CHECK_PACKAGE)}
+              disabled={isProcessing || !stripeValidation.isValid}
+              className="flex-1 py-3 rounded-xl font-bold text-sm bg-gradient-to-r from-[#66c0b6] to-[#30E3CA] text-black disabled:opacity-50 disabled:cursor-not-allowed transition-all"
+            >
+              {isProcessing ? 'Weiterleitung...' : 'Jetzt freischalten'}
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
