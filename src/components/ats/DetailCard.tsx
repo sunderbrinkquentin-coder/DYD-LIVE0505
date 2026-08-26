@@ -20,12 +20,35 @@ function extractTipp(raw: string): string {
   // Pattern: Ändere "..." in: "..." — keep only the part after "in:"
   const inColonMatch = raw.match(/\bin\s*:\s*[""„]?([\s\S]+)/i);
   if (inColonMatch) return inColonMatch[1].replace(/["""„]+$/, '').trim();
-
   // Pattern: content inside the SECOND [...] bracket pair
   const brackets = [...raw.matchAll(/\[([^\]]+)\]/g)];
   if (brackets.length >= 2) return brackets[1][1].trim();
-
   return raw;
+}
+
+/**
+ * Splits a block of text into individual bullet points.
+ *
+ * Handles three shapes of input the backend can send:
+ *  - explicit bullet markers ("- ", "• ", "* ") at line starts
+ *  - numbered lists ("1. ", "2) ")
+ *  - plain prose with real newlines, semicolons, or sentence boundaries
+ *
+ * Without this, text containing literal "\n" or "- " markers renders as
+ * one run-on paragraph, because CSS collapses whitespace by default and
+ * a plain <p> has no idea those markers mean "new item".
+ */
+function splitIntoBullets(raw: string): string[] {
+  const normalized = raw
+    // turn "- item" / "• item" / "* item" at a line start into its own line
+    .replace(/(?:^|\n)[ \t]*[-•*][ \t]+/g, '\n')
+    // turn "1. item" / "2) item" at a line start into its own line
+    .replace(/(?:^|\n)[ \t]*\d+[.)][ \t]+/g, '\n');
+
+  return normalized
+    .split(/\n+|(?<=\.)\s+(?=[A-ZÄÖÜ])|;\s*/)
+    .map((s) => s.trim())
+    .filter((s) => s.length > 3);
 }
 
 export function DetailCard({ title, score, feedback, zitat, tipp, delay = 0 }: Props) {
@@ -33,6 +56,7 @@ export function DetailCard({ title, score, feedback, zitat, tipp, delay = 0 }: P
   const [barWidth, setBarWidth] = useState(0);
   const clampedScore = Math.max(0, Math.min(100, score));
   const cleanTipp = tipp ? extractTipp(tipp) : undefined;
+  const feedbackBullets = feedback ? splitIntoBullets(feedback) : [];
 
   return (
     <motion.article
@@ -50,7 +74,6 @@ export function DetailCard({ title, score, feedback, zitat, tipp, delay = 0 }: P
       >
         <div className={`w-2.5 h-2.5 rounded-full flex-shrink-0 ${getProgressColor(clampedScore)}`} />
         <h3 className="text-sm sm:text-base font-semibold text-white flex-1 min-w-0 truncate">{title}</h3>
-
         {/* Score + animated bar on the same line as the title */}
         <div className="flex items-center gap-2.5 flex-shrink-0">
           <div className="hidden sm:block w-24 h-1.5 rounded-full bg-white/10 overflow-hidden">
@@ -83,13 +106,24 @@ export function DetailCard({ title, score, feedback, zitat, tipp, delay = 0 }: P
           transition={{ duration: 0.3 }}
           className="px-4 pb-4 sm:px-5 sm:pb-5 pt-3 space-y-4"
         >
-          {/* Feedback */}
+          {/* Feedback — bullet list when multiple points are detected */}
           {feedback && (
             <div>
               <p className="text-[10px] font-semibold uppercase tracking-widest text-white/35 mb-1.5">
                 Bewertung
               </p>
-              <p className="text-sm text-white/72 leading-relaxed">{feedback}</p>
+              {feedbackBullets.length > 1 ? (
+                <ul className="space-y-1.5">
+                  {feedbackBullets.map((b, i) => (
+                    <li key={i} className="flex items-start gap-2">
+                      <span className="flex-shrink-0 mt-1.5 w-1.5 h-1.5 rounded-full bg-white/30" />
+                      <span className="text-sm text-white/72 leading-relaxed">{b}</span>
+                    </li>
+                  ))}
+                </ul>
+              ) : (
+                <p className="text-sm text-white/72 leading-relaxed">{feedback}</p>
+              )}
             </div>
           )}
 
@@ -110,11 +144,7 @@ export function DetailCard({ title, score, feedback, zitat, tipp, delay = 0 }: P
 
           {/* Tipp — Confidence: prominent green recommendation, bullet list */}
           {cleanTipp && (() => {
-            // Split on sentence boundaries, semicolons, or explicit newlines — filter empties
-            const bullets = cleanTipp
-              .split(/\n|(?<=\.)\s+(?=[A-ZÄÖÜ])|;\s*/)
-              .map(s => s.trim())
-              .filter(s => s.length > 3);
+            const bullets = splitIntoBullets(cleanTipp);
             return (
               <div className="rounded-xl bg-[#0d2420] border border-[#66c0b6]/35 px-4 py-3">
                 <div className="flex gap-2.5 items-start">
