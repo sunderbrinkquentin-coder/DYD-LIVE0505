@@ -58,9 +58,19 @@ const EditableText: React.FC<{
   multiline?: boolean;
   wrap?: boolean;
   style?: React.CSSProperties;
-}> = ({ value, onChange, className = '', placeholder = '', multiline = false, wrap = false, style }) => {
+  /**
+   * Element-Tag. Default `div`.
+   *
+   * FIX (Skill-Chips verschoben): ein `<div>` innerhalb eines
+   * `inline-flex`-Pill-Wrappers bricht dessen Inline-/Flex-Fluss — die
+   * Pillenform wird vom Flex-Layout berechnet, der contentEditable-Inhalt
+   * aber als Block gerendert, wodurch Text und Umrandung auseinanderlaufen.
+   * Chips/Badges müssen deshalb `as="span"` übergeben (siehe unten).
+   */
+  as?: 'div' | 'span';
+}> = ({ value, onChange, className = '', placeholder = '', multiline = false, wrap = false, style, as = 'div' }) => {
   const v = value ?? '';
-  const ref = useRef<HTMLDivElement>(null);
+  const ref = useRef<HTMLElement>(null);
   const isComposing = useRef(false);
   const isFocused = useRef(false);
   const lastValue = useRef(v);
@@ -92,7 +102,7 @@ const EditableText: React.FC<{
     setRenderKey(ref.current?.textContent ?? v);
   }, [handleInput, v]);
 
-  const handleKeyDown = useCallback((e: React.KeyboardEvent<HTMLDivElement>) => {
+  const handleKeyDown = useCallback((e: React.KeyboardEvent<HTMLElement>) => {
     if (!multiline && e.key === 'Enter') {
       e.preventDefault();
       e.currentTarget.blur();
@@ -101,33 +111,36 @@ const EditableText: React.FC<{
 
   const flows = multiline || wrap;
 
-  return (
-    <div
-      key={renderKey}
-      ref={ref}
-      contentEditable
-      suppressContentEditableWarning
-      onInput={handleInput}
-      onFocus={handleFocus}
-      onBlur={handleBlur}
-      onKeyDown={handleKeyDown}
-      onCompositionStart={() => { isComposing.current = true; }}
-      onCompositionEnd={() => { isComposing.current = false; handleInput(); }}
-      data-placeholder={placeholder}
-      className={[
-        'outline-none focus:ring-0 cursor-text w-full',
+  return React.createElement(
+    as,
+    {
+      key: renderKey,
+      ref,
+      contentEditable: true,
+      suppressContentEditableWarning: true,
+      onInput: handleInput,
+      onFocus: handleFocus,
+      onBlur: handleBlur,
+      onKeyDown: handleKeyDown,
+      onCompositionStart: () => { isComposing.current = true; },
+      onCompositionEnd: () => { isComposing.current = false; handleInput(); },
+      'data-placeholder': placeholder,
+      className: [
+        'outline-none focus:ring-0 cursor-text',
+        as === 'div' ? 'w-full' : '',
         'empty:before:content-[attr(data-placeholder)] empty:before:text-slate-300',
         className,
-      ].join(' ')}
-      style={{
+      ].filter(Boolean).join(' '),
+      style: {
         whiteSpace: multiline ? 'pre-wrap' : wrap ? 'normal' : 'nowrap',
         wordBreak: flows ? 'break-word' : 'normal',
         overflow: flows ? 'visible' : 'hidden',
         textOverflow: flows ? 'unset' : 'ellipsis',
         ...(flows ? { overflowWrap: 'break-word' as const } : {}),
         ...style,
-      }}
-    >{renderKey}</div>
+      },
+    },
+    renderKey
   );
 };
 
@@ -713,6 +726,7 @@ export const ProfessionalCVTemplate: React.FC<ProfessionalCVTemplateProps> = ({
                 return (
                   <span key={idx} style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', marginRight: '5px', marginBottom: '5px', verticalAlign: 'middle', padding: '2px 8px', borderRadius: '9999px', border: '1px solid #cbd5e1', background: '#f1f5f9', whiteSpace: 'nowrap', breakInside: 'avoid', pageBreakInside: 'avoid', lineHeight: 1.4 }}>
                     <EditableText
+                      as="span"
                       style={{ fontSize: '9px', color: '#1e293b', lineHeight: 1.4, display: 'inline-block', verticalAlign: 'middle', textAlign: 'center', width: 'auto' }}
                       value={display}
                       onChange={(val) => onUpdateSectionItem(sectionIndex, idx, 'skill', val)}
@@ -743,6 +757,7 @@ export const ProfessionalCVTemplate: React.FC<ProfessionalCVTemplateProps> = ({
                 return (
                   <span key={idx} style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', marginRight: '5px', marginBottom: '5px', verticalAlign: 'middle', padding: '2px 8px', borderRadius: '9999px', border: '1px solid #cbd5e1', background: '#f1f5f9', whiteSpace: 'nowrap', breakInside: 'avoid', pageBreakInside: 'avoid', lineHeight: 1.4 }}>
                     <EditableText
+                      as="span"
                       style={{ fontSize: '9px', color: '#1e293b', lineHeight: 1.4, display: 'inline-block', verticalAlign: 'middle', textAlign: 'center', width: 'auto' }}
                       value={display}
                       onChange={(val) => onUpdateSectionItem(sectionIndex, idx, 'skill', val)}
@@ -772,6 +787,7 @@ export const ProfessionalCVTemplate: React.FC<ProfessionalCVTemplateProps> = ({
                 return (
                   <span key={idx} style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', marginRight: '5px', marginBottom: '5px', verticalAlign: 'middle', padding: '2px 8px', borderRadius: '9999px', border: '1px solid #cbd5e1', background: '#f1f5f9', whiteSpace: 'nowrap', breakInside: 'avoid', pageBreakInside: 'avoid', lineHeight: 1.4 }}>
                     <EditableText
+                      as="span"
                       style={{ fontSize: '9px', color: '#1e293b', lineHeight: 1.4, display: 'inline-block', verticalAlign: 'middle', textAlign: 'center', width: 'auto' }}
                       value={cleanedV}
                       onChange={(val) => onUpdateSectionItem(sectionIndex, idx, 'label', val)}
@@ -801,6 +817,7 @@ export const ProfessionalCVTemplate: React.FC<ProfessionalCVTemplateProps> = ({
                 return (
                   <span key={idx} style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', marginRight: '5px', marginBottom: '5px', verticalAlign: 'middle', padding: '2px 8px', borderRadius: '9999px', border: '1px solid #cbd5e1', background: '#f1f5f9', whiteSpace: 'nowrap', breakInside: 'avoid', pageBreakInside: 'avoid', lineHeight: 1.4 }}>
                     <EditableText
+                      as="span"
                       style={{ fontSize: '9px', color: '#1e293b', lineHeight: 1.4, display: 'inline-block', verticalAlign: 'middle', textAlign: 'center', width: 'auto' }}
                       value={cleanedV}
                       onChange={(val) => onUpdateSectionItem(sectionIndex, idx, 'label', val)}
