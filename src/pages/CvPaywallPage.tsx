@@ -2,7 +2,7 @@
 import { useEffect, useState, useMemo } from 'react';
 import { useNavigate, useSearchParams, useLocation } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { Check, Loader, Sparkles, Shield, Zap, AlertCircle, Star, Coins, Lock, Quote, Lightbulb } from 'lucide-react';
+import { Check, Loader, Sparkles, Shield, Zap, AlertCircle, Star, Coins, Quote, Lightbulb, Target, TrendingUp } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../contexts/AuthContext';
 import { validateStripePriceIds } from '../utils/stripeConfigValidator';
@@ -40,15 +40,39 @@ const CV_CHECK_PACKAGE: Package = {
   popular: true,
 };
 
-// Beispielhafte Vorschau-Zeilen für die "Das siehst du"-Teaser-Karte im
-// CV-Check-Paket — bewusst mit Platzhalter-Werten (keine echten Nutzerdaten),
-// aber in derselben Optik wie die echte Detailanalyse (siehe DetailCard.tsx),
-// damit der Kaeufer vor dem Freischalten weiss, was ihn erwartet.
-const PREVIEW_ROWS = [
-  { title: 'Erfolge & KPIs', score: 58, color: 'bg-amber-400' },
-  { title: 'Klarheit der Sprache', score: 74, color: 'bg-[#66c0b6]' },
-  { title: 'USP & Skills', score: 41, color: 'bg-red-400' },
+// Die drei zentralen Nutzenversprechen des CV-Checks — bewusst dieselben
+// Kernaussagen (ATS-Quote, Interview-Chance) wie schon im Lade-Screen von
+// CvResultPage, damit die Botschaft app-weit konsistent bleibt.
+const CV_CHECK_BENEFITS = [
+  {
+    icon: Target,
+    title: 'Zeigt dir genau, wo dein CV hängen bleibt',
+    text: '90% der Unternehmen nutzen ATS-Systeme, die deinen CV automatisiert scannen, bevor ihn ein Mensch sieht. Wir zeigen dir Zeile für Zeile, woran er dort scheitern würde.',
+  },
+  {
+    icon: Lightbulb,
+    title: 'Fertige Formulierungen statt allgemeiner Tipps',
+    text: 'Keine generischen Ratschläge wie „mehr Zahlen einbauen" — sondern konkrete Umformulierungen für deine eigenen CV-Zeilen, die du direkt übernehmen kannst.',
+  },
+  {
+    icon: TrendingUp,
+    title: 'Mehr Einladungen zum Gespräch',
+    text: 'Ein CV, der Ergebnisse statt Aufgaben zeigt, überzeugt Recruiter in den wenigen Sekunden, die er sich dafür Zeit nimmt — das erhöht deine Interview-Chancen spürbar.',
+  },
 ];
+
+// Vollständiges, NICHT verschwommenes Beispiel — mit Platzhalter-CV-Inhalten
+// (klar als "Beispiel" markiert, keine echten Nutzerdaten), aber exakt in
+// der Optik der echten Detailanalyse (siehe DetailCard.tsx: farbiger Punkt,
+// Score-Balken, Bewertung, Zitat aus dem CV, Recruiter-Empfehlung). Ein
+// konkretes Vorher/Nachher-Beispiel überzeugt mehr als eine blosse Blur-Vorschau.
+const EXAMPLE_CARD = {
+  title: 'Erfolge & KPIs',
+  score: 54,
+  feedback: 'Deine Erfahrung liest sich wie eine Aufgabenliste, aber es fehlen messbare Ergebnisse. Recruiter suchen konkrete Zahlen, um deinen Impact in wenigen Sekunden einschätzen zu können.',
+  zitat: 'Verantwortlich für die Betreuung mehrerer Kundenprojekte im Bereich Vertrieb.',
+  tipp: 'Steigerte den Jahresumsatz im betreuten Vertriebsgebiet um 23% durch die eigenständige Betreuung von 15 Kundenprojekten.',
+};
 
 const OPTIMIZER_PACKAGES: Package[] = [
   {
@@ -100,6 +124,16 @@ const OPTIMIZER_PACKAGES: Package[] = [
 
 // Supabase Edge Function URL für stripe-checkout
 const STRIPE_CHECKOUT_URL = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/stripe-checkout`;
+
+// WebContainer-Vorschauen (Bolt.new / StackBlitz, Domain *.webcontainer-api.io)
+// koennen einen echten Stripe-Redirect nicht zurueck in die Sandbox
+// verarbeiten (Cannot navigate to .localservice@service_worker...) — das ist
+// eine Einschraenkung der Sandbox selbst, kein App-Bug. Der Dev-Bypass unten
+// simuliert nur die Zahlung (is_paid=true + Redirect zu /cv-result), damit
+// der Rest des Flows (triggerCvExtraction, Analyse, Ergebnis) trotzdem in
+// Bolt getestet werden kann. Greift nie auf der echten Domain.
+const IS_WEBCONTAINER_PREVIEW =
+  typeof window !== 'undefined' && window.location.hostname.includes('webcontainer-api.io');
 
 // Stripe Price IDs Mapping
 const PRICE_IDS: Record<string, string> = {
@@ -233,6 +267,40 @@ export default function CvPaywallPage() {
       console.error('[CvPaywall] Error checking payment:', err);
       setError('Fehler beim Prüfen des Zahlungsstatus');
       setIsChecking(false);
+    }
+  };
+
+  // Dev-only: simulates a successful payment without touching Stripe at all,
+  // so the post-payment flow (triggerCvExtraction -> analysis -> result) can
+  // be tested inside a WebContainer preview, where the real Stripe redirect
+  // back into the sandbox fails. Never rendered outside webcontainer-api.io.
+  const [isSimulatingPayment, setIsSimulatingPayment] = useState(false);
+
+  const handleSimulatePaymentDev = async () => {
+    if (!cvId) return;
+    setIsSimulatingPayment(true);
+    setError(null);
+    try {
+      const { error: updateError } = await supabase
+        .from('stored_cvs')
+        .update({
+          is_paid: true,
+          download_unlocked: true,
+          payment_date: new Date().toISOString(),
+          updated_at: new Date().toISOString(),
+        })
+        .eq('id', cvId);
+
+      if (updateError) {
+        setError(`Simulierte Zahlung fehlgeschlagen: ${updateError.message}`);
+        setIsSimulatingPayment(false);
+        return;
+      }
+
+      navigate(`/cv-result/${cvId}?payment=success`, { replace: true });
+    } catch (err: any) {
+      setError(`Simulierte Zahlung fehlgeschlagen: ${err?.message || String(err)}`);
+      setIsSimulatingPayment(false);
     }
   };
 
@@ -623,6 +691,94 @@ export default function CvPaywallPage() {
           </motion.div>
         )}
 
+        {/* Nutzenversprechen — dieselben Kernaussagen wie im Lade-Screen von
+            CvResultPage, damit die Botschaft konsistent bleibt, hier aber
+            gezielt auf den Kaufentscheid vor der Zahlung ausgerichtet. */}
+        {isCvCheckFlow && (
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.1 }}
+            className="max-w-4xl mx-auto mb-10 grid sm:grid-cols-3 gap-4"
+          >
+            {CV_CHECK_BENEFITS.map((benefit) => (
+              <div
+                key={benefit.title}
+                className="rounded-2xl bg-white/5 border border-white/10 p-5"
+              >
+                <div className="w-9 h-9 rounded-lg bg-[#66c0b6]/10 flex items-center justify-center mb-3">
+                  <benefit.icon size={18} className="text-[#66c0b6]" />
+                </div>
+                <h3 className="text-sm font-semibold text-white mb-1.5">{benefit.title}</h3>
+                <p className="text-xs text-white/60 leading-relaxed">{benefit.text}</p>
+              </div>
+            ))}
+          </motion.div>
+        )}
+
+        {/* Vollständiges Beispiel, keine Blur-Vorschau — zeigt konkret, wie
+            eine Kategorie der echten Detailanalyse aussieht (gleiche Optik
+            wie DetailCard.tsx), inklusive Vorher/Nachher-Formulierung. Klar
+            als Beispiel markiert, keine echten Nutzerdaten. */}
+        {isCvCheckFlow && (
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.2 }}
+            className="max-w-xl mx-auto mb-10"
+          >
+            <div className="flex items-center justify-center gap-2 mb-3">
+              <span className="text-xs font-semibold uppercase tracking-widest text-white/40">
+                So sieht deine Analyse aus
+              </span>
+              <span className="text-[10px] font-bold uppercase tracking-wide bg-[#66c0b6]/15 text-[#66c0b6] px-2 py-0.5 rounded-full">
+                Beispiel
+              </span>
+            </div>
+            <div className="rounded-2xl bg-[#0b1220] border border-white/5 overflow-hidden shadow-xl">
+              <div className="flex items-center gap-3 px-4 py-3.5 sm:px-5 sm:py-4 border-b border-white/5">
+                <span className="w-2.5 h-2.5 rounded-full flex-shrink-0 bg-amber-400" />
+                <h4 className="text-sm sm:text-base font-semibold text-white flex-1">{EXAMPLE_CARD.title}</h4>
+                <div className="hidden sm:block w-24 h-1.5 rounded-full bg-white/10 overflow-hidden">
+                  <div className="h-full rounded-full bg-amber-400" style={{ width: `${EXAMPLE_CARD.score}%` }} />
+                </div>
+                <span className="text-xs font-bold text-white/50">{EXAMPLE_CARD.score}/100</span>
+              </div>
+              <div className="px-4 pb-4 sm:px-5 sm:pb-5 pt-3 space-y-4">
+                <div>
+                  <p className="text-[10px] font-semibold uppercase tracking-widest text-white/35 mb-1.5">Bewertung</p>
+                  <p className="text-sm text-white/72 leading-relaxed">{EXAMPLE_CARD.feedback}</p>
+                </div>
+                <div className="rounded-xl bg-white/[0.04] border border-white/10 px-4 py-3">
+                  <div className="flex gap-2.5 items-start">
+                    <Quote size={14} className="text-white/25 flex-shrink-0 mt-0.5" />
+                    <div>
+                      <p className="text-[10px] font-semibold uppercase tracking-widest text-white/30 mb-1.5">
+                        Aktueller Stand im (Beispiel-)CV
+                      </p>
+                      <p className="text-xs sm:text-sm text-white/52 leading-relaxed italic">{EXAMPLE_CARD.zitat}</p>
+                    </div>
+                  </div>
+                </div>
+                <div className="rounded-xl bg-[#0d2420] border border-[#66c0b6]/35 px-4 py-3">
+                  <div className="flex gap-2.5 items-start">
+                    <Lightbulb size={15} className="text-[#66c0b6] flex-shrink-0 mt-0.5" />
+                    <div className="flex-1 min-w-0">
+                      <p className="text-[10px] font-semibold uppercase tracking-widest text-[#66c0b6]/75 mb-2">
+                        Recruiter-Empfehlung
+                      </p>
+                      <p className="text-xs sm:text-sm text-[#b8ede8] leading-relaxed">{EXAMPLE_CARD.tipp}</p>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+            <p className="text-center text-[11px] text-white/35 mt-2.5">
+              Genau in dieser Form bekommst du Feedback zu allen 6 Kategorien deines eigenen CVs.
+            </p>
+          </motion.div>
+        )}
+
         <div className={`${isCvCheckFlow ? 'max-w-md mx-auto' : 'grid md:grid-cols-3 gap-6 max-w-5xl mx-auto'}`}>
           {displayPackages.map((pkg, index) => (
             <motion.div
@@ -673,47 +829,6 @@ export default function CvPaywallPage() {
                   ))}
                 </ul>
 
-                {/* Visuelle Vorschau — zeigt in derselben Optik wie die echte
-                    Detailanalyse (DetailCard.tsx: farbiger Punkt, Score-Balken,
-                    Zitat, Recruiter-Empfehlung), was nach dem Freischalten
-                    wartet. Platzhalter-Werte, keine echten Nutzerdaten. */}
-                {isCvCheckFlow && (
-                  <div className="mb-6 rounded-xl border border-white/10 bg-white/[0.03] overflow-hidden relative">
-                    <p className="text-[10px] font-semibold uppercase tracking-widest text-white/35 px-4 pt-3 pb-2">
-                      Das siehst du nach dem Freischalten
-                    </p>
-                    <div className="px-4 pb-4 space-y-3 blur-[1.5px] opacity-80 pointer-events-none select-none">
-                      {PREVIEW_ROWS.map((row) => (
-                        <div key={row.title} className="flex items-center gap-2.5">
-                          <span className={`w-2 h-2 rounded-full flex-shrink-0 ${row.color}`} />
-                          <span className="text-xs text-white/75 flex-1 truncate">{row.title}</span>
-                          <div className="hidden sm:block w-16 h-1 rounded-full bg-white/10 overflow-hidden">
-                            <div className={`h-full rounded-full ${row.color}`} style={{ width: `${row.score}%` }} />
-                          </div>
-                          <span className="text-[11px] font-bold text-white/40 w-10 text-right">{row.score}/100</span>
-                        </div>
-                      ))}
-                      <div className="flex gap-2 items-start pt-1">
-                        <Quote size={12} className="text-white/25 flex-shrink-0 mt-0.5" />
-                        <span className="text-[11px] text-white/45 italic leading-relaxed">
-                          "...verantwortlich für Kundenprojekte..." — zu unkonkret für Recruiter
-                        </span>
-                      </div>
-                      <div className="flex gap-2 items-start">
-                        <Lightbulb size={12} className="text-[#66c0b6]/70 flex-shrink-0 mt-0.5" />
-                        <span className="text-[11px] text-[#b8ede8]/70 leading-relaxed">
-                          Konkrete Umformulierung mit messbarem Ergebnis
-                        </span>
-                      </div>
-                    </div>
-                    <div className="absolute inset-x-0 bottom-0 h-16 bg-gradient-to-t from-[#0b1220] to-transparent flex items-end justify-center pb-2.5">
-                      <span className="flex items-center gap-1.5 text-[11px] font-medium text-white/70 bg-black/50 px-3 py-1 rounded-full border border-white/10">
-                        <Lock size={11} /> Erst nach Freischaltung sichtbar
-                      </span>
-                    </div>
-                  </div>
-                )}
-
                 <div className="space-y-3">
                   <button
                     onClick={() => handleSelectPackage(pkg)}
@@ -730,6 +845,21 @@ export default function CvPaywallPage() {
                   )}
                   {!stripeValidation.isValid && (
                     <p className="text-xs text-red-400 text-center">Checkout disabled until Stripe env is configured.</p>
+                  )}
+                  {IS_WEBCONTAINER_PREVIEW && isCvCheckFlow && (
+                    <button
+                      onClick={handleSimulatePaymentDev}
+                      disabled={isSimulatingPayment}
+                      className="w-full py-3 rounded-xl font-semibold text-sm border border-dashed border-yellow-500/50 text-yellow-300 hover:bg-yellow-500/10 transition disabled:opacity-50 flex items-center justify-center gap-2"
+                    >
+                      {isSimulatingPayment ? (
+                        <>
+                          <Loader size={14} className="animate-spin" /> Simuliere Zahlung...
+                        </>
+                      ) : (
+                        <>🧪 Zahlung simulieren (nur Bolt-Vorschau)</>
+                      )}
+                    </button>
                   )}
                 </div>
               </div>
