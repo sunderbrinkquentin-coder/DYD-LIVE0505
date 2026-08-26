@@ -36,7 +36,6 @@ export const AtsResultDisplay: React.FC<Props> = ({
 }) => {
   const navigate = useNavigate();
   const { user } = useAuth();
-
   const [isSaving, setIsSaving] = useState(false);
   const [saveSuccess, setSaveSuccess] = useState(false);
   const [activeTab, setActiveTab] = useState<'overview' | 'detail'>('overview');
@@ -123,26 +122,21 @@ export const AtsResultDisplay: React.FC<Props> = ({
       navigate(`/login?redirect=${encodeURIComponent(`/cv-result/${uploadId}`)}`);
       return;
     }
-
     setIsSaving(true);
-
     const { error } = await supabase.from('ats_analyses').insert({
       user_id: user.id,
       upload_id: uploadId,
       analysis_data: result,
       ats_score: result.ats_score ?? 0,
     });
-
     if (error) {
       console.error('[AtsResultDisplay] Save error:', error);
       setIsSaving(false);
       return;
     }
-
     setSaveSuccess(true);
     onSaveComplete?.();
     setIsSaving(false);
-
     // Always go to dashboard and surface the new check notification there.
     // For unpaid users, the dashboard will also offer the unlock upsell.
     navigate(`/dashboard?cv_check=new${!isPaid ? `&cv_unlock=${uploadId}` : ''}`);
@@ -172,7 +166,6 @@ export const AtsResultDisplay: React.FC<Props> = ({
   return (
     <div className="min-h-screen bg-[#050816]">
       <div className="max-w-7xl mx-auto px-3 py-4 space-y-4 sm:px-4 sm:py-6">
-
         {/* HEADER */}
         <motion.header
           initial={{ opacity: 0, y: -10 }}
@@ -186,12 +179,9 @@ export const AtsResultDisplay: React.FC<Props> = ({
             Score + Top-Empfehlungen für bessere Ergebnisse
           </p>
         </motion.header>
-
         <div className="lg:grid lg:grid-cols-[1.5fr,1fr] lg:gap-6">
-
           {/* LEFT COLUMN */}
           <div className="space-y-4 sm:space-y-6">
-
             {/* SCORE CARD */}
             <motion.div
               initial={{ opacity: 0, y: 20 }}
@@ -205,14 +195,12 @@ export const AtsResultDisplay: React.FC<Props> = ({
                 <div className="flex-shrink-0">
                   <CircularScore score={score} />
                 </div>
-
                 {/* Label + sub-text */}
                 <div className="min-w-0">
                   <p className="text-xl md:text-2xl font-bold text-white leading-tight">{scoreLabel}</p>
                   <p className="text-sm text-white/50 mt-1">ATS-Score {score}/100</p>
                 </div>
               </div>
-
               {/* Profile meta grid — 2 columns, separated by a subtle top border */}
               {profileChips.length > 0 && (
                 <div className="mt-5 pt-5 border-t border-white/[0.07] grid grid-cols-1 sm:grid-cols-2 gap-3">
@@ -233,7 +221,6 @@ export const AtsResultDisplay: React.FC<Props> = ({
                 </div>
               )}
             </motion.div>
-
             {/* TABS */}
             <motion.div
               initial={{ opacity: 0, y: 20 }}
@@ -251,7 +238,6 @@ export const AtsResultDisplay: React.FC<Props> = ({
               >
                 <BarChart3 size={18} /> Übersicht
               </button>
-
               <button
                 onClick={() => setActiveTab('detail')}
                 className={`flex items-center gap-2 px-6 py-3 rounded-full font-semibold transition-all ${
@@ -263,7 +249,6 @@ export const AtsResultDisplay: React.FC<Props> = ({
                 <FileCheck size={18} /> Detailanalyse
               </button>
             </motion.div>
-
             {/* OVERVIEW TAB */}
             {activeTab === 'overview' && (
               <motion.div
@@ -283,7 +268,6 @@ export const AtsResultDisplay: React.FC<Props> = ({
                 ))}
               </motion.div>
             )}
-
             {/* DETAIL TAB */}
             {activeTab === 'detail' && (
               <>
@@ -297,15 +281,12 @@ export const AtsResultDisplay: React.FC<Props> = ({
                     <div className="w-20 h-20 rounded-full bg-gradient-to-br from-[#66c0b6] to-[#30E3CA] flex items-center justify-center mx-auto mb-6">
                       <Lock size={36} className="text-black" />
                     </div>
-
                     <h3 className="text-2xl font-bold text-white mb-3">
                       Detailanalyse freischalten
                     </h3>
-
                     <p className="text-white/70 mb-6 text-lg">
                       Erhalte Zugriff auf detaillierte Kategorien-Bewertungen, konkretes Feedback und Verbesserungsvorschläge für deinen Lebenslauf.
                     </p>
-
                     <div className="bg-white/5 rounded-xl p-6 mb-6">
                       <h4 className="text-white font-semibold mb-3">Das bekommst du:</h4>
                       <ul className="text-left text-white/80 space-y-2">
@@ -322,7 +303,6 @@ export const AtsResultDisplay: React.FC<Props> = ({
                         ))}
                       </ul>
                     </div>
-
                     <button
                       onClick={() => {
                         if (!user) {
@@ -333,9 +313,8 @@ export const AtsResultDisplay: React.FC<Props> = ({
                       }}
                       className="w-full px-8 py-4 rounded-xl bg-gradient-to-r from-[#66c0b6] to-[#30E3CA] text-black font-bold text-lg hover:opacity-90 transition-all shadow-lg"
                     >
-                      Jetzt für 5€ freischalten
+                      Jetzt für 2,99€ freischalten
                     </button>
-
                     {/* Blurred preview skeleton */}
                     <div className="blur-md opacity-30 mt-8 pointer-events-none space-y-3">
                       {[1, 2, 3].map((n) => (
@@ -368,10 +347,8 @@ export const AtsResultDisplay: React.FC<Props> = ({
               </>
             )}
           </div>
-
           {/* RIGHT COLUMN */}
           <div className="space-y-4 sm:space-y-6 mt-6 lg:mt-0">
-
             {/* Interactive Todo Checklist — Satisfaction */}
             {todoEntries.length > 0 && (
               <motion.div
@@ -386,7 +363,6 @@ export const AtsResultDisplay: React.FC<Props> = ({
                     {completedCount}/{todoEntries.length} erledigt
                   </span>
                 </div>
-
                 {/* Progress bar */}
                 <div className="h-1.5 rounded-full bg-white/10 overflow-hidden">
                   <div
@@ -394,7 +370,6 @@ export const AtsResultDisplay: React.FC<Props> = ({
                     style={{ width: `${todoEntries.length > 0 ? (completedCount / todoEntries.length) * 100 : 0}%` }}
                   />
                 </div>
-
                 <div className="space-y-1">
                   {todoEntries.map(([key, value], index) => {
                     const isChecked = checkedTodos[key] ?? false;
@@ -429,7 +404,6 @@ export const AtsResultDisplay: React.FC<Props> = ({
                 </div>
               </motion.div>
             )}
-
             {/* Time Info */}
             <motion.div
               initial={{ opacity: 0, y: 20 }}
@@ -447,7 +421,6 @@ export const AtsResultDisplay: React.FC<Props> = ({
                 </div>
               </div>
             </motion.div>
-
             {/* NEXT STEP CTA */}
             {showActions && !isFromDashboard && !saveSuccess && (
               <motion.div
@@ -466,7 +439,6 @@ export const AtsResultDisplay: React.FC<Props> = ({
                     Nächster Schritt
                   </span>
                 </div>
-
                 <div
                   className="relative overflow-hidden rounded-2xl border border-[#66c0b6]/25 p-5 space-y-3"
                   style={{ background: 'linear-gradient(135deg, #0a1628 0%, #0d1f3c 100%)' }}
@@ -481,7 +453,6 @@ export const AtsResultDisplay: React.FC<Props> = ({
                       Speichere deine Analyse und erstelle direkt einen optimierten CV.
                     </p>
                   </div>
-
                   <button
                     onClick={handleSaveToDashboard}
                     disabled={isSaving}
@@ -504,7 +475,6 @@ export const AtsResultDisplay: React.FC<Props> = ({
                       : <><Save size={16} /> Im Dashboard speichern</>
                     }
                   </button>
-
                   <button
                     onClick={() => navigate(uploadId ? `/cv-wizard?importFrom=${uploadId}` : '/cv-wizard')}
                     className="w-full rounded-xl font-semibold py-3 text-sm text-white/70 border border-white/10 hover:bg-white/5 hover:text-white hover:border-white/20 transition-all flex items-center justify-center gap-2"
@@ -517,7 +487,6 @@ export const AtsResultDisplay: React.FC<Props> = ({
           </div>
         </div>
       </div>
-
       {/* UNLOCK MODAL */}
       {showUnlockModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm">
@@ -529,14 +498,12 @@ export const AtsResultDisplay: React.FC<Props> = ({
             <div className="w-14 h-14 rounded-full bg-gradient-to-br from-[#66c0b6] to-[#30E3CA] flex items-center justify-center mx-auto mb-4">
               <Lock size={26} className="text-black" />
             </div>
-
             <h3 className="text-xl font-bold text-white text-center mb-2">
               Detailanalyse freischalten?
             </h3>
             <p className="text-white/60 text-sm text-center mb-6">
               Dein CV wurde gespeichert. Möchtest du jetzt die detaillierte Analyse mit konkretem Feedback und Recruiter-Empfehlungen freischalten?
             </p>
-
             <ul className="space-y-2 mb-6">
               {[
                 'Detaillierte Bewertung in 6 Kategorien',
@@ -549,14 +516,12 @@ export const AtsResultDisplay: React.FC<Props> = ({
                 </li>
               ))}
             </ul>
-
             <button
               onClick={handleUnlockYes}
               className="w-full rounded-full bg-gradient-to-r from-[#66c0b6] to-[#30E3CA] text-black font-semibold py-3 mb-3 hover:opacity-90 transition-all"
             >
-              Jetzt für 5€ freischalten
+              Jetzt für 2,99€ freischalten
             </button>
-
             <button
               onClick={handleUnlockNo}
               className="w-full rounded-full bg-white/10 border border-white/20 text-white font-semibold py-3 hover:bg-white/20 transition-all"
