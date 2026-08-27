@@ -338,6 +338,12 @@ const cloneRef = useRef<HTMLDivElement | null>(null);
   /** Klick auf ein sichtbares Blatt → nächstliegende Box öffnen. Index in dieser
    *  Kopie == Index im versteckten Root (identisches DOM). */
   const openFocus = (e: React.MouseEvent) => {
+    // Klick auf den Drag-Griff einer Sektion/eines Items NICHT als
+    // "Box öffnen" behandeln — sonst poppt bei jedem (Dreh-)Klick auf den
+    // Griff die Fokus-Ansicht auf, statt dass der native Drag greift bzw.
+    // einfach nichts passiert. Siehe SectionDragHandle/ItemDragHandle in
+    // EditableText.tsx für die Gegenseite (warum es den Griff überhaupt gibt).
+    if ((e.target as HTMLElement).closest('[data-drag-handle]')) return;
     const copyRoot = e.currentTarget as HTMLElement;
     const box = (e.target as HTMLElement).closest(BOX_SELECTOR) as HTMLElement | null;
     if (!box || !copyRoot.contains(box)) return;
@@ -353,6 +359,14 @@ const cloneRef = useRef<HTMLDivElement | null>(null);
   /** mousedown auf einer Box NICHT fokussieren lassen — sonst poppt die Tastatur
    *  auf dem winzigen Blatt-Feld auf, bevor die große Box öffnet. */
   const swallowMouseDown = (e: React.MouseEvent) => {
+    // Ausnahme: mousedown auf dem Drag-Griff NICHT abfangen. Sonst kann der
+    // native HTML5-Drag nie starten — der Browser initiiert einen Drag nur,
+    // wenn das mousedown, von dem er ausgeht, nicht preventDefault() wurde.
+    // Das war der eigentliche Grund, warum sich Sektionen/Stationen trotz
+    // `draggable` auf der Karte nicht verschieben ließen: jedes mousedown in
+    // der Vorschau wurde hier abgefangen, bevor der Browser überhaupt prüfen
+    // konnte, ob ein Drag beginnen soll.
+    if ((e.target as HTMLElement).closest('[data-drag-handle]')) return;
     if ((e.target as HTMLElement).closest(BOX_SELECTOR)) e.preventDefault();
   };
 
