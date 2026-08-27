@@ -69,6 +69,8 @@ import { useAuth } from '../contexts/AuthContext';
 import { sessionManager } from '../utils/sessionManager';
 import { getOrCreateTempId, clearTempId } from '../utils/tempIdManager';
 import { cvProfileService } from '../services/cvProfileService';
+import { useDsgvoConsent } from '../hooks/useDsgvoConsent';
+import { DsgvoConsentDialog } from '../components/DsgvoConsentDialog';
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Flow-Umbau: Zuordnung Step-Index → Section-Key (aus der renderStep-Reihenfolge)
@@ -308,6 +310,26 @@ export function CVWizard() {
   const { user } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
+
+  const { pendingType, requestConsent, handleAccept, handleDecline } = useDsgvoConsent();
+  const [consentChecked, setConsentChecked] = useState(false);
+  const [consentGranted, setConsentGranted] = useState(false);
+
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      const accepted = await requestConsent('cv-wizard');
+      if (cancelled) return;
+      if (!accepted) {
+        navigate(-1);
+        return;
+      }
+      setConsentGranted(true);
+      setConsentChecked(true);
+    })();
+    return () => { cancelled = true; };
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const searchParams = new URLSearchParams(location.search);
   const modeIsNew = searchParams.get('mode') === 'new';
@@ -1307,6 +1329,25 @@ const finalData: CVBuilderData = {
   );
 
   console.log('[CVWizard] Rendering Step', currentStep, 'with data:', cvData.personalData?.firstName, '| isLoading:', isLoading, '| isInitialLoad:', isInitialLoadRef.current);
+
+  if (!consentChecked || !consentGranted) {
+    return (
+      <>
+        <div className="min-h-screen bg-[#020617] flex items-center justify-center">
+          <div className="flex flex-col items-center gap-4 text-center px-6">
+            <Loader2 className="w-12 h-12 text-[#66c0b6] animate-spin" />
+            <p className="text-white/70 font-medium">Profil wird vorbereitet...</p>
+          </div>
+        </div>
+        <DsgvoConsentDialog
+          isOpen={pendingType === 'cv-wizard'}
+          type="cv-wizard"
+          onAccept={handleAccept}
+          onDecline={handleDecline}
+        />
+      </>
+    );
+  }
 
   return (
     <div className="min-h-screen w-full bg-[#020617] text-white relative">

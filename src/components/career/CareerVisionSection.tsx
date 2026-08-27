@@ -1052,14 +1052,14 @@ export function CareerVisionSection({ cvId: initialCvId, onAnalysisComplete, res
 
 const runAnalysis = useCallback(async () => {
     if (!targetJob.trim()) { setFormError('Bitte gib eine Zielposition ein.'); return; }
+    const consentAccepted = await requestConsent('skill-gap');
+    if (!consentAccepted) return;
     if (!user?.id)          {
       setFormError(null);
       setPendingAnalysis(true);
       setShowLoginModal(true);
       return;
     }
-    const consentAccepted = await requestConsent('skill-gap');
-    if (!consentAccepted) return;
     setFormError(null);
     setApiError(null);
     setResult(null);
