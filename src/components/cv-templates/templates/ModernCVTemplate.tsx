@@ -852,8 +852,8 @@ export const ModernCVTemplate: React.FC<CVTemplateProps> = ({
       return (
         <div
           key={index}
-          style={{ position: 'relative' }}
           {...dragProps(index, onReorderSections)}
+          style={{ position: 'relative', cursor: onReorderSections ? 'grab' : undefined }}
           onDragOver={(e) => { e.preventDefault(); e.dataTransfer.dropEffect = 'move'; }}
           onDrop={(e) => {
             e.preventDefault();
