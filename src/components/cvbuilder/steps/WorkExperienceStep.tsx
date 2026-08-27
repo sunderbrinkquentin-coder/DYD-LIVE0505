@@ -5,8 +5,8 @@ import { SmartCoach, SmartCoachBar } from '../SmartCoach';
 import { WorkExperience, ExperienceLevel, Project } from '../../../types/cvBuilder';
 import { STARCoachingBanner } from '../TasksWithMetricsInput';
 import { CategorizedTasksInput } from '../CategorizedTasksInput';
-import { ACHIEVEMENTS_BY_LEVEL, TASKS_BY_LEVEL } from '../../../config/cvBuilderSteps';
-import { TasksWithMetricsInput } from '../TasksWithMetricsInput';
+import { TASKS_BY_LEVEL } from '../../../config/cvBuilderSteps';
+import { GuidedAchievementsInput, type GuidedAchievement } from '../GuidedAchievementsInput';
 import { getPersonalizedSuggestions } from '../../../services/cvSuggestionsService';
 
 interface WorkExperienceStepProps {
@@ -166,7 +166,6 @@ export function WorkExperienceStep({
   const [showConfirmNext, setShowConfirmNext] = useState(false);
   const [showStarCoaching, setShowStarCoaching] = useState(true);
   const [tasksSuggestions, setTasksSuggestions] = useState<string[]>([]);
-  const [achievementsSuggestions, setAchievementsSuggestions] = useState<string[]>([]);
   const [isLoadingSuggestions, setIsLoadingSuggestions] = useState(false);
 
   const toolsBlockRef = useRef<HTMLDivElement | null>(null);
@@ -206,12 +205,12 @@ export function WorkExperienceStep({
     });
   };
 
-  const updateAchievementsWithMetrics = (index: number, achievements: any[]) => {
+  const updateAchievements = (index: number, achievements: GuidedAchievement[]) => {
     setExperiences(prev => {
       const updated = [...prev];
       const exp = { ...updated[index] };
       exp.achievementsWithMetrics = achievements;
-      exp.achievements = achievements.map((t: any) => t.metrics?.description || t.task || '').filter(Boolean);
+      exp.achievements = achievements.map((a) => a.resultText).filter(Boolean);
       updated[index] = exp;
       onChange(updated as WorkExperience[]);
       return updated;
@@ -306,7 +305,6 @@ export function WorkExperienceStep({
       if (!activeExp) return;
       if (!activeExp.jobTitle || !activeExp.company) {
         setTasksSuggestions(TASKS_BY_LEVEL[expLevel]);
-        setAchievementsSuggestions(ACHIEVEMENTS_BY_LEVEL[expLevel]);
         return;
       }
       setIsLoadingSuggestions(true);
@@ -321,15 +319,10 @@ export function WorkExperienceStep({
           endDate: activeExp.endDate,
           current: activeExp.current,
         };
-        const [tasks, achievements] = await Promise.all([
-          getPersonalizedSuggestions({ context, type: 'tasks', count: 12 }),
-          getPersonalizedSuggestions({ context, type: 'achievements', count: 10 }),
-        ]);
+        const tasks = await getPersonalizedSuggestions({ context, type: 'tasks', count: 12 });
         setTasksSuggestions(tasks);
-        setAchievementsSuggestions(achievements);
       } catch {
         setTasksSuggestions(TASKS_BY_LEVEL[expLevel]);
-        setAchievementsSuggestions(ACHIEVEMENTS_BY_LEVEL[expLevel]);
       } finally {
         setIsLoadingSuggestions(false);
       }
@@ -683,13 +676,12 @@ export function WorkExperienceStep({
                     <span className="text-xs text-white/40">– optional, aber sehr empfohlen</span>
                   </div>
                   <div ref={tasksBlockRef}>
-                    <TasksWithMetricsInput
+                    <GuidedAchievementsInput
                       experienceLevel={expLevel}
-                      suggestedTasks={achievementsSuggestions.length > 0 ? achievementsSuggestions : ACHIEVEMENTS_BY_LEVEL[expLevel]}
-                      value={(activeExp.achievementsWithMetrics as any[]) || []}
-                      onChange={(achievements) => updateAchievementsWithMetrics(activeIndex, achievements)}
+                      value={(activeExp.achievementsWithMetrics as GuidedAchievement[]) || []}
+                      onChange={(achievements) => updateAchievements(activeIndex, achievements)}
                       title="Erfolge mit Zahlen belegen"
-                      emptyMessage="Klicke auf einen Erfolg und füge Zahlen hinzu"
+                      emptyMessage="Füge mindestens einen Erfolg hinzu, der dich von anderen abhebt."
                     />
                   </div>
 
