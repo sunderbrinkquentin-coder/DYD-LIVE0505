@@ -5,6 +5,8 @@ import {
   EditableText,
   dragProps,
   itemDragProps,
+  SectionDragHandle,
+  ItemDragHandle,
   type CVTemplateProps,
   type EditorSection,
 } from '../EditableText';
@@ -284,9 +286,10 @@ export const CreativeCVTemplate: React.FC<CVTemplateProps> = ({
                   key={idx}
                   data-pdf-section
                   data-break-item
-                  style={{ ...cardStyle, cursor: onReorderSectionItem ? 'grab' : undefined }}
+                  style={{ ...cardStyle, position: 'relative', cursor: onReorderSectionItem ? 'grab' : undefined }}
                   {...itemDragProps(sectionIndex, idx, onReorderSectionItem)}
                 >
+                  <ItemDragHandle sectionIndex={sectionIndex} itemIndex={idx} onReorderSectionItem={onReorderSectionItem} />
                   <div className="flex justify-between items-start gap-2">
                     {/* FIX (Titel abgeschnitten): min-w-0 auf dem Flex-Kind
                         erlaubt dem Titel zu schrumpfen statt hinter die
@@ -347,9 +350,10 @@ export const CreativeCVTemplate: React.FC<CVTemplateProps> = ({
                   key={idx}
                   data-pdf-section
                   data-break-item
-                  style={{ ...cardStyle, cursor: onReorderSectionItem ? 'grab' : undefined }}
+                  style={{ ...cardStyle, position: 'relative', cursor: onReorderSectionItem ? 'grab' : undefined }}
                   {...itemDragProps(sectionIndex, idx, onReorderSectionItem)}
                 >
+                  <ItemDragHandle sectionIndex={sectionIndex} itemIndex={idx} onReorderSectionItem={onReorderSectionItem} />
                   <EditableText
                     wrap
                     className="font-bold"
@@ -393,9 +397,10 @@ export const CreativeCVTemplate: React.FC<CVTemplateProps> = ({
                 key={idx}
                 data-pdf-section
                 data-break-item
-                style={{ ...cardStyle, cursor: onReorderSectionItem ? 'grab' : undefined }}
+                style={{ ...cardStyle, position: 'relative', cursor: onReorderSectionItem ? 'grab' : undefined }}
                 {...itemDragProps(sectionIndex, idx, onReorderSectionItem)}
               >
+                <ItemDragHandle sectionIndex={sectionIndex} itemIndex={idx} onReorderSectionItem={onReorderSectionItem} />
                 <div className="flex justify-between items-start gap-2">
                   <div className="flex-1 min-w-0">
                     <EditableText
@@ -685,7 +690,8 @@ export const CreativeCVTemplate: React.FC<CVTemplateProps> = ({
     const content = renderSection(section, sectionIndex);
     if (!content) return null;
     return (
-      <div key={sectionIndex} {...dragProps(sectionIndex, onReorderSections)}>
+      <div key={sectionIndex} style={{ position: 'relative' }} {...dragProps(sectionIndex, onReorderSections)}>
+        <SectionDragHandle index={sectionIndex} onReorderSections={onReorderSections} />
         {content}
       </div>
     );
@@ -817,7 +823,8 @@ export const CreativeCVTemplate: React.FC<CVTemplateProps> = ({
               const content = renderSection(section, sectionIndex);
               if (!content) return null;
               return (
-                <div key={sectionIndex} {...dragProps(sectionIndex, onReorderSections)}>
+                <div key={sectionIndex} style={{ position: 'relative' }} {...dragProps(sectionIndex, onReorderSections)}>
+                  <SectionDragHandle index={sectionIndex} onReorderSections={onReorderSections} />
                   {content}
                 </div>
               );
@@ -836,7 +843,8 @@ export const CreativeCVTemplate: React.FC<CVTemplateProps> = ({
               const content = renderSection(section, sectionIndex);
               if (!content) return null;
               return (
-                <div key={sectionIndex} {...dragProps(sectionIndex, onReorderSections)}>
+                <div key={sectionIndex} style={{ position: 'relative' }} {...dragProps(sectionIndex, onReorderSections)}>
+                  <SectionDragHandle index={sectionIndex} onReorderSections={onReorderSections} />
                   {content}
                 </div>
               );
