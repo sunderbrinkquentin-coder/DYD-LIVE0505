@@ -1,6 +1,7 @@
 // src/components/cv-templates/templates/MinimalCVTemplate.tsx
 
-import React from 'react';
+import React, { useState } from 'react';
+import { Plus } from 'lucide-react';
 import {
   EditableText,
   dragProps,
@@ -79,6 +80,38 @@ export const MinimalCVTemplate: React.FC<CVTemplateProps> = ({
 }) => {
   const containerMinHeight = minHeightPx ?? 1122;
 
+  // Leere optionale Felder (Ort, Kurzbeschreibung) reservieren sonst dauerhaft
+  // eine graue Platzhalterzeile. Jetzt: Feld bleibt weg, bis ein kleiner
+  // "+"-Button (in der Kopfzeile der Station) es einblendet.
+  const [revealed, setRevealed] = useState<Set<string>>(new Set());
+  const reveal = (key: string) => setRevealed((prev) => new Set(prev).add(key));
+  const AddFieldButton: React.FC<{ onClick: () => void; label: string }> = ({ onClick, label }) => (
+    <button
+      type="button"
+      className="pdf-hidden"
+      title={label}
+      onClick={onClick}
+      style={{
+        display: 'inline-flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        width: '14px',
+        height: '14px',
+        marginLeft: '6px',
+        verticalAlign: 'middle',
+        border: `1px dashed ${t.border}`,
+        borderRadius: '3px',
+        background: 'transparent',
+        color: t.faint,
+        cursor: 'pointer',
+        padding: 0,
+        lineHeight: 1,
+      }}
+    >
+      <Plus size={10} />
+    </button>
+  );
+
   /**
    * `renderDates` — von/bis untereinander, rechtsbündig.
    *
@@ -153,33 +186,44 @@ export const MinimalCVTemplate: React.FC<CVTemplateProps> = ({
                     onChange={(val) => onUpdateSectionItem(sectionIndex, idx, 'title', val)}
                     placeholder="Position"
                   />
-                  <EditableText
-                    wrap
-                    className="mt-0.5"
-                    style={{ fontSize: '10px', color: t.muted }}
-                    value={exp.company || ''}
-                    onChange={(val) => onUpdateSectionItem(sectionIndex, idx, 'company', val)}
-                    placeholder="Unternehmen"
-                  />
-                  <EditableText
-                    className="mt-0.5"
-                    style={{ fontSize: '9.5px', color: t.faint }}
-                    value={exp.location || exp.ort || ''}
-                    onChange={(val) => onUpdateSectionItem(sectionIndex, idx, 'location', val)}
-                    placeholder="Ort"
-                  />
+                  <div className="flex items-center mt-0.5">
+                    <EditableText
+                      wrap
+                      style={{ fontSize: '10px', color: t.muted }}
+                      value={exp.company || ''}
+                      onChange={(val) => onUpdateSectionItem(sectionIndex, idx, 'company', val)}
+                      placeholder="Unternehmen"
+                    />
+                    {!(exp.location || exp.ort) && !revealed.has(`exp-${idx}-location`) && (
+                      <AddFieldButton label="Ort hinzufügen" onClick={() => reveal(`exp-${idx}-location`)} />
+                    )}
+                    {!exp.description && !revealed.has(`exp-${idx}-description`) && (
+                      <AddFieldButton label="Kurzbeschreibung hinzufügen" onClick={() => reveal(`exp-${idx}-description`)} />
+                    )}
+                  </div>
+                  {(exp.location || exp.ort || revealed.has(`exp-${idx}-location`)) && (
+                    <EditableText
+                      className="mt-0.5"
+                      style={{ fontSize: '9.5px', color: t.faint }}
+                      value={exp.location || exp.ort || ''}
+                      onChange={(val) => onUpdateSectionItem(sectionIndex, idx, 'location', val)}
+                      placeholder="Ort"
+                    />
+                  )}
                 </div>
                 {renderDates(sectionIndex, idx, exp)}
               </div>
 
-              <EditableText
-                multiline
-                className="mt-1.5 leading-snug"
-                style={{ fontSize: '9.5px', color: t.muted }}
-                value={exp.description || ''}
-                onChange={(val) => onUpdateSectionItem(sectionIndex, idx, 'description', val)}
-                placeholder="Kurze Beschreibung der Position"
-              />
+              {(exp.description || revealed.has(`exp-${idx}-description`)) && (
+                <EditableText
+                  multiline
+                  className="mt-1.5 leading-snug"
+                  style={{ fontSize: '9.5px', color: t.muted }}
+                  value={exp.description || ''}
+                  onChange={(val) => onUpdateSectionItem(sectionIndex, idx, 'description', val)}
+                  placeholder="Kurze Beschreibung der Position"
+                />
+              )}
               {bullets.length > 0 && (
                 <ul className="mt-1.5" style={{ listStyle: 'none', padding: 0, display: 'flex', flexDirection: 'column', gap: '4px' }}>
                   {bullets.map((bp, bIdx) => (
@@ -354,21 +398,30 @@ export const MinimalCVTemplate: React.FC<CVTemplateProps> = ({
                   onChange={(val) => onUpdateSectionItem(sectionIndex, idx, 'degree', val)}
                   placeholder="Abschluss / Studiengang"
                 />
-                <EditableText
-                  wrap
-                  className="mt-0.5"
-                  style={{ fontSize: '10px', color: t.muted, width: '100%', whiteSpace: 'normal', wordBreak: 'normal', overflowWrap: 'break-word', overflow: 'visible' }}
-                  value={edu.institution || ''}
-                  onChange={(val) => onUpdateSectionItem(sectionIndex, idx, 'institution', val)}
-                  placeholder="Institution"
-                />
-                <EditableText
-                  className="mt-0.5"
-                  style={{ fontSize: '9.5px', color: t.faint }}
-                  value={edu.location || ''}
-                  onChange={(val) => onUpdateSectionItem(sectionIndex, idx, 'location', val)}
-                  placeholder="Ort"
-                />
+                <div className="flex items-center mt-0.5">
+                  <EditableText
+                    wrap
+                    style={{ fontSize: '10px', color: t.muted, width: '100%', whiteSpace: 'normal', wordBreak: 'normal', overflowWrap: 'break-word', overflow: 'visible' }}
+                    value={edu.institution || ''}
+                    onChange={(val) => onUpdateSectionItem(sectionIndex, idx, 'institution', val)}
+                    placeholder="Institution"
+                  />
+                  {!edu.location && !revealed.has(`edu-${idx}-location`) && (
+                    <AddFieldButton label="Ort hinzufügen" onClick={() => reveal(`edu-${idx}-location`)} />
+                  )}
+                  {!edu.description && !(Array.isArray(edu.focus) ? edu.focus.length : edu.focus) && !revealed.has(`edu-${idx}-description`) && (
+                    <AddFieldButton label="Schwerpunkte hinzufügen" onClick={() => reveal(`edu-${idx}-description`)} />
+                  )}
+                </div>
+                {(edu.location || revealed.has(`edu-${idx}-location`)) && (
+                  <EditableText
+                    className="mt-0.5"
+                    style={{ fontSize: '9.5px', color: t.faint }}
+                    value={edu.location || ''}
+                    onChange={(val) => onUpdateSectionItem(sectionIndex, idx, 'location', val)}
+                    placeholder="Ort"
+                  />
+                )}
               </div>
               {renderDates(sectionIndex, idx, edu)}
             </div>
@@ -386,14 +439,16 @@ export const MinimalCVTemplate: React.FC<CVTemplateProps> = ({
               </div>
             )}
 
-            <EditableText
-              multiline
-              className="mt-1 leading-snug"
-              style={{ fontSize: '9.5px', color: t.muted }}
-              value={edu.description || (Array.isArray(edu.focus) ? edu.focus.join(', ') : edu.focus) || ''}
-              onChange={(val) => onUpdateSectionItem(sectionIndex, idx, 'description', val)}
-              placeholder="Schwerpunkte / Beschreibung"
-            />
+            {(edu.description || edu.focus || revealed.has(`edu-${idx}-description`)) && (
+              <EditableText
+                multiline
+                className="mt-1 leading-snug"
+                style={{ fontSize: '9.5px', color: t.muted }}
+                value={edu.description || (Array.isArray(edu.focus) ? edu.focus.join(', ') : edu.focus) || ''}
+                onChange={(val) => onUpdateSectionItem(sectionIndex, idx, 'description', val)}
+                placeholder="Schwerpunkte / Beschreibung"
+              />
+            )}
           </div>
         ))}
       </div>
