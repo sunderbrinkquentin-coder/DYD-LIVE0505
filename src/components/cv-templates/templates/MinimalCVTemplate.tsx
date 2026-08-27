@@ -623,7 +623,7 @@ export const MinimalCVTemplate: React.FC<CVTemplateProps> = ({
       const content = renderSection(section, index);
       if (!content) return null;
       return (
-        <div key={index} style={{ position: 'relative' }} {...dragProps(index, onReorderSections)}>
+        <div key={index} {...dragProps(index, onReorderSections)} style={{ position: 'relative', cursor: onReorderSections ? 'grab' : undefined }}>
           <SectionDragHandle index={index} onReorderSections={onReorderSections} />
           {content}
         </div>
