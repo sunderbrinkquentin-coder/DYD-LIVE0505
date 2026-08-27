@@ -432,8 +432,10 @@ export const MinimalCVTemplate: React.FC<CVTemplateProps> = ({
               <div
                 key={idx}
                 className="flex items-start gap-2 px-2 py-1 rounded-md"
-                style={{ background: t.surfaceAlt, border: `1px solid ${t.border}`, fontSize: '9.5px' }}
+                style={{ background: t.surfaceAlt, border: `1px solid ${t.border}`, fontSize: '9.5px', position: 'relative', cursor: onReorderSectionItem ? 'grab' : undefined }}
+                {...itemDragProps(sectionIndex, idx, onReorderSectionItem)}
               >
+                <ItemDragHandle sectionIndex={sectionIndex} itemIndex={idx} onReorderSectionItem={onReorderSectionItem} />
                 {/* MAXIMAL STABIL: feste Basis-Anteile statt flex-shrink-0.
                     FRÜHER war das Niveau `flex-shrink-0` OHNE Breitendeckel —
                     "gute Kenntnisse" wuchs die Spalte auf und quetschte "Deutsch"
@@ -490,15 +492,20 @@ export const MinimalCVTemplate: React.FC<CVTemplateProps> = ({
                   gap: '4px',
                   marginRight: '5px',
                   marginBottom: '5px',
+                  marginLeft: onReorderSectionItem ? '10px' : undefined,
                   padding: '3px 9px',
                   borderRadius: '999px',
+                  position: 'relative',
+                  cursor: onReorderSectionItem ? 'grab' : undefined,
                   background: t.surfaceAlt,
                   border: `1px solid ${t.border}`,
                   fontSize: '9px',
                   lineHeight: 1.4,
                   whiteSpace: 'nowrap',
                 }}
+                {...itemDragProps(sectionIndex, idx, onReorderSectionItem)}
               >
+                <ItemDragHandle sectionIndex={sectionIndex} itemIndex={idx} onReorderSectionItem={onReorderSectionItem} />
                 <EditableText
                   value={display}
                   onChange={(val) => onUpdateSectionItem(sectionIndex, idx, 'skill', val)}
@@ -536,7 +543,13 @@ export const MinimalCVTemplate: React.FC<CVTemplateProps> = ({
             if (!name) return null;
 
             return (
-              <div key={idx} className="flex justify-between items-start gap-2" style={{ fontSize: '9.5px' }}>
+              <div
+                key={idx}
+                className="flex justify-between items-start gap-2"
+                style={{ fontSize: '9.5px', position: 'relative', cursor: onReorderSectionItem ? 'grab' : undefined }}
+                {...itemDragProps(sectionIndex, idx, onReorderSectionItem)}
+              >
+                <ItemDragHandle sectionIndex={sectionIndex} itemIndex={idx} onReorderSectionItem={onReorderSectionItem} />
                 <div className="flex-1">
                   <EditableText
                     wrap
@@ -548,6 +561,7 @@ export const MinimalCVTemplate: React.FC<CVTemplateProps> = ({
                   />
                   {institution && (
                     <EditableText
+                      wrap
                       className="mt-0.5"
                       style={{ fontSize: '9px', color: t.muted }}
                       value={institution}
