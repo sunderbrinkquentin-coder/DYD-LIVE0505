@@ -1,6 +1,7 @@
 // src/components/cv-templates/templates/ProfessionalCVTemplate.tsx
 
 import React, { useCallback, useEffect, useRef, useState } from 'react';
+import { SectionDragHandle, ItemDragHandle } from '../EditableText';
 
 type EditorSection = {
   type: string;
@@ -305,11 +306,13 @@ export const ProfessionalCVTemplate: React.FC<ProfessionalCVTemplateProps> = ({
                     style={{
                       display: 'block',
                       width: '100%',
+                      position: 'relative',
                       cursor: onReorderSectionItem ? 'grab' : undefined,
                     }}
                     className="px-3 py-2 rounded-lg border border-slate-200 bg-white/95"
                     {...itemDragProps(sectionIndex, idx, onReorderSectionItem)}
                   >
+                    <ItemDragHandle sectionIndex={sectionIndex} itemIndex={idx} onReorderSectionItem={onReorderSectionItem} />
                     <div className="flex justify-between gap-2 items-start">
                       {/* FIX: min-w-0 ist zwingend, sonst schrumpft der Titel
                           nicht und wird von der Datums-Spalte abgeschnitten.
@@ -446,11 +449,13 @@ export const ProfessionalCVTemplate: React.FC<ProfessionalCVTemplateProps> = ({
                     style={{
                       display: 'block',
                       width: '100%',
+                      position: 'relative',
                       cursor: onReorderSectionItem ? 'grab' : undefined,
                     }}
                     className="px-3 py-2 rounded-lg border border-slate-200 bg-white/95"
                     {...itemDragProps(sectionIndex, idx, onReorderSectionItem)}
                   >
+                    <ItemDragHandle sectionIndex={sectionIndex} itemIndex={idx} onReorderSectionItem={onReorderSectionItem} />
                     <div className="flex justify-between gap-2 items-start">
                       <div className="flex-1 min-w-0">
                         <EditableText
@@ -558,11 +563,13 @@ export const ProfessionalCVTemplate: React.FC<ProfessionalCVTemplateProps> = ({
                   style={{
                     display: 'block',
                     width: '100%',
+                    position: 'relative',
                     cursor: onReorderSectionItem ? 'grab' : undefined,
                   }}
                   className="px-2 py-1 rounded-md"
                   {...itemDragProps(sectionIndex, idx, onReorderSectionItem)}
                 >
+                  <ItemDragHandle sectionIndex={sectionIndex} itemIndex={idx} onReorderSectionItem={onReorderSectionItem} />
                   <div className="flex justify-between gap-2 items-start">
                     <div className="flex-1 min-w-0">
                       <EditableText
@@ -1009,8 +1016,9 @@ export const ProfessionalCVTemplate: React.FC<ProfessionalCVTemplateProps> = ({
                 onDragStart={(e) => { e.dataTransfer.setData('text/plain', String(idx)); e.dataTransfer.effectAllowed = 'move'; }}
                 onDragOver={(e) => e.preventDefault()}
                 onDrop={(e) => { e.preventDefault(); const from = parseInt(e.dataTransfer.getData('text/plain')); if (from !== idx) onReorderSections?.(from, idx); }}
-                style={{ cursor: onReorderSections ? 'grab' : undefined }}
+                style={{ position: 'relative', cursor: onReorderSections ? 'grab' : undefined }}
               >
+                <SectionDragHandle index={idx} onReorderSections={onReorderSections} />
                 {content}
               </div>
             );
@@ -1030,8 +1038,9 @@ export const ProfessionalCVTemplate: React.FC<ProfessionalCVTemplateProps> = ({
                 onDragStart={(e) => { e.dataTransfer.setData('text/plain', String(idx)); e.dataTransfer.effectAllowed = 'move'; }}
                 onDragOver={(e) => e.preventDefault()}
                 onDrop={(e) => { e.preventDefault(); const from = parseInt(e.dataTransfer.getData('text/plain')); if (from !== idx) onReorderSections?.(from, idx); }}
-                style={{ cursor: onReorderSections ? 'grab' : undefined }}
+                style={{ position: 'relative', cursor: onReorderSections ? 'grab' : undefined }}
               >
+                <SectionDragHandle index={idx} onReorderSections={onReorderSections} />
                 {content}
               </div>
             );
@@ -1053,8 +1062,9 @@ export const ProfessionalCVTemplate: React.FC<ProfessionalCVTemplateProps> = ({
                 onDragStart={(e) => { e.dataTransfer.setData('text/plain', String(idx)); e.dataTransfer.effectAllowed = 'move'; }}
                 onDragOver={(e) => e.preventDefault()}
                 onDrop={(e) => { e.preventDefault(); const from = parseInt(e.dataTransfer.getData('text/plain')); if (from !== idx) onReorderSections?.(from, idx); }}
-                style={{ cursor: onReorderSections ? 'grab' : undefined }}
+                style={{ position: 'relative', cursor: onReorderSections ? 'grab' : undefined }}
               >
+                <SectionDragHandle index={idx} onReorderSections={onReorderSections} />
                 {content}
               </div>
             );
