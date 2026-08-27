@@ -690,7 +690,7 @@ export const CreativeCVTemplate: React.FC<CVTemplateProps> = ({
     const content = renderSection(section, sectionIndex);
     if (!content) return null;
     return (
-      <div key={sectionIndex} style={{ position: 'relative' }} {...dragProps(sectionIndex, onReorderSections)}>
+      <div key={sectionIndex} {...dragProps(sectionIndex, onReorderSections)} style={{ position: 'relative', cursor: onReorderSections ? 'grab' : undefined }}>
         <SectionDragHandle index={sectionIndex} onReorderSections={onReorderSections} />
         {content}
       </div>
@@ -823,7 +823,7 @@ export const CreativeCVTemplate: React.FC<CVTemplateProps> = ({
               const content = renderSection(section, sectionIndex);
               if (!content) return null;
               return (
-                <div key={sectionIndex} style={{ position: 'relative' }} {...dragProps(sectionIndex, onReorderSections)}>
+                <div key={sectionIndex} {...dragProps(sectionIndex, onReorderSections)} style={{ position: 'relative', cursor: onReorderSections ? 'grab' : undefined }}>
                   <SectionDragHandle index={sectionIndex} onReorderSections={onReorderSections} />
                   {content}
                 </div>
@@ -843,7 +843,7 @@ export const CreativeCVTemplate: React.FC<CVTemplateProps> = ({
               const content = renderSection(section, sectionIndex);
               if (!content) return null;
               return (
-                <div key={sectionIndex} style={{ position: 'relative' }} {...dragProps(sectionIndex, onReorderSections)}>
+                <div key={sectionIndex} {...dragProps(sectionIndex, onReorderSections)} style={{ position: 'relative', cursor: onReorderSections ? 'grab' : undefined }}>
                   <SectionDragHandle index={sectionIndex} onReorderSections={onReorderSections} />
                   {content}
                 </div>
