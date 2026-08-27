@@ -22,12 +22,14 @@ const CI = {
 
 const FONT = "'Inter', 'Roboto', 'Open Sans', system-ui, sans-serif";
 
-const SECTION_ORDER_LEFT = ['experience', 'projects'];
-const SECTION_ORDER_RIGHT = [
+const SECTION_ORDER_LEFT = new Set(['experience', 'projects']);
+const SECTION_ORDER_RIGHT = new Set([
   'education', 'skills', 'soft_skills', 'languages', 'work_values', 'values',
   'hobbies', 'interests', 'certifications', 'courses', 'awards',
   'volunteering', 'stipendien', 'scholarships',
-];
+]);
+const isLeft = (type: string) => SECTION_ORDER_LEFT.has(type);
+const isRight = (type: string) => SECTION_ORDER_RIGHT.has(type) || type === 'certificates' || type === 'stipends';
 
 const ATOMIC_TYPES = new Set([
   'languages', 'skills', 'soft_skills', 'work_values', 'values',
@@ -54,7 +56,7 @@ const SectionTitle: React.FC<{ children: React.ReactNode }> = ({ children }) => 
       alignItems: 'center',
       gap: '6px',
       marginBottom: '8px',
-      marginTop: '18px',
+      marginTop: '0',
     }}
   >
     <span
@@ -153,6 +155,7 @@ const Chip: React.FC<{
       border: `1px solid ${borderColor}`,
       lineHeight: 1.4,
       whiteSpace: 'nowrap',
+      position: 'relative',
     }}
   >
     <EditableText
@@ -165,7 +168,7 @@ const Chip: React.FC<{
       <button
         type="button"
         className="pdf-hidden"
-        style={{ fontSize: '8px', color: '#dc2626', background: 'none', border: 'none', cursor: 'pointer', padding: 0, lineHeight: 1, flexShrink: 0 }}
+        style={{ fontSize: '8px', color: '#dc2626', background: 'none', border: 'none', cursor: 'pointer', padding: 0, lineHeight: 1, flexShrink: 0, opacity: 0.6, pointerEvents: 'auto' }}
         onClick={onDelete}
       >
         ✕
@@ -823,20 +826,29 @@ export const ModernCVTemplate: React.FC<CVTemplateProps> = ({
     }
   };
 
-  const leftSections = sections.filter((s) => SECTION_ORDER_LEFT.includes(s.type));
-  const rightSections = sections.filter(
-    (s) => SECTION_ORDER_RIGHT.includes(s.type) || s.type === 'certificates' || s.type === 'stipends'
-  );
-  const otherSections = sections.filter(
-    (s) => !SECTION_ORDER_LEFT.includes(s.type) && !SECTION_ORDER_RIGHT.includes(s.type) && s.type !== 'certificates' && s.type !== 'stipends'
-  );
+  const leftSections = sections.filter((s) => isLeft(s.type));
+  const rightSections = sections.filter((s) => isRight(s.type));
+  const otherSections = sections.filter((s) => !isLeft(s.type) && !isRight(s.type));
 
   const renderColumn = (list: EditorSection[]) =>
     list.map((section) => {
       const index = sections.findIndex((s) => s === section);
       const content = renderSection(section, index);
       if (!content) return null;
-      return <div key={index} {...dragProps(index, onReorderSections)}>{content}</div>;
+      return (
+        <div
+          key={index}
+          {...dragProps(index, onReorderSections)}
+          onDragOver={(e) => { e.preventDefault(); e.dataTransfer.dropEffect = 'move'; }}
+          onDrop={(e) => {
+            e.preventDefault();
+            const from = parseInt(e.dataTransfer.getData('text/plain'), 10);
+            if (!isNaN(from) && from !== index) onReorderSections?.(from, index);
+          }}
+        >
+          {content}
+        </div>
+      );
     });
 
   return (
@@ -923,7 +935,7 @@ export const ModernCVTemplate: React.FC<CVTemplateProps> = ({
         </header>
 
         <main style={{ padding: '4px 32px 16px', display: 'flex', width: '100%', boxSizing: 'border-box' }}>
-          <section style={{ flex: '0 0 58%', minWidth: 0, paddingRight: '14px', display: 'flex', flexDirection: 'column' }}>
+          <section style={{ flex: '0 0 58%', minWidth: 0, paddingRight: '14px', display: 'flex', flexDirection: 'column', gap: '18px' }}>
             {summary?.trim() && (
               <div data-pdf-section data-break-atomic style={{ display: 'block', width: '100%' }}>
                 <SectionTitle>Profil</SectionTitle>
@@ -944,7 +956,7 @@ export const ModernCVTemplate: React.FC<CVTemplateProps> = ({
                     display: 'block',
                     overflow: 'hidden',
                     wordBreak: 'break-word',
-                    overflowWrap: 'anywhere',
+                    overflowWrap: 'break-word',
                   }}
                 />
               </div>
@@ -952,13 +964,13 @@ export const ModernCVTemplate: React.FC<CVTemplateProps> = ({
             {renderColumn(leftSections)}
           </section>
 
-          <aside style={{ flex: '0 0 42%', minWidth: 0, paddingLeft: '14px', display: 'flex', flexDirection: 'column' }}>
+          <aside style={{ flex: '0 0 42%', minWidth: 0, paddingLeft: '14px', display: 'flex', flexDirection: 'column', gap: '18px' }}>
             {renderColumn(rightSections)}
           </aside>
         </main>
 
         {otherSections.length > 0 && (
-          <div style={{ padding: '0 32px 16px' }} data-pdf-section>
+          <div style={{ padding: '0 32px 16px', display: 'flex', flexDirection: 'column', gap: '18px' }} data-pdf-section>
             {renderColumn(otherSections)}
           </div>
         )}

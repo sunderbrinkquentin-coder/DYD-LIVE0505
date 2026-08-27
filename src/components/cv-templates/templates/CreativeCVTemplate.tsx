@@ -699,7 +699,7 @@ export const CreativeCVTemplate: React.FC<CVTemplateProps> = ({
         color: t.text,
         backgroundColor: t.surface,
         wordBreak: 'break-word',
-        overflowWrap: 'anywhere',
+        overflowWrap: 'break-word',
         minHeight: `${containerMinHeight}px`,
         WebkitPrintColorAdjust: 'exact',
         printColorAdjust: 'exact',

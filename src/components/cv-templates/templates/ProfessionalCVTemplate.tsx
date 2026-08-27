@@ -165,7 +165,7 @@ function itemDragProps(
 const SectionTitle: React.FC<{ children: React.ReactNode }> = ({ children }) => (
   <h2
     data-break-keep-next
-    className="mt-4 mb-2 !text-[9px] font-bold tracking-[0.16em] text-slate-700 uppercase flex items-center gap-1.5"
+    className="mb-2 !text-[9px] font-bold tracking-[0.16em] text-slate-700 uppercase flex items-center gap-1.5"
   >
     <span className="w-1 h-1 rounded-full bg-slate-400" />
     {children}
