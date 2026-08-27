@@ -738,8 +738,26 @@ export const ClassicCVTemplate: React.FC<CVTemplateProps> = ({
               BEIDEN Spalten. Ein Schnitt, der in der Hauptspalte zwischen zwei
               Stationen läge, aber quer durch den Sprachenblock der Seitenspalte
               ginge, wird deshalb verworfen. Das ist gewollt — kann aber dazu
-              führen, dass eine Seite früher endet als technisch nötig.        */}
-          <aside className="w-1/3 max-w-[33%] pr-6 flex flex-col" style={{ borderRight: `1px solid ${t.border}` }}>
+              führen, dass eine Seite früher endet als technisch nötig.
+
+              FIX (Wortweiser Umbruch bei Ausbildung/Berufserfahrung):
+              `aside` hatte KEIN `min-w-0`. Ein Flex-Item ohne min-w-0 darf
+              nicht unter seine content-basierte Mindestbreite schrumpfen —
+              und genau die wurde durch die `nowrap`-Kontaktfelder (E-Mail,
+              LinkedIn, Telefon) in der Sidebar hochgezogen: ein langer,
+              unumbrechbarer Text dort zählt als Mindestbreite von `aside`,
+              selbst wenn er selbst durch overflow:hidden abgeschnitten wird.
+              Ist die E-Mail/LinkedIn-URL länger als 33% der Seite, wollte
+              `aside` mehr Platz, als ihm zusteht. Da `main` bereits
+              `min-w-0` trägt (unten), gab `main` nach und schrumpfte —
+              wodurch Titel wie "Digital Engineering and Management (B.Eng.)"
+              in der Hauptspalte auf eine winzige Breite gequetscht wurden
+              und Wort für Wort umbrachen. Modern und Professional setzen an
+              der analogen Stelle bereits `minWidth: 0` auf ihrem `aside` —
+              hier fehlte das Pendant. Mit `min-w-0` schrumpft `aside` jetzt
+              zuverlässig auf sein Drittel, und die Kontaktfelder kürzen sich
+              stattdessen selbst per Ellipsis (bereits vorhanden). */}
+          <aside className="w-1/3 max-w-[33%] pr-6 flex flex-col min-w-0" style={{ borderRight: `1px solid ${t.border}` }}>
             <div className="mb-6" data-break-atomic>
               {photoUrl && (
                 <div
