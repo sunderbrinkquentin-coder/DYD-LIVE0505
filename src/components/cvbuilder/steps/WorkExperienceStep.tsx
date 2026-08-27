@@ -1,11 +1,11 @@
 import { useState, useEffect, useRef } from 'react';
-import { ArrowLeft, ArrowRight, Plus, Trash2, Wrench, Info, FolderOpen, CheckCircle, AlertCircle, X, ChevronRight, Briefcase, SkipForward } from 'lucide-react';
-import { AnimatePresence } from 'framer-motion';
+import { ArrowLeft, ArrowRight, Plus, Trash2, Wrench, Info, CheckCircle, AlertCircle, X, ChevronRight, Briefcase, SkipForward, Building2, Calendar, ListChecks, TrendingUp } from 'lucide-react';
+import { AnimatePresence, motion } from 'framer-motion';
 import { SmartCoach, SmartCoachBar } from '../SmartCoach';
 import { WorkExperience, ExperienceLevel, Project } from '../../../types/cvBuilder';
 import { STARCoachingBanner } from '../TasksWithMetricsInput';
 import { CategorizedTasksInput } from '../CategorizedTasksInput';
-import { ACHIEVEMENTS_BY_LEVEL } from '../../../config/cvBuilderSteps';
+import { ACHIEVEMENTS_BY_LEVEL, TASKS_BY_LEVEL } from '../../../config/cvBuilderSteps';
 import { TasksWithMetricsInput } from '../TasksWithMetricsInput';
 import { getPersonalizedSuggestions } from '../../../services/cvSuggestionsService';
 
@@ -127,6 +127,13 @@ const createEmptyProject = (): Project => ({
   technologies: [],
 });
 
+const SUB_STEPS = [
+  { key: 0, label: 'Basisdaten', icon: Building2 },
+  { key: 1, label: 'Aufgaben', icon: ListChecks },
+  { key: 2, label: 'Erfolge', icon: TrendingUp },
+  { key: 3, label: 'Skills & Tools', icon: Wrench },
+] as const;
+
 export function WorkExperienceStep({
   data,
   experienceLevel,
@@ -155,14 +162,13 @@ export function WorkExperienceStep({
   });
 
   const [activeIndex, setActiveIndex] = useState(0);
-  const [activeTab, setActiveTab] = useState<'tasks' | 'projects'>('tasks');
+  const [subStep, setSubStep] = useState(0);
   const [showConfirmNext, setShowConfirmNext] = useState(false);
   const [showStarCoaching, setShowStarCoaching] = useState(true);
   const [tasksSuggestions, setTasksSuggestions] = useState<string[]>([]);
   const [achievementsSuggestions, setAchievementsSuggestions] = useState<string[]>([]);
   const [isLoadingSuggestions, setIsLoadingSuggestions] = useState(false);
 
-  // Refs für die Coach-CTAs (scroll-to-field)
   const toolsBlockRef = useRef<HTMLDivElement | null>(null);
   const kpiBlockRef = useRef<HTMLDivElement | null>(null);
   const tasksBlockRef = useRef<HTMLDivElement | null>(null);
@@ -212,29 +218,16 @@ export function WorkExperienceStep({
     });
   };
 
-  const updateStationProjects = (index: number, projects: Project[]) => {
+  const updateToolsText = (index: number, text: string) => {
     setExperiences(prev => {
       const updated = [...prev];
-      updated[index] = { ...updated[index], stationProjects: projects };
+      const exp = { ...updated[index] };
+      exp.toolsText = text;
+      exp.tools = text.split(',').map(t => t.trim()).filter(Boolean);
+      updated[index] = exp;
       onChange(updated as WorkExperience[]);
       return updated;
     });
-  };
-
-  const addStationProject = (index: number) => {
-    const current = experiences[index].stationProjects || [];
-    updateStationProjects(index, [...current, createEmptyProject()]);
-  };
-
-  const removeStationProject = (expIndex: number, projectIndex: number) => {
-    const current = experiences[expIndex].stationProjects || [];
-    updateStationProjects(expIndex, current.filter((_, i) => i !== projectIndex));
-  };
-
-  const updateStationProjectField = (expIndex: number, projectIndex: number, field: keyof Project, value: any) => {
-    const current = [...(experiences[expIndex].stationProjects || [])];
-    current[projectIndex] = { ...current[projectIndex], [field]: value };
-    updateStationProjects(expIndex, current);
   };
 
   const addExperience = () => {
@@ -245,7 +238,7 @@ export function WorkExperienceStep({
       return updated;
     });
     setActiveIndex(experiences.length);
-    setActiveTab('tasks');
+    setSubStep(0);
   };
 
   const removeExperience = (index: number) => {
@@ -278,26 +271,32 @@ export function WorkExperienceStep({
     addExperience();
   };
 
-  const updateToolsText = (index: number, text: string) => {
-    setExperiences(prev => {
-      const updated = [...prev];
-      const exp = { ...updated[index] };
-      exp.toolsText = text;
-      exp.tools = text.split(',').map(t => t.trim()).filter(Boolean);
-      updated[index] = exp;
-      onChange(updated as WorkExperience[]);
-      return updated;
-    });
+  const handleSubStepNext = () => {
+    if (subStep < 3) {
+      setSubStep(subStep + 1);
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    } else {
+      handleNext();
+    }
   };
 
-  // Coach-CTA: springt zum passenden Feld
+  const handleSubStepBack = () => {
+    if (subStep > 0) {
+      setSubStep(subStep - 1);
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    } else {
+      onBack();
+    }
+  };
+
   const handleCoachCta = (field?: string) => {
     if (field === 'tools') {
-      toolsBlockRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      setSubStep(3);
+      setTimeout(() => toolsBlockRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' }), 60);
     } else if (field === 'teamSize') {
       kpiBlockRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' });
     } else if (field === 'achievements') {
-      setActiveTab('tasks');
+      setSubStep(2);
       setTimeout(() => tasksBlockRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' }), 60);
     }
   };
@@ -360,9 +359,14 @@ export function WorkExperienceStep({
   const reqSelect = (value: string | undefined) =>
     `${selectBase} ${attempted && !value ? 'border-red-500/70 focus:border-red-400' : ''}`;
 
-  const stationProjects = activeExp.stationProjects || [];
-
   const coachFallback = 'Tools & Zahlen sind Gold wert! Recruiter scannen CVs in Sekunden – konkrete Zahlen und bekannte Software-Namen fallen sofort auf.';
+
+  const subStepCompleted = [
+    !!(activeExp.jobTitle?.trim() && activeExp.company?.trim() && activeExp.startMonth && activeExp.startYear && (activeExp.current || (activeExp.endMonth && activeExp.endYear))),
+    !!((activeExp.tasksWithMetrics?.length ?? 0) > 0),
+    !!((activeExp.achievementsWithMetrics?.length ?? 0) > 0),
+    !!((activeExp.tools?.length ?? 0) > 0),
+  ];
 
   return (
     <div className="flex flex-col lg:flex-row gap-8 lg:p-6 lg:max-w-7xl lg:mx-auto">
@@ -376,7 +380,7 @@ export function WorkExperienceStep({
           </p>
         </div>
 
-        {/* Station Tabs – improved card layout */}
+        {/* Station Tabs */}
         <div className="space-y-2">
           <div className="flex items-center justify-between">
             <p className="text-xs font-semibold text-white/50 uppercase tracking-wider">Berufsstationen ({experiences.length})</p>
@@ -402,7 +406,7 @@ export function WorkExperienceStep({
               return (
                 <button
                   key={index}
-                  onClick={() => { setActiveIndex(index); setActiveTab('tasks'); setAttempted(false); }}
+                  onClick={() => { setActiveIndex(index); setSubStep(0); setAttempted(false); }}
                   className={`
                     relative flex items-start gap-3 p-3 rounded-xl text-left transition-all border
                     ${isActive
@@ -439,338 +443,388 @@ export function WorkExperienceStep({
           </div>
         </div>
 
-        {/* Formular */}
-        <div className="bg-white/5 backdrop-blur-sm rounded-2xl p-4 space-y-5 border border-white/10">
-
-          {/* Block 1: Pflichtfelder */}
-          <div>
-            <p className="text-xs font-semibold text-[#66c0b6] uppercase tracking-wider mb-3">Position & Unternehmen</p>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div>
-                <label className="block text-white/80 text-sm font-medium mb-1.5">
-                  Position / Jobtitel *
-                  <span className="ml-1 text-white/40 text-xs font-normal">– exakt wie auf dem Vertrag</span>
-                </label>
-                <input
-                  type="text"
-                  value={activeExp.jobTitle || ''}
-                  onChange={(e) => updateExperience(activeIndex, 'jobTitle', e.target.value)}
-                  placeholder="z.B. Sales Manager, Software Engineer"
-                  className={reqInput(activeExp.jobTitle)}
-                />
-              </div>
-
-              <div>
-                <label className="block text-white/80 text-sm font-medium mb-1.5">Unternehmen *</label>
-                <input
-                  type="text"
-                  value={activeExp.company || ''}
-                  onChange={(e) => updateExperience(activeIndex, 'company', e.target.value)}
-                  placeholder="z.B. SAP AG, BMW Group"
-                  className={reqInput(activeExp.company)}
-                />
-              </div>
-
-              <div>
-                <label className="block text-white/80 text-sm font-medium mb-1.5">
-                  Senioritätslevel
-                  <span className="ml-1 text-white/40 text-xs font-normal">– hilft der KI beim Schreiben</span>
-                </label>
-                <select
-                  value={(activeExp as any).roleLevel || ''}
-                  onChange={(e) => updateExperience(activeIndex, 'roleLevel' as any, e.target.value)}
-                  className={selectBase}
-                >
-                  {ROLE_LEVELS.map((rl) => (
-                    <option key={rl.value} value={rl.value}>{rl.label}</option>
-                  ))}
-                </select>
-              </div>
-
-              <div>
-                <label className="block text-white/80 text-sm font-medium mb-1.5">Branche</label>
-                <select
-                  value={activeExp.industry || ''}
-                  onChange={(e) => updateExperience(activeIndex, 'industry', e.target.value)}
-                  className={selectBase}
-                >
-                  <option value="">Branche wählen</option>
-                  {INDUSTRIES.map((ind) => (
-                    <option key={ind.value} value={ind.value}>{ind.label}</option>
-                  ))}
-                </select>
-              </div>
-
-              <div>
-                <label className="block text-white/80 text-sm font-medium mb-1.5">Standort</label>
-                <input
-                  type="text"
-                  value={activeExp.location || ''}
-                  onChange={(e) => updateExperience(activeIndex, 'location', e.target.value)}
-                  placeholder="z.B. München / Remote"
-                  className="w-full px-4 py-3 rounded-xl bg-white/10 border border-white/25 text-white placeholder-white/40 focus:outline-none focus:border-[#66c0b6]"
-                />
-              </div>
-            </div>
-          </div>
-
-          {/* Block 2: Zeitraum */}
-          <div>
-            <p className="text-xs font-semibold text-[#66c0b6] uppercase tracking-wider mb-3">Zeitraum *</p>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div>
-                <p className="text-xs text-white/60 mb-1.5">Startdatum</p>
-                <div className="grid grid-cols-2 gap-2">
-                  <select value={activeExp.startMonth || ''} onChange={(e) => updateExperience(activeIndex, 'startMonth', e.target.value)} className={reqSelect(activeExp.startMonth)}>
-                    <option value="">Monat</option>
-                    {MONTHS.map((m) => <option key={m} value={m}>{m}</option>)}
-                  </select>
-                  <select value={activeExp.startYear || ''} onChange={(e) => updateExperience(activeIndex, 'startYear', e.target.value)} className={reqSelect(activeExp.startYear)}>
-                    <option value="">Jahr *</option>
-                    {YEARS.map((y) => <option key={y} value={y}>{y}</option>)}
-                  </select>
-                </div>
-              </div>
-              <div>
-                <div className="flex items-center justify-between mb-1.5">
-                  <p className="text-xs text-white/60">Enddatum</p>
-                  <label className="flex items-center gap-2 text-xs text-white/70 cursor-pointer">
-                    <input type="checkbox" checked={!!activeExp.current} onChange={(e) => updateExperience(activeIndex, 'current', e.target.checked)} className="rounded" />
-                    Aktuell hier tätig
-                  </label>
-                </div>
-                <div className="grid grid-cols-2 gap-2">
-                  <select value={activeExp.current ? '' : activeExp.endMonth || ''} onChange={(e) => updateExperience(activeIndex, 'endMonth', e.target.value)} disabled={!!activeExp.current} className={`${!activeExp.current ? reqSelect(activeExp.endMonth) : selectBase} disabled:opacity-40`}>
-                    <option value="">Monat</option>
-                    {MONTHS.map((m) => <option key={m} value={m}>{m}</option>)}
-                  </select>
-                  <select value={activeExp.current ? '' : activeExp.endYear || ''} onChange={(e) => updateExperience(activeIndex, 'endYear', e.target.value)} disabled={!!activeExp.current} className={`${!activeExp.current ? reqSelect(activeExp.endYear) : selectBase} disabled:opacity-40`}>
-                    <option value="">Jahr *</option>
-                    {YEARS.map((y) => <option key={y} value={y}>{y}</option>)}
-                  </select>
-                </div>
-              </div>
-            </div>
-          </div>
-
-          {/* Block 3: Tools & Software */}
-          <div ref={toolsBlockRef}>
-            <label className="flex items-center gap-2 text-white/80 text-sm font-medium mb-1.5">
-              <Wrench size={14} className="text-[#66c0b6]" />
-              Tools & Software
-              <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded bg-[#66c0b6]/15 text-[#66c0b6] text-xs font-semibold">ATS</span>
-            </label>
-            <p className="text-xs text-white/45 mb-2">
-              Komma-getrennt – diese Begriffe matchen direkt mit ATS-Scansystemen
+        {/* Sub-Step Progress Indicator */}
+        <div className="bg-white/5 backdrop-blur-sm rounded-2xl p-4 border border-white/10">
+          <div className="flex items-center justify-between mb-3">
+            <p className="text-xs font-semibold text-white/50 uppercase tracking-wider">
+              {activeExp.jobTitle?.trim() ? `${activeExp.jobTitle} bei ${activeExp.company || '...'}` : `Station ${activeIndex + 1}`}
             </p>
-            <input
-              type="text"
-              value={(activeExp as any).toolsText || activeExp.tools?.join(', ') || ''}
-              onChange={(e) => updateToolsText(activeIndex, e.target.value)}
-              placeholder="z.B. Salesforce, HubSpot, Excel, SAP, Jira, Figma, Python..."
-              className="w-full px-4 py-3 rounded-xl bg-white/10 border border-white/25 text-white placeholder-white/40 focus:outline-none focus:border-[#66c0b6]"
-            />
+            {experiences.length > 1 && (
+              <button
+                onClick={() => removeExperience(activeIndex)}
+                className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-red-500/15 text-red-400 hover:bg-red-500/25 transition-all text-xs"
+              >
+                <Trash2 size={13} /> Entfernen
+              </button>
+            )}
           </div>
 
-          {/* Block 4: KPIs & Kontext */}
-          <div ref={kpiBlockRef}>
-            <div className="flex items-center gap-2 mb-3">
-              <p className="text-xs font-semibold text-[#66c0b6] uppercase tracking-wider">Kontext & KPIs</p>
-              <span className="text-xs text-white/40">(optional – aber sehr empfohlen)</span>
-              <div className="relative group">
-                <Info size={13} className="text-white/30 cursor-help" />
-                <div className="absolute left-0 bottom-full mb-1 w-64 p-2.5 rounded-xl bg-slate-800 border border-white/10 text-xs text-white/70 hidden group-hover:block z-10 leading-relaxed">
-                  Zahlen und Kontext machen deine Bulletpoints deutlich stärker. Recruiter lesen CVs in 6–8 Sekunden – Zahlen stechen sofort ins Auge.
-                </div>
-              </div>
-            </div>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div>
-                <label className="block text-white/80 text-sm font-medium mb-1.5">Umsatz / Revenue</label>
-                <input
-                  type="text"
-                  value={activeExp.revenue || ''}
-                  onChange={(e) => updateExperience(activeIndex, 'revenue', e.target.value)}
-                  placeholder="z.B. 2 Mio. € Umsatzverantwortung"
-                  className="w-full px-4 py-3 rounded-xl bg-white/10 border border-white/25 text-white placeholder-white/40 focus:outline-none focus:border-[#66c0b6]"
-                />
-              </div>
-              <div>
-                <label className="block text-white/80 text-sm font-medium mb-1.5">Budget</label>
-                <input
-                  type="text"
-                  value={activeExp.budget || ''}
-                  onChange={(e) => updateExperience(activeIndex, 'budget', e.target.value)}
-                  placeholder="z.B. 500k€ Marketingbudget"
-                  className="w-full px-4 py-3 rounded-xl bg-white/10 border border-white/25 text-white placeholder-white/40 focus:outline-none focus:border-[#66c0b6]"
-                />
-              </div>
-              <div>
-                <label className="block text-white/80 text-sm font-medium mb-1.5">Teamgröße / Führung</label>
-                <input
-                  type="text"
-                  value={activeExp.teamSize || ''}
-                  onChange={(e) => updateExperience(activeIndex, 'teamSize', e.target.value)}
-                  placeholder="z.B. 8 Mitarbeitende geführt"
-                  className="w-full px-4 py-3 rounded-xl bg-white/10 border border-white/25 text-white placeholder-white/40 focus:outline-none focus:border-[#66c0b6]"
-                />
-              </div>
-              <div>
-                <label className="block text-white/80 text-sm font-medium mb-1.5">Kunden / Markt</label>
-                <input
-                  type="text"
-                  value={activeExp.customersMarket || ''}
-                  onChange={(e) => updateExperience(activeIndex, 'customersMarket', e.target.value)}
-                  placeholder="z.B. B2B Enterprise, DACH-Region"
-                  className="w-full px-4 py-3 rounded-xl bg-white/10 border border-white/25 text-white placeholder-white/40 focus:outline-none focus:border-[#66c0b6]"
-                />
-              </div>
-            </div>
-          </div>
-
-          {/* Aufgaben / Projekte Tabs */}
-          <div>
-            <div className="flex gap-1 mb-4 bg-white/5 p-1 rounded-xl">
-              <button
-                onClick={() => setActiveTab('tasks')}
-                className={`flex-1 flex items-center justify-center gap-2 py-2 px-3 rounded-lg text-sm font-medium transition-all ${
-                  activeTab === 'tasks'
-                    ? 'bg-[#66c0b6] text-black'
-                    : 'text-white/60 hover:text-white'
-                }`}
-              >
-                Aufgaben & Erfolge
-              </button>
-              <button
-                onClick={() => setActiveTab('projects')}
-                className={`flex-1 flex items-center justify-center gap-2 py-2 px-3 rounded-lg text-sm font-medium transition-all ${
-                  activeTab === 'projects'
-                    ? 'bg-[#66c0b6] text-black'
-                    : 'text-white/60 hover:text-white'
-                }`}
-              >
-                <FolderOpen size={14} />
-                Projekte
-                {stationProjects.length > 0 && (
-                  <span className={`text-xs px-1.5 py-0.5 rounded-full font-bold ${activeTab === 'projects' ? 'bg-black/20 text-black' : 'bg-[#66c0b6]/20 text-[#66c0b6]'}`}>
-                    {stationProjects.length}
-                  </span>
-                )}
-              </button>
-            </div>
-
-            {activeTab === 'tasks' && (
-              <div className="space-y-6">
-                <AnimatePresence>
-                  {showStarCoaching && (
-                    <STARCoachingBanner
-                      jobTitle={activeExp.jobTitle}
-                      industry={activeExp.industry}
-                      onDismiss={() => setShowStarCoaching(false)}
-                    />
+          {/* Step Progress Bar */}
+          <div className="flex items-center gap-1 sm:gap-2 mb-4">
+            {SUB_STEPS.map((step) => {
+              const Icon = step.icon;
+              const isCompleted = subStepCompleted[step.key];
+              const isCurrent = subStep === step.key;
+              const isPast = subStep > step.key;
+              return (
+                <div key={step.key} className="flex items-center flex-1">
+                  <button
+                    onClick={() => setSubStep(step.key)}
+                    className={`flex items-center gap-2 px-2 sm:px-3 py-2 rounded-lg transition-all flex-shrink-0 ${
+                      isCurrent
+                        ? 'bg-[#66c0b6]/20 border border-[#66c0b6]/50'
+                        : isPast || isCompleted
+                        ? 'bg-emerald-500/10 border border-emerald-500/20 hover:bg-emerald-500/15'
+                        : 'bg-white/5 border border-white/10 hover:bg-white/10'
+                    }`}
+                  >
+                    <div className={`w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold flex-shrink-0 ${
+                      isCurrent
+                        ? 'bg-[#66c0b6] text-black'
+                        : isCompleted || isPast
+                        ? 'bg-emerald-500/30 text-emerald-400'
+                        : 'bg-white/10 text-white/40'
+                    }`}>
+                      {isCompleted || isPast ? <CheckCircle size={12} /> : <Icon size={12} />}
+                    </div>
+                    <span className={`text-xs font-medium hidden sm:inline ${
+                      isCurrent ? 'text-white' : isCompleted || isPast ? 'text-emerald-400/80' : 'text-white/40'
+                    }`}>
+                      {step.label}
+                    </span>
+                  </button>
+                  {step.key < 3 && (
+                    <div className={`flex-1 h-0.5 mx-1 rounded-full transition-colors ${
+                      isPast || isCompleted ? 'bg-emerald-500/30' : 'bg-white/10'
+                    }`} />
                   )}
-                </AnimatePresence>
-                <div>
-                  <p className="text-xs font-semibold text-[#66c0b6] uppercase tracking-wider mb-3">
-                    Aufgaben & Verantwortlichkeiten
-                    <span className="ml-2 text-white/35 font-normal normal-case">– wähle aus Kategorien</span>
-                  </p>
+                </div>
+              );
+            })}
+          </div>
+
+          {/* Sub-Step Content */}
+          <AnimatePresence mode="wait">
+            <motion.div
+              key={subStep}
+              initial={{ opacity: 0, x: 20 }}
+              animate={{ opacity: 1, x: 0 }}
+              exit={{ opacity: 0, x: -20 }}
+              transition={{ duration: 0.2 }}
+              className="space-y-5"
+            >
+              {/* Step 0: Basisdaten */}
+              {subStep === 0 && (
+                <>
+                  <div className="flex items-center gap-2 mb-1">
+                    <Building2 size={16} className="text-[#66c0b6]" />
+                    <p className="text-sm font-semibold text-white">Basisdaten</p>
+                    <span className="text-xs text-white/40">– Pflichtfelder für diese Station</span>
+                  </div>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                      <label className="block text-white/80 text-sm font-medium mb-1.5">
+                        Position / Jobtitel *
+                        <span className="ml-1 text-white/40 text-xs font-normal">– exakt wie auf dem Vertrag</span>
+                      </label>
+                      <input
+                        type="text"
+                        value={activeExp.jobTitle || ''}
+                        onChange={(e) => updateExperience(activeIndex, 'jobTitle', e.target.value)}
+                        placeholder="z.B. Sales Manager, Software Engineer"
+                        className={reqInput(activeExp.jobTitle)}
+                      />
+                    </div>
+
+                    <div>
+                      <label className="block text-white/80 text-sm font-medium mb-1.5">Unternehmen *</label>
+                      <input
+                        type="text"
+                        value={activeExp.company || ''}
+                        onChange={(e) => updateExperience(activeIndex, 'company', e.target.value)}
+                        placeholder="z.B. SAP AG, BMW Group"
+                        className={reqInput(activeExp.company)}
+                      />
+                    </div>
+
+                    <div>
+                      <label className="block text-white/80 text-sm font-medium mb-1.5">
+                        Senioritätslevel
+                        <span className="ml-1 text-white/40 text-xs font-normal">– hilft der KI beim Schreiben</span>
+                      </label>
+                      <select
+                        value={(activeExp as any).roleLevel || ''}
+                        onChange={(e) => updateExperience(activeIndex, 'roleLevel' as any, e.target.value)}
+                        className={selectBase}
+                      >
+                        {ROLE_LEVELS.map((rl) => (
+                          <option key={rl.value} value={rl.value}>{rl.label}</option>
+                        ))}
+                      </select>
+                    </div>
+
+                    <div>
+                      <label className="block text-white/80 text-sm font-medium mb-1.5">Branche</label>
+                      <select
+                        value={activeExp.industry || ''}
+                        onChange={(e) => updateExperience(activeIndex, 'industry', e.target.value)}
+                        className={selectBase}
+                      >
+                        <option value="">Branche wählen</option>
+                        {INDUSTRIES.map((ind) => (
+                          <option key={ind.value} value={ind.value}>{ind.label}</option>
+                        ))}
+                      </select>
+                    </div>
+
+                    <div>
+                      <label className="block text-white/80 text-sm font-medium mb-1.5">Standort</label>
+                      <input
+                        type="text"
+                        value={activeExp.location || ''}
+                        onChange={(e) => updateExperience(activeIndex, 'location', e.target.value)}
+                        placeholder="z.B. München / Remote"
+                        className="w-full px-4 py-3 rounded-xl bg-white/10 border border-white/25 text-white placeholder-white/40 focus:outline-none focus:border-[#66c0b6]"
+                      />
+                    </div>
+                  </div>
+
+                  {/* Zeitraum */}
+                  <div className="pt-2 border-t border-white/10">
+                    <div className="flex items-center gap-2 mb-3">
+                      <Calendar size={16} className="text-[#66c0b6]" />
+                      <p className="text-sm font-semibold text-white">Zeitraum *</p>
+                    </div>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <div>
+                        <p className="text-xs text-white/60 mb-1.5">Startdatum</p>
+                        <div className="grid grid-cols-2 gap-2">
+                          <select value={activeExp.startMonth || ''} onChange={(e) => updateExperience(activeIndex, 'startMonth', e.target.value)} className={reqSelect(activeExp.startMonth)}>
+                            <option value="">Monat</option>
+                            {MONTHS.map((m) => <option key={m} value={m}>{m}</option>)}
+                          </select>
+                          <select value={activeExp.startYear || ''} onChange={(e) => updateExperience(activeIndex, 'startYear', e.target.value)} className={reqSelect(activeExp.startYear)}>
+                            <option value="">Jahr *</option>
+                            {YEARS.map((y) => <option key={y} value={y}>{y}</option>)}
+                          </select>
+                        </div>
+                      </div>
+                      <div>
+                        <div className="flex items-center justify-between mb-1.5">
+                          <p className="text-xs text-white/60">Enddatum</p>
+                          <label className="flex items-center gap-2 text-xs text-white/70 cursor-pointer">
+                            <input type="checkbox" checked={!!activeExp.current} onChange={(e) => updateExperience(activeIndex, 'current', e.target.checked)} className="rounded" />
+                            Aktuell hier tätig
+                          </label>
+                        </div>
+                        <div className="grid grid-cols-2 gap-2">
+                          <select value={activeExp.current ? '' : activeExp.endMonth || ''} onChange={(e) => updateExperience(activeIndex, 'endMonth', e.target.value)} disabled={!!activeExp.current} className={`${!activeExp.current ? reqSelect(activeExp.endMonth) : selectBase} disabled:opacity-40`}>
+                            <option value="">Monat</option>
+                            {MONTHS.map((m) => <option key={m} value={m}>{m}</option>)}
+                          </select>
+                          <select value={activeExp.current ? '' : activeExp.endYear || ''} onChange={(e) => updateExperience(activeIndex, 'endYear', e.target.value)} disabled={!!activeExp.current} className={`${!activeExp.current ? reqSelect(activeExp.endYear) : selectBase} disabled:opacity-40`}>
+                            <option value="">Jahr *</option>
+                            {YEARS.map((y) => <option key={y} value={y}>{y}</option>)}
+                          </select>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </>
+              )}
+
+              {/* Step 1: Aufgaben / Verantwortlichkeiten */}
+              {subStep === 1 && (
+                <>
+                  <div className="flex items-center gap-2 mb-1">
+                    <ListChecks size={16} className="text-[#66c0b6]" />
+                    <p className="text-sm font-semibold text-white">Aufgaben & Verantwortlichkeiten</p>
+                    <span className="text-xs text-white/40">– wähle aus Kategorien</span>
+                  </div>
+                  <AnimatePresence>
+                    {showStarCoaching && (
+                      <STARCoachingBanner
+                        jobTitle={activeExp.jobTitle}
+                        industry={activeExp.industry}
+                        onDismiss={() => setShowStarCoaching(false)}
+                      />
+                    )}
+                  </AnimatePresence>
                   <CategorizedTasksInput
                     experienceLevel={expLevel}
                     industry={activeExp.industry}
                     value={(activeExp.tasksWithMetrics as any[]) || []}
                     onChange={(tasks) => updateTasksWithMetrics(activeIndex, tasks)}
                   />
-                </div>
-                <div ref={tasksBlockRef}>
-                  <p className="text-xs font-semibold text-[#66c0b6] uppercase tracking-wider mb-1.5">Messbare Erfolge</p>
-                  <p className="text-xs text-white/45 mb-3">Optional – Recruiter entscheiden oft anhand von Zahlen.</p>
-                  <TasksWithMetricsInput
-                    experienceLevel={expLevel}
-                    suggestedTasks={achievementsSuggestions.length > 0 ? achievementsSuggestions : ACHIEVEMENTS_BY_LEVEL[expLevel]}
-                    value={(activeExp.achievementsWithMetrics as any[]) || []}
-                    onChange={(achievements) => updateAchievementsWithMetrics(activeIndex, achievements)}
-                    title="Erfolge mit Zahlen belegen"
-                    emptyMessage="Klicke auf einen Erfolg und füge Zahlen hinzu"
-                  />
-                </div>
-              </div>
-            )}
+                </>
+              )}
 
-            {activeTab === 'projects' && (
-              <div className="space-y-4">
-                <p className="text-xs text-white/50">
-                  Füge Projekte hinzu, die du in dieser Station umgesetzt hast.
-                </p>
+              {/* Step 2: Erfolge / Kennzahlen */}
+              {subStep === 2 && (
+                <>
+                  <div className="flex items-center gap-2 mb-1">
+                    <TrendingUp size={16} className="text-[#66c0b6]" />
+                    <p className="text-sm font-semibold text-white">Erfolge & Kennzahlen</p>
+                    <span className="text-xs text-white/40">– optional, aber sehr empfohlen</span>
+                  </div>
+                  <div ref={tasksBlockRef}>
+                    <TasksWithMetricsInput
+                      experienceLevel={expLevel}
+                      suggestedTasks={achievementsSuggestions.length > 0 ? achievementsSuggestions : ACHIEVEMENTS_BY_LEVEL[expLevel]}
+                      value={(activeExp.achievementsWithMetrics as any[]) || []}
+                      onChange={(achievements) => updateAchievementsWithMetrics(activeIndex, achievements)}
+                      title="Erfolge mit Zahlen belegen"
+                      emptyMessage="Klicke auf einen Erfolg und füge Zahlen hinzu"
+                    />
+                  </div>
 
-                {stationProjects.map((project, pIdx) => (
-                  <div key={pIdx} className="bg-white/5 rounded-xl p-4 border border-white/10 space-y-3">
-                    <div className="flex items-center justify-between">
-                      <span className="text-xs font-semibold text-[#66c0b6]">Projekt {pIdx + 1}</span>
-                      <button
-                        onClick={() => removeStationProject(activeIndex, pIdx)}
-                        className="p-1 rounded-lg hover:bg-red-500/20 text-white/40 hover:text-red-400 transition-all"
-                      >
-                        <X size={14} />
-                      </button>
+                  {/* KPIs & Kontext */}
+                  <div ref={kpiBlockRef} className="pt-4 border-t border-white/10">
+                    <div className="flex items-center gap-2 mb-3">
+                      <p className="text-xs font-semibold text-[#66c0b6] uppercase tracking-wider">Kontext & KPIs</p>
+                      <div className="relative group">
+                        <Info size={13} className="text-white/30 cursor-help" />
+                        <div className="absolute left-0 bottom-full mb-1 w-64 p-2.5 rounded-xl bg-slate-800 border border-white/10 text-xs text-white/70 hidden group-hover:block z-10 leading-relaxed">
+                          Zahlen und Kontext machen deine Bulletpoints deutlich stärker. Recruiter lesen CVs in 6–8 Sekunden – Zahlen stechen sofort ins Auge.
+                        </div>
+                      </div>
                     </div>
-                    <input
-                      type="text"
-                      value={project.name || ''}
-                      onChange={(e) => updateStationProjectField(activeIndex, pIdx, 'name', e.target.value)}
-                      placeholder="Projektname *"
-                      className="w-full px-3 py-2.5 rounded-lg bg-white/10 border border-white/20 text-white placeholder-white/35 focus:outline-none focus:border-[#66c0b6] text-sm"
-                    />
-                    <textarea
-                      value={project.description || ''}
-                      onChange={(e) => updateStationProjectField(activeIndex, pIdx, 'description', e.target.value)}
-                      placeholder="Kurze Beschreibung des Projekts"
-                      rows={2}
-                      className="w-full px-3 py-2.5 rounded-lg bg-white/10 border border-white/20 text-white placeholder-white/35 focus:outline-none focus:border-[#66c0b6] text-sm resize-none"
-                    />
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                      <input
-                        type="text"
-                        value={project.role || ''}
-                        onChange={(e) => updateStationProjectField(activeIndex, pIdx, 'role', e.target.value)}
-                        placeholder="Deine Rolle (z.B. Projektleiter)"
-                        className="w-full px-3 py-2.5 rounded-lg bg-white/10 border border-white/20 text-white placeholder-white/35 focus:outline-none focus:border-[#66c0b6] text-sm"
-                      />
-                      <input
-                        type="text"
-                        value={project.result || ''}
-                        onChange={(e) => updateStationProjectField(activeIndex, pIdx, 'result', e.target.value)}
-                        placeholder="Ergebnis / Erfolg"
-                        className="w-full px-3 py-2.5 rounded-lg bg-white/10 border border-white/20 text-white placeholder-white/35 focus:outline-none focus:border-[#66c0b6] text-sm"
-                      />
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <div>
+                        <label className="block text-white/80 text-sm font-medium mb-1.5">Umsatz / Revenue</label>
+                        <input
+                          type="text"
+                          value={activeExp.revenue || ''}
+                          onChange={(e) => updateExperience(activeIndex, 'revenue', e.target.value)}
+                          placeholder="z.B. 2 Mio. € Umsatzverantwortung"
+                          className="w-full px-4 py-3 rounded-xl bg-white/10 border border-white/25 text-white placeholder-white/40 focus:outline-none focus:border-[#66c0b6]"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-white/80 text-sm font-medium mb-1.5">Budget</label>
+                        <input
+                          type="text"
+                          value={activeExp.budget || ''}
+                          onChange={(e) => updateExperience(activeIndex, 'budget', e.target.value)}
+                          placeholder="z.B. 500k€ Marketingbudget"
+                          className="w-full px-4 py-3 rounded-xl bg-white/10 border border-white/25 text-white placeholder-white/40 focus:outline-none focus:border-[#66c0b6]"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-white/80 text-sm font-medium mb-1.5">Teamgröße / Führung</label>
+                        <input
+                          type="text"
+                          value={activeExp.teamSize || ''}
+                          onChange={(e) => updateExperience(activeIndex, 'teamSize', e.target.value)}
+                          placeholder="z.B. 8 Mitarbeitende geführt"
+                          className="w-full px-4 py-3 rounded-xl bg-white/10 border border-white/25 text-white placeholder-white/40 focus:outline-none focus:border-[#66c0b6]"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-white/80 text-sm font-medium mb-1.5">Kunden / Markt</label>
+                        <input
+                          type="text"
+                          value={activeExp.customersMarket || ''}
+                          onChange={(e) => updateExperience(activeIndex, 'customersMarket', e.target.value)}
+                          placeholder="z.B. B2B Enterprise, DACH-Region"
+                          className="w-full px-4 py-3 rounded-xl bg-white/10 border border-white/25 text-white placeholder-white/40 focus:outline-none focus:border-[#66c0b6]"
+                        />
+                      </div>
                     </div>
                   </div>
-                ))}
+                </>
+              )}
 
-                <button
-                  onClick={() => addStationProject(activeIndex)}
-                  className="w-full flex items-center justify-center gap-2 px-4 py-3 rounded-xl border border-dashed border-white/20 text-white/50 hover:text-white hover:border-[#66c0b6]/40 hover:bg-[#66c0b6]/5 transition-all text-sm"
-                >
-                  <Plus size={16} /> Projekt hinzufügen
-                </button>
-              </div>
+              {/* Step 3: Skills & Tools */}
+              {subStep === 3 && (
+                <>
+                  <div ref={toolsBlockRef}>
+                    <div className="flex items-center gap-2 mb-1">
+                      <Wrench size={16} className="text-[#66c0b6]" />
+                      <p className="text-sm font-semibold text-white">Genutzte Skills & Tools</p>
+                      <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded bg-[#66c0b6]/15 text-[#66c0b6] text-xs font-semibold">ATS</span>
+                    </div>
+                    <p className="text-xs text-white/45 mb-3">
+                      Komma-getrennt – diese Begriffe matchen direkt mit ATS-Scansystemen
+                    </p>
+                    <input
+                      type="text"
+                      value={(activeExp as any).toolsText || activeExp.tools?.join(', ') || ''}
+                      onChange={(e) => updateToolsText(activeIndex, e.target.value)}
+                      placeholder="z.B. Salesforce, HubSpot, Excel, SAP, Jira, Figma, Python..."
+                      className="w-full px-4 py-3 rounded-xl bg-white/10 border border-white/25 text-white placeholder-white/40 focus:outline-none focus:border-[#66c0b6]"
+                    />
+                  </div>
+
+                  {/* Summary of this station */}
+                  <div className="pt-4 border-t border-white/10">
+                    <p className="text-xs font-semibold text-[#66c0b6] uppercase tracking-wider mb-3">Zusammenfassung dieser Station</p>
+                    <div className="space-y-2 text-sm text-white/60">
+                      <div className="flex items-center gap-2">
+                        <CheckCircle size={14} className={activeExp.jobTitle?.trim() ? 'text-emerald-400' : 'text-white/20'} />
+                        <span>{activeExp.jobTitle?.trim() ? `${activeExp.jobTitle} bei ${activeExp.company}` : 'Position fehlt'}</span>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <CheckCircle size={14} className={activeExp.startYear ? 'text-emerald-400' : 'text-white/20'} />
+                        <span>{activeExp.startYear ? `Zeitraum: ${activeExp.startDate} – ${activeExp.endDate}` : 'Zeitraum fehlt'}</span>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <CheckCircle size={14} className={(activeExp.tasksWithMetrics?.length ?? 0) > 0 ? 'text-emerald-400' : 'text-white/20'} />
+                        <span>{(activeExp.tasksWithMetrics?.length ?? 0) > 0 ? `${activeExp.tasksWithMetrics!.length} Aufgaben erfasst` : 'Keine Aufgaben'}</span>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <CheckCircle size={14} className={(activeExp.achievementsWithMetrics?.length ?? 0) > 0 ? 'text-emerald-400' : 'text-white/20'} />
+                        <span>{(activeExp.achievementsWithMetrics?.length ?? 0) > 0 ? `${activeExp.achievementsWithMetrics!.length} Erfolge erfasst` : 'Keine Erfolge'}</span>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <CheckCircle size={14} className={(activeExp.tools?.length ?? 0) > 0 ? 'text-emerald-400' : 'text-white/20'} />
+                        <span>{(activeExp.tools?.length ?? 0) > 0 ? `${activeExp.tools!.length} Tools/Skills: ${activeExp.tools!.join(', ')}` : 'Keine Tools'}</span>
+                      </div>
+                    </div>
+                  </div>
+                </>
+              )}
+            </motion.div>
+          </AnimatePresence>
+
+          {/* Sub-Step Navigation */}
+          <div className="flex justify-between items-center pt-4 border-t border-white/10 mt-4">
+            <button
+              onClick={handleSubStepBack}
+              className="flex items-center gap-2 px-4 py-2.5 rounded-xl text-white/70 hover:text-white hover:bg-white/5 transition-all text-sm"
+            >
+              <ArrowLeft size={18} /> {subStep === 0 ? 'Zurück' : 'Vorheriger Schritt'}
+            </button>
+            <div className="text-xs text-white/40">
+              Schritt {subStep + 1} von 4
+            </div>
+            {subStep < 3 ? (
+              <button
+                onClick={handleSubStepNext}
+                className={`flex items-center gap-2 px-5 py-2.5 rounded-xl font-semibold text-sm transition-all ${
+                  subStep === 0 && !isValidExperience
+                    ? 'bg-[#66c0b6]/40 text-black/50 cursor-pointer'
+                    : 'bg-[#66c0b6] text-black hover:opacity-90'
+                }`}
+              >
+                Weiter <ArrowRight size={18} />
+              </button>
+            ) : (
+              <button
+                onClick={handleNext}
+                className={`flex items-center gap-2 px-5 py-2.5 rounded-xl font-bold text-sm transition-all shadow-lg ${
+                  isValidExperience
+                    ? 'bg-gradient-to-r from-[#66c0b6] to-[#30E3CA] text-black hover:opacity-90 hover:scale-105'
+                    : 'bg-[#66c0b6]/40 text-black/50'
+                }`}
+              >
+                Fertig <CheckCircle size={18} />
+              </button>
             )}
           </div>
 
-          {experiences.length > 1 && (
-            <button
-              onClick={() => removeExperience(activeIndex)}
-              className="flex items-center gap-2 px-4 py-2 rounded-lg bg-red-500/20 text-red-400 hover:bg-red-500/30 transition-all"
-            >
-              <Trash2 size={18} /> Diese Station entfernen
-            </button>
-          )}
-        </div>
-
-        {/* Desktop Navigation */}
-        <div className="hidden lg:block pt-4">
-          {showValidationHint && !isValidExperience && (
-            <div className="mb-3 p-3 rounded-xl bg-red-500/10 border border-red-500/25 animate-fade-in">
+          {showValidationHint && !isValidExperience && subStep === 0 && (
+            <div className="mt-3 p-3 rounded-xl bg-red-500/10 border border-red-500/25 animate-fade-in">
               <p className="text-red-400 text-sm font-medium mb-1">Bitte fülle die rot markierten Felder aus:</p>
               <ul className="text-red-300/80 text-xs space-y-0.5 ml-3">
                 {!activeExp.jobTitle?.trim() && <li>• Position / Jobtitel</li>}
@@ -783,12 +837,15 @@ export function WorkExperienceStep({
                   onClick={onSkip}
                   className="mt-2 flex items-center gap-1.5 text-xs text-white/50 hover:text-white/80 transition-colors"
                 >
-                  <SkipForward size={13} />
-                  Diesen Schritt überspringen
+                  <SkipForward size={13} /> Diesen Schritt überspringen
                 </button>
               )}
             </div>
           )}
+        </div>
+
+        {/* Desktop Navigation */}
+        <div className="hidden lg:block pt-4">
           <div className="flex justify-between items-center">
             <button
               onClick={onBack}
@@ -811,7 +868,6 @@ export function WorkExperienceStep({
 
         {/* Mobile Navigation */}
         <div className="lg:hidden fixed bottom-0 left-0 right-0 bg-gradient-to-t from-[#020617] via-[#020617]/95 to-transparent z-50 pt-3">
-          {/* Dynamischer Coach – schließt die bisherige Mobile-Tipp-Lücke */}
           <SmartCoachBar
             section="workExperience"
             data={{}}
@@ -819,26 +875,6 @@ export function WorkExperienceStep({
             fallbackMessage={coachFallback}
             onCtaClick={handleCoachCta}
           />
-          {showValidationHint && !isValidExperience && (
-            <div className="mx-4 mb-2 p-3 rounded-xl bg-red-500/10 border border-red-500/25 animate-fade-in">
-              <p className="text-red-400 text-sm font-medium mb-1">Rot markierte Felder ausfüllen:</p>
-              <ul className="text-red-300/80 text-xs space-y-0.5 ml-3">
-                {!activeExp.jobTitle?.trim() && <li>• Position / Jobtitel</li>}
-                {!activeExp.company?.trim() && <li>• Unternehmen</li>}
-                {!activeExp.startYear && <li>• Startjahr</li>}
-                {!activeExp.current && !activeExp.endYear && <li>• Endjahr oder „Aktuell" wählen</li>}
-              </ul>
-              {onSkip && (
-                <button
-                  onClick={onSkip}
-                  className="mt-1.5 flex items-center gap-1.5 text-xs text-white/50 hover:text-white/80 transition-colors"
-                >
-                  <SkipForward size={13} />
-                  Überspringen
-                </button>
-              )}
-            </div>
-          )}
           <div className="flex justify-between items-center gap-3 px-4 pb-4">
             <button
               onClick={onBack}
@@ -861,7 +897,7 @@ export function WorkExperienceStep({
         </div>
       </div>
 
-      {/* Dynamischer Coach – Desktop-Karte (ersetzt AvatarSidebar) */}
+      {/* Desktop SmartCoach */}
       <div className="hidden lg:block">
         <SmartCoach
           section="workExperience"
