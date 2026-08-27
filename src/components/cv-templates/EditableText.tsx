@@ -295,8 +295,8 @@ export const ItemDragHandle: React.FC<{
 
 const dragHandleStyle: React.CSSProperties = {
   position: 'absolute',
-  top: '2px',
-  left: '-2px',
+  top: '1px',
+  left: '-18px',
   width: '16px',
   height: '16px',
   display: 'flex',
