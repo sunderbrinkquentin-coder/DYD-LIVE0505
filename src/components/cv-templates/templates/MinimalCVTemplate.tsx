@@ -5,6 +5,8 @@ import {
   EditableText,
   dragProps,
   itemDragProps,
+  SectionDragHandle,
+  ItemDragHandle,
   type CVTemplateProps,
   type EditorSection,
 } from '../EditableText';
@@ -132,9 +134,10 @@ export const MinimalCVTemplate: React.FC<CVTemplateProps> = ({
               key={idx}
               data-pdf-section
               data-break-item
-              style={{ ...cardStyle, cursor: onReorderSectionItem ? 'grab' : undefined }}
+              style={{ ...cardStyle, position: 'relative', cursor: onReorderSectionItem ? 'grab' : undefined }}
               {...itemDragProps(sectionIndex, idx, onReorderSectionItem)}
             >
+              <ItemDragHandle sectionIndex={sectionIndex} itemIndex={idx} onReorderSectionItem={onReorderSectionItem} />
               <div className="flex justify-between items-start gap-2">
                 {/* MAXIMAL STABIL: KEIN min-w-0. Mit min-w-0 dürfte der Wrapper
                     unter min-content (= längstes Wort) schrumpfen und der Titel
@@ -247,9 +250,10 @@ export const MinimalCVTemplate: React.FC<CVTemplateProps> = ({
               key={idx}
               data-pdf-section
               data-break-item
-              style={{ ...cardStyle, cursor: onReorderSectionItem ? 'grab' : undefined }}
+              style={{ ...cardStyle, position: 'relative', cursor: onReorderSectionItem ? 'grab' : undefined }}
               {...itemDragProps(sectionIndex, idx, onReorderSectionItem)}
             >
+              <ItemDragHandle sectionIndex={sectionIndex} itemIndex={idx} onReorderSectionItem={onReorderSectionItem} />
               <EditableText
                 wrap
                 className="font-bold"
@@ -333,9 +337,10 @@ export const MinimalCVTemplate: React.FC<CVTemplateProps> = ({
             key={idx}
             data-pdf-section
             data-break-item
-            style={{ ...cardStyle, cursor: onReorderSectionItem ? 'grab' : undefined }}
+            style={{ ...cardStyle, position: 'relative', cursor: onReorderSectionItem ? 'grab' : undefined }}
             {...itemDragProps(sectionIndex, idx, onReorderSectionItem)}
           >
+            <ItemDragHandle sectionIndex={sectionIndex} itemIndex={idx} onReorderSectionItem={onReorderSectionItem} />
             <div className="flex justify-between items-start gap-2">
               <div className="flex-1">
                 {/* FIX (zeichenweises Stapeln): explizite Umbruch-Regel
@@ -617,7 +622,12 @@ export const MinimalCVTemplate: React.FC<CVTemplateProps> = ({
       const index = sections.findIndex((s) => s === section);
       const content = renderSection(section, index);
       if (!content) return null;
-      return <div key={index} {...dragProps(index, onReorderSections)}>{content}</div>;
+      return (
+        <div key={index} style={{ position: 'relative' }} {...dragProps(index, onReorderSections)}>
+          <SectionDragHandle index={index} onReorderSections={onReorderSections} />
+          {content}
+        </div>
+      );
     });
 
   return (
