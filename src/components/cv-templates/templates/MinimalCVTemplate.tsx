@@ -500,7 +500,6 @@ export const MinimalCVTemplate: React.FC<CVTemplateProps> = ({
                 }}
               >
                 <EditableText
-                  as="span"
                   value={display}
                   onChange={(val) => onUpdateSectionItem(sectionIndex, idx, 'skill', val)}
                   style={{ fontSize: '9px', color: t.text, display: 'inline-block', width: 'auto' }}

@@ -525,7 +525,6 @@ export const CreativeCVTemplate: React.FC<CVTemplateProps> = ({
                     )}
                   >
                     <EditableText
-                      as="span"
                       style={chipTextStyle}
                       value={display}
                       onChange={(val) => onUpdateSectionItem(sectionIndex, idx, 'skill', val)}
@@ -551,7 +550,6 @@ export const CreativeCVTemplate: React.FC<CVTemplateProps> = ({
                 return (
                   <span key={idx} style={chipStyle(t.chipBg, t.accent)}>
                     <EditableText
-                      as="span"
                       style={chipTextStyle}
                       value={v}
                       onChange={(val) => onUpdateSectionItem(sectionIndex, idx, 'label', val)}
@@ -576,7 +574,6 @@ export const CreativeCVTemplate: React.FC<CVTemplateProps> = ({
                 return (
                   <span key={idx} style={chipStyle('#fff7ed', '#f97316')}>
                     <EditableText
-                      as="span"
                       style={chipTextStyle}
                       value={v}
                       onChange={(val) => onUpdateSectionItem(sectionIndex, idx, 'label', val)}
