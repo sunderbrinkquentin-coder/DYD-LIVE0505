@@ -1,6 +1,7 @@
 // src/components/cv-templates/templates/ClassicCVTemplate.tsx
 
-import React from 'react';
+import React, { useState } from 'react';
+import { Plus } from 'lucide-react';
 import {
   EditableText,
   dragProps,
@@ -91,6 +92,46 @@ export const ClassicCVTemplate: React.FC<CVTemplateProps> = ({
   // Höhe kommt aus der Break-Engine, nicht aus einem lokalen ResizeObserver.
   const containerMinHeight = minHeightPx ?? 1122;
 
+  // ─── Optionale Felder (Ort, Schwerpunkt) nur auf Klick einblenden ─────────
+  //
+  // FEATURE (auf Quentins Wunsch): vorher reservierte ein leeres Ort-/
+  // Schwerpunkt-Feld KEINE eigene Zeile mehr (das war schon gefixt), aber
+  // solange es leer war, gab es auch keine Möglichkeit, es wieder
+  // hinzuzufügen — das Feld tauchte erst nach einem Datenimport wieder auf.
+  // Jetzt: ein kleiner "+"-Button neben der Firma/Institution blendet das
+  // leere Feld gezielt ein (rein lokaler UI-Zustand, `pdf-hidden` — taucht
+  // im PDF nie auf, dort gilt weiterhin: leer = kein Platzverbrauch, also
+  // automatisch kleinere Kacheln, wenn niemand die Zusatzfelder befüllt).
+  const [revealed, setRevealed] = useState<Set<string>>(new Set());
+  const reveal = (key: string) => setRevealed((prev) => new Set(prev).add(key));
+
+  const AddFieldButton: React.FC<{ onClick: () => void; label: string }> = ({ onClick, label }) => (
+    <button
+      type="button"
+      className="pdf-hidden"
+      title={label}
+      onClick={onClick}
+      style={{
+        display: 'inline-flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        width: '14px',
+        height: '14px',
+        marginLeft: '6px',
+        verticalAlign: 'middle',
+        border: `1px dashed ${t.border}`,
+        borderRadius: '3px',
+        background: 'transparent',
+        color: t.faint,
+        cursor: 'pointer',
+        padding: 0,
+        lineHeight: 1,
+      }}
+    >
+      <Plus size={10} />
+    </button>
+  );
+
   const findSectionIndex = (type: string) => sections.findIndex((s) => s.type === type);
 
   const experienceIndex = findSectionIndex('experience');
@@ -175,8 +216,8 @@ export const ClassicCVTemplate: React.FC<CVTemplateProps> = ({
         onUpdateSectionItem(sectionIndex, idx, 'date_from', from);
         onUpdateSectionItem(sectionIndex, idx, 'date_to', to);
       }}
-      className="text-right w-32 flex-shrink-0 leading-tight font-semibold"
-      style={{ fontSize: '9px', color: t.accent }}
+      className="text-right flex-shrink-0 leading-tight font-semibold"
+      style={{ fontSize: '9px', color: t.accent, width: '128px' }}
       placeholder="Zeitraum"
     />
   );
@@ -221,18 +262,25 @@ export const ClassicCVTemplate: React.FC<CVTemplateProps> = ({
                 {renderDateRange(experienceIndex, idx, item)}
               </div>
 
-              <EditableText
-                value={item.company}
-                onChange={(val) => onUpdateSectionItem(experienceIndex, idx, 'company', val)}
-                className="font-semibold mt-0.5 leading-snug"
-                style={{ fontSize: '10px', color: t.muted }}
-                placeholder="Unternehmen"
-              />
+              <div className="flex items-center mt-0.5">
+                <EditableText
+                  value={item.company}
+                  onChange={(val) => onUpdateSectionItem(experienceIndex, idx, 'company', val)}
+                  className="font-semibold leading-snug"
+                  style={{ fontSize: '10px', color: t.muted }}
+                  placeholder="Unternehmen"
+                />
+                {/* Nur der Button ist immer da (pdf-hidden) — das Ort-Feld
+                    selbst erst nach Klick oder wenn schon befüllt. Löst
+                    beides: keine Löcher durch leere Placeholder-Zeilen UND
+                    das Feld bleibt trotzdem erreichbar, statt für immer zu
+                    verschwinden. */}
+                {!(item.location || item.ort) && !revealed.has(`exp-${idx}-location`) && (
+                  <AddFieldButton label="Ort hinzufügen" onClick={() => reveal(`exp-${idx}-location`)} />
+                )}
+              </div>
 
-              {/* Nur rendern, wenn befüllt — ein leeres Ort-Feld hat sonst
-                  eine eigene Zeile mit Placeholder reserviert und riss ein
-                  sichtbares Loch in die Karte, auch wenn niemand hinklickt. */}
-              {(item.location || item.ort) && (
+              {(item.location || item.ort || revealed.has(`exp-${idx}-location`)) && (
                 <EditableText
                   value={item.location || item.ort || ''}
                   onChange={(val) => onUpdateSectionItem(experienceIndex, idx, 'location', val)}
@@ -337,17 +385,25 @@ export const ClassicCVTemplate: React.FC<CVTemplateProps> = ({
                   Felder reservierten sonst je eine eigene Zeile mit
                   Placeholder und rissen sichtbare Löcher in die Karte. */}
               {item.institution && (
-                <EditableText
-                  value={item.institution || ''}
-                  onChange={(val) => onUpdateSectionItem(educationIndex, idx, 'institution', val)}
-                  className="font-semibold mt-0.5 leading-snug"
-                  style={{ fontSize: '10px', color: t.muted, width: '100%', whiteSpace: 'normal', wordBreak: 'normal', overflowWrap: 'break-word', overflow: 'visible' }}
-                  placeholder="Institution / Hochschule"
-                  wrap
-                />
+                <div className="flex items-center mt-0.5">
+                  <EditableText
+                    value={item.institution || ''}
+                    onChange={(val) => onUpdateSectionItem(educationIndex, idx, 'institution', val)}
+                    className="font-semibold leading-snug"
+                    style={{ fontSize: '10px', color: t.muted, width: '100%', whiteSpace: 'normal', wordBreak: 'normal', overflowWrap: 'break-word', overflow: 'visible' }}
+                    placeholder="Institution / Hochschule"
+                    wrap
+                  />
+                  {!item.location && !revealed.has(`edu-${idx}-location`) && (
+                    <AddFieldButton label="Ort hinzufügen" onClick={() => reveal(`edu-${idx}-location`)} />
+                  )}
+                  {!item.description && !revealed.has(`edu-${idx}-description`) && (
+                    <AddFieldButton label="Schwerpunkte hinzufügen" onClick={() => reveal(`edu-${idx}-description`)} />
+                  )}
+                </div>
               )}
 
-              {item.location && (
+              {(item.location || revealed.has(`edu-${idx}-location`)) && (
                 <EditableText
                   value={item.location || ''}
                   onChange={(val) => onUpdateSectionItem(educationIndex, idx, 'location', val)}
@@ -361,9 +417,9 @@ export const ClassicCVTemplate: React.FC<CVTemplateProps> = ({
                   Beschreibung" bei Ausbildung ein eigenes, nicht gebullettes
                   Feld — analog zu Modern (siehe dort: keepDescription).
                   bulletPoints kommt separat dazu, für konkrete Einzelpunkte. */}
-              {item.description && (
+              {(item.description || revealed.has(`edu-${idx}-description`)) && (
                 <EditableText
-                  value={item.description.replace(/^[-•*]\s*/, '')}
+                  value={(item.description || '').replace(/^[-•*]\s*/, '')}
                   onChange={(val) => onUpdateSectionItem(educationIndex, idx, 'description', val)}
                   className="leading-snug mt-1.5"
                   style={{ fontSize: '9.5px', color: t.muted }}
