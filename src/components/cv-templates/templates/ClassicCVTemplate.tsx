@@ -4,6 +4,9 @@ import React from 'react';
 import {
   EditableText,
   dragProps,
+  itemDragProps,
+  SectionDragHandle,
+  ItemDragHandle,
   type CVTemplateProps,
   type EditorSection,
 } from '../EditableText';
@@ -83,6 +86,7 @@ export const ClassicCVTemplate: React.FC<CVTemplateProps> = ({
   onDeleteSectionItem = () => {},
   onDeleteBullet,
   onReorderSections,
+  onReorderSectionItem,
 }) => {
   // Höhe kommt aus der Break-Engine, nicht aus einem lokalen ResizeObserver.
   const containerMinHeight = minHeightPx ?? 1122;
@@ -98,6 +102,30 @@ export const ClassicCVTemplate: React.FC<CVTemplateProps> = ({
   const workValuesIndex = findSectionIndex('work_values');
 
   // ─── Bullets ───────────────────────────────────────────────────────────────
+  //
+  // BUG (fehlender erster Bulletpoint): `description` und `bulletPoints` sind
+  // aus Sicht der Nutzerin EINE Liste ("meine Aufgaben/Erfolge"), technisch
+  // aber zwei getrennte Felder — häufig landet (aus Import/KI-Generierung)
+  // der erste Punkt in `description`, der Rest in `bulletPoints`. Vorher
+  // rendere Classic `description` als eigenen, NICHT gebulleteten Absatz
+  // direkt über der gebulleteten `bulletPoints`-Liste — sichtbares Ergebnis:
+  // der erste Punkt hat keinen Punkt davor, alle folgenden schon.
+  // Minimal/Professional/Creative behandeln beide Felder bereits einheitlich
+  // (bulletPoints, sonst zeilenweise aufgeteiltes description) — dieselbe
+  // Logik jetzt auch hier, statt description separat zu rendern.
+  const getBullets = (item: any): string[] => {
+    const raw = Array.isArray(item?.bulletPoints) && item.bulletPoints.length > 0
+      ? item.bulletPoints
+      : Array.isArray(item?.bullet_points) && item.bullet_points.length > 0
+      ? item.bullet_points
+      : typeof item?.description === 'string' && item.description.trim()
+      ? item.description.split('\n')
+      : [];
+    return raw
+      .map((s: any) => String(s ?? '').replace(/^[-•*]\s*/, '').trim())
+      .filter(Boolean);
+  };
+
   const renderBulletPoints = (bullets: any[] | undefined, sectionIndex: number, itemIndex: number) => {
     if (!Array.isArray(bullets) || bullets.length === 0) return null;
 
@@ -164,7 +192,14 @@ export const ClassicCVTemplate: React.FC<CVTemplateProps> = ({
         <MainTitle first>Berufserfahrung</MainTitle>
         <div className="space-y-5">
           {items.map((item: any, idx: number) => (
-            <div key={idx} data-pdf-section data-break-item style={cardWrapper}>
+            <div
+              key={idx}
+              data-pdf-section
+              data-break-item
+              style={{ ...cardWrapper, cursor: onReorderSectionItem ? 'grab' : undefined }}
+              {...itemDragProps(experienceIndex, idx, onReorderSectionItem)}
+            >
+              <ItemDragHandle sectionIndex={experienceIndex} itemIndex={idx} onReorderSectionItem={onReorderSectionItem} />
               <div className="flex items-baseline justify-between gap-3">
                 <EditableText
                   value={item.title}
@@ -192,16 +227,7 @@ export const ClassicCVTemplate: React.FC<CVTemplateProps> = ({
                 placeholder="Ort"
               />
 
-              <EditableText
-                value={item.description ? item.description.replace(/^[-•*]\s*/, '') : ''}
-                onChange={(val) => onUpdateSectionItem(experienceIndex, idx, 'description', val)}
-                className="leading-snug mt-1.5"
-                style={{ fontSize: '9.5px', color: t.muted }}
-                multiline
-                placeholder="Kurze Beschreibung der Position"
-              />
-
-              {renderBulletPoints(item.bulletPoints || item.bullet_points, experienceIndex, idx)}
+              {renderBulletPoints(getBullets(item), experienceIndex, idx)}
 
               <div className="pdf-hidden">
                 <button
@@ -257,7 +283,14 @@ export const ClassicCVTemplate: React.FC<CVTemplateProps> = ({
         <MainTitle>Ausbildung / Studium</MainTitle>
         <div className="space-y-5">
           {items.map((item: any, idx: number) => (
-            <div key={idx} data-pdf-section data-break-item style={cardWrapper}>
+            <div
+              key={idx}
+              data-pdf-section
+              data-break-item
+              style={{ ...cardWrapper, cursor: onReorderSectionItem ? 'grab' : undefined }}
+              {...itemDragProps(educationIndex, idx, onReorderSectionItem)}
+            >
+              <ItemDragHandle sectionIndex={educationIndex} itemIndex={idx} onReorderSectionItem={onReorderSectionItem} />
               <div className="flex items-baseline justify-between gap-3">
                 {/* MAXIMAL STABIL: KEIN min-w-0. Ein Flex-Feld mit min-w-0 darf
                     unter seine min-content-Breite (= längstes Wort) schrumpfen —
@@ -302,6 +335,10 @@ export const ClassicCVTemplate: React.FC<CVTemplateProps> = ({
                 placeholder="Ort"
               />
 
+              {/* Anders als Berufserfahrung/Projekte bleibt "Schwerpunkte /
+                  Beschreibung" bei Ausbildung ein eigenes, nicht gebullettes
+                  Feld — analog zu Modern (siehe dort: keepDescription).
+                  bulletPoints kommt separat dazu, für konkrete Einzelpunkte. */}
               <EditableText
                 value={item.description ? item.description.replace(/^[-•*]\s*/, '') : ''}
                 onChange={(val) => onUpdateSectionItem(educationIndex, idx, 'description', val)}
@@ -342,7 +379,14 @@ export const ClassicCVTemplate: React.FC<CVTemplateProps> = ({
         <MainTitle>Projekte</MainTitle>
         <div className="space-y-5">
           {items.map((item: any, idx: number) => (
-            <div key={idx} data-pdf-section data-break-item style={cardWrapper}>
+            <div
+              key={idx}
+              data-pdf-section
+              data-break-item
+              style={{ ...cardWrapper, cursor: onReorderSectionItem ? 'grab' : undefined }}
+              {...itemDragProps(projectsIndex, idx, onReorderSectionItem)}
+            >
+              <ItemDragHandle sectionIndex={projectsIndex} itemIndex={idx} onReorderSectionItem={onReorderSectionItem} />
               <EditableText
                 value={item.title}
                 onChange={(val) => onUpdateSectionItem(projectsIndex, idx, 'title', val)}
@@ -547,8 +591,10 @@ export const ClassicCVTemplate: React.FC<CVTemplateProps> = ({
           className="mb-6"
           data-pdf-section
           data-break-atomic
+          style={{ position: 'relative' }}
           {...dragProps(index, onReorderSections)}
         >
+          <SectionDragHandle index={index} onReorderSections={onReorderSections} />
           <AsideTitle>{label}</AsideTitle>
           <div>
             {items.map((item: any, idx: number) => {
