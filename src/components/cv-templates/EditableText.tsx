@@ -257,7 +257,7 @@ export const SectionDragHandle: React.FC<{
         e.dataTransfer.effectAllowed = 'move';
       }}
     >
-      <GripVertical size={14} />
+      <GripVertical size={16} />
     </span>
   );
 };
@@ -288,17 +288,17 @@ export const ItemDragHandle: React.FC<{
         e.dataTransfer.effectAllowed = 'move';
       }}
     >
-      <GripVertical size={14} />
+      <GripVertical size={16} />
     </span>
   );
 };
 
 const dragHandleStyle: React.CSSProperties = {
   position: 'absolute',
-  top: '1px',
-  left: '-18px',
-  width: '16px',
-  height: '16px',
+  top: '-2px',
+  left: '-22px',
+  width: '22px',
+  height: '22px',
   display: 'flex',
   alignItems: 'center',
   justifyContent: 'center',
