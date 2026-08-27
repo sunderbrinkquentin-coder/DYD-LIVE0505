@@ -140,7 +140,10 @@ const Chip: React.FC<{
   borderColor?: string;
   color?: string;
   fontWeight?: string | number;
-}> = ({ value, onChange, onDelete, bg = CI.tint, borderColor = CI.border, color = t.text, fontWeight = 600 }) => (
+  sectionIndex?: number;
+  itemIndex?: number;
+  onReorderSectionItem?: (sectionIndex: number, from: number, to: number) => void;
+}> = ({ value, onChange, onDelete, bg = CI.tint, borderColor = CI.border, color = t.text, fontWeight = 600, sectionIndex, itemIndex, onReorderSectionItem }) => (
   <span
     style={{
       display: 'inline-flex',
@@ -150,6 +153,7 @@ const Chip: React.FC<{
       padding: '3px 10px',
       marginRight: '5px',
       marginBottom: '5px',
+      marginLeft: onReorderSectionItem ? '10px' : undefined,
       verticalAlign: 'middle',
       fontSize: '9px',
       fontFamily: FONT,
@@ -158,8 +162,13 @@ const Chip: React.FC<{
       lineHeight: 1.4,
       whiteSpace: 'nowrap',
       position: 'relative',
+      cursor: onReorderSectionItem ? 'grab' : undefined,
     }}
+    {...(sectionIndex !== undefined && itemIndex !== undefined ? itemDragProps(sectionIndex, itemIndex, onReorderSectionItem) : {})}
   >
+    {sectionIndex !== undefined && itemIndex !== undefined && (
+      <ItemDragHandle sectionIndex={sectionIndex} itemIndex={itemIndex} onReorderSectionItem={onReorderSectionItem} />
+    )}
     <EditableText
       as="span"
       value={value}
@@ -635,8 +644,12 @@ export const ModernCVTemplate: React.FC<CVTemplateProps> = ({
                     fontFamily: FONT,
                     backgroundColor: CI.tint,
                     border: `1px solid ${CI.border}`,
+                    position: 'relative',
+                    cursor: onReorderSectionItem ? 'grab' : undefined,
                   }}
+                  {...itemDragProps(sectionIndex, lang.originalIdx, onReorderSectionItem)}
                 >
+                  <ItemDragHandle sectionIndex={sectionIndex} itemIndex={lang.originalIdx} onReorderSectionItem={onReorderSectionItem} />
                   <EditableText
                     as="span"
                     value={lang.language}
@@ -686,6 +699,9 @@ export const ModernCVTemplate: React.FC<CVTemplateProps> = ({
                   borderColor={isSoft ? t.border : CI.border}
                   color={isSoft ? t.muted : t.text}
                   fontWeight={isSoft ? 500 : 600}
+                  sectionIndex={sectionIndex}
+                  itemIndex={c.originalIdx}
+                  onReorderSectionItem={onReorderSectionItem}
                 />
               ))}
             </div>
@@ -717,6 +733,9 @@ export const ModernCVTemplate: React.FC<CVTemplateProps> = ({
                   value={c.display}
                   onChange={(v) => onUpdateSectionItem(sectionIndex, c.originalIdx, 'label', v)}
                   onDelete={() => onDeleteSectionItem(sectionIndex, c.originalIdx)}
+                  sectionIndex={sectionIndex}
+                  itemIndex={c.originalIdx}
+                  onReorderSectionItem={onReorderSectionItem}
                 />
               ))}
             </div>
@@ -730,9 +749,14 @@ export const ModernCVTemplate: React.FC<CVTemplateProps> = ({
       case 'volunteering':
       case 'stipendien':
       case 'scholarships': {
-        const entries = items.filter((it: any) =>
-          (it?.name || it?.title || it?.label || it?.degree || '').toString().trim()
-        );
+        // BUG-FIX: vorher `items.filter(...)` — dabei ging der ORIGINAL-Index
+        // verloren, sobald ein Item übersprungen wurde (kein Name/Titel).
+        // `onUpdateSectionItem`/`itemDragProps` erhielten dann den Index in
+        // der gefilterten Liste statt in `items`, wodurch Bearbeiten und
+        // Verschieben nach dem ersten leeren Eintrag das FALSCHE Item traf.
+        const entries = items
+          .map((it: any, originalIdx: number) => ({ it, originalIdx }))
+          .filter(({ it }) => (it?.name || it?.title || it?.label || it?.degree || '').toString().trim());
         if (entries.length === 0) return null;
 
         const LABELS: Record<string, string> = {
@@ -744,36 +768,47 @@ export const ModernCVTemplate: React.FC<CVTemplateProps> = ({
           <div key={`${section.type}-${sectionIndex}`} data-pdf-section data-break-atomic>
             <SectionTitle>{section.title || LABELS[section.type] || section.type}</SectionTitle>
             <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
-              {entries.map((it: any, idx: number) => {
+              {entries.map(({ it, originalIdx }) => {
                 const label = it.name || it.title || it.label || it.degree || '';
                 const sub = it.institution || it.issuer || it.company || it.organization || '';
                 const date = it.date || it.date_from || it.year || '';
 
                 return (
                   <div
-                    key={idx}
+                    key={originalIdx}
                     style={{
                       border: `1px solid ${CI.border}`,
                       borderRadius: '10px',
                       padding: '8px 12px',
                       backgroundColor: '#ffffff',
                       fontFamily: FONT,
+                      position: 'relative',
+                      cursor: onReorderSectionItem ? 'grab' : undefined,
                     }}
+                    {...itemDragProps(sectionIndex, originalIdx, onReorderSectionItem)}
                   >
+                    <ItemDragHandle sectionIndex={sectionIndex} itemIndex={originalIdx} onReorderSectionItem={onReorderSectionItem} />
+                    {/* FIX (abgeschnittene Zertifikate/Weiterbildungen): kein
+                        min-w-0 mehr (Feld darf nicht unter seine Wortbreite
+                        schrumpfen) + `wrap` auf Name/Institution, statt der
+                        Default-Kombination nowrap+ellipsis, die lange Namen
+                        stillschweigend abgeschnitten hat. */}
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: '8px' }}>
-                      <div style={{ flex: 1, minWidth: 0 }}>
+                      <div style={{ flex: 1 }}>
                         <EditableText
                           value={label}
-                          onChange={(v) => onUpdateSectionItem(sectionIndex, idx, 'name', v)}
+                          onChange={(v) => onUpdateSectionItem(sectionIndex, originalIdx, 'name', v)}
                           placeholder="Bezeichnung"
                           style={{ fontSize: '9.5px', fontWeight: 600, color: t.text, lineHeight: 1.5 }}
+                          wrap
                         />
                         {sub && (
                           <EditableText
                             value={sub}
-                            onChange={(v) => onUpdateSectionItem(sectionIndex, idx, 'institution', v)}
+                            onChange={(v) => onUpdateSectionItem(sectionIndex, originalIdx, 'institution', v)}
                             placeholder="Organisation"
                             style={{ fontSize: '9px', color: t.muted, lineHeight: 1.4, marginTop: '1px' }}
+                            wrap
                           />
                         )}
                       </div>
@@ -781,7 +816,7 @@ export const ModernCVTemplate: React.FC<CVTemplateProps> = ({
                         <EditableText
                           as="span"
                           value={date}
-                          onChange={(v) => onUpdateSectionItem(sectionIndex, idx, 'date', v)}
+                          onChange={(v) => onUpdateSectionItem(sectionIndex, originalIdx, 'date', v)}
                           placeholder="Datum"
                           style={{ fontSize: '9px', color: t.muted, whiteSpace: 'nowrap', flexShrink: 0 }}
                         />
@@ -823,13 +858,18 @@ export const ModernCVTemplate: React.FC<CVTemplateProps> = ({
                     padding: '8px 12px',
                     backgroundColor: '#ffffff',
                     fontFamily: FONT,
+                    position: 'relative',
+                    cursor: onReorderSectionItem ? 'grab' : undefined,
                   }}
+                  {...itemDragProps(sectionIndex, e.originalIdx, onReorderSectionItem)}
                 >
+                  <ItemDragHandle sectionIndex={sectionIndex} itemIndex={e.originalIdx} onReorderSectionItem={onReorderSectionItem} />
                   <EditableText
                     value={e.display}
                     onChange={(v) => onUpdateSectionItem(sectionIndex, e.originalIdx, 'name', v)}
                     placeholder="Eintrag"
                     style={{ fontSize: '9.5px', color: t.text, lineHeight: 1.5 }}
+                    wrap
                   />
                 </div>
               ))}
