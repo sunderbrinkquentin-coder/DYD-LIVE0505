@@ -922,7 +922,7 @@ export const ModernCVTemplate: React.FC<CVTemplateProps> = ({
           )}
         </header>
 
-        <main style={{ padding: '4px 32px 16px', display: 'flex', width: '100%' }}>
+        <main style={{ padding: '4px 32px 16px', display: 'flex', width: '100%', boxSizing: 'border-box' }}>
           <section style={{ flex: '0 0 58%', minWidth: 0, paddingRight: '14px', display: 'flex', flexDirection: 'column' }}>
             {summary?.trim() && (
               <div data-pdf-section data-break-atomic style={{ display: 'block', width: '100%' }}>
