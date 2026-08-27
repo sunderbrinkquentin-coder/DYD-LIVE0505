@@ -476,7 +476,13 @@ export const ClassicCVTemplate: React.FC<CVTemplateProps> = ({
             if (!language && !level) return null;
 
             return (
-              <li key={idx} className="flex flex-nowrap justify-between items-center gap-2" style={{ fontSize: '9px' }}>
+              <li
+                key={idx}
+                className="flex flex-nowrap justify-between items-center gap-2"
+                style={{ fontSize: '9px', position: 'relative', cursor: onReorderSectionItem ? 'grab' : undefined }}
+                {...itemDragProps(languagesIndex, idx, onReorderSectionItem)}
+              >
+                <ItemDragHandle sectionIndex={languagesIndex} itemIndex={idx} onReorderSectionItem={onReorderSectionItem} />
                 <div className="flex-1">
                   <EditableText
                     value={language}
@@ -534,6 +540,7 @@ export const ClassicCVTemplate: React.FC<CVTemplateProps> = ({
                   gap: '4px',
                   marginRight: '5px',
                   marginBottom: '5px',
+                  marginLeft: onReorderSectionItem ? '10px' : undefined,
                   verticalAlign: 'middle',
                   padding: '3px 9px',
                   borderRadius: '4px',
@@ -541,8 +548,12 @@ export const ClassicCVTemplate: React.FC<CVTemplateProps> = ({
                   border: `1px solid ${t.chipBorder}`,
                   lineHeight: 1.4,
                   whiteSpace: 'nowrap',
+                  position: 'relative',
+                  cursor: onReorderSectionItem ? 'grab' : undefined,
                 }}
+                {...itemDragProps(index, idx, onReorderSectionItem)}
               >
+                <ItemDragHandle sectionIndex={index} itemIndex={idx} onReorderSectionItem={onReorderSectionItem} />
                 <EditableText
                   value={display}
                   onChange={(val) => onUpdateSectionItem(index, idx, 'skill', val)}
@@ -629,15 +640,31 @@ export const ClassicCVTemplate: React.FC<CVTemplateProps> = ({
               const date = item.date || item.date_from || item.year || '';
 
               return (
-                <div key={idx} style={{ display: 'block', marginBottom: '6px' }}>
+                <div
+                  key={idx}
+                  style={{ display: 'block', marginBottom: '6px', position: 'relative', cursor: onReorderSectionItem ? 'grab' : undefined }}
+                  {...itemDragProps(index, idx, onReorderSectionItem)}
+                >
+                  <ItemDragHandle sectionIndex={index} itemIndex={idx} onReorderSectionItem={onReorderSectionItem} />
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: '8px' }}>
-                    <div style={{ flex: 1, minWidth: 0 }}>
+                    {/* FIX (abgeschnittene Zertifikate/Weiterbildungen): `flex: 1,
+                        minWidth: 0` erlaubte diesem Wrapper, unter die
+                        Inhaltsbreite zu schrumpfen — kombiniert mit dem
+                        FEHLENDEN `wrap` auf den EditableTexts unten (Default:
+                        nowrap + overflow:hidden + ellipsis) wurde jeder etwas
+                        längere Name/Titel einfach mit "…" abgeschnitten statt
+                        umzubrechen. Jetzt: kein min-w-0 (Feld darf nicht unter
+                        seine Wortbreite schrumpfen, siehe Ausbildung/degree
+                        oben) + `wrap` auf beiden Feldern, exakt das gleiche
+                        Muster wie bei Berufserfahrung/Ausbildung. */}
+                    <div style={{ flex: 1 }}>
                       <div style={{ fontWeight: 600, fontSize: '9.5px' }}>
                         <EditableText
                           value={name}
                           onChange={(val) => onUpdateSectionItem(index, idx, 'name', val)}
                           style={{ color: t.text }}
                           placeholder="Name/Titel"
+                          wrap
                         />
                       </div>
                       {institution && (
@@ -647,6 +674,7 @@ export const ClassicCVTemplate: React.FC<CVTemplateProps> = ({
                             onChange={(val) => onUpdateSectionItem(index, idx, 'institution', val)}
                             style={{ fontSize: '9px', color: t.muted }}
                             placeholder="Institution"
+                            wrap
                           />
                         </div>
                       )}
