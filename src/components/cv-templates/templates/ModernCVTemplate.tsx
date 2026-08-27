@@ -5,6 +5,8 @@ import {
   EditableText,
   dragProps,
   itemDragProps,
+  SectionDragHandle,
+  ItemDragHandle,
   type CVTemplateProps,
   type EditorSection,
 } from '../EditableText';
@@ -320,6 +322,7 @@ export const ModernCVTemplate: React.FC<CVTemplateProps> = ({
                 style={{ ...cardStyle, cursor: onReorderSectionItem ? 'grab' : undefined }}
                 {...itemDragProps(sectionIndex, idx, onReorderSectionItem)}
               >
+                <ItemDragHandle sectionIndex={sectionIndex} itemIndex={idx} onReorderSectionItem={onReorderSectionItem} />
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: '10px' }}>
                   <div style={{ flex: 1, minWidth: 0 }}>
                     <EditableText
@@ -353,13 +356,18 @@ export const ModernCVTemplate: React.FC<CVTemplateProps> = ({
                   />
                 </div>
 
-                <EditableText
-                  multiline
-                  value={item.description || ''}
-                  onChange={(v) => onUpdateSectionItem(sectionIndex, idx, 'description', v)}
-                  placeholder="Kurze Beschreibung der Position"
-                  style={{ fontSize: '9.5px', color: t.muted, lineHeight: 1.55, marginTop: '8px' }}
-                />
+                {/*
+                  BUG (fehlender erster Bulletpoint / doppelte Anzeige): hier
+                  stand vorher zusätzlich ein rohes, NICHT gebullettes
+                  `description`-Feld über der Liste unten. `bullets` (siehe
+                  `getBullets()` oben) fällt bereits selbst auf `description`
+                  zurück, wenn keine `bulletPoints` existieren — das rohe Feld
+                  zeigte denselben Text dann ein zweites Mal an. War
+                  `bulletPoints` gefüllt, sah es stattdessen so aus, als hätte
+                  der erste Punkt keinen Aufzählungspunkt (er stand ja separat,
+                  ohne Punkt, direkt über der echten Liste). Beides entfällt,
+                  wenn `description` nur noch über `getBullets()` einfließt.
+                */}
                 {bullets.length > 0 && (
                   <ul style={{ margin: '8px 0 0', padding: 0, listStyle: 'none', display: 'flex', flexDirection: 'column', gap: '4px' }}>
                     {bullets.map((bp: string, bIdx: number) => (
@@ -453,6 +461,11 @@ export const ModernCVTemplate: React.FC<CVTemplateProps> = ({
             <SectionTitle>{section.title || 'Ausbildung & Studium'}</SectionTitle>
             <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
               {eduItems.map(({ edu, originalIdx }) => {
+                // ANDERS als Berufserfahrung/Projekte: bei Ausbildung bleibt
+                // `description` ("Schwerpunkte / Beschreibung") bewusst ein
+                // eigenes Feld, das NICHT in die Bullet-Liste einfließt (siehe
+                // `keepDescription: true` im renderCardControls-Aufruf unten).
+                // eduBullets zeigt deshalb nur echte `bulletPoints` an.
                 const eduBullets = Array.isArray(edu.bulletPoints)
                   ? edu.bulletPoints
                       .map((b: any) => normalizeBullet(String(b ?? '')))
@@ -467,6 +480,7 @@ export const ModernCVTemplate: React.FC<CVTemplateProps> = ({
                     style={{ ...cardStyle, cursor: onReorderSectionItem ? 'grab' : undefined }}
                     {...itemDragProps(sectionIndex, originalIdx, onReorderSectionItem)}
                   >
+                    <ItemDragHandle sectionIndex={sectionIndex} itemIndex={originalIdx} onReorderSectionItem={onReorderSectionItem} />
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: '10px' }}>
                       <div style={{ flex: 1, minWidth: 0 }}>
                         <EditableText
@@ -838,6 +852,7 @@ export const ModernCVTemplate: React.FC<CVTemplateProps> = ({
       return (
         <div
           key={index}
+          style={{ position: 'relative' }}
           {...dragProps(index, onReorderSections)}
           onDragOver={(e) => { e.preventDefault(); e.dataTransfer.dropEffect = 'move'; }}
           onDrop={(e) => {
@@ -846,6 +861,7 @@ export const ModernCVTemplate: React.FC<CVTemplateProps> = ({
             if (!isNaN(from) && from !== index) onReorderSections?.(from, index);
           }}
         >
+          <SectionDragHandle index={index} onReorderSections={onReorderSections} />
           {content}
         </div>
       );
