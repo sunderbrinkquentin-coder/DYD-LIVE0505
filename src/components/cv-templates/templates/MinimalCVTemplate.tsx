@@ -573,7 +573,7 @@ export const MinimalCVTemplate: React.FC<CVTemplateProps> = ({
                 {date && (
                   <EditableText
                     className="text-right"
-                    style={{ fontSize: '9px', color: t.muted, whiteSpace: 'nowrap', flexShrink: 0 }}
+                    style={{ fontSize: '9px', color: t.muted, whiteSpace: 'nowrap', flexShrink: 0, width: 'auto' }}
                     value={date}
                     onChange={(val) => onUpdateSectionItem(sectionIndex, idx, 'date', val)}
                     placeholder="Datum"
