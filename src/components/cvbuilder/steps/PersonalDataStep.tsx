@@ -69,6 +69,7 @@ export function PersonalDataStep({
     <WizardStepLayout
       title="Wie können Recruiter dich erreichen?"
       subtitle="Nur die wichtigsten Kontaktdaten – keine vollständige Adresse nötig."
+      helpText={'Tipp: Die Überschrift ist der erste Eindruck – nenne hier deine Kernkompetenz oder Wunschrolle, z. B. „Marketing Manager · B2B SaaS\u201c. Das hilft ATS-Systemen, dich schneller zuzuordnen.'}
       avatarMessage="Recruiter möchten dich schnell kontaktieren können."
       avatarStepInfo="Datenschutz ist wichtig – vollständige Adresse ist nicht nötig, Stadt reicht aus."
       currentStepId="personalData"
@@ -80,116 +81,130 @@ export function PersonalDataStep({
       isNextDisabled={!isValid}
       validationMessage="Vorname, Nachname, Stadt, E-Mail und Telefon werden benötigt – Recruiter müssen dich kontaktieren können."
     >
-      <div className="space-y-3">
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+      <div className="space-y-5">
+        {/* Gruppe: Name */}
+        <div>
+          <p className="text-xs font-semibold text-[#66c0b6] uppercase tracking-wider mb-3">Dein Name</p>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div>
+              <label className="block text-xs sm:text-sm font-semibold text-white/80 mb-1.5">
+                Vorname *
+              </label>
+              <input
+                type="text"
+                value={data.firstName || ''}
+                onChange={(e) => update('firstName', e.target.value)}
+                placeholder="Max"
+                className={fieldClass(missing.firstName)}
+              />
+              {attempted && missing.firstName && (
+                <p className="text-red-400 text-xs mt-1">Bitte Vornamen eingeben</p>
+              )}
+            </div>
+            <div>
+              <label className="block text-xs sm:text-sm font-semibold text-white/80 mb-1.5">
+                Nachname *
+              </label>
+              <input
+                type="text"
+                value={data.lastName || ''}
+                onChange={(e) => update('lastName', e.target.value)}
+                placeholder="Mustermann"
+                className={fieldClass(missing.lastName)}
+              />
+              {attempted && missing.lastName && (
+                <p className="text-red-400 text-xs mt-1">Bitte Nachnamen eingeben</p>
+              )}
+            </div>
+          </div>
+        </div>
+
+        {/* Gruppe: Profil-Kopfzeile */}
+        <div className="pt-2 border-t border-white/10">
+          <p className="text-xs font-semibold text-[#66c0b6] uppercase tracking-wider mb-3">Profil-Überschrift</p>
           <div>
-            <label className="block text-xs sm:text-sm font-semibold text-white/80 mb-1.5">
-              Vorname *
+            <label className="block text-sm sm:text-base font-semibold text-white/90 mb-2">
+              Überschrift <span className="text-white/40 font-normal">(optional)</span>
             </label>
             <input
+              ref={headlineRef}
               type="text"
-              value={data.firstName || ''}
-              onChange={(e) => update('firstName', e.target.value)}
-              placeholder="Max"
-              className={fieldClass(missing.firstName)}
+              value={data.headline || ''}
+              onChange={(e) => update('headline', e.target.value)}
+              placeholder="z. B. Marketing Manager · B2B SaaS"
+              className="w-full px-3 py-2.5 rounded-xl border-2 border-white/10 bg-white/5 text-white text-sm sm:text-base placeholder:text-white/40 focus:outline-none focus:border-[#66c0b6] focus:bg-white/10 transition-all touch-manipulation"
             />
-            {attempted && missing.firstName && (
-              <p className="text-red-400 text-xs mt-1">Bitte Vornamen eingeben</p>
-            )}
-          </div>
-          <div>
-            <label className="block text-xs sm:text-sm font-semibold text-white/80 mb-1.5">
-              Nachname *
-            </label>
-            <input
-              type="text"
-              value={data.lastName || ''}
-              onChange={(e) => update('lastName', e.target.value)}
-              placeholder="Mustermann"
-              className={fieldClass(missing.lastName)}
-            />
-            {attempted && missing.lastName && (
-              <p className="text-red-400 text-xs mt-1">Bitte Nachnamen eingeben</p>
-            )}
+            <p className="text-xs text-white/40 mt-1">Deine Ein-Zeilen-Überschrift ganz oben im Lebenslauf – nenne deine stärkste Kompetenz oder angestrebte Rolle.</p>
           </div>
         </div>
 
-        <div>
-          <label className="block text-sm sm:text-base font-semibold text-white/90 mb-2">
-            Überschrift <span className="text-white/40 font-normal">(optional)</span>
-          </label>
-          <input
-            ref={headlineRef}
-            type="text"
-            value={data.headline || ''}
-            onChange={(e) => update('headline', e.target.value)}
-            placeholder="z. B. Marketing Manager · B2B SaaS"
-            className="w-full px-3 py-2.5 rounded-xl border-2 border-white/10 bg-white/5 text-white text-sm sm:text-base placeholder:text-white/40 focus:outline-none focus:border-[#66c0b6] focus:bg-white/10 transition-all touch-manipulation"
-          />
-          <p className="text-xs text-white/40 mt-1">Deine Ein-Zeilen-Überschrift ganz oben im Lebenslauf.</p>
-        </div>
+        {/* Gruppe: Kontakt */}
+        <div className="pt-2 border-t border-white/10">
+          <p className="text-xs font-semibold text-[#66c0b6] uppercase tracking-wider mb-3">Kontakt & Standort</p>
+          <div className="space-y-4">
+            <div>
+              <label className="block text-sm sm:text-base font-semibold text-white/90 mb-2">
+                Stadt *
+              </label>
+              <input
+                type="text"
+                value={data.city || ''}
+                onChange={(e) => update('city', e.target.value)}
+                placeholder="Berlin"
+                className={fieldClass(missing.city)}
+              />
+              {attempted && missing.city && (
+                <p className="text-red-400 text-xs mt-1">Bitte Stadt eingeben</p>
+              )}
+            </div>
 
-        <div>
-          <label className="block text-sm sm:text-base font-semibold text-white/90 mb-2">
-            Stadt *
-          </label>
-          <input
-            type="text"
-            value={data.city || ''}
-            onChange={(e) => update('city', e.target.value)}
-            placeholder="Berlin"
-            className={fieldClass(missing.city)}
-          />
-          {attempted && missing.city && (
-            <p className="text-red-400 text-xs mt-1">Bitte Stadt eingeben</p>
-          )}
-        </div>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div>
+                <label className="block text-xs sm:text-sm font-semibold text-white/80 mb-1.5">
+                  E-Mail *
+                </label>
+                <input
+                  type="email"
+                  value={data.email || ''}
+                  onChange={(e) => update('email', e.target.value)}
+                  placeholder="max@example.com"
+                  className={fieldClass(missing.email)}
+                />
+                {attempted && missing.email && (
+                  <p className="text-red-400 text-xs mt-1">Bitte E-Mail eingeben</p>
+                )}
+              </div>
+              <div>
+                <label className="block text-xs sm:text-sm font-semibold text-white/80 mb-1.5">
+                  Telefon *
+                </label>
+                <input
+                  type="tel"
+                  value={data.phone || ''}
+                  onChange={(e) => update('phone', e.target.value)}
+                  placeholder="+49 151 12345678"
+                  className={fieldClass(missing.phone)}
+                />
+                {attempted && missing.phone && (
+                  <p className="text-red-400 text-xs mt-1">Bitte Telefonnummer eingeben</p>
+                )}
+              </div>
+            </div>
 
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-          <div>
-            <label className="block text-xs sm:text-sm font-semibold text-white/80 mb-1.5">
-              E-Mail *
-            </label>
-            <input
-              type="email"
-              value={data.email || ''}
-              onChange={(e) => update('email', e.target.value)}
-              placeholder="max@example.com"
-              className={fieldClass(missing.email)}
-            />
-            {attempted && missing.email && (
-              <p className="text-red-400 text-xs mt-1">Bitte E-Mail eingeben</p>
-            )}
+            <div>
+              <label className="block text-sm sm:text-base font-semibold text-white/90 mb-2">
+                LinkedIn <span className="text-white/40 font-normal">(optional)</span>
+              </label>
+              <input
+                ref={linkedinRef}
+                type="url"
+                value={data.linkedin || ''}
+                onChange={(e) => update('linkedin', e.target.value)}
+                placeholder="linkedin.com/in/dein-profil"
+                className="w-full px-3 py-2.5 rounded-xl border-2 border-white/10 bg-white/5 text-white text-sm sm:text-base placeholder:text-white/40 focus:outline-none focus:border-[#66c0b6] focus:bg-white/10 transition-all touch-manipulation"
+              />
+            </div>
           </div>
-          <div>
-            <label className="block text-xs sm:text-sm font-semibold text-white/80 mb-1.5">
-              Telefon *
-            </label>
-            <input
-              type="tel"
-              value={data.phone || ''}
-              onChange={(e) => update('phone', e.target.value)}
-              placeholder="+49 151 12345678"
-              className={fieldClass(missing.phone)}
-            />
-            {attempted && missing.phone && (
-              <p className="text-red-400 text-xs mt-1">Bitte Telefonnummer eingeben</p>
-            )}
-          </div>
-        </div>
-
-        <div>
-          <label className="block text-sm sm:text-base font-semibold text-white/90 mb-2">
-            LinkedIn (optional)
-          </label>
-          <input
-            ref={linkedinRef}
-            type="url"
-            value={data.linkedin || ''}
-            onChange={(e) => update('linkedin', e.target.value)}
-            placeholder="linkedin.com/in/dein-profil"
-            className="w-full px-3 py-2.5 rounded-xl border-2 border-white/10 bg-white/5 text-white text-sm sm:text-base placeholder:text-white/40 focus:outline-none focus:border-[#66c0b6] focus:bg-white/10 transition-all touch-manipulation"
-          />
         </div>
       </div>
     </WizardStepLayout>

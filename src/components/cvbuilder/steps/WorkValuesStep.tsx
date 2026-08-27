@@ -63,6 +63,7 @@ export function WorkValuesStep({
       nextButtonText="Weiter"
       avatarMessage="Werte zeigen Cultural Fit"
       avatarStepInfo="Wähle, was dich im Arbeitsalltag wirklich ausmacht."
+      helpText="Diese Angaben helfen der KI, deine Bulletpoints im richtigen Ton zu formulieren und Recruitern zu zeigen, ob du zum Team passt. Wähle bewusst – jeder ausgewählte Wert fließt in dein CV-Profil ein."
     >
       <div className="space-y-6">
         {/* Arbeitswerte */}

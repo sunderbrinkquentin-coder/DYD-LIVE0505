@@ -204,6 +204,7 @@ export function ProjectsStep({
           ? 'Ohne Berufserfahrung sind Projekte dein stärkstes Argument. Jede Initiative, jedes Ehrenamt zählt.'
           : 'Auch kleine Projekte zeigen, dass du Verantwortung übernimmst und Dinge zu Ende bringst.'
       }
+      helpText={'Beschreibe nicht nur WAS du gemacht hast, sondern WIE: Welche konkreten Fähigkeiten hast du eingesetzt? Welche Tools? Welches messbare Ergebnis hast du erzielt? Z. B. „Python-Skript automatisierte Reporting, sparte 5 Std./Woche“.'}
       currentStepId="projects"
       coachData={{ projects }}
       onPrev={onBack}

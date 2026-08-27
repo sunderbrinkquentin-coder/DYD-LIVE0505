@@ -84,6 +84,7 @@ export function CertificatesStep({ data, onChange, onNext, onBack }: Certificate
       subtitle="Zertifikate belegen deine Kompetenzen, Auszeichnungen deine besondere Leistung."
       avatarMessage="Zertifikate und Preise sind starke Belege für deine Fähigkeiten – trag sie unbedingt ein!"
       avatarStepInfo="Füge Zertifikate, Kurse oder Auszeichnungen hinzu. Dieser Schritt ist optional."
+      helpText={'Zertifikate sind ATS-Schlüsselwörter – je genauer du den offiziellen Titel nennst (z. B. „AWS Certified Cloud Practitioner\u201c), desto besser matchen dich Scansysteme. Auch Online-Kurse zählen!'}
       currentStepId="certificates"
       coachData={{ certificates: entries }}
       onPrev={onBack}

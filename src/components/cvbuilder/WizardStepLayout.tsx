@@ -1,5 +1,5 @@
 import { useState, ReactNode } from 'react';
-import { ArrowLeft, ArrowRight, SkipForward } from 'lucide-react';
+import { ArrowLeft, ArrowRight, SkipForward, Info } from 'lucide-react';
 import { ProgressBar } from './ProgressBar';
 import { AvatarSidebar } from './AvatarSidebar';
 import { SmartCoach, SmartCoachBar } from './SmartCoach';
@@ -28,6 +28,7 @@ interface WizardStepLayoutProps {
   coachData?: CVBuilderData;
   coachEntry?: any;
   onCoachCta?: (field?: string) => void;
+  helpText?: string;
   children: ReactNode;
 }
 
@@ -50,6 +51,7 @@ export function WizardStepLayout({
   coachData,
   coachEntry,
   onCoachCta,
+  helpText,
   children
 }: WizardStepLayoutProps) {
   const [showValidationHint, setShowValidationHint] = useState(false);
@@ -127,6 +129,12 @@ export function WizardStepLayout({
                 <p className="text-sm sm:text-base lg:text-lg text-white/60 px-2">
                   {subtitle}
                 </p>
+              )}
+              {helpText && (
+                <div className="mt-2 mx-auto max-w-2xl flex items-start gap-2 px-4 py-2.5 rounded-xl bg-[#66c0b6]/8 border border-[#66c0b6]/20 text-left">
+                  <Info size={14} className="text-[#66c0b6] flex-shrink-0 mt-0.5" />
+                  <p className="text-xs sm:text-sm text-white/55 leading-relaxed">{helpText}</p>
+                </div>
               )}
             </div>
 

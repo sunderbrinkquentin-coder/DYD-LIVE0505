@@ -7,17 +7,18 @@ interface ProgressBarProps {
 }
 
 const STEP_NAMES = [
-  'Start',
+  'Einstieg',
   'Persönliche Daten',
-  'Schulbildung',
-  'Ausbildung / Studium',
+  'Bildung',
   'Berufserfahrung',
   'Projekte',
-  'Hard Skills & Sprachen',
+  'Stipendien',
+  'Ehrenamt',
+  'Zertifikate',
+  'Fachliche Skills',
   'Soft Skills',
   'Arbeitswerte',
-  'Arbeitsstil',
-  'Hobbys & Interessen',
+  'Hobbys',
   'Abschluss'
 ];
 

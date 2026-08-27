@@ -66,6 +66,7 @@ export function HobbiesStep({ data, onChange, onNext, onBack }: HobbiesStepProps
       subtitle="Zeig deine Persönlichkeit! Hobbys können den Cultural Fit unterstreichen."
       avatarMessage="Hobbys machen dein Profil menschlicher und helfen beim Einstieg ins Gespräch."
       avatarStepInfo="Wähle 3-5 Hobbys aus, die zu deiner Zielposition passen."
+      helpText="Hobbys zeigen Persönlichkeit und können den Cultural Fit unterstreichen. Wähle bewusst solche, die Soft Skills spiegeln: Mannschaftssport = Teamfähigkeit, Musik = Disziplin, Bloggen = Kommunikationsstärke."
       currentStepId="hobbies"
       coachData={{ hobbies: { hobbies, details: data?.details || '' } }}
       onPrev={onBack}

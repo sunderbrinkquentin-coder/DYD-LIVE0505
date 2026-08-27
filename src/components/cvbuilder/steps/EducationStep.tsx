@@ -248,6 +248,7 @@ export function EducationStep({
       subtitle="Schulbildung, Ausbildung und Studium – alles an einem Ort."
       avatarMessage="Bildung ist dein Fundament und für ATS-Systeme wichtig."
       avatarStepInfo="Gib deinen Schulabschluss an und ergänze Ausbildung oder Studium, falls vorhanden."
+      helpText={'Vollständigkeit zählt: ATS-Systeme filtern nach Abschlussart und Fachrichtung. Nenne den exakten Titel (z. B. „Bachelor of Science Informatik\u201c) und ergänze Schwerpunkte – das sind deine fachlichen Kompetenz-Keywords.'}
       currentStepId="education"
       coachData={{ schoolEducation: rows.filter((r) => r.kind === 'school').map((r: any) => r.school), professionalEducation: rows.filter((r) => r.kind === 'professional').map((r: any) => r.professional) }}
       coachSection="schoolEducation"
