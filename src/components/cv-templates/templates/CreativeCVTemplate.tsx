@@ -291,10 +291,16 @@ export const CreativeCVTemplate: React.FC<CVTemplateProps> = ({
                 >
                   <ItemDragHandle sectionIndex={sectionIndex} itemIndex={idx} onReorderSectionItem={onReorderSectionItem} />
                   <div className="flex justify-between items-start gap-2">
-                    {/* FIX (Titel abgeschnitten): min-w-0 auf dem Flex-Kind
-                        erlaubt dem Titel zu schrumpfen statt hinter die
-                        Datums-Spalte zu laufen; `wrap` erlaubt den Umbruch. */}
-                    <div className="flex-1 min-w-0">
+                    {/* FIX (Wort-für-Wort-Umbruch): das vorherige `min-w-0`
+                        HIER zusammen mit `wrap` war genau die Kombination,
+                        die den Titel in ClassicCVTemplate.tsx auf Wortbreite
+                        kollabieren ließ (manche Browser behandeln das
+                        Flex-Minimum bei min-w-0 + wrap-Modus wie 'anywhere').
+                        OHNE min-w-0 floored das Feld auf seine längste-Wort-
+                        Breite und bricht höchstens zwischen Wörtern um — das
+                        reicht, damit die Datums-Spalte nicht abgeschnitten
+                        wird, ohne die Kollaps-Gefahr. */}
+                    <div className="flex-1">
                       <EditableText
                         wrap
                         className="font-bold"
@@ -384,9 +390,11 @@ export const CreativeCVTemplate: React.FC<CVTemplateProps> = ({
         );
 
       /**
-       * FIX (Titel abgeschnitten): identisches Muster — min-w-0 auf dem
-       * Flex-Kind + wrap auf Titel/Institution, sonst läuft ein langer
-       * Studiengang hinter das Datumsfeld statt umzubrechen.
+       * FIX (Wort-für-Wort-Umbruch): kein min-w-0 mehr — siehe ausführliche
+       * Begründung bei Berufserfahrung oben (min-w-0 + wrap-Modus kollabiert
+       * den Titel in manchen Browsern auf Wortbreite). `wrap` allein reicht,
+       * damit ein langer Studiengang normal umbricht statt hinter dem
+       * Datumsfeld zu verschwinden.
        */
       case 'education':
         return (
@@ -402,7 +410,7 @@ export const CreativeCVTemplate: React.FC<CVTemplateProps> = ({
               >
                 <ItemDragHandle sectionIndex={sectionIndex} itemIndex={idx} onReorderSectionItem={onReorderSectionItem} />
                 <div className="flex justify-between items-start gap-2">
-                  <div className="flex-1 min-w-0">
+                  <div className="flex-1">
                     <EditableText
                       wrap
                       className="font-bold"
@@ -476,8 +484,15 @@ export const CreativeCVTemplate: React.FC<CVTemplateProps> = ({
                   : '';
                 if (!language && !level) return null;
                 return (
-                  <div key={idx} className="flex justify-between items-center" style={{ fontSize: '9.5px' }}>
+                  <div
+                    key={idx}
+                    className="flex justify-between items-center"
+                    style={{ fontSize: '9.5px', position: 'relative', cursor: onReorderSectionItem ? 'grab' : undefined }}
+                    {...itemDragProps(sectionIndex, idx, onReorderSectionItem)}
+                  >
+                    <ItemDragHandle sectionIndex={sectionIndex} itemIndex={idx} onReorderSectionItem={onReorderSectionItem} />
                     <EditableText
+                      wrap
                       className="font-medium"
                       style={{ width: '50%', color: t.text }}
                       value={language}
@@ -485,6 +500,7 @@ export const CreativeCVTemplate: React.FC<CVTemplateProps> = ({
                       placeholder="Sprache"
                     />
                     <EditableText
+                      wrap
                       className="text-right"
                       style={{ width: '50%', fontSize: '9px', color: t.muted }}
                       value={level}
@@ -515,11 +531,15 @@ export const CreativeCVTemplate: React.FC<CVTemplateProps> = ({
                 return (
                   <span
                     key={idx}
-                    style={chipStyle(
-                      isSoft ? t.chipAltBg : t.chipBg,
-                      isSoft ? t.chipAltBorder : t.chipBorder
-                    )}
+                    style={{
+                      ...chipStyle(isSoft ? t.chipAltBg : t.chipBg, isSoft ? t.chipAltBorder : t.chipBorder),
+                      position: 'relative',
+                      cursor: onReorderSectionItem ? 'grab' : undefined,
+                      marginLeft: onReorderSectionItem ? '10px' : undefined,
+                    }}
+                    {...itemDragProps(sectionIndex, idx, onReorderSectionItem)}
                   >
+                    <ItemDragHandle sectionIndex={sectionIndex} itemIndex={idx} onReorderSectionItem={onReorderSectionItem} />
                     <EditableText
                       style={chipTextStyle}
                       value={display}
@@ -544,7 +564,17 @@ export const CreativeCVTemplate: React.FC<CVTemplateProps> = ({
                 const v = typeof item === 'string' ? item : item.label || item.name || '';
                 if (!v) return null;
                 return (
-                  <span key={idx} style={chipStyle(t.chipBg, t.accent)}>
+                  <span
+                    key={idx}
+                    style={{
+                      ...chipStyle(t.chipBg, t.accent),
+                      position: 'relative',
+                      cursor: onReorderSectionItem ? 'grab' : undefined,
+                      marginLeft: onReorderSectionItem ? '10px' : undefined,
+                    }}
+                    {...itemDragProps(sectionIndex, idx, onReorderSectionItem)}
+                  >
+                    <ItemDragHandle sectionIndex={sectionIndex} itemIndex={idx} onReorderSectionItem={onReorderSectionItem} />
                     <EditableText
                       style={chipTextStyle}
                       value={v}
@@ -568,7 +598,17 @@ export const CreativeCVTemplate: React.FC<CVTemplateProps> = ({
                 const v = typeof item === 'string' ? item : item.label || item.name || '';
                 if (!v) return null;
                 return (
-                  <span key={idx} style={chipStyle('#fff7ed', '#f97316')}>
+                  <span
+                    key={idx}
+                    style={{
+                      ...chipStyle('#fff7ed', '#f97316'),
+                      position: 'relative',
+                      cursor: onReorderSectionItem ? 'grab' : undefined,
+                      marginLeft: onReorderSectionItem ? '10px' : undefined,
+                    }}
+                    {...itemDragProps(sectionIndex, idx, onReorderSectionItem)}
+                  >
+                    <ItemDragHandle sectionIndex={sectionIndex} itemIndex={idx} onReorderSectionItem={onReorderSectionItem} />
                     <EditableText
                       style={chipTextStyle}
                       value={v}
@@ -600,8 +640,10 @@ export const CreativeCVTemplate: React.FC<CVTemplateProps> = ({
                     <li
                       key={idx}
                       className="py-0.5 last:border-b-0"
-                      style={{ borderBottom: `1px solid ${t.border}` }}
+                      style={{ borderBottom: `1px solid ${t.border}`, position: 'relative', cursor: onReorderSectionItem ? 'grab' : undefined }}
+                      {...itemDragProps(sectionIndex, idx, onReorderSectionItem)}
                     >
+                      <ItemDragHandle sectionIndex={sectionIndex} itemIndex={idx} onReorderSectionItem={onReorderSectionItem} />
                       <div style={{ fontWeight: 600, marginBottom: institution || date ? '2px' : '0' }}>
                         <EditableText
                           wrap
@@ -643,13 +685,16 @@ export const CreativeCVTemplate: React.FC<CVTemplateProps> = ({
                   <li
                     key={idx}
                     className="py-0.5 last:border-b-0"
-                    style={{ borderBottom: `1px solid ${t.border}` }}
+                    style={{ borderBottom: `1px solid ${t.border}`, position: 'relative', cursor: onReorderSectionItem ? 'grab' : undefined }}
+                    {...itemDragProps(sectionIndex, idx, onReorderSectionItem)}
                   >
+                    <ItemDragHandle sectionIndex={sectionIndex} itemIndex={idx} onReorderSectionItem={onReorderSectionItem} />
                     <EditableText
                       style={{ color: t.text }}
                       value={displayValue}
                       onChange={(val) => onUpdateSectionItem(sectionIndex, idx, 'name', val)}
                       placeholder="Eintrag"
+                      wrap
                     />
                   </li>
                 );
