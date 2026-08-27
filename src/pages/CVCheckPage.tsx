@@ -15,6 +15,8 @@ import {
 import { useAuth } from '../contexts/AuthContext';
 import { uploadCvAndCreateRecord } from '../services/cvUploadService';
 import { supabase } from '../lib/supabase';
+import { useDsgvoConsent } from '../hooks/useDsgvoConsent';
+import { DsgvoConsentDialog } from '../components/DsgvoConsentDialog';
 
 type UploadState = 'idle' | 'uploading' | 'success' | 'error';
 
@@ -55,6 +57,7 @@ export default function CVCheckPage() {
   const [existingCheck, setExistingCheck] = useState<any>(null);
   const [userDismissedExisting, setUserDismissedExisting] = useState(false);
   const [showUploadHint, setShowUploadHint] = useState(false);
+  const { pendingType, requestConsent, handleAccept, handleDecline } = useDsgvoConsent();
 
   useEffect(() => {
     if (uploadState === 'uploading') {
@@ -174,6 +177,12 @@ export default function CVCheckPage() {
       return;
     }
     if (uploadState === 'uploading') {
+      return;
+    }
+
+    const accepted = await requestConsent('cv-check');
+    if (!accepted) {
+      navigate(-1);
       return;
     }
 
@@ -348,6 +357,13 @@ export default function CVCheckPage() {
           <button onClick={resetState} className="text-xs text-slate-400 hover:text-slate-200">Zurücksetzen</button>
         </div>
       </motion.div>
+
+      <DsgvoConsentDialog
+        isOpen={pendingType === 'cv-check'}
+        type="cv-check"
+        onAccept={handleAccept}
+        onDecline={handleDecline}
+      />
     </div>
   );
 }

@@ -17,6 +17,8 @@ import React, { useEffect, useState } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import { supabase } from '../lib/supabase';
 import { CVBuilderData } from '../types/cvBuilder';
+import { useDsgvoConsent } from '../hooks/useDsgvoConsent';
+import { DsgvoConsentDialog } from '../components/DsgvoConsentDialog';
 
 interface LatestCv {
   id: string;
@@ -44,6 +46,7 @@ export default function CvEntryPage() {
   const { user } = useAuth();
   const [latestCv, setLatestCv] = useState<LatestCv | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const { pendingType, requestConsent, handleAccept, handleDecline } = useDsgvoConsent();
 
   useEffect(() => {
     if (!user) {
@@ -71,6 +74,25 @@ export default function CvEntryPage() {
     };
     loadLatest();
   }, [user]);
+
+  const handleCreateCv = async () => {
+    const accepted = await requestConsent('cv-wizard');
+    if (!accepted) return;
+    navigate('/cv-wizard');
+  };
+
+  const handleUpdateWizard = async () => {
+    if (!latestCv) return;
+    const accepted = await requestConsent('cv-wizard');
+    if (!accepted) return;
+    navigate(`/cv-wizard?cvId=${latestCv.id}`);
+  };
+
+  const handleNewCv = async () => {
+    const accepted = await requestConsent('cv-wizard');
+    if (!accepted) return;
+    navigate('/cv-wizard?mode=new');
+  };
 
   const handleQuickJobTarget = () => {
     if (!latestCv) return;
@@ -156,19 +178,26 @@ export default function CvEntryPage() {
               key="existing"
               name={latestCv.name}
               onQuickApply={handleQuickJobTarget}
-              onUpdateWizard={() => navigate(`/cv-wizard?cvId=${latestCv.id}`)}
-              onNewCv={() => navigate('/cv-wizard?mode=new')}
+              onUpdateWizard={handleUpdateWizard}
+              onNewCv={handleNewCv}
             />
           ) : (
             <NewUserView
               key="new"
               isLoggedIn={!!user}
-              onCreateCv={() => navigate('/cv-wizard')}
+              onCreateCv={handleCreateCv}
               onCheckCv={() => navigate('/cv-check')}
             />
           )}
         </AnimatePresence>
       </div>
+
+      <DsgvoConsentDialog
+        isOpen={pendingType === 'cv-wizard'}
+        type="cv-wizard"
+        onAccept={handleAccept}
+        onDecline={handleDecline}
+      />
     </div>
   );
 }

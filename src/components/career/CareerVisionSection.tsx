@@ -14,6 +14,8 @@ import { SkillGapPaywall } from './SkillGapPaywall';
 import { FollowRewardPopup, shouldShowFollowPopup } from '../landing/FollowRewardPopup';
 import { parseSkills, skillDisplayName, RawSkill } from '../../utils/skills';
 import RegisterModal from '../RegisterModal';
+import { useDsgvoConsent } from '../../hooks/useDsgvoConsent';
+import { DsgvoConsentDialog } from '../DsgvoConsentDialog';
 
 // ── Constants ──────────────────────────────────────────────────────────────────
 
@@ -869,6 +871,7 @@ export function CareerVisionSection({ cvId: initialCvId, onAnalysisComplete, res
   // Login modal — shown when unauthenticated user tries to start analysis
   const [showLoginModal, setShowLoginModal] = useState(false);
   const [pendingAnalysis, setPendingAnalysis] = useState(false);
+  const { pendingType, requestConsent, handleAccept, handleDecline } = useDsgvoConsent();
 
   useEffect(() => {
     if (phase === 'done' && shouldShowFollowPopup()) {
@@ -1055,6 +1058,8 @@ const runAnalysis = useCallback(async () => {
       setShowLoginModal(true);
       return;
     }
+    const consentAccepted = await requestConsent('skill-gap');
+    if (!consentAccepted) return;
     setFormError(null);
     setApiError(null);
     setResult(null);
@@ -1133,7 +1138,7 @@ const runAnalysis = useCallback(async () => {
     }
   }, [
     targetJob, targetCompany, industry, visionDescription,
-    activeCvId, useNewCv, newCvFile, user,
+    activeCvId, useNewCv, newCvFile, user, requestConsent,
   ]);
   // ── Trigger skillgap Edge Function ──────────────────────────────────────────
 
@@ -1736,6 +1741,13 @@ const runAnalysis = useCallback(async () => {
           )}
         </div>
       )}
+
+      <DsgvoConsentDialog
+        isOpen={pendingType === 'skill-gap'}
+        type="skill-gap"
+        onAccept={handleAccept}
+        onDecline={handleDecline}
+      />
     </div>
   );
 }
