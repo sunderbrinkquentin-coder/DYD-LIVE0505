@@ -201,13 +201,23 @@ export const ClassicCVTemplate: React.FC<CVTemplateProps> = ({
             >
               <ItemDragHandle sectionIndex={experienceIndex} itemIndex={idx} onReorderSectionItem={onReorderSectionItem} />
               <div className="flex items-baseline justify-between gap-3">
-                <EditableText
-                  value={item.title}
-                  onChange={(val) => onUpdateSectionItem(experienceIndex, idx, 'title', val)}
-                  className="font-bold leading-tight flex-1"
-                  style={{ fontSize: '11px', color: t.text }}
-                  placeholder="Position / Rolle"
-                />
+                {/* flex-1 auf einen Wrapper-Div, NICHT auf das EditableText
+                    selbst — sonst darf Flexbox es bei langen Titeln auf
+                    Zeichenbreite schrumpfen. Bewusst OHNE min-w-0 — siehe
+                    die ausführliche Begründung bei Ausbildung/degree unten:
+                    mit min-w-0 + overflow-wrap:break-word im EditableText
+                    (wrap-Modus) behandeln Browser das Flex-Minimum wie bei
+                    'anywhere' und der Text kollabiert doch wieder. */}
+                <div className="flex-1">
+                  <EditableText
+                    value={item.title}
+                    onChange={(val) => onUpdateSectionItem(experienceIndex, idx, 'title', val)}
+                    className="font-bold leading-tight"
+                    style={{ fontSize: '11px', color: t.text }}
+                    placeholder="Position / Rolle"
+                    wrap
+                  />
+                </div>
                 {renderDateRange(experienceIndex, idx, item)}
               </div>
 
@@ -219,13 +229,18 @@ export const ClassicCVTemplate: React.FC<CVTemplateProps> = ({
                 placeholder="Unternehmen"
               />
 
-              <EditableText
-                value={item.location || item.ort || ''}
-                onChange={(val) => onUpdateSectionItem(experienceIndex, idx, 'location', val)}
-                className="leading-snug mt-0.5"
-                style={{ fontSize: '9.5px', color: t.faint }}
-                placeholder="Ort"
-              />
+              {/* Nur rendern, wenn befüllt — ein leeres Ort-Feld hat sonst
+                  eine eigene Zeile mit Placeholder reserviert und riss ein
+                  sichtbares Loch in die Karte, auch wenn niemand hinklickt. */}
+              {(item.location || item.ort) && (
+                <EditableText
+                  value={item.location || item.ort || ''}
+                  onChange={(val) => onUpdateSectionItem(experienceIndex, idx, 'location', val)}
+                  className="leading-snug mt-0.5"
+                  style={{ fontSize: '9.5px', color: t.faint }}
+                  placeholder="Ort"
+                />
+              )}
 
               {renderBulletPoints(getBullets(item), experienceIndex, idx)}
 
@@ -318,35 +333,44 @@ export const ClassicCVTemplate: React.FC<CVTemplateProps> = ({
                 {renderDateRange(educationIndex, idx, item)}
               </div>
 
-              <EditableText
-                value={item.institution || ''}
-                onChange={(val) => onUpdateSectionItem(educationIndex, idx, 'institution', val)}
-                className="font-semibold mt-0.5 leading-snug"
-                style={{ fontSize: '10px', color: t.muted, width: '100%', whiteSpace: 'normal', wordBreak: 'normal', overflowWrap: 'break-word', overflow: 'visible' }}
-                placeholder="Institution / Hochschule"
-                wrap
-              />
+              {/* Alle drei Felder unten nur rendern, wenn befüllt — leere
+                  Felder reservierten sonst je eine eigene Zeile mit
+                  Placeholder und rissen sichtbare Löcher in die Karte. */}
+              {item.institution && (
+                <EditableText
+                  value={item.institution || ''}
+                  onChange={(val) => onUpdateSectionItem(educationIndex, idx, 'institution', val)}
+                  className="font-semibold mt-0.5 leading-snug"
+                  style={{ fontSize: '10px', color: t.muted, width: '100%', whiteSpace: 'normal', wordBreak: 'normal', overflowWrap: 'break-word', overflow: 'visible' }}
+                  placeholder="Institution / Hochschule"
+                  wrap
+                />
+              )}
 
-              <EditableText
-                value={item.location || ''}
-                onChange={(val) => onUpdateSectionItem(educationIndex, idx, 'location', val)}
-                className="leading-snug mt-0.5"
-                style={{ fontSize: '9.5px', color: t.faint }}
-                placeholder="Ort"
-              />
+              {item.location && (
+                <EditableText
+                  value={item.location || ''}
+                  onChange={(val) => onUpdateSectionItem(educationIndex, idx, 'location', val)}
+                  className="leading-snug mt-0.5"
+                  style={{ fontSize: '9.5px', color: t.faint }}
+                  placeholder="Ort"
+                />
+              )}
 
               {/* Anders als Berufserfahrung/Projekte bleibt "Schwerpunkte /
                   Beschreibung" bei Ausbildung ein eigenes, nicht gebullettes
                   Feld — analog zu Modern (siehe dort: keepDescription).
                   bulletPoints kommt separat dazu, für konkrete Einzelpunkte. */}
-              <EditableText
-                value={item.description ? item.description.replace(/^[-•*]\s*/, '') : ''}
-                onChange={(val) => onUpdateSectionItem(educationIndex, idx, 'description', val)}
-                className="leading-snug mt-1.5"
-                style={{ fontSize: '9.5px', color: t.muted }}
-                multiline
-                placeholder="Schwerpunkte / Beschreibung"
-              />
+              {item.description && (
+                <EditableText
+                  value={item.description.replace(/^[-•*]\s*/, '')}
+                  onChange={(val) => onUpdateSectionItem(educationIndex, idx, 'description', val)}
+                  className="leading-snug mt-1.5"
+                  style={{ fontSize: '9.5px', color: t.muted }}
+                  multiline
+                  placeholder="Schwerpunkte / Beschreibung"
+                />
+              )}
 
               {(item.grade || item.grades || item.note) && (
                 <div className="flex items-center gap-1.5 mt-1" style={{ fontSize: '9.5px', color: t.muted }}>
@@ -442,7 +466,8 @@ export const ClassicCVTemplate: React.FC<CVTemplateProps> = ({
     if (!items.length) return null;
 
     return (
-      <div className="mb-6" data-pdf-section data-break-atomic>
+      <div className="mb-6" data-pdf-section data-break-atomic {...dragProps(languagesIndex, onReorderSections)} style={{ position: 'relative', cursor: onReorderSections ? 'grab' : undefined }}>
+        <SectionDragHandle index={languagesIndex} onReorderSections={onReorderSections} />
         <AsideTitle>Sprachen</AsideTitle>
         <ul className="space-y-2">
           {items.map((item: any, idx: number) => {
@@ -485,7 +510,8 @@ export const ClassicCVTemplate: React.FC<CVTemplateProps> = ({
     if (!items.length) return null;
 
     return (
-      <div className="mb-6" data-pdf-section data-break-atomic>
+      <div className="mb-6" data-pdf-section data-break-atomic {...dragProps(index, onReorderSections)} style={{ position: 'relative', cursor: onReorderSections ? 'grab' : undefined }}>
+        <SectionDragHandle index={index} onReorderSections={onReorderSections} />
         <AsideTitle>{label}</AsideTitle>
         <div data-chip-row style={{ display: 'block', overflow: 'visible' }}>
           {items.map((item: any, idx: number) => {
@@ -591,8 +617,8 @@ export const ClassicCVTemplate: React.FC<CVTemplateProps> = ({
           className="mb-6"
           data-pdf-section
           data-break-atomic
-          style={{ position: 'relative' }}
           {...dragProps(index, onReorderSections)}
+          style={{ position: 'relative', cursor: onReorderSections ? 'grab' : undefined }}
         >
           <SectionDragHandle index={index} onReorderSections={onReorderSections} />
           <AsideTitle>{label}</AsideTitle>
