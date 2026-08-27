@@ -368,7 +368,17 @@ export const ProfessionalCVTemplate: React.FC<ProfessionalCVTemplateProps> = ({
                       )}
                     </div>
 
-                    {bullets.length > 0 ? (
+                    <EditableText
+                      multiline
+                      className="mt-1.5 text-[9.5px] text-slate-700 leading-tight"
+                      style={{ minHeight: '16px' }}
+                      value={exp.description || ''}
+                      onChange={(val) =>
+                        onUpdateSectionItem(sectionIndex, idx, 'description', val)
+                      }
+                      placeholder="Kurze Beschreibung der Position"
+                    />
+                    {bullets.length > 0 && (
                       <ul className="mt-1 !text-[9.5px] text-slate-800" style={{ listStyle: 'none', padding: 0, margin: '4px 0 0', display: 'flex', flexDirection: 'column', gap: '4px' }}>
                         {bullets.map((bp: string, bIdx: number) => (
                           <li key={bIdx} data-break-line style={{ display: 'flex', alignItems: 'flex-start', gap: '6px', breakInside: 'avoid', pageBreakInside: 'avoid' }}>
@@ -395,19 +405,6 @@ export const ProfessionalCVTemplate: React.FC<ProfessionalCVTemplateProps> = ({
                           </li>
                         ))}
                       </ul>
-                    ) : (
-                      exp.description && (
-                        <EditableText
-                          multiline
-                          className="mt-1.5 text-[9.5px] text-slate-700 leading-tight"
-                          style={{ minHeight: '16px' }}
-                          value={exp.description}
-                          onChange={(val) =>
-                            onUpdateSectionItem(sectionIndex, idx, 'description', val)
-                          }
-                          placeholder="Beschreibung"
-                        />
-                      )
                     )}
 
                     <button
@@ -628,16 +625,14 @@ export const ProfessionalCVTemplate: React.FC<ProfessionalCVTemplateProps> = ({
                       />
                     </div>
                   )}
-                  {(edu.description || edu.focus) && (
-                    <EditableText
-                      multiline
-                      className="mt-0.5 text-[9.5px] text-slate-600 leading-tight"
-                      style={{ minHeight: '16px' }}
-                      value={edu.description || (Array.isArray(edu.focus) ? edu.focus.join(', ') : edu.focus) || ''}
-                      onChange={(val) => onUpdateSectionItem(sectionIndex, idx, 'description', val)}
-                      placeholder="Schwerpunkte / Beschreibung"
-                    />
-                  )}
+                  <EditableText
+                    multiline
+                    className="mt-0.5 text-[9.5px] text-slate-600 leading-tight"
+                    style={{ minHeight: '16px' }}
+                    value={edu.description || (Array.isArray(edu.focus) ? edu.focus.join(', ') : edu.focus) || ''}
+                    onChange={(val) => onUpdateSectionItem(sectionIndex, idx, 'description', val)}
+                    placeholder="Schwerpunkte / Beschreibung"
+                  />
                 </div>
               ))}
             </div>

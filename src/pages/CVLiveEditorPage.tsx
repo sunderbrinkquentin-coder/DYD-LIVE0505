@@ -16,6 +16,7 @@ import { CVOptimizerPaywall } from '../components/dashboard/CVOptimizerPaywall';
 import { supabase } from '../lib/supabase';
 import { useCvOptimizationStatus } from '../hooks/useCvOptimizationStatus';
 import { X, Plus } from 'lucide-react';
+import { AddStationModal, hasGuidedModal } from '../components/cvbuilder/AddStationModal';
 
 /** Abstand zwischen zwei sichtbaren A4-Blättern in der Vorschau. */
 const SHEET_GAP_PX = 32;
@@ -253,6 +254,7 @@ export function CVLiveEditorPage() {
   const [error, setError] = useState<string | null>(null);
   const [hasEditorChanges, setHasEditorChanges] = useState(false);
   const [showAddSectionMenu, setShowAddSectionMenu] = useState(false);
+  const [addStationType, setAddStationType] = useState<string | null>(null);
 
   const [selectedTemplate, setSelectedTemplate] = useState<CVTemplateType>('modern');
   const [isTemplateReady, setIsTemplateReady] = useState(false);
@@ -1510,8 +1512,14 @@ const addSectionItem = (sectionIndex: number, defaultItem: any) => {
   const handleAddSectionType = (type: string) => {
     const config = ADDABLE_SECTIONS.find((s) => s.type === type);
     if (!config) return;
-    setHasEditorChanges(true);
     setShowAddSectionMenu(false);
+
+    if (hasGuidedModal(type)) {
+      setAddStationType(type);
+      return;
+    }
+
+    setHasEditorChanges(true);
     setEditorData((prev: any) => {
       if (!prev) return prev;
       const sections: EditorSection[] = Array.isArray(prev.sections) ? [...prev.sections] : [];
@@ -1523,6 +1531,24 @@ const addSectionItem = (sectionIndex: number, defaultItem: any) => {
         sections[existingIndex] = section;
       } else {
         sections.push({ type, title: config.defaultTitle, items: [newItem] });
+      }
+      return { ...prev, sections };
+    });
+  };
+
+  const handleAddStationFromModal = (type: string, item: any) => {
+    setHasEditorChanges(true);
+    setEditorData((prev: any) => {
+      if (!prev) return prev;
+      const sections: EditorSection[] = Array.isArray(prev.sections) ? [...prev.sections] : [];
+      const config = ADDABLE_SECTIONS.find((s) => s.type === type);
+      const existingIndex = sections.findIndex((s) => s.type === type);
+      if (existingIndex >= 0) {
+        const section = { ...sections[existingIndex] };
+        section.items = [...(section.items || []), item];
+        sections[existingIndex] = section;
+      } else {
+        sections.push({ type, title: config?.defaultTitle || type, items: [item] });
       }
       return { ...prev, sections };
     });
@@ -2101,6 +2127,14 @@ const reorderSections = (fromIndex: number, toIndex: number) => {
           </div>
         )}
       </main>
+
+      {/* ADD STATION MODAL */}
+      <AddStationModal
+        isOpen={!!addStationType}
+        onClose={() => setAddStationType(null)}
+        onAdd={handleAddStationFromModal}
+        stationType={addStationType}
+      />
 
       {/* CONFIGURATION & PAYMENT OVERLAYS */}
       {paywallOverlay}

@@ -308,31 +308,26 @@ export const CreativeCVTemplate: React.FC<CVTemplateProps> = ({
                         onChange={(val) => onUpdateSectionItem(sectionIndex, idx, 'company', val)}
                         placeholder="Unternehmen"
                       />
-                      {(exp.location || exp.ort) && (
-                        <EditableText
-                          className="mt-0.5"
-                          style={{ fontSize: '9.5px', color: t.faint }}
-                          value={exp.location || exp.ort || ''}
-                          onChange={(val) => onUpdateSectionItem(sectionIndex, idx, 'location', val)}
-                          placeholder="Ort"
-                        />
-                      )}
+                      <EditableText
+                        className="mt-0.5"
+                        style={{ fontSize: '9.5px', color: t.faint }}
+                        value={exp.location || exp.ort || ''}
+                        onChange={(val) => onUpdateSectionItem(sectionIndex, idx, 'location', val)}
+                        placeholder="Ort"
+                      />
                     </div>
                     {renderDateRange(sectionIndex, idx, exp)}
                   </div>
 
-                  {bullets.length > 0 ? (
-                    renderBullets(bullets, sectionIndex, idx, exp, 'Aufgabe / Erfolg')
-                  ) : (
-                    <EditableText
-                      multiline
-                      className="mt-0.5 leading-snug"
-                      style={{ fontSize: '9.5px', color: t.muted, minHeight: '20px' }}
-                      value={exp.description || ''}
-                      onChange={(val) => onUpdateSectionItem(sectionIndex, idx, 'description', val)}
-                      placeholder="Aufgaben und Erfolge (jede Zeile = eigener Punkt)"
-                    />
-                  )}
+                  <EditableText
+                    multiline
+                    className="mt-0.5 leading-snug"
+                    style={{ fontSize: '9.5px', color: t.muted, minHeight: '20px' }}
+                    value={exp.description || ''}
+                    onChange={(val) => onUpdateSectionItem(sectionIndex, idx, 'description', val)}
+                    placeholder="Kurze Beschreibung der Position"
+                  />
+                  {bullets.length > 0 && renderBullets(bullets, sectionIndex, idx, exp, 'Aufgabe / Erfolg')}
 
                   {renderCardControls(sectionIndex, idx, exp)}
                 </div>
@@ -419,15 +414,13 @@ export const CreativeCVTemplate: React.FC<CVTemplateProps> = ({
                       onChange={(val) => onUpdateSectionItem(sectionIndex, idx, 'institution', val)}
                       placeholder="Institution"
                     />
-                    {edu.location && (
-                      <EditableText
-                        className="mt-0.5"
-                        style={{ fontSize: '9.5px', color: t.faint }}
-                        value={edu.location || ''}
-                        onChange={(val) => onUpdateSectionItem(sectionIndex, idx, 'location', val)}
-                        placeholder="Ort"
-                      />
-                    )}
+                    <EditableText
+                      className="mt-0.5"
+                      style={{ fontSize: '9.5px', color: t.faint }}
+                      value={edu.location || ''}
+                      onChange={(val) => onUpdateSectionItem(sectionIndex, idx, 'location', val)}
+                      placeholder="Ort"
+                    />
                   </div>
                   {renderDateRange(sectionIndex, idx, edu)}
                 </div>
@@ -445,16 +438,14 @@ export const CreativeCVTemplate: React.FC<CVTemplateProps> = ({
                   </div>
                 )}
 
-                {(edu.description || edu.focus) && (
-                  <EditableText
-                    multiline
-                    className="mt-1 leading-snug"
-                    style={{ fontSize: '9.5px', color: t.muted, minHeight: '16px' }}
-                    value={edu.description || (Array.isArray(edu.focus) ? edu.focus.join(', ') : edu.focus) || ''}
-                    onChange={(val) => onUpdateSectionItem(sectionIndex, idx, 'description', val)}
-                    placeholder="Schwerpunkte / Beschreibung"
-                  />
-                )}
+                <EditableText
+                  multiline
+                  className="mt-1 leading-snug"
+                  style={{ fontSize: '9.5px', color: t.muted, minHeight: '16px' }}
+                  value={edu.description || (Array.isArray(edu.focus) ? edu.focus.join(', ') : edu.focus) || ''}
+                  onChange={(val) => onUpdateSectionItem(sectionIndex, idx, 'description', val)}
+                  placeholder="Schwerpunkte / Beschreibung"
+                />
               </div>
             ))}
           </div>

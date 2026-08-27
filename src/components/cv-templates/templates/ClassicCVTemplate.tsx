@@ -192,19 +192,14 @@ export const ClassicCVTemplate: React.FC<CVTemplateProps> = ({
                 placeholder="Ort"
               />
 
-              {item.description && (
-                <div className="flex items-start gap-2 mt-2 leading-snug">
-                  <span style={{ flexShrink: 0, color: t.bullet, fontSize: '9.5px', lineHeight: '1.375', userSelect: 'none' }}>•</span>
-                  <EditableText
-                    value={item.description.replace(/^[-•*]\s*/, '')}
-                    onChange={(val) => onUpdateSectionItem(experienceIndex, idx, 'description', val)}
-                    className="leading-snug flex-1"
-                    style={{ fontSize: '9.5px', color: t.muted }}
-                    multiline
-                    placeholder="Beschreibung / Aufgaben"
-                  />
-                </div>
-              )}
+              <EditableText
+                value={item.description ? item.description.replace(/^[-•*]\s*/, '') : ''}
+                onChange={(val) => onUpdateSectionItem(experienceIndex, idx, 'description', val)}
+                className="leading-snug mt-1.5"
+                style={{ fontSize: '9.5px', color: t.muted }}
+                multiline
+                placeholder="Kurze Beschreibung der Position"
+              />
 
               {renderBulletPoints(item.bulletPoints || item.bullet_points, experienceIndex, idx)}
 
@@ -307,6 +302,15 @@ export const ClassicCVTemplate: React.FC<CVTemplateProps> = ({
                 placeholder="Ort"
               />
 
+              <EditableText
+                value={item.description ? item.description.replace(/^[-•*]\s*/, '') : ''}
+                onChange={(val) => onUpdateSectionItem(educationIndex, idx, 'description', val)}
+                className="leading-snug mt-1.5"
+                style={{ fontSize: '9.5px', color: t.muted }}
+                multiline
+                placeholder="Schwerpunkte / Beschreibung"
+              />
+
               {(item.grade || item.grades || item.note) && (
                 <div className="flex items-center gap-1.5 mt-1" style={{ fontSize: '9.5px', color: t.muted }}>
                   <span className="font-semibold" style={{ color: t.accent }}>Note:</span>
@@ -315,20 +319,6 @@ export const ClassicCVTemplate: React.FC<CVTemplateProps> = ({
                     onChange={(val) => onUpdateSectionItem(educationIndex, idx, 'grade', val)}
                     style={{ fontSize: '9.5px', color: t.muted }}
                     placeholder="Note"
-                  />
-                </div>
-              )}
-
-              {item.description && (
-                <div className="flex items-start gap-2 mt-2 leading-snug">
-                  <span style={{ flexShrink: 0, color: t.bullet, fontSize: '9.5px', lineHeight: '1.375', userSelect: 'none' }}>•</span>
-                  <EditableText
-                    value={item.description.replace(/^[-•*]\s*/, '')}
-                    onChange={(val) => onUpdateSectionItem(educationIndex, idx, 'description', val)}
-                    className="leading-snug flex-1"
-                    style={{ fontSize: '9.5px', color: t.muted }}
-                    multiline
-                    placeholder="Schwerpunkte / Noten / Themen"
                   />
                 </div>
               )}

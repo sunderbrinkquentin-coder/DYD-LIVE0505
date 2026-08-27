@@ -169,7 +169,15 @@ export const MinimalCVTemplate: React.FC<CVTemplateProps> = ({
                 {renderDates(sectionIndex, idx, exp)}
               </div>
 
-              {bullets.length > 0 ? (
+              <EditableText
+                multiline
+                className="mt-1.5 leading-snug"
+                style={{ fontSize: '9.5px', color: t.muted }}
+                value={exp.description || ''}
+                onChange={(val) => onUpdateSectionItem(sectionIndex, idx, 'description', val)}
+                placeholder="Kurze Beschreibung der Position"
+              />
+              {bullets.length > 0 && (
                 <ul className="mt-1.5" style={{ listStyle: 'none', padding: 0, display: 'flex', flexDirection: 'column', gap: '4px' }}>
                   {bullets.map((bp, bIdx) => (
                     <li key={bIdx} data-break-line style={{ display: 'flex', alignItems: 'flex-start', gap: '6px' }}>
@@ -197,17 +205,6 @@ export const MinimalCVTemplate: React.FC<CVTemplateProps> = ({
                     </li>
                   ))}
                 </ul>
-              ) : (
-                exp.description && (
-                  <EditableText
-                    multiline
-                    className="mt-1.5 leading-snug"
-                    style={{ fontSize: '9.5px', color: t.muted }}
-                    value={exp.description}
-                    onChange={(val) => onUpdateSectionItem(sectionIndex, idx, 'description', val)}
-                    placeholder="Beschreibung"
-                  />
-                )
               )}
 
               <div className="pdf-hidden mt-1.5">
@@ -384,16 +381,14 @@ export const MinimalCVTemplate: React.FC<CVTemplateProps> = ({
               </div>
             )}
 
-            {(edu.description || edu.focus) && (
-              <EditableText
-                multiline
-                className="mt-1 leading-snug"
-                style={{ fontSize: '9.5px', color: t.muted }}
-                value={edu.description || (Array.isArray(edu.focus) ? edu.focus.join(', ') : edu.focus) || ''}
-                onChange={(val) => onUpdateSectionItem(sectionIndex, idx, 'description', val)}
-                placeholder="Schwerpunkte / Beschreibung"
-              />
-            )}
+            <EditableText
+              multiline
+              className="mt-1 leading-snug"
+              style={{ fontSize: '9.5px', color: t.muted }}
+              value={edu.description || (Array.isArray(edu.focus) ? edu.focus.join(', ') : edu.focus) || ''}
+              onChange={(val) => onUpdateSectionItem(sectionIndex, idx, 'description', val)}
+              placeholder="Schwerpunkte / Beschreibung"
+            />
           </div>
         ))}
       </div>

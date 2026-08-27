@@ -333,7 +333,7 @@ export const ModernCVTemplate: React.FC<CVTemplateProps> = ({
                       placeholder={isProject ? 'Deine Rolle' : 'Unternehmen'}
                       style={{ fontSize: '10px', color: t.muted, marginTop: '2px', lineHeight: 1.4 }}
                     />
-                    {!isProject && (item.location || item.ort) && (
+                    {!isProject && (
                       <EditableText
                         value={item.location || item.ort || ''}
                         onChange={(v) => onUpdateSectionItem(sectionIndex, idx, 'location', v)}
@@ -350,14 +350,21 @@ export const ModernCVTemplate: React.FC<CVTemplateProps> = ({
                   />
                 </div>
 
-                {bullets.length > 0 ? (
+                <EditableText
+                  multiline
+                  value={item.description || ''}
+                  onChange={(v) => onUpdateSectionItem(sectionIndex, idx, 'description', v)}
+                  placeholder="Kurze Beschreibung der Position"
+                  style={{ fontSize: '9.5px', color: t.muted, lineHeight: 1.55, marginTop: '8px' }}
+                />
+                {bullets.length > 0 && (
                   <ul style={{ margin: '8px 0 0', padding: 0, listStyle: 'none', display: 'flex', flexDirection: 'column', gap: '4px' }}>
                     {bullets.map((bp: string, bIdx: number) => (
                       <li key={bIdx} data-break-line data-pdf-bullet-row style={{ display: 'flex', alignItems: 'flex-start', gap: '7px' }}>
                         <span
                           aria-hidden="true"
                           data-pdf-bullet-dot
-                          style={{ display: 'inline-block', flexShrink: 0, color: CI.primaryDark, fontSize: '9.5px', lineHeight: 1.55, userSelect: 'none' }}
+                          style={{ display: 'inline-block', flexShrink:0, color: CI.primaryDark, fontSize: '9.5px', lineHeight: 1.55, userSelect: 'none' }}
                         >•</span>
                         <EditableText
                           multiline
@@ -369,9 +376,6 @@ export const ModernCVTemplate: React.FC<CVTemplateProps> = ({
                             while (base.length <= bIdx) base.push('');
                             base[bIdx] = v;
                             onUpdateSectionItem(sectionIndex, idx, 'bulletPoints', base);
-                            if (!Array.isArray(item?.bulletPoints)) {
-                              onUpdateSectionItem(sectionIndex, idx, 'description', '');
-                            }
                           }}
                           placeholder="Aufgabe / Ergebnis"
                           style={{ fontSize: '9.5px', color: t.text, lineHeight: 1.55, flex: 1, display: 'block' }}
@@ -388,14 +392,6 @@ export const ModernCVTemplate: React.FC<CVTemplateProps> = ({
                       </li>
                     ))}
                   </ul>
-                ) : (
-                  <EditableText
-                    multiline
-                    value={item.description || ''}
-                    onChange={(v) => onUpdateSectionItem(sectionIndex, idx, 'description', v)}
-                    placeholder="Aufgaben und wichtigste Erfolge"
-                    style={{ fontSize: '9.5px', color: t.text, lineHeight: 1.55, marginTop: '8px' }}
-                  />
                 )}
 
                 {renderCardControls(sectionIndex, idx, item, { addBullet: true })}
@@ -484,14 +480,12 @@ export const ModernCVTemplate: React.FC<CVTemplateProps> = ({
                           placeholder="Institution"
                           style={{ fontSize: '10px', color: t.muted, marginTop: '2px', lineHeight: 1.4 }}
                         />
-                        {edu.location && (
-                          <EditableText
-                            value={edu.location}
-                            onChange={(v) => onUpdateSectionItem(sectionIndex, originalIdx, 'location', v)}
-                            placeholder="Ort"
-                            style={{ fontSize: '9.5px', color: t.faint, marginTop: '2px', lineHeight: 1.4 }}
-                          />
-                        )}
+                        <EditableText
+                          value={edu.location || ''}
+                          onChange={(v) => onUpdateSectionItem(sectionIndex, originalIdx, 'location', v)}
+                          placeholder="Ort"
+                          style={{ fontSize: '9.5px', color: t.faint, marginTop: '2px', lineHeight: 1.4 }}
+                        />
                       </div>
                       <DateBadge
                         from={edu.date_from || ''}
@@ -501,15 +495,13 @@ export const ModernCVTemplate: React.FC<CVTemplateProps> = ({
                       />
                     </div>
 
-                    {edu.description && (
-                      <EditableText
-                        multiline
-                        value={edu.description}
-                        onChange={(v) => onUpdateSectionItem(sectionIndex, originalIdx, 'description', v)}
-                        placeholder="Schwerpunkte"
-                        style={{ fontSize: '9.5px', color: t.muted, marginTop: '4px', lineHeight: 1.5 }}
-                      />
-                    )}
+                    <EditableText
+                      multiline
+                      value={edu.description || ''}
+                      onChange={(v) => onUpdateSectionItem(sectionIndex, originalIdx, 'description', v)}
+                      placeholder="Schwerpunkte / Beschreibung"
+                      style={{ fontSize: '9.5px', color: t.muted, marginTop: '4px', lineHeight: 1.5 }}
+                    />
 
                     {eduBullets.length > 0 && (
                       <ul style={{ margin: '8px 0 0', padding: 0, listStyle: 'none', display: 'flex', flexDirection: 'column', gap: '4px' }}>
