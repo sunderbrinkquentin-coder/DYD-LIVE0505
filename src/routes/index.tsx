@@ -36,90 +36,93 @@ import FestivalPaymentSuccessPage from '../pages/FestivalPaymentSuccessPage';
 import { PrivateRoute } from '../components/PrivateRoute';
 import FestivalTournamentBoard from '../components/festival/FestivalTournamentBoard';
 import TournamentAdminPage from '../pages/TournamentAdminPage'
+import { GlobalLayout } from '../components/GlobalLayout';
 
 export const router = createHashRouter([
-  // Landing
   {
-    path: '/',
-    element: <LandingPage />,
+    element: <GlobalLayout />,
     errorElement: <ErrorBoundary />,
+    children: [
+      // Landing
+      { path: '/', element: <LandingPage /> },
+
+      { path: '/landing-modern', element: <ModernLandingPage /> },
+      { path: '/cv-entry', element: <CvEntryPage /> },
+
+      // Legal
+      { path: '/impressum', element: <ImpressumPage /> },
+      { path: '/datenschutz', element: <DatenschutzPage /> },
+      { path: '/agb', element: <AgbPage /> },
+      { path: '/faq', element: <FaqPage /> },
+      { path: '/festival', element: <HarmonyFestivalPage /> },
+      { path: '/festival-success', element: <FestivalPaymentSuccessPage /> },
+
+      // Auth
+      { path: '/login', element: <LoginPage /> },
+      { path: '/reset-password', element: <ResetPasswordPage /> },
+
+      // CV Check
+      { path: '/cv-upload', element: <CVCheckPage /> },
+      { path: '/cv-check', element: <CVCheckPage /> },
+
+      // Analyse → öffentlich
+      { path: '/cv-result/:uploadId', element: <CvResultPage /> },
+
+      // Gespeicherte Analyse → geschützt
+      {
+        path: '/saved-cv-check/:analysisId',
+        element: (
+          <PrivateRoute>
+            <SavedCvCheckPage />
+          </PrivateRoute>
+        ),
+      },
+
+      { path: '/cv-paywall', element: <CvPaywallPage /> },
+      { path: '/pricing', element: <CvPaywallPage /> },
+      { path: '/payment-success', element: <PaymentSuccessPage /> },
+
+      // Wizard
+      { path: '/cv-wizard', element: <CVWizard /> },
+
+      // CV Editor (Live)
+      { path: '/cv-live-editor/:cvId', element: <CVLiveEditorPage /> },
+      { path: '/cv/:cvId/editor', element: <CVLiveEditorPage /> },
+      { path: '/cv/:cvId', element: <CVLiveEditorPage /> },
+
+      // Old editors
+      { path: '/cv/edit', element: <CVEditor /> },
+      { path: '/cv-preview-editor', element: <CVPreviewEditor /> },
+
+      // Optimization
+      { path: '/job-targeting', element: <JobTargeting /> },
+      { path: '/cv-optimization', element: <CVOptimization /> },
+
+      // Career Vision
+      { path: '/career-vision', element: <CareerVisionPage /> },
+      { path: '/learning-path/:pathId', element: <LearningPathPage /> },
+      { path: '/learning-path-waiting/:pathId', element: <LearningPathWaitingPage /> },
+      { path: '/business', element: <B2BLandingPage /> },
+
+      { path: '/turnier', element: <FestivalTournamentBoard /> },
+      { path: '/turnier/:tournamentId', element: <FestivalTournamentBoard /> },
+      { path: '/admin/turnier', element: <TournamentAdminPage /> },
+
+      // 🔐 Dashboard → jetzt geschützt
+      {
+        path: '/dashboard',
+        element: (
+          <PrivateRoute>
+            <DashboardPage />
+          </PrivateRoute>
+        ),
+      },
+      // Legacy
+      { path: '/email', element: <EmailCapture /> },
+      { path: '/chat', element: <AgentFlow /> },
+      { path: '/chat-old', element: <AIChat /> },
+      { path: '/agent', element: <AgentFlow /> },
+      { path: '/result', element: <CVPreview /> },
+    ],
   },
-
-  { path: '/landing-modern', element: <ModernLandingPage /> },
-  { path: '/cv-entry', element: <CvEntryPage /> },
-
-  // Legal
-  { path: '/impressum', element: <ImpressumPage /> },
-  { path: '/datenschutz', element: <DatenschutzPage /> },
-  { path: '/agb', element: <AgbPage /> },
-  { path: '/faq', element: <FaqPage /> },
-  { path: '/festival', element: <HarmonyFestivalPage /> },
-  { path: '/festival-success', element: <FestivalPaymentSuccessPage /> },
-
-  // Auth
-  { path: '/login', element: <LoginPage /> },
-  { path: '/reset-password', element: <ResetPasswordPage /> },
-
-  // CV Check
-  { path: '/cv-upload', element: <CVCheckPage /> },
-  { path: '/cv-check', element: <CVCheckPage /> },
-
-  // Analyse → öffentlich
-  { path: '/cv-result/:uploadId', element: <CvResultPage /> },
-
-  // Gespeicherte Analyse → geschützt
-  {
-    path: '/saved-cv-check/:analysisId',
-    element: (
-      <PrivateRoute>
-        <SavedCvCheckPage />
-      </PrivateRoute>
-    ),
-  },
-
-  { path: '/cv-paywall', element: <CvPaywallPage /> },
-  { path: '/pricing', element: <CvPaywallPage /> },
-  { path: '/payment-success', element: <PaymentSuccessPage /> },
-
-  // Wizard
-  { path: '/cv-wizard', element: <CVWizard /> },
-
-  // CV Editor (Live)
-  { path: '/cv-live-editor/:cvId', element: <CVLiveEditorPage /> },
-  { path: '/cv/:cvId/editor', element: <CVLiveEditorPage /> },
-  { path: '/cv/:cvId', element: <CVLiveEditorPage /> },
-
-  // Old editors
-  { path: '/cv/edit', element: <CVEditor /> },
-  { path: '/cv-preview-editor', element: <CVPreviewEditor /> },
-
-  // Optimization
-  { path: '/job-targeting', element: <JobTargeting /> },
-  { path: '/cv-optimization', element: <CVOptimization /> },
-
-  // Career Vision
-  { path: '/career-vision', element: <CareerVisionPage /> },
-  { path: '/learning-path/:pathId', element: <LearningPathPage /> },
-  { path: '/learning-path-waiting/:pathId', element: <LearningPathWaitingPage /> },
-  { path: '/business', element: <B2BLandingPage />},
-  
-  { path: '/turnier', element: <FestivalTournamentBoard /> },              // öffentliches Live-Tableau (neuestes Turnier)
-{ path: '/turnier/:tournamentId', element: <FestivalTournamentBoard /> },
-{ path: '/admin/turnier', element: <TournamentAdminPage /> },        // nur du (RLS + UI-Gate)
-
-  // 🔐 Dashboard → jetzt geschützt
- {
-    path: '/dashboard',
-    element: (
-      <PrivateRoute>
-        <DashboardPage />
-      </PrivateRoute>
-    ),
-  },
-  // Legacy
-  { path: '/email', element: <EmailCapture /> },
-  { path: '/chat', element: <AgentFlow /> },
-  { path: '/chat-old', element: <AIChat /> },
-  { path: '/agent', element: <AgentFlow /> },
-  { path: '/result', element: <CVPreview /> },
 ]);
