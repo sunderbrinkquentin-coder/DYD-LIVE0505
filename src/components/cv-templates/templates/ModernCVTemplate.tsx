@@ -1,6 +1,7 @@
 // src/components/cv-templates/templates/ModernCVTemplate.tsx
 
-import React from 'react';
+import React, { useState } from 'react';
+import { Plus } from 'lucide-react';
 import {
   EditableText,
   dragProps,
@@ -265,6 +266,38 @@ export const ModernCVTemplate: React.FC<CVTemplateProps> = ({
 
   const containerMinHeight = minHeightPx ?? 1122;
 
+  // Leere optionale Felder (Ort, Schwerpunkte) reservieren sonst dauerhaft
+  // eine graue Platzhalterzeile. Jetzt: Feld bleibt weg, bis ein kleiner
+  // "+"-Button (in der Kopfzeile der Station) es einblendet.
+  const [revealed, setRevealed] = useState<Set<string>>(new Set());
+  const reveal = (key: string) => setRevealed((prev) => new Set(prev).add(key));
+  const AddFieldButton: React.FC<{ onClick: () => void; label: string }> = ({ onClick, label }) => (
+    <button
+      type="button"
+      className="pdf-hidden"
+      title={label}
+      onClick={onClick}
+      style={{
+        display: 'inline-flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        width: '14px',
+        height: '14px',
+        marginLeft: '6px',
+        verticalAlign: 'middle',
+        border: `1px dashed ${t.border}`,
+        borderRadius: '3px',
+        background: 'transparent',
+        color: t.faint,
+        cursor: 'pointer',
+        padding: 0,
+        lineHeight: 1,
+      }}
+    >
+      <Plus size={10} />
+    </button>
+  );
+
   const renderCardControls = (
     sectionIndex: number,
     idx: number,
@@ -341,14 +374,19 @@ export const ModernCVTemplate: React.FC<CVTemplateProps> = ({
                       placeholder={isProject ? 'Projekttitel' : 'Position / Rolle'}
                       style={{ fontSize: '11px', fontWeight: 700, color: t.text, lineHeight: 1.4 }}
                     />
-                    <EditableText
-                      wrap
-                      value={isProject ? item.role || '' : item.company || item.employer || ''}
-                      onChange={(v) => onUpdateSectionItem(sectionIndex, idx, isProject ? 'role' : 'company', v)}
-                      placeholder={isProject ? 'Deine Rolle' : 'Unternehmen'}
-                      style={{ fontSize: '10px', color: t.muted, marginTop: '2px', lineHeight: 1.4 }}
-                    />
-                    {!isProject && (
+                    <div style={{ display: 'flex', alignItems: 'center', marginTop: '2px' }}>
+                      <EditableText
+                        wrap
+                        value={isProject ? item.role || '' : item.company || item.employer || ''}
+                        onChange={(v) => onUpdateSectionItem(sectionIndex, idx, isProject ? 'role' : 'company', v)}
+                        placeholder={isProject ? 'Deine Rolle' : 'Unternehmen'}
+                        style={{ fontSize: '10px', color: t.muted, lineHeight: 1.4 }}
+                      />
+                      {!isProject && !(item.location || item.ort) && !revealed.has(`exp-${idx}-location`) && (
+                        <AddFieldButton label="Ort hinzufügen" onClick={() => reveal(`exp-${idx}-location`)} />
+                      )}
+                    </div>
+                    {!isProject && (item.location || item.ort || revealed.has(`exp-${idx}-location`)) && (
                       <EditableText
                         value={item.location || item.ort || ''}
                         onChange={(v) => onUpdateSectionItem(sectionIndex, idx, 'location', v)}
@@ -499,19 +537,29 @@ export const ModernCVTemplate: React.FC<CVTemplateProps> = ({
                           placeholder="Abschluss"
                           style={{ fontSize: '11px', fontWeight: 700, color: t.text, lineHeight: 1.4 }}
                         />
-                        <EditableText
-                          wrap
-                          value={edu.institution || edu.school || edu.university || ''}
-                          onChange={(v) => onUpdateSectionItem(sectionIndex, originalIdx, 'institution', v)}
-                          placeholder="Institution"
-                          style={{ fontSize: '10px', color: t.muted, marginTop: '2px', lineHeight: 1.4 }}
-                        />
-                        <EditableText
-                          value={edu.location || ''}
-                          onChange={(v) => onUpdateSectionItem(sectionIndex, originalIdx, 'location', v)}
-                          placeholder="Ort"
-                          style={{ fontSize: '9.5px', color: t.faint, marginTop: '2px', lineHeight: 1.4 }}
-                        />
+                        <div style={{ display: 'flex', alignItems: 'center', marginTop: '2px' }}>
+                          <EditableText
+                            wrap
+                            value={edu.institution || edu.school || edu.university || ''}
+                            onChange={(v) => onUpdateSectionItem(sectionIndex, originalIdx, 'institution', v)}
+                            placeholder="Institution"
+                            style={{ fontSize: '10px', color: t.muted, lineHeight: 1.4 }}
+                          />
+                          {!edu.location && !revealed.has(`edu-${originalIdx}-location`) && (
+                            <AddFieldButton label="Ort hinzufügen" onClick={() => reveal(`edu-${originalIdx}-location`)} />
+                          )}
+                          {!edu.description && !revealed.has(`edu-${originalIdx}-description`) && (
+                            <AddFieldButton label="Schwerpunkte hinzufügen" onClick={() => reveal(`edu-${originalIdx}-description`)} />
+                          )}
+                        </div>
+                        {(edu.location || revealed.has(`edu-${originalIdx}-location`)) && (
+                          <EditableText
+                            value={edu.location || ''}
+                            onChange={(v) => onUpdateSectionItem(sectionIndex, originalIdx, 'location', v)}
+                            placeholder="Ort"
+                            style={{ fontSize: '9.5px', color: t.faint, marginTop: '2px', lineHeight: 1.4 }}
+                          />
+                        )}
                       </div>
                       <DateBadge
                         from={edu.date_from || ''}
@@ -521,13 +569,15 @@ export const ModernCVTemplate: React.FC<CVTemplateProps> = ({
                       />
                     </div>
 
-                    <EditableText
-                      multiline
-                      value={edu.description || ''}
-                      onChange={(v) => onUpdateSectionItem(sectionIndex, originalIdx, 'description', v)}
-                      placeholder="Schwerpunkte / Beschreibung"
-                      style={{ fontSize: '9.5px', color: t.muted, marginTop: '4px', lineHeight: 1.5 }}
-                    />
+                    {(edu.description || revealed.has(`edu-${originalIdx}-description`)) && (
+                      <EditableText
+                        multiline
+                        value={edu.description || ''}
+                        onChange={(v) => onUpdateSectionItem(sectionIndex, originalIdx, 'description', v)}
+                        placeholder="Schwerpunkte / Beschreibung"
+                        style={{ fontSize: '9.5px', color: t.muted, marginTop: '4px', lineHeight: 1.5 }}
+                      />
+                    )}
 
                     {eduBullets.length > 0 && (
                       <ul style={{ margin: '8px 0 0', padding: 0, listStyle: 'none', display: 'flex', flexDirection: 'column', gap: '4px' }}>
