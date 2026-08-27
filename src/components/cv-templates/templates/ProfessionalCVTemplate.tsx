@@ -1,6 +1,7 @@
 // src/components/cv-templates/templates/ProfessionalCVTemplate.tsx
 
 import React, { useCallback, useEffect, useRef, useState } from 'react';
+import { Plus } from 'lucide-react';
 import { SectionDragHandle, ItemDragHandle } from '../EditableText';
 
 type EditorSection = {
@@ -213,6 +214,39 @@ export const ProfessionalCVTemplate: React.FC<ProfessionalCVTemplateProps> = ({
   // und war Mitursache dafür, dass Professional als einziges „schnitt".
   const containerMinHeight = minHeightPx ?? 1122;
 
+  // Leere optionale Felder (Ort, Kurzbeschreibung) reservieren sonst dauerhaft
+  // eine graue Platzhalterzeile — genau die "Löcher"/"Satz vor den Bullets",
+  // über die Quentin sich beschwert hat. Jetzt: Feld bleibt komplett weg, bis
+  // ein kleiner "+"-Button (oben in der Kopfzeile der Station) es einblendet.
+  const [revealed, setRevealed] = useState<Set<string>>(new Set());
+  const reveal = (key: string) => setRevealed((prev) => new Set(prev).add(key));
+  const AddFieldButton: React.FC<{ onClick: () => void; label: string }> = ({ onClick, label }) => (
+    <button
+      type="button"
+      className="pdf-hidden"
+      title={label}
+      onClick={onClick}
+      style={{
+        display: 'inline-flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        width: '14px',
+        height: '14px',
+        marginLeft: '6px',
+        verticalAlign: 'middle',
+        border: '1px dashed #94a3b8',
+        borderRadius: '3px',
+        background: 'transparent',
+        color: '#94a3b8',
+        cursor: 'pointer',
+        padding: 0,
+        lineHeight: 1,
+      }}
+    >
+      <Plus size={10} />
+    </button>
+  );
+
   const handleBulletChange = (
     sectionIndex: number,
     itemIndex: number,
@@ -335,25 +369,33 @@ export const ProfessionalCVTemplate: React.FC<ProfessionalCVTemplateProps> = ({
                           }
                           placeholder="Position"
                         />
-                        <EditableText
-                          wrap
-                          className="mt-0.5 text-[10px] text-slate-500"
-                          value={exp.company || ''}
-                          onChange={(val) =>
-                            onUpdateSectionItem(sectionIndex, idx, 'company', val)
-                          }
-                          placeholder="Unternehmen"
-                        />
-                        {/* Ort JETZT IMMER sichtbar (auch wenn leer), damit er
-                            hinzugefügt werden kann. */}
-                        <EditableText
-                          className="mt-0.5 text-[10px] text-slate-400"
-                          value={exp.location || exp.ort || ''}
-                          onChange={(val) =>
-                            onUpdateSectionItem(sectionIndex, idx, 'location', val)
-                          }
-                          placeholder="Ort"
-                        />
+                        <div className="flex items-center">
+                          <EditableText
+                            wrap
+                            className="mt-0.5 text-[10px] text-slate-500"
+                            value={exp.company || ''}
+                            onChange={(val) =>
+                              onUpdateSectionItem(sectionIndex, idx, 'company', val)
+                            }
+                            placeholder="Unternehmen"
+                          />
+                          {!(exp.location || exp.ort) && !revealed.has(`exp-${idx}-location`) && (
+                            <AddFieldButton label="Ort hinzufügen" onClick={() => reveal(`exp-${idx}-location`)} />
+                          )}
+                          {!exp.description && !revealed.has(`exp-${idx}-description`) && (
+                            <AddFieldButton label="Kurzbeschreibung hinzufügen" onClick={() => reveal(`exp-${idx}-description`)} />
+                          )}
+                        </div>
+                        {(exp.location || exp.ort || revealed.has(`exp-${idx}-location`)) && (
+                          <EditableText
+                            className="mt-0.5 text-[10px] text-slate-400"
+                            value={exp.location || exp.ort || ''}
+                            onChange={(val) =>
+                              onUpdateSectionItem(sectionIndex, idx, 'location', val)
+                            }
+                            placeholder="Ort"
+                          />
+                        )}
                       </div>
                       {(exp.date_from || exp.date_to) && (
                         <div className="text-[9px] text-slate-500 text-right whitespace-nowrap flex flex-col items-end gap-0.5 flex-shrink-0">
@@ -379,16 +421,18 @@ export const ProfessionalCVTemplate: React.FC<ProfessionalCVTemplateProps> = ({
                       )}
                     </div>
 
-                    <EditableText
-                      multiline
-                      className="mt-1.5 text-[9.5px] text-slate-700 leading-tight"
-                      style={{ minHeight: '16px' }}
-                      value={exp.description || ''}
-                      onChange={(val) =>
-                        onUpdateSectionItem(sectionIndex, idx, 'description', val)
-                      }
-                      placeholder="Kurze Beschreibung der Position"
-                    />
+                    {(exp.description || revealed.has(`exp-${idx}-description`)) && (
+                      <EditableText
+                        multiline
+                        className="mt-1.5 text-[9.5px] text-slate-700 leading-tight"
+                        style={{ minHeight: '16px' }}
+                        value={exp.description || ''}
+                        onChange={(val) =>
+                          onUpdateSectionItem(sectionIndex, idx, 'description', val)
+                        }
+                        placeholder="Kurze Beschreibung der Position"
+                      />
+                    )}
                     {bullets.length > 0 && (
                       <ul className="mt-1 !text-[9.5px] text-slate-800" style={{ listStyle: 'none', padding: 0, margin: '4px 0 0', display: 'flex', flexDirection: 'column', gap: '4px' }}>
                         {bullets.map((bp: string, bIdx: number) => (
@@ -468,24 +512,31 @@ export const ProfessionalCVTemplate: React.FC<ProfessionalCVTemplateProps> = ({
                       {/* Kein min-w-0 — siehe Begründung bei Berufserfahrung
                           oben (min-w-0 + wrap kollabiert den Titel). */}
                       <div className="flex-1">
-                        <EditableText
-                          wrap
-                          className="text-[11px] font-bold text-slate-900"
-                          value={proj.title || proj.name || ''}
-                          onChange={(val) =>
-                            onUpdateSectionItem(sectionIndex, idx, 'title', val)
-                          }
-                          placeholder="Projekt"
-                        />
-                        <EditableText
-                          wrap
-                          className="mt-0.5 text-[10px] text-slate-500"
-                          value={proj.role || ''}
-                          onChange={(val) =>
-                            onUpdateSectionItem(sectionIndex, idx, 'role', val)
-                          }
-                          placeholder="Rolle"
-                        />
+                        <div className="flex items-center">
+                          <EditableText
+                            wrap
+                            className="text-[11px] font-bold text-slate-900"
+                            value={proj.title || proj.name || ''}
+                            onChange={(val) =>
+                              onUpdateSectionItem(sectionIndex, idx, 'title', val)
+                            }
+                            placeholder="Projekt"
+                          />
+                          {!proj.role && !revealed.has(`proj-${idx}-role`) && (
+                            <AddFieldButton label="Rolle hinzufügen" onClick={() => reveal(`proj-${idx}-role`)} />
+                          )}
+                        </div>
+                        {(proj.role || revealed.has(`proj-${idx}-role`)) && (
+                          <EditableText
+                            wrap
+                            className="mt-0.5 text-[10px] text-slate-500"
+                            value={proj.role || ''}
+                            onChange={(val) =>
+                              onUpdateSectionItem(sectionIndex, idx, 'role', val)
+                            }
+                            placeholder="Rolle"
+                          />
+                        )}
                       </div>
                     </div>
 
@@ -593,22 +644,31 @@ export const ProfessionalCVTemplate: React.FC<ProfessionalCVTemplateProps> = ({
                         }
                         placeholder="Abschluss / Studiengang"
                       />
-                      <EditableText
-                        wrap
-                        className="mt-0.5 text-[10px] text-slate-500"
-                        value={edu.institution || ''}
-                        onChange={(val) =>
-                          onUpdateSectionItem(sectionIndex, idx, 'institution', val)
-                        }
-                        placeholder="Institution"
-                      />
-                      {/* Ort jetzt immer sichtbar */}
-                      <EditableText
-                        className="mt-0.5 text-[9.5px] text-slate-400"
-                        value={edu.location || ''}
-                        onChange={(val) => onUpdateSectionItem(sectionIndex, idx, 'location', val)}
-                        placeholder="Ort"
-                      />
+                      <div className="flex items-center">
+                        <EditableText
+                          wrap
+                          className="mt-0.5 text-[10px] text-slate-500"
+                          value={edu.institution || ''}
+                          onChange={(val) =>
+                            onUpdateSectionItem(sectionIndex, idx, 'institution', val)
+                          }
+                          placeholder="Institution"
+                        />
+                        {!edu.location && !revealed.has(`edu-${idx}-location`) && (
+                          <AddFieldButton label="Ort hinzufügen" onClick={() => reveal(`edu-${idx}-location`)} />
+                        )}
+                        {!edu.description && !(Array.isArray(edu.focus) ? edu.focus.length : edu.focus) && !revealed.has(`edu-${idx}-description`) && (
+                          <AddFieldButton label="Schwerpunkte hinzufügen" onClick={() => reveal(`edu-${idx}-description`)} />
+                        )}
+                      </div>
+                      {(edu.location || revealed.has(`edu-${idx}-location`)) && (
+                        <EditableText
+                          className="mt-0.5 text-[9.5px] text-slate-400"
+                          value={edu.location || ''}
+                          onChange={(val) => onUpdateSectionItem(sectionIndex, idx, 'location', val)}
+                          placeholder="Ort"
+                        />
+                      )}
                     </div>
                     {(edu.date_from || edu.date_to) && (
                       <div className="text-[9px] text-slate-500 text-right whitespace-nowrap flex flex-col items-end gap-0.5 flex-shrink-0">
@@ -644,14 +704,16 @@ export const ProfessionalCVTemplate: React.FC<ProfessionalCVTemplateProps> = ({
                       />
                     </div>
                   )}
-                  <EditableText
-                    multiline
-                    className="mt-0.5 text-[9.5px] text-slate-600 leading-tight"
-                    style={{ minHeight: '16px' }}
-                    value={edu.description || (Array.isArray(edu.focus) ? edu.focus.join(', ') : edu.focus) || ''}
-                    onChange={(val) => onUpdateSectionItem(sectionIndex, idx, 'description', val)}
-                    placeholder="Schwerpunkte / Beschreibung"
-                  />
+                  {(edu.description || edu.focus || revealed.has(`edu-${idx}-description`)) && (
+                    <EditableText
+                      multiline
+                      className="mt-0.5 text-[9.5px] text-slate-600 leading-tight"
+                      style={{ minHeight: '16px' }}
+                      value={edu.description || (Array.isArray(edu.focus) ? edu.focus.join(', ') : edu.focus) || ''}
+                      onChange={(val) => onUpdateSectionItem(sectionIndex, idx, 'description', val)}
+                      placeholder="Schwerpunkte / Beschreibung"
+                    />
+                  )}
                 </div>
               ))}
             </div>
