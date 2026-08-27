@@ -314,10 +314,18 @@ export const ProfessionalCVTemplate: React.FC<ProfessionalCVTemplateProps> = ({
                   >
                     <ItemDragHandle sectionIndex={sectionIndex} itemIndex={idx} onReorderSectionItem={onReorderSectionItem} />
                     <div className="flex justify-between gap-2 items-start">
-                      {/* FIX: min-w-0 ist zwingend, sonst schrumpft der Titel
-                          nicht und wird von der Datums-Spalte abgeschnitten.
-                          `wrap` erlaubt den Umbruch. */}
-                      <div className="flex-1 min-w-0">
+                      {/* FIX (Wort-für-Wort-Umbruch/Buchstaben-Stapeln): das
+                          vorherige `min-w-0` HIER zusammen mit `wrap` war
+                          genau die Kombination, die in ClassicCVTemplate.tsx
+                          (siehe dortige ausführliche Begründung) den Titel
+                          auf Wortbreite kollabieren ließ — manche Browser
+                          behandeln das Flex-Minimum bei min-w-0 + wrap-Modus
+                          (overflowWrap:break-word) wie 'anywhere'. OHNE
+                          min-w-0 floored das Feld auf seine längste-Wort-
+                          Breite und bricht höchstens zwischen Wörtern um —
+                          das reicht, damit die Datums-Spalte (flex-shrink:0)
+                          nicht abgeschnitten wird, ohne die Kollaps-Gefahr. */}
+                      <div className="flex-1">
                         <EditableText
                           wrap
                           className="text-[11px] font-bold text-slate-900"
@@ -457,7 +465,9 @@ export const ProfessionalCVTemplate: React.FC<ProfessionalCVTemplateProps> = ({
                   >
                     <ItemDragHandle sectionIndex={sectionIndex} itemIndex={idx} onReorderSectionItem={onReorderSectionItem} />
                     <div className="flex justify-between gap-2 items-start">
-                      <div className="flex-1 min-w-0">
+                      {/* Kein min-w-0 — siehe Begründung bei Berufserfahrung
+                          oben (min-w-0 + wrap kollabiert den Titel). */}
+                      <div className="flex-1">
                         <EditableText
                           wrap
                           className="text-[11px] font-bold text-slate-900"
@@ -571,7 +581,9 @@ export const ProfessionalCVTemplate: React.FC<ProfessionalCVTemplateProps> = ({
                 >
                   <ItemDragHandle sectionIndex={sectionIndex} itemIndex={idx} onReorderSectionItem={onReorderSectionItem} />
                   <div className="flex justify-between gap-2 items-start">
-                    <div className="flex-1 min-w-0">
+                    {/* Kein min-w-0 — siehe Begründung bei Berufserfahrung
+                        oben (min-w-0 + wrap kollabiert den Titel). */}
+                    <div className="flex-1">
                       <EditableText
                         wrap
                         className="text-[11px] font-bold text-slate-900"
@@ -673,7 +685,13 @@ export const ProfessionalCVTemplate: React.FC<ProfessionalCVTemplateProps> = ({
                 if (!langVal && !levelVal) return null;
 
                 return (
-                  <div key={idx} style={{ breakInside: 'avoid', pageBreakInside: 'avoid' }} className="flex items-start justify-between gap-2 text-[9.5px] text-slate-800">
+                  <div
+                    key={idx}
+                    style={{ breakInside: 'avoid', pageBreakInside: 'avoid', position: 'relative', cursor: onReorderSectionItem ? 'grab' : undefined }}
+                    className="flex items-start justify-between gap-2 text-[9.5px] text-slate-800"
+                    {...itemDragProps(sectionIndex, idx, onReorderSectionItem)}
+                  >
+                    <ItemDragHandle sectionIndex={sectionIndex} itemIndex={idx} onReorderSectionItem={onReorderSectionItem} />
                     <EditableText
                       wrap
                       className="font-medium"
@@ -713,7 +731,12 @@ export const ProfessionalCVTemplate: React.FC<ProfessionalCVTemplateProps> = ({
 
                 const display = level ? `${cleanedVal} (${level.trim()})` : cleanedVal;
                 return (
-                  <span key={idx} style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', marginRight: '5px', marginBottom: '5px', verticalAlign: 'middle', padding: '2px 8px', borderRadius: '9999px', border: '1px solid #cbd5e1', background: '#f1f5f9', whiteSpace: 'nowrap', breakInside: 'avoid', pageBreakInside: 'avoid', lineHeight: 1.4 }}>
+                  <span
+                    key={idx}
+                    style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', marginRight: '5px', marginBottom: '5px', marginLeft: onReorderSectionItem ? '10px' : undefined, verticalAlign: 'middle', padding: '2px 8px', borderRadius: '9999px', border: '1px solid #cbd5e1', background: '#f1f5f9', whiteSpace: 'nowrap', breakInside: 'avoid', pageBreakInside: 'avoid', lineHeight: 1.4, position: 'relative', cursor: onReorderSectionItem ? 'grab' : undefined }}
+                    {...itemDragProps(sectionIndex, idx, onReorderSectionItem)}
+                  >
+                    <ItemDragHandle sectionIndex={sectionIndex} itemIndex={idx} onReorderSectionItem={onReorderSectionItem} />
                     <EditableText
                       style={{ fontSize: '9px', color: '#1e293b', lineHeight: 1.4, display: 'inline-block', verticalAlign: 'middle', textAlign: 'center', width: 'auto' }}
                       value={display}
@@ -743,7 +766,12 @@ export const ProfessionalCVTemplate: React.FC<ProfessionalCVTemplateProps> = ({
 
                 const display = level ? `${cleanedVal} (${level.trim()})` : cleanedVal;
                 return (
-                  <span key={idx} style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', marginRight: '5px', marginBottom: '5px', verticalAlign: 'middle', padding: '2px 8px', borderRadius: '9999px', border: '1px solid #cbd5e1', background: '#f1f5f9', whiteSpace: 'nowrap', breakInside: 'avoid', pageBreakInside: 'avoid', lineHeight: 1.4 }}>
+                  <span
+                    key={idx}
+                    style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', marginRight: '5px', marginBottom: '5px', marginLeft: onReorderSectionItem ? '10px' : undefined, verticalAlign: 'middle', padding: '2px 8px', borderRadius: '9999px', border: '1px solid #cbd5e1', background: '#f1f5f9', whiteSpace: 'nowrap', breakInside: 'avoid', pageBreakInside: 'avoid', lineHeight: 1.4, position: 'relative', cursor: onReorderSectionItem ? 'grab' : undefined }}
+                    {...itemDragProps(sectionIndex, idx, onReorderSectionItem)}
+                  >
+                    <ItemDragHandle sectionIndex={sectionIndex} itemIndex={idx} onReorderSectionItem={onReorderSectionItem} />
                     <EditableText
                       style={{ fontSize: '9px', color: '#1e293b', lineHeight: 1.4, display: 'inline-block', verticalAlign: 'middle', textAlign: 'center', width: 'auto' }}
                       value={display}
@@ -772,7 +800,12 @@ export const ProfessionalCVTemplate: React.FC<ProfessionalCVTemplateProps> = ({
                 if (cleanedV === '') return null;
 
                 return (
-                  <span key={idx} style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', marginRight: '5px', marginBottom: '5px', verticalAlign: 'middle', padding: '2px 8px', borderRadius: '9999px', border: '1px solid #cbd5e1', background: '#f1f5f9', whiteSpace: 'nowrap', breakInside: 'avoid', pageBreakInside: 'avoid', lineHeight: 1.4 }}>
+                  <span
+                    key={idx}
+                    style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', marginRight: '5px', marginBottom: '5px', marginLeft: onReorderSectionItem ? '10px' : undefined, verticalAlign: 'middle', padding: '2px 8px', borderRadius: '9999px', border: '1px solid #cbd5e1', background: '#f1f5f9', whiteSpace: 'nowrap', breakInside: 'avoid', pageBreakInside: 'avoid', lineHeight: 1.4, position: 'relative', cursor: onReorderSectionItem ? 'grab' : undefined }}
+                    {...itemDragProps(sectionIndex, idx, onReorderSectionItem)}
+                  >
+                    <ItemDragHandle sectionIndex={sectionIndex} itemIndex={idx} onReorderSectionItem={onReorderSectionItem} />
                     <EditableText
                       style={{ fontSize: '9px', color: '#1e293b', lineHeight: 1.4, display: 'inline-block', verticalAlign: 'middle', textAlign: 'center', width: 'auto' }}
                       value={cleanedV}
@@ -801,7 +834,12 @@ export const ProfessionalCVTemplate: React.FC<ProfessionalCVTemplateProps> = ({
                 if (cleanedV === '') return null;
 
                 return (
-                  <span key={idx} style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', marginRight: '5px', marginBottom: '5px', verticalAlign: 'middle', padding: '2px 8px', borderRadius: '9999px', border: '1px solid #cbd5e1', background: '#f1f5f9', whiteSpace: 'nowrap', breakInside: 'avoid', pageBreakInside: 'avoid', lineHeight: 1.4 }}>
+                  <span
+                    key={idx}
+                    style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', marginRight: '5px', marginBottom: '5px', marginLeft: onReorderSectionItem ? '10px' : undefined, verticalAlign: 'middle', padding: '2px 8px', borderRadius: '9999px', border: '1px solid #cbd5e1', background: '#f1f5f9', whiteSpace: 'nowrap', breakInside: 'avoid', pageBreakInside: 'avoid', lineHeight: 1.4, position: 'relative', cursor: onReorderSectionItem ? 'grab' : undefined }}
+                    {...itemDragProps(sectionIndex, idx, onReorderSectionItem)}
+                  >
+                    <ItemDragHandle sectionIndex={sectionIndex} itemIndex={idx} onReorderSectionItem={onReorderSectionItem} />
                     <EditableText
                       style={{ fontSize: '9px', color: '#1e293b', lineHeight: 1.4, display: 'inline-block', verticalAlign: 'middle', textAlign: 'center', width: 'auto' }}
                       value={cleanedV}
@@ -832,8 +870,10 @@ export const ProfessionalCVTemplate: React.FC<ProfessionalCVTemplateProps> = ({
                     <li
                       key={idx}
                       className="py-0.5 border-b border-slate-200 last:border-b-0"
-                      style={{ breakInside: 'avoid', pageBreakInside: 'avoid' }}
+                      style={{ breakInside: 'avoid', pageBreakInside: 'avoid', position: 'relative', cursor: onReorderSectionItem ? 'grab' : undefined }}
+                      {...itemDragProps(sectionIndex, idx, onReorderSectionItem)}
                     >
+                      <ItemDragHandle sectionIndex={sectionIndex} itemIndex={idx} onReorderSectionItem={onReorderSectionItem} />
                       <div style={{ fontWeight: 600, marginBottom: institution || date ? '2px' : '0' }}>
                         <EditableText
                           wrap
@@ -888,14 +928,17 @@ export const ProfessionalCVTemplate: React.FC<ProfessionalCVTemplateProps> = ({
                   <li
                     key={idx}
                     className="py-0.5 border-b border-slate-200 last:border-b-0"
-                    style={{ breakInside: 'avoid', pageBreakInside: 'avoid' }}
+                    style={{ breakInside: 'avoid', pageBreakInside: 'avoid', position: 'relative', cursor: onReorderSectionItem ? 'grab' : undefined }}
+                    {...itemDragProps(sectionIndex, idx, onReorderSectionItem)}
                   >
+                    <ItemDragHandle sectionIndex={sectionIndex} itemIndex={idx} onReorderSectionItem={onReorderSectionItem} />
                     <EditableText
                       value={displayValue}
                       onChange={(val) =>
                         onUpdateSectionItem(sectionIndex, idx, 'name', val)
                       }
                       placeholder="Eintrag"
+                      wrap
                     />
                   </li>
                 );
