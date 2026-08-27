@@ -38,7 +38,7 @@ const TASK_PRESETS: Record<string, string[]> = {
     'Teilnahme an Team-Meetings und Besprechungen',
   ],
   Werkstudent: [
-    'Unterstützung des Fachbereichs XX Stunden/Woche',
+    'Unterstützung des Fachbereichs',
     'Eigenständige Bearbeitung von Aufgabenpaketen',
     'Mitarbeit in agilen Prozessen (Scrum, Kanban)',
     'Erstellung und Pflege von Dokumentationen',
@@ -63,7 +63,7 @@ const TASK_PRESETS: Record<string, string[]> = {
     'Betreuung von Teilnehmer:innen / Zielgruppen',
     'Koordination im Team und mit externen Partnern',
     'Öffentlichkeitsarbeit und Social Media',
-    'Fundraising und Spendenaquise',
+    'Fundraising und Spendenakquise',
   ],
 };
 
@@ -382,6 +382,9 @@ export function InternshipsStep({ data, onChange, onNext, onBack }: InternshipsS
                   Was hast du dort gemacht? (wähle passende Punkte)
                 </label>
               </div>
+              <p className="text-xs text-white/40 italic mb-2">
+                Die Vorschläge sind Startpunkte – ergänze eigene Aufgaben, eingesetzte Tools und konkrete Ergebnisse. Zahlen und Größenordnungen kannst du selbst hinzufügen.
+              </p>
               <div className="flex flex-wrap gap-2">
                 {presets.map((task) => {
                   const key = `${activeIndex}:${task}`;
@@ -391,10 +394,10 @@ export function InternshipsStep({ data, onChange, onNext, onBack }: InternshipsS
                       key={task}
                       type="button"
                       onClick={() => toggleTask(activeIndex, task)}
-                      className={`px-3 py-1.5 rounded-full text-xs border transition-all ${
+                      className={`px-3 py-1.5 rounded-full text-xs border transition-all duration-200 ${
                         selected
-                          ? 'bg-[#66c0b6] text-black border-[#66c0b6] font-semibold'
-                          : 'bg-white/5 text-white/80 border-white/20 hover:bg-white/10'
+                          ? 'bg-[#66c0b6] text-black border-[#66c0b6] font-semibold shadow-[0_0_12px_rgba(102,192,182,0.25)]'
+                          : 'bg-white/5 text-white/80 border-white/20 hover:bg-white/10 hover:border-[#66c0b6]/40'
                       }`}
                     >
                       {selected ? '✓ ' : '+ '}{task}

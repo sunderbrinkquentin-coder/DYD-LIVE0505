@@ -16,22 +16,22 @@ const STUDENT_PRESETS: Project[] = [
     title: 'Schulprojekt: Organisation des Abiballs',
     role: 'Schulprojekt',
     description:
-      'Planung, Organisation und Durchführung des Abiballs gemeinsam mit einem 8-köpfigen Team.',
+      'Planung, Organisation und Durchführung des Abiballs gemeinsam im Team.',
     bulletPoints: [
       'Mitverantwortung für Budgetplanung und Sponsorenanfragen',
       'Koordination von Location, Catering und Technik',
-      'Kommunikation mit Jahrgang und Dienstleistern (Infos, Tickets, Rückfragen)',
+      'Kommunikation mit Jahrgang und Dienstleistern',
     ],
   },
   {
     title: 'IT-Projekt: Eigene Portfolio-Website',
     role: 'Freizeitprojekt',
     description:
-      'Erstellung einer einfachen persönlichen Website, um Projekte und Lebenslauf zu präsentieren.',
+      'Erstellung einer persönlichen Website, um Projekte und Lebenslauf zu präsentieren.',
     bulletPoints: [
-      'Grundlagen in HTML, CSS und einfachen JavaScript-Komponenten angewendet',
+      'Grundlagen in HTML, CSS und JavaScript angewendet',
       'Strukturierte Darstellung von Lebenslauf, Projekten und Kontaktdaten',
-      'Selbstständige Einarbeitung in ein Website-Builder-Tool / GitHub Pages',
+      'Selbstständige Einarbeitung in Website-Builder-Tools',
     ],
   },
   {
@@ -40,7 +40,7 @@ const STUDENT_PRESETS: Project[] = [
     description: 'Wöchentliches Training und Betreuung einer Jugendmannschaft im Sportverein.',
     bulletPoints: [
       'Planung und Durchführung von wöchentlichen Trainingseinheiten',
-      'Verantwortung für 12 Kinder im Alter von 10–12 Jahren',
+      'Verantwortung für die Betreuung und Förderung der Kinder',
       'Koordination mit Eltern und Vereinsleitung',
     ],
   },
@@ -50,8 +50,8 @@ const STUDENT_PRESETS: Project[] = [
     description: 'Mitarbeit in einer Schülerfirma, die das Catering bei Schulveranstaltungen organisiert.',
     bulletPoints: [
       'Einkauf, Kalkulation und Verkauf von Speisen und Getränken',
-      'Teamkoordination und Aufgabenverteilung im 5-köpfigen Team',
-      'Gewinnoptimierung durch kosteneffiziente Einkaufsstrategie',
+      'Teamkoordination und Aufgabenverteilung im Team',
+      'Kosteneffiziente Einkaufsstrategie entwickelt und umgesetzt',
     ],
   },
   {
@@ -60,8 +60,8 @@ const STUDENT_PRESETS: Project[] = [
     description: 'Eigenständiger Aufbau eines themenspezifischen Instagram-Kanals.',
     bulletPoints: [
       'Content-Planung und regelmäßige Erstellung von Beiträgen',
-      'Wachstum von 0 auf XX Follower innerhalb von X Monaten',
-      'Grundlagen in Bildbearbeitung und Social-Media-Analyse',
+      'Aufbau einer Followers-Community durch gezielte Hashtag-Strategie',
+      'Grundlagen in Bildbearbeitung und Social-Media-Analyse angewendet',
     ],
   },
 ];
@@ -77,7 +77,7 @@ const BULLET_PRESETS: Record<string, string[]> = {
   Studienprojekt: [
     'Konzeption und Umsetzung des Projekts',
     'Recherche und wissenschaftliche Auswertung',
-    'Zusammenarbeit im Team (X Personen)',
+    'Zusammenarbeit im Team',
     'Dokumentation und Abschlussbericht',
     'Präsentation vor Dozierenden / Jury',
   ],
@@ -322,6 +322,9 @@ export function ProjectsStep({
                   Was hast du konkret gemacht? – Vorschläge anklicken oder selbst eintragen:
                 </label>
               </div>
+              <p className="text-xs text-white/40 italic">
+                Die Vorschläge sind Startpunkte – ergänze eigene Aufgaben, eingesetzte Tools und konkrete Ergebnisse. Zahlen und Größenordnungen kannst du selbst hinzufügen.
+              </p>
 
               {/* Klick-Vorschläge */}
               <div className="flex flex-wrap gap-1.5">
@@ -332,10 +335,10 @@ export function ProjectsStep({
                       key={preset}
                       type="button"
                       onClick={() => toggleBulletPreset(index, preset)}
-                      className={`px-3 py-1 rounded-full text-xs border transition-all ${
+                      className={`px-3 py-1.5 rounded-full text-xs border transition-all duration-200 ${
                         selected
-                          ? 'bg-[#66c0b6] text-black border-[#66c0b6] font-semibold'
-                          : 'bg-white/5 text-white/70 border-white/20 hover:bg-white/10'
+                          ? 'bg-[#66c0b6] text-black border-[#66c0b6] font-semibold shadow-[0_0_12px_rgba(102,192,182,0.25)]'
+                          : 'bg-white/5 text-white/70 border-white/20 hover:bg-white/10 hover:border-[#66c0b6]/40'
                       }`}
                     >
                       {selected ? '✓ ' : '+ '}{preset}
@@ -353,8 +356,8 @@ export function ProjectsStep({
                       type="text"
                       value={bullet}
                       onChange={(e) => updateBullet(index, bIdx, e.target.value)}
-                      placeholder="z. B. Budgetplanung und Kostencontrolling übernommen"
-                      className="flex-1 px-3 py-2 rounded-lg bg-white/10 text-white placeholder-white/30 border border-white/20 focus:outline-none focus:border-[#66c0b6] text-sm"
+                      placeholder={'Ergänze hier deine konkrete Aufgabe – z. B. \u201eBudgetplanung übernommen, 500€ verwaltet\u201c'}
+                      className="flex-1 px-3 py-2 rounded-lg bg-white/10 text-white placeholder-white/30 border border-white/20 focus:outline-none focus:border-[#66c0b6] text-sm transition-colors"
                     />
                     <button
                       type="button"

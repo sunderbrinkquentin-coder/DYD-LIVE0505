@@ -2,6 +2,9 @@ import { useState, useRef } from 'react';
 import { WizardStepLayout } from '../WizardStepLayout';
 import { PersonalData } from '../../../types/cvBuilder';
 
+const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/;
+const PHONE_REGEX = /^\+?[\d\s\-()]{6,}$/;
+
 interface PersonalDataStepProps {
   data: Partial<PersonalData>;
   onChange: (data: PersonalData) => void;
@@ -20,33 +23,40 @@ export function PersonalDataStep({
   showValidationImmediately = false,
 }: PersonalDataStepProps) {
   const [attempted, setAttempted] = useState(showValidationImmediately);
+  const [touched, setTouched] = useState<Record<string, boolean>>({});
 
   const headlineRef = useRef<HTMLInputElement | null>(null);
   const linkedinRef = useRef<HTMLInputElement | null>(null);
 
   const missing = {
-    firstName: !data.firstName,
-    lastName: !data.lastName,
-    city: !data.city,
-    email: !data.email,
-    phone: !data.phone,
+    firstName: !data.firstName?.trim(),
+    lastName: !data.lastName?.trim(),
+    city: !data.city?.trim(),
+    email: !data.email?.trim(),
+    phone: !data.phone?.trim(),
   };
 
-  const isValid = !Object.values(missing).some(Boolean);
+  const emailInvalid = !!data.email?.trim() && !EMAIL_REGEX.test(data.email.trim());
+  const phoneInvalid = !!data.phone?.trim() && !PHONE_REGEX.test(data.phone.trim());
+
+  const isValid =
+    !Object.values(missing).some(Boolean) && !emailInvalid && !phoneInvalid;
 
   const update = (field: keyof PersonalData, value: string) => {
     onChange({ ...data, [field]: value } as PersonalData);
   };
 
+  const markTouched = (field: string) => {
+    setTouched((prev) => ({ ...prev, [field]: true }));
+  };
+
   const handleNext = () => {
-    if (!isValid) {
-      setAttempted(true);
-      return;
-    }
+    setAttempted(true);
+    setTouched({ email: true, phone: true, firstName: true, lastName: true, city: true });
+    if (!isValid) return;
     onNext();
   };
 
-  // Coach-CTA: springt/fokussiert das passende Feld
   const handleCoachCta = (field?: string) => {
     const el =
       field === 'headline' ? headlineRef.current :
@@ -60,16 +70,19 @@ export function PersonalDataStep({
 
   const fieldClass = (invalid: boolean) =>
     `w-full px-3 py-2.5 rounded-xl border-2 bg-white/5 text-white text-sm sm:text-base placeholder:text-white/40 focus:outline-none focus:bg-white/10 transition-all touch-manipulation ${
-      attempted && invalid
+      (attempted || touched.field) && invalid
         ? 'border-red-500/70 focus:border-red-400'
         : 'border-white/10 focus:border-[#66c0b6]'
     }`;
+
+  const showError = (field: string, condition: boolean) =>
+    (attempted || touched[field]) && condition;
 
   return (
     <WizardStepLayout
       title="Wie können Recruiter dich erreichen?"
       subtitle="Nur die wichtigsten Kontaktdaten – keine vollständige Adresse nötig."
-      helpText={'Tipp: Die Überschrift ist der erste Eindruck – nenne hier deine Kernkompetenz oder Wunschrolle, z. B. „Marketing Manager · B2B SaaS\u201c. Das hilft ATS-Systemen, dich schneller zuzuordnen.'}
+      helpText={'Tipp: Die Überschrift ist der erste Eindruck – nenne hier deine Kernkompetenz oder Wunschrolle, z. B. \u201eMarketing Manager · B2B SaaS\u201c. Das hilft ATS-Systemen, dich schneller zuzuordnen.'}
       avatarMessage="Recruiter möchten dich schnell kontaktieren können."
       avatarStepInfo="Datenschutz ist wichtig – vollständige Adresse ist nicht nötig, Stadt reicht aus."
       currentStepId="personalData"
@@ -79,7 +92,7 @@ export function PersonalDataStep({
       onNext={handleNext}
       onSkip={onSkip}
       isNextDisabled={!isValid}
-      validationMessage="Vorname, Nachname, Stadt, E-Mail und Telefon werden benötigt – Recruiter müssen dich kontaktieren können."
+      validationMessage="Vorname, Nachname, Stadt, E-Mail und Telefon werden benötigt – mit gültigem Format."
     >
       <div className="space-y-5">
         {/* Gruppe: Name */}
@@ -94,11 +107,15 @@ export function PersonalDataStep({
                 type="text"
                 value={data.firstName || ''}
                 onChange={(e) => update('firstName', e.target.value)}
+                onBlur={() => markTouched('firstName')}
                 placeholder="Max"
                 className={fieldClass(missing.firstName)}
               />
-              {attempted && missing.firstName && (
-                <p className="text-red-400 text-xs mt-1">Bitte Vornamen eingeben</p>
+              {showError('firstName', missing.firstName) && (
+                <p className="text-red-400 text-xs mt-1 flex items-center gap-1">
+                  <span className="inline-block w-1 h-1 rounded-full bg-red-400" />
+                  Bitte Vornamen eingeben
+                </p>
               )}
             </div>
             <div>
@@ -109,11 +126,15 @@ export function PersonalDataStep({
                 type="text"
                 value={data.lastName || ''}
                 onChange={(e) => update('lastName', e.target.value)}
+                onBlur={() => markTouched('lastName')}
                 placeholder="Mustermann"
                 className={fieldClass(missing.lastName)}
               />
-              {attempted && missing.lastName && (
-                <p className="text-red-400 text-xs mt-1">Bitte Nachnamen eingeben</p>
+              {showError('lastName', missing.lastName) && (
+                <p className="text-red-400 text-xs mt-1 flex items-center gap-1">
+                  <span className="inline-block w-1 h-1 rounded-full bg-red-400" />
+                  Bitte Nachnamen eingeben
+                </p>
               )}
             </div>
           </div>
@@ -150,11 +171,15 @@ export function PersonalDataStep({
                 type="text"
                 value={data.city || ''}
                 onChange={(e) => update('city', e.target.value)}
+                onBlur={() => markTouched('city')}
                 placeholder="Berlin"
                 className={fieldClass(missing.city)}
               />
-              {attempted && missing.city && (
-                <p className="text-red-400 text-xs mt-1">Bitte Stadt eingeben</p>
+              {showError('city', missing.city) && (
+                <p className="text-red-400 text-xs mt-1 flex items-center gap-1">
+                  <span className="inline-block w-1 h-1 rounded-full bg-red-400" />
+                  Bitte Stadt eingeben
+                </p>
               )}
             </div>
 
@@ -167,11 +192,21 @@ export function PersonalDataStep({
                   type="email"
                   value={data.email || ''}
                   onChange={(e) => update('email', e.target.value)}
+                  onBlur={() => markTouched('email')}
                   placeholder="max@example.com"
-                  className={fieldClass(missing.email)}
+                  className={fieldClass(missing.email || emailInvalid)}
                 />
-                {attempted && missing.email && (
-                  <p className="text-red-400 text-xs mt-1">Bitte E-Mail eingeben</p>
+                {showError('email', missing.email) && (
+                  <p className="text-red-400 text-xs mt-1 flex items-center gap-1">
+                    <span className="inline-block w-1 h-1 rounded-full bg-red-400" />
+                    Bitte E-Mail-Adresse eingeben
+                  </p>
+                )}
+                {showError('email', emailInvalid) && !missing.email && (
+                  <p className="text-red-400 text-xs mt-1 flex items-center gap-1">
+                    <span className="inline-block w-1 h-1 rounded-full bg-red-400" />
+                    Ungültiges E-Mail-Format – bitte prüfe die Eingabe (z. B. max@example.com)
+                  </p>
                 )}
               </div>
               <div>
@@ -182,11 +217,21 @@ export function PersonalDataStep({
                   type="tel"
                   value={data.phone || ''}
                   onChange={(e) => update('phone', e.target.value)}
+                  onBlur={() => markTouched('phone')}
                   placeholder="+49 151 12345678"
-                  className={fieldClass(missing.phone)}
+                  className={fieldClass(missing.phone || phoneInvalid)}
                 />
-                {attempted && missing.phone && (
-                  <p className="text-red-400 text-xs mt-1">Bitte Telefonnummer eingeben</p>
+                {showError('phone', missing.phone) && (
+                  <p className="text-red-400 text-xs mt-1 flex items-center gap-1">
+                    <span className="inline-block w-1 h-1 rounded-full bg-red-400" />
+                    Bitte Telefonnummer eingeben
+                  </p>
+                )}
+                {showError('phone', phoneInvalid) && !missing.phone && (
+                  <p className="text-red-400 text-xs mt-1 flex items-center gap-1">
+                    <span className="inline-block w-1 h-1 rounded-full bg-red-400" />
+                    Ungültiges Format – nur Ziffern, +, Leerzeichen und Bindestriche erlaubt
+                  </p>
                 )}
               </div>
             </div>

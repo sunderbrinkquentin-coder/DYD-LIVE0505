@@ -280,10 +280,10 @@ export function VolunteerStep({ data, onChange, onNext, onBack }: VolunteerStepP
                 <button
                   key={b}
                   onClick={() => toggleBullet(activeIndex, b)}
-                  className={`px-3 py-1.5 rounded-lg text-xs border transition-all text-left ${
+                  className={`px-3 py-1.5 rounded-lg text-xs border transition-all duration-200 text-left ${
                     (active.bulletPoints || []).includes(b)
-                      ? 'border-[#66c0b6] bg-[#66c0b6]/20 text-white'
-                      : 'border-white/10 bg-white/5 text-white/60 hover:border-white/30'
+                      ? 'border-[#66c0b6] bg-[#66c0b6]/20 text-white shadow-[0_0_12px_rgba(102,192,182,0.25)]'
+                      : 'border-white/10 bg-white/5 text-white/60 hover:border-white/30 hover:border-[#66c0b6]/40'
                   }`}
                 >
                   {b}
