@@ -1,4 +1,5 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
+import { GripVertical } from 'lucide-react';
 
 export interface EditableTextProps {
   value?: string;
@@ -205,6 +206,108 @@ export function dragProps(
     },
   };
 }
+
+/**
+ * Sichtbarer Ziehgriff für die Sektions-Umsortierung (ganze Abschnitte:
+ * Zertifikate, Sprachen, Stipendien, …).
+ *
+ * WARUM ES DIESEN GRIFF BRAUCHT — und `draggable` auf der Karte allein NICHT
+ * reicht:
+ *
+ * CVLiveEditorPage zeigt jede Karte in einer verkleinerten Vorschau. Ein Klick
+ * darauf öffnet eine vergrößerte Fokus-Ansicht zum Editieren (sonst wäre auf
+ * einer 0.5×-skalierten Karte kein Text präzise treffbar). Damit dieser Klick
+ * nicht zuerst eine Text-Markierung oder einen nativen Text-Drag im winzigen
+ * contentEditable-Feld auslöst, wird `mousedown` auf jeder Karte in der
+ * Vorschau abgefangen (`swallowMouseDown`, `e.preventDefault()`).
+ *
+ * Genau das verhindert aber AUCH den Start von HTML5-Drag: der Browser
+ * initiiert einen Drag nur, wenn das auslösende `mousedown` nicht abgefangen
+ * wurde. Mit `draggable` auf der ganzen Karte (die fast vollständig aus
+ * contentEditable-Feldern besteht) gab es dadurch faktisch keine Stelle mehr,
+ * von der aus ein Drag hätte starten können — das war der eigentliche Grund,
+ * warum sich Sektionen/Stationen nicht verschieben ließen.
+ *
+ * Der Griff ist deshalb ein eigenes, NICHT editierbares Element
+ * (`contentEditable={false}`) mit `data-drag-handle`. CVLiveEditorPage lässt
+ * `mousedown`/`click` auf `[data-drag-handle]` ausdrücklich durch
+ * (swallowMouseDown/openFocus), sodass von hier aus ein echter Browser-Drag
+ * starten kann. `draggable` bleibt zusätzlich auf der Karte selbst (via
+ * `dragProps`/`itemDragProps`) bestehen — nicht als zweiter Startpunkt
+ * (der würde durch swallowMouseDown weiterhin blockiert), sondern damit die
+ * Karte weiterhin als Drop-Ziel (`onDragOver`/`onDrop`) funktioniert.
+ */
+export const SectionDragHandle: React.FC<{
+  index: number;
+  onReorderSections?: (from: number, to: number) => void;
+  title?: string;
+}> = ({ index, onReorderSections, title = 'Ziehen zum Verschieben' }) => {
+  if (!onReorderSections) return null;
+  return (
+    <span
+      data-drag-handle
+      contentEditable={false}
+      suppressContentEditableWarning
+      draggable
+      className="pdf-hidden"
+      title={title}
+      style={dragHandleStyle}
+      onDragStart={(e) => {
+        e.dataTransfer.setData('text/plain', String(index));
+        e.dataTransfer.effectAllowed = 'move';
+      }}
+    >
+      <GripVertical size={14} />
+    </span>
+  );
+};
+
+/** Ziehgriff für ein einzelnes Item INNERHALB einer Sektion (z. B. eine
+ *  Berufsstation über eine andere ziehen). Gleiche Begründung wie
+ *  `SectionDragHandle`, eigene dataTransfer-Keys damit beide Dragging-Arten
+ *  nicht kollidieren (siehe `itemDragProps`). */
+export const ItemDragHandle: React.FC<{
+  sectionIndex: number;
+  itemIndex: number;
+  onReorderSectionItem?: (sectionIndex: number, from: number, to: number) => void;
+  title?: string;
+}> = ({ sectionIndex, itemIndex, onReorderSectionItem, title = 'Ziehen zum Verschieben' }) => {
+  if (!onReorderSectionItem) return null;
+  return (
+    <span
+      data-drag-handle
+      contentEditable={false}
+      suppressContentEditableWarning
+      draggable
+      className="pdf-hidden"
+      title={title}
+      style={dragHandleStyle}
+      onDragStart={(e) => {
+        e.dataTransfer.setData('application/x-item-index', String(itemIndex));
+        e.dataTransfer.setData('application/x-section-index', String(sectionIndex));
+        e.dataTransfer.effectAllowed = 'move';
+      }}
+    >
+      <GripVertical size={14} />
+    </span>
+  );
+};
+
+const dragHandleStyle: React.CSSProperties = {
+  position: 'absolute',
+  top: '2px',
+  left: '-2px',
+  width: '16px',
+  height: '16px',
+  display: 'flex',
+  alignItems: 'center',
+  justifyContent: 'center',
+  cursor: 'grab',
+  color: '#94a3b8',
+  background: 'rgba(255,255,255,0.9)',
+  borderRadius: '3px',
+  zIndex: 10,
+};
 
 /** Drag-Handler zum Verschieben einzelner Items INNERHALB einer Sektion
  *  (z. B. eine Berufsstation über eine andere ziehen). Nutzt eigene
