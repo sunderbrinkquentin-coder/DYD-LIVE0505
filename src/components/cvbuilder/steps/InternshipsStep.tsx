@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { ArrowLeft, ArrowRight, Plus, Trash2, Sparkles } from 'lucide-react';
+import { ArrowLeft, ArrowRight, Plus, Trash2, Sparkles, AlertCircle } from 'lucide-react';
 import { SmartCoach, SmartCoachBar } from '../SmartCoach';
 import { WorkExperience } from '../../../types/cvBuilder';
 
@@ -237,12 +237,21 @@ export function InternshipsStep({ data, onChange, onNext, onBack }: InternshipsS
     setActiveIndex(Math.max(0, index - 1));
   };
 
+  const isEndDateBeforeStart = (() => {
+    if (active.current) return false;
+    if (!active.startYear || !active.endYear) return false;
+    const startVal = parseInt(active.startYear, 10) * 100 + parseInt(active.startMonth || '0', 10);
+    const endVal = parseInt(active.endYear, 10) * 100 + parseInt(active.endMonth || '0', 10);
+    return endVal < startVal;
+  })();
+
   const isValid =
     active.jobTitle?.trim() &&
     active.company?.trim() &&
     active.startMonth &&
     active.startYear &&
-    (active.current || (active.endMonth && active.endYear));
+    (active.current || (active.endMonth && active.endYear)) &&
+    !isEndDateBeforeStart;
 
   const presets = TASK_PRESETS[active.jobTitle] || DEFAULT_TASKS;
 
@@ -360,15 +369,21 @@ export function InternshipsStep({ data, onChange, onNext, onBack }: InternshipsS
                   </label>
                 </div>
                 <div className="grid grid-cols-2 gap-2">
-                  <select value={active.current ? '' : active.endMonth} onChange={(e) => update(activeIndex, 'endMonth', e.target.value)} disabled={!!active.current} className={`${selectBase} disabled:opacity-40`}>
+                  <select value={active.current ? '' : active.endMonth} onChange={(e) => update(activeIndex, 'endMonth', e.target.value)} disabled={!!active.current} className={`${selectBase} ${isEndDateBeforeStart ? '!border-red-500/70' : ''} disabled:opacity-40`}>
                     <option value="">Monat</option>
                     {MONTHS.map((m) => <option key={m} value={m}>{m}</option>)}
                   </select>
-                  <select value={active.current ? '' : active.endYear} onChange={(e) => update(activeIndex, 'endYear', e.target.value)} disabled={!!active.current} className={`${selectBase} disabled:opacity-40`}>
+                  <select value={active.current ? '' : active.endYear} onChange={(e) => update(activeIndex, 'endYear', e.target.value)} disabled={!!active.current} className={`${selectBase} ${isEndDateBeforeStart ? '!border-red-500/70' : ''} disabled:opacity-40`}>
                     <option value="">Jahr</option>
                     {YEARS.map((y) => <option key={y} value={y}>{y}</option>)}
                   </select>
                 </div>
+                {isEndDateBeforeStart && (
+                  <p className="text-red-400 text-xs mt-1.5 flex items-center gap-1.5">
+                    <AlertCircle size={12} className="shrink-0" />
+                    Das Enddatum liegt vor dem Startdatum – bitte korrigieren.
+                  </p>
+                )}
               </div>
             </div>
           </div>

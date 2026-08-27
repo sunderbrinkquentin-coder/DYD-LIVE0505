@@ -339,12 +339,21 @@ export function WorkExperienceStep({
 
   if (!activeExp) return null;
 
+  const isEndDateBeforeStart = (() => {
+    if (activeExp.current) return false;
+    if (!activeExp.startYear || !activeExp.endYear) return false;
+    const startVal = parseInt(activeExp.startYear, 10) * 100 + parseInt(activeExp.startMonth || '0', 10);
+    const endVal = parseInt(activeExp.endYear, 10) * 100 + parseInt(activeExp.endMonth || '0', 10);
+    return endVal < startVal;
+  })();
+
   const isValidExperience =
     activeExp.jobTitle?.trim() &&
     activeExp.company?.trim() &&
     activeExp.startMonth &&
     activeExp.startYear &&
-    (activeExp.current || (activeExp.endMonth && activeExp.endYear));
+    (activeExp.current || (activeExp.endMonth && activeExp.endYear)) &&
+    !isEndDateBeforeStart;
 
   const selectBase =
     'w-full px-3 py-2 rounded-lg bg-slate-900 border border-white/40 text-white text-sm md:text-base focus:outline-none focus:border-[#66c0b6]';
@@ -618,15 +627,21 @@ export function WorkExperienceStep({
                           </label>
                         </div>
                         <div className="grid grid-cols-2 gap-2">
-                          <select value={activeExp.current ? '' : activeExp.endMonth || ''} onChange={(e) => updateExperience(activeIndex, 'endMonth', e.target.value)} disabled={!!activeExp.current} className={`${!activeExp.current ? reqSelect(activeExp.endMonth) : selectBase} disabled:opacity-40`}>
+                          <select value={activeExp.current ? '' : activeExp.endMonth || ''} onChange={(e) => updateExperience(activeIndex, 'endMonth', e.target.value)} disabled={!!activeExp.current} className={`${!activeExp.current ? reqSelect(activeExp.endMonth) : selectBase} ${isEndDateBeforeStart ? '!border-red-500/70' : ''} disabled:opacity-40`}>
                             <option value="">Monat</option>
                             {MONTHS.map((m) => <option key={m} value={m}>{m}</option>)}
                           </select>
-                          <select value={activeExp.current ? '' : activeExp.endYear || ''} onChange={(e) => updateExperience(activeIndex, 'endYear', e.target.value)} disabled={!!activeExp.current} className={`${!activeExp.current ? reqSelect(activeExp.endYear) : selectBase} disabled:opacity-40`}>
+                          <select value={activeExp.current ? '' : activeExp.endYear || ''} onChange={(e) => updateExperience(activeIndex, 'endYear', e.target.value)} disabled={!!activeExp.current} className={`${!activeExp.current ? reqSelect(activeExp.endYear) : selectBase} ${isEndDateBeforeStart ? '!border-red-500/70' : ''} disabled:opacity-40`}>
                             <option value="">Jahr *</option>
                             {YEARS.map((y) => <option key={y} value={y}>{y}</option>)}
                           </select>
                         </div>
+                        {isEndDateBeforeStart && (
+                          <p className="text-red-400 text-xs mt-1.5 flex items-center gap-1.5">
+                            <AlertCircle size={12} className="shrink-0" />
+                            Das Enddatum liegt vor dem Startdatum – bitte korrigieren.
+                          </p>
+                        )}
                       </div>
                     </div>
                   </div>
@@ -831,6 +846,7 @@ export function WorkExperienceStep({
                 {!activeExp.company?.trim() && <li>• Unternehmen</li>}
                 {!activeExp.startYear && <li>• Startjahr</li>}
                 {!activeExp.current && !activeExp.endYear && <li>• Endjahr (oder „Aktuell hier tätig" aktivieren)</li>}
+                {isEndDateBeforeStart && <li>• Enddatum liegt vor dem Startdatum</li>}
               </ul>
               {onSkip && (
                 <button
