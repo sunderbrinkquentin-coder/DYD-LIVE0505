@@ -60,9 +60,22 @@ const EditableText: React.FC<{
   multiline?: boolean;
   wrap?: boolean;
   style?: React.CSSProperties;
-}> = ({ value, onChange, className = '', placeholder = '', multiline = false, wrap = false, style }) => {
+  /**
+   * Element-Tag, Default `div`.
+   *
+   * FIX (AddFieldButton hängt weit rechts, losgelöst vom Text): jedes
+   * EditableText hier bekam bisher zwingend die Klasse `w-full`, auch wenn
+   * direkt daneben (im selben Flex-Container) ein "+"-Button folgen sollte.
+   * `w-full` auf einem Flex-Item erzwingt die volle Zeilenbreite als
+   * Flex-Basis — der Button landet dadurch ganz rechts im Container statt
+   * direkt hinterm Text. `as="span"` (wie in EditableText.tsx/Classic bereits
+   * gelöst) lässt die Breite dem Inhalt folgen, der Button rutscht direkt
+   * neben den Text.
+   */
+  as?: 'div' | 'span';
+}> = ({ value, onChange, className = '', placeholder = '', multiline = false, wrap = false, style, as = 'div' }) => {
   const v = value ?? '';
-  const ref = useRef<HTMLDivElement>(null);
+  const ref = useRef<HTMLElement>(null);
   const isComposing = useRef(false);
   const isFocused = useRef(false);
   const lastValue = useRef(v);
@@ -94,42 +107,45 @@ const EditableText: React.FC<{
     setRenderKey(ref.current?.textContent ?? v);
   }, [handleInput, v]);
 
-  const handleKeyDown = useCallback((e: React.KeyboardEvent<HTMLDivElement>) => {
+  const handleKeyDown = useCallback((e: React.KeyboardEvent<HTMLElement>) => {
     if (!multiline && e.key === 'Enter') {
       e.preventDefault();
-      e.currentTarget.blur();
+      (e.currentTarget as HTMLElement).blur();
     }
   }, [multiline]);
 
   const flows = multiline || wrap;
 
-  return (
-    <div
-      key={renderKey}
-      ref={ref}
-      contentEditable
-      suppressContentEditableWarning
-      onInput={handleInput}
-      onFocus={handleFocus}
-      onBlur={handleBlur}
-      onKeyDown={handleKeyDown}
-      onCompositionStart={() => { isComposing.current = true; }}
-      onCompositionEnd={() => { isComposing.current = false; handleInput(); }}
-      data-placeholder={placeholder}
-      className={[
-        'outline-none focus:ring-0 cursor-text w-full',
+  return React.createElement(
+    as,
+    {
+      key: renderKey,
+      ref,
+      contentEditable: true,
+      suppressContentEditableWarning: true,
+      onInput: handleInput,
+      onFocus: handleFocus,
+      onBlur: handleBlur,
+      onKeyDown: handleKeyDown,
+      onCompositionStart: () => { isComposing.current = true; },
+      onCompositionEnd: () => { isComposing.current = false; handleInput(); },
+      'data-placeholder': placeholder,
+      className: [
+        'outline-none focus:ring-0 cursor-text',
+        as === 'div' ? 'w-full' : '',
         'empty:before:content-[attr(data-placeholder)] empty:before:text-slate-300',
         className,
-      ].join(' ')}
-      style={{
+      ].filter(Boolean).join(' '),
+      style: {
         whiteSpace: multiline ? 'pre-wrap' : wrap ? 'normal' : 'nowrap',
         wordBreak: flows ? 'break-word' : 'normal',
         overflow: flows ? 'visible' : 'hidden',
         textOverflow: flows ? 'unset' : 'ellipsis',
         ...(flows ? { overflowWrap: 'break-word' as const } : {}),
         ...style,
-      }}
-    >{renderKey}</div>
+      },
+    },
+    renderKey
   );
 };
 
@@ -220,6 +236,15 @@ export const ProfessionalCVTemplate: React.FC<ProfessionalCVTemplateProps> = ({
   // ein kleiner "+"-Button (oben in der Kopfzeile der Station) es einblendet.
   const [revealed, setRevealed] = useState<Set<string>>(new Set());
   const reveal = (key: string) => setRevealed((prev) => new Set(prev).add(key));
+  // FIX (Quentin: "+" liegt über der Schrift, man kann dann manchmal nicht
+  // reinschreiben): dieselbe Ursache wie im Classic-Template (siehe dortiger
+  // ausführlicher Kommentar). `.pdf-hidden` erzwingt global position:absolute
+  // + margin:0 !important — ohne den `data-inline-control`-Wrapper an jeder
+  // Einsatzstelle (siehe unten) fällt der Button auf eine kaum vorhersagbare
+  // "statische Position" zurück und landet fast exakt auf dem Text davor statt
+  // sichtbar danach, inklusive dem verlorenen marginLeft. Zusätzlich jetzt
+  // deutlich kontrastreicher (vorher: fast unsichtbarer gestrichelter Rahmen
+  // in Grau), damit er auch bei Hover sofort auffindbar ist.
   const AddFieldButton: React.FC<{ onClick: () => void; label: string }> = ({ onClick, label }) => (
     <button
       type="button"
@@ -230,20 +255,20 @@ export const ProfessionalCVTemplate: React.FC<ProfessionalCVTemplateProps> = ({
         display: 'inline-flex',
         alignItems: 'center',
         justifyContent: 'center',
-        width: '14px',
-        height: '14px',
-        marginLeft: '6px',
+        width: '16px',
+        height: '16px',
         verticalAlign: 'middle',
-        border: '1px dashed #94a3b8',
+        border: '1px solid #30E3CA',
         borderRadius: '3px',
-        background: 'transparent',
-        color: '#94a3b8',
+        background: '#ffffff',
+        color: '#0f172a',
         cursor: 'pointer',
         padding: 0,
         lineHeight: 1,
+        boxShadow: '0 1px 2px rgba(0,0,0,0.15)',
       }}
     >
-      <Plus size={10} />
+      <Plus size={11} />
     </button>
   );
 
@@ -371,6 +396,7 @@ export const ProfessionalCVTemplate: React.FC<ProfessionalCVTemplateProps> = ({
                         />
                         <div className="flex items-center">
                           <EditableText
+                            as="span"
                             wrap
                             className="mt-0.5 text-[10px] text-slate-500"
                             value={exp.company || ''}
@@ -379,11 +405,16 @@ export const ProfessionalCVTemplate: React.FC<ProfessionalCVTemplateProps> = ({
                             }
                             placeholder="Unternehmen"
                           />
-                          {!(exp.location || exp.ort) && !revealed.has(`exp-${idx}-location`) && (
-                            <AddFieldButton label="Ort hinzufügen" onClick={() => reveal(`exp-${idx}-location`)} />
-                          )}
-                          {bullets.length === 0 && !exp.description && !revealed.has(`exp-${idx}-description`) && (
-                            <AddFieldButton label="Kurzbeschreibung hinzufügen" onClick={() => reveal(`exp-${idx}-description`)} />
+                          {(( !(exp.location || exp.ort) && !revealed.has(`exp-${idx}-location`)) ||
+                            (bullets.length === 0 && !exp.description && !revealed.has(`exp-${idx}-description`))) && (
+                            <div data-inline-control className="pdf-hidden flex items-center gap-0.5">
+                              {!(exp.location || exp.ort) && !revealed.has(`exp-${idx}-location`) && (
+                                <AddFieldButton label="Ort hinzufügen" onClick={() => reveal(`exp-${idx}-location`)} />
+                              )}
+                              {bullets.length === 0 && !exp.description && !revealed.has(`exp-${idx}-description`) && (
+                                <AddFieldButton label="Kurzbeschreibung hinzufügen" onClick={() => reveal(`exp-${idx}-description`)} />
+                              )}
+                            </div>
                           )}
                         </div>
                         {(exp.location || exp.ort || revealed.has(`exp-${idx}-location`)) && (
@@ -524,6 +555,7 @@ export const ProfessionalCVTemplate: React.FC<ProfessionalCVTemplateProps> = ({
                       <div className="flex-1">
                         <div className="flex items-center">
                           <EditableText
+                            as="span"
                             wrap
                             className="text-[11px] font-bold text-slate-900"
                             value={proj.title || proj.name || ''}
@@ -533,7 +565,9 @@ export const ProfessionalCVTemplate: React.FC<ProfessionalCVTemplateProps> = ({
                             placeholder="Projekt"
                           />
                           {!proj.role && !revealed.has(`proj-${idx}-role`) && (
-                            <AddFieldButton label="Rolle hinzufügen" onClick={() => reveal(`proj-${idx}-role`)} />
+                            <div data-inline-control className="pdf-hidden flex items-center gap-0.5">
+                              <AddFieldButton label="Rolle hinzufügen" onClick={() => reveal(`proj-${idx}-role`)} />
+                            </div>
                           )}
                         </div>
                         {(proj.role || revealed.has(`proj-${idx}-role`)) && (
@@ -656,6 +690,7 @@ export const ProfessionalCVTemplate: React.FC<ProfessionalCVTemplateProps> = ({
                       />
                       <div className="flex items-center">
                         <EditableText
+                          as="span"
                           wrap
                           className="mt-0.5 text-[10px] text-slate-500"
                           value={edu.institution || ''}
@@ -664,11 +699,16 @@ export const ProfessionalCVTemplate: React.FC<ProfessionalCVTemplateProps> = ({
                           }
                           placeholder="Institution"
                         />
-                        {!edu.location && !revealed.has(`edu-${idx}-location`) && (
-                          <AddFieldButton label="Ort hinzufügen" onClick={() => reveal(`edu-${idx}-location`)} />
-                        )}
-                        {!edu.description && !(Array.isArray(edu.focus) ? edu.focus.length : edu.focus) && !revealed.has(`edu-${idx}-description`) && (
-                          <AddFieldButton label="Schwerpunkte hinzufügen" onClick={() => reveal(`edu-${idx}-description`)} />
+                        {((!edu.location && !revealed.has(`edu-${idx}-location`)) ||
+                          (!edu.description && !(Array.isArray(edu.focus) ? edu.focus.length : edu.focus) && !revealed.has(`edu-${idx}-description`))) && (
+                          <div data-inline-control className="pdf-hidden flex items-center gap-0.5">
+                            {!edu.location && !revealed.has(`edu-${idx}-location`) && (
+                              <AddFieldButton label="Ort hinzufügen" onClick={() => reveal(`edu-${idx}-location`)} />
+                            )}
+                            {!edu.description && !(Array.isArray(edu.focus) ? edu.focus.length : edu.focus) && !revealed.has(`edu-${idx}-description`) && (
+                              <AddFieldButton label="Schwerpunkte hinzufügen" onClick={() => reveal(`edu-${idx}-description`)} />
+                            )}
+                          </div>
                         )}
                       </div>
                       {(edu.location || revealed.has(`edu-${idx}-location`)) && (
@@ -991,7 +1031,7 @@ export const ProfessionalCVTemplate: React.FC<ProfessionalCVTemplateProps> = ({
                         </div>
                       )}
                       {(showLocationBtn || showRangeBtn) && (
-                        <div className="flex items-center gap-1 mt-0.5">
+                        <div data-inline-control className="flex items-center gap-1 mt-0.5">
                           {showLocationBtn && (
                             <AddFieldButton label="Ort hinzufügen" onClick={() => reveal(`${itemKey}-location`)} />
                           )}
@@ -1080,13 +1120,16 @@ export const ProfessionalCVTemplate: React.FC<ProfessionalCVTemplateProps> = ({
           />
           <div className="flex items-center gap-1 mt-1">
             <EditableText
+              as="span"
               className="text-[12px] font-bold text-slate-200"
               value={personalInfo.title || ''}
               onChange={(val) => onUpdatePersonalInfo('title', val)}
               placeholder="Berufsbezeichnung"
             />
             {!personalInfo.location?.trim() && !revealed.has('header-location') && (
-              <AddFieldButton label="Ort hinzufügen" onClick={() => reveal('header-location')} />
+              <div data-inline-control className="pdf-hidden flex items-center">
+                <AddFieldButton label="Ort hinzufügen" onClick={() => reveal('header-location')} />
+              </div>
             )}
           </div>
           {(!personalInfo.location?.trim() && revealed.has('header-location')) && (
