@@ -729,6 +729,14 @@ const cloneRef = useRef<HTMLDivElement | null>(null);
         };
       };
 
+      // Für Bug "Sprachen sollen immer oben stehen": nur bei der ERSTEN
+      // Konstruktion aus Rohdaten (kein gespeichertes `sections`-Array)
+      // an den Anfang schieben. Ist bereits eine Reihenfolge gespeichert,
+      // kann der Nutzer Sprachen per Drag & Drop bewusst verschoben haben —
+      // das würde ein Render-Zeit-Sort sonst bei jedem Laden rückgängig
+      // machen.
+      const isFreshSectionConstruction = !(Array.isArray(editorPayload.sections) && editorPayload.sections.length > 0);
+
       if (Array.isArray(editorPayload.sections) && editorPayload.sections.length > 0) {
         sections = (editorPayload.sections as EditorSection[])
           .map(normalizeSkillSection)
@@ -866,8 +874,13 @@ const cloneRef = useRef<HTMLDivElement | null>(null);
             id: index,
             title: vol.role || vol.title || '',
             company: vol.organization || vol.company || '',
-            date_from: formatDate(vol.date_from || ''),
-            date_to: formatDate(vol.date_to || ''),
+            // FIX: VolunteerWork liefert startDate/endDate (siehe
+            // cvBuilder.ts), nicht date_from/date_to — vorher wurde das
+            // Enddatum (und bei manuell erfassten Daten auch das
+            // Startdatum) hier stillschweigend verworfen.
+            date_from: formatDate(vol.date_from || vol.startDate || ''),
+            date_to: vol.current ? 'Heute' : formatDate(vol.date_to || vol.endDate || ''),
+            current: !!vol.current,
             description: vol.description || '',
             bulletPoints: vol.bulletPoints || [],
           })).filter(i => i.title || i.company);
@@ -993,6 +1006,16 @@ const cloneRef = useRef<HTMLDivElement | null>(null);
           }
         }
         sections = merged;
+      }
+
+      // Sprachen sollen immer oben in ihrer Spalte stehen — aber nur beim
+      // ersten Aufbau der Sektionen (siehe isFreshSectionConstruction oben).
+      if (isFreshSectionConstruction) {
+        const langIdx = sections.findIndex((s) => s.type === 'languages');
+        if (langIdx > 0) {
+          const [langSection] = sections.splice(langIdx, 1);
+          sections.unshift(langSection);
+        }
       }
 
       const projectsSection = sections.find((s) => s.type === 'projects');
