@@ -268,16 +268,22 @@ export const ClassicCVTemplate: React.FC<CVTemplateProps> = ({
                     placeholder="Position / Rolle"
                     wrap
                   />
-                  {(!(item.location || item.ort) && !revealed.has(`exp-${idx}-location`)) || (!item.description && !revealed.has(`exp-${idx}-description`)) ? (
+                  {/* FIX (Regression: "Context-Satz zum Arbeitgeber" doppelt):
+                      es gab hier zwischenzeitlich zusätzlich einen eigenen
+                      "Kurzbeschreibung hinzufügen"-Button + einen eigenen
+                      description-Absatz. Das kollidierte mit `getBullets()`
+                      oben, die `description` bereits automatisch als
+                      Bullet-Text verwendet, sobald `bulletPoints` leer ist
+                      (bewusste Regel, siehe Kommentar dort). Ergebnis: derselbe
+                      Satz erschien zweimal — einmal als eigener Absatz, einmal
+                      als Bullet. Deshalb nur noch der Ort-Button hier; eine
+                      Kurzbeschreibung läuft ausschließlich über die Bulletliste
+                      unten (genau wie bei Minimal/Professional/Creative). */}
+                  {!(item.location || item.ort) && !revealed.has(`exp-${idx}-location`) && (
                     <div className="pdf-hidden flex items-center gap-0.5">
-                      {!(item.location || item.ort) && !revealed.has(`exp-${idx}-location`) && (
-                        <AddFieldButton label="Ort hinzufügen" onClick={() => reveal(`exp-${idx}-location`)} />
-                      )}
-                      {!item.description && !revealed.has(`exp-${idx}-description`) && (
-                        <AddFieldButton label="Kurzbeschreibung hinzufügen" onClick={() => reveal(`exp-${idx}-description`)} />
-                      )}
+                      <AddFieldButton label="Ort hinzufügen" onClick={() => reveal(`exp-${idx}-location`)} />
                     </div>
-                  ) : null}
+                  )}
                 </div>
                 {renderDateRange(experienceIndex, idx, item)}
               </div>
@@ -299,17 +305,6 @@ export const ClassicCVTemplate: React.FC<CVTemplateProps> = ({
                   className="leading-snug mt-0.5"
                   style={{ fontSize: '9.5px', color: t.faint }}
                   placeholder="Ort"
-                />
-              )}
-
-              {(item.description || revealed.has(`exp-${idx}-description`)) && (
-                <EditableText
-                  value={(item.description || '').replace(/^[-•*]\s*/, '')}
-                  onChange={(val) => onUpdateSectionItem(experienceIndex, idx, 'description', val)}
-                  className="leading-snug mt-1"
-                  style={{ fontSize: '9.5px', color: t.muted }}
-                  multiline
-                  placeholder="Kurzbeschreibung"
                 />
               )}
 
