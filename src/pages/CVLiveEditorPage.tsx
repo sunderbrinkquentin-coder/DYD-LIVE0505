@@ -343,7 +343,19 @@ const cloneRef = useRef<HTMLDivElement | null>(null);
     // Griff die Fokus-Ansicht auf, statt dass der native Drag greift bzw.
     // einfach nichts passiert. Siehe SectionDragHandle/ItemDragHandle in
     // EditableText.tsx für die Gegenseite (warum es den Griff überhaupt gibt).
-    if ((e.target as HTMLElement).closest('[data-drag-handle]')) return;
+    //
+    // FIX (Quentin: "Ort hinzufügen" & Co. reagieren nicht): dieselbe
+    // Blockade traf JEDEN Klick auf einen "+"/Löschen-Button innerhalb einer
+    // Karte (AddFieldButton, "+ Bullet", "Station löschen", Chip-"✕", …) —
+    // die hatten nie `data-drag-handle`, waren aber genauso innerhalb einer
+    // `BOX_SELECTOR`-Box. Der Klick wurde hier abgefangen (`stopPropagation`)
+    // und öffnete stattdessen nur die Fokus-Zoom-Ansicht der Karte, BEVOR der
+    // Button-eigene onClick je erreicht wurde — der Button sah aus, als würde
+    // er nichts tun. Alle diese Controls tragen bereits `.pdf-hidden` (rein
+    // fürs Editor-UI, nie im PDF) — daher reicht es, diese Klasse hier
+    // ebenfalls auszunehmen, statt für jeden Button einzeln `data-drag-handle`
+    // zu missbrauchen.
+    if ((e.target as HTMLElement).closest('[data-drag-handle], .pdf-hidden')) return;
     const copyRoot = e.currentTarget as HTMLElement;
     const box = (e.target as HTMLElement).closest(BOX_SELECTOR) as HTMLElement | null;
     if (!box || !copyRoot.contains(box)) return;
@@ -366,7 +378,8 @@ const cloneRef = useRef<HTMLDivElement | null>(null);
     // `draggable` auf der Karte nicht verschieben ließen: jedes mousedown in
     // der Vorschau wurde hier abgefangen, bevor der Browser überhaupt prüfen
     // konnte, ob ein Drag beginnen soll.
-    if ((e.target as HTMLElement).closest('[data-drag-handle]')) return;
+    // Gleiche Ausnahme wie in `openFocus` — siehe dortiger Kommentar.
+    if ((e.target as HTMLElement).closest('[data-drag-handle], .pdf-hidden')) return;
     if ((e.target as HTMLElement).closest(BOX_SELECTOR)) e.preventDefault();
   };
 
