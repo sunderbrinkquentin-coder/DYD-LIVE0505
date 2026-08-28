@@ -105,6 +105,12 @@ export function DashboardPage() {
   const [paywallFromCreateCv, setPaywallFromCreateCv] = useState(false);
   const [showCreateCVChoice, setShowCreateCVChoice] = useState(false);
   const [showWizardOverview, setShowWizardOverview] = useState(false);
+  // Unterscheidet, warum WizardCVOverview geöffnet wurde: 'create' ist der
+  // bestehende Weg über "Neuen CV" (mündet in Bezahl-/Job-Targeting-Flow),
+  // 'profile' ist "Dein Profil" — reines Ansehen/Aktualisieren der beim
+  // ersten Wizard-Durchlauf erfassten Basisdaten, ohne Credits/Weiterleitung.
+  const [wizardOverviewMode, setWizardOverviewMode] = useState<'create' | 'profile'>('create');
+  const [profileSavedToast, setProfileSavedToast] = useState(false);
   const [showOptimizeTip, setShowOptimizeTip] = useState(false);
   const [showAccountSettings, setShowAccountSettings] = useState(false);
   const [highlightedCvId, setHighlightedCvId] = useState<string | null>(null);
@@ -641,6 +647,7 @@ export function DashboardPage() {
     }
 
     const richestCv = pickRichestCv(userCVs);
+    setWizardOverviewMode('create');
 
     if (richestCv) {
       const mappedData = await fetchFreshCvData(richestCv.id, richestCv.cv_data);
@@ -652,6 +659,26 @@ export function DashboardPage() {
       setExistingWizardCvId(null);
       setShowWizardOverview(true);
     }
+  };
+
+  // "Dein Profil" — dieselbe Übersicht/Bearbeitung wie beim Erstellen eines
+  // neuen CVs, aber OHNE Credits oder Weiterleitung zu Job-Targeting: reines
+  // Ansehen/Aktualisieren der beim ersten Wizard-Durchlauf erfassten
+  // Basisdaten. Immer erreichbar, auch ohne vorhandene Daten (dann startet
+  // die Übersicht leer, genau wie bei handleCreateCV ohne bestehenden CV).
+  const handleOpenProfile = async () => {
+    const richestCv = pickRichestCv(userCVs);
+    setWizardOverviewMode('profile');
+
+    if (richestCv) {
+      const mappedData = await fetchFreshCvData(richestCv.id, richestCv.cv_data);
+      setExistingCvDataForQuick(mappedData);
+      setExistingWizardCvId(richestCv.id ?? null);
+    } else {
+      setExistingCvDataForQuick(null);
+      setExistingWizardCvId(null);
+    }
+    setShowWizardOverview(true);
   };
 
 const handleWizardOverviewContinue = async (updatedData: any) => {
@@ -671,6 +698,14 @@ const handleWizardOverviewContinue = async (updatedData: any) => {
       } catch (e) {
         console.error('[Dashboard] Zurückschreiben der CV-Daten fehlgeschlagen:', e);
       }
+    }
+
+    // "Dein Profil" endet hier — kein Credit-Check, keine Weiterleitung zum
+    // Job-Targeting. Der Nutzer wollte nur seine Basisdaten aktualisieren.
+    if (wizardOverviewMode === 'profile') {
+      setProfileSavedToast(true);
+      setTimeout(() => setProfileSavedToast(false), 4000);
+      return;
     }
 
     if (userTokens <= 0) {
@@ -961,6 +996,38 @@ const handleGenerateCompetencyProfile = async (recipientName: string) => {
                 <div className="flex items-center gap-2 px-6 py-3 rounded-xl text-black font-bold text-sm shadow-lg group-hover:scale-105 transition-all" style={{ background: 'linear-gradient(135deg, #66c0b6, #30E3CA)' }}>
                   <Target size={18} />
                   {learningPaths.length > 0 ? 'Neue Analyse' : 'Jetzt starten'}
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* ══════════════════════════════════════════════════════════════════
+              Dein Profil — jederzeit erreichbarer Zugang zu den Basisdaten aus
+              dem ersten Wizard-Durchlauf. Öffnet dieselbe Übersicht wie "Neuen
+              CV", aber ohne Credits/Weiterleitung — reines Ansehen/Aktualisieren.
+              ══════════════════════════════════════════════════════════════════ */}
+          <div
+            onClick={handleOpenProfile}
+            className="relative overflow-hidden rounded-2xl cursor-pointer group transition-all duration-300 hover:scale-[1.005]"
+            style={{
+              background: 'linear-gradient(135deg, #14141c 0%, #191922 50%, #121218 100%)',
+              border: '1px solid rgba(255,255,255,0.1)',
+            }}
+          >
+            <div className="relative flex flex-col sm:flex-row items-center gap-5 px-6 py-5">
+              <div className="flex-shrink-0 w-14 h-14 rounded-2xl flex items-center justify-center bg-white/8 border border-white/10">
+                <Edit2 size={24} className="text-white/70" />
+              </div>
+              <div className="flex-1 text-center sm:text-left">
+                <span className="text-lg font-bold text-white">Dein Profil – hat sich bei dir was verändert?</span>
+                <p className="text-sm text-white/55 mt-1 max-w-xl">
+                  Überprüfe und aktualisiere die Daten aus deinem letzten Wizard-Durchlauf — jederzeit editierbar.
+                </p>
+              </div>
+              <div className="flex-shrink-0">
+                <div className="flex items-center gap-2 px-5 py-2.5 rounded-xl bg-white/8 border border-white/15 text-white font-semibold text-sm group-hover:bg-white/15 transition-all">
+                  Profil ansehen
+                  <ArrowRight size={16} />
                 </div>
               </div>
             </div>
@@ -1718,7 +1785,15 @@ const certReady = learningPaths.filter(
           cvId={existingWizardCvId}
           onClose={() => setShowWizardOverview(false)}
           onContinue={handleWizardOverviewContinue}
+          mode={wizardOverviewMode}
         />
+      )}
+
+      {profileSavedToast && (
+        <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-[60] px-5 py-3 rounded-xl bg-[#111] border border-[#66c0b6]/40 shadow-lg flex items-center gap-2 text-sm text-white">
+          <CheckCircle size={16} className="text-[#66c0b6]" />
+          Dein Profil wurde aktualisiert.
+        </div>
       )}
 
       <CreateCVChoiceModal
