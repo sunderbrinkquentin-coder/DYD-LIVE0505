@@ -197,7 +197,7 @@ export const MinimalCVTemplate: React.FC<CVTemplateProps> = ({
                     {!(exp.location || exp.ort) && !revealed.has(`exp-${idx}-location`) && (
                       <AddFieldButton label="Ort hinzufügen" onClick={() => reveal(`exp-${idx}-location`)} />
                     )}
-                    {!exp.description && !revealed.has(`exp-${idx}-description`) && (
+                    {bullets.length === 0 && !exp.description && !revealed.has(`exp-${idx}-description`) && (
                       <AddFieldButton label="Kurzbeschreibung hinzufügen" onClick={() => reveal(`exp-${idx}-description`)} />
                     )}
                   </div>
@@ -214,7 +214,14 @@ export const MinimalCVTemplate: React.FC<CVTemplateProps> = ({
                 {renderDates(sectionIndex, idx, exp)}
               </div>
 
-              {(exp.description || revealed.has(`exp-${idx}-description`)) && (
+              {/* description und bullets NIE gleichzeitig — getBullets()
+                  leitet Bullets AUS description ab, wenn bulletPoints leer
+                  ist; description zusätzlich als Fließtext zu zeigen
+                  verdoppelt den Inhalt (Satz + dieselben Zeilen nochmal als
+                  Bullets darunter). War der gemeldete "Kontext-Satz vor den
+                  Bullets" — sein description-Feld kommt real befüllt aus
+                  der Make/Supabase-Anbindung, ist also nie leer. */}
+              {bullets.length === 0 && (exp.description || revealed.has(`exp-${idx}-description`)) && (
                 <EditableText
                   multiline
                   className="mt-1.5 leading-snug"
