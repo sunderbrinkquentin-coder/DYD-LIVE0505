@@ -806,7 +806,7 @@ export const ModernCVTemplate: React.FC<CVTemplateProps> = ({
         // Verschieben nach dem ersten leeren Eintrag das FALSCHE Item traf.
         const entries = items
           .map((it: any, originalIdx: number) => ({ it, originalIdx }))
-          .filter(({ it }) => (it?.name || it?.title || it?.label || it?.degree || '').toString().trim());
+          .filter(({ it }) => (it?.name || it?.title || it?.label || it?.degree || it?.role || '').toString().trim());
         if (entries.length === 0) return null;
 
         const LABELS: Record<string, string> = {
@@ -819,9 +819,20 @@ export const ModernCVTemplate: React.FC<CVTemplateProps> = ({
             <SectionTitle>{section.title || LABELS[section.type] || section.type}</SectionTitle>
             <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
               {entries.map(({ it, originalIdx }) => {
-                const label = it.name || it.title || it.label || it.degree || '';
+                const label = it.name || it.title || it.label || it.degree || it.role || '';
                 const sub = it.institution || it.issuer || it.company || it.organization || '';
-                const date = it.date || it.date_from || it.year || '';
+                // Zeitspanne aus fertigem String ODER getrennten Feldern
+                // (date_from/date_to bzw. startDate/endDate aus dem
+                // Ehrenamt-Schritt) — vorher fiel date_to/endDate hier
+                // still weg.
+                const rangeFrom = it.date_from || it.startDate || '';
+                const rangeTo = it.current ? 'Heute' : (it.date_to || it.endDate || '');
+                const composedRange = rangeFrom && rangeTo ? `${rangeFrom} – ${rangeTo}` : rangeFrom;
+                const date = it.date || composedRange || it.year || '';
+                const location = it.location || it.ort || '';
+                const itemKey = `detail-${sectionIndex}-${originalIdx}`;
+                const showLocationBtn = !location && !revealed.has(`${itemKey}-location`);
+                const showRangeBtn = !date && !revealed.has(`${itemKey}-zeitraum`);
 
                 return (
                   <div
@@ -872,6 +883,32 @@ export const ModernCVTemplate: React.FC<CVTemplateProps> = ({
                         />
                       )}
                     </div>
+                    {(showLocationBtn || showRangeBtn) && (
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '4px', marginTop: '2px' }}>
+                        {showLocationBtn && (
+                          <AddFieldButton label="Ort hinzufügen" onClick={() => reveal(`${itemKey}-location`)} />
+                        )}
+                        {showRangeBtn && (
+                          <AddFieldButton label="Zeitraum hinzufügen" onClick={() => reveal(`${itemKey}-zeitraum`)} />
+                        )}
+                      </div>
+                    )}
+                    {(location || revealed.has(`${itemKey}-location`)) && (
+                      <EditableText
+                        value={location}
+                        onChange={(v) => onUpdateSectionItem(sectionIndex, originalIdx, 'location', v)}
+                        placeholder="Ort"
+                        style={{ fontSize: '9px', color: t.muted, marginTop: '2px', display: 'block' }}
+                      />
+                    )}
+                    {(!date && revealed.has(`${itemKey}-zeitraum`)) && (
+                      <EditableText
+                        value=""
+                        onChange={(v) => onUpdateSectionItem(sectionIndex, originalIdx, 'date', v)}
+                        placeholder="z.B. 03/2022 – 06/2022"
+                        style={{ fontSize: '9px', color: t.muted, marginTop: '2px', display: 'block' }}
+                      />
+                    )}
                   </div>
                 );
               })}
@@ -994,20 +1031,31 @@ export const ModernCVTemplate: React.FC<CVTemplateProps> = ({
               placeholder="Vollständiger Name"
               style={{ fontSize: '22px', fontWeight: 800, color: t.text, letterSpacing: '-0.01em', lineHeight: 1.2, marginBottom: '4px', display: 'block' }}
             />
-            {personalInfo.title?.trim() && (
-              <EditableText
-                value={personalInfo.title}
-                onChange={(v) => onUpdatePersonalInfo('title', v)}
-                placeholder="Zielposition / Profil"
-                style={{ fontSize: '12px', fontWeight: 700, color: CI.primaryDark, marginBottom: '14px', display: 'block' }}
-              />
+            {personalInfo.title?.trim() ? (
+              <div style={{ display: 'flex', alignItems: 'center', marginBottom: '14px' }}>
+                <EditableText
+                  value={personalInfo.title}
+                  onChange={(v) => onUpdatePersonalInfo('title', v)}
+                  placeholder="Zielposition / Profil"
+                  style={{ fontSize: '12px', fontWeight: 700, color: CI.primaryDark, display: 'block' }}
+                />
+                {!personalInfo.location?.trim() && !revealed.has('header-location') && (
+                  <AddFieldButton label="Ort hinzufügen" onClick={() => reveal('header-location')} />
+                )}
+              </div>
+            ) : (
+              !personalInfo.location?.trim() && !revealed.has('header-location') && (
+                <div style={{ marginBottom: '4px' }}>
+                  <AddFieldButton label="Ort hinzufügen" onClick={() => reveal('header-location')} />
+                </div>
+              )
             )}
 
             <div style={{ display: 'block', fontSize: '9.5px', color: t.muted, marginTop: personalInfo.title?.trim() ? 0 : '10px', overflow: 'hidden' }}>
-              {personalInfo.location?.trim() && (
+              {(personalInfo.location?.trim() || revealed.has('header-location')) && (
                 <span style={{ display: 'inline-flex', alignItems: 'center', marginRight: '20px', marginBottom: '4px', verticalAlign: 'middle' }}>
                   <IconLocation />
-                  <EditableText as="span" value={personalInfo.location} onChange={(v) => onUpdatePersonalInfo('location', v)} placeholder="Ort" style={{ fontSize: '9.5px', color: t.muted, marginLeft: '4px' }} />
+                  <EditableText as="span" value={personalInfo.location || ''} onChange={(v) => onUpdatePersonalInfo('location', v)} placeholder="Ort" style={{ fontSize: '9.5px', color: t.muted, marginLeft: '4px' }} />
                 </span>
               )}
               {personalInfo.phone?.trim() && (
