@@ -382,7 +382,7 @@ export const ProfessionalCVTemplate: React.FC<ProfessionalCVTemplateProps> = ({
                           {!(exp.location || exp.ort) && !revealed.has(`exp-${idx}-location`) && (
                             <AddFieldButton label="Ort hinzufügen" onClick={() => reveal(`exp-${idx}-location`)} />
                           )}
-                          {!exp.description && !revealed.has(`exp-${idx}-description`) && (
+                          {bullets.length === 0 && !exp.description && !revealed.has(`exp-${idx}-description`) && (
                             <AddFieldButton label="Kurzbeschreibung hinzufügen" onClick={() => reveal(`exp-${idx}-description`)} />
                           )}
                         </div>
@@ -421,7 +421,17 @@ export const ProfessionalCVTemplate: React.FC<ProfessionalCVTemplateProps> = ({
                       )}
                     </div>
 
-                    {(exp.description || revealed.has(`exp-${idx}-description`)) && (
+                    {/* WICHTIG: description und bullets sind NIE gleichzeitig
+                        sichtbar. getBullets() leitet Bullets AUS description
+                        ab, wenn bulletPoints leer ist — description hier
+                        zusätzlich als Fließtext zu zeigen hätte denselben
+                        Inhalt doppelt gerendert (einmal als Satz, einmal
+                        Zeile für Zeile als Bullets darunter). Das war der
+                        "Kontext-Satz vor den Bullets", den Quentin gemeldet
+                        hat — sein description-Feld kommt real befüllt aus
+                        seiner Make/Supabase-Anbindung, ist also nie leer,
+                        weshalb ein reines "nur wenn leer"-Guard nicht reichte. */}
+                    {bullets.length === 0 && (exp.description || revealed.has(`exp-${idx}-description`)) && (
                       <EditableText
                         multiline
                         className="mt-1.5 text-[9.5px] text-slate-700 leading-tight"
