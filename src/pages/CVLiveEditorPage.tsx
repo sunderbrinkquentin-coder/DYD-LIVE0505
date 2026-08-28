@@ -1890,63 +1890,56 @@ const addSectionItem = (sectionIndex: number, defaultItem: any) => {
              sichtbar/klickbar gemacht (kein Hover-Gating mehr). Das hat
              die Klickbarkeit garantiert, sah aber optisch ueberladen aus
              (zu viele Icons/Buttons dauerhaft auf jeder Karte sichtbar).
-             Runde 3 (aktuell): zurueck zu Hover-Gating, aber mit
-             DESCENDANT-Selektoren (Leerzeichen statt ">") auf den
-             Container-Ebenen von Sektion/Item, nicht auf einzelnen
-             direkten Kindern. Dadurch reicht ein Hover irgendwo auf der
-             Karte/Sektion, egal wie tief das jeweilige .pdf-hidden
-             Steuerelement (Griff, Pfeile, Plus-Button) darin verschachtelt
-             ist — es gibt keine "vergessene" Verschachtelungsebene mehr,
-             die erneut unsichtbar bleiben koennte. PDF-Export ist davon
-             ohnehin nicht betroffen: der Export entfernt jeden Button und
-             jedes .pdf-hidden komplett aus dem Klon (siehe prepareClone in
-             pdfExportClient.ts, dort die querySelectorAll fuer button und
-             .pdf-hidden mit anschliessendem remove()), unabhaengig von
+             Runde 3: zurueck zu Hover-Gating, aber mit DESCENDANT-Selektoren
+             (Leerzeichen statt ">") auf den Container-Ebenen von
+             Sektion/Item, nicht auf einzelnen direkten Kindern. Dadurch
+             reicht ein Hover irgendwo auf der Karte/Sektion, egal wie tief
+             das jeweilige .pdf-hidden Steuerelement (Griff, Pfeile,
+             Plus-Button) darin verschachtelt ist.
+             Zwischenschritt (verworfen, NIE ausliefern): der Versuch, die
+             Box von Karte/Sektion per margin-left: -70px +
+             padding-left: 70px künstlich nach links zu erweitern, damit
+             auch ein Klick MITTEN auf Griff/Pfeile (die selbst außerhalb
+             der Box im Rand gezeichnet werden) sicher als "Hover auf der
+             Karte" zählt. Das hat auf der echten, langen Lebenslauf-Seite
+             sichtbaren Text am linken Kartenrand abgeschnitten (Breiten-
+             /Box-Modell-Interaktion mit dem restlichen Seiten-Layout,
+             die im kleinen Testdatensatz nicht auffiel) und wurde deshalb
+             komplett zurückgenommen.
+             Runde 4 (aktuell): dasselbe Ziel — Klick auf Griff/Pfeile darf
+             NIE von Hover-Timing/-Geometrie abhängen —, aber ohne die Box
+             selbst zu verändern: pointer-events bleibt IMMER auto,
+             auch wenn opacity: 0 das Element unsichtbar macht. Ein
+             unsichtbares, aber pointer-events:auto-Element wird beim
+             Hit-Test ganz normal gefunden (anders als bei
+             pointer-events:none, wo der Browser durch das Element
+             hindurch auf das dahinterliegende sucht und der Klick bei
+             extern positionierten Controls wie dem Griff/den Pfeilen im
+             Rand ins Leere lief). Opacity steuert weiterhin rein die
+             Sichtbarkeit (per Hover), Klickbarkeit ist davon komplett
+             entkoppelt und funktioniert immer, unabhängig von Timing oder
+             Mausweg. PDF-Export ist davon nicht betroffen: der Export
+             entfernt jeden Button und jedes .pdf-hidden komplett aus dem
+             Klon (siehe prepareClone in pdfExportClient.ts, dort die
+             querySelectorAll fuer button und .pdf-hidden mit
+             anschliessendem remove()), unabhaengig von
              opacity/pointer-events. */
           .pdf-hidden {
             position: absolute !important;
             margin: 0 !important;
             z-index: 5;
             opacity: 0;
-            pointer-events: none;
+            pointer-events: auto;
             transition: opacity 0.12s ease;
             white-space: nowrap;
           }
           [data-break-item],
           [data-break-atomic],
           [data-spacer-id],
-          [data-drag-gutter],
           [data-chip-row] > span,
           [data-pdf-root] li,
           .a4-page-frame li {
             position: relative;
-          }
-
-          /* FIX (Klick auf Griff/Pfeile traf ins Leere, obwohl Hover sie
-             sichtbar zeigte): Griff und Auf/Ab-Pfeile stehen per
-             position:absolute mit NEGATIVEM left (siehe dragHandleStyle /
-             moveButtonBaseStyle in EditableText.tsx) links AUSSERHALB der
-             eigentlichen Box von Karte/Sektion/Zeile, im Rand daneben.
-             Wenn die Maus DIREKT (ohne vorher ueber die Karte selbst zu
-             fahren, z. B. bei automatisierten Tests oder bei Anflug von
-             ganz links) exakt auf diese Stelle zeigt, liegt dieser Punkt
-             ausserhalb der eigenen Box der Karte — ":hover" auf der Karte
-             greift dann nicht, das Control bleibt opacity:0 UND
-             pointer-events:none, der Klick faellt durch auf das, was
-             dahinter liegt. Fix: die Box selbst per negativem margin-left
-             + gleich grossem padding-left nach links erweitern, sodass der
-             komplette Bereich, in dem Griff/Pfeile gezeichnet werden, Teil
-             der ECHTEN Box der Karte/Zeile ist. Der Inhalt bleibt optisch
-             exakt an derselben Stelle (margin und padding heben sich auf),
-             nur die unsichtbare Hover-/Klick-Flaeche wird breiter. Ausgenommen
-             bewusst: [data-chip-row] > span — Chips liegen als Inline-Elemente
-             dicht nebeneinander in einer Zeile, dieselbe Erweiterung wuerde
-             dort die Hover-Flaeche des VORHERIGEN Chips ueberlappen. */
-          [data-break-item],
-          [data-break-atomic],
-          [data-drag-gutter] {
-            margin-left: -70px;
-            padding-left: 70px;
           }
 
           /* Hover irgendwo auf der Karte/Sektion (nicht nur auf einem
@@ -1957,12 +1950,10 @@ const addSectionItem = (sectionIndex: number, defaultItem: any) => {
           [data-break-item]:hover .pdf-hidden,
           [data-break-atomic]:hover .pdf-hidden,
           [data-spacer-id]:hover .pdf-hidden,
-          [data-drag-gutter]:hover .pdf-hidden,
           [data-pdf-root] li:hover .pdf-hidden,
           .a4-page-frame li:hover .pdf-hidden,
           [data-chip-row] > span:hover .pdf-hidden {
             opacity: 1;
-            pointer-events: auto;
           }
 
           /* Steuerzeile einer Station: unten rechts in die Karte. */
@@ -2150,32 +2141,65 @@ const reorderSections = (fromIndex: number, toIndex: number) => {
                   Ausschnitt wird per overflow:hidden begrenzt, damit kein
                   Inhalt der Folgeseite durchscheint. Das letzte Blatt zeigt bis
                   zum Blattende, damit der Footer sichtbar bleibt.               */}
-              {Array.from({ length: pageCount }).map((_, pageIdx) => {
-                const pageStart = breaks.cuts[pageIdx];
-                const isLastPage = pageIdx === pageCount - 1;
-                const visibleHeight = isLastPage
-                  ? PAGE_HEIGHT_PX
-                  : Math.min(PAGE_HEIGHT_PX, pageSliceHeight(breaks, pageIdx));
-                const frameTop = pageIdx * (PAGE_HEIGHT_PX + SHEET_GAP_PX) * scale;
+              {/* FIX (Quentin: "Verschiebung innerhalb der Boxen kurz nach dem
+                  Rendern"): `breaks` startet mit einer reinen Schätzung
+                  (INITIAL in useBreakPoints.ts: 1 Seite, volle Seitenhöhe),
+                  BEVOR die echte Messung (nach Schriften-Laden + Layout)
+                  fertig ist. Bisher wurde mit dieser Schätzung sofort
+                  gerendert — inklusive echtem Inhalt in echten Boxen — und
+                  sobald die echte Messung durch war, sprang die Seite auf
+                  die korrekte Aufteilung um (andere Seitenzahl, andere
+                  Schnittpunkte). Genau dieses Umspringen war das sichtbare
+                  "Springen" kurz nach dem Laden. Der Hook liefert dafür
+                  extra ein `isMeasuring`-Flag — bisher ungenutzt. Jetzt:
+                  solange `isMeasuring` true ist, zeigen wir einen neutralen
+                  Platzhalter statt der (potenziell falschen) Schätzung; der
+                  Inhalt erscheint dann EINMAL fertig aufgeteilt, ohne
+                  sichtbaren Zwischenschritt. */}
+              {breaks.isMeasuring ? (
+                <div
+                  className="a4-page-frame"
+                  style={{
+                    top: 0,
+                    left: 0,
+                    backgroundColor: TEMPLATE_PAGE_BG[selectedTemplate] ?? '#ffffff',
+                    transform: `scale(${scale})`,
+                    transformOrigin: 'top left',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                  }}
+                >
+                  <div style={{ color: '#94a3b8', fontSize: '13px' }}>Wird geladen …</div>
+                </div>
+              ) : (
+                Array.from({ length: pageCount }).map((_, pageIdx) => {
+                  const pageStart = breaks.cuts[pageIdx];
+                  const isLastPage = pageIdx === pageCount - 1;
+                  const visibleHeight = isLastPage
+                    ? PAGE_HEIGHT_PX
+                    : Math.min(PAGE_HEIGHT_PX, pageSliceHeight(breaks, pageIdx));
+                  const frameTop = pageIdx * (PAGE_HEIGHT_PX + SHEET_GAP_PX) * scale;
 
-                return (
-                  <div
-                    key={pageIdx}
-                    className="a4-page-frame"
-                    style={{ top: `${frameTop}px`, left: 0, backgroundColor: TEMPLATE_PAGE_BG[selectedTemplate] ?? '#ffffff', transform: `scale(${scale})`, transformOrigin: 'top left' }}
-                  >
-                    <div style={{ position: 'relative', width: '794px', height: `${visibleHeight}px`, overflow: 'hidden' }}>
-                      <div
-                        onMouseDownCapture={swallowMouseDown}
-                        onClickCapture={openFocus}
-                        style={{ position: 'absolute', top: `${-pageStart}px`, left: 0, width: '794px' }}
-                      >
-                        {renderTemplate()}
+                  return (
+                    <div
+                      key={pageIdx}
+                      className="a4-page-frame"
+                      style={{ top: `${frameTop}px`, left: 0, backgroundColor: TEMPLATE_PAGE_BG[selectedTemplate] ?? '#ffffff', transform: `scale(${scale})`, transformOrigin: 'top left' }}
+                    >
+                      <div style={{ position: 'relative', width: '794px', height: `${visibleHeight}px`, overflow: 'hidden' }}>
+                        <div
+                          onMouseDownCapture={swallowMouseDown}
+                          onClickCapture={openFocus}
+                          style={{ position: 'absolute', top: `${-pageStart}px`, left: 0, width: '794px' }}
+                        >
+                          {renderTemplate()}
+                        </div>
                       </div>
                     </div>
-                  </div>
-               );
-              })}
+                 );
+                })
+              )}
 
               {/* ── In-Place-Fokus ────────────────────────────────────────────
                   Skalierter Ausschnitt DESSELBEN Renders, absolut über der
