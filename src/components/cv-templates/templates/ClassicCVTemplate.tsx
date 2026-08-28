@@ -246,9 +246,21 @@ export const ClassicCVTemplate: React.FC<CVTemplateProps> = ({
                     die ausführliche Begründung bei Ausbildung/degree unten:
                     mit min-w-0 + overflow-wrap:break-word im EditableText
                     (wrap-Modus) behandeln Browser das Flex-Minimum wie bei
-                    'anywhere' und der Text kollabiert doch wieder. */}
-                <div className="flex-1">
+                    'anywhere' und der Text kollabiert doch wieder.
+                    FIX (Quentin: "+" soll hinter dem TITEL stehen, nicht bei
+                    der Firma): die beiden "+"-Buttons hängen jetzt direkt an
+                    das Titel-EditableText, in derselben Zeile — nicht mehr
+                    unten neben "Unternehmen". */}
+                <div className="flex-1 flex items-center flex-wrap gap-1.5">
+                  {/* FIX (Button landete trotzdem in eigener Zeile): `EditableText`
+                      hängt bei `as="div"` (Default) die Tailwind-Klasse `w-full`
+                      an — das Feld füllt IMMER 100% seines Elternelements, egal
+                      wie kurz der Text ist. Der "+"-Button daneben hatte dadurch
+                      nie Platz und rutschte per `flex-wrap` sofort in die
+                      nächste Zeile — sichtbar selbst bei einem kurzen Titel wie
+                      "Mentor". `as="span"` lässt die Breite dem Inhalt folgen. */}
                   <EditableText
+                    as="span"
                     value={item.title}
                     onChange={(val) => onUpdateSectionItem(experienceIndex, idx, 'title', val)}
                     className="font-bold leading-tight"
@@ -256,6 +268,16 @@ export const ClassicCVTemplate: React.FC<CVTemplateProps> = ({
                     placeholder="Position / Rolle"
                     wrap
                   />
+                  {(!(item.location || item.ort) && !revealed.has(`exp-${idx}-location`)) || (!item.description && !revealed.has(`exp-${idx}-description`)) ? (
+                    <div className="pdf-hidden flex items-center gap-0.5">
+                      {!(item.location || item.ort) && !revealed.has(`exp-${idx}-location`) && (
+                        <AddFieldButton label="Ort hinzufügen" onClick={() => reveal(`exp-${idx}-location`)} />
+                      )}
+                      {!item.description && !revealed.has(`exp-${idx}-description`) && (
+                        <AddFieldButton label="Kurzbeschreibung hinzufügen" onClick={() => reveal(`exp-${idx}-description`)} />
+                      )}
+                    </div>
+                  ) : null}
                 </div>
                 {renderDateRange(experienceIndex, idx, item)}
               </div>
@@ -268,14 +290,6 @@ export const ClassicCVTemplate: React.FC<CVTemplateProps> = ({
                   style={{ fontSize: '10px', color: t.muted }}
                   placeholder="Unternehmen"
                 />
-                {/* Nur der Button ist immer da (pdf-hidden) — das Ort-Feld
-                    selbst erst nach Klick oder wenn schon befüllt. Löst
-                    beides: keine Löcher durch leere Placeholder-Zeilen UND
-                    das Feld bleibt trotzdem erreichbar, statt für immer zu
-                    verschwinden. */}
-                {!(item.location || item.ort) && !revealed.has(`exp-${idx}-location`) && (
-                  <AddFieldButton label="Ort hinzufügen" onClick={() => reveal(`exp-${idx}-location`)} />
-                )}
               </div>
 
               {(item.location || item.ort || revealed.has(`exp-${idx}-location`)) && (
@@ -285,6 +299,17 @@ export const ClassicCVTemplate: React.FC<CVTemplateProps> = ({
                   className="leading-snug mt-0.5"
                   style={{ fontSize: '9.5px', color: t.faint }}
                   placeholder="Ort"
+                />
+              )}
+
+              {(item.description || revealed.has(`exp-${idx}-description`)) && (
+                <EditableText
+                  value={(item.description || '').replace(/^[-•*]\s*/, '')}
+                  onChange={(val) => onUpdateSectionItem(experienceIndex, idx, 'description', val)}
+                  className="leading-snug mt-1"
+                  style={{ fontSize: '9.5px', color: t.muted }}
+                  multiline
+                  placeholder="Kurzbeschreibung"
                 />
               )}
 
@@ -366,8 +391,24 @@ export const ClassicCVTemplate: React.FC<CVTemplateProps> = ({
                     Minimal legt das Feld dagegen in einen flex-1-Wrapper und lässt
                     das EditableText ein normaler Block sein (füllt 100%, kann nicht
                     kollabieren). Exakt diese Struktur übernehmen wir jetzt. */}
-                <div className="flex-1">
+                {/* FIX (Quentin: "+" soll hinter dem TITEL stehen): die
+                    beiden "+"-Buttons (Ort/Schwerpunkte) hingen vorher unten
+                    neben "Institution" UND waren komplett unsichtbar, wenn
+                    `item.institution` leer war (siehe {item.institution && (
+                    ...)} weiter unten, jetzt entfernt). Jetzt hängen sie
+                    direkt am Abschluss-Titel, unabhängig davon, ob eine
+                    Institution gesetzt ist. */}
+                <div className="flex-1 flex items-center flex-wrap gap-1.5">
+                  {/* FIX (Button landete trotzdem in eigener Zeile): `EditableText`
+                      hängt bei `as="div"` (Default) die Tailwind-Klasse `w-full`
+                      an — das Feld füllt IMMER 100% seines Elternelements. Der
+                      "+"-Button daneben hatte dadurch nie Platz und rutschte per
+                      `flex-wrap` sofort in die nächste Zeile. `as="span"` lässt
+                      die Breite dem Inhalt folgen (Zeichenweises Stapeln bleibt
+                      trotzdem unmöglich — das verhindert `wordBreak: 'normal'`
+                      in `EditableText`s `flowStyle`, unabhängig von div/span). */}
                   <EditableText
+                    as="span"
                     value={item.degree || item.title || ''}
                     onChange={(val) => onUpdateSectionItem(educationIndex, idx, 'degree', val)}
                     className="font-bold leading-tight"
@@ -375,13 +416,20 @@ export const ClassicCVTemplate: React.FC<CVTemplateProps> = ({
                     placeholder="Abschluss / Studiengang"
                     wrap
                   />
+                  {(!item.location && !revealed.has(`edu-${idx}-location`)) || (!item.description && !revealed.has(`edu-${idx}-description`)) ? (
+                    <div className="pdf-hidden flex items-center gap-0.5">
+                      {!item.location && !revealed.has(`edu-${idx}-location`) && (
+                        <AddFieldButton label="Ort hinzufügen" onClick={() => reveal(`edu-${idx}-location`)} />
+                      )}
+                      {!item.description && !revealed.has(`edu-${idx}-description`) && (
+                        <AddFieldButton label="Schwerpunkte hinzufügen" onClick={() => reveal(`edu-${idx}-description`)} />
+                      )}
+                    </div>
+                  ) : null}
                 </div>
                 {renderDateRange(educationIndex, idx, item)}
               </div>
 
-              {/* Alle drei Felder unten nur rendern, wenn befüllt — leere
-                  Felder reservierten sonst je eine eigene Zeile mit
-                  Placeholder und rissen sichtbare Löcher in die Karte. */}
               {item.institution && (
                 <div className="flex items-center mt-0.5">
                   <EditableText
@@ -392,12 +440,6 @@ export const ClassicCVTemplate: React.FC<CVTemplateProps> = ({
                     placeholder="Institution / Hochschule"
                     wrap
                   />
-                  {!item.location && !revealed.has(`edu-${idx}-location`) && (
-                    <AddFieldButton label="Ort hinzufügen" onClick={() => reveal(`edu-${idx}-location`)} />
-                  )}
-                  {!item.description && !revealed.has(`edu-${idx}-description`) && (
-                    <AddFieldButton label="Schwerpunkte hinzufügen" onClick={() => reveal(`edu-${idx}-description`)} />
-                  )}
                 </div>
               )}
 
@@ -532,34 +574,38 @@ export const ClassicCVTemplate: React.FC<CVTemplateProps> = ({
             return (
               <li
                 key={idx}
-                className="flex flex-nowrap justify-between items-center gap-2"
+                className="flex items-center"
                 style={{ fontSize: '9px', position: 'relative', cursor: onReorderSectionItem ? 'grab' : undefined }}
                 {...itemDragProps(languagesIndex, idx, onReorderSectionItem)}
               >
                 <ItemDragHandle sectionIndex={languagesIndex} itemIndex={idx} onReorderSectionItem={onReorderSectionItem} />
-                <div className="flex-1">
-                  <EditableText
-                    value={language}
-                    onChange={(val) => onUpdateSectionItem(languagesIndex, idx, 'language', val)}
-                    className="font-medium"
-                    style={{ fontSize: '9px', color: t.text }}
-                    placeholder="Sprache"
-                    wrap
-                  />
-                </div>
+                {/* FIX ("Niveau der Sprachen verschoben"): vorher hatte die
+                    Sprache `flex-1` (flex-basis 0, wächst in den Restplatz)
+                    und das Niveau `flex-shrink-0` (Breite = eigener Inhalt).
+                    Dadurch lag die Trennlinie zwischen beiden Spalten bei
+                    JEDER Zeile woanders — abhängig davon, wie lang genau das
+                    jeweilige Niveau-Wort war ("B2" vs. "Verhandlungssicher").
+                    Über mehrere Sprachen untereinander sah das wie eine
+                    "verrutschte" Spalte aus. Jetzt: beide Spalten bekommen
+                    eine FESTE Breite (50 / 50) direkt als Flex-Kinder — die
+                    Spaltengrenze liegt dadurch bei jeder Zeile exakt an der
+                    gleichen Stelle, unabhängig vom Text. Gleiches Muster wie
+                    im Kreativ-Template. */}
+                <EditableText
+                  value={language}
+                  onChange={(val) => onUpdateSectionItem(languagesIndex, idx, 'language', val)}
+                  className="font-medium"
+                  style={{ width: '50%', fontSize: '9px', color: t.text }}
+                  placeholder="Sprache"
+                  wrap
+                />
                 <EditableText
                   value={level}
                   onChange={(val) => onUpdateSectionItem(languagesIndex, idx, 'level', val)}
-                  className="font-medium text-right flex-shrink-0"
-                  // FIX (Zeilenumbruch bei "Grundkenntnisse"): eine feste
-                  // width:68px war für längere Niveau-Wörter zu schmal und
-                  // erzwang mit `wrap` einen Umbruch auf zwei Zeilen. Jetzt
-                  // ohne feste Breite (das Feld nimmt genau den Platz, den
-                  // sein Text braucht) und explizit `nowrap` + sichtbarer
-                  // Overflow statt Ellipsis — das Niveau bleibt garantiert in
-                  // einer Zeile, die Sprache (flex-1) weicht stattdessen aus.
-                  style={{ fontSize: '9px', color: t.muted, whiteSpace: 'nowrap', overflow: 'visible', textOverflow: 'unset' }}
+                  className="font-medium text-right"
+                  style={{ width: '50%', fontSize: '9px', color: t.muted }}
                   placeholder="Niveau"
+                  wrap
                 />
               </li>
             );
@@ -741,14 +787,35 @@ export const ClassicCVTemplate: React.FC<CVTemplateProps> = ({
                       oben) + `wrap` auf beiden Feldern, exakt das gleiche
                       Muster wie bei Berufserfahrung/Ausbildung. */}
                   <div style={{ flex: 1 }}>
-                    <div style={{ fontWeight: 600, fontSize: '9.5px' }}>
+                    {/* FIX (Quentin: "+" soll hinter dem TITEL stehen): die
+                        Ort-/Zeitraum-Buttons hingen vorher in einer eigenen
+                        Zeile UNTER Institution/Datum. Jetzt direkt neben dem
+                        Namen/Titel selbst. */}
+                    <div style={{ fontWeight: 600, fontSize: '9.5px', display: 'flex', alignItems: 'center', flexWrap: 'wrap', gap: '4px' }}>
+                      {/* FIX (Button landete trotzdem in eigener Zeile): `EditableText`
+                          hängt bei `as="div"` (Default) die Tailwind-Klasse `w-full`
+                          an — das Feld füllt IMMER 100% der Zeile, egal wie kurz
+                          der Name ist ("Mentor" reichte schon, um den Button
+                          herauszudrücken). `as="span"` lässt die Breite dem
+                          Inhalt folgen. */}
                       <EditableText
+                        as="span"
                         value={name}
                         onChange={(val) => onUpdateSectionItem(index, idx, 'name', val)}
                         style={{ color: t.text }}
                         placeholder="Name/Titel"
                         wrap
                       />
+                      {(showLocationBtn || showRangeBtn) && (
+                        <div className="pdf-hidden flex items-center gap-0.5">
+                          {showLocationBtn && (
+                            <AddFieldButton label="Ort hinzufügen" onClick={() => reveal(`${itemKey}-location`)} />
+                          )}
+                          {showRangeBtn && (
+                            <AddFieldButton label="Zeitraum hinzufügen" onClick={() => reveal(`${itemKey}-zeitraum`)} />
+                          )}
+                        </div>
+                      )}
                     </div>
                     {institution && (
                       <div style={{ marginTop: '2px' }}>
@@ -774,17 +841,6 @@ export const ClassicCVTemplate: React.FC<CVTemplateProps> = ({
                     </div>
                   )}
                 </div>
-
-                {(showLocationBtn || showRangeBtn) && (
-                  <div className="flex items-center gap-1 mt-1">
-                    {showLocationBtn && (
-                      <AddFieldButton label="Ort hinzufügen" onClick={() => reveal(`${itemKey}-location`)} />
-                    )}
-                    {showRangeBtn && (
-                      <AddFieldButton label="Zeitraum hinzufügen" onClick={() => reveal(`${itemKey}-zeitraum`)} />
-                    )}
-                  </div>
-                )}
 
                 {(location || revealed.has(`${itemKey}-location`)) && (
                   <EditableText
