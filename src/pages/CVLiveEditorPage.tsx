@@ -1874,40 +1874,95 @@ const addSectionItem = (sectionIndex: number, defaultItem: any) => {
              Voraussetzung dafür, dass die Break-Engine auf beiden DOMs
              dasselbe Ergebnis liefert.
              ───────────────────────────────────────────────────────────────── */
-          /* FIX (Quentin, mehrere Runden Frust): die alte Loesung machte
-             .pdf-hidden standardmaessig opacity:0 + pointer-events:none und
-             blendete es NUR bei :hover ueber ganz bestimmte, direkte
-             Eltern-Selektoren wieder ein (data-break-item, data-spacer-id,
-             li, [data-chip-row] > span — jeweils nur DIREKTE Kinder). Jede
-             Karte/jeder Button, der davon abwich (Seitenspalten-Abschnitte
-             wie Zertifikate/Stipendien/Ehrenamt/Faehigkeiten/Sprachen sitzen
-             in data-break-atomic statt data-break-item; die Plus-Buttons
-             sassen mehrere Ebenen tiefer als ein direktes Kind), blieb
-             UNSICHTBAR UND UNKLICKBAR — komplett unabhaengig vom Hover.
-             Das ist zu fehleranfaellig fuer staendig neue Verschachtelungen.
-             Deshalb nicht mehr unsichtbar-ausser-bei-Hover-an-genau-dieser-
-             Stelle, sondern schlicht: IMMER sichtbar, IMMER klickbar. Fuers
-             PDF spielt das keine Rolle — der Export entfernt jeden Button
-             und jedes .pdf-hidden ohnehin komplett aus dem Klon (siehe
-             prepareClone in pdfExportClient.ts, Zeile mit querySelectorAll
-             fuer button und .pdf-hidden und das remove()), UNABHAENGIG von
-             opacity/pointer-events. position:absolute bleibt (kein Beitrag
-             zur Layout-Hoehe, siehe Kommentar oben in der Historie), nur
-             opacity/pointer-events/Hover-Gating faellt komplett weg. */
+          /* Verlauf dieser Regel (fuer die naechste Person, die hier
+             aendert, damit nicht wieder derselbe Fehler zweimal gemacht
+             wird):
+             Runde 1: .pdf-hidden war standardmaessig opacity:0 +
+             pointer-events:none und wurde NUR bei :hover ueber ganz
+             bestimmte, DIREKTE Eltern-Selektoren wieder eingeblendet
+             (data-break-item, data-spacer-id, li, [data-chip-row] > span).
+             Die Seitenspalten-Abschnitte (Zertifikate/Stipendien/Ehrenamt/
+             Faehigkeiten/Sprachen sitzen in data-break-atomic statt
+             data-break-item) und tiefer verschachtelte Plus-Buttons waren
+             in dieser Liste nicht enthalten und blieben dadurch UNSICHTBAR
+             UND UNKLICKBAR, unabhaengig vom Hover.
+             Runde 2: als Sofortmassnahme wurde .pdf-hidden permanent
+             sichtbar/klickbar gemacht (kein Hover-Gating mehr). Das hat
+             die Klickbarkeit garantiert, sah aber optisch ueberladen aus
+             (zu viele Icons/Buttons dauerhaft auf jeder Karte sichtbar).
+             Runde 3 (aktuell): zurueck zu Hover-Gating, aber mit
+             DESCENDANT-Selektoren (Leerzeichen statt ">") auf den
+             Container-Ebenen von Sektion/Item, nicht auf einzelnen
+             direkten Kindern. Dadurch reicht ein Hover irgendwo auf der
+             Karte/Sektion, egal wie tief das jeweilige .pdf-hidden
+             Steuerelement (Griff, Pfeile, Plus-Button) darin verschachtelt
+             ist — es gibt keine "vergessene" Verschachtelungsebene mehr,
+             die erneut unsichtbar bleiben koennte. PDF-Export ist davon
+             ohnehin nicht betroffen: der Export entfernt jeden Button und
+             jedes .pdf-hidden komplett aus dem Klon (siehe prepareClone in
+             pdfExportClient.ts, dort die querySelectorAll fuer button und
+             .pdf-hidden mit anschliessendem remove()), unabhaengig von
+             opacity/pointer-events. */
           .pdf-hidden {
             position: absolute !important;
             margin: 0 !important;
             z-index: 5;
-            opacity: 1;
-            pointer-events: auto;
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.12s ease;
             white-space: nowrap;
           }
           [data-break-item],
+          [data-break-atomic],
           [data-spacer-id],
+          [data-drag-gutter],
           [data-chip-row] > span,
           [data-pdf-root] li,
           .a4-page-frame li {
             position: relative;
+          }
+
+          /* FIX (Klick auf Griff/Pfeile traf ins Leere, obwohl Hover sie
+             sichtbar zeigte): Griff und Auf/Ab-Pfeile stehen per
+             position:absolute mit NEGATIVEM left (siehe dragHandleStyle /
+             moveButtonBaseStyle in EditableText.tsx) links AUSSERHALB der
+             eigentlichen Box von Karte/Sektion/Zeile, im Rand daneben.
+             Wenn die Maus DIREKT (ohne vorher ueber die Karte selbst zu
+             fahren, z. B. bei automatisierten Tests oder bei Anflug von
+             ganz links) exakt auf diese Stelle zeigt, liegt dieser Punkt
+             ausserhalb der eigenen Box der Karte — ":hover" auf der Karte
+             greift dann nicht, das Control bleibt opacity:0 UND
+             pointer-events:none, der Klick faellt durch auf das, was
+             dahinter liegt. Fix: die Box selbst per negativem margin-left
+             + gleich grossem padding-left nach links erweitern, sodass der
+             komplette Bereich, in dem Griff/Pfeile gezeichnet werden, Teil
+             der ECHTEN Box der Karte/Zeile ist. Der Inhalt bleibt optisch
+             exakt an derselben Stelle (margin und padding heben sich auf),
+             nur die unsichtbare Hover-/Klick-Flaeche wird breiter. Ausgenommen
+             bewusst: [data-chip-row] > span — Chips liegen als Inline-Elemente
+             dicht nebeneinander in einer Zeile, dieselbe Erweiterung wuerde
+             dort die Hover-Flaeche des VORHERIGEN Chips ueberlappen. */
+          [data-break-item],
+          [data-break-atomic],
+          [data-drag-gutter] {
+            margin-left: -70px;
+            padding-left: 70px;
+          }
+
+          /* Hover irgendwo auf der Karte/Sektion (nicht nur auf einem
+             direkten Kind) blendet ALLE darin verschachtelten
+             .pdf-hidden-Steuerelemente ein — Griff, Auf/Ab-Pfeile und
+             Plus-Buttons gleichermassen, egal auf welcher Verschachtelungs-
+             tiefe sie im Markup stehen. */
+          [data-break-item]:hover .pdf-hidden,
+          [data-break-atomic]:hover .pdf-hidden,
+          [data-spacer-id]:hover .pdf-hidden,
+          [data-drag-gutter]:hover .pdf-hidden,
+          [data-pdf-root] li:hover .pdf-hidden,
+          .a4-page-frame li:hover .pdf-hidden,
+          [data-chip-row] > span:hover .pdf-hidden {
+            opacity: 1;
+            pointer-events: auto;
           }
 
           /* Steuerzeile einer Station: unten rechts in die Karte. */
