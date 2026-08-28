@@ -115,9 +115,31 @@ export function useBreakPoints(
     });
 
     // Jede Layoutänderung im Inhalt (Tippen, Bullet hinzufügen) neu messen.
+    //
+    // FIX (Text "springt" innerhalb der Boxen während des Tippens): der
+    // ResizeObserver feuerte hier bisher SOFORT bei jeder Höhenänderung —
+    // bei schnellem Tippen also bei praktisch jedem Tastendruck. Jede dieser
+    // Messungen konnte neue Schnittpunkte (`cuts`) liefern, sobald eine Box
+    // über/unter eine Umbruchgrenze wuchs/schrumpfte — und jede Änderung der
+    // `cuts` verschiebt sofort ALLE nachfolgenden Boxen auf der sichtbaren
+    // A4-Seite (siehe `pageStart`/`-pageStart`-Offset in CVLiveEditorPage).
+    // Ergebnis: sichtbares Ruckeln/Springen von Text in Boxen während des
+    // Tippens, obwohl das Endergebnis nach Abschluss korrekt war.
+    //
+    // Ein kurzes Debounce lässt die Engine erst neu rechnen, wenn kurz Ruhe
+    // ist (z.B. zwischen Tastendrücken) statt bei jedem einzelnen Resize —
+    // das Endergebnis bleibt identisch, nur die sichtbaren Zwischenschritte
+    // während des Tippens verschwinden.
+    const RESIZE_DEBOUNCE_MS = 180;
+    let debounceId: ReturnType<typeof setTimeout> | undefined;
+    const scheduleDebounced = () => {
+      if (debounceId) clearTimeout(debounceId);
+      debounceId = setTimeout(schedule, RESIZE_DEBOUNCE_MS);
+    };
+
     let observer: ResizeObserver | null = null;
     if (root) {
-      observer = new ResizeObserver(schedule);
+      observer = new ResizeObserver(scheduleDebounced);
       observer.observe(root);
       for (const child of Array.from(root.children)) {
         if (child instanceof HTMLElement) observer.observe(child);
@@ -127,6 +149,7 @@ export function useBreakPoints(
     return () => {
       cancelled = true;
       cancelAnimationFrame(rafId);
+      if (debounceId) clearTimeout(debounceId);
       observer?.disconnect();
       images.forEach((img) => {
         img.removeEventListener('load', onImgLoad);
