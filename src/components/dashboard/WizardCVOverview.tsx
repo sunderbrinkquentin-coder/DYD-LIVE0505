@@ -9,6 +9,14 @@ interface WizardCVOverviewProps {
   cvId?: string | null;
   onClose: () => void;
   onContinue: (updatedData: CVBuilderData) => void;
+  /**
+   * 'create' (Standard): bisheriges Verhalten — Einstieg über "Neuen CV",
+   * mündet nach dem Speichern in Job-Targeting/Bezahl-Flow.
+   * 'profile': Einstieg über "Dein Profil" im Dashboard — reines
+   * Ansehen/Aktualisieren der Basisdaten, ohne Weiterleitung. Ändert nur
+   * Überschrift/CTA-Text, nicht die Dateneingabe selbst.
+   */
+  mode?: 'create' | 'profile';
 }
 
 function inputCls(extra = '') {
@@ -129,7 +137,8 @@ const VORTEILE = [
   },
 ];
 
-export function WizardCVOverview({ isOpen, cvData, cvId, onClose, onContinue }: WizardCVOverviewProps) {
+export function WizardCVOverview({ isOpen, cvData, cvId, onClose, onContinue, mode = 'create' }: WizardCVOverviewProps) {
+  const isProfileMode = mode === 'profile';
   const navigate = useNavigate();
 
   const [data, setData] = useState<CVBuilderData>(() => ({
@@ -300,14 +309,18 @@ export function WizardCVOverview({ isOpen, cvData, cvId, onClose, onContinue }: 
           <div className="relative px-6 py-6">
             <div className="flex items-center gap-2 mb-3">
               <span className="px-2.5 py-1 rounded-full text-[11px] font-bold bg-[#66c0b6]/20 text-[#66c0b6] border border-[#66c0b6]/30 uppercase tracking-wide">
-                Nächster Schritt
+                {isProfileMode ? 'Dein Profil' : 'Nächster Schritt'}
               </span>
             </div>
             <h2 className="text-2xl font-bold text-white leading-tight">
-              {firstName ? `${firstName}, mach mehr aus deinem Lebenslauf` : 'Mach mehr aus deinem Lebenslauf'}
+              {isProfileMode
+                ? 'Dein Profil – hat sich bei dir was verändert?'
+                : (firstName ? `${firstName}, mach mehr aus deinem Lebenslauf` : 'Mach mehr aus deinem Lebenslauf')}
             </h2>
             <p className="text-sm text-white/60 mt-2 leading-relaxed">
-              Wir schneiden deinen bestehenden CV passgenau auf deine Wunschstelle zu – und legen ihn direkt in deinem Bewerbungsmanagement ab.
+              {isProfileMode
+                ? 'Das sind die Daten aus deinem letzten Wizard-Durchlauf. Aktualisiere sie hier direkt, oder gehe für eine vollständige Überarbeitung Schritt für Schritt durch den Wizard.'
+                : 'Wir schneiden deinen bestehenden CV passgenau auf deine Wunschstelle zu – und legen ihn direkt in deinem Bewerbungsmanagement ab.'}
             </p>
 
             {stationCount > 0 && (
@@ -992,16 +1005,24 @@ export function WizardCVOverview({ isOpen, cvData, cvId, onClose, onContinue }: 
             onClick={() => onContinue({ ...data, languages: editLanguages })}
             className="w-full group flex items-center justify-center gap-2 px-5 py-3.5 rounded-xl font-bold transition-all shadow-lg text-sm bg-gradient-to-r from-[#66c0b6] to-[#30E3CA] text-black hover:opacity-90 hover:shadow-[#66c0b6]/30"
           >
-            <Target size={17} />
-            Jetzt auf meine Wunschstelle optimieren
-            <ArrowRight size={16} className="group-hover:translate-x-0.5 transition-transform" />
+            {isProfileMode ? (
+              <>
+                Änderungen speichern
+              </>
+            ) : (
+              <>
+                <Target size={17} />
+                Jetzt auf meine Wunschstelle optimieren
+                <ArrowRight size={16} className="group-hover:translate-x-0.5 transition-transform" />
+              </>
+            )}
           </button>
           <button
             onClick={goEditFull}
             className="w-full flex items-center justify-center gap-2 px-5 py-2.5 rounded-xl text-white/50 hover:text-white/80 font-medium transition-all text-xs"
           >
             <Pencil size={13} />
-            Lieber erst vollständig bearbeiten
+            {isProfileMode ? 'Stattdessen Schritt für Schritt durch den Wizard gehen' : 'Lieber erst vollständig bearbeiten'}
           </button>
         </div>
       </div>
