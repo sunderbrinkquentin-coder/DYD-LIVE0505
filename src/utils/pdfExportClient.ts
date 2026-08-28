@@ -353,8 +353,30 @@ function prepareClone(clone: HTMLElement, liveRoot: HTMLElement): void {
   }
 
   // contentEditable-Felder
-  const liveContentEditables = liveRoot.querySelectorAll<HTMLElement>('[contenteditable]');
-  clone.querySelectorAll<HTMLElement>('[contenteditable]').forEach((el, idx) => {
+  //
+  // FIX (Skills-Chips im PDF komplett zerschossen — leere Kästen, abgeschnittener
+  // Text, "Geister"-Grafiken an falscher Stelle): dieser Block ordnet Klon- und
+  // Live-Feldern dasselbe Element NUR über ihren INDEX in der jeweiligen
+  // querySelectorAll-Liste zu ("das N-te contentEditable im Klon entspricht dem
+  // N-ten im Original"). `[contenteditable]` als Selektor trifft aber JEDES
+  // Element mit dem Attribut, UNABHÄNGIG von seinem Wert — also auch
+  // `contentEditable={false}` (rendert als `contenteditable="false"`), wie es
+  // SectionDragHandle/ItemDragHandle in EditableText.tsx auf Griff und den
+  // beiden Auf/Ab-Pfeilen setzen (drei Stück pro Verschiebe-Control). Diese drei
+  // tragen zusätzlich die Klasse `.pdf-hidden` und werden weiter oben aus dem
+  // KLON entfernt — aus der LIVE-Liste aber nicht, die bleibt unangetastet.
+  // Damit zählt die Live-Liste pro Station/Zertifikat/Chip drei Eintraege MEHR
+  // als die Klon-Liste, und ab dem ERSTEN Vorkommen verschieben sich alle
+  // nachfolgenden Indizes gegeneinander — jedes Feld ab dort wird mit dem
+  // FALSCHEN Live-Element abgeglichen. Bei den Chips (die ihre Position/Größe
+  // 1:1 vom vermeintlichen Live-Partner übernehmen, siehe unten) sichtbar als
+  // leere Kästen, abgeschnittener Text oder Fragmente an falscher Stelle.
+  // Fix: Auswahl auf tatsächlich editierbare Elemente einschränken
+  // (`contenteditable="false"` ausschließen), auf BEIDEN Seiten identisch,
+  // damit die Zählung in Klon und Original wieder exakt übereinstimmt.
+  const EDITABLE_SELECTOR = '[contenteditable]:not([contenteditable="false"])';
+  const liveContentEditables = liveRoot.querySelectorAll<HTMLElement>(EDITABLE_SELECTOR);
+  clone.querySelectorAll<HTMLElement>(EDITABLE_SELECTOR).forEach((el, idx) => {
     const liveEl = liveContentEditables[idx] as HTMLElement | undefined;
     const preservedFontSize = liveEl?.style?.fontSize || el.style.fontSize || '';
     const preservedFontWeight = liveEl?.style?.fontWeight || el.style.fontWeight || '';
