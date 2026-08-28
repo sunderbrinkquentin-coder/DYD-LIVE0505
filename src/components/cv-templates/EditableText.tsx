@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
-import { GripVertical } from 'lucide-react';
+import { GripVertical, ChevronUp, ChevronDown } from 'lucide-react';
 
 export interface EditableTextProps {
   value?: string;
@@ -303,22 +303,69 @@ export const SectionDragHandle: React.FC<{
 }> = ({ index, onReorderSections, title = 'Ziehen zum Verschieben' }) => {
   if (!onReorderSections) return null;
   return (
-    <span
-      data-drag-handle
-      contentEditable={false}
-      suppressContentEditableWarning
-      className="pdf-hidden"
-      title={title}
-      style={dragHandleStyle}
-      onMouseDown={(e) =>
-        startPointerDrag(e, SECTION_DROP_ATTR, String(index), (targetValue) => {
-          const to = parseInt(targetValue, 10);
-          if (!isNaN(to)) onReorderSections(index, to);
-        })
-      }
-    >
-      <GripVertical size={16} />
-    </span>
+    <>
+      <span
+        data-drag-handle
+        contentEditable={false}
+        suppressContentEditableWarning
+        className="pdf-hidden"
+        title={title}
+        style={dragHandleStyle}
+        onMouseDown={(e) =>
+          startPointerDrag(e, SECTION_DROP_ATTR, String(index), (targetValue) => {
+            const to = parseInt(targetValue, 10);
+            if (!isNaN(to)) onReorderSections(index, to);
+          })
+        }
+      >
+        <GripVertical size={16} />
+      </span>
+      {/*
+       * FIX (Quentin, nach mehreren gescheiterten Anläufen mit reinem
+       * Drag&Drop): Ziehen hängt an zu vielen Dingen gleichzeitig — Hover-
+       * Sichtbarkeit, präzises Treffen eines winzigen Griffs, korrekte
+       * Drop-Ziel-Erkennung unter Skalierung. Fällt AUCH nur EINE dieser
+       * Voraussetzungen weg, bewegt sich nichts, ohne dass ersichtlich wäre,
+       * warum. Deshalb zusätzlich zwei stinknormale Buttons (Pfeil hoch /
+       * Pfeil runter), die exakt denselben `onReorderSections`-Callback
+       * aufrufen wie der Drag-Griff — simpler Klick, kein mousedown/mousemove/
+       * mouseup-Timing, keine Koordinaten, kein Drop-Ziel. Das MUSS
+       * funktionieren, weil es nur ein Button-Klick ist wie jeder andere in
+       * diesem Editor auch.
+       */}
+      <button
+        type="button"
+        data-drag-handle
+        contentEditable={false}
+        suppressContentEditableWarning
+        className="pdf-hidden"
+        title="Nach oben verschieben"
+        style={moveUpButtonStyle}
+        onClick={(e) => {
+          e.preventDefault();
+          e.stopPropagation();
+          onReorderSections(index, index - 1);
+        }}
+      >
+        <ChevronUp size={14} />
+      </button>
+      <button
+        type="button"
+        data-drag-handle
+        contentEditable={false}
+        suppressContentEditableWarning
+        className="pdf-hidden"
+        title="Nach unten verschieben"
+        style={moveDownButtonStyle}
+        onClick={(e) => {
+          e.preventDefault();
+          e.stopPropagation();
+          onReorderSections(index, index + 1);
+        }}
+      >
+        <ChevronDown size={14} />
+      </button>
+    </>
   );
 };
 
@@ -335,27 +382,64 @@ export const ItemDragHandle: React.FC<{
   if (!onReorderSectionItem) return null;
   const selfKey = `${sectionIndex}:${itemIndex}`;
   return (
-    <span
-      data-drag-handle
-      contentEditable={false}
-      suppressContentEditableWarning
-      className="pdf-hidden"
-      title={title}
-      style={dragHandleStyle}
-      onMouseDown={(e) =>
-        startPointerDrag(e, ITEM_DROP_ATTR, selfKey, (targetValue) => {
-          const [targetSection, targetItem] = targetValue.split(':').map((v) => parseInt(v, 10));
-          // Nur innerhalb derselben Sektion verschieben — zwischen Sektionen
-          // (z. B. eine Berufsstation nach Ausbildung ziehen) würde das
-          // Datenschema brechen.
-          if (targetSection === sectionIndex && !isNaN(targetItem)) {
-            onReorderSectionItem(sectionIndex, itemIndex, targetItem);
-          }
-        })
-      }
-    >
-      <GripVertical size={16} />
-    </span>
+    <>
+      <span
+        data-drag-handle
+        contentEditable={false}
+        suppressContentEditableWarning
+        className="pdf-hidden"
+        title={title}
+        style={dragHandleStyle}
+        onMouseDown={(e) =>
+          startPointerDrag(e, ITEM_DROP_ATTR, selfKey, (targetValue) => {
+            const [targetSection, targetItem] = targetValue.split(':').map((v) => parseInt(v, 10));
+            // Nur innerhalb derselben Sektion verschieben — zwischen Sektionen
+            // (z. B. eine Berufsstation nach Ausbildung ziehen) würde das
+            // Datenschema brechen.
+            if (targetSection === sectionIndex && !isNaN(targetItem)) {
+              onReorderSectionItem(sectionIndex, itemIndex, targetItem);
+            }
+          })
+        }
+      >
+        <GripVertical size={16} />
+      </span>
+      {/* Gleicher Grund wie bei SectionDragHandle: zwei normale Buttons als
+       * unverwüstliche Alternative zum Ziehen — simpler Klick statt
+       * mousedown/mousemove/mouseup-Choreografie. */}
+      <button
+        type="button"
+        data-drag-handle
+        contentEditable={false}
+        suppressContentEditableWarning
+        className="pdf-hidden"
+        title="Nach oben verschieben"
+        style={moveUpButtonStyle}
+        onClick={(e) => {
+          e.preventDefault();
+          e.stopPropagation();
+          onReorderSectionItem(sectionIndex, itemIndex, itemIndex - 1);
+        }}
+      >
+        <ChevronUp size={14} />
+      </button>
+      <button
+        type="button"
+        data-drag-handle
+        contentEditable={false}
+        suppressContentEditableWarning
+        className="pdf-hidden"
+        title="Nach unten verschieben"
+        style={moveDownButtonStyle}
+        onClick={(e) => {
+          e.preventDefault();
+          e.stopPropagation();
+          onReorderSectionItem(sectionIndex, itemIndex, itemIndex + 1);
+        }}
+      >
+        <ChevronDown size={14} />
+      </button>
+    </>
   );
 };
 
@@ -374,6 +458,36 @@ const dragHandleStyle: React.CSSProperties = {
   borderRadius: '3px',
   zIndex: 10,
 };
+
+// WICHTIG: NICHT unter den Ziehgriff stapeln (top: 21px, 40px, …) — das
+// haben wir zuerst versucht und es hat bei dicht aufeinanderfolgenden
+// Karten/Items (z. B. zwei Zertifikate kurz hintereinander) dazu geführt,
+// dass der Verschieb-Griff der EINEN Karte optisch/funktional mit den
+// Pfeil-Buttons der DARÜBERLIEGENDEN Karte überlappt — Klicks landeten auf
+// dem falschen Element. Deshalb jetzt in EINER Reihe NEBEN dem Griff
+// (gleiche Höhe wie der Griff, nur weiter nach links in den Seitenrand),
+// nicht darunter — dadurch bleibt der gesamte Kontrollblock exakt so hoch
+// wie vorher nur der Griff allein, und es gibt keine neue Überlappung mit
+// der nächsten Karte darunter.
+const moveButtonBaseStyle: React.CSSProperties = {
+  position: 'absolute',
+  top: '-2px',
+  width: '18px',
+  height: '22px',
+  display: 'flex',
+  alignItems: 'center',
+  justifyContent: 'center',
+  cursor: 'pointer',
+  color: '#475569',
+  background: '#e2e8f0',
+  border: '1px solid #cbd5e1',
+  borderRadius: '3px',
+  padding: 0,
+  zIndex: 10,
+};
+
+const moveUpButtonStyle: React.CSSProperties = { ...moveButtonBaseStyle, left: '-44px' };
+const moveDownButtonStyle: React.CSSProperties = { ...moveButtonBaseStyle, left: '-64px' };
 
 /** Drag-Handler zum Verschieben einzelner Items INNERHALB einer Sektion
  *  (z. B. eine Berufsstation über eine andere ziehen). Nutzt eigene
