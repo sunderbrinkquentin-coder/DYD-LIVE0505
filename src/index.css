@@ -1,7 +1,16 @@
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap');
-@import url('https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@700;900&display=swap');
-@import url('https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;700;800;900&display=swap');
-@import url('https://fonts.googleapis.com/css2?family=Arimo:wght@400;600;700&display=swap');
+/* FIX ("Text/Boxen springen kurz nach dem Rendern"): `display=swap` malt
+   sofort mit der Fallback-Schrift und tauscht dann, sobald das Webfont
+   geladen ist — genau dieser Tausch ändert Zeichenbreiten und lässt Chips/
+   Boxen (z. B. die Skill-Chips im Modern-Template) sichtbar neu umbrechen.
+   `display=optional` gibt dem Webfont nur ein sehr kurzes Zeitfenster: kommt
+   es rechtzeitig, wird es benutzt; sonst bleibt für den kompletten
+   Seitenaufruf die Fallback-Schrift stehen — kein späterer Tausch, kein
+   sichtbares Springen mehr. Bereits gecachte Fonts (jeder Aufruf nach dem
+   ersten) laden ohnehin schnell genug und wirken dadurch unverändert. */
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=optional');
+@import url('https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@700;900&display=optional');
+@import url('https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;700;800;900&display=optional');
+@import url('https://fonts.googleapis.com/css2?family=Arimo:wght@400;600;700&display=optional');
 
 @tailwind base;
 @tailwind components;
@@ -432,4 +441,3 @@
 .b2b-glow-blob-2 {
   animation: b2b-drift 18s ease-in-out infinite reverse;
 }
-
