@@ -354,7 +354,7 @@ export const CreativeCVTemplate: React.FC<CVTemplateProps> = ({
                         {!(exp.location || exp.ort) && !revealed.has(`exp-${idx}-location`) && (
                           <AddFieldButton label="Ort hinzufügen" onClick={() => reveal(`exp-${idx}-location`)} />
                         )}
-                        {!exp.description && !revealed.has(`exp-${idx}-description`) && (
+                        {bullets.length === 0 && !exp.description && !revealed.has(`exp-${idx}-description`) && (
                           <AddFieldButton label="Kurzbeschreibung hinzufügen" onClick={() => reveal(`exp-${idx}-description`)} />
                         )}
                       </div>
@@ -371,7 +371,15 @@ export const CreativeCVTemplate: React.FC<CVTemplateProps> = ({
                     {renderDateRange(sectionIndex, idx, exp)}
                   </div>
 
-                  {(exp.description || revealed.has(`exp-${idx}-description`)) && (
+                  {/* description und bullets NIE gleichzeitig — getBullets()
+                      leitet Bullets AUS description ab, wenn bulletPoints
+                      leer ist. description hier zusätzlich als Fließtext zu
+                      zeigen rendert denselben Inhalt doppelt (einmal als
+                      Satz, einmal als Bullets darunter) — das war der
+                      gemeldete "Kontext-Satz vor den Bullets". Sein
+                      description-Feld kommt real befüllt aus der
+                      Make/Supabase-Anbindung, ist also nie leer. */}
+                  {bullets.length === 0 && (exp.description || revealed.has(`exp-${idx}-description`)) && (
                     <EditableText
                       multiline
                       className="mt-0.5 leading-snug"
