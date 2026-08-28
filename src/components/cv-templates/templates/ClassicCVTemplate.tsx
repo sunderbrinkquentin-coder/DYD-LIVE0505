@@ -137,8 +137,6 @@ export const ClassicCVTemplate: React.FC<CVTemplateProps> = ({
   const experienceIndex = findSectionIndex('experience');
   const educationIndex = findSectionIndex('education');
   const projectsIndex = findSectionIndex('projects');
-  const skillsIndex = findSectionIndex('skills');
-  const softSkillsIndex = findSectionIndex('soft_skills');
   const languagesIndex = findSectionIndex('languages');
   const workValuesIndex = findSectionIndex('work_values');
 
@@ -553,9 +551,15 @@ export const ClassicCVTemplate: React.FC<CVTemplateProps> = ({
                   value={level}
                   onChange={(val) => onUpdateSectionItem(languagesIndex, idx, 'level', val)}
                   className="font-medium text-right flex-shrink-0"
-                  style={{ fontSize: '9px', width: '68px', color: t.muted }}
+                  // FIX (Zeilenumbruch bei "Grundkenntnisse"): eine feste
+                  // width:68px war für längere Niveau-Wörter zu schmal und
+                  // erzwang mit `wrap` einen Umbruch auf zwei Zeilen. Jetzt
+                  // ohne feste Breite (das Feld nimmt genau den Platz, den
+                  // sein Text braucht) und explizit `nowrap` + sichtbarer
+                  // Overflow statt Ellipsis — das Niveau bleibt garantiert in
+                  // einer Zeile, die Sprache (flex-1) weicht stattdessen aus.
+                  style={{ fontSize: '9px', color: t.muted, whiteSpace: 'nowrap', overflow: 'visible', textOverflow: 'unset' }}
                   placeholder="Niveau"
-                  wrap
                 />
               </li>
             );
@@ -669,90 +673,158 @@ export const ClassicCVTemplate: React.FC<CVTemplateProps> = ({
     );
   };
 
-  // ─── Seitenspalten-Sektionen (Zertifikate, Stipendien, …) ─────────────────
-  const renderSidebarSections = () =>
-    sections.map((section, index) => {
-      if (!SIDEBAR_TYPES.includes(section.type)) return null;
-      const items = Array.isArray(section.items) ? section.items : [];
-      if (!items.length) return null;
+  // ─── Eine Seitenspalten-Sektion (Zertifikate, Stipendien, Ehrenamt, …) ────
+  //
+  // FIX (Blöcke ließen sich nicht verschieben): Diese Funktion rendert jetzt
+  // GENAU EINE Sektion an ihrem tatsächlichen `index` in `sections` — vorher
+  // iterierte sie selbst über ALLE Sektionen und wurde dabei immer NACH
+  // Fähigkeiten/Soft Skills/Sprachen aufgerufen (siehe renderAsideSections
+  // unten). Das Drag&Drop aktualisierte zwar `sections`, aber die Reihenfolge
+  // auf dem Papier blieb: Fähigkeiten → Soft Skills → Sprachen → Zertifikate/
+  // Stipendien/Ehrenamt, IMMER in dieser Gruppen-Reihenfolge. Jetzt bestimmt
+  // ausschließlich die Position in `sections` die Position auf der Seite.
+  //
+  // FEATURE (Zeitspanne + Ort nachträglich ergänzbar): Zertifikate, Stipendien
+  // und Ehrenamt haben nicht immer von Anfang an einen Ort oder Zeitraum.
+  // Analog zum "+"-Muster bei Berufserfahrung/Ausbildung blendet ein kleiner
+  // "+"-Button das jeweilige Feld gezielt ein, statt es dauerhaft leer
+  // vorzuhalten.
+  const renderSidebarSection = (section: any, index: number) => {
+    const items = Array.isArray(section.items) ? section.items : [];
+    if (!items.length) return null;
 
-      const label = section.title || SIDEBAR_LABELS[section.type] || section.type;
+    const label = section.title || SIDEBAR_LABELS[section.type] || section.type;
 
-      return (
-        <div
-          key={index}
-          className="mb-6"
-          data-pdf-section
-          data-break-atomic
-          {...dragProps(index, onReorderSections)}
-          style={{ position: 'relative', cursor: onReorderSections ? 'grab' : undefined }}
-        >
-          <SectionDragHandle index={index} onReorderSections={onReorderSections} />
-          <AsideTitle>{label}</AsideTitle>
-          <div>
-            {items.map((item: any, idx: number) => {
-              const name = item.name || item.title || item.label || item.degree || '';
-              const institution = item.institution || item.issuer || item.company || item.organization || '';
-              const date = item.date || item.date_from || item.year || '';
+    return (
+      <div
+        key={index}
+        className="mb-6"
+        data-pdf-section
+        data-break-atomic
+        {...dragProps(index, onReorderSections)}
+        style={{ position: 'relative', cursor: onReorderSections ? 'grab' : undefined }}
+      >
+        <SectionDragHandle index={index} onReorderSections={onReorderSections} />
+        <AsideTitle>{label}</AsideTitle>
+        <div>
+          {items.map((item: any, idx: number) => {
+            const name = item.name || item.title || item.label || item.degree || '';
+            const institution = item.institution || item.issuer || item.company || item.organization || '';
+            // Zeitspanne: entweder bereits als fertiger String (`date`) oder
+            // aus getrennten Feldern (date_from/date_to bzw. startDate/
+            // endDate, z. B. aus dem Ehrenamt-Schritt) zusammengesetzt.
+            const rangeFrom = item.date_from || item.startDate || '';
+            const rangeTo = item.current ? 'Heute' : (item.date_to || item.endDate || '');
+            const composedRange = rangeFrom && rangeTo ? `${rangeFrom} – ${rangeTo}` : rangeFrom;
+            const dateValue = item.date || composedRange || item.year || '';
+            const location = item.location || item.ort || '';
+            const itemKey = `sidebar-${index}-${idx}`;
+            const showLocationBtn = !location && !revealed.has(`${itemKey}-location`);
+            const showRangeBtn = !dateValue && !revealed.has(`${itemKey}-zeitraum`);
 
-              return (
-                <div
-                  key={idx}
-                  style={{ display: 'block', marginBottom: '6px', position: 'relative', cursor: onReorderSectionItem ? 'grab' : undefined }}
-                  {...itemDragProps(index, idx, onReorderSectionItem)}
-                >
-                  <ItemDragHandle sectionIndex={index} itemIndex={idx} onReorderSectionItem={onReorderSectionItem} />
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: '8px' }}>
-                    {/* FIX (abgeschnittene Zertifikate/Weiterbildungen): `flex: 1,
-                        minWidth: 0` erlaubte diesem Wrapper, unter die
-                        Inhaltsbreite zu schrumpfen — kombiniert mit dem
-                        FEHLENDEN `wrap` auf den EditableTexts unten (Default:
-                        nowrap + overflow:hidden + ellipsis) wurde jeder etwas
-                        längere Name/Titel einfach mit "…" abgeschnitten statt
-                        umzubrechen. Jetzt: kein min-w-0 (Feld darf nicht unter
-                        seine Wortbreite schrumpfen, siehe Ausbildung/degree
-                        oben) + `wrap` auf beiden Feldern, exakt das gleiche
-                        Muster wie bei Berufserfahrung/Ausbildung. */}
-                    <div style={{ flex: 1 }}>
-                      <div style={{ fontWeight: 600, fontSize: '9.5px' }}>
-                        <EditableText
-                          value={name}
-                          onChange={(val) => onUpdateSectionItem(index, idx, 'name', val)}
-                          style={{ color: t.text }}
-                          placeholder="Name/Titel"
-                          wrap
-                        />
-                      </div>
-                      {institution && (
-                        <div style={{ marginTop: '2px' }}>
-                          <EditableText
-                            value={institution}
-                            onChange={(val) => onUpdateSectionItem(index, idx, 'institution', val)}
-                            style={{ fontSize: '9px', color: t.muted }}
-                            placeholder="Institution"
-                            wrap
-                          />
-                        </div>
-                      )}
+            return (
+              <div
+                key={idx}
+                style={{ display: 'block', marginBottom: '6px', position: 'relative', cursor: onReorderSectionItem ? 'grab' : undefined }}
+                {...itemDragProps(index, idx, onReorderSectionItem)}
+              >
+                <ItemDragHandle sectionIndex={index} itemIndex={idx} onReorderSectionItem={onReorderSectionItem} />
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: '8px' }}>
+                  {/* FIX (abgeschnittene Zertifikate/Weiterbildungen): `flex: 1,
+                      minWidth: 0` erlaubte diesem Wrapper, unter die
+                      Inhaltsbreite zu schrumpfen — kombiniert mit dem
+                      FEHLENDEN `wrap` auf den EditableTexts unten (Default:
+                      nowrap + overflow:hidden + ellipsis) wurde jeder etwas
+                      längere Name/Titel einfach mit "…" abgeschnitten statt
+                      umzubrechen. Jetzt: kein min-w-0 (Feld darf nicht unter
+                      seine Wortbreite schrumpfen, siehe Ausbildung/degree
+                      oben) + `wrap` auf beiden Feldern, exakt das gleiche
+                      Muster wie bei Berufserfahrung/Ausbildung. */}
+                  <div style={{ flex: 1 }}>
+                    <div style={{ fontWeight: 600, fontSize: '9.5px' }}>
+                      <EditableText
+                        value={name}
+                        onChange={(val) => onUpdateSectionItem(index, idx, 'name', val)}
+                        style={{ color: t.text }}
+                        placeholder="Name/Titel"
+                        wrap
+                      />
                     </div>
-                    {date && (
-                      <div style={{ whiteSpace: 'nowrap', flexShrink: 0 }}>
+                    {institution && (
+                      <div style={{ marginTop: '2px' }}>
                         <EditableText
-                          value={date}
-                          onChange={(val) => onUpdateSectionItem(index, idx, 'date', val)}
-                          className="text-right"
+                          value={institution}
+                          onChange={(val) => onUpdateSectionItem(index, idx, 'institution', val)}
                           style={{ fontSize: '9px', color: t.muted }}
-                          placeholder="Datum"
+                          placeholder="Institution"
+                          wrap
                         />
                       </div>
                     )}
                   </div>
+                  {dateValue && (
+                    <div style={{ whiteSpace: 'nowrap', flexShrink: 0 }}>
+                      <EditableText
+                        value={dateValue}
+                        onChange={(val) => onUpdateSectionItem(index, idx, 'date', val)}
+                        className="text-right"
+                        style={{ fontSize: '9px', color: t.muted }}
+                        placeholder="Datum"
+                      />
+                    </div>
+                  )}
                 </div>
-              );
-            })}
-          </div>
+
+                {(showLocationBtn || showRangeBtn) && (
+                  <div className="flex items-center gap-1 mt-1">
+                    {showLocationBtn && (
+                      <AddFieldButton label="Ort hinzufügen" onClick={() => reveal(`${itemKey}-location`)} />
+                    )}
+                    {showRangeBtn && (
+                      <AddFieldButton label="Zeitraum hinzufügen" onClick={() => reveal(`${itemKey}-zeitraum`)} />
+                    )}
+                  </div>
+                )}
+
+                {(location || revealed.has(`${itemKey}-location`)) && (
+                  <EditableText
+                    value={location}
+                    onChange={(val) => onUpdateSectionItem(index, idx, 'location', val)}
+                    style={{ fontSize: '9px', color: t.faint, marginTop: '2px' }}
+                    placeholder="Ort"
+                  />
+                )}
+
+                {(!dateValue && revealed.has(`${itemKey}-zeitraum`)) && (
+                  <EditableText
+                    value=""
+                    onChange={(val) => onUpdateSectionItem(index, idx, 'date', val)}
+                    style={{ fontSize: '9px', color: t.muted, marginTop: '2px' }}
+                    placeholder="z.B. 03/2022 – 06/2022"
+                  />
+                )}
+              </div>
+            );
+          })}
         </div>
-      );
+      </div>
+    );
+  };
+
+  // ─── Seitenspalte: Reihenfolge folgt strikt `sections` ────────────────────
+  // Fähigkeiten, Soft Skills, Sprachen und die Zertifikate/Stipendien/
+  // Ehrenamt-Blöcke landen alle hier — welcher zuerst kommt, entscheidet
+  // ausschließlich ihre Position in `sections`, nicht mehr eine feste
+  // Aufrufreihenfolge im Code. Dadurch funktioniert Drag&Drop endlich für
+  // ALLE vier Blocktypen gleichermaßen.
+  const ASIDE_TYPES = ['skills', 'soft_skills', 'languages', ...SIDEBAR_TYPES];
+  const renderAsideSections = () =>
+    sections.map((section, index) => {
+      if (!ASIDE_TYPES.includes(section.type)) return null;
+      if (section.type === 'skills') return <React.Fragment key={index}>{renderChipSection('Fähigkeiten', index)}</React.Fragment>;
+      if (section.type === 'soft_skills') return <React.Fragment key={index}>{renderChipSection('Soft Skills', index)}</React.Fragment>;
+      if (section.type === 'languages') return <React.Fragment key={index}>{renderLanguages()}</React.Fragment>;
+      return renderSidebarSection(section, index);
     });
 
   // ─── Unbekannte Sektionen in der Hauptspalte ──────────────────────────────
@@ -865,14 +937,28 @@ export const ClassicCVTemplate: React.FC<CVTemplateProps> = ({
                   placeholder="Dein Name"
                   multiline
                 />
-                <EditableText
-                  value={personalInfo.title}
-                  onChange={(val) => onUpdatePersonalInfo('title', val)}
-                  className="font-bold mt-1.5 text-center uppercase tracking-widest"
-                  style={{ fontSize: '12px', color: t.muted }}
-                  placeholder="Berufsbezeichnung"
-                  multiline
-                />
+                <div className="flex items-center justify-center gap-1 mt-1.5">
+                  <EditableText
+                    value={personalInfo.title}
+                    onChange={(val) => onUpdatePersonalInfo('title', val)}
+                    className="font-bold text-center uppercase tracking-widest"
+                    style={{ fontSize: '12px', color: t.muted }}
+                    placeholder="Berufsbezeichnung"
+                    multiline
+                  />
+                  {!personalInfo.location && !revealed.has('header-location') && (
+                    <AddFieldButton label="Ort hinzufügen" onClick={() => reveal('header-location')} />
+                  )}
+                </div>
+                {(personalInfo.location || revealed.has('header-location')) && (
+                  <EditableText
+                    value={personalInfo.location || ''}
+                    onChange={(val) => onUpdatePersonalInfo('location', val)}
+                    className="text-center mt-1"
+                    style={{ fontSize: '9.5px', color: t.faint }}
+                    placeholder="Ort"
+                  />
+                )}
               </div>
             </div>
 
@@ -910,10 +996,7 @@ export const ClassicCVTemplate: React.FC<CVTemplateProps> = ({
               </div>
             </div>
 
-            {renderChipSection('Fähigkeiten', skillsIndex)}
-            {renderChipSection('Soft Skills', softSkillsIndex)}
-            {renderLanguages()}
-            {renderSidebarSections()}
+            {renderAsideSections()}
           </aside>
 
           {/* ── Rechte Spalte ─────────────────────────────────────────────── */}
