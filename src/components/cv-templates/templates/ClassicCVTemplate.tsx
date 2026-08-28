@@ -105,6 +105,12 @@ export const ClassicCVTemplate: React.FC<CVTemplateProps> = ({
   const [revealed, setRevealed] = useState<Set<string>>(new Set());
   const reveal = (key: string) => setRevealed((prev) => new Set(prev).add(key));
 
+  // FIX (Quentin: Button war praktisch unsichtbar): früher `border: dashed`
+  // + `background: transparent` + `color: t.faint` — bewusst dezent gedacht
+  // für einen Button, der nur bei Hover kurz auftaucht. Jetzt ist er
+  // DAUERHAFT sichtbar (siehe CVLiveEditorPage.tsx, .pdf-hidden ist nicht
+  // mehr opacity:0-per-default), also braucht er echten Kontrast, sonst
+  // findet ihn niemand. Volle Füllfarbe + sichtbarer Rand statt gestrichelt.
   const AddFieldButton: React.FC<{ onClick: () => void; label: string }> = ({ onClick, label }) => (
     <button
       type="button"
@@ -115,20 +121,20 @@ export const ClassicCVTemplate: React.FC<CVTemplateProps> = ({
         display: 'inline-flex',
         alignItems: 'center',
         justifyContent: 'center',
-        width: '14px',
-        height: '14px',
-        marginLeft: '6px',
+        width: '16px',
+        height: '16px',
         verticalAlign: 'middle',
-        border: `1px dashed ${t.border}`,
+        border: `1px solid ${t.accent}`,
         borderRadius: '3px',
-        background: 'transparent',
-        color: t.faint,
+        background: t.surface,
+        color: t.accent,
         cursor: 'pointer',
         padding: 0,
         lineHeight: 1,
+        boxShadow: '0 1px 2px rgba(0,0,0,0.15)',
       }}
     >
-      <Plus size={10} />
+      <Plus size={11} />
     </button>
   );
 
@@ -280,7 +286,7 @@ export const ClassicCVTemplate: React.FC<CVTemplateProps> = ({
                       Kurzbeschreibung läuft ausschließlich über die Bulletliste
                       unten (genau wie bei Minimal/Professional/Creative). */}
                   {!(item.location || item.ort) && !revealed.has(`exp-${idx}-location`) && (
-                    <div className="pdf-hidden flex items-center gap-0.5">
+                    <div data-inline-control className="pdf-hidden flex items-center gap-0.5">
                       <AddFieldButton label="Ort hinzufügen" onClick={() => reveal(`exp-${idx}-location`)} />
                     </div>
                   )}
@@ -412,7 +418,7 @@ export const ClassicCVTemplate: React.FC<CVTemplateProps> = ({
                     wrap
                   />
                   {(!item.location && !revealed.has(`edu-${idx}-location`)) || (!item.description && !revealed.has(`edu-${idx}-description`)) ? (
-                    <div className="pdf-hidden flex items-center gap-0.5">
+                    <div data-inline-control className="pdf-hidden flex items-center gap-0.5">
                       {!item.location && !revealed.has(`edu-${idx}-location`) && (
                         <AddFieldButton label="Ort hinzufügen" onClick={() => reveal(`edu-${idx}-location`)} />
                       )}
@@ -802,7 +808,7 @@ export const ClassicCVTemplate: React.FC<CVTemplateProps> = ({
                         wrap
                       />
                       {(showLocationBtn || showRangeBtn) && (
-                        <div className="pdf-hidden flex items-center gap-0.5">
+                        <div data-inline-control className="pdf-hidden flex items-center gap-0.5">
                           {showLocationBtn && (
                             <AddFieldButton label="Ort hinzufügen" onClick={() => reveal(`${itemKey}-location`)} />
                           )}
