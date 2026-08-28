@@ -537,6 +537,22 @@ export function mapEditorDataToWizard(editorData: any): CVBuilderData {
 
   const safe = (v: any) => (v == null ? '' : String(v).trim());
 
+  // FIX (Ausbildung/Studium & Co. verschwinden nach dem Live-Editor):
+  // Sobald ein CV einmal im Live-Editor gespeichert wurde, liegt der Inhalt
+  // nicht mehr in flachen Feldern wie `editorData.education` vor, sondern
+  // ausschließlich in `editorData.sections[i].items` (siehe
+  // CVLiveEditorPage.prepareCvDataForSave). Diese Funktion kannte bisher NUR
+  // die flachen Feldnamen — beim erneuten Öffnen des Wizards (z.B. über den
+  // Dashboard-Profil-Dialog) wirkten dadurch Ausbildung, Skills, Sprachen
+  // usw. wie "verloren", obwohl sie in `sections` unverändert vorhanden
+  // waren.
+  const sectionsArr: any[] = Array.isArray(editorData.sections) ? editorData.sections : [];
+  const sectionItems = (types: string[]): any[] => {
+    const found = sectionsArr.find((s) => types.includes(s?.type));
+    return Array.isArray(found?.items) ? found.items : [];
+  };
+  const pickNonEmpty = (...arrs: any[][]): any[] => arrs.find((a) => Array.isArray(a) && a.length > 0) || [];
+
   const contact = editorData.contact || editorData.personal_data || editorData.personalInfo || {};
 
   const firstName =
@@ -570,12 +586,13 @@ export function mapEditorDataToWizard(editorData: any): CVBuilderData {
     photoUrl: safe(contact.photoUrl || contact.photo_url || contact.avatar),
   };
 
-  const rawExperience: any[] =
-    Array.isArray(editorData.experience) ? editorData.experience :
-    Array.isArray(editorData.experiences) ? editorData.experiences :
-    Array.isArray(editorData.work_experience) ? editorData.work_experience :
-    Array.isArray(editorData.workExperiences) ? editorData.workExperiences :
-    [];
+  const rawExperience: any[] = pickNonEmpty(
+    editorData.experience,
+    editorData.experiences,
+    editorData.work_experience,
+    editorData.workExperiences,
+    sectionItems(['experience']),
+  );
 
   const PRESENT_STRINGS = new Set(['present', 'heute', 'now', 'aktuell', 'bis heute', 'current', 'laufend', 'ongoing']);
 
@@ -635,6 +652,12 @@ export function mapEditorDataToWizard(editorData: any): CVBuilderData {
   });
 
   // School Education
+  // Kein sections-Fallback hier: CVLiveEditorPage führt Schule + Studium
+  // beim Speichern bereits zu EINER 'education'-Section zusammen (siehe
+  // dortige Kommentare zu `allEduItemsMapped`) — ein einzelnes Item lässt
+  // sich danach nicht mehr zuverlässig "Schule" oder "Studium" zuordnen.
+  // Der zusammengeführte Inhalt fließt stattdessen unten komplett in
+  // `professionalEducation`, damit nichts verloren geht.
   const rawSchoolEducation: any[] =
     Array.isArray(editorData.schoolEducation) ? editorData.schoolEducation :
     Array.isArray(editorData.schule) ? editorData.schule :
@@ -654,13 +677,16 @@ export function mapEditorDataToWizard(editorData: any): CVBuilderData {
     projects: [],
   }));
 
-  // Professional Education
-  const rawEducation: any[] =
-    Array.isArray(editorData.education) ? editorData.education :
-    Array.isArray(editorData.educations) ? editorData.educations :
-    Array.isArray(editorData.ausbildung) ? editorData.ausbildung :
-    Array.isArray(editorData.professionalEducation) ? editorData.professionalEducation :
-    [];
+  // Professional Education (nimmt auch die zusammengeführte
+  // Live-Editor-'education'-Section auf — siehe Kommentar bei
+  // rawSchoolEducation oben)
+  const rawEducation: any[] = pickNonEmpty(
+    editorData.education,
+    editorData.educations,
+    editorData.ausbildung,
+    editorData.professionalEducation,
+    sectionItems(['education']),
+  );
 
   const professionalEducation: CVBuilderData['professionalEducation'] = rawEducation.map((edu: any) => {
     const rawEduStart = safe(edu.von || edu.startYear || edu.start_year || edu.date_from || edu.start);
@@ -684,12 +710,13 @@ export function mapEditorDataToWizard(editorData: any): CVBuilderData {
   });
 
   // Hard Skills
-  const rawSkills: any[] =
-    Array.isArray(editorData.skills) ? editorData.skills :
-    Array.isArray(editorData.hard_skills) ? editorData.hard_skills :
-    Array.isArray(editorData.hardSkills) ? editorData.hardSkills :
-    Array.isArray(editorData.kenntnisse) ? editorData.kenntnisse :
-    [];
+  const rawSkills: any[] = pickNonEmpty(
+    editorData.skills,
+    editorData.hard_skills,
+    editorData.hardSkills,
+    editorData.kenntnisse,
+    sectionItems(['skills']),
+  );
 
   const hardSkills: CVBuilderData['hardSkills'] = rawSkills
     .map((s: any) => ({
@@ -701,10 +728,11 @@ export function mapEditorDataToWizard(editorData: any): CVBuilderData {
     .filter((s: any) => s.skill);
 
   // Soft Skills
-  const rawSoftSkills: any[] =
-    Array.isArray(editorData.soft_skills) ? editorData.soft_skills :
-    Array.isArray(editorData.softSkills) ? editorData.softSkills :
-    [];
+  const rawSoftSkills: any[] = pickNonEmpty(
+    editorData.soft_skills,
+    editorData.softSkills,
+    sectionItems(['soft_skills']),
+  );
 
   const softSkills: CVBuilderData['softSkills'] = rawSoftSkills
     .map((s: any) => ({
@@ -715,10 +743,11 @@ export function mapEditorDataToWizard(editorData: any): CVBuilderData {
     .filter((s: any) => s.skill);
 
   // Languages
-  const rawLanguages: any[] =
-    Array.isArray(editorData.languages) ? editorData.languages :
-    Array.isArray(editorData.sprachen) ? editorData.sprachen :
-    [];
+  const rawLanguages: any[] = pickNonEmpty(
+    editorData.languages,
+    editorData.sprachen,
+    sectionItems(['languages']),
+  );
 
   const languages: CVBuilderData['languages'] = rawLanguages
     .map((l: any) => ({
@@ -728,10 +757,11 @@ export function mapEditorDataToWizard(editorData: any): CVBuilderData {
     .filter((l: any) => l.language);
 
   // Projects
-  const rawProjects: any[] =
-    Array.isArray(editorData.projects) ? editorData.projects :
-    Array.isArray(editorData.projekte) ? editorData.projekte :
-    [];
+  const rawProjects: any[] = pickNonEmpty(
+    editorData.projects,
+    editorData.projekte,
+    sectionItems(['projects']),
+  );
 
   const projects: CVBuilderData['projects'] = rawProjects
     .map((p: any) => ({
@@ -748,27 +778,34 @@ export function mapEditorDataToWizard(editorData: any): CVBuilderData {
     .filter((p: any) => p.title);
 
   // Stipendien
-  const rawStipendien: any[] =
-    Array.isArray(editorData.stipendien) ? editorData.stipendien :
-    Array.isArray(editorData.scholarships) ? editorData.scholarships :
-    [];
+  const rawStipendien: any[] = pickNonEmpty(
+    editorData.stipendien,
+    editorData.scholarships,
+    sectionItems(['stipendien', 'scholarships']),
+  );
 
   const stipendien = rawStipendien.map((s: any) => ({
     name: safe(s.name || s.titel || ''),
     organization: safe(s.organization || s.organisation || s.issuer || ''),
-    year: safe(s.year || s.jahr || ''),
+    year: safe(s.year || s.jahr || s.date || ''),
     description: safe(s.description || s.beschreibung || ''),
   })).filter((s: any) => s.name);
 
   // Volunteer Work
-  const rawVolunteerWork: any[] =
-    Array.isArray(editorData.volunteerWork) ? editorData.volunteerWork :
-    Array.isArray(editorData.ehrenamt) ? editorData.ehrenamt :
-    [];
+  const rawVolunteerWork: any[] = pickNonEmpty(
+    editorData.volunteerWork,
+    editorData.ehrenamt,
+    sectionItems(['volunteering']),
+  );
 
   const volunteerWork = rawVolunteerWork.map((v: any) => {
-    const rawVolStart = safe(v.startDate || v.von || '');
-    const rawVolEnd = safe(v.endDate || v.bis || '');
+    // FIX: die 'volunteering'-Section im Live-Editor benennt die Felder wie
+    // Berufserfahrung (`title`/`company`/`date_from`/`date_to`) statt wie
+    // der Wizard (`role`/`organization`/`startDate`/`endDate`) — ohne diese
+    // Fallbacks fiel `role` leer aus und der Eintrag wurde unten komplett
+    // herausgefiltert.
+    const rawVolStart = safe(v.startDate || v.von || v.date_from || '');
+    const rawVolEnd = safe(v.endDate || v.bis || v.date_to || '');
     const volEndIsPresent = PRESENT_STRINGS.has(rawVolEnd.toLowerCase().trim());
     const volIsCurrent = !!(v.current || v.aktuell) || volEndIsPresent;
     const volStartParsed = parseDateToMonthYear(rawVolStart);
@@ -781,8 +818,8 @@ export function mapEditorDataToWizard(editorData: any): CVBuilderData {
         ? `${volEndParsed.year}-${volEndParsed.month}`
         : volEndParsed.year || rawVolEnd);
     return {
-      role: safe(v.role || v.rolle || v.position || ''),
-      organization: safe(v.organization || v.organisation || ''),
+      role: safe(v.role || v.rolle || v.position || v.title || ''),
+      organization: safe(v.organization || v.organisation || v.company || ''),
       startDate: normalizedVolStart,
       endDate: normalizedVolEnd,
       current: volIsCurrent,
@@ -792,10 +829,11 @@ export function mapEditorDataToWizard(editorData: any): CVBuilderData {
   }).filter((v: any) => v.role);
 
   // Certificates
-  const rawCertificates: any[] =
-    Array.isArray(editorData.certificates) ? editorData.certificates :
-    Array.isArray(editorData.zertifikate) ? editorData.zertifikate :
-    [];
+  const rawCertificates: any[] = pickNonEmpty(
+    editorData.certificates,
+    editorData.zertifikate,
+    sectionItems(['certifications']),
+  );
 
   const certificates = rawCertificates.map((c: any) => {
     const rawYear = safe(c.year || c.datum || c.jahr || c.date || '');
