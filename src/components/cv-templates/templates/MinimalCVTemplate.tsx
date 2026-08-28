@@ -599,46 +599,85 @@ export const MinimalCVTemplate: React.FC<CVTemplateProps> = ({
         <SectionTitle>{section.title || label}</SectionTitle>
         <div className="space-y-1.5">
           {items.map((item: any, idx: number) => {
-            const name = item.name || item.title || item.label || item.degree || '';
+            const name = item.name || item.title || item.label || item.degree || item.role || '';
             const institution = item.institution || item.issuer || item.company || item.organization || '';
-            const date = item.date || item.date_from || item.year || '';
+            // Zeitspanne aus fertigem String ODER getrennten Feldern
+            // (date_from/date_to bzw. startDate/endDate aus dem Ehrenamt-
+            // Schritt) — vorher fiel date_to/endDate hier still weg.
+            const rangeFrom = item.date_from || item.startDate || '';
+            const rangeTo = item.current ? 'Heute' : (item.date_to || item.endDate || '');
+            const composedRange = rangeFrom && rangeTo ? `${rangeFrom} – ${rangeTo}` : rangeFrom;
+            const date = item.date || composedRange || item.year || '';
+            const location = item.location || item.ort || '';
+            const itemKey = `detail-${sectionIndex}-${idx}`;
+            const showLocationBtn = !location && !revealed.has(`${itemKey}-location`);
+            const showRangeBtn = !date && !revealed.has(`${itemKey}-zeitraum`);
             if (!name) return null;
 
             return (
               <div
                 key={idx}
-                className="flex justify-between items-start gap-2"
-                style={{ fontSize: '9.5px', position: 'relative', cursor: onReorderSectionItem ? 'grab' : undefined }}
+                style={{ position: 'relative', cursor: onReorderSectionItem ? 'grab' : undefined }}
                 {...itemDragProps(sectionIndex, idx, onReorderSectionItem)}
               >
                 <ItemDragHandle sectionIndex={sectionIndex} itemIndex={idx} onReorderSectionItem={onReorderSectionItem} />
-                <div className="flex-1">
-                  <EditableText
-                    wrap
-                    className="font-semibold"
-                    style={{ color: t.text }}
-                    value={name}
-                    onChange={(val) => onUpdateSectionItem(sectionIndex, idx, 'name', val)}
-                    placeholder="Name / Titel"
-                  />
-                  {institution && (
+                <div className="flex justify-between items-start gap-2" style={{ fontSize: '9.5px' }}>
+                  <div className="flex-1">
                     <EditableText
                       wrap
-                      className="mt-0.5"
-                      style={{ fontSize: '9px', color: t.muted }}
-                      value={institution}
-                      onChange={(val) => onUpdateSectionItem(sectionIndex, idx, 'institution', val)}
-                      placeholder="Institution"
+                      className="font-semibold"
+                      style={{ color: t.text }}
+                      value={name}
+                      onChange={(val) => onUpdateSectionItem(sectionIndex, idx, 'name', val)}
+                      placeholder="Name / Titel"
+                    />
+                    {institution && (
+                      <EditableText
+                        wrap
+                        className="mt-0.5"
+                        style={{ fontSize: '9px', color: t.muted }}
+                        value={institution}
+                        onChange={(val) => onUpdateSectionItem(sectionIndex, idx, 'institution', val)}
+                        placeholder="Institution"
+                      />
+                    )}
+                  </div>
+                  {date && (
+                    <EditableText
+                      className="text-right"
+                      style={{ fontSize: '9px', color: t.muted, whiteSpace: 'nowrap', flexShrink: 0, width: 'auto' }}
+                      value={date}
+                      onChange={(val) => onUpdateSectionItem(sectionIndex, idx, 'date', val)}
+                      placeholder="Datum"
                     />
                   )}
                 </div>
-                {date && (
+                {(showLocationBtn || showRangeBtn) && (
+                  <div className="flex items-center gap-1 mt-0.5">
+                    {showLocationBtn && (
+                      <AddFieldButton label="Ort hinzufügen" onClick={() => reveal(`${itemKey}-location`)} />
+                    )}
+                    {showRangeBtn && (
+                      <AddFieldButton label="Zeitraum hinzufügen" onClick={() => reveal(`${itemKey}-zeitraum`)} />
+                    )}
+                  </div>
+                )}
+                {(location || revealed.has(`${itemKey}-location`)) && (
                   <EditableText
-                    className="text-right"
-                    style={{ fontSize: '9px', color: t.muted, whiteSpace: 'nowrap', flexShrink: 0, width: 'auto' }}
-                    value={date}
+                    className="mt-0.5"
+                    style={{ fontSize: '9px', color: t.faint }}
+                    value={location}
+                    onChange={(val) => onUpdateSectionItem(sectionIndex, idx, 'location', val)}
+                    placeholder="Ort"
+                  />
+                )}
+                {(!date && revealed.has(`${itemKey}-zeitraum`)) && (
+                  <EditableText
+                    className="mt-0.5"
+                    style={{ fontSize: '9px', color: t.muted }}
+                    value=""
                     onChange={(val) => onUpdateSectionItem(sectionIndex, idx, 'date', val)}
-                    placeholder="Datum"
+                    placeholder="z.B. 03/2022 – 06/2022"
                   />
                 )}
               </div>
@@ -693,13 +732,21 @@ export const MinimalCVTemplate: React.FC<CVTemplateProps> = ({
   const rightSections = sections.filter((s) => rightTypes.includes(s.type));
   const otherSections = sections.filter((s) => !leftTypes.includes(s.type) && !rightTypes.includes(s.type));
 
+  // FIX (Überschriften "nicht richtig abgehoben"): die rechte Spalte stapelt
+  // oft viele Sektionstypen (Ausbildung, Zertifikate, Fähigkeiten, Sprachen,
+  // Ehrenamt, Soft Skills, Stipendien, …) direkt untereinander. Sektionen ohne
+  // eigene Karten (Chips, Sprachen, Listen) hatten KEINEN Bottom-Abstand —
+  // nur `SectionTitle` selbst trägt `mb-2.5`. Die nächste Überschrift rückte
+  // dadurch direkt an den letzten Eintrag der vorigen Sektion heran, statt
+  // sich sichtbar davon abzusetzen. Jetzt trägt jede Sektion in der Spalte
+  // einen einheitlichen Bottom-Abstand.
   const renderColumn = (list: EditorSection[]) =>
     list.map((section) => {
       const index = sections.findIndex((s) => s === section);
       const content = renderSection(section, index);
       if (!content) return null;
       return (
-        <div key={index} {...dragProps(index, onReorderSections)} style={{ position: 'relative', cursor: onReorderSections ? 'grab' : undefined }}>
+        <div key={index} {...dragProps(index, onReorderSections)} style={{ position: 'relative', marginBottom: '20px', cursor: onReorderSections ? 'grab' : undefined }}>
           <SectionDragHandle index={index} onReorderSections={onReorderSections} />
           {content}
         </div>
@@ -734,15 +781,22 @@ export const MinimalCVTemplate: React.FC<CVTemplateProps> = ({
                 onChange={(val) => onUpdatePersonalInfo('name', val)}
                 placeholder="Dein Name"
               />
-              <EditableText
-                className="mt-1 font-semibold uppercase"
-                style={{ fontSize: '11px', color: t.accent, letterSpacing: '0.08em' }}
-                value={personalInfo.title || ''}
-                onChange={(val) => onUpdatePersonalInfo('title', val)}
-                placeholder="Berufsbezeichnung"
-              />
+              <div className="flex items-center gap-1 mt-1">
+                <EditableText
+                  className="font-semibold uppercase"
+                  style={{ fontSize: '11px', color: t.accent, letterSpacing: '0.08em' }}
+                  value={personalInfo.title || ''}
+                  onChange={(val) => onUpdatePersonalInfo('title', val)}
+                  placeholder="Berufsbezeichnung"
+                />
+                {!personalInfo.location?.trim() && !revealed.has('header-location') && (
+                  <AddFieldButton label="Ort hinzufügen" onClick={() => reveal('header-location')} />
+                )}
+              </div>
               <div className="mt-2.5 flex flex-wrap gap-x-4 gap-y-1" style={{ fontSize: '9.5px', color: t.muted }}>
-                <EditableText value={personalInfo.location || ''} onChange={(val) => onUpdatePersonalInfo('location', val)} placeholder="Ort" />
+                {(personalInfo.location?.trim() || revealed.has('header-location')) && (
+                  <EditableText value={personalInfo.location || ''} onChange={(val) => onUpdatePersonalInfo('location', val)} placeholder="Ort" />
+                )}
                 <EditableText value={personalInfo.phone || ''} onChange={(val) => onUpdatePersonalInfo('phone', val)} placeholder="Telefon" />
                 <EditableText value={personalInfo.email || ''} onChange={(val) => onUpdatePersonalInfo('email', val)} placeholder="E-Mail" />
                 <EditableText value={personalInfo.linkedin || ''} onChange={(val) => onUpdatePersonalInfo('linkedin', val)} placeholder="LinkedIn" />
