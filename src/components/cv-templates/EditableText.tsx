@@ -185,6 +185,75 @@ export interface CVTemplateProps {
   onReorderSectionItem?: (sectionIndex: number, fromIndex: number, toIndex: number) => void;
 }
 
+// ─── Pointer-basiertes Drag & Drop ─────────────────────────────────────────
+//
+// BUG (kein Block/keine Station ließ sich wirklich verschieben): die vorherige
+// Implementierung nutzte natives HTML5-Drag&Drop (`draggable` + `dragstart`/
+// `dragover`/`drop`). Genau dieser Mechanismus wird von Chromium (und anderen
+// Browsern) STILLSCHWEIGEND deaktiviert, sobald irgendein Vorfahre-Element
+// ein CSS `transform` trägt — `dragover`/`drop` feuern dann einfach nicht
+// mehr, ganz ohne Fehler in der Konsole. CVLiveEditorPage packt JEDE
+// sichtbare A4-Seite (und die gezoomte Fokus-Ansicht beim Klick in ein Feld)
+// grundsätzlich in `transform: scale(...)` — auch bei scale(1). Dadurch war
+// natives Drag&Drop in der echten Vorschau IMMER gebrochen, unabhängig davon,
+// welcher Block-Typ es war; nur die reine Render-Reihenfolge (bei manuell
+// geänderten Testdaten) sah vorher schon korrekt aus, weil sie nie über einen
+// echten Drag lief. Verifiziert per Playwright-Mausdrag: mit
+// `transform: scale(0.6)` (und sogar `scale(1)`) auf einem Vorfahren blieb
+// die Sektionsreihenfolge nach einem vollständigen mousedown→move→up exakt
+// unverändert; ohne jedes transform funktionierte derselbe Drag einwandfrei.
+//
+// Fix: eigenes, Transform-unabhängiges Drag&Drop über mousedown/mousemove/
+// mouseup + `document.elementFromPoint()` statt der nativen Browser-API.
+// Das Ziel wird beim Loslassen anhand eines data-Attributs auf dem
+// jeweiligen Container ermittelt — unabhängig von jeder CSS-Transformation
+// dazwischen, weil `elementFromPoint` mit echten Bildschirmkoordinaten
+// arbeitet, nicht mit dem (durch `transform` verzerrten) Layout-Koordinatensystem.
+
+const SECTION_DROP_ATTR = 'data-section-drop-index';
+const ITEM_DROP_ATTR = 'data-item-drop-key';
+
+/** Nur ein Drag kann je aktiv sein — räumt einen evtl. hängengebliebenen
+ *  vorherigen Drag auf (z. B. wenn mouseup außerhalb des Fensters verloren ging). */
+let activeDragCleanup: (() => void) | null = null;
+
+function startPointerDrag(
+  e: React.MouseEvent,
+  dropAttr: string,
+  selfValue: string,
+  onDrop: (targetValue: string) => void
+) {
+  // Nur die linke Maustaste startet einen Drag.
+  if (e.button !== 0) return;
+  e.preventDefault();
+  e.stopPropagation();
+
+  activeDragCleanup?.();
+
+  const onMouseUp = (ev: MouseEvent) => {
+    cleanup();
+    const el = document.elementFromPoint(ev.clientX, ev.clientY);
+    const targetEl = el ? (el as HTMLElement).closest(`[${dropAttr}]`) : null;
+    if (!targetEl) return;
+    const targetValue = targetEl.getAttribute(dropAttr);
+    if (targetValue !== null && targetValue !== selfValue) onDrop(targetValue);
+  };
+
+  // Verhindert Text-/Bild-Markierung während des Ziehens, ganz ohne natives
+  // HTML5-Drag zu benötigen.
+  const onSelectStart = (ev: Event) => ev.preventDefault();
+
+  function cleanup() {
+    window.removeEventListener('mouseup', onMouseUp, true);
+    document.removeEventListener('selectstart', onSelectStart);
+    activeDragCleanup = null;
+  }
+
+  activeDragCleanup = cleanup;
+  window.addEventListener('mouseup', onMouseUp, true);
+  document.addEventListener('selectstart', onSelectStart);
+}
+
 /** Drag-Handler für die Sektions-Umsortierung (ganze Abschnitte). Überall identisch. */
 export function dragProps(
   index: number,
@@ -192,18 +261,8 @@ export function dragProps(
 ) {
   if (!onReorderSections) return {};
   return {
-    draggable: true,
     style: { cursor: 'grab' as const },
-    onDragStart: (e: React.DragEvent) => {
-      e.dataTransfer.setData('text/plain', String(index));
-      e.dataTransfer.effectAllowed = 'move';
-    },
-    onDragOver: (e: React.DragEvent) => e.preventDefault(),
-    onDrop: (e: React.DragEvent) => {
-      e.preventDefault();
-      const from = parseInt(e.dataTransfer.getData('text/plain'), 10);
-      if (!isNaN(from) && from !== index) onReorderSections(from, index);
-    },
+    [SECTION_DROP_ATTR]: String(index),
   };
 }
 
@@ -248,14 +307,15 @@ export const SectionDragHandle: React.FC<{
       data-drag-handle
       contentEditable={false}
       suppressContentEditableWarning
-      draggable
       className="pdf-hidden"
       title={title}
       style={dragHandleStyle}
-      onDragStart={(e) => {
-        e.dataTransfer.setData('text/plain', String(index));
-        e.dataTransfer.effectAllowed = 'move';
-      }}
+      onMouseDown={(e) =>
+        startPointerDrag(e, SECTION_DROP_ATTR, String(index), (targetValue) => {
+          const to = parseInt(targetValue, 10);
+          if (!isNaN(to)) onReorderSections(index, to);
+        })
+      }
     >
       <GripVertical size={16} />
     </span>
@@ -273,20 +333,26 @@ export const ItemDragHandle: React.FC<{
   title?: string;
 }> = ({ sectionIndex, itemIndex, onReorderSectionItem, title = 'Ziehen zum Verschieben' }) => {
   if (!onReorderSectionItem) return null;
+  const selfKey = `${sectionIndex}:${itemIndex}`;
   return (
     <span
       data-drag-handle
       contentEditable={false}
       suppressContentEditableWarning
-      draggable
       className="pdf-hidden"
       title={title}
       style={dragHandleStyle}
-      onDragStart={(e) => {
-        e.dataTransfer.setData('application/x-item-index', String(itemIndex));
-        e.dataTransfer.setData('application/x-section-index', String(sectionIndex));
-        e.dataTransfer.effectAllowed = 'move';
-      }}
+      onMouseDown={(e) =>
+        startPointerDrag(e, ITEM_DROP_ATTR, selfKey, (targetValue) => {
+          const [targetSection, targetItem] = targetValue.split(':').map((v) => parseInt(v, 10));
+          // Nur innerhalb derselben Sektion verschieben — zwischen Sektionen
+          // (z. B. eine Berufsstation nach Ausbildung ziehen) würde das
+          // Datenschema brechen.
+          if (targetSection === sectionIndex && !isNaN(targetItem)) {
+            onReorderSectionItem(sectionIndex, itemIndex, targetItem);
+          }
+        })
+      }
     >
       <GripVertical size={16} />
     </span>
@@ -320,23 +386,6 @@ export function itemDragProps(
 ) {
   if (!onReorderSectionItem) return {};
   return {
-    draggable: true,
-    onDragStart: (e: React.DragEvent) => {
-      e.dataTransfer.setData('application/x-item-index', String(itemIndex));
-      e.dataTransfer.setData('application/x-section-index', String(sectionIndex));
-      e.dataTransfer.effectAllowed = 'move';
-    },
-    onDragOver: (e: React.DragEvent) => e.preventDefault(),
-    onDrop: (e: React.DragEvent) => {
-      e.preventDefault();
-      const fromSection = parseInt(e.dataTransfer.getData('application/x-section-index'), 10);
-      const fromItem = parseInt(e.dataTransfer.getData('application/x-item-index'), 10);
-      // Nur innerhalb derselben Sektion verschieben — zwischen Sektionen
-      // (z. B. eine Berufsstation nach Ausbildung ziehen) würde das
-      // Datenschema brechen.
-      if (fromSection === sectionIndex && !isNaN(fromItem) && fromItem !== itemIndex) {
-        onReorderSectionItem(sectionIndex, fromItem, itemIndex);
-      }
-    },
+    [ITEM_DROP_ATTR]: `${sectionIndex}:${itemIndex}`,
   };
 }
