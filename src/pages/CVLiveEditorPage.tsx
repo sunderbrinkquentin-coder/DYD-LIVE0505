@@ -1874,13 +1874,32 @@ const addSectionItem = (sectionIndex: number, defaultItem: any) => {
              Voraussetzung dafür, dass die Break-Engine auf beiden DOMs
              dasselbe Ergebnis liefert.
              ───────────────────────────────────────────────────────────────── */
+          /* FIX (Quentin, mehrere Runden Frust): die alte Loesung machte
+             .pdf-hidden standardmaessig opacity:0 + pointer-events:none und
+             blendete es NUR bei :hover ueber ganz bestimmte, direkte
+             Eltern-Selektoren wieder ein (data-break-item, data-spacer-id,
+             li, [data-chip-row] > span — jeweils nur DIREKTE Kinder). Jede
+             Karte/jeder Button, der davon abwich (Seitenspalten-Abschnitte
+             wie Zertifikate/Stipendien/Ehrenamt/Faehigkeiten/Sprachen sitzen
+             in data-break-atomic statt data-break-item; die Plus-Buttons
+             sassen mehrere Ebenen tiefer als ein direktes Kind), blieb
+             UNSICHTBAR UND UNKLICKBAR — komplett unabhaengig vom Hover.
+             Das ist zu fehleranfaellig fuer staendig neue Verschachtelungen.
+             Deshalb nicht mehr unsichtbar-ausser-bei-Hover-an-genau-dieser-
+             Stelle, sondern schlicht: IMMER sichtbar, IMMER klickbar. Fuers
+             PDF spielt das keine Rolle — der Export entfernt jeden Button
+             und jedes .pdf-hidden ohnehin komplett aus dem Klon (siehe
+             prepareClone in pdfExportClient.ts, Zeile mit querySelectorAll
+             fuer button und .pdf-hidden und das remove()), UNABHAENGIG von
+             opacity/pointer-events. position:absolute bleibt (kein Beitrag
+             zur Layout-Hoehe, siehe Kommentar oben in der Historie), nur
+             opacity/pointer-events/Hover-Gating faellt komplett weg. */
           .pdf-hidden {
             position: absolute !important;
             margin: 0 !important;
             z-index: 5;
-            opacity: 0;
-            pointer-events: none;
-            transition: opacity 0.12s ease;
+            opacity: 1;
+            pointer-events: auto;
             white-space: nowrap;
           }
           [data-break-item],
@@ -1914,40 +1933,27 @@ const addSectionItem = (sectionIndex: number, defaultItem: any) => {
             transform: translateY(-50%);
           }
 
-          [data-break-item]:hover > .pdf-hidden,
-          [data-spacer-id]:hover > .pdf-hidden,
-          li:hover > .pdf-hidden,
-          [data-chip-row] > span:hover > .pdf-hidden {
-            opacity: 1;
-            pointer-events: auto;
-          }
-
-          /* FIX (Quentin: Verschieben & "+"-Buttons reagieren bei Zertifikate/
-             Stipendien/Ehrenamt/Fähigkeiten/Sprachen/Sonstiges gar nicht,
-             obwohl der Code dafür da ist): .pdf-hidden ist standardmäßig
-             opacity:0 + pointer-events:none (siehe oben) und wird NUR durch
-             die vier :hover-Regeln direkt darüber wieder sichtbar/klickbar.
-             Diese vier Regeln decken aber nur data-break-item, data-spacer-id,
-             li und [data-chip-row] > span ab — UND nur DIREKTE Kinder (Kind-
-             Selektor '>'). Ganze Seitenspalten-Abschnitte (Zertifikate,
-             Stipendien, Ehrenamt, Fähigkeiten, Soft Skills, Sprachen) sitzen
-             aber in einer data-break-atomic-Box, nicht data-break-item — ihr
-             SectionDragHandle (der Verschieb-Griff ganz oben am Abschnitt)
-             matchte also KEINE der vier Regeln und blieb für immer unsichtbar
-             UND unklickbar, komplett unabhängig vom Hover. Das ist der
-             eigentliche Grund, warum sich bisher wirklich nur Ausbildung/
-             Berufserfahrung (die data-break-item nutzen) verschieben ließen.
-             Genauso saßen die neuen "+"-Buttons (Ort/Beschreibung/Zeitraum
-             hinzufügen) mehrere Ebenen tiefer als ein DIREKTES Kind ihrer Box
-             — auch sie matchten keine der vier Regeln und blieben unklickbar,
-             obwohl sie (unsichtbar) korrekt gerendert wurden. Deshalb hier
-             zusätzlich: data-break-atomic und data-pdf-section mit aufnehmen,
-             und generell mit Nachfahren-Selektor (Leerzeichen statt '>'),
-             damit JEDE Verschachtelungstiefe erfasst wird. */
-          [data-break-atomic]:hover .pdf-hidden,
-          [data-pdf-section]:hover .pdf-hidden {
-            opacity: 1;
-            pointer-events: auto;
+          /* FIX (Quentin: "+"-Button liegt fast unsichtbar auf dem Titeltext
+             statt sichtbar danach): .pdf-hidden erzwingt IMMER position:absolute
+             (siehe oben) und margin:0 !important. Fuer Buttons, die INLINE in
+             einer normalen Text-/Titelzeile sitzen sollen (z.B. Ort/Beschreibung
+             hinzufuegen direkt hinter einem Titel), ist genau das falsch:
+             position:absolute reisst sie aus dem Flex-Fluss, der Browser
+             faellt auf eine kaum vorhersagbare "statische Position" zurueck,
+             und der per Flex-Gap gedachte Abstand zum Titel wird ignoriert
+             (Gap wirkt nur auf Elemente, die noch im Fluss sind). Ergebnis:
+             der Button landete fast exakt auf dem ersten Buchstaben des
+             Titels statt sichtbar danach. Ein Wrapper mit data-inline-control
+             schaltet fuer alle .pdf-hidden-Kinder darin auf ganz normales
+             position:static zurueck — der Button bleibt dann ein stinknormales
+             Flex-Kind an der Stelle, an der er im Code steht, mit korrektem
+             Gap-Abstand. PDF-Export ist davon nicht betroffen: <button> wird
+             dort ohnehin komplett entfernt (siehe prepareClone in
+             pdfExportClient.ts), unabhaengig von position/opacity. */
+          [data-inline-control],
+          [data-inline-control] .pdf-hidden {
+            position: static !important;
+            display: inline-flex !important;
           }
 
           .nonce-export { display: none !important; }
@@ -1992,25 +1998,42 @@ const addSectionItem = (sectionIndex: number, defaultItem: any) => {
           const minHeightPx = breaks.containerHeight;
           const pageCount = breaks.pageCount;
 const reorderSections = (fromIndex: number, toIndex: number) => {
+            // FIX (Pfeil-Buttons an den Rändern): die neuen ▲/▼-Buttons rufen
+            // das hier stumpf mit index-1 bzw. index+1 auf — am ersten Eintrag
+            // wäre das -1, am letzten `length`. Ohne Clamping würde
+            // `splice(-1, 0, moved)` das Element vor das LETZTE einfügen
+            // (Sprung ans andere Ende) statt einfach nichts zu tun. Deshalb
+            // hier hart auf den gültigen Bereich begrenzen und bei "steht
+            // schon am Rand" einfach abbrechen.
             setHasEditorChanges(true);
             setEditorData((prev: any) => {
               if (!prev?.sections) return prev;
+              const len = prev.sections.length;
+              if (fromIndex < 0 || fromIndex >= len) return prev;
+              const clampedTo = Math.max(0, Math.min(toIndex, len - 1));
+              if (clampedTo === fromIndex) return prev;
               const newSections = [...prev.sections];
               const [moved] = newSections.splice(fromIndex, 1);
-              newSections.splice(toIndex, 0, moved);
+              newSections.splice(clampedTo, 0, moved);
               return { ...prev, sections: newSections };
             });
           };
 
           const reorderSectionItem = (sectionIndex: number, fromIndex: number, toIndex: number) => {
+            // Gleiches Clamping wie in `reorderSections` — siehe dortiger
+            // Kommentar.
             setHasEditorChanges(true);
             setEditorData((prev: any) => {
               if (!prev?.sections?.[sectionIndex]?.items) return prev;
+              const len = prev.sections[sectionIndex].items.length;
+              if (fromIndex < 0 || fromIndex >= len) return prev;
+              const clampedTo = Math.max(0, Math.min(toIndex, len - 1));
+              if (clampedTo === fromIndex) return prev;
               const newSections = [...prev.sections];
               const section = { ...newSections[sectionIndex] };
               const items = [...section.items];
               const [moved] = items.splice(fromIndex, 1);
-              items.splice(toIndex, 0, moved);
+              items.splice(clampedTo, 0, moved);
               section.items = items;
               newSections[sectionIndex] = section;
               return { ...prev, sections: newSections };
