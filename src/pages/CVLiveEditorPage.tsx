@@ -1922,6 +1922,34 @@ const addSectionItem = (sectionIndex: number, defaultItem: any) => {
             pointer-events: auto;
           }
 
+          /* FIX (Quentin: Verschieben & "+"-Buttons reagieren bei Zertifikate/
+             Stipendien/Ehrenamt/Fähigkeiten/Sprachen/Sonstiges gar nicht,
+             obwohl der Code dafür da ist): .pdf-hidden ist standardmäßig
+             opacity:0 + pointer-events:none (siehe oben) und wird NUR durch
+             die vier :hover-Regeln direkt darüber wieder sichtbar/klickbar.
+             Diese vier Regeln decken aber nur data-break-item, data-spacer-id,
+             li und [data-chip-row] > span ab — UND nur DIREKTE Kinder (Kind-
+             Selektor '>'). Ganze Seitenspalten-Abschnitte (Zertifikate,
+             Stipendien, Ehrenamt, Fähigkeiten, Soft Skills, Sprachen) sitzen
+             aber in einer data-break-atomic-Box, nicht data-break-item — ihr
+             SectionDragHandle (der Verschieb-Griff ganz oben am Abschnitt)
+             matchte also KEINE der vier Regeln und blieb für immer unsichtbar
+             UND unklickbar, komplett unabhängig vom Hover. Das ist der
+             eigentliche Grund, warum sich bisher wirklich nur Ausbildung/
+             Berufserfahrung (die data-break-item nutzen) verschieben ließen.
+             Genauso saßen die neuen "+"-Buttons (Ort/Beschreibung/Zeitraum
+             hinzufügen) mehrere Ebenen tiefer als ein DIREKTES Kind ihrer Box
+             — auch sie matchten keine der vier Regeln und blieben unklickbar,
+             obwohl sie (unsichtbar) korrekt gerendert wurden. Deshalb hier
+             zusätzlich: data-break-atomic und data-pdf-section mit aufnehmen,
+             und generell mit Nachfahren-Selektor (Leerzeichen statt '>'),
+             damit JEDE Verschachtelungstiefe erfasst wird. */
+          [data-break-atomic]:hover .pdf-hidden,
+          [data-pdf-section]:hover .pdf-hidden {
+            opacity: 1;
+            pointer-events: auto;
+          }
+
           .nonce-export { display: none !important; }
 
           .a4-page-frame {
