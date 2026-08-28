@@ -935,9 +935,20 @@ export const ProfessionalCVTemplate: React.FC<ProfessionalCVTemplateProps> = ({
               <SectionTitle>{sectionTitle}</SectionTitle>
               <ul className="space-y-0.5 text-[9.5px] text-slate-800">
                 {items.map((item: any, idx: number) => {
-                  const name = item.name || item.title || item.label || item.degree || '';
+                  const name = item.name || item.title || item.label || item.degree || item.role || '';
                   const institution = item.institution || item.company || item.issuer || item.organization || '';
-                  const date = item.date || item.date_from || item.year || '';
+                  // Zeitspanne: fertiger String (`date`) oder aus getrennten
+                  // Feldern zusammengesetzt (date_from/date_to bzw. startDate/
+                  // endDate, z. B. aus dem Ehrenamt-Schritt) — vorher fiel
+                  // date_to/endDate hier still unter den Tisch.
+                  const rangeFrom = item.date_from || item.startDate || '';
+                  const rangeTo = item.current ? 'Heute' : (item.date_to || item.endDate || '');
+                  const composedRange = rangeFrom && rangeTo ? `${rangeFrom} – ${rangeTo}` : rangeFrom;
+                  const date = item.date || composedRange || item.year || '';
+                  const location = item.location || item.ort || '';
+                  const itemKey = `detail-${sectionIndex}-${idx}`;
+                  const showLocationBtn = !location && !revealed.has(`${itemKey}-location`);
+                  const showRangeBtn = !date && !revealed.has(`${itemKey}-zeitraum`);
                   return (
                     <li
                       key={idx}
@@ -976,6 +987,34 @@ export const ProfessionalCVTemplate: React.FC<ProfessionalCVTemplateProps> = ({
                               onUpdateSectionItem(sectionIndex, idx, 'date', val)
                             }
                             placeholder="Datum"
+                          />
+                        </div>
+                      )}
+                      {(showLocationBtn || showRangeBtn) && (
+                        <div className="flex items-center gap-1 mt-0.5">
+                          {showLocationBtn && (
+                            <AddFieldButton label="Ort hinzufügen" onClick={() => reveal(`${itemKey}-location`)} />
+                          )}
+                          {showRangeBtn && (
+                            <AddFieldButton label="Zeitraum hinzufügen" onClick={() => reveal(`${itemKey}-zeitraum`)} />
+                          )}
+                        </div>
+                      )}
+                      {(location || revealed.has(`${itemKey}-location`)) && (
+                        <div style={{ fontSize: '9px', color: '#64748b', marginTop: '2px' }}>
+                          <EditableText
+                            value={location}
+                            onChange={(val) => onUpdateSectionItem(sectionIndex, idx, 'location', val)}
+                            placeholder="Ort"
+                          />
+                        </div>
+                      )}
+                      {(!date && revealed.has(`${itemKey}-zeitraum`)) && (
+                        <div style={{ fontSize: '9px', color: '#334155', marginTop: '2px' }}>
+                          <EditableText
+                            value=""
+                            onChange={(val) => onUpdateSectionItem(sectionIndex, idx, 'date', val)}
+                            placeholder="z.B. 03/2022 – 06/2022"
                           />
                         </div>
                       )}
@@ -1039,12 +1078,25 @@ export const ProfessionalCVTemplate: React.FC<ProfessionalCVTemplateProps> = ({
             onChange={(val) => onUpdatePersonalInfo('name', val)}
             placeholder="Name"
           />
-          <EditableText
-            className="mt-1 text-[12px] font-bold text-slate-200"
-            value={personalInfo.title || ''}
-            onChange={(val) => onUpdatePersonalInfo('title', val)}
-            placeholder="Berufsbezeichnung"
-          />
+          <div className="flex items-center gap-1 mt-1">
+            <EditableText
+              className="text-[12px] font-bold text-slate-200"
+              value={personalInfo.title || ''}
+              onChange={(val) => onUpdatePersonalInfo('title', val)}
+              placeholder="Berufsbezeichnung"
+            />
+            {!personalInfo.location?.trim() && !revealed.has('header-location') && (
+              <AddFieldButton label="Ort hinzufügen" onClick={() => reveal('header-location')} />
+            )}
+          </div>
+          {(!personalInfo.location?.trim() && revealed.has('header-location')) && (
+            <EditableText
+              className="mt-0.5 text-[9.5px] text-slate-300"
+              value={personalInfo.location || ''}
+              onChange={(val) => onUpdatePersonalInfo('location', val)}
+              placeholder="Ort"
+            />
+          )}
 
           <div className="mt-3 grid grid-cols-2 gap-x-4 gap-y-1 text-[9.5px] text-slate-100">
             <div className="flex items-center gap-1.5">
