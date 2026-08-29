@@ -271,6 +271,14 @@ export const ModernCVTemplate: React.FC<CVTemplateProps> = ({
   // "+"-Button (in der Kopfzeile der Station) es einblendet.
   const [revealed, setRevealed] = useState<Set<string>>(new Set());
   const reveal = (key: string) => setRevealed((prev) => new Set(prev).add(key));
+  // FIX (Quentin: "+" liegt über der Schrift, man kann dann manchmal nicht
+  // reinschreiben): dieselbe Ursache wie im Classic-/Professional-Template
+  // (siehe dortiger ausführlicher Kommentar). `.pdf-hidden` erzwingt global
+  // position:absolute + margin:0 !important — ohne den `data-inline-control`-
+  // Wrapper an jeder Einsatzstelle (siehe unten) landet der Button fast exakt
+  // auf dem Text davor statt sichtbar danach. Zusätzlich jetzt deutlich
+  // kontrastreicher (vorher: fast unsichtbarer gestrichelter Rahmen), damit
+  // er auch bei Hover sofort auffindbar ist.
   const AddFieldButton: React.FC<{ onClick: () => void; label: string }> = ({ onClick, label }) => (
     <button
       type="button"
@@ -281,20 +289,21 @@ export const ModernCVTemplate: React.FC<CVTemplateProps> = ({
         display: 'inline-flex',
         alignItems: 'center',
         justifyContent: 'center',
-        width: '14px',
-        height: '14px',
+        width: '16px',
+        height: '16px',
         marginLeft: '6px',
         verticalAlign: 'middle',
-        border: `1px dashed ${t.border}`,
+        border: `1px solid ${t.accent}`,
         borderRadius: '3px',
-        background: 'transparent',
-        color: t.faint,
+        background: t.surface,
+        color: t.accent,
         cursor: 'pointer',
         padding: 0,
         lineHeight: 1,
+        boxShadow: '0 1px 2px rgba(0,0,0,0.15)',
       }}
     >
-      <Plus size={10} />
+      <Plus size={11} />
     </button>
   );
 
@@ -374,8 +383,9 @@ export const ModernCVTemplate: React.FC<CVTemplateProps> = ({
                       placeholder={isProject ? 'Projekttitel' : 'Position / Rolle'}
                       style={{ fontSize: '11px', fontWeight: 700, color: t.text, lineHeight: 1.4 }}
                     />
-                    <div style={{ display: 'flex', alignItems: 'center', marginTop: '2px' }}>
+                    <div data-inline-control style={{ display: 'flex', alignItems: 'center', gap: '4px', marginTop: '2px' }}>
                       <EditableText
+                        as="span"
                         wrap
                         value={isProject ? item.role || '' : item.company || item.employer || ''}
                         onChange={(v) => onUpdateSectionItem(sectionIndex, idx, isProject ? 'role' : 'company', v)}
@@ -537,8 +547,9 @@ export const ModernCVTemplate: React.FC<CVTemplateProps> = ({
                           placeholder="Abschluss"
                           style={{ fontSize: '11px', fontWeight: 700, color: t.text, lineHeight: 1.4 }}
                         />
-                        <div style={{ display: 'flex', alignItems: 'center', marginTop: '2px' }}>
+                        <div data-inline-control style={{ display: 'flex', alignItems: 'center', gap: '4px', marginTop: '2px' }}>
                           <EditableText
+                            as="span"
                             wrap
                             value={edu.institution || edu.school || edu.university || ''}
                             onChange={(v) => onUpdateSectionItem(sectionIndex, originalIdx, 'institution', v)}
@@ -884,7 +895,7 @@ export const ModernCVTemplate: React.FC<CVTemplateProps> = ({
                       )}
                     </div>
                     {(showLocationBtn || showRangeBtn) && (
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '4px', marginTop: '2px' }}>
+                      <div data-inline-control style={{ display: 'flex', alignItems: 'center', gap: '4px', marginTop: '2px' }}>
                         {showLocationBtn && (
                           <AddFieldButton label="Ort hinzufügen" onClick={() => reveal(`${itemKey}-location`)} />
                         )}
@@ -1032,12 +1043,13 @@ export const ModernCVTemplate: React.FC<CVTemplateProps> = ({
               style={{ fontSize: '22px', fontWeight: 800, color: t.text, letterSpacing: '-0.01em', lineHeight: 1.2, marginBottom: '4px', display: 'block' }}
             />
             {personalInfo.title?.trim() ? (
-              <div style={{ display: 'flex', alignItems: 'center', marginBottom: '14px' }}>
+              <div data-inline-control style={{ display: 'flex', alignItems: 'center', gap: '4px', marginBottom: '14px' }}>
                 <EditableText
+                  as="span"
                   value={personalInfo.title}
                   onChange={(v) => onUpdatePersonalInfo('title', v)}
                   placeholder="Zielposition / Profil"
-                  style={{ fontSize: '12px', fontWeight: 700, color: CI.primaryDark, display: 'block' }}
+                  style={{ fontSize: '12px', fontWeight: 700, color: CI.primaryDark }}
                 />
                 {!personalInfo.location?.trim() && !revealed.has('header-location') && (
                   <AddFieldButton label="Ort hinzufügen" onClick={() => reveal('header-location')} />
@@ -1045,7 +1057,7 @@ export const ModernCVTemplate: React.FC<CVTemplateProps> = ({
               </div>
             ) : (
               !personalInfo.location?.trim() && !revealed.has('header-location') && (
-                <div style={{ marginBottom: '4px' }}>
+                <div data-inline-control style={{ marginBottom: '4px' }}>
                   <AddFieldButton label="Ort hinzufügen" onClick={() => reveal('header-location')} />
                 </div>
               )
