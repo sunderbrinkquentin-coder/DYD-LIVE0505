@@ -3,6 +3,7 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { Plus } from 'lucide-react';
 import { SectionDragHandle, ItemDragHandle } from '../EditableText';
+import { sanitizeGeneratedText } from '../../../utils/textSanitize';
 
 type EditorSection = {
   type: string;
@@ -79,12 +80,15 @@ const EditableText: React.FC<{
   const isComposing = useRef(false);
   const isFocused = useRef(false);
   const lastValue = useRef(v);
-  const [renderKey, setRenderKey] = useState(v);
+  const [renderKey, setRenderKey] = useState(sanitizeGeneratedText(v));
 
+  // FIX (Quentin: "[JD]" und falsche Abstände vor Satzzeichen im Text): siehe
+  // ausführlicher Kommentar in EditableText.tsx (gemeinsame Komponente).
   useEffect(() => {
     if (!isFocused.current) {
-      setRenderKey(v);
-      lastValue.current = v;
+      const sanitized = sanitizeGeneratedText(v);
+      setRenderKey(sanitized);
+      lastValue.current = sanitized;
     }
   }, [v]);
 
