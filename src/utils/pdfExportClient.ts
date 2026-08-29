@@ -2,6 +2,7 @@ import html2canvas from 'html2canvas';
 import jsPDF from 'jspdf';
 import { computeBreakPoints, PAGE_HEIGHT_PX } from '../components/cv-templates/breakEngine';
 import { CHIP_MAX_FONT_PX } from '../components/cv-templates/tokens';
+import { sanitizeGeneratedText } from './textSanitize';
 
 export interface PDFExportOptions {
   filename?: string;
@@ -443,6 +444,18 @@ function prepareClone(clone: HTMLElement, liveRoot: HTMLElement): void {
           parent.style.display = 'none';
         } else if (d === 'inline' || d === 'inline-block' || d === 'inline-flex' || d === 'none') {
           el.style.display = 'none';
+        }
+      } else {
+        // FIX (Quentin: "[JD]" und falsche Abstände vor Satzzeichen im
+        // exportierten PDF): KI-generierter Text (Job-Targeting/Generalist-
+        // Modus) kann nicht ersetzte Platzhalter-Klammern und Leerzeichen
+        // vor Satzzeichen enthalten. Die Generierung läuft serverseitig und
+        // ist von hier aus nicht reparierbar — deshalb hier als Sicherheits-
+        // netz direkt am Export bereinigt, unabhängig davon, ob/wann der
+        // Generator selbst mal repariert wird.
+        const sanitized = sanitizeGeneratedText(text);
+        if (sanitized !== text) {
+          el.textContent = sanitized;
         }
       }
     } else {
