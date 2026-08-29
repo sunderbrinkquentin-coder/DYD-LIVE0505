@@ -402,15 +402,43 @@ function prepareClone(clone: HTMLElement, liveRoot: HTMLElement): void {
       if (isPlaceholder(text) || text === '') {
         el.textContent = '';
         const d = el.style.display || 'inline';
-        // Kontaktfelder im Header sind <div><span>Icon</span><EditableText/></div>.
-        // Nur das Textfeld zu verstecken ließe das Icon verwaist stehen.
+        // Kontaktfelder im Header sind <Icon/><EditableText/> als Geschwister
+        // (Wrapper mal <div>, mal <span>; Icon mal <span>, mal <svg> — je nach
+        // Template). Nur das Textfeld zu verstecken ließe das Icon verwaist
+        // stehen (leeres Pin-/Telefon-Symbol ohne Text im PDF — genau die
+        // "leeren Plätze", über die Quentin sich beschwert hat).
+        //
+        // WICHTIG: die ursprüngliche Prüfung "genau 2 Kinder, zweites ist
+        // unser (jetzt leeres) Editable" ist zu allgemein — nachdem
+        // `prepareClone` weiter oben schon alle `button`/`.pdf-hidden`-
+        // Elemente entfernt hat (Drag-Handles!), landen ZUFÄLLIG auch ganze
+        // Karten (Zeile + leeres Beschreibungsfeld) bei "genau 2 Kindern".
+        // Damit wäre die komplette Karte verschwunden statt nur der leeren
+        // Zeile (siehe Regression: Ausbildung/Zertifikate-Karten komplett
+        // leer im Export). Zusätzliche Bedingung: das ERSTE Kind muss
+        // erkennbar eine reine BESCHRIFTUNG für unser (jetzt leeres) Feld
+        // sein, kein eigenständiger Inhaltsblock — entweder
+        //   a) reines Icon/Dekoration ganz ohne Text (Kontaktzeilen), oder
+        //   b) ein kurzes Label, das mit ":" endet ("Ort:", "Datum:" —
+        //      Footer-Zeilen wie "Ort: <leer>"), erkennbar sein.
+        // Ein Karten-Inhaltsblock (Titel/Institution/Datum) erfüllt beides
+        // nicht und bleibt unangetastet.
         const parent = el.parentElement;
+        const firstSibling = parent?.children[0] as HTMLElement | undefined;
+        const firstSiblingText = (firstSibling?.textContent ?? '').trim();
+        // Icon-Erkennung erweitert: neben leerem Text (svg-Icons) auch
+        // 1-2 Zeichen lange Text-Icons/Emojis ("📍", "☎", "✉", "in" für
+        // LinkedIn — alle Vorkommen im Code sind <= 2 Zeichen lang).
+        const isDecorativeOrLabel =
+          !!firstSibling &&
+          (firstSiblingText === '' ||
+            firstSiblingText.length <= 2 ||
+            (firstSiblingText.length <= 20 && firstSiblingText.endsWith(':')));
         if (
           parent &&
-          parent.tagName === 'DIV' &&
           parent.children.length === 2 &&
           parent.children[1] === el &&
-          parent.children[0].tagName === 'SPAN'
+          isDecorativeOrLabel
         ) {
           parent.style.display = 'none';
         } else if (d === 'inline' || d === 'inline-block' || d === 'inline-flex' || d === 'none') {
