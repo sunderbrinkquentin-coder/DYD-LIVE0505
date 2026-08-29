@@ -146,6 +146,14 @@ export const CreativeCVTemplate: React.FC<CVTemplateProps> = ({
   // bis ein kleiner "+"-Button (in der Kopfzeile der Station) es einblendet.
   const [revealed, setRevealed] = useState<Set<string>>(new Set());
   const reveal = (key: string) => setRevealed((prev) => new Set(prev).add(key));
+  // FIX (Quentin: "+" liegt über der Schrift, man kann dann manchmal nicht
+  // reinschreiben): dieselbe Ursache wie im Classic-/Professional-Template
+  // (siehe dortiger ausführlicher Kommentar). `.pdf-hidden` erzwingt global
+  // position:absolute + margin:0 !important — ohne den `data-inline-control`-
+  // Wrapper an jeder Einsatzstelle (siehe unten) landet der Button fast exakt
+  // auf dem Text davor statt sichtbar danach. Zusätzlich jetzt deutlich
+  // kontrastreicher (vorher: fast unsichtbarer gestrichelter Rahmen), damit
+  // er auch bei Hover sofort auffindbar ist.
   const AddFieldButton: React.FC<{ onClick: () => void; label: string }> = ({ onClick, label }) => (
     <button
       type="button"
@@ -156,20 +164,20 @@ export const CreativeCVTemplate: React.FC<CVTemplateProps> = ({
         display: 'inline-flex',
         alignItems: 'center',
         justifyContent: 'center',
-        width: '14px',
-        height: '14px',
-        marginLeft: '6px',
+        width: '16px',
+        height: '16px',
         verticalAlign: 'middle',
-        border: `1px dashed ${t.border}`,
+        border: `1px solid ${t.accent}`,
         borderRadius: '3px',
-        background: 'transparent',
-        color: t.faint,
+        background: t.surface,
+        color: t.accent,
         cursor: 'pointer',
         padding: 0,
         lineHeight: 1,
+        boxShadow: '0 1px 2px rgba(0,0,0,0.15)',
       }}
     >
-      <Plus size={10} />
+      <Plus size={11} />
     </button>
   );
 
@@ -343,8 +351,9 @@ export const CreativeCVTemplate: React.FC<CVTemplateProps> = ({
                         onChange={(val) => onUpdateSectionItem(sectionIndex, idx, 'title', val)}
                         placeholder="Position"
                       />
-                      <div className="flex items-center mt-0.5">
+                      <div data-inline-control className="flex items-center gap-0.5 mt-0.5">
                         <EditableText
+                          as="span"
                           wrap
                           style={{ fontSize: '10px', color: t.muted }}
                           value={exp.company || ''}
@@ -413,8 +422,9 @@ export const CreativeCVTemplate: React.FC<CVTemplateProps> = ({
                   {...itemDragProps(sectionIndex, idx, onReorderSectionItem)}
                 >
                   <ItemDragHandle sectionIndex={sectionIndex} itemIndex={idx} onReorderSectionItem={onReorderSectionItem} />
-                  <div className="flex items-center">
+                  <div data-inline-control className="flex items-center gap-0.5">
                     <EditableText
+                      as="span"
                       wrap
                       className="font-bold"
                       style={{ fontSize: '11px', color: t.text }}
@@ -477,8 +487,9 @@ export const CreativeCVTemplate: React.FC<CVTemplateProps> = ({
                       onChange={(val) => onUpdateSectionItem(sectionIndex, idx, 'degree', val)}
                       placeholder="Abschluss"
                     />
-                    <div className="flex items-center mt-0.5">
+                    <div data-inline-control className="flex items-center gap-0.5 mt-0.5">
                       <EditableText
+                        as="span"
                         wrap
                         style={{ fontSize: '10px', color: t.muted }}
                         value={edu.institution || ''}
@@ -752,7 +763,7 @@ export const CreativeCVTemplate: React.FC<CVTemplateProps> = ({
                         />
                       )}
                       {(showLocationBtn || showRangeBtn) && (
-                        <div className="flex items-center gap-1 mt-0.5">
+                        <div data-inline-control className="flex items-center gap-1 mt-0.5">
                           {showLocationBtn && (
                             <AddFieldButton label="Ort hinzufügen" onClick={() => reveal(`${itemKey}-location`)} />
                           )}
@@ -882,8 +893,9 @@ export const CreativeCVTemplate: React.FC<CVTemplateProps> = ({
               onChange={(val) => onUpdatePersonalInfo('name', val)}
               placeholder="Name"
             />
-            <div className="flex items-center gap-1 mt-0.5">
+            <div data-inline-control className="flex items-center gap-1 mt-0.5">
               <EditableText
+                as="span"
                 className="font-bold"
                 style={{ fontSize: '12px', color: t.muted }}
                 value={personalInfo.title || ''}
