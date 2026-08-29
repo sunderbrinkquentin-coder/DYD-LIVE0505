@@ -1,5 +1,6 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { GripVertical, ChevronUp, ChevronDown } from 'lucide-react';
+import { sanitizeGeneratedText } from '../../utils/textSanitize';
 
 export interface EditableTextProps {
   value?: string;
@@ -46,12 +47,22 @@ export const EditableText: React.FC<EditableTextProps> = ({
   const isFocused = useRef(false);
   const lastValue = useRef(v);
 
-  const [renderKey, setRenderKey] = useState(v);
+  const [renderKey, setRenderKey] = useState(sanitizeGeneratedText(v));
 
+  // FIX (Quentin: "[JD]" und falsche Abstände vor Satzzeichen im Text): KI-
+  // generierter Text (Job-Targeting/Generalist-Modus) kann nicht ersetzte
+  // Platzhalter-Klammern und Leerzeichen vor Satzzeichen enthalten. Die
+  // Generierung selbst läuft serverseitig und ist von hier aus nicht
+  // reparierbar — deshalb hier als Sicherheitsnetz an der Anzeige bereinigt.
+  // Nur der ANGEZEIGTE Wert wird bereinigt, solange das Feld nicht fokussiert
+  // ist; die gespeicherten Rohdaten bleiben unangetastet, bis der Nutzer das
+  // Feld selbst bearbeitet (dann wird beim Blur der neue, echte Wert
+  // gespeichert — inklusive der jetzt sauberen Anzeige als Ausgangspunkt).
   useEffect(() => {
     if (!isFocused.current) {
-      setRenderKey(v);
-      lastValue.current = v;
+      const sanitized = sanitizeGeneratedText(v);
+      setRenderKey(sanitized);
+      lastValue.current = sanitized;
     }
   }, [v]);
 
