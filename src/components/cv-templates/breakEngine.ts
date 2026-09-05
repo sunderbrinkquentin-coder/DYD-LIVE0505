@@ -476,6 +476,85 @@ export function containerHeightFor(
 }
 
 /**
+ * ─────────────────────────────────────────────────────────────────────────
+ * NEU: ECHTE CSS-SEITENUMBRÜCHE FÜR EINEN DRUCK-RENDERER (Puppeteer u. Ä.)
+ * ─────────────────────────────────────────────────────────────────────────
+ *
+ * `computeBreakPoints` liefert Y-Positionen für den bisherigen Weg (Preview-
+ * Frames + html2canvas-Screenshot pro Seite). Ein echter Browser-Druck
+ * (`page.pdf()`) braucht dagegen keine Screenshots — er paginiert selbst,
+ * WENN man ihm an der richtigen Stelle `break-before: page` mitgibt.
+ *
+ * CSS-Umbrüche wirken nur AN ELEMENTGRENZEN, nicht an beliebigen Pixel-
+ * Positionen. Das ist hier kein Problem: `cuts[i]` (i > 0) ist so gut wie
+ * immer exakt die Oberkante eines Elements aus derselben Kandidatenliste,
+ * die `collectCandidates` oben schon sammelt — computeBreakPoints wählt ja
+ * genau daraus aus. Diese Funktion sucht zu jedem Schnitt das Element mit
+ * passender Oberkante und markiert es.
+ *
+ * Einzige Ausnahme: der seltene Fallback-Pfad in computeBreakPoints, bei dem
+ * mangels sauberem Kandidaten hart bei `hardMax` geschnitten wird (mitten in
+ * einem Element). Dafür gibt es keine Elementgrenze — ein CSS-Umbruch kann
+ * dort nicht gesetzt werden. Das wird geloggt statt einen falschen Umbruch zu
+ * erzwingen; im Druck bleibt die betroffene Zeile dann zusammen, statt an
+ * einer erratenen Stelle zu brechen.
+ *
+ * Aufruf-Reihenfolge beim Exporter: erst `computeBreakPoints`, dann
+ * `applyForcedPageBreaks(root, result)`, danach erst `page.pdf()` aufrufen.
+ */
+export function applyForcedPageBreaks(
+  root: HTMLElement,
+  result: BreakResult,
+  options: BreakOptions = {}
+): void {
+  const opts = { ...DEFAULTS, ...options };
+  const measure = makeMeasure(root);
+
+  const selector = [
+    '[data-break-atomic]',
+    '[data-break-item]',
+    '[data-break-block]',
+    '[data-break-keep-next]',
+    '[data-break-line]',
+    '[data-pdf-section]',
+    'section',
+    'article',
+    'li',
+    'h2',
+    'h3',
+  ].join(',');
+
+  const elements = Array.from(root.querySelectorAll<HTMLElement>(selector)).filter(
+    (el) => isRendered(el) && isInFlow(el)
+  );
+
+  for (const cut of result.cuts.slice(1)) {
+    let bestEl: HTMLElement | null = null;
+    let bestDelta = opts.tolerancePx;
+
+    for (const el of elements) {
+      const delta = Math.abs(measure(el).top - cut);
+      if (delta <= bestDelta) {
+        bestDelta = delta;
+        bestEl = el;
+      }
+    }
+
+    if (bestEl) {
+      bestEl.style.breakBefore = 'page';
+      // Ältere/andere Engines als Chromium kennen noch die Legacy-Property.
+      (bestEl.style as unknown as { pageBreakBefore: string }).pageBreakBefore = 'always';
+    } else {
+      console.warn(
+        `[breakEngine] applyForcedPageBreaks: kein Element an Schnittposition ` +
+        `${Math.round(cut)}px gefunden — an dieser Stelle wird im Druck kein ` +
+        `Umbruch erzwungen (Fallback-Schnitt mitten in einem Element).`
+      );
+    }
+  }
+}
+
+/**
  * Diagnose für die Konsole. Meldet jedes Element, das trotz Regelwerk
  * durchgeschnitten wurde. Im Idealfall bleibt die Liste leer.
  *
