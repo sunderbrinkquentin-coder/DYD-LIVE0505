@@ -2,6 +2,16 @@
   command = "npm run build"
   publish = "dist"
 
+[functions]
+  directory = "netlify/functions"
+  node_bundler = "esbuild"
+  # @sparticuz/chromium-min lädt das eigentliche Chromium-Binary zur Laufzeit
+  # von extern nach (siehe netlify/functions/export-cv-pdf.ts) — es muss
+  # deshalb NICHT ins Function-Bundle gepackt werden. Ohne diesen Ausschluss
+  # versucht esbuild trotzdem, es zu bündeln, was das Bundle-Limit sprengen
+  # kann.
+  external_node_modules = ["@sparticuz/chromium-min"]
+
 [[redirects]]
   from = "/*"
   to = "/index.html"
