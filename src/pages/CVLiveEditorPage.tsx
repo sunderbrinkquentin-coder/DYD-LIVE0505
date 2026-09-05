@@ -3,6 +3,8 @@ import { useParams, useNavigate, useSearchParams } from 'react-router-dom';
 import { Camera, Loader2, AlertTriangle, Sparkles, ArrowLeft, ChevronDown, Briefcase, FileSearch, GraduationCap, Music2, Check, Download } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import { exportCVToPDFBlob, debugLogPDFHtml } from '../utils/pdfExportClient';
+import { exportCvViaServerPdf } from '../utils/pdfExportServer';
+import { PDF_RENDER_STYLES_CSS } from '../components/cv-templates/pdfRenderStyles';
 import { CVTemplateType } from '../components/cv-templates/CVTemplateSelector';
 import { ModernCVTemplate } from '../components/cv-templates/templates/ModernCVTemplate';
 import { ClassicCVTemplate } from '../components/cv-templates/templates/ClassicCVTemplate';
@@ -275,6 +277,10 @@ export function CVLiveEditorPage() {
   const mainAreaRef = useRef<HTMLDivElement | null>(null);
   const scaleObserverRef = useRef<ResizeObserver | null>(null);
   const [isExportingPDF, setIsExportingPDF] = useState(false);
+  // NEU (Test): serverseitiger Export über einen echten Browser-Druck statt
+  // html2canvas — siehe src/utils/pdfExportServer.ts. Bewusst eigener State,
+  // damit der bestehende Download-Button/Ablauf unangetastet bleibt.
+  const [isServerTestExporting, setIsServerTestExporting] = useState(false);
   const autoDownloadTriggeredRef = useRef(false);
 
   const [scale, setScale] = useState(1);
@@ -1304,6 +1310,26 @@ const cloneRef = useRef<HTMLDivElement | null>(null);
     setShowPaywallModal(true);
   };
 
+  // NEU (Test): ruft den neuen serverseitigen Export auf (echter Chromium-
+  // Druck von CvExportRenderPage.tsx über netlify/functions/export-cv-pdf.ts)
+  // und öffnet das Ergebnis-PDF in einem neuen Tab. Läuft komplett getrennt
+  // vom bestehenden Download-Button — zum gefahrlosen Vergleichen, bevor
+  // irgendetwas am bisherigen Ablauf geändert wird.
+  const handleServerExportTest = async () => {
+    if (!cvId) return;
+    setIsServerTestExporting(true);
+    try {
+      const result = await exportCvViaServerPdf(cvId);
+      if (result.success && result.pdfUrl) {
+        window.open(result.pdfUrl, '_blank', 'noopener,noreferrer');
+      } else {
+        alert(`Server-Export (Test) fehlgeschlagen: ${result.error ?? 'unbekannter Fehler'}`);
+      }
+    } finally {
+      setIsServerTestExporting(false);
+    }
+  };
+
   const handlePaywallSuccess = () => {
     setShowPaywallModal(false);
     setIsDownloadUnlocked(true);
@@ -1805,6 +1831,18 @@ const addSectionItem = (sectionIndex: number, defaultItem: any) => {
                 {isExportingPDF ? <><Loader2 size={16} className="animate-spin" /> Generiere...</> : <><Download size={16} /> Herunterladen</>}
               </button>
               <button onClick={() => setShowTips(!showTips)} className="px-3 py-2 rounded-lg bg-white/10 hover:bg-white/20 transition-all flex items-center gap-2"><Sparkles size={16} className="text-[#66c0b6]" /></button>
+              {/* NEU (Test): separater Button für den serverseitigen Export.
+                  Bewusst optisch als Test markiert (gestrichelter Rand) —
+                  ersetzt den echten Download-Button erst nach Validierung. */}
+              <button
+                onClick={handleServerExportTest}
+                disabled={isServerTestExporting}
+                title="Testet den neuen serverseitigen PDF-Export (echter Text statt Screenshot)"
+                className={`px-3 py-2 rounded-lg border border-dashed border-white/30 text-white/70 hover:text-white hover:border-white/60 transition-all flex items-center gap-2 text-xs ${isServerTestExporting ? 'opacity-50 cursor-not-allowed' : ''}`}
+              >
+                {isServerTestExporting ? <Loader2 size={14} className="animate-spin" /> : null}
+                Server-Export (Test)
+              </button>
             </div>
           </div>
 
@@ -1858,184 +1896,10 @@ const addSectionItem = (sectionIndex: number, defaultItem: any) => {
 
       <main ref={mainRefCallback} className="flex-1 overflow-y-auto bg-[#1e1e24] w-full py-12 px-4 flex flex-col items-center">
 
-        <style>{`
-          /* ─────────────────────────────────────────────────────────────────
-             .pdf-hidden — Editor-Controls, die nicht ins PDF gehören.
-
-             KRITISCH: Diese Elemente müssen AUS DEM FLUSS sein, nicht nur
-             kollabiert. Vorher hat max-height:0 sie zwar unsichtbar gemacht,
-             aber ihre Wrapper trugen weiter margin/padding zum Layout bei.
-             Der PDF-Klon entfernt sie dagegen komplett. Ergebnis: der Klon war
-             pro Station ~6px flacher als die Vorschau, über zehn Stationen
-             60px — und der Seitenumbruch saß woanders.
-
-             Mit position:absolute ist ihr Layout-Beitrag exakt null. Entfernen
-             im Klon ändert die Höhen dann nicht mehr. Genau das ist die
-             Voraussetzung dafür, dass die Break-Engine auf beiden DOMs
-             dasselbe Ergebnis liefert.
-             ───────────────────────────────────────────────────────────────── */
-          /* Verlauf dieser Regel (fuer die naechste Person, die hier
-             aendert, damit nicht wieder derselbe Fehler zweimal gemacht
-             wird):
-             Runde 1: .pdf-hidden war standardmaessig opacity:0 +
-             pointer-events:none und wurde NUR bei :hover ueber ganz
-             bestimmte, DIREKTE Eltern-Selektoren wieder eingeblendet
-             (data-break-item, data-spacer-id, li, [data-chip-row] > span).
-             Die Seitenspalten-Abschnitte (Zertifikate/Stipendien/Ehrenamt/
-             Faehigkeiten/Sprachen sitzen in data-break-atomic statt
-             data-break-item) und tiefer verschachtelte Plus-Buttons waren
-             in dieser Liste nicht enthalten und blieben dadurch UNSICHTBAR
-             UND UNKLICKBAR, unabhaengig vom Hover.
-             Runde 2: als Sofortmassnahme wurde .pdf-hidden permanent
-             sichtbar/klickbar gemacht (kein Hover-Gating mehr). Das hat
-             die Klickbarkeit garantiert, sah aber optisch ueberladen aus
-             (zu viele Icons/Buttons dauerhaft auf jeder Karte sichtbar).
-             Runde 3: zurueck zu Hover-Gating, aber mit DESCENDANT-Selektoren
-             (Leerzeichen statt ">") auf den Container-Ebenen von
-             Sektion/Item, nicht auf einzelnen direkten Kindern. Dadurch
-             reicht ein Hover irgendwo auf der Karte/Sektion, egal wie tief
-             das jeweilige .pdf-hidden Steuerelement (Griff, Pfeile,
-             Plus-Button) darin verschachtelt ist.
-             Zwischenschritt (verworfen, NIE ausliefern): der Versuch, die
-             Box von Karte/Sektion per margin-left: -70px +
-             padding-left: 70px künstlich nach links zu erweitern, damit
-             auch ein Klick MITTEN auf Griff/Pfeile (die selbst außerhalb
-             der Box im Rand gezeichnet werden) sicher als "Hover auf der
-             Karte" zählt. Das hat auf der echten, langen Lebenslauf-Seite
-             sichtbaren Text am linken Kartenrand abgeschnitten (Breiten-
-             /Box-Modell-Interaktion mit dem restlichen Seiten-Layout,
-             die im kleinen Testdatensatz nicht auffiel) und wurde deshalb
-             komplett zurückgenommen.
-             Runde 4 (aktuell): dasselbe Ziel — Klick auf Griff/Pfeile darf
-             NIE von Hover-Timing/-Geometrie abhängen —, aber ohne die Box
-             selbst zu verändern: pointer-events bleibt IMMER auto,
-             auch wenn opacity: 0 das Element unsichtbar macht. Ein
-             unsichtbares, aber pointer-events:auto-Element wird beim
-             Hit-Test ganz normal gefunden (anders als bei
-             pointer-events:none, wo der Browser durch das Element
-             hindurch auf das dahinterliegende sucht und der Klick bei
-             extern positionierten Controls wie dem Griff/den Pfeilen im
-             Rand ins Leere lief). Opacity steuert weiterhin rein die
-             Sichtbarkeit (per Hover), Klickbarkeit ist davon komplett
-             entkoppelt und funktioniert immer, unabhängig von Timing oder
-             Mausweg. PDF-Export ist davon nicht betroffen: der Export
-             entfernt jeden Button und jedes .pdf-hidden komplett aus dem
-             Klon (siehe prepareClone in pdfExportClient.ts, dort die
-             querySelectorAll fuer button und .pdf-hidden mit
-             anschliessendem remove()), unabhaengig von
-             opacity/pointer-events. */
-          .pdf-hidden {
-            position: absolute !important;
-            margin: 0 !important;
-            z-index: 5;
-            opacity: 0;
-            pointer-events: auto;
-            transition: opacity 0.12s ease;
-            white-space: nowrap;
-          }
-          [data-break-item],
-          [data-break-atomic],
-          [data-spacer-id],
-          [data-chip-row] > span,
-          [data-pdf-root] li,
-          .a4-page-frame li {
-            position: relative;
-          }
-
-          /* Hover irgendwo auf der Karte/Sektion (nicht nur auf einem
-             direkten Kind) blendet ALLE darin verschachtelten
-             .pdf-hidden-Steuerelemente ein — Griff, Auf/Ab-Pfeile und
-             Plus-Buttons gleichermassen, egal auf welcher Verschachtelungs-
-             tiefe sie im Markup stehen. */
-          [data-break-item]:hover .pdf-hidden,
-          [data-break-atomic]:hover .pdf-hidden,
-          [data-spacer-id]:hover .pdf-hidden,
-          [data-pdf-root] li:hover .pdf-hidden,
-          .a4-page-frame li:hover .pdf-hidden,
-          [data-chip-row] > span:hover .pdf-hidden {
-            opacity: 1;
-          }
-
-          /* Steuerzeile einer Station: unten rechts in die Karte. */
-          [data-break-item] > .pdf-hidden,
-          [data-spacer-id] > .pdf-hidden {
-            right: 6px;
-            bottom: 4px;
-            display: flex !important;
-            gap: 8px;
-            align-items: center;
-          }
-
-          /* Bullet-Löschen: rechts oben in der Zeile. */
-          li > .pdf-hidden {
-            right: 0;
-            top: 0;
-          }
-
-          /* Chip-Löschen: an der rechten Kante des Chips. */
-          [data-chip-row] > span > .pdf-hidden {
-            right: 2px;
-            top: 50%;
-            transform: translateY(-50%);
-          }
-
-          /* FIX (Quentin: "+"-Button liegt fast unsichtbar auf dem Titeltext
-             statt sichtbar danach): .pdf-hidden erzwingt IMMER position:absolute
-             (siehe oben) und margin:0 !important. Fuer Buttons, die INLINE in
-             einer normalen Text-/Titelzeile sitzen sollen (z.B. Ort/Beschreibung
-             hinzufuegen direkt hinter einem Titel), ist genau das falsch:
-             position:absolute reisst sie aus dem Flex-Fluss, der Browser
-             faellt auf eine kaum vorhersagbare "statische Position" zurueck,
-             und der per Flex-Gap gedachte Abstand zum Titel wird ignoriert
-             (Gap wirkt nur auf Elemente, die noch im Fluss sind). Ergebnis:
-             der Button landete fast exakt auf dem ersten Buchstaben des
-             Titels statt sichtbar danach. Ein Wrapper mit data-inline-control
-             schaltet fuer alle .pdf-hidden-Kinder darin auf ganz normales
-             position:static zurueck — der Button bleibt dann ein stinknormales
-             Flex-Kind an der Stelle, an der er im Code steht, mit korrektem
-             Gap-Abstand. PDF-Export ist davon nicht betroffen: <button> wird
-             dort ohnehin komplett entfernt (siehe prepareClone in
-             pdfExportClient.ts), unabhaengig von position/opacity. */
-          [data-inline-control],
-          [data-inline-control] .pdf-hidden {
-            position: static !important;
-            display: inline-flex !important;
-          }
-
-          .nonce-export { display: none !important; }
-
-          .a4-page-frame {
-            width: 794px !important;
-            height: 1122px !important;
-            background-color: #ffffff !important;
-            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.4) !important;
-            border-radius: 4px;
-            position: absolute !important;
-            overflow: hidden !important;
-          }
-
-          /* text-size-adjust:none verhindert iOS-Text-Boosting, ohne font-size
-             zu ändern — für sichtbare Frames UND den versteckten PDF-Render. */
-          .a4-page-frame,
-          .a4-page-frame *,
-          [data-pdf-root],
-          [data-pdf-root] * {
-            -webkit-text-size-adjust: none !important;
-            text-size-adjust: none !important;
-          }
-
-          /* Chips: iOS zwingt contenteditable sonst auf min. 16px. */
-          .a4-page-frame [data-chip-row] [contenteditable],
-          [data-pdf-root] [data-chip-row] [contenteditable] {
-            font-size: 9px !important;
-            transform: none !important;
-          }
-
-          [data-chip-row] {
-            overflow: hidden !important;
-            max-width: 100% !important;
-          }
-        `}</style>
+        {/* Ausgelagert nach src/components/cv-templates/pdfRenderStyles.ts —
+            derselbe Text wird jetzt auch von CvExportRenderPage.tsx (Server-
+            Export) verwendet, damit beide garantiert dasselbe CSS sehen. */}
+        <style>{PDF_RENDER_STYLES_CSS}</style>
 
         {(() => {
           // Höhe des Template-Containers: die letzte Seite beginnt bei cuts[last],
