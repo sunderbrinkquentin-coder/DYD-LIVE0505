@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   Sparkles,
@@ -40,7 +40,7 @@ import { authService } from '../services/authService';
 import { dataMigrationService } from '../services/dataMigrationService';
 import { useNavigate } from 'react-router-dom';
 import { useStore } from '../store/useStore';
-import { downloadAsPDF } from '../utils/pdfExport.tsx';
+import { downloadAsPDF } from '../utils/legacyPdfExport';
 // import { downloadAsDOCX } from '../utils/docxExport';
 
 interface Template {
@@ -240,6 +240,7 @@ export default function CVPreview() {
   const [downloadError, setDownloadError] = useState<string | null>(null);
   const [zoomLevel, setZoomLevel] = useState(80);
   const navigate = useNavigate();
+  const previewRef = useRef<HTMLDivElement>(null);
 
   const {
     email,
@@ -273,7 +274,8 @@ export default function CVPreview() {
 
     try {
       if (format === 'pdf') {
-        await downloadAsPDF(sampleCVData, photoBase64, showPhotoInCV, selectedTemplate);
+        if (!previewRef.current) throw new Error('CV-Vorschau nicht gefunden');
+        await downloadAsPDF(previewRef.current);
       }
       // DOCX temporarily disabled
       // else {
@@ -580,6 +582,7 @@ export default function CVPreview() {
         <main className="flex-1 p-6 lg:p-10 order-1 lg:order-2">
           <div className="mx-auto" style={{ maxWidth: '210mm' }}>
             <div
+              ref={previewRef}
               className="bg-white rounded-lg shadow-2xl mx-auto"
               style={{
                 width: '210mm',
