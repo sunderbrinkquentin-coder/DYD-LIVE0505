@@ -37,8 +37,13 @@ import { PrivateRoute } from '../components/PrivateRoute';
 import FestivalTournamentBoard from '../components/festival/FestivalTournamentBoard';
 import TournamentAdminPage from '../pages/TournamentAdminPage'
 import { GlobalLayout } from '../components/GlobalLayout';
+import { CvExportRenderPage } from '../pages/CvExportRenderPage';
 
 export const router = createHashRouter([
+  // Bewusst AUSSERHALB von GlobalLayout: keine Navigation/Dashboard-Chrome,
+  // kein Auth-Ballast. Wird nur von der Puppeteer-Function aufgerufen
+  // (netlify/functions/export-cv-pdf.ts), nie von echten Nutzer:innen.
+  { path: '/cv-export-render/:cvId', element: <CvExportRenderPage /> },
   {
     element: <GlobalLayout />,
     errorElement: <ErrorBoundary />,
