@@ -2,10 +2,11 @@
 
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { Plus } from 'lucide-react';
-import { SectionDragHandle, ItemDragHandle } from '../EditableText';
+import { SectionDragHandle, SectionDeleteButton, ItemDragHandle } from '../EditableText';
 import { sanitizeGeneratedText } from '../../../utils/textSanitize';
+import type { SectionLayoutFields } from '../sectionLayout';
 
-type EditorSection = {
+type EditorSection = SectionLayoutFields & {
   type: string;
   title?: string;
   items?: any[];
@@ -48,6 +49,7 @@ interface ProfessionalCVTemplateProps {
   onDeleteBullet?: (sectionIndex: number, itemIndex: number, bulletIndex: number) => void;
   onReorderSections?: (fromIndex: number, toIndex: number) => void;
   onReorderSectionItem?: (sectionIndex: number, fromIndex: number, toIndex: number) => void;
+  onDeleteSection?: (sectionIndex: number) => void;
   /** LEGACY — nicht mehr verwendet (Paginierung läuft über data-break-*). */
   pageBreakItems?: Map<string, number>;
   pageCount?: number;
@@ -227,6 +229,7 @@ export const ProfessionalCVTemplate: React.FC<ProfessionalCVTemplateProps> = ({
   onDeleteBullet,
   onReorderSections,
   onReorderSectionItem,
+  onDeleteSection,
 }) => {
   // Höhe kommt aus der Break-Engine (wie bei allen anderen Templates).
   // Der frühere ResizeObserver + `containerMinHeight`-State ist bewusst
@@ -306,6 +309,15 @@ export const ProfessionalCVTemplate: React.FC<ProfessionalCVTemplateProps> = ({
     'education',
     'languages',
     'skills',
+    // FIX (Quentin: "sieht scheiße aus" / Skill-Sektion fehlplatziert):
+    // `hard_skills` fehlte in dieser Liste UND im untigen `switch` (siehe
+    // dortiger Kommentar) — dadurch landete "Fachliche Skills" nicht in der
+    // rechten Spalte bei den anderen Skill-/Chip-Blöcken, sondern isoliert
+    // als voller Balken unterhalb beider Spalten, UND als schlichte
+    // Listenansicht statt als Chip/Badge wie "Persönliche Stärken" oder
+    // "Arbeitsweise & Werte". Gleicher Skill-Typ, zwei völlig verschiedene
+    // Optiken — das hat den unruhigen, unfertigen Eindruck mitverursacht.
+    'hard_skills',
     'soft_skills',
     'work_values',
     'values',
@@ -831,11 +843,17 @@ export const ProfessionalCVTemplate: React.FC<ProfessionalCVTemplateProps> = ({
           </div>
         );
 
+      // FIX: `hard_skills` rendert jetzt identisch zu `skills` (Chips statt
+      // schlichter Liste) — siehe Kommentar bei `rightColumnTypes` oben.
+      // Titel kommt jetzt aus `sectionTitle` (section.title || TYPE_LABELS),
+      // vorher stand hier ein hart codiertes "Fachliche Skills", das einen
+      // eigenen Sektionsnamen des Nutzers stumm überschrieben hätte.
+      case 'hard_skills':
       case 'skills':
         if (items.length === 0) return null;
         return (
           <div key={sectionIndex} data-pdf-section data-break-atomic style={{ breakInside: 'avoid', pageBreakInside: 'avoid' }}>
-            <SectionTitle>Fachliche Skills</SectionTitle>
+            <SectionTitle>{sectionTitle}</SectionTitle>
             <div data-chip-row style={{ display: 'block', overflow: 'visible' }}>
               {items.map((skill: any, idx: number) => {
                 if (!skill) return null;
@@ -849,7 +867,16 @@ export const ProfessionalCVTemplate: React.FC<ProfessionalCVTemplateProps> = ({
                 return (
                   <span
                     key={idx}
-                    style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', marginRight: '5px', marginBottom: '5px', marginLeft: onReorderSectionItem ? '10px' : undefined, verticalAlign: 'middle', padding: '2px 8px', borderRadius: '9999px', border: '1px solid #cbd5e1', background: '#f1f5f9', whiteSpace: 'nowrap', breakInside: 'avoid', pageBreakInside: 'avoid', lineHeight: 1.4, position: 'relative', cursor: onReorderSectionItem ? 'grab' : undefined }}
+                    // FIX (Quentin: PDF "immer noch verschoben" — Chips
+                    // standen sichtbar rechts von der Sektionsüberschrift
+                    // versetzt): `marginLeft: onReorderSectionItem ? '10px' : ...`
+                    // war überflüssig — ItemDragHandle ist absolut positioniert
+                    // (`left:-22px`, siehe EditableText.tsx) und braucht KEINEN
+                    // Platz vom Flow. Jedes andere Item (Ausbildung, Zertifikate
+                    // …) hat diese Zeile nie gehabt und funktioniert seit je her
+                    // ohne. Da `onReorderSectionItem` im Live-Editor immer gesetzt
+                    // ist, verschob das bislang JEDEN Chip in JEDEM Export.
+                    style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', marginRight: '5px', marginBottom: '5px', verticalAlign: 'middle', padding: '2px 8px', borderRadius: '9999px', border: '1px solid #cbd5e1', background: '#f1f5f9', whiteSpace: 'nowrap', breakInside: 'avoid', pageBreakInside: 'avoid', lineHeight: 1.4, position: 'relative', cursor: onReorderSectionItem ? 'grab' : undefined }}
                     {...itemDragProps(sectionIndex, idx, onReorderSectionItem)}
                   >
                     <ItemDragHandle sectionIndex={sectionIndex} itemIndex={idx} onReorderSectionItem={onReorderSectionItem} />
@@ -884,7 +911,16 @@ export const ProfessionalCVTemplate: React.FC<ProfessionalCVTemplateProps> = ({
                 return (
                   <span
                     key={idx}
-                    style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', marginRight: '5px', marginBottom: '5px', marginLeft: onReorderSectionItem ? '10px' : undefined, verticalAlign: 'middle', padding: '2px 8px', borderRadius: '9999px', border: '1px solid #cbd5e1', background: '#f1f5f9', whiteSpace: 'nowrap', breakInside: 'avoid', pageBreakInside: 'avoid', lineHeight: 1.4, position: 'relative', cursor: onReorderSectionItem ? 'grab' : undefined }}
+                    // FIX (Quentin: PDF "immer noch verschoben" — Chips
+                    // standen sichtbar rechts von der Sektionsüberschrift
+                    // versetzt): `marginLeft: onReorderSectionItem ? '10px' : ...`
+                    // war überflüssig — ItemDragHandle ist absolut positioniert
+                    // (`left:-22px`, siehe EditableText.tsx) und braucht KEINEN
+                    // Platz vom Flow. Jedes andere Item (Ausbildung, Zertifikate
+                    // …) hat diese Zeile nie gehabt und funktioniert seit je her
+                    // ohne. Da `onReorderSectionItem` im Live-Editor immer gesetzt
+                    // ist, verschob das bislang JEDEN Chip in JEDEM Export.
+                    style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', marginRight: '5px', marginBottom: '5px', verticalAlign: 'middle', padding: '2px 8px', borderRadius: '9999px', border: '1px solid #cbd5e1', background: '#f1f5f9', whiteSpace: 'nowrap', breakInside: 'avoid', pageBreakInside: 'avoid', lineHeight: 1.4, position: 'relative', cursor: onReorderSectionItem ? 'grab' : undefined }}
                     {...itemDragProps(sectionIndex, idx, onReorderSectionItem)}
                   >
                     <ItemDragHandle sectionIndex={sectionIndex} itemIndex={idx} onReorderSectionItem={onReorderSectionItem} />
@@ -918,7 +954,16 @@ export const ProfessionalCVTemplate: React.FC<ProfessionalCVTemplateProps> = ({
                 return (
                   <span
                     key={idx}
-                    style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', marginRight: '5px', marginBottom: '5px', marginLeft: onReorderSectionItem ? '10px' : undefined, verticalAlign: 'middle', padding: '2px 8px', borderRadius: '9999px', border: '1px solid #cbd5e1', background: '#f1f5f9', whiteSpace: 'nowrap', breakInside: 'avoid', pageBreakInside: 'avoid', lineHeight: 1.4, position: 'relative', cursor: onReorderSectionItem ? 'grab' : undefined }}
+                    // FIX (Quentin: PDF "immer noch verschoben" — Chips
+                    // standen sichtbar rechts von der Sektionsüberschrift
+                    // versetzt): `marginLeft: onReorderSectionItem ? '10px' : ...`
+                    // war überflüssig — ItemDragHandle ist absolut positioniert
+                    // (`left:-22px`, siehe EditableText.tsx) und braucht KEINEN
+                    // Platz vom Flow. Jedes andere Item (Ausbildung, Zertifikate
+                    // …) hat diese Zeile nie gehabt und funktioniert seit je her
+                    // ohne. Da `onReorderSectionItem` im Live-Editor immer gesetzt
+                    // ist, verschob das bislang JEDEN Chip in JEDEM Export.
+                    style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', marginRight: '5px', marginBottom: '5px', verticalAlign: 'middle', padding: '2px 8px', borderRadius: '9999px', border: '1px solid #cbd5e1', background: '#f1f5f9', whiteSpace: 'nowrap', breakInside: 'avoid', pageBreakInside: 'avoid', lineHeight: 1.4, position: 'relative', cursor: onReorderSectionItem ? 'grab' : undefined }}
                     {...itemDragProps(sectionIndex, idx, onReorderSectionItem)}
                   >
                     <ItemDragHandle sectionIndex={sectionIndex} itemIndex={idx} onReorderSectionItem={onReorderSectionItem} />
@@ -952,7 +997,16 @@ export const ProfessionalCVTemplate: React.FC<ProfessionalCVTemplateProps> = ({
                 return (
                   <span
                     key={idx}
-                    style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', marginRight: '5px', marginBottom: '5px', marginLeft: onReorderSectionItem ? '10px' : undefined, verticalAlign: 'middle', padding: '2px 8px', borderRadius: '9999px', border: '1px solid #cbd5e1', background: '#f1f5f9', whiteSpace: 'nowrap', breakInside: 'avoid', pageBreakInside: 'avoid', lineHeight: 1.4, position: 'relative', cursor: onReorderSectionItem ? 'grab' : undefined }}
+                    // FIX (Quentin: PDF "immer noch verschoben" — Chips
+                    // standen sichtbar rechts von der Sektionsüberschrift
+                    // versetzt): `marginLeft: onReorderSectionItem ? '10px' : ...`
+                    // war überflüssig — ItemDragHandle ist absolut positioniert
+                    // (`left:-22px`, siehe EditableText.tsx) und braucht KEINEN
+                    // Platz vom Flow. Jedes andere Item (Ausbildung, Zertifikate
+                    // …) hat diese Zeile nie gehabt und funktioniert seit je her
+                    // ohne. Da `onReorderSectionItem` im Live-Editor immer gesetzt
+                    // ist, verschob das bislang JEDEN Chip in JEDEM Export.
+                    style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', marginRight: '5px', marginBottom: '5px', verticalAlign: 'middle', padding: '2px 8px', borderRadius: '9999px', border: '1px solid #cbd5e1', background: '#f1f5f9', whiteSpace: 'nowrap', breakInside: 'avoid', pageBreakInside: 'avoid', lineHeight: 1.4, position: 'relative', cursor: onReorderSectionItem ? 'grab' : undefined }}
                     {...itemDragProps(sectionIndex, idx, onReorderSectionItem)}
                   >
                     <ItemDragHandle sectionIndex={sectionIndex} itemIndex={idx} onReorderSectionItem={onReorderSectionItem} />
@@ -1233,6 +1287,7 @@ export const ProfessionalCVTemplate: React.FC<ProfessionalCVTemplateProps> = ({
                 style={{ position: 'relative', cursor: onReorderSections ? 'grab' : undefined }}
               >
                 <SectionDragHandle index={idx} onReorderSections={onReorderSections} />
+                <SectionDeleteButton index={idx} onDeleteSection={onDeleteSection} />
                 {content}
               </div>
             );
@@ -1255,6 +1310,7 @@ export const ProfessionalCVTemplate: React.FC<ProfessionalCVTemplateProps> = ({
                 style={{ position: 'relative', cursor: onReorderSections ? 'grab' : undefined }}
               >
                 <SectionDragHandle index={idx} onReorderSections={onReorderSections} />
+                <SectionDeleteButton index={idx} onDeleteSection={onDeleteSection} />
                 {content}
               </div>
             );
@@ -1279,6 +1335,7 @@ export const ProfessionalCVTemplate: React.FC<ProfessionalCVTemplateProps> = ({
                 style={{ position: 'relative', cursor: onReorderSections ? 'grab' : undefined }}
               >
                 <SectionDragHandle index={idx} onReorderSections={onReorderSections} />
+                <SectionDeleteButton index={idx} onDeleteSection={onDeleteSection} />
                 {content}
               </div>
             );
@@ -1298,6 +1355,11 @@ export const ProfessionalCVTemplate: React.FC<ProfessionalCVTemplateProps> = ({
           fontSize: '9px',
           color: '#64748b',
           fontFamily: 'sans-serif',
+          // Footer klebt bewusst per 'auto' am Blattende — KEIN Bug, siehe
+          // ausführliche Begründung in ModernCVTemplate.tsx (gleiche Stelle).
+          // Kurzfassung: ein fixer Abstand lässt den Footer bei kurzem
+          // Inhalt mittendrin statt unten stehen — betrifft auch den echten
+          // Druck-Export (CvExportRenderPage.tsx), nicht nur die Vorschau.
           marginTop: 'auto',
           flexShrink: 0,
           backgroundColor: '#ffffff',
