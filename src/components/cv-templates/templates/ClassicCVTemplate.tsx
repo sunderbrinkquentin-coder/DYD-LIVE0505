@@ -7,6 +7,7 @@ import {
   dragProps,
   itemDragProps,
   SectionDragHandle,
+  SectionDeleteButton,
   ItemDragHandle,
   type CVTemplateProps,
   type EditorSection,
@@ -63,7 +64,7 @@ const SIDEBAR_LABELS: Record<string, string> = {
 };
 
 const KNOWN_MAIN_TYPES = [
-  'experience', 'education', 'projects', 'skills', 'soft_skills',
+  'experience', 'education', 'projects', 'skills', 'hard_skills', 'soft_skills',
   'languages', 'work_values', ...SIDEBAR_TYPES,
 ];
 
@@ -88,6 +89,7 @@ export const ClassicCVTemplate: React.FC<CVTemplateProps> = ({
   onDeleteBullet,
   onReorderSections,
   onReorderSectionItem,
+  onDeleteSection,
 }) => {
   // Höhe kommt aus der Break-Engine, nicht aus einem lokalen ResizeObserver.
   const containerMinHeight = minHeightPx ?? 1122;
@@ -565,6 +567,7 @@ export const ClassicCVTemplate: React.FC<CVTemplateProps> = ({
     return (
       <div className="mb-6" data-pdf-section data-break-atomic {...dragProps(languagesIndex, onReorderSections)} style={{ position: 'relative', cursor: onReorderSections ? 'grab' : undefined }}>
         <SectionDragHandle index={languagesIndex} onReorderSections={onReorderSections} />
+        <SectionDeleteButton index={languagesIndex} onDeleteSection={onDeleteSection} />
         <AsideTitle>Sprachen</AsideTitle>
         <ul className="space-y-2">
           {items.map((item: any, idx: number) => {
@@ -625,6 +628,7 @@ export const ClassicCVTemplate: React.FC<CVTemplateProps> = ({
     return (
       <div className="mb-6" data-pdf-section data-break-atomic {...dragProps(index, onReorderSections)} style={{ position: 'relative', cursor: onReorderSections ? 'grab' : undefined }}>
         <SectionDragHandle index={index} onReorderSections={onReorderSections} />
+        <SectionDeleteButton index={index} onDeleteSection={onDeleteSection} />
         <AsideTitle>{label}</AsideTitle>
         <div data-chip-row style={{ display: 'block', overflow: 'visible' }}>
           {items.map((item: any, idx: number) => {
@@ -647,7 +651,10 @@ export const ClassicCVTemplate: React.FC<CVTemplateProps> = ({
                   gap: '4px',
                   marginRight: '5px',
                   marginBottom: '5px',
-                  marginLeft: onReorderSectionItem ? '10px' : undefined,
+                  // FIX (Quentin: PDF "immer noch verschoben"): siehe
+                  // ausführlicher Kommentar in ProfessionalCVTemplate.tsx an
+                  // derselben Stelle — ItemDragHandle braucht dank
+                  // `left:-22px` keinen reservierten Platz.
                   verticalAlign: 'middle',
                   padding: '3px 9px',
                   borderRadius: '4px',
@@ -752,6 +759,7 @@ export const ClassicCVTemplate: React.FC<CVTemplateProps> = ({
         style={{ position: 'relative', cursor: onReorderSections ? 'grab' : undefined }}
       >
         <SectionDragHandle index={index} onReorderSections={onReorderSections} />
+        <SectionDeleteButton index={index} onDeleteSection={onDeleteSection} />
         <AsideTitle>{label}</AsideTitle>
         <div>
           {items.map((item: any, idx: number) => {
@@ -874,11 +882,17 @@ export const ClassicCVTemplate: React.FC<CVTemplateProps> = ({
   // ausschließlich ihre Position in `sections`, nicht mehr eine feste
   // Aufrufreihenfolge im Code. Dadurch funktioniert Drag&Drop endlich für
   // ALLE vier Blocktypen gleichermaßen.
-  const ASIDE_TYPES = ['skills', 'soft_skills', 'languages', ...SIDEBAR_TYPES];
+  // FIX (Quentin: "sieht scheiße aus" / Skill-Sektion fehlplatziert): `hard_skills`
+  // fehlte hier UND als eigener Fall unten — dadurch landete "Fachliche
+  // Skills" nicht in der Seitenspalte als Chips, sondern als Aufzählung in
+  // der Hauptspalte (`renderUnknownSections`). Siehe ausführlicher Kommentar
+  // in ProfessionalCVTemplate.tsx an derselben Stelle.
+  const ASIDE_TYPES = ['skills', 'hard_skills', 'soft_skills', 'languages', ...SIDEBAR_TYPES];
   const renderAsideSections = () =>
     sections.map((section, index) => {
       if (!ASIDE_TYPES.includes(section.type)) return null;
       if (section.type === 'skills') return <React.Fragment key={index}>{renderChipSection('Fähigkeiten', index)}</React.Fragment>;
+      if (section.type === 'hard_skills') return <React.Fragment key={index}>{renderChipSection('Fachliche Skills', index)}</React.Fragment>;
       if (section.type === 'soft_skills') return <React.Fragment key={index}>{renderChipSection('Soft Skills', index)}</React.Fragment>;
       if (section.type === 'languages') return <React.Fragment key={index}>{renderLanguages()}</React.Fragment>;
       return renderSidebarSection(section, index);
@@ -1090,6 +1104,11 @@ export const ClassicCVTemplate: React.FC<CVTemplateProps> = ({
           fontSize: '9px',
           color: t.muted,
           backgroundColor: t.surfaceAlt,
+          // Footer klebt bewusst per 'auto' am Blattende — KEIN Bug, siehe
+          // ausführliche Begründung in ModernCVTemplate.tsx (gleiche Stelle).
+          // Kurzfassung: ein fixer Abstand lässt den Footer bei kurzem
+          // Inhalt mittendrin statt unten stehen — betrifft auch den echten
+          // Druck-Export (CvExportRenderPage.tsx), nicht nur die Vorschau.
           marginTop: 'auto',
           flexShrink: 0,
           height: '45px',
