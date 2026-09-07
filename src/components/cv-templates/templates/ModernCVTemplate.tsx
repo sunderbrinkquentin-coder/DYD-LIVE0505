@@ -7,6 +7,7 @@ import {
   dragProps,
   itemDragProps,
   SectionDragHandle,
+  SectionDeleteButton,
   ItemDragHandle,
   type CVTemplateProps,
   type EditorSection,
@@ -26,8 +27,13 @@ const CI = {
 const FONT = "'Inter', 'Roboto', 'Open Sans', system-ui, sans-serif";
 
 const SECTION_ORDER_LEFT = new Set(['experience', 'projects']);
+// FIX (Quentin: "sieht scheiße aus" / Skill-Sektion fehlplatziert): `hard_skills`
+// fehlte hier UND im ATOMIC_TYPES-Set UND im `switch` weiter unten. Dadurch
+// landete "Fachliche Skills" nicht bei den anderen Skill-Chips in der rechten
+// Spalte, sondern als eigener, unpassend gestylter Block — gleicher Skill-Typ,
+// andere Optik. Jetzt identisch zu `skills` behandelt.
 const SECTION_ORDER_RIGHT = new Set([
-  'education', 'skills', 'soft_skills', 'languages', 'work_values', 'values',
+  'education', 'skills', 'hard_skills', 'soft_skills', 'languages', 'work_values', 'values',
   'hobbies', 'interests', 'certifications', 'courses', 'awards',
   'volunteering', 'stipendien', 'scholarships',
 ]);
@@ -35,7 +41,7 @@ const isLeft = (type: string) => SECTION_ORDER_LEFT.has(type);
 const isRight = (type: string) => SECTION_ORDER_RIGHT.has(type) || type === 'certificates' || type === 'stipends';
 
 const ATOMIC_TYPES = new Set([
-  'languages', 'skills', 'soft_skills', 'work_values', 'values',
+  'languages', 'skills', 'hard_skills', 'soft_skills', 'work_values', 'values',
   'hobbies', 'interests', 'certifications', 'courses', 'awards',
   'volunteering', 'stipendien', 'scholarships',
 ]);
@@ -154,7 +160,9 @@ const Chip: React.FC<{
       padding: '3px 10px',
       marginRight: '5px',
       marginBottom: '5px',
-      marginLeft: onReorderSectionItem ? '10px' : undefined,
+      // FIX (Quentin: PDF "immer noch verschoben"): siehe ausführlicher
+      // Kommentar in ProfessionalCVTemplate.tsx an derselben Stelle —
+      // ItemDragHandle braucht dank `left:-22px` keinen reservierten Platz.
       verticalAlign: 'middle',
       fontSize: '9px',
       fontFamily: FONT,
@@ -260,6 +268,7 @@ export const ModernCVTemplate: React.FC<CVTemplateProps> = ({
   onDeleteBullet,
   onReorderSections,
   onReorderSectionItem,
+  onDeleteSection,
 }) => {
   const today = new Date().toLocaleDateString('de-DE', { day: '2-digit', month: '2-digit', year: 'numeric' });
   const footerLocation = (personalInfo.footerLocation ?? personalInfo.location ?? '').toString();
@@ -733,8 +742,10 @@ export const ModernCVTemplate: React.FC<CVTemplateProps> = ({
       }
 
       case 'skills':
+      case 'hard_skills':
       case 'soft_skills': {
         const isSoft = section.type === 'soft_skills';
+        const isHard = section.type === 'hard_skills';
         const chips = items
           .map((skill: any, originalIdx: number) => {
             const name = typeof skill === 'string' ? skill : skill?.skill || skill?.name || skill?.label || '';
@@ -748,7 +759,7 @@ export const ModernCVTemplate: React.FC<CVTemplateProps> = ({
 
         return (
           <div key={`${section.type}-${sectionIndex}`} data-pdf-section data-break-atomic>
-            <SectionTitle>{section.title || (isSoft ? 'Soft Skills' : 'Fähigkeiten')}</SectionTitle>
+            <SectionTitle>{section.title || (isSoft ? 'Soft Skills' : isHard ? 'Fachliche Skills' : 'Fähigkeiten')}</SectionTitle>
             <div data-chip-row style={{ display: 'block', overflow: 'visible' }}>
               {chips.map((c) => (
                 <Chip
@@ -1000,6 +1011,7 @@ export const ModernCVTemplate: React.FC<CVTemplateProps> = ({
           }}
         >
           <SectionDragHandle index={index} onReorderSections={onReorderSections} />
+          <SectionDeleteButton index={index} onDeleteSection={onDeleteSection} />
           {content}
         </div>
       );
@@ -1153,6 +1165,21 @@ export const ModernCVTemplate: React.FC<CVTemplateProps> = ({
           fontSize: '9px',
           color: t.muted,
           fontFamily: FONT,
+          // Footer klebt bewusst per 'auto' an die Unterkante des Containers
+          // (containerMinHeight = exakt die Höhe bis zum Ende der letzten
+          // Seite, siehe containerHeightFor() in breakEngine.ts). Das ist
+          // KEIN Bug: computeBreakPoints reserviert Footer+Inhalt schon beim
+          // Umbruch, der Container wird nie höher als nötig — der scheinbare
+          // "riesige Leerraum" bei kurzem Inhalt ist exakt die freie Fläche
+          // am Blattende, die JEDES gedruckte Blatt hat, das nicht randvoll
+          // ist. Ein fixer Abstand (frühere Version dieses Codes) lässt den
+          // Footer stattdessen direkt nach kurzem Inhalt "mittendrin" auf der
+          // Seite stehen statt am Blattfuß — GENAU der Fehler, den Quentin
+          // gemeldet hat ("Footer steht nicht unten"). Betrifft außerdem
+          // nicht nur die Live-Vorschau, sondern auch den echten Druck-Export
+          // (CvExportRenderPage.tsx) — dort gibt es keinen Canvas-Trick, der
+          // das nachträglich korrigieren könnte, die CSS-Position IST die
+          // finale Position im PDF.
           marginTop: 'auto',
           flexShrink: 0,
           backgroundColor: CI.canvas,
