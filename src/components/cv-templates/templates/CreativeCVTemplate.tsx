@@ -7,6 +7,7 @@ import {
   dragProps,
   itemDragProps,
   SectionDragHandle,
+  SectionDeleteButton,
   ItemDragHandle,
   type CVTemplateProps,
   type EditorSection,
@@ -44,6 +45,7 @@ const SubTitle: React.FC<{ children: React.ReactNode }> = ({ children }) => (
 const ATOMIC_TYPES = new Set([
   'languages',
   'skills',
+  'hard_skills',
   'soft_skills',
   'work_values',
   'values',
@@ -137,6 +139,7 @@ export const CreativeCVTemplate: React.FC<CVTemplateProps> = ({
   onDeleteBullet,
   onReorderSections,
   onReorderSectionItem,
+  onDeleteSection,
 }) => {
   const containerMinHeight = minHeightPx ?? 1122;
 
@@ -216,8 +219,12 @@ export const CreativeCVTemplate: React.FC<CVTemplateProps> = ({
   };
 
   const leftColumnTypes = ['experience', 'projects'];
+  // FIX (Quentin: "sieht scheiße aus" / Skill-Sektion fehlplatziert): `hard_skills`
+  // fehlte hier UND im `switch` weiter unten — siehe ausführlicher Kommentar
+  // in ProfessionalCVTemplate.tsx an derselben Stelle. Gleicher Bug, gleiche
+  // Ursache, in allen 5 Templates einzeln behoben.
   const rightColumnTypes = [
-    'education', 'languages', 'skills', 'soft_skills', 'work_values', 'values',
+    'education', 'languages', 'skills', 'hard_skills', 'soft_skills', 'work_values', 'values',
     'hobbies', 'interests', 'certifications', 'courses', 'awards',
     'volunteering', 'stipendien', 'scholarships',
   ];
@@ -595,6 +602,7 @@ export const CreativeCVTemplate: React.FC<CVTemplateProps> = ({
         );
 
       case 'skills':
+      case 'hard_skills':
       case 'soft_skills': {
         const isSoft = section.type === 'soft_skills';
         return (
@@ -615,7 +623,10 @@ export const CreativeCVTemplate: React.FC<CVTemplateProps> = ({
                       ...chipStyle(isSoft ? t.chipAltBg : t.chipBg, isSoft ? t.chipAltBorder : t.chipBorder),
                       position: 'relative',
                       cursor: onReorderSectionItem ? 'grab' : undefined,
-                      marginLeft: onReorderSectionItem ? '10px' : undefined,
+                      // FIX (Quentin: PDF "immer noch verschoben"): siehe
+                      // ausführlicher Kommentar in ProfessionalCVTemplate.tsx
+                      // an derselben Stelle — ItemDragHandle braucht dank
+                      // `left:-22px` keinen reservierten Platz.
                     }}
                     {...itemDragProps(sectionIndex, idx, onReorderSectionItem)}
                   >
@@ -650,7 +661,10 @@ export const CreativeCVTemplate: React.FC<CVTemplateProps> = ({
                       ...chipStyle(t.chipBg, t.accent),
                       position: 'relative',
                       cursor: onReorderSectionItem ? 'grab' : undefined,
-                      marginLeft: onReorderSectionItem ? '10px' : undefined,
+                      // FIX (Quentin: PDF "immer noch verschoben"): siehe
+                      // ausführlicher Kommentar in ProfessionalCVTemplate.tsx
+                      // an derselben Stelle — ItemDragHandle braucht dank
+                      // `left:-22px` keinen reservierten Platz.
                     }}
                     {...itemDragProps(sectionIndex, idx, onReorderSectionItem)}
                   >
@@ -684,7 +698,10 @@ export const CreativeCVTemplate: React.FC<CVTemplateProps> = ({
                       ...chipStyle('#fff7ed', '#f97316'),
                       position: 'relative',
                       cursor: onReorderSectionItem ? 'grab' : undefined,
-                      marginLeft: onReorderSectionItem ? '10px' : undefined,
+                      // FIX (Quentin: PDF "immer noch verschoben"): siehe
+                      // ausführlicher Kommentar in ProfessionalCVTemplate.tsx
+                      // an derselben Stelle — ItemDragHandle braucht dank
+                      // `left:-22px` keinen reservierten Platz.
                     }}
                     {...itemDragProps(sectionIndex, idx, onReorderSectionItem)}
                   >
@@ -856,6 +873,7 @@ export const CreativeCVTemplate: React.FC<CVTemplateProps> = ({
     return (
       <div key={sectionIndex} {...dragProps(sectionIndex, onReorderSections)} style={{ position: 'relative', cursor: onReorderSections ? 'grab' : undefined }}>
         <SectionDragHandle index={sectionIndex} onReorderSections={onReorderSections} />
+        <SectionDeleteButton index={sectionIndex} onDeleteSection={onDeleteSection} />
         {content}
       </div>
     );
@@ -1004,6 +1022,7 @@ export const CreativeCVTemplate: React.FC<CVTemplateProps> = ({
               return (
                 <div key={sectionIndex} {...dragProps(sectionIndex, onReorderSections)} style={{ position: 'relative', cursor: onReorderSections ? 'grab' : undefined }}>
                   <SectionDragHandle index={sectionIndex} onReorderSections={onReorderSections} />
+                  <SectionDeleteButton index={sectionIndex} onDeleteSection={onDeleteSection} />
                   {content}
                 </div>
               );
@@ -1024,6 +1043,7 @@ export const CreativeCVTemplate: React.FC<CVTemplateProps> = ({
               return (
                 <div key={sectionIndex} {...dragProps(sectionIndex, onReorderSections)} style={{ position: 'relative', cursor: onReorderSections ? 'grab' : undefined }}>
                   <SectionDragHandle index={sectionIndex} onReorderSections={onReorderSections} />
+                  <SectionDeleteButton index={sectionIndex} onDeleteSection={onDeleteSection} />
                   {content}
                 </div>
               );
@@ -1036,6 +1056,11 @@ export const CreativeCVTemplate: React.FC<CVTemplateProps> = ({
         data-pdf-footer
         className="relative flex-shrink-0"
         style={{
+          // Footer klebt bewusst per 'auto' am Blattende — KEIN Bug, siehe
+          // ausführliche Begründung in ModernCVTemplate.tsx (gleiche Stelle).
+          // Kurzfassung: ein fixer Abstand lässt den Footer bei kurzem
+          // Inhalt mittendrin statt unten stehen — betrifft auch den echten
+          // Druck-Export (CvExportRenderPage.tsx), nicht nur die Vorschau.
           marginTop: 'auto',
           padding: '10px 24px',
           borderTop: `1px solid ${t.border}`,
