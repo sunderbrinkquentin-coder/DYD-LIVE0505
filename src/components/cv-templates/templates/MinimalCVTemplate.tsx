@@ -7,6 +7,7 @@ import {
   dragProps,
   itemDragProps,
   SectionDragHandle,
+  SectionDeleteButton,
   ItemDragHandle,
   type CVTemplateProps,
   type EditorSection,
@@ -77,6 +78,7 @@ export const MinimalCVTemplate: React.FC<CVTemplateProps> = ({
   onDeleteBullet,
   onReorderSections,
   onReorderSectionItem,
+  onDeleteSection,
 }) => {
   const containerMinHeight = minHeightPx ?? 1122;
 
@@ -564,7 +566,10 @@ export const MinimalCVTemplate: React.FC<CVTemplateProps> = ({
                   gap: '4px',
                   marginRight: '5px',
                   marginBottom: '5px',
-                  marginLeft: onReorderSectionItem ? '10px' : undefined,
+                  // FIX (Quentin: PDF "immer noch verschoben"): siehe
+                  // ausführlicher Kommentar in ProfessionalCVTemplate.tsx an
+                  // derselben Stelle — ItemDragHandle braucht dank
+                  // `left:-22px` keinen reservierten Platz.
                   padding: '3px 9px',
                   borderRadius: '999px',
                   position: 'relative',
@@ -708,8 +713,11 @@ export const MinimalCVTemplate: React.FC<CVTemplateProps> = ({
   };
 
   const leftTypes = ['experience', 'projects'];
+  // FIX (Quentin: "sieht scheiße aus" / Skill-Sektion fehlplatziert): `hard_skills`
+  // fehlte hier UND im `switch` weiter unten — siehe ausführlicher Kommentar
+  // in ProfessionalCVTemplate.tsx an derselben Stelle.
   const rightTypes = [
-    'education', 'languages', 'skills', 'soft_skills', 'work_values', 'values',
+    'education', 'languages', 'skills', 'hard_skills', 'soft_skills', 'work_values', 'values',
     'hobbies', 'interests', 'certifications', 'courses', 'awards',
     'volunteering', 'stipendien', 'scholarships',
   ];
@@ -721,6 +729,7 @@ export const MinimalCVTemplate: React.FC<CVTemplateProps> = ({
       case 'education': return renderEducation(section, sectionIndex);
       case 'languages': return renderLanguages(section, sectionIndex);
       case 'skills': return renderChipSection(section, sectionIndex, 'Fähigkeiten');
+      case 'hard_skills': return renderChipSection(section, sectionIndex, 'Fachliche Skills');
       case 'soft_skills': return renderChipSection(section, sectionIndex, 'Soft Skills');
       case 'work_values':
       case 'values': return renderChipSection(section, sectionIndex, 'Arbeitsweise & Werte');
@@ -758,6 +767,7 @@ export const MinimalCVTemplate: React.FC<CVTemplateProps> = ({
       return (
         <div key={index} {...dragProps(index, onReorderSections)} style={{ position: 'relative', marginBottom: '20px', cursor: onReorderSections ? 'grab' : undefined }}>
           <SectionDragHandle index={index} onReorderSections={onReorderSections} />
+          <SectionDeleteButton index={index} onDeleteSection={onDeleteSection} />
           {content}
         </div>
       );
@@ -858,6 +868,11 @@ export const MinimalCVTemplate: React.FC<CVTemplateProps> = ({
           fontSize: '9px',
           color: t.muted,
           backgroundColor: t.surfaceAlt,
+          // Footer klebt bewusst per 'auto' am Blattende — KEIN Bug, siehe
+          // ausführliche Begründung in ModernCVTemplate.tsx (gleiche Stelle).
+          // Kurzfassung: ein fixer Abstand lässt den Footer bei kurzem
+          // Inhalt mittendrin statt unten stehen — betrifft auch den echten
+          // Druck-Export (CvExportRenderPage.tsx), nicht nur die Vorschau.
           marginTop: 'auto',
           flexShrink: 0,
           height: '45px',
