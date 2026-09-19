@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import {
-  LayoutDashboard, Grid2x2, Target, GraduationCap, ArrowUpRight,
+  LayoutDashboard, Grid2x2, Target, GraduationCap, ArrowUpRight, Maximize2, X,
 } from 'lucide-react';
 
 /* Live-Demo: DYD ORBIT, eingebettet per iframe (Bolt-Preview) */
@@ -205,24 +205,69 @@ function ScaledOrbitFrame() {
 /* ─── ORBIT: echte Live-Demo, eingebettet ─── */
 /* Enthält Dashboard (Bildungsträger) und Journey (Endnutzer) bereits als eigenen Umschalter
    INNERHALB der App – hier also bewusst kein eigener Tab-Bau nötig, nur sauber einbetten.
-   Zusätzlich zur reinen Einbettung: ein "LIVE"-Badge und ein Erklär-/Feedback-Banner,
-   damit die Demo auf der Seite deutlich präsenter wirkt als eine reine Illustration. */
+   Zusätzlich zur reinen Einbettung: eine Einladungs-Zeile, ein "LIVE"-Badge, ein Button zum
+   vergrößerten Öffnen (Modal, darin zusätzlich echtes Browser-Vollbild) sowie ein
+   Erklär-/Feedback-Banner, damit die Demo auf der Seite deutlich präsenter wirkt als eine
+   reine Illustration. */
 export function OrbitMockup() {
+  const [expanded, setExpanded] = useState(false);
+  const fullscreenTargetRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (!expanded) return undefined;
+    const onKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') setExpanded(false);
+    };
+    document.addEventListener('keydown', onKeyDown);
+    const previousOverflow = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+    return () => {
+      document.removeEventListener('keydown', onKeyDown);
+      document.body.style.overflow = previousOverflow;
+    };
+  }, [expanded]);
+
+  const goFullscreen = () => {
+    fullscreenTargetRef.current?.requestFullscreen?.();
+  };
+
   return (
-    <div className="relative">
-      {/* Live-Badge – überlappt bewusst die obere Kante der Frame für mehr visuelles Gewicht */}
-      <div className="absolute -top-3 left-6 z-10 inline-flex items-center gap-1.5 pl-2 pr-3 py-1 rounded-full bg-[#0A192F] shadow-lg">
-        <span className="relative flex h-2 w-2" aria-hidden="true">
-          <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-[#28c840] opacity-75" />
-          <span className="relative inline-flex rounded-full h-2 w-2 bg-[#28c840]" />
-        </span>
-        <span className="font-arimo text-[10px] font-bold text-white tracking-wide uppercase">Live-Demo</span>
+    <div>
+      {/* Einladung oberhalb der Demo */}
+      <div className="text-center mb-6">
+        <p className="font-poppins font-black text-lg sm:text-2xl text-[#0F1E34] mb-1.5">
+          Wie wäre es mit einem kleinen Rundgang?
+        </p>
+        <p className="font-arimo text-sm sm:text-base text-[#55637A]">
+          Sie haben bereits einen Demo-Zugang? Dann können Sie sich hier anmelden.
+        </p>
       </div>
 
-      <div className="rounded-2xl ring-4 ring-[#38BDF8]/15">
-        <LiveFrame url="app.decide-your-dream.de/orbit">
-          <ScaledOrbitFrame />
-        </LiveFrame>
+      <div className="relative">
+        {/* Live-Badge – überlappt bewusst die obere Kante der Frame für mehr visuelles Gewicht */}
+        <div className="absolute -top-3 left-6 z-10 inline-flex items-center gap-1.5 pl-2 pr-3 py-1 rounded-full bg-[#0A192F] shadow-lg">
+          <span className="relative flex h-2 w-2" aria-hidden="true">
+            <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-[#28c840] opacity-75" />
+            <span className="relative inline-flex rounded-full h-2 w-2 bg-[#28c840]" />
+          </span>
+          <span className="font-arimo text-[10px] font-bold text-white tracking-wide uppercase">Live-Demo</span>
+        </div>
+
+        {/* Öffnet die vergrößerte Ansicht (Modal) */}
+        <button
+          type="button"
+          onClick={() => setExpanded(true)}
+          className="absolute -top-3 right-6 z-10 inline-flex items-center gap-1.5 pl-2.5 pr-3 py-1 rounded-full bg-white border border-[#E3EBF5] shadow-lg font-arimo text-[10px] font-bold text-[#0F1E34] hover:border-[#38BDF8]/50 hover:text-[#38BDF8] transition"
+        >
+          <Maximize2 className="w-3 h-3" aria-hidden="true" />
+          Vollbild
+        </button>
+
+        <div className="rounded-2xl ring-4 ring-[#38BDF8]/15">
+          <LiveFrame url="app.decide-your-dream.de/orbit">
+            <ScaledOrbitFrame />
+          </LiveFrame>
+        </div>
       </div>
 
       {/* Einordnung + Feedback-Einladung für Besucher:innen */}
@@ -233,6 +278,59 @@ export function OrbitMockup() {
           Fehlt Ihnen etwas? Wir freuen uns über Ihr Feedback!
         </p>
       </div>
+
+      {/* Vergrößerte Ansicht: großes Modal, darin zusätzlich echtes Browser-Vollbild möglich.
+          Läuft bewusst NICHT über ScaledOrbitFrame – im Modal ist ohnehin genug Breite da,
+          das iframe bekommt hier ganz normal 100% Breite/Höhe. */}
+      {expanded && (
+        <div
+          role="dialog"
+          aria-modal="true"
+          aria-label="DYD ORBIT – Live-Demo vergrößert"
+          className="fixed inset-0 z-50 flex items-center justify-center bg-[#0A192F]/80 backdrop-blur-sm p-0 sm:p-6"
+          onClick={() => setExpanded(false)}
+        >
+          <div
+            ref={fullscreenTargetRef}
+            className="relative w-full h-full sm:w-[95vw] sm:h-[92vh] bg-white sm:rounded-2xl overflow-hidden shadow-2xl flex flex-col"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="flex items-center justify-between gap-3 px-4 py-2.5 bg-[#0A192F]">
+              <div className="flex items-center gap-2 min-w-0">
+                <span className="w-2.5 h-2.5 rounded-full bg-[#ff5f57]" aria-hidden="true" />
+                <span className="w-2.5 h-2.5 rounded-full bg-[#febc2e]" aria-hidden="true" />
+                <span className="w-2.5 h-2.5 rounded-full bg-[#28c840]" aria-hidden="true" />
+                <span className="ml-2 font-arimo text-[11px] text-white/60 truncate">app.decide-your-dream.de/orbit</span>
+              </div>
+              <div className="flex items-center gap-2 shrink-0">
+                <button
+                  type="button"
+                  onClick={goFullscreen}
+                  className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-white/10 hover:bg-white/20 font-arimo text-xs font-bold text-white transition"
+                >
+                  <Maximize2 className="w-3.5 h-3.5" aria-hidden="true" />
+                  Echtes Vollbild
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setExpanded(false)}
+                  aria-label="Schließen"
+                  className="inline-flex items-center justify-center w-8 h-8 rounded-lg bg-white/10 hover:bg-white/20 text-white transition"
+                >
+                  <X className="w-4 h-4" aria-hidden="true" />
+                </button>
+              </div>
+            </div>
+            <iframe
+              src={ORBIT_LIVE_DEMO_URL}
+              title="DYD ORBIT – interaktive Live-Demo im Vollbild"
+              className="w-full flex-1"
+              style={{ border: 0 }}
+              referrerPolicy="no-referrer-when-downgrade"
+            />
+          </div>
+        </div>
+      )}
     </div>
   );
 }
