@@ -155,18 +155,42 @@ export function NexusMockup() {
 
 /* ─── ORBIT: echte Live-Demo, eingebettet ─── */
 /* Enthält Dashboard (Bildungsträger) und Journey (Endnutzer) bereits als eigenen Umschalter
-   INNERHALB der App – hier also bewusst kein eigener Tab-Bau nötig, nur sauber einbetten. */
+   INNERHALB der App – hier also bewusst kein eigener Tab-Bau nötig, nur sauber einbetten.
+   Zusätzlich zur reinen Einbettung: ein "LIVE"-Badge und ein Erklär-/Feedback-Banner,
+   damit die Demo auf der Seite deutlich präsenter wirkt als eine reine Illustration. */
 export function OrbitMockup() {
   return (
-    <LiveFrame url="app.decide-your-dream.de/orbit">
-      <iframe
-        src={ORBIT_LIVE_DEMO_URL}
-        title="DYD ORBIT – interaktive Live-Demo: Bildungsträger-Dashboard und Nutzer-Journey zum Durchklicken"
-        className="w-full block h-[560px] sm:h-[720px]"
-        style={{ border: 0 }}
-        loading="lazy"
-        referrerPolicy="no-referrer-when-downgrade"
-      />
-    </LiveFrame>
+    <div className="relative">
+      {/* Live-Badge – überlappt bewusst die obere Kante der Frame für mehr visuelles Gewicht */}
+      <div className="absolute -top-3 left-6 z-10 inline-flex items-center gap-1.5 pl-2 pr-3 py-1 rounded-full bg-[#0A192F] shadow-lg">
+        <span className="relative flex h-2 w-2" aria-hidden="true">
+          <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-[#28c840] opacity-75" />
+          <span className="relative inline-flex rounded-full h-2 w-2 bg-[#28c840]" />
+        </span>
+        <span className="font-arimo text-[10px] font-bold text-white tracking-wide uppercase">Live-Demo</span>
+      </div>
+
+      <div className="rounded-2xl ring-4 ring-[#38BDF8]/15">
+        <LiveFrame url="app.decide-your-dream.de/orbit">
+          <iframe
+            src={ORBIT_LIVE_DEMO_URL}
+            title="DYD ORBIT – interaktive Live-Demo: Bildungsträger-Dashboard und Nutzer-Journey zum Durchklicken"
+            className="w-full block h-[560px] sm:h-[720px]"
+            style={{ border: 0 }}
+            loading="lazy"
+            referrerPolicy="no-referrer-when-downgrade"
+          />
+        </LiveFrame>
+      </div>
+
+      {/* Einordnung + Feedback-Einladung für Besucher:innen */}
+      <div className="mt-4 rounded-xl border border-[#38BDF8]/25 bg-[#F6F9FD] px-4 py-3.5 sm:px-5 sm:py-4">
+        <p className="font-poppins font-bold text-xs sm:text-sm text-[#0F1E34] mb-1">So könnte es aussehen.</p>
+        <p className="font-arimo text-xs sm:text-[13px] text-[#55637A] leading-relaxed">
+          Ihre individuelle Version wird vollständig an Ihr Corporate Design und Ihre Corporate Identity angepasst.
+          Fehlt Ihnen etwas? Wir freuen uns über Ihr Feedback!
+        </p>
+      </div>
+    </div>
   );
 }
