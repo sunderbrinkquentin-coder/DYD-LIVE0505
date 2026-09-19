@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
-import { GripVertical, ChevronUp, ChevronDown } from 'lucide-react';
+import { GripVertical, ChevronUp, ChevronDown, Trash2 } from 'lucide-react';
 import { sanitizeGeneratedText } from '../../utils/textSanitize';
 
 export interface EditableTextProps {
@@ -188,6 +188,10 @@ export interface CVTemplateProps {
   onUpdateSectionItem: (sectionIndex: number, itemIndex: number, field: string, value: any) => void;
   onAddSectionItem?: (sectionIndex: number, defaultItem: any) => void;
   onDeleteSectionItem?: (sectionIndex: number, itemIndex: number) => void;
+  /** Löscht eine ganze Sektion. Wird aktuell von CVLiveEditorPage noch nicht
+   *  übergeben (siehe SectionDeleteButton) – Typ hier trotzdem ergänzt, weil
+   *  4 der 5 Templates ihn schon aus CVTemplateProps destrukturieren. */
+  onDeleteSection?: (sectionIndex: number) => void;
   onDeleteBullet?: (sectionIndex: number, itemIndex: number, bulletIndex: number) => void;
   onReorderSections?: (fromIndex: number, toIndex: number) => void;
   /** Verschiebt ein einzelnes Item INNERHALB einer Sektion (z. B. eine
@@ -380,6 +384,38 @@ export const SectionDragHandle: React.FC<{
   );
 };
 
+/** Löscht eine ganze Sektion. Gleiches Muster wie `SectionDragHandle`: eigener,
+ *  nicht editierbarer Button (`data-drag-handle` + `.pdf-hidden`, damit der
+ *  Klick nicht vom contentEditable-Feld/Fokus-Handling der Karte geschluckt
+ *  wird). Rendert nichts, solange kein `onDeleteSection`-Handler übergeben
+ *  wird — aktuell reicht CVLiveEditorPage diesen Handler noch nicht durch,
+ *  d.h. der Button bleibt vorerst unsichtbar, bis das separat verdrahtet wird. */
+export const SectionDeleteButton: React.FC<{
+  index: number;
+  onDeleteSection?: (index: number) => void;
+  title?: string;
+}> = ({ index, onDeleteSection, title = 'Abschnitt löschen' }) => {
+  if (!onDeleteSection) return null;
+  return (
+    <button
+      type="button"
+      data-drag-handle
+      contentEditable={false}
+      suppressContentEditableWarning
+      className="pdf-hidden"
+      title={title}
+      style={deleteButtonStyle}
+      onClick={(e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        onDeleteSection(index);
+      }}
+    >
+      <Trash2 size={14} />
+    </button>
+  );
+};
+
 /** Ziehgriff für ein einzelnes Item INNERHALB einer Sektion (z. B. eine
  *  Berufsstation über eine andere ziehen). Gleiche Begründung wie
  *  `SectionDragHandle`, eigene dataTransfer-Keys damit beide Dragging-Arten
@@ -499,6 +535,13 @@ const moveButtonBaseStyle: React.CSSProperties = {
 
 const moveUpButtonStyle: React.CSSProperties = { ...moveButtonBaseStyle, left: '-44px' };
 const moveDownButtonStyle: React.CSSProperties = { ...moveButtonBaseStyle, left: '-64px' };
+const deleteButtonStyle: React.CSSProperties = {
+  ...moveButtonBaseStyle,
+  left: '-84px',
+  color: '#dc2626',
+  background: '#fee2e2',
+  border: '1px solid #fecaca',
+};
 
 /** Drag-Handler zum Verschieben einzelner Items INNERHALB einer Sektion
  *  (z. B. eine Berufsstation über eine andere ziehen). Nutzt eigene
