@@ -1,9 +1,20 @@
+import { useEffect, useRef, useState } from 'react';
 import {
   LayoutDashboard, Grid2x2, Target, GraduationCap, ArrowUpRight,
 } from 'lucide-react';
 
 /* Live-Demo: DYD ORBIT, eingebettet per iframe (Bolt-Preview) */
 const ORBIT_LIVE_DEMO_URL = 'https://quentin907-dyd-nexus-29l3.bolt.host/';
+
+/* Die echte ORBIT-App braucht Desktop-Breite, damit sie ihre eigene linke
+   Navigationsleiste zeigt (bei zu schmaler Einbettung schaltet sie offenbar
+   selbst in eine Kompaktansicht ohne Sidebar). Deshalb bekommt das iframe
+   IMMER diese feste "Design-Größe" (voller Desktop-Viewport aus Sicht der
+   App) und wird per CSS-Transform auf die tatsächlich verfügbare Breite
+   unseres Containers herunterskaliert – so bleibt die Desktop-Ansicht der
+   App erhalten, egal wie schmal die Spalte auf unserer Seite ist. */
+const ORBIT_DESIGN_WIDTH = 1120;
+const ORBIT_DESIGN_HEIGHT = 760;
 
 /* Gemeinsame Browser-Chrome-Hülle */
 function Frame({ url, label, children }: { url: string; label: string; children: React.ReactNode }) {
@@ -153,6 +164,44 @@ export function NexusMockup() {
   );
 }
 
+/* Misst die verfügbare Breite des Wrapper-Divs und berechnet daraus den
+   Skalierungsfaktor, mit dem das (fest breite) iframe hineinskaliert wird.
+   ResizeObserver statt fixer Breakpoints, damit es bei jeder Container-
+   breite (Tablet, Sidebar-Layouts etc.) exakt passt. */
+function ScaledOrbitFrame() {
+  const wrapperRef = useRef<HTMLDivElement>(null);
+  const [scale, setScale] = useState(1);
+
+  useEffect(() => {
+    const el = wrapperRef.current;
+    if (!el) return undefined;
+    const update = () => {
+      const width = el.clientWidth;
+      if (width > 0) setScale(Math.min(1, width / ORBIT_DESIGN_WIDTH));
+    };
+    update();
+    const observer = new ResizeObserver(update);
+    observer.observe(el);
+    return () => observer.disconnect();
+  }, []);
+
+  return (
+    <div ref={wrapperRef} style={{ width: '100%', overflow: 'hidden', height: ORBIT_DESIGN_HEIGHT * scale }}>
+      <div style={{ width: ORBIT_DESIGN_WIDTH, height: ORBIT_DESIGN_HEIGHT, transform: `scale(${scale})`, transformOrigin: 'top left' }}>
+        <iframe
+          src={ORBIT_LIVE_DEMO_URL}
+          title="DYD ORBIT – interaktive Live-Demo: Bildungsträger-Dashboard und Nutzer-Journey zum Durchklicken"
+          width={ORBIT_DESIGN_WIDTH}
+          height={ORBIT_DESIGN_HEIGHT}
+          style={{ border: 0, display: 'block' }}
+          loading="lazy"
+          referrerPolicy="no-referrer-when-downgrade"
+        />
+      </div>
+    </div>
+  );
+}
+
 /* ─── ORBIT: echte Live-Demo, eingebettet ─── */
 /* Enthält Dashboard (Bildungsträger) und Journey (Endnutzer) bereits als eigenen Umschalter
    INNERHALB der App – hier also bewusst kein eigener Tab-Bau nötig, nur sauber einbetten.
@@ -172,14 +221,7 @@ export function OrbitMockup() {
 
       <div className="rounded-2xl ring-4 ring-[#38BDF8]/15">
         <LiveFrame url="app.decide-your-dream.de/orbit">
-          <iframe
-            src={ORBIT_LIVE_DEMO_URL}
-            title="DYD ORBIT – interaktive Live-Demo: Bildungsträger-Dashboard und Nutzer-Journey zum Durchklicken"
-            className="w-full block h-[560px] sm:h-[720px]"
-            style={{ border: 0 }}
-            loading="lazy"
-            referrerPolicy="no-referrer-when-downgrade"
-          />
+          <ScaledOrbitFrame />
         </LiveFrame>
       </div>
 
