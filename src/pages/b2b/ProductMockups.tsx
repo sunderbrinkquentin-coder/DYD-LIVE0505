@@ -1,7 +1,9 @@
 import {
-  LayoutDashboard, Grid2x2, Target, GraduationCap,
-  Inbox, Zap, BookOpen, BarChart3, ArrowUpRight,
+  LayoutDashboard, Grid2x2, Target, GraduationCap, ArrowUpRight,
 } from 'lucide-react';
+
+/* Live-Demo: DYD ORBIT, eingebettet per iframe (Bolt-Preview) */
+const ORBIT_LIVE_DEMO_URL = 'https://quentin907-dyd-nexus-29l3.bolt.host/';
 
 /* Gemeinsame Browser-Chrome-Hülle */
 function Frame({ url, label, children }: { url: string; label: string; children: React.ReactNode }) {
@@ -75,6 +77,27 @@ function GapBar({ label, pct }: { label: string; pct: number }) {
   );
 }
 
+/* Browser-Chrome-Hülle für ECHTEN, interaktiven Inhalt (kein role="img"/aria-hidden wie Frame() –
+   der Inhalt ist ein echtes, bedienbares iframe und muss für Screenreader/Tastatur erreichbar bleiben). */
+function LiveFrame({ url, children }: { url: string; children: React.ReactNode }) {
+  return (
+    <div
+      className="rounded-2xl overflow-hidden border border-[#E3EBF5] bg-white shadow-2xl"
+      style={{ boxShadow: '0 30px 60px -30px rgba(10,25,47,0.45)' }}
+    >
+      <div className="flex items-center gap-2 px-4 py-2.5 bg-[#0A192F]" aria-hidden="true">
+        <span className="w-2.5 h-2.5 rounded-full bg-[#ff5f57]" />
+        <span className="w-2.5 h-2.5 rounded-full bg-[#febc2e]" />
+        <span className="w-2.5 h-2.5 rounded-full bg-[#28c840]" />
+        <div className="ml-3 flex-1 max-w-xs px-3 py-1 rounded-md bg-white/10 text-[10px] text-white/50 font-arimo truncate">
+          {url}
+        </div>
+      </div>
+      <div>{children}</div>
+    </div>
+  );
+}
+
 /* ─── NEXUS: Workforce-Dashboard ─── */
 export function NexusMockup() {
   return (
@@ -130,67 +153,20 @@ export function NexusMockup() {
   );
 }
 
-/* ─── ORBIT: Lead-Dashboard ─── */
+/* ─── ORBIT: echte Live-Demo, eingebettet ─── */
+/* Enthält Dashboard (Bildungsträger) und Journey (Endnutzer) bereits als eigenen Umschalter
+   INNERHALB der App – hier also bewusst kein eigener Tab-Bau nötig, nur sauber einbetten. */
 export function OrbitMockup() {
   return (
-    <Frame url="app.decide-your-dream.de/orbit" label="Illustrative Produktvorschau: DYD ORBIT – Lead-Dashboard mit Skill-Gap, Kurs-Match und Match-Score.">
-      <div className="flex">
-        <Sidebar
-          brand="DYD ORBIT"
-          items={[
-            { Icon: Inbox, label: 'Leads', active: true },
-            { Icon: Zap, label: 'Matching' },
-            { Icon: BookOpen, label: 'Kurse' },
-            { Icon: BarChart3, label: 'Reports' },
-          ]}
-        />
-        <div className="flex-1 p-4 sm:p-5">
-          <div className="flex items-center justify-between mb-4">
-            <div>
-              <h4 className="font-poppins font-black text-sm sm:text-base text-[#0F1E34]">Lead Intelligence</h4>
-              <p className="font-arimo text-[10px] text-[#55637A]">Qualifizierte Weiterbildungs-Leads</p>
-            </div>
-            <span className="text-[10px] font-arimo font-bold px-2 py-1 rounded-md text-[#0A192F]" style={{ background: 'linear-gradient(135deg,#DEFF9A,#38BDF8)' }}>Live</span>
-          </div>
-
-          <div className="grid grid-cols-3 gap-3 mb-4">
-            <KpiTile label="Neue Leads" value="48" trend="+12" />
-            <KpiTile label="Ø Match-Score" value="89%" />
-            <KpiTile label="CPA" value="72 €" trend="−41%" />
-          </div>
-
-          {/* Lead-Karte */}
-          <div className="rounded-xl border border-[#E3EBF5] bg-white p-4">
-            <div className="flex items-center gap-3 mb-3">
-              <div className="w-9 h-9 rounded-full flex items-center justify-center font-poppins font-black text-xs text-[#0A192F]" style={{ background: 'linear-gradient(135deg,#38BDF8,#DEFF9A)' }}>MB</div>
-              <div className="flex-1">
-                <p className="font-poppins font-bold text-xs text-[#0F1E34]">M. Becker</p>
-                <p className="font-arimo text-[10px] text-[#55637A]">Marketing → Data Analytics</p>
-              </div>
-              <span className="text-[10px] font-arimo font-bold px-2 py-1 rounded-md bg-[#DEFF9A]/40 text-[#0F1E34]">Qualifiziert</span>
-            </div>
-
-            <div className="flex flex-wrap gap-1.5 mb-3">
-              {['SQL', 'Excel', 'Statistik'].map((s) => (
-                <span key={s} className="text-[10px] font-arimo font-semibold px-2 py-0.5 rounded-full bg-[#38BDF8]/10 text-[#0F1E34]">{s}</span>
-              ))}
-              <span className="text-[10px] font-arimo font-semibold px-2 py-0.5 rounded-full bg-[#EF5350]/10 text-[#EF5350]">Gap: Power BI</span>
-            </div>
-
-            {/* Kurs-Match */}
-            <div className="flex items-center justify-between rounded-lg border border-[#E3EBF5] bg-[#F6F9FD] p-2.5">
-              <div className="flex items-center gap-2">
-                <BookOpen className="w-4 h-4 text-[#38BDF8]" />
-                <div>
-                  <p className="font-poppins font-bold text-[11px] text-[#0F1E34] leading-tight">Data Analytics Bootcamp</p>
-                  <p className="font-arimo text-[9px] text-[#55637A]">passt zur Zielrolle</p>
-                </div>
-              </div>
-              <span className="font-poppins font-black text-sm text-[#0F1E34]">92%</span>
-            </div>
-          </div>
-        </div>
-      </div>
-    </Frame>
+    <LiveFrame url="app.decide-your-dream.de/orbit">
+      <iframe
+        src={ORBIT_LIVE_DEMO_URL}
+        title="DYD ORBIT – interaktive Live-Demo: Bildungsträger-Dashboard und Nutzer-Journey zum Durchklicken"
+        className="w-full block h-[560px] sm:h-[720px]"
+        style={{ border: 0 }}
+        loading="lazy"
+        referrerPolicy="no-referrer-when-downgrade"
+      />
+    </LiveFrame>
   );
 }
