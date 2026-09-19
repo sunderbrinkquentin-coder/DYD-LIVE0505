@@ -10,7 +10,7 @@
   # deshalb NICHT ins Function-Bundle gepackt werden. Ohne diesen Ausschluss
   # versucht esbuild trotzdem, es zu bündeln, was das Bundle-Limit sprengen
   # kann.
-  external_node_modules = ["@sparticuz/chromium-min"]
+   external_node_modules = ["@sparticuz/chromium-min", "puppeteer"]
 
 [[redirects]]
   from = "/*"
