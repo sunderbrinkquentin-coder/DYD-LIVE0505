@@ -11,9 +11,14 @@ export default function B2BLandingPage() {
   const [activeTab, setActiveTab] = useState<TabId>('unternehmen');
   const [modalOpen, setModalOpen] = useState(false);
   const [modalSegment, setModalSegment] = useState<TabId>('unternehmen');
+  /* Optionaler Kontext aus dem ORBIT-Tab (z. B. "Live-Demo" oder das gewählte
+     Segment wie "IHK") – wird im Kontaktformular als Gesprächsgrundlage
+     vorausgefüllt, ohne ein zusätzliches Pflichtfeld einzuführen. */
+  const [modalInstitution, setModalInstitution] = useState<string | undefined>(undefined);
 
-  const openContact = useCallback((segment: TabId) => {
+  const openContact = useCallback((segment: TabId, institution?: string) => {
     setModalSegment(segment);
+    setModalInstitution(institution);
     setModalOpen(true);
   }, []);
 
@@ -30,8 +35,8 @@ export default function B2BLandingPage() {
       <B2BHero onCtaClick={handleHeroCta} />
       <B2BTabs activeTab={activeTab} onTabChange={setActiveTab} onRequestDemo={openContact} />
       <PlatformOverviewSection activeTab={activeTab} />
-      <TrustSection onContactClick={() => openContact(activeTab)} />
-      <B2BContactModal open={modalOpen} onClose={() => setModalOpen(false)} segment={modalSegment} />
+      <TrustSection onContact={() => openContact(activeTab)} />
+      <B2BContactModal open={modalOpen} onClose={() => setModalOpen(false)} segment={modalSegment} institution={modalInstitution} />
     </div>
   );
 }
