@@ -83,44 +83,58 @@ export function CvExportRenderPage() {
   const { cvId } = useParams<{ cvId: string }>();
   const [searchParams] = useSearchParams();
   const token = searchParams.get('token') ?? '';
+  // `print=1`: clientseitiger Aufruf aus CVLiveEditorPage.tsx (neuer Tab,
+  // eigene, eingeloggte Session) statt des serverseitigen Puppeteer-Drucks.
+  // Löst KEIN Token ein — die RLS-Policy auf `stored_cvs` (nur der/die
+  // Besitzer:in darf die eigene Zeile lesen) ist hier der Schutz, genau wie
+  // überall sonst im eingeloggten Bereich der App.
+  const autoPrint = searchParams.get('print') === '1';
 
   const [data, setData] = useState<LoadedCv | null>(null);
   const [loadError, setLoadError] = useState<string | null>(null);
   const rootRef = useRef<HTMLDivElement | null>(null);
   const breaksAppliedRef = useRef(false);
   const [isMeasured, setIsMeasured] = useState(false);
+  const printTriggeredRef = useRef(false);
 
   useEffect(() => {
     let cancelled = false;
 
     async function load() {
-      if (!cvId || !token) {
-        setLoadError('cvId oder token fehlt in der URL.');
+      if (!cvId) {
+        setLoadError('cvId fehlt in der URL.');
         return;
       }
 
-      // WICHTIG: `.eq('export_token', token)` ist Teil des Sicherheitsmodells,
-      // nicht nur ein Komfort-Filter — siehe Kommentar am Dateikopf und die
-      // RLS-Policy in der Migration. Nicht entfernen, auch wenn die Zeile
-      // über `id` allein schon eindeutig wäre.
-      const { data: row, error } = await supabase
-        .from('stored_cvs')
-        .select('cv_data, selected_template, export_token_expires_at')
-        .eq('id', cvId)
-        .eq('export_token', token)
-        .maybeSingle();
+      // Zwei Lademodi:
+      //  (A) Token-Modus — für den (aktuell nicht mehr genutzten, aber nicht
+      //      entfernten) serverseitigen Puppeteer-Druck ohne eingeloggte
+      //      Session. `.eq('export_token', token)` ist Teil des
+      //      Sicherheitsmodells, nicht nur ein Komfort-Filter — siehe
+      //      Kommentar am Dateikopf und die RLS-Policy in der Migration.
+      //  (B) Session-Modus (`autoPrint`/kein Token) — der/die eingeloggte
+      //      Nutzer:in druckt die eigene, gerade geöffnete CV direkt aus dem
+      //      Browser. Kein Token nötig, weil dieselbe Supabase-Session (via
+      //      localStorage, gleiche Origin) mitläuft und die normale RLS-
+      //      Policy (nur eigene Zeile lesbar) bereits schützt.
+      const query = supabase.from('stored_cvs').select('cv_data, selected_template, export_token_expires_at').eq('id', cvId);
+      const { data: row, error } = token
+        ? await query.eq('export_token', token).maybeSingle()
+        : await query.maybeSingle();
 
       if (cancelled) return;
 
       if (error || !row) {
-        setLoadError(`CV konnte nicht geladen werden (ungültiges oder abgelaufenes Token). ${error?.message ?? ''}`);
+        setLoadError(`CV konnte nicht geladen werden. ${error?.message ?? ''}`);
         return;
       }
 
-      const expiresAt = row.export_token_expires_at ? new Date(row.export_token_expires_at).getTime() : 0;
-      if (!expiresAt || expiresAt < Date.now()) {
-        setLoadError('Export-Token ist abgelaufen.');
-        return;
+      if (token) {
+        const expiresAt = row.export_token_expires_at ? new Date(row.export_token_expires_at).getTime() : 0;
+        if (!expiresAt || expiresAt < Date.now()) {
+          setLoadError('Export-Token ist abgelaufen.');
+          return;
+        }
       }
 
       const cvData = (row.cv_data ?? {}) as Record<string, unknown>;
@@ -204,6 +218,17 @@ export function CvExportRenderPage() {
       cancelled = true;
     };
   }, [data]);
+
+  // Client-Druckweg: sobald Umbrüche berechnet und Fonts geladen sind, den
+  // nativen Browser-Druckdialog öffnen ("Als PDF speichern"). Ersetzt den
+  // serverseitigen Puppeteer-Druck — derselbe Render, nur im Browser der
+  // Nutzerin/des Nutzers statt in einer Netlify Function.
+  useEffect(() => {
+    if (!autoPrint || !isMeasured || printTriggeredRef.current) return;
+    printTriggeredRef.current = true;
+    const t = window.setTimeout(() => window.print(), 150);
+    return () => window.clearTimeout(t);
+  }, [autoPrint, isMeasured]);
 
   if (loadError) {
     return (
