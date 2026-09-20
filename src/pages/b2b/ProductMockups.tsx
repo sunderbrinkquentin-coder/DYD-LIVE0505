@@ -209,7 +209,7 @@ function ScaledOrbitFrame() {
    vergrößerten Öffnen (Modal, darin zusätzlich echtes Browser-Vollbild) sowie ein
    Erklär-/Feedback-Banner, damit die Demo auf der Seite deutlich präsenter wirkt als eine
    reine Illustration. */
-export function OrbitMockup() {
+export function OrbitMockup({ onDemo }: { onDemo?: () => void } = {}) {
   const [expanded, setExpanded] = useState(false);
   const fullscreenTargetRef = useRef<HTMLDivElement>(null);
 
@@ -270,13 +270,29 @@ export function OrbitMockup() {
         </div>
       </div>
 
-      {/* Einordnung + Feedback-Einladung für Besucher:innen */}
+      {/* Einordnung + Feedback-Einladung für Besucher:innen. Direkt hier – am Punkt des
+          höchsten Engagements, gleich nach dem Durchklicken der Demo – sitzt bewusst schon
+          ein CTA, statt Besucher:innen erst bis zum Tab-Ende scrollen zu lassen. */}
       <div className="mt-4 rounded-xl border border-[#38BDF8]/25 bg-[#F6F9FD] px-4 py-3.5 sm:px-5 sm:py-4">
-        <p className="font-poppins font-bold text-xs sm:text-sm text-[#0F1E34] mb-1">So könnte es aussehen.</p>
-        <p className="font-arimo text-xs sm:text-[13px] text-[#55637A] leading-relaxed">
-          Ihre individuelle Version wird vollständig an Ihr Corporate Design und Ihre Corporate Identity angepasst.
-          Fehlt Ihnen etwas? Wir freuen uns über Ihr Feedback!
-        </p>
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+          <div>
+            <p className="font-poppins font-bold text-xs sm:text-sm text-[#0F1E34] mb-1">So könnte es aussehen.</p>
+            <p className="font-arimo text-xs sm:text-[13px] text-[#55637A] leading-relaxed">
+              Ihre individuelle Version wird vollständig an Ihr Corporate Design und Ihre Corporate Identity angepasst.
+              Fehlt Ihnen etwas? Wir freuen uns über Ihr Feedback!
+            </p>
+          </div>
+          {onDemo && (
+            <button
+              type="button"
+              onClick={onDemo}
+              className="inline-flex items-center justify-center gap-1.5 px-4 py-2.5 rounded-xl font-arimo text-xs sm:text-sm font-bold text-[#0A192F] transition hover:shadow-lg hover:shadow-[#38BDF8]/25 hover:-translate-y-0.5 whitespace-nowrap"
+              style={{ background: 'linear-gradient(135deg, #DEFF9A, #38BDF8)' }}
+            >
+              Jetzt Pilotpartner werden
+            </button>
+          )}
+        </div>
       </div>
 
       {/* Vergrößerte Ansicht: großes Modal, darin zusätzlich echtes Browser-Vollbild möglich.
