@@ -3,22 +3,6 @@ import { useParams, useNavigate, useSearchParams } from 'react-router-dom';
 import { Camera, Loader2, AlertTriangle, Sparkles, ArrowLeft, ChevronDown, Briefcase, FileSearch, GraduationCap, Music2, Check, Download } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import { debugLogPDFHtml } from '../utils/pdfExportClient';
-import { exportCvViaServerPdf } from '../utils/pdfExportServer';
-
-// Erzwingt einen echten Download statt eines Öffnens im Tab, auch für die
-// (cross-origin) Supabase-Storage-URL aus dem Server-Export: `?download=`
-// ist Supabase Storages eigener Query-Parameter, der serverseitig
-// `Content-Disposition: attachment` setzt — das `download`-Attribut allein
-// wirkt bei fremden Origins nicht (Browser ignorieren es dort).
-function triggerBrowserDownload(url: string, filename: string) {
-  const sep = url.includes('?') ? '&' : '?';
-  const a = document.createElement('a');
-  a.href = `${url}${sep}download=${encodeURIComponent(filename)}`;
-  a.rel = 'noopener';
-  document.body.appendChild(a);
-  a.click();
-  a.remove();
-}
 import { PDF_RENDER_STYLES_CSS } from '../components/cv-templates/pdfRenderStyles';
 import { CVTemplateType } from '../components/cv-templates/CVTemplateSelector';
 import { ModernCVTemplate } from '../components/cv-templates/templates/ModernCVTemplate';
@@ -295,7 +279,6 @@ export function CVLiveEditorPage() {
   // NEU (Test): serverseitiger Export über einen echten Browser-Druck statt
   // html2canvas — siehe src/utils/pdfExportServer.ts. Bewusst eigener State,
   // damit der bestehende Download-Button/Ablauf unangetastet bleibt.
-  const [isServerTestExporting, setIsServerTestExporting] = useState(false);
   const autoDownloadTriggeredRef = useRef(false);
 
   const [scale, setScale] = useState(1);
@@ -1136,13 +1119,15 @@ const cloneRef = useRef<HTMLDivElement | null>(null);
     autoDownloadTriggeredRef.current = true;
     exportInProgressRef.current = true;
 
-    const toSlug = (s: string) => s.replace(/[^a-zA-Z0-9äöüÄÖÜß]/g, '_').replace(/_+/g, '_').replace(/^_|_$/g, '');
-
+    // WICHTIG: kein `window.open()`/Auto-Download mehr an dieser Stelle.
+    // Dieser Effect läuft NICHT als direkte Reaktion auf einen Klick
+    // (sondern auf einen `payment=success`-Redirect), also fehlt der
+    // "User-Aktivierung"-Kontext, den Browser für's Öffnen eines neuen Tabs
+    // verlangen — der Popup-Blocker hätte das zuverlässig verhindert. Hier
+    // wird nur noch der Bezahl-/Fertig-Status gespeichert; den eigentlichen
+    // Druck (echter Klick, siehe `triggerDirectExport`) löst der Download-
+    // Button im Dashboard/Editor aus, wo ein Popup garantiert erlaubt ist.
     const doExportAndNavigate = async () => {
-      const navigateToDashboard = () => {
-        navigate(`/dashboard?cvReady=${cvId}`, { replace: true });
-      };
-
       const existingJobData = jobData || {};
       const normalizedJobData = {
         ...existingJobData,
@@ -1152,56 +1137,22 @@ const cloneRef = useRef<HTMLDivElement | null>(null);
         companyName: existingJobData.companyName || existingJobData.company || '',
       };
 
-      const saveToDb = async (pdfPublicUrl?: string) => {
-        try {
-          const finalData = prepareCvDataForSave(editorData);
-          await supabase.from('stored_cvs').update({
-            cv_data: finalData,
-            user_id: user.id,
-            download_unlocked: true,
-            status: 'completed',
-            job_data: normalizedJobData,
-            ...(pdfPublicUrl ? { pdf_url: pdfPublicUrl } : {}),
-            updated_at: new Date().toISOString(),
-          }).eq('id', cvId);
-        } catch (e) {
-          console.error("Fehler beim Speichern nach Export:", e);
-        }
-      };
-
       try {
-        setIsExportingPDF(true);
-
-        const fullName = editorData.personalInfo?.name || '';
-        const lastName = fullName.trim().split(/\s+/).pop() || '';
-        const co = normalizedJobData.company || '';
-        const fileBaseName = lastName && co
-          ? `Lebenslauf_${toSlug(lastName)}_${toSlug(co)}`
-          : lastName ? `Lebenslauf_${toSlug(lastName)}` : 'Lebenslauf_Optimiert';
-
-        // WICHTIG: cv_data VOR dem Server-Export speichern — die Druck-Seite
-        // (CvExportRenderPage.tsx) liest ausschließlich aus der DB, nicht aus
-        // dem Live-Editor-State. Ohne diesen Save würde der Server-Export mit
-        // veraltetem Stand drucken.
-        await saveToDb();
-
-        const result = await exportCvViaServerPdf(cvId);
-        if (!result.success || !result.pdfUrl) {
-          throw new Error(result.error || 'Server-Export fehlgeschlagen.');
-        }
-
-        triggerBrowserDownload(result.pdfUrl, `${fileBaseName}.pdf`);
-        // pdf_url/download_unlocked setzt die Netlify-Function bereits
-        // serverseitig — hier zusätzlich speichern, damit status/job_data
-        // konsistent mit dem alten Verhalten bleiben.
-        await saveToDb(result.pdfUrl);
-      } catch (err) {
-        console.error('Server-Export (Post-Payment) fehlgeschlagen:', err);
-        await saveToDb();
+        const finalData = prepareCvDataForSave(editorData);
+        await supabase.from('stored_cvs').update({
+          cv_data: finalData,
+          user_id: user.id,
+          download_unlocked: true,
+          status: 'completed',
+          job_data: normalizedJobData,
+          updated_at: new Date().toISOString(),
+        }).eq('id', cvId);
+      } catch (e) {
+        console.error('Fehler beim Speichern nach Zahlung:', e);
       }
 
       exportInProgressRef.current = false;
-      navigateToDashboard();
+      navigate(`/dashboard?cvReady=${cvId}`, { replace: true });
     };
 
     doExportAndNavigate();
@@ -1293,26 +1244,6 @@ const cloneRef = useRef<HTMLDivElement | null>(null);
     setShowPaywallModal(true);
   };
 
-  // NEU (Test): ruft den neuen serverseitigen Export auf (echter Chromium-
-  // Druck von CvExportRenderPage.tsx über netlify/functions/export-cv-pdf.ts)
-  // und öffnet das Ergebnis-PDF in einem neuen Tab. Läuft komplett getrennt
-  // vom bestehenden Download-Button — zum gefahrlosen Vergleichen, bevor
-  // irgendetwas am bisherigen Ablauf geändert wird.
-  const handleServerExportTest = async () => {
-    if (!cvId) return;
-    setIsServerTestExporting(true);
-    try {
-      const result = await exportCvViaServerPdf(cvId);
-      if (result.success && result.pdfUrl) {
-        window.open(result.pdfUrl, '_blank', 'noopener,noreferrer');
-      } else {
-        alert(`Server-Export (Test) fehlgeschlagen: ${result.error ?? 'unbekannter Fehler'}`);
-      }
-    } finally {
-      setIsServerTestExporting(false);
-    }
-  };
-
   const handlePaywallSuccess = () => {
     setShowPaywallModal(false);
     setIsDownloadUnlocked(true);
@@ -1322,21 +1253,22 @@ const cloneRef = useRef<HTMLDivElement | null>(null);
 
   const triggerDirectExport = async () => {
     if (!cvId || !user) return;
+
+    // Der Tab MUSS synchron, noch im selben Klick-Handler, geöffnet werden —
+    // sobald wir vorher noch `await`en (DB-Speichern), verliert der Browser
+    // den "das war ein echter Klick"-Kontext und der Popup-Blocker greift.
+    // Deshalb: sofort einen leeren Tab öffnen, die URL erst setzen, sobald
+    // die Daten gespeichert sind. Bewusst ohne `noopener`, weil wir die
+    // Fensterreferenz danach noch brauchen — das Ziel ist unsere eigene,
+    // vertrauenswürdige Route, kein Tab-Nabbing-Risiko.
+    const printWindow = window.open('', '_blank');
+
     try {
       setIsExportingPDF(true);
-      const toSlug = (s: string) => s.replace(/[^a-zA-Z0-9äöüÄÖÜß]/g, '_').replace(/_+/g, '_').replace(/^_|_$/g, '');
-      const fullName = editorData?.personalInfo?.name || '';
-      const lastName = fullName.trim().split(/\s+/).pop() || '';
-      const co = jobData?.company || jobData?.companyName || '';
-      const fileName = lastName && co
-        ? `Lebenslauf_${toSlug(lastName)}_${toSlug(co)}.pdf`
-        : lastName ? `Lebenslauf_${toSlug(lastName)}.pdf` : 'Lebenslauf.pdf';
 
-      // WICHTIG: cv_data VOR dem Server-Export speichern — die Druck-Seite
+      // WICHTIG: cv_data VOR dem Druck speichern — die Druck-Seite
       // (CvExportRenderPage.tsx) liest ausschließlich aus der DB, nicht aus
-      // dem Live-Editor-State. Ersetzt den früheren `exportCVToPDFBlob`-Aufruf
-      // auf dem sichtbaren DOM (html2canvas-Klon) durch den echten
-      // Server-Druck (siehe netlify/functions/export-cv-pdf.ts).
+      // dem Live-Editor-State.
       const { data: currentRow } = await supabase
         .from('stored_cvs')
         .select('status')
@@ -1351,21 +1283,22 @@ const cloneRef = useRef<HTMLDivElement | null>(null);
         updated_at: new Date().toISOString(),
       }).eq('id', cvId);
 
-      const result = await exportCvViaServerPdf(cvId);
-      if (!result.success || !result.pdfUrl) {
-        throw new Error(result.error || 'Server-Export fehlgeschlagen.');
+      // Direkter Browser-Druck statt Server-Export: dieselbe, bereits
+      // verifizierte Druck-Vorlage (echtes Layout, kein DOM-Klon/Screenshot),
+      // nur im Browser der Nutzerin/des Nutzers statt in einer Netlify
+      // Function — kein Chromium-Nachladen, kein Function-Zeitlimit, kein
+      // zusätzlicher Netzwerk-Hop.
+      const printUrl = `/#/cv-export-render/${cvId}?print=1`;
+      if (printWindow) {
+        printWindow.location.href = printUrl;
+      } else {
+        // Popup-Blocker hat auch den leeren Tab verhindert (selten) —
+        // Fallback: im aktuellen Tab drucken.
+        window.location.href = printUrl;
       }
-
-      triggerBrowserDownload(result.pdfUrl, fileName);
-      // pdf_url/download_unlocked setzt die Netlify-Function bereits
-      // serverseitig — hier nur noch zur Sicherheit mitschreiben, falls der
-      // Realtime-Sync einen Moment braucht.
-      await supabase.from('stored_cvs').update({
-        pdf_url: result.pdfUrl,
-        updated_at: new Date().toISOString(),
-      }).eq('id', cvId);
     } catch (e) {
       console.error('Export failed', e);
+      printWindow?.close();
       alert('PDF-Erstellung fehlgeschlagen. Bitte versuche es erneut.');
     } finally {
       setIsExportingPDF(false);
@@ -1797,18 +1730,6 @@ const addSectionItem = (sectionIndex: number, defaultItem: any) => {
                 {isExportingPDF ? <><Loader2 size={16} className="animate-spin" /> Generiere...</> : <><Download size={16} /> Herunterladen</>}
               </button>
               <button onClick={() => setShowTips(!showTips)} className="px-3 py-2 rounded-lg bg-white/10 hover:bg-white/20 transition-all flex items-center gap-2"><Sparkles size={16} className="text-[#66c0b6]" /></button>
-              {/* NEU (Test): separater Button für den serverseitigen Export.
-                  Bewusst optisch als Test markiert (gestrichelter Rand) —
-                  ersetzt den echten Download-Button erst nach Validierung. */}
-              <button
-                onClick={handleServerExportTest}
-                disabled={isServerTestExporting}
-                title="Testet den neuen serverseitigen PDF-Export (echter Text statt Screenshot)"
-                className={`px-3 py-2 rounded-lg border border-dashed border-white/30 text-white/70 hover:text-white hover:border-white/60 transition-all flex items-center gap-2 text-xs ${isServerTestExporting ? 'opacity-50 cursor-not-allowed' : ''}`}
-              >
-                {isServerTestExporting ? <Loader2 size={14} className="animate-spin" /> : null}
-                Server-Export (Test)
-              </button>
             </div>
           </div>
 
