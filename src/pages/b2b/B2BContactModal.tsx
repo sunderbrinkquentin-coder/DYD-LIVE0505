@@ -7,6 +7,10 @@ type ContactModalProps = {
   open: boolean;
   onClose: () => void;
   segment: 'unternehmen' | 'bildungstraeger';
+  /** Optionaler Kontext aus dem ORBIT-Tab (z. B. "Live-Demo" oder das gewählte
+      Segment wie "IHK") – wird beim Öffnen als Gesprächsgrundlage in die
+      Nachricht vorausgefüllt, ohne ein zusätzliches Pflichtfeld einzuführen. */
+  institution?: string;
 };
 
 type FormState = {
@@ -25,17 +29,18 @@ const emptyForm: FormState = {
   message: '',
 };
 
-export default function B2BContactModal({ open, onClose, segment }: ContactModalProps) {
+export default function B2BContactModal({ open, onClose, segment, institution }: ContactModalProps) {
   const [form, setForm] = useState<FormState>(emptyForm);
   const [status, setStatus] = useState<'idle' | 'submitting' | 'success' | 'error'>('idle');
   const [errorMsg, setErrorMsg] = useState('');
 
   useEffect(() => {
     if (open) {
+      setForm(institution ? { ...emptyForm, message: `Interessiert als: ${institution}` } : emptyForm);
       setStatus('idle');
       setErrorMsg('');
     }
-  }, [open]);
+  }, [open, institution]);
 
   useEffect(() => {
     if (!open) return;
