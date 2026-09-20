@@ -30,10 +30,14 @@ function useAnims() {
 /* ─── Produkt-Intro + Mockup ─── */
 function ProductIntro({
   eyebrow, product, mockup,
+  caption = 'Illustrative Produktvorschau – Design in Entwicklung.',
+  mockupMaxWidth = 'max-w-3xl',
 }: {
   eyebrow: string;
   product: { name: string; tagline: string; acronym: readonly { letter: string; word: string }[] };
   mockup: React.ReactNode;
+  caption?: string;
+  mockupMaxWidth?: string;
 }) {
   const { container, fadeUp, letter } = useAnims();
   return (
@@ -60,9 +64,9 @@ function ProductIntro({
         <motion.p variants={fadeUp} className="font-arimo text-[#55637A] text-base sm:text-lg max-w-2xl mx-auto leading-relaxed">{product.tagline}</motion.p>
       </motion.div>
 
-      <motion.div initial={{ opacity: 0, y: 24 }} whileInView={{ opacity: 1, y: 0 }} viewport={VIEWPORT} transition={{ duration: 0.6 }} className="max-w-3xl mx-auto">
+      <motion.div initial={{ opacity: 0, y: 24 }} whileInView={{ opacity: 1, y: 0 }} viewport={VIEWPORT} transition={{ duration: 0.6 }} className={`${mockupMaxWidth} mx-auto`}>
         {mockup}
-        <p className="text-center font-arimo text-xs text-[#94a3b8] mt-3">Illustrative Produktvorschau – Design in Entwicklung.</p>
+        {caption && <p className="text-center font-arimo text-xs text-[#94a3b8] mt-3">{caption}</p>}
       </motion.div>
     </div>
   );
@@ -93,6 +97,34 @@ function Narrative({ n }: { n: { title: string; body: string; scenario: string }
         </p>
       </div>
     </motion.div>
+  );
+}
+
+/* ─── Segment-Umschalter (Für wen ist ORBIT gemacht?) ─── */
+type Segment = { id: string; label: string; challenge: readonly string[]; solution: readonly string[] };
+
+function SegmentPicker({ segments, active, onChange }: { segments: readonly Segment[]; active: string; onChange: (id: string) => void }) {
+  return (
+    <div className="flex flex-wrap justify-center gap-2" role="tablist" aria-label="Bereich wählen">
+      {segments.map((s) => {
+        const selected = s.id === active;
+        return (
+          <button
+            key={s.id}
+            type="button"
+            role="tab"
+            aria-selected={selected}
+            onClick={() => onChange(s.id)}
+            className={`px-4 py-2 rounded-full text-xs sm:text-sm font-arimo font-bold border transition b2b-focus-ring ${
+              selected ? 'text-white border-transparent shadow-md' : 'text-[#55637A] border-[#E3EBF5] bg-white hover:border-[#38BDF8]/40 hover:text-[#0F1E34]'
+            }`}
+            style={selected ? { background: NAVY_SKY } : undefined}
+          >
+            {s.label}
+          </button>
+        );
+      })}
+    </div>
   );
 }
 
@@ -138,7 +170,10 @@ function Delivery() {
 }
 
 /* ─── FAQ-Akkordeon ─── */
-function FAQ({ items }: { items: readonly { q: string; a: string }[] }) {
+/* Fragen mit `cta: true` (z. B. die Preisfrage) bekommen einen kleinen Link zum
+   Kontaktformular direkt unter der Antwort – genau am Punkt der höchsten
+   Kaufabsicht, statt Besucher:innen erst bis zum Seitenende scrollen zu lassen. */
+function FAQ({ items, onCta }: { items: readonly { q: string; a: string; cta?: boolean }[]; onCta?: () => void }) {
   const { reduce, container, fadeUp } = useAnims();
   const [open, setOpen] = useState<number | null>(0);
   return (
@@ -156,7 +191,15 @@ function FAQ({ items }: { items: readonly { q: string; a: string }[] }) {
               <AnimatePresence initial={false}>
                 {isOpen && (
                   <motion.div id={`faq-panel-${i}`} initial={{ height: 0, opacity: 0 }} animate={{ height: 'auto', opacity: 1 }} exit={{ height: 0, opacity: 0 }} transition={{ duration: reduce ? 0 : 0.25, ease: 'easeInOut' }} className="overflow-hidden">
-                    <p className="font-arimo text-sm text-[#55637A] leading-relaxed px-5 pb-5">{item.a}</p>
+                    <div className="px-5 pb-5">
+                      <p className="font-arimo text-sm text-[#55637A] leading-relaxed">{item.a}</p>
+                      {item.cta && onCta && (
+                        <button type="button" onClick={onCta} className="mt-3 inline-flex items-center gap-1.5 font-arimo text-xs font-bold text-[#38BDF8] hover:text-[#0A192F] transition b2b-focus-ring rounded">
+                          Erstgespräch vereinbaren
+                          <ArrowRight className="w-3.5 h-3.5" aria-hidden="true" />
+                        </button>
+                      )}
+                    </div>
                   </motion.div>
                 )}
               </AnimatePresence>
@@ -172,7 +215,9 @@ type B2BTabsProps = {
   initialTab?: TabId;
   activeTab?: TabId;
   onTabChange?: (tab: TabId) => void;
-  onRequestDemo?: (segment: TabId) => void;
+  /** `institution` trägt optionalen Kontext (z. B. "Live-Demo" oder das gewählte
+      Segment wie "IHK") in die Lead-Anfrage – landet vorausgefüllt in der Nachricht. */
+  onRequestDemo?: (segment: TabId, institution?: string) => void;
 };
 
 export default function B2BTabs({ initialTab = 'unternehmen', activeTab: controlledTab, onTabChange, onRequestDemo }: B2BTabsProps) {
@@ -206,7 +251,7 @@ export default function B2BTabs({ initialTab = 'unternehmen', activeTab: control
     tabRefs.current[next]?.focus();
   };
 
-  const requestDemo = (segment: TabId) => { onRequestDemo?.(segment); };
+  const requestDemo = (segment: TabId, institution?: string) => { onRequestDemo?.(segment, institution); };
 
   return (
     <section ref={tabSectionRef} id="b2b-tabs" aria-label="DYD für Unternehmen und Bildungsträger" className="relative bg-[#F6F9FD] py-20 px-4 sm:px-6 lg:px-8 scroll-mt-20 lg:scroll-mt-24">
@@ -234,7 +279,7 @@ export default function B2BTabs({ initialTab = 'unternehmen', activeTab: control
             </motion.div>
           ) : (
             <motion.div key="panel-b" role="tabpanel" id="panel-bildungstraeger" aria-labelledby="tab-bildungstraeger" tabIndex={0} initial={{ opacity: 0, y: reduce ? 0 : 16 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: reduce ? 0 : -16 }} transition={{ duration: reduce ? 0 : 0.35 }} className="b2b-focus-ring rounded-2xl">
-              <TabBContent onDemo={() => requestDemo('bildungstraeger')} />
+              <TabBContent onDemo={(institution) => requestDemo('bildungstraeger', institution)} />
             </motion.div>
           )}
         </AnimatePresence>
@@ -294,7 +339,7 @@ function TabAContent({ onDemo }: { onDemo: () => void }) {
       </motion.div>
 
       <Delivery />
-      <FAQ items={tabA.faq} />
+      <FAQ items={tabA.faq} onCta={onDemo} />
 
       <div className="text-center">
         <button type="button" onClick={onDemo} className="inline-flex items-center gap-2 px-8 py-4 rounded-2xl font-arimo font-bold text-white b2b-focus-ring transition hover:shadow-xl hover:shadow-[#38BDF8]/25 hover:-translate-y-0.5" style={{ background: NAVY_SKY }}>{tabA.cta}<ArrowRight className="w-4 h-4" aria-hidden="true" /></button>
@@ -304,26 +349,44 @@ function TabAContent({ onDemo }: { onDemo: () => void }) {
 }
 
 /* ─── Tab B: Bildungsträger (ORBIT) ─── */
-function TabBContent({ onDemo }: { onDemo: () => void }) {
+function TabBContent({ onDemo }: { onDemo: (institution?: string) => void }) {
   const { tabB } = b2bContent.tabs;
   const { fadeUp, fadeLeft, fadeRight, container } = useAnims();
   const benefitIcons = [Target, Filter, Zap];
 
+  const [activeSegment, setActiveSegment] = useState(tabB.segments[0].id);
+  const segment = tabB.segments.find((s) => s.id === activeSegment) ?? tabB.segments[0];
+
   return (
     <div className="space-y-16">
-      <ProductIntro eyebrow={tabB.eyebrow} product={tabB.product} mockup={<OrbitMockup />} />
+      <ProductIntro
+        eyebrow={tabB.eyebrow}
+        product={tabB.product}
+        mockup={<OrbitMockup onDemo={() => onDemo('Live-Demo')} />}
+        caption=""
+        mockupMaxWidth="max-w-5xl"
+      />
 
       <Narrative n={tabB.narrative} />
 
-      <div className="grid md:grid-cols-2 gap-6">
-        <motion.div variants={fadeLeft} initial="hidden" whileInView="show" viewport={VIEWPORT} className="rounded-2xl p-6 sm:p-8 border-2" style={{ borderColor: 'rgba(239,83,80,0.25)', background: 'rgba(239,83,80,0.03)' }}>
-          <div className="flex items-center gap-2 mb-5"><AlertTriangle className="w-5 h-5 text-[#EF5350]" aria-hidden="true" /><h3 className="font-poppins font-bold text-lg text-[#0F1E34]">{tabB.challenge.title}</h3></div>
-          <ul className="space-y-3">{tabB.challenge.items.map((item) => (<li key={item} className="flex items-start gap-2.5"><span className="mt-1.5 w-1.5 h-1.5 rounded-full bg-[#EF5350] flex-shrink-0" aria-hidden="true" /><span className="font-arimo text-[#55637A] leading-relaxed">{item}</span></li>))}</ul>
+      {/* Segment-Umschalter: Herausforderung/Lösung passen sich an den gewählten Bereich an */}
+      <div>
+        <motion.h3 variants={fadeUp} initial="hidden" whileInView="show" viewport={VIEWPORT} className="font-poppins font-bold text-xl text-[#0F1E34] mb-2 text-center">{tabB.segmentPicker.title}</motion.h3>
+        <motion.p variants={fadeUp} initial="hidden" whileInView="show" viewport={VIEWPORT} className="font-arimo text-sm text-[#55637A] text-center mb-6 max-w-xl mx-auto">{tabB.segmentPicker.subtitle}</motion.p>
+        <motion.div variants={fadeUp} initial="hidden" whileInView="show" viewport={VIEWPORT} className="mb-8">
+          <SegmentPicker segments={tabB.segments} active={activeSegment} onChange={setActiveSegment} />
         </motion.div>
-        <motion.div variants={fadeRight} initial="hidden" whileInView="show" viewport={VIEWPORT} className="rounded-2xl p-6 sm:p-8 border-2" style={{ borderColor: 'rgba(56,189,248,0.25)', background: 'rgba(56,189,248,0.04)' }}>
-          <div className="flex items-center gap-2 mb-5"><Sparkles className="w-5 h-5 text-[#38BDF8]" aria-hidden="true" /><h3 className="font-poppins font-bold text-lg text-[#0F1E34]">{tabB.solution.title}</h3></div>
-          <ul className="space-y-3">{tabB.solution.items.map((item) => (<li key={item} className="flex items-start gap-2.5"><span className="mt-1.5 w-1.5 h-1.5 rounded-full flex-shrink-0" style={{ background: SKY_LIME }} aria-hidden="true" /><span className="font-arimo text-[#0F1E34] leading-relaxed">{item}</span></li>))}</ul>
-        </motion.div>
+
+        <div className="grid md:grid-cols-2 gap-6">
+          <motion.div key={`challenge-${segment.id}`} variants={fadeLeft} initial="hidden" whileInView="show" viewport={VIEWPORT} className="rounded-2xl p-6 sm:p-8 border-2" style={{ borderColor: 'rgba(239,83,80,0.25)', background: 'rgba(239,83,80,0.03)' }}>
+            <div className="flex items-center gap-2 mb-5"><AlertTriangle className="w-5 h-5 text-[#EF5350]" aria-hidden="true" /><h3 className="font-poppins font-bold text-lg text-[#0F1E34]">{tabB.segmentPicker.challengeTitle}</h3></div>
+            <ul className="space-y-3">{segment.challenge.map((item) => (<li key={item} className="flex items-start gap-2.5"><span className="mt-1.5 w-1.5 h-1.5 rounded-full bg-[#EF5350] flex-shrink-0" aria-hidden="true" /><span className="font-arimo text-[#55637A] leading-relaxed">{item}</span></li>))}</ul>
+          </motion.div>
+          <motion.div key={`solution-${segment.id}`} variants={fadeRight} initial="hidden" whileInView="show" viewport={VIEWPORT} className="rounded-2xl p-6 sm:p-8 border-2" style={{ borderColor: 'rgba(56,189,248,0.25)', background: 'rgba(56,189,248,0.04)' }}>
+            <div className="flex items-center gap-2 mb-5"><Sparkles className="w-5 h-5 text-[#38BDF8]" aria-hidden="true" /><h3 className="font-poppins font-bold text-lg text-[#0F1E34]">{tabB.segmentPicker.solutionTitle}</h3></div>
+            <ul className="space-y-3">{segment.solution.map((item) => (<li key={item} className="flex items-start gap-2.5"><span className="mt-1.5 w-1.5 h-1.5 rounded-full flex-shrink-0" style={{ background: SKY_LIME }} aria-hidden="true" /><span className="font-arimo text-[#0F1E34] leading-relaxed">{item}</span></li>))}</ul>
+          </motion.div>
+        </div>
       </div>
 
       <div>
@@ -362,10 +425,10 @@ function TabBContent({ onDemo }: { onDemo: () => void }) {
       </motion.div>
 
       <Delivery />
-      <FAQ items={tabB.faq} />
+      <FAQ items={tabB.faq} onCta={() => onDemo(segment.label)} />
 
       <div className="text-center">
-        <button type="button" onClick={onDemo} className="inline-flex items-center gap-2 px-8 py-4 rounded-2xl font-arimo font-bold text-[#0A192F] b2b-focus-ring transition hover:shadow-xl hover:shadow-[#DEFF9A]/25 hover:-translate-y-0.5" style={{ background: LIME_SKY }}>{tabB.cta}<ArrowRight className="w-4 h-4" aria-hidden="true" /></button>
+        <button type="button" onClick={() => onDemo(segment.label)} className="inline-flex items-center gap-2 px-8 py-4 rounded-2xl font-arimo font-bold text-[#0A192F] b2b-focus-ring transition hover:shadow-xl hover:shadow-[#DEFF9A]/25 hover:-translate-y-0.5" style={{ background: LIME_SKY }}>{tabB.cta}<ArrowRight className="w-4 h-4" aria-hidden="true" /></button>
       </div>
     </div>
   );
