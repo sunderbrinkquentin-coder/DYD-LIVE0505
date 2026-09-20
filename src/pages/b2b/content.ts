@@ -116,12 +116,36 @@ export const b2bContent = {
           a: 'Aus vorhandenen Profilen, Lebensläufen und Selbstauskünften – automatisch nach ESCO-Norm ausgelesen, ohne manuelles Tagging.',
         },
         {
+          q: 'Wie hoch ist der Aufwand für unsere Mitarbeitenden?',
+          a: 'Minimal. Das Skill-Mapping läuft weitgehend automatisiert aus vorhandenen Profildaten – ein ergänzender Selbstauskunft-Schritt dauert in der Regel nur wenige Minuten.',
+        },
+        {
           q: 'Ist das DSGVO-konform?',
           a: 'Ja. Verarbeitung ausschließlich auf europäischen Servern, kein Drittanbieter-Tracking. Made in Germany.',
         },
         {
-          q: 'Müssen wir bestehende Systeme ersetzen?',
-          a: 'Nein. NEXUS ergänzt Ihre HR-Landschaft; eine tiefere Systemintegration ist optional und keine Voraussetzung für den Start.',
+          q: 'Wo werden die Daten gespeichert und wer hat Zugriff?',
+          a: 'Ausschließlich auf Servern in der EU. Zugriff erhalten nur autorisierte Personen auf Ihrer Seite – das konkrete Rollen- und Rechtekonzept stimmen wir im Onboarding gemeinsam mit Ihnen ab.',
+        },
+        {
+          q: 'Müssen wir bestehende HR-Systeme ersetzen?',
+          a: 'Nein. NEXUS ergänzt Ihre HR-Landschaft und lässt sich eigenständig nutzen; eine tiefere Systemintegration ist optional und keine Voraussetzung für den Start.',
+        },
+        {
+          q: 'Ist eine Anbindung an unser bestehendes HR-System möglich?',
+          a: 'Ja, über eine API-Anbindung lässt sich NEXUS in bestehende HR-Systeme integrieren. Ob und in welchem Umfang das für Sie sinnvoll ist, klären wir im Erstgespräch.',
+        },
+        {
+          q: 'Für welche Unternehmensgröße ist NEXUS geeignet?',
+          a: 'NEXUS ist bewusst so gebaut, dass es mit einem einzelnen Team oder einer Abteilung startet und mit Ihnen mitwächst – vom Pilotteam bis zur unternehmensweiten Ausrollung.',
+        },
+        {
+          q: 'Wie stellen wir sicher, dass NEXUS auch genutzt wird?',
+          a: 'Personalisierte, konkrete Lernpfade statt eines Standardkatalogs erhöhen die Akzeptanz erfahrungsgemäß deutlich – Mitarbeitende sehen den eigenen Vorteil sofort, statt einer weiteren Pflichtschulung.',
+        },
+        {
+          q: 'Was passiert nach der Pilotphase?',
+          a: 'Gemeinsam mit Ihnen entscheiden wir nach der Pilotphase transparent über den weiteren Rollout. Als Early-Access-Partner gestalten Sie die Weiterentwicklung von NEXUS aktiv mit.',
         },
         {
           q: 'Was kostet die Pilotphase?',
@@ -282,17 +306,41 @@ cpa: {
           a: 'Gering. Sie hinterlegen Ihr Kursportfolio, ORBIT übernimmt Matching und Lead-Übergabe.',
         },
         {
+          q: 'Wie unterscheidet sich ORBIT von klassischen Google- oder LinkedIn-Ads?',
+          a: 'Klassische Ads streuen breit und Sie zahlen für Klicks. ORBIT matcht auf Basis einer echten Skill-Gap-Analyse – Sie erreichen gezielt Menschen mit nachgewiesenem Bedarf an genau Ihrem Kursangebot statt Streuverlust zu bezahlen.',
+        },
+        {
+          q: 'Eignet sich ORBIT auch für uns als Transfergesellschaft, VHS, IHK oder Agentur für Arbeit?',
+          a: 'Ja. ORBIT ist bewusst für unterschiedliche Trägertypen gedacht – von Transfergesellschaften über Volkshochschulen und IHK bis zur Agentur für Arbeit. Die konkreten Herausforderungen und Lösungen für Ihren Bereich finden Sie weiter oben im Bereichs-Umschalter.',
+        },
+        {
+          q: 'Wie erfolgt die Übergabe der Leads an uns?',
+          a: 'Strukturiert und nachvollziehbar, inklusive der relevanten Skill-Gap-Informationen zum jeweiligen Lead. Das genaue Format – etwa Dashboard, E-Mail oder Anbindung an Ihr CRM – stimmen wir im Onboarding auf Ihre Prozesse ab.',
+        },
+        {
+          q: 'Können wir unser bestehendes Kursportfolio unverändert einbringen?',
+          a: 'Ja. Ob Präsenz-, Online- oder Hybrid-Format – Sie hinterlegen Ihr bestehendes Angebot, ORBIT übernimmt das Matching zur passenden Zielgruppe.',
+        },
+        {
+          q: 'Ist ORBIT auch als White-Label-Lösung verfügbar?',
+          a: 'Ja. Wie NEXUS lässt sich auch ORBIT unter Ihrer eigenen Marke ausrollen – mehr dazu finden Sie weiter unten im Bereich „Flexibel ausrollen".',
+        },
+        {
           q: 'Was kostet ORBIT?',
           a: 'Wir arbeiten mit einem klar definierten Kostenziel pro qualifiziertem Lead, das spürbar unter klassischen Ad-Kanälen liegt. Das genaue Modell klären wir im Erstgespräch.',
           cta: true,
         },
         {
           q: 'Ist das DSGVO-konform?',
-          a: 'Ja, vollständig – Verarbeitung in Europa, Made in Germany.',
+          a: 'Ja, vollständig – Verarbeitung ausschließlich in Europa, Made in Germany. Gerade bei sensiblen Zielgruppen, etwa in Transfergesellschaften, legen wir besonderen Wert auf einen sorgfältigen Umgang mit personenbezogenen Daten.',
         },
         {
           q: 'Wann startet ORBIT?',
           a: 'Early Access ab Q4 2026, Launch Q1 2027. Pilotpartner gestalten die Roadmap aktiv mit.',
+        },
+        {
+          q: 'Wie werden wir Pilotpartner und was bedeutet das für uns?',
+          a: 'Im kurzen Erstgespräch klären wir gemeinsam Ihr Kursportfolio, Ihren Bereich und die weiteren Rahmenbedingungen. Als Pilotpartner erhalten Sie bevorzugte Konditionen und wirken aktiv auf die Weiterentwicklung von ORBIT ein.',
         },
       ],
       cta: 'Informationen anfragen',
