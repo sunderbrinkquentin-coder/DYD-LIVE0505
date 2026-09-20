@@ -126,6 +126,7 @@ export const b2bContent = {
         {
           q: 'Was kostet die Pilotphase?',
           a: 'Early-Access-Partner erhalten bevorzugte Konditionen. Den konkreten Rahmen stimmen wir im kurzen Erstgespräch ab.',
+          cta: true,
         },
       ],
       cta: 'Informationen anfragen',
@@ -152,22 +153,87 @@ export const b2bContent = {
         scenario: 'So könnte es aussehen: Statt teurer Streuwerbung erreicht Ihr Data-Bootcamp die Interessentin, deren Zielrolle exakt diese Kompetenz verlangt.',
       },
       intro: 'Verwandeln Sie Skill-Nachfrage in qualifizierte Leads.',
-      challenge: {
-        title: 'Herausforderung',
-        items: [
-          'Generische Kurslisten ohne Bezug zur Zielrolle',
-          'Weder Erfahrung noch individuelle Skill-Lücken berücksichtigt',
-          'Teure Reichweite statt echter Nachfrage – hoher Streuverlust',
-        ],
+      /* Segment-Umschalter: je nach Bereich unterscheiden sich Herausforderung
+         und Lösung spürbar – statt eines generischen Blocks für alle,
+         erkennt sich die Besucherin/der Besucher hier direkt wieder. */
+      segmentPicker: {
+        title: 'Für wen ist ORBIT gemacht?',
+        subtitle: 'Wählen Sie Ihren Bereich – Herausforderung und Lösung passen sich direkt an.',
+        challengeTitle: 'Herausforderung',
+        solutionTitle: 'Mit DYD ORBIT',
       },
-      solution: {
-        title: 'Mit DYD ORBIT',
-        items: [
-          'KI verbindet Profil, Ziel und ESCO-Skills automatisch',
-          'Erkennt die konkrete Kompetenzlücke jedes Nutzers',
-          'Spielt passgenaue Weiterbildungen als qualifizierten Lead aus',
-        ],
-      },
+      segments: [
+        {
+          id: 'transfergesellschaft',
+          label: 'Transfergesellschaften',
+          challenge: [
+            'Betroffene müssen in kurzer Zeit eine realistische neue Zielrolle finden',
+            'Klassische Vermittlung hält mit der Dynamik des Arbeitsmarkts kaum Schritt',
+            'Hoher manueller Aufwand, um Qualifikation und Marktbedarf zusammenzubringen',
+          ],
+          solution: [
+            'Automatisiertes Skill-Gap-Matching statt manueller Einzelfallprüfung',
+            'Zeigt in Minuten, welche Zielrollen zum vorhandenen Profil realistisch passen',
+            'Passende Weiterbildung direkt als qualifizierter Lead statt langer Recherche',
+          ],
+        },
+        {
+          id: 'vhs',
+          label: 'Volkshochschulen (VHS)',
+          challenge: [
+            'Klassische Kursformate wirken auf neue Zielgruppen zunehmend unattraktiv',
+            'Digitale Reichweite fehlt, um Interessent:innen abseits des Kursheftes zu erreichen',
+            'Gerade im ländlichen Raum bleibt viel Nachfrage ungesehen',
+          ],
+          solution: [
+            'Digitale, personalisierte Kursempfehlung statt statischem Kursheft',
+            'Erreicht Interessent:innen unabhängig vom Standort',
+            'Zeigt konkret, welcher Kurs zur individuellen Skill-Lücke passt',
+          ],
+        },
+        {
+          id: 'ihk',
+          label: 'IHK',
+          challenge: [
+            'Zertifizierungen und Qualifikationen sind zwischen Anbietern schwer vergleichbar',
+            'Schnelle Entwicklung neuer Kompetenzanforderungen (u. a. durch KI) erschwert die Einordnung',
+            'Qualifikationsmismatch zwischen Lehrgangsangebot und tatsächlichem Bedarf',
+          ],
+          solution: [
+            'ESCO-normierte Skill-Daten schaffen eine einheitliche, vergleichbare Grundlage',
+            'Automatisches Auslesen von Kompetenzen statt manueller Einordnung',
+            'Bedarf wird sichtbar, bevor sich ein Mismatch im Lehrgang zeigt',
+          ],
+        },
+        {
+          id: 'arbeitsagentur',
+          label: 'Agentur für Arbeit',
+          challenge: [
+            'Sachbearbeiter:innen sind zeitlich stark ausgelastet',
+            'Lead-Nachverfolgung nach der Erstberatung läuft oft manuell',
+            'Eine sich wandelnde Förderlandschaft erschwert eine einheitliche Beratung',
+          ],
+          solution: [
+            'Automatisierte Vorqualifizierung entlastet die Beratung im Erstgespräch',
+            'Strukturierte, nachvollziehbare Übergabe statt manueller Nachverfolgung',
+            'Ein einheitlicher Skill-Standard (ESCO) bleibt unabhängig vom Förderprogramm stabil',
+          ],
+        },
+        {
+          id: 'privat',
+          label: 'Private Bildungsträger',
+          challenge: [
+            'Intensiver Wettbewerbsdruck um dieselben Interessent:innen',
+            'Sinkende Weiterbildungsbudgets bei Unternehmenskund:innen',
+            'Hoher Streuverlust bei klassischer Anzeigen-Akquise',
+          ],
+          solution: [
+            'Weniger Streuverlust durch skill-basiertes statt breites Targeting',
+            'Qualifizierte Leads mit nachgewiesenem Entwicklungsbedarf statt bloßer Klicks',
+            'Planbarere Pipeline statt schwankender Buchungszahlen',
+          ],
+        },
+      ],
       process: {
         title: 'Skill-Matching-Prozess',
         steps: [
@@ -218,6 +284,7 @@ cpa: {
         {
           q: 'Was kostet ORBIT?',
           a: 'Wir arbeiten mit einem klar definierten Kostenziel pro qualifiziertem Lead, das spürbar unter klassischen Ad-Kanälen liegt. Das genaue Modell klären wir im Erstgespräch.',
+          cta: true,
         },
         {
           q: 'Ist das DSGVO-konform?',
@@ -289,7 +356,7 @@ cpa: {
   events: {
     title: 'DYD live: Workshops & Messeauftritte',
     subtitle: 'Praxisnah unterwegs – auf dem Campus und bei Partnern.',
-    note: '[BITTE AUSFÜLLEN] Weitere Workshops & Messeauftritte hier ergänzen.',
+    note: 'Weitere Termine folgen in Kürze.',
     entries: [
       {
         date: '28. Mai 2026',
@@ -297,12 +364,6 @@ cpa: {
         location: 'Hochschule Fresenius',
         audience: 'Ausgewählte Gruppe von Top-Studierenden',
         topics: ['ATS', 'Storytelling', 'Personal Branding im KI-Zeitalter'],
-      },
-      {
-        date: '[BITTE AUSFÜLLEN]',
-        title: '[BITTE AUSFÜLLEN: Titel – Ort]',
-        placeholder: true,
-        topics: [],
       },
     ],
   },
