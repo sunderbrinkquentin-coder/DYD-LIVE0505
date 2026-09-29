@@ -16,9 +16,12 @@ interface PlanDef {
    *  der Plan gedacht ist, bevor man die Feature-Liste liest. */
   blurb: string;
   icon: "rocket" | "growth" | "crown";
-  /** TODO (Quentin): Platzhalter - echte Beträge aus Stripe eintragen. */
-  monthlyPrice: number | null;
-  yearlyPricePerMonth: number | null;
+  /** Monatspreis bei monatlicher Abrechnung. */
+  monthlyPrice: number;
+  /** Gesamtpreis bei JÄHRLICHER Abrechnung (nicht der Monatsanteil - der wird
+   *  daraus berechnet). Entspricht bei allen drei Plänen exakt dem 10-fachen
+   *  Monatspreis ("2 Monate gratis"). */
+  yearlyTotal: number;
   courseLimit: string;
   features: readonly string[];
   highlighted?: boolean;
@@ -32,8 +35,8 @@ const PLANS: readonly PlanDef[] = [
     name: "Starter",
     blurb: "Für den Einstieg in skill-basierte Leads",
     icon: "rocket",
-    monthlyPrice: null,
-    yearlyPricePerMonth: null,
+    monthlyPrice: 199,
+    yearlyTotal: 1990,
     courseLimit: "bis 200 Kurse",
     features: ["Skill-Gap-Matching", "Basis-Dashboard", "E-Mail-Support"],
   },
@@ -42,8 +45,8 @@ const PLANS: readonly PlanDef[] = [
     name: "Growth",
     blurb: "Für wachsende Bildungsträger",
     icon: "growth",
-    monthlyPrice: null,
-    yearlyPricePerMonth: null,
+    monthlyPrice: 399,
+    yearlyTotal: 3990,
     courseLimit: "bis 500 Kurse",
     features: ["Alles aus Starter", "Erweiterte Auswertungen", "Priorisierter Support"],
     highlighted: true,
@@ -53,15 +56,14 @@ const PLANS: readonly PlanDef[] = [
     name: "Professional",
     blurb: "Für große Träger & Netzwerke",
     icon: "crown",
-    monthlyPrice: null,
-    yearlyPricePerMonth: null,
+    monthlyPrice: 699,
+    yearlyTotal: 6990,
     courseLimit: "bis 2.500 Kurse",
     features: ["Alles aus Growth", "White-Label-Option", "Persönlicher Ansprechpartner"],
   },
 ];
 
-function formatPrice(value: number | null): string {
-  if (value === null) return "€ –";
+function formatPrice(value: number): string {
   return `€${value.toLocaleString("de-DE")}`;
 }
 
@@ -145,10 +147,14 @@ function BillingToggle({ value, onChange }: { value: BillingInterval; onChange: 
  * Rhythmus wird ans Formular durchgereicht (initialInterval-Prop an
  * DirectPurchaseForm), damit niemand im Modal nochmal von vorn waehlen muss.
  *
- * ACHTUNG: monthlyPrice/yearlyPricePerMonth sind Platzhalter (null -> "€ –"),
- * siehe PLANS oben - bitte durch die echten Beträge ersetzen, bevor das
- * live geht (bewusst KEINE erfundenen Zahlen in die JSON-LD-Preisangaben
- * in index.html uebernommen, aus demselben Grund).
+ * Preise (Stand: von Quentin bestaetigt): Starter 199 €/Monat (1.990 €/Jahr),
+ * Growth 399 €/Monat (3.990 €/Jahr), Professional 699 €/Monat (6.990 €/Jahr).
+ * Bei allen drei Plaenen entspricht der Jahrespreis exakt dem 10-fachen
+ * Monatspreis - passt exakt zur "2 Monate gratis"-Aussage im Umschalter.
+ * ANNAHME: Preise sind Netto-Preise (zzgl. MwSt.), wie im B2B-SaaS-Bereich
+ * ueblich - bitte kurz bestaetigen, falls das nicht stimmt (dann muss der
+ * "zzgl. MwSt."-Hinweis entfernt/angepasst werden). Dieselben Zahlen sind
+ * jetzt auch als "offers" im ORBIT-JSON-LD in index.html hinterlegt.
  */
 export function PricingSection() {
   const [billingInterval, setBillingInterval] = useState<BillingInterval>("monthly");
@@ -175,7 +181,8 @@ export function PricingSection() {
 
       <motion.div variants={container} initial="hidden" whileInView="show" viewport={VIEWPORT} className="grid md:grid-cols-3 gap-6 md:items-start">
         {PLANS.map((p) => {
-          const price = billingInterval === "monthly" ? p.monthlyPrice : p.yearlyPricePerMonth;
+          const yearlyPerMonth = Math.round(p.yearlyTotal / 12);
+          const price = billingInterval === "monthly" ? p.monthlyPrice : yearlyPerMonth;
           const Icon = PLAN_ICONS[p.icon];
           return (
             <motion.div
@@ -217,7 +224,7 @@ export function PricingSection() {
               <p className="font-arimo text-sm text-[#55637A] mb-0.5">{p.blurb}</p>
               <p className="font-arimo text-xs text-[#94a3b8] mb-5">{p.courseLimit}</p>
 
-              <div className="mb-6 h-[60px]">
+              <div className="mb-6 min-h-[64px]">
                 <AnimatePresence mode="wait">
                   <motion.div
                     key={billingInterval}
@@ -227,13 +234,18 @@ export function PricingSection() {
                     transition={{ duration: 0.2 }}
                   >
                     <div className="flex items-baseline gap-1.5">
-                      <span className="font-arimo text-xs text-[#94a3b8]">ab</span>
                       <span className="font-poppins font-black text-4xl text-[#0F1E34] tracking-tight">{formatPrice(price)}</span>
                       <span className="font-arimo text-sm text-[#55637A]">/ Monat</span>
                     </div>
-                    <p className="font-arimo text-[11px] text-[#94a3b8] mt-1">
-                      {billingInterval === "yearly" ? "jährliche Abrechnung · zzgl. MwSt." : "monatlich kündbar · zzgl. MwSt."}
-                    </p>
+                    {billingInterval === "yearly" ? (
+                      <p className="font-arimo text-[11px] text-[#55637A] mt-1">
+                        {formatPrice(p.yearlyTotal)} pro Jahr{" "}
+                        <span className="text-[#94a3b8] line-through">{formatPrice(p.monthlyPrice * 12)}</span>{" "}
+                        <span className="font-bold text-[#38BDF8]">2 Monate gratis</span> · zzgl. MwSt.
+                      </p>
+                    ) : (
+                      <p className="font-arimo text-[11px] text-[#94a3b8] mt-1">monatlich kündbar · zzgl. MwSt.</p>
+                    )}
                   </motion.div>
                 </AnimatePresence>
               </div>
