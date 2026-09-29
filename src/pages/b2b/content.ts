@@ -176,6 +176,37 @@ export const b2bContent = {
         body: 'Der richtige Kurs zur richtigen Zeit kann eine Laufbahn verändern. ORBIT bringt genau Ihr Angebot zu genau der Person, der genau dieser Skill fehlt – im entscheidenden Moment.',
         scenario: 'So könnte es aussehen: Statt teurer Streuwerbung erreicht Ihr Data-Bootcamp die Interessentin, deren Zielrolle exakt diese Kompetenz verlangt.',
       },
+      /* NEU: Selbstbedienungs-Faehigkeiten, die es bisher nirgends auf der
+         Seite zu lesen gab - siehe SelfServiceFeatures.tsx. Dieselbe
+         Formulierung wird auch in index.html (JSON-LD) und llms.txt
+         wiederverwendet, damit sichtbarer Inhalt und strukturierte Daten
+         nicht auseinanderlaufen. */
+      selfService: {
+        title: 'Vom Klick zum Zugang – ohne Wartezeit',
+        subtitle: 'Kein Warten auf ein Rückruf-Formular: die wichtigsten Neuerungen im Selbstbedienungs-Zugang.',
+        items: [
+          {
+            title: 'Sofort-Registrierung',
+            desc: 'Account und Plan direkt hier auf der Website anlegen – ganz ohne Erstgespräch, wenn Sie schon wissen, was Sie brauchen.',
+            icon: 'bolt',
+          },
+          {
+            title: 'Automatische API-Bereitstellung',
+            desc: 'Der persönliche API-Zugang entsteht automatisch direkt nach bestätigter Zahlung – kein manuelles Setup, keine Wartezeit.',
+            icon: 'key',
+          },
+          {
+            title: 'Selbstverwaltetes Abo',
+            desc: 'Zahlungsmethode, Rechnungen und Plan jederzeit eigenständig verwalten – über das integrierte Kundenportal.',
+            icon: 'settings',
+          },
+          {
+            title: '7 Tage kostenlos testen',
+            desc: 'Voller Funktionsumfang im Trial, ganz ohne Zahlungsdaten – erst danach entscheiden.',
+            icon: 'gift',
+          },
+        ],
+      },
       intro: 'Verwandeln Sie Skill-Nachfrage in qualifizierte Leads.',
       /* Segment-Umschalter: je nach Bereich unterscheiden sich Herausforderung
          und Lösung spürbar – statt eines generischen Blocks für alle,
@@ -327,7 +358,7 @@ cpa: {
         },
         {
           q: 'Was kostet ORBIT?',
-          a: 'Wir arbeiten mit einem klar definierten Kostenziel pro qualifiziertem Lead, das spürbar unter klassischen Ad-Kanälen liegt. Das genaue Modell klären wir im Erstgespräch.',
+          a: 'Für kleinere Träger gibt es feste Selbstbedienungs-Pläne, die Sie direkt online abschließen können (siehe Preis-Karten oben). Für größere oder individuelle Anforderungen arbeiten wir mit einem klar definierten Kostenziel pro qualifiziertem Lead, das spürbar unter klassischen Ad-Kanälen liegt – das genaue Modell klären wir im Erstgespräch.',
           cta: true,
         },
         {
@@ -336,7 +367,7 @@ cpa: {
         },
         {
           q: 'Wann startet ORBIT?',
-          a: 'Early Access ab Q4 2026, Launch Q1 2027. Pilotpartner gestalten die Roadmap aktiv mit.',
+          a: 'Die Selbstbedienungs-Pläne sind bereits als Early Access direkt buchbar. Der volle Rollout mit allen Funktionen läuft bis Q1 2027 weiter; Pilotpartner gestalten die Roadmap aktiv mit.',
         },
         {
           q: 'Wie werden wir Pilotpartner und was bedeutet das für uns?',
