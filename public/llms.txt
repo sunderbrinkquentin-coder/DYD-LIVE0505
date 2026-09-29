@@ -1,6 +1,6 @@
 # DYD – Decide Your Dream
 
-> KI-gestütztes Bewerbungs-Tool aus Düsseldorf für Studierende und Berufseinsteiger:innen: kostenloser ATS-Check, CV-Wizard mit One-Click-Optimierung, Bewerbungsmanagement und ESCO-basierte Skill-Gap-Analyse mit Lernpfad. Offizieller Kooperationspartner der Hochschule Fresenius, DSGVO-konform. DYD veranstaltet außerdem das Harmony Festival 2026 in Düsseldorf.
+> KI-gestütztes Bewerbungs-Tool aus Düsseldorf für Studierende und Berufseinsteiger:innen: kostenloser ATS-Check, CV-Wizard mit One-Click-Optimierung, Bewerbungsmanagement und ESCO-basierte Skill-Gap-Analyse mit Lernpfad. Offizieller Kooperationspartner der Hochschule Fresenius, DSGVO-konform. DYD betreibt außerdem zwei B2B-Produkte (DYD NEXUS und DYD ORBIT) und veranstaltet das Harmony Festival 2026 in Düsseldorf.
 
 DYD ist ein Produkt der DYD UG (haftungsbeschränkt), Sitz Düsseldorf. Der ATS-Check ist ohne Registrierung nutzbar; kostenpflichtige Funktionen beginnen bei 5 €. Kontakt: kontakt.dyd@googlemail.com
 
@@ -11,6 +11,26 @@ DYD ist ein Produkt der DYD UG (haftungsbeschränkt), Sitz Düsseldorf. Der ATS-
 - [Skill-Gap-Analyse](https://decide-your-dream.de/#/career-vision): Match-Score gegen die europäische ESCO-Taxonomie, identifiziert individuelle Kompetenzlücken zum Zielberuf.
 - [IHK-Lernpfade](https://decide-your-dream.de/#/learning-path): Micro-Learning-Module zum Schließen der identifizierten Skill-Gaps.
 - [Bewerbungsmanagement](https://decide-your-dream.de/#/dashboard): Überblick und Statusverwaltung laufender Bewerbungen. Login erforderlich.
+
+## Für Unternehmen & Bildungsträger (DYD NEXUS & DYD ORBIT)
+
+DYD betreibt neben dem Bewerber-Tool zwei B2B-Produkte auf derselben ESCO-basierten Skill-Engine, beide erreichbar unter [decide-your-dream.de/#/business](https://decide-your-dream.de/#/business) über zwei Tabs (Unternehmen / Bildungsträger).
+
+- **DYD NEXUS** (für Unternehmen, HR & L&D): Workforce-Intelligence auf Basis der ESCO-Taxonomie – Skill-Gap-Matching im Team, Lernpfad-Empfehlungen und Auswertungen für Personalentwicklung.
+- **DYD ORBIT** (für Bildungsträger, Volkshochschulen, IHK, Transfergesellschaften und die Agentur für Arbeit): Lead-Intelligence für Kurs- und Weiterbildungsangebote – Skill-Gap-Matching zwischen Marktbedarf und Kursangebot, damit Bildungsträger passgenaue Interessent:innen erreichen.
+
+**Selbstbedienungs-Zugang (neu, ohne Erstgespräch):** DYD ORBIT ist per Selbstbedienung direkt online buchbar.
+
+- Sofort-Registrierung: Account und Plan direkt auf der Website anlegen, ganz ohne Erstgespräch.
+- Automatische API-Bereitstellung: Der API-Zugang entsteht automatisch direkt nach bestätigter Zahlung, ohne manuelles Setup.
+- Selbstverwaltetes Abo: Zahlungsmethode, Rechnungen und Plan jederzeit eigenständig über ein integriertes Kundenportal verwalten.
+- 7 Tage kostenlos testen: voller Funktionsumfang im Trial, ohne Zahlungsdaten.
+
+Für größere oder individuelle Anforderungen (inkl. DYD NEXUS) bleibt zusätzlich ein persönliches Erstgespräch mit fixem Kostenziel pro qualifiziertem Lead möglich.
+
+**Status:** Early Access. Die Selbstbedienungs-Pläne für DYD ORBIT sind bereits buchbar; der vollständige Rollout mit allen Funktionen läuft bis Q1 2027 weiter.
+
+- [DYD NEXUS & DYD ORBIT – Übersicht, Preise, Kontakt](https://decide-your-dream.de/#/business): Beide Produkte, Preis-Karten für die Selbstbedienungs-Pläne von ORBIT sowie Kontaktformular für ein Erstgespräch.
 
 ## Harmony Festival 2026
 
