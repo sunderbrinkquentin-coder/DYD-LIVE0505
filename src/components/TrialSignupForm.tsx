@@ -4,14 +4,19 @@ import {
   createTrialSignup,
   validateTrialSignupInput,
   TrialSignupError,
+  type TrialSignupResult,
 } from "../lib/orbitTrialSignup";
 import type { BillingPlan } from "../lib/orbitDirectCheckout";
 
 const API_BASE: string = import.meta.env.VITE_ORBIT_API_BASE ?? "";
-/** Das Backend verlangt fuer den Trial-Signup-Endpunkt zusaetzlich einen
- *  "X-API-Key"-Header (siehe orbitTrialSignup.ts fuer den ausfuehrlichen
- *  Sicherheitshinweis dazu, was fuer eine Art Key das sein darf). */
-const API_KEY: string = import.meta.env.VITE_ORBIT_TRIAL_API_KEY ?? "";
+/** Optional: Basis-URL des ORBIT-DASHBOARDS (die eigentliche Software, die
+ *  Bildungsträger nach dem Trial-Start nutzen - NICHT diese Marketing-
+ *  Website). Wird nur für den "Jetzt einloggen"-Button nach erfolgreichem
+ *  Trial-Start gebraucht. Ist die Variable (noch) nicht gesetzt, zeigen wir
+ *  stattdessen nur einen Hinweistext mit den Login-Daten an (siehe unten).
+ *  Kein Sicherheitsrisiko, falls das mal leer bleibt - es ist keine
+ *  geheime Information, nur eine URL. */
+const APP_URL: string = import.meta.env.VITE_ORBIT_APP_URL ?? "";
 
 interface TrialSignupFormProps {
   plan: BillingPlan;
@@ -24,6 +29,18 @@ const PLAN_LABELS: Record<BillingPlan, string> = {
   professional: "ORBIT Professional",
 };
 
+function formatTrialEnd(iso: string): string {
+  try {
+    return new Date(iso).toLocaleDateString("de-DE", {
+      day: "2-digit",
+      month: "long",
+      year: "numeric",
+    });
+  } catch {
+    return iso;
+  }
+}
+
 /**
  * "7 Tage kostenlos testen" - bewusst ein EIGENES, kuerzeres Formular statt
  * DirectPurchaseForm mit Trial-Modus zu ueberladen: kein Monatlich/Jaehrlich-
@@ -35,11 +52,17 @@ const PLAN_LABELS: Record<BillingPlan, string> = {
  * Pflichtfelder (siehe validateTrialSignupInput): E-Mail, Passwort,
  * Firmen-/Bildungsträgername - dieselben wie beim Direktkauf, weil der
  * Account danach identisch nutzbar sein muss. Telefonnummer ist bewusst
- * OPTIONAL (nur fuer Sales-Nachfass vor Trial-Ende). Zusaetzlich eine
- * Pflicht-Checkbox fuer AGB/Datenschutz, die im Kauf-Formular fehlt - hier
- * ergaenzt, weil das hier der erste Ort ist, an dem wir personenbezogene
- * Daten OHNE unmittelbar folgenden Stripe-Checkout (der eigene AGB-Hinweise
- * hat) entgegennehmen.
+ * OPTIONAL (nur fuer Sales-Nachfass vor Trial-Ende, wird vom Backend aktuell
+ * nicht gespeichert). Zusaetzlich eine Pflicht-Checkbox fuer AGB/
+ * Datenschutz, die im Kauf-Formular fehlt - hier ergaenzt, weil das hier der
+ * erste Ort ist, an dem wir personenbezogene Daten OHNE unmittelbar
+ * folgenden Stripe-Checkout (der eigene AGB-Hinweise hat) entgegennehmen.
+ *
+ * Ruft POST /api/v1/signup auf (siehe orbitTrialSignup.ts) - oeffentlich,
+ * ohne jeden API-Key. Das Backend verschickt dabei KEINE Bestaetigungs-
+ * E-Mail (email_confirm: true = sofort aktiv) - der Erfolgstext verspricht
+ * das deshalb bewusst nicht mehr, sondern nennt Trial-Ende + Kurslimit aus
+ * der echten Backend-Antwort und verweist auf den direkten Login.
  */
 export function TrialSignupForm({ plan, onClose }: TrialSignupFormProps) {
   const [email, setEmail] = useState("");
@@ -49,7 +72,7 @@ export function TrialSignupForm({ plan, onClose }: TrialSignupFormProps) {
   const [consent, setConsent] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
-  const [success, setSuccess] = useState<{ loginUrl?: string } | null>(null);
+  const [success, setSuccess] = useState<TrialSignupResult | null>(null);
 
   async function handleSubmit(e: FormEvent) {
     e.preventDefault();
@@ -68,16 +91,12 @@ export function TrialSignupForm({ plan, onClose }: TrialSignupFormProps) {
       setErrorMessage("Der Trial ist aktuell nicht verfügbar (VITE_ORBIT_API_BASE fehlt).");
       return;
     }
-    if (!API_KEY) {
-      setErrorMessage("Der Trial ist aktuell nicht verfügbar (VITE_ORBIT_TRIAL_API_KEY fehlt).");
-      return;
-    }
 
     setSubmitting(true);
     try {
-      const result = await createTrialSignup(API_BASE, API_KEY, { email, password, companyName, plan, phone });
+      const result = await createTrialSignup(API_BASE, { email, password, companyName, plan, phone });
       setSubmitting(false);
-      setSuccess({ loginUrl: result.login_url });
+      setSuccess(result);
     } catch (err) {
       setSubmitting(false);
       if (err instanceof TrialSignupError) {
@@ -89,6 +108,8 @@ export function TrialSignupForm({ plan, onClose }: TrialSignupFormProps) {
   }
 
   if (success) {
+    const loginHref = APP_URL ? `${APP_URL.replace(/\/$/, "")}/login` : null;
+
     return (
       <div className="w-full flex flex-col gap-3 font-arimo text-center">
         <div className="mx-auto w-12 h-12 rounded-full flex items-center justify-center" style={{ background: "rgba(56,189,248,0.12)" }}>
@@ -96,19 +117,23 @@ export function TrialSignupForm({ plan, onClose }: TrialSignupFormProps) {
         </div>
         <h2 className="font-poppins font-black text-xl text-[#0F1E34]">Trial gestartet</h2>
         <p className="text-[13.5px] leading-relaxed text-[#55637A]">
-          Dein 7-Tage-Zugang zu {PLAN_LABELS[plan]} ist eingerichtet. Wir haben eine Bestätigung an{" "}
-          <span className="font-bold text-[#0F1E34]">{email}</span> geschickt.
+          Dein 7-Tage-Zugang für {PLAN_LABELS[plan]} ist eingerichtet – bis zu{" "}
+          <span className="font-bold text-[#0F1E34]">{success.course_limit} Kurse</span> inklusive. Dein
+          Test läuft bis <span className="font-bold text-[#0F1E34]">{formatTrialEnd(success.trial_ends_at)}</span>.
         </p>
-        {success.loginUrl ? (
+        {loginHref ? (
           <a
-            href={success.loginUrl}
+            href={loginHref}
             className="mt-1 rounded-lg px-4 py-3 text-sm font-bold text-[#0A192F] text-center"
             style={{ background: "linear-gradient(90deg, #8fecb4, #2f8fd6)" }}
           >
             Jetzt einloggen
           </a>
         ) : (
-          <p className="text-[12.5px] text-[#94a3b8]">Bitte prüfe dein Postfach für den Login-Link.</p>
+          <p className="text-[12.5px] text-[#94a3b8]">
+            Du kannst dich ab sofort mit <span className="font-bold text-[#55637A]">{email}</span> und deinem
+            Passwort im ORBIT-Dashboard einloggen.
+          </p>
         )}
         {onClose && (
           <button
