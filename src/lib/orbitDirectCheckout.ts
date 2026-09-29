@@ -1,20 +1,3 @@
-/**
- * "Direktkauf": ruft den oeffentlichen Endpunkt POST
- * /api/v1/billing/direct-checkout-session der ORBIT-API auf (siehe
- * handleCreateDirectCheckoutSession() im Supabase-Edge-Function-Code).
- * Anders als der 7-Tage-Trial-Weg: hier bezahlt die Person SOFORT einen
- * echten Plan direkt hier auf der Website, ohne vorherigen Trial - Tenant +
- * API-Key entstehen automatisch, sobald die Zahlung bestaetigt ist (Webhook),
- * NICHT schon bei diesem Aufruf hier.
- *
- * Ablauf: dieser Aufruf legt nur den Login-Account an und gibt eine
- * Stripe-Checkout-URL zurueck, zu der du den Browser weiterleitest
- * (window.location.href = checkout_url). Nach erfolgreicher Zahlung schickt
- * Stripe die Person zur success_url zurueck - von dort aus kann sie sich mit
- * der gerade vergebenen E-Mail+Passwort direkt bei ORBIT einloggen (Tenant +
- * API-Key sind dann bereits angelegt).
- */
-
 export type BillingPlan = "starter" | "growth" | "professional";
 export type BillingInterval = "monthly" | "yearly";
 
@@ -50,8 +33,6 @@ function safeJsonParse(text: string): { detail?: unknown; code?: unknown } | nul
   }
 }
 
-/** Dieselben Regeln wie serverseitig (isValidEmail/password.length in
- *  orbit-api.ts) - nur fuer sofortiges Client-Feedback. */
 export function validateDirectCheckoutInput(input: DirectCheckoutInput): string | null {
   const email = input.email.trim();
   if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
@@ -66,9 +47,6 @@ export function validateDirectCheckoutInput(input: DirectCheckoutInput): string 
   return null;
 }
 
-/** Ruft POST /api/v1/billing/direct-checkout-session auf. apiBase =
- *  VITE_ORBIT_API_BASE. successUrl/cancelUrl muessen https:// sein
- *  (Backend lehnt sonst ab, siehe isHttpsUrl() dort). */
 export async function createDirectCheckoutSession(
   apiBase: string,
   input: DirectCheckoutInput,
