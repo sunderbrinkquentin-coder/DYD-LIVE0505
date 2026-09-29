@@ -7,6 +7,7 @@ import {
 import { b2bContent } from './content';
 import ProcessRail from './ProcessRail';
 import { NexusMockup, OrbitMockup } from './ProductMockups';
+import { PricingSection } from './PricingSection';
 
 type TabId = 'unternehmen' | 'bildungstraeger';
 
@@ -423,6 +424,11 @@ function TabBContent({ onDemo }: { onDemo: (institution?: string) => void }) {
         </div>
         <div className="mt-6 flex items-center justify-center gap-3"><span className="font-poppins font-black text-3xl text-[#0F1E34]">{tabB.cpa.delta}</span><span className="font-arimo font-bold text-[#0F1E34]">{tabB.cpa.deltaLabel}</span></div>
       </motion.div>
+
+      {/* NEU (Direktkauf): Preiskarten fuer Selbstbedienungs-Kauf, ergaenzend
+          zum "Erstgespräch"-Weg oben/unten - siehe PricingSection.tsx.
+          ACHTUNG: Preise darin sind Platzhalter, siehe Kommentar dort. */}
+      <PricingSection />
 
       <Delivery />
       <FAQ items={tabB.faq} onCta={() => onDemo(segment.label)} />
