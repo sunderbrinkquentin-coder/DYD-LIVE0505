@@ -2,6 +2,7 @@ import { useState } from "react";
 import { motion, AnimatePresence, useReducedMotion, type Variants } from "framer-motion";
 import { Check, Sparkles, ShieldCheck, Zap, Rocket, TrendingUp, Crown } from "lucide-react";
 import { DirectPurchaseForm } from "../../components/DirectPurchaseForm";
+import { TrialSignupForm } from "../../components/TrialSignupForm";
 import ProcessRail from "./ProcessRail";
 import type { BillingPlan, BillingInterval } from "../../lib/orbitDirectCheckout";
 
@@ -151,14 +152,24 @@ function BillingToggle({ value, onChange }: { value: BillingInterval; onChange: 
  * Growth 399 €/Monat (3.990 €/Jahr), Professional 699 €/Monat (6.990 €/Jahr).
  * Bei allen drei Plaenen entspricht der Jahrespreis exakt dem 10-fachen
  * Monatspreis - passt exakt zur "2 Monate gratis"-Aussage im Umschalter.
- * ANNAHME: Preise sind Netto-Preise (zzgl. MwSt.), wie im B2B-SaaS-Bereich
- * ueblich - bitte kurz bestaetigen, falls das nicht stimmt (dann muss der
- * "zzgl. MwSt."-Hinweis entfernt/angepasst werden). Dieselben Zahlen sind
- * jetzt auch als "offers" im ORBIT-JSON-LD in index.html hinterlegt.
+ * KEINE Umsatzsteuer: Quentin weist keine MwSt. aus (vermutlich
+ * Kleinunternehmerregelung nach §19 UStG - bitte kurz bestaetigen, falls das
+ * nicht der Grund ist, dann muss der Hinweistext unten angepasst werden).
+ * Die Preis-Karten zeigen deshalb bewusst KEINEN "zzgl./inkl. MwSt."-Zusatz
+ * pro Karte mehr, sondern einen einmaligen, gemeinsamen Hinweis unterhalb
+ * aller drei Karten. Dieselben Zahlen sind auch als "offers" im
+ * ORBIT-JSON-LD in index.html hinterlegt (ebenfalls ohne MwSt.-Ausweis).
+ *
+ * Zusaetzlich zum Direktkauf gibt es jetzt auf jeder Karte einen zweiten,
+ * dezenteren CTA "7 Tage kostenlos testen" - oeffnet TrialSignupForm statt
+ * DirectPurchaseForm (kein Abrechnungsrhythmus, keine Zahlungsdaten, siehe
+ * Kommentar dort). Zwei getrennte Modal-States (openPurchasePlan/
+ * openTrialPlan), damit beide Flows unabhaengig voneinander funktionieren.
  */
 export function PricingSection() {
   const [billingInterval, setBillingInterval] = useState<BillingInterval>("monthly");
-  const [openPlan, setOpenPlan] = useState<BillingPlan | null>(null);
+  const [openPurchasePlan, setOpenPurchasePlan] = useState<BillingPlan | null>(null);
+  const [openTrialPlan, setOpenTrialPlan] = useState<BillingPlan | null>(null);
   const { container, fadeUp } = useAnims();
 
   return (
@@ -241,10 +252,10 @@ export function PricingSection() {
                       <p className="font-arimo text-[11px] text-[#55637A] mt-1">
                         {formatPrice(p.yearlyTotal)} pro Jahr{" "}
                         <span className="text-[#94a3b8] line-through">{formatPrice(p.monthlyPrice * 12)}</span>{" "}
-                        <span className="font-bold text-[#38BDF8]">2 Monate gratis</span> · zzgl. MwSt.
+                        <span className="font-bold text-[#38BDF8]">2 Monate gratis</span>
                       </p>
                     ) : (
-                      <p className="font-arimo text-[11px] text-[#94a3b8] mt-1">monatlich kündbar · zzgl. MwSt.</p>
+                      <p className="font-arimo text-[11px] text-[#94a3b8] mt-1">monatlich kündbar</p>
                     )}
                   </motion.div>
                 </AnimatePresence>
@@ -266,7 +277,7 @@ export function PricingSection() {
 
               <button
                 type="button"
-                onClick={() => setOpenPlan(p.plan)}
+                onClick={() => setOpenPurchasePlan(p.plan)}
                 className="w-full inline-flex items-center justify-center gap-2 px-5 py-3.5 rounded-xl font-arimo font-bold text-sm b2b-focus-ring transition-all hover:-translate-y-0.5"
                 style={
                   p.highlighted
@@ -275,6 +286,13 @@ export function PricingSection() {
                 }
               >
                 Jetzt kaufen
+              </button>
+              <button
+                type="button"
+                onClick={() => setOpenTrialPlan(p.plan)}
+                className="w-full mt-2.5 px-5 py-2 rounded-xl font-arimo font-bold text-xs text-[#38BDF8] hover:text-[#0F1E34] transition-colors b2b-focus-ring"
+              >
+                oder 7 Tage kostenlos testen
               </button>
             </motion.div>
           );
@@ -293,6 +311,10 @@ export function PricingSection() {
         </span>
       </motion.div>
 
+      <motion.p variants={fadeUp} initial="hidden" whileInView="show" viewport={VIEWPORT} className="font-arimo text-[11px] text-[#94a3b8] text-center mt-3">
+        Alle Preise sind Endpreise – gemäß § 19 UStG weisen wir keine Umsatzsteuer aus.
+      </motion.p>
+
       {/* Kurzer Prozess "Nach dem Kauf" - baut Vertrauen auf, BEVOR bezahlt wird */}
       <div className="mt-14">
         <motion.h4 variants={fadeUp} initial="hidden" whileInView="show" viewport={VIEWPORT} className="font-poppins font-bold text-lg text-[#0F1E34] mb-1 text-center">
@@ -304,14 +326,26 @@ export function PricingSection() {
         <ProcessRail steps={AFTER_PURCHASE_STEPS} />
       </div>
 
-      {openPlan && (
+      {openPurchasePlan && (
         <div
-          onClick={() => setOpenPlan(null)}
+          onClick={() => setOpenPurchasePlan(null)}
           className="fixed inset-0 z-[1000] flex items-center justify-center p-4"
           style={{ background: "rgba(10,25,47,0.6)" }}
         >
           <div onClick={(e) => e.stopPropagation()} className="w-full max-w-md rounded-2xl bg-white p-6 sm:p-8">
-            <DirectPurchaseForm plan={openPlan} initialInterval={billingInterval} onClose={() => setOpenPlan(null)} />
+            <DirectPurchaseForm plan={openPurchasePlan} initialInterval={billingInterval} onClose={() => setOpenPurchasePlan(null)} />
+          </div>
+        </div>
+      )}
+
+      {openTrialPlan && (
+        <div
+          onClick={() => setOpenTrialPlan(null)}
+          className="fixed inset-0 z-[1000] flex items-center justify-center p-4"
+          style={{ background: "rgba(10,25,47,0.6)" }}
+        >
+          <div onClick={(e) => e.stopPropagation()} className="w-full max-w-md rounded-2xl bg-white p-6 sm:p-8">
+            <TrialSignupForm plan={openTrialPlan} onClose={() => setOpenTrialPlan(null)} />
           </div>
         </div>
       )}
