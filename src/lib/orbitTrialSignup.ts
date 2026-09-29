@@ -1,33 +1,33 @@
 /**
- * "7-Tage-Trial": legt sofort einen Account + Tenant an, OHNE Zahlungsdaten
- * abzufragen - passend zum Werbeversprechen "7 Tage kostenlos testen, ganz
- * ohne Zahlungsdaten" (siehe SelfServiceFeatures.tsx / content.ts).
+ * "7-Tage-Trial": ruft den OEFFENTLICHEN, unauthentifizierten Endpunkt
+ * POST /api/v1/signup der ORBIT-API auf (siehe handleSignup() in der
+ * Supabase Edge Function "api"). Legt sofort an: (1) einen echten
+ * Supabase-Auth-Nutzer (E-Mail+Passwort, sofort aktiv, kein Bestaetigungs-
+ * link/E-Mail-Versand - siehe Begruendung "email_confirm: true" in
+ * handleSignup), (2) einen Tenant im Status "trial" (7 Tage, TRIAL_DAYS in
+ * der Function, Plan fest "demo" mit DEMO_COURSE_LIMIT=20 Kursen), (3) den
+ * zugehoerigen API-Key fuer diesen Tenant (in api_keys, Produkt "orbit").
  *
- * Ruft POST /api/v1/billing/trial-signup auf. Das Backend verlangt dafuer
- * zusaetzlich zum JSON-Body einen "X-API-Key"-Header (Fehler ohne diesen:
- * HTTP 401 "Fehlender Header 'X-API-Key'.").
+ * AUFLOESUNG des vorherigen 401-Fehlers ("Fehlender Header 'X-API-Key'"):
+ * die vorherige Version dieser Datei hat einen FALSCHEN, geratenen Pfad
+ * (/api/v1/billing/trial-signup) aufgerufen, den es im Router der Edge
+ * Function gar nicht gibt - jede unbekannte Route faellt dort automatisch
+ * auf den authentifizierten Katalog-Zweig zurueck, der zuerst IMMER einen
+ * X-API-Key prueft (getTenant()), daher der Fehler. Der WIRKLICHE Endpunkt
+ * heisst /api/v1/signup und ist bewusst OHNE jede Authentifizierung
+ * erreichbar (Router-Sonderfall "NEU (Schritt 3, Signup)", noch vor
+ * getTenant() registriert) - beim Signup selbst gibt es ja noch keinen
+ * API-Key. Das loest auch die Sicherheitsfrage von vorhin: es muss
+ * UEBERHAUPT KEIN Key mehr im Frontend/JS-Bundle liegen, weder oeffentlich
+ * noch geheim.
  *
- * WICHTIG - Sicherheitshinweis zu diesem Key: alles, was hier als
- * VITE_ORBIT_TRIAL_API_KEY eingetragen wird, landet 1:1 im oeffentlichen
- * JS-Bundle der Website und ist damit fuer JEDEN Website-Besucher im
- * Browser-Devtools sichtbar (Network-Tab oder einfach im ausgelieferten
- * JS). Das ist NUR vertretbar, wenn dieser Key ein bewusst oeffentlicher
- * "Signup-Key" ist, der lediglich diesen einen Endpunkt (Trial-Anlage)
- * freischaltet und selbst im schlimmsten Fall (jeder kann ihn lesen und
- * beliebig oft Trials anlegen) keinen Schaden anrichtet - vergleichbar mit
- * einem Stripe "publishable key".
- *
- * Falls es sich stattdessen um einen ECHTEN Secret-Key handelt (z.B.
- * derselbe Key, mit dem auch interne/administrative Endpunkte
- * abgesichert sind), darf er NIEMALS hier landen. In dem Fall muesste
- * stattdessen eine serverseitige Proxy-Funktion (z.B. eine eigene
- * Supabase Edge Function ohne Secret im Client) den eigentlichen aufruf
- * mit dem Key im Backend machen, und die Website wuerde nur DIESE Proxy-
- * Funktion (ohne Key) aufrufen.
- *
- * -> Bitte bestaetigen, um welche Art Key es sich handelt, bevor
- * VITE_ORBIT_TRIAL_API_KEY mit einem echten Wert in Bolt/Netlify gesetzt
- * wird.
+ * Das Backend liest aus dem Request-Body nur email/password/company_name -
+ * "plan" (Starter/Growth/Professional) wird aktuell NICHT ausgewertet,
+ * jeder Trial startet identisch als Plan "demo". Wir schicken "plan"
+ * trotzdem mit (schadet nicht, evtl. spaeter nuetzlich), zeigen den auf der
+ * Preiskarte gewaehlten Plan aber nur lokal in der UI an (siehe
+ * TrialSignupForm.tsx) - nicht als Zusage, dass der Trial diesen Plan
+ * tatsaechlich hat.
  */
 
 import type { BillingPlan } from "./orbitDirectCheckout";
@@ -38,15 +38,21 @@ export interface TrialSignupInput {
   companyName: string;
   plan: BillingPlan;
   /** Optional - keine Pflichtangabe, hilft aber beim Nachfassen vor
-   *  Trial-Ende. */
+   *  Trial-Ende. Wird aktuell vom Backend nicht ausgewertet/gespeichert. */
   phone?: string;
 }
 
 export interface TrialSignupResult {
-  /** Optional: falls das Backend direkt eine Login-/Weiterleitungs-URL
-   *  liefert. Wenn nicht vorhanden, zeigt das Formular stattdessen eine
-   *  Erfolgs-Meldung an. */
-  login_url?: string;
+  tenant_id: string;
+  tenant_name: string;
+  /** ORBIT-API-Key dieses neuen Tenants. Wird bewusst NICHT im Formular
+   *  angezeigt - der Login im ORBIT-Dashboard laeuft ueber E-Mail+Passwort
+   *  (Supabase-Auth), nicht ueber diesen Key; das Dashboard loest ihn nach
+   *  dem Login selbst ueber GET /api/v1/tenant/session auf. Steckt hier nur
+   *  drin, falls du ihn mal fuer Support/Debugging brauchst. */
+  api_key: string;
+  trial_ends_at: string;
+  course_limit: number;
 }
 
 export class TrialSignupError extends Error {
@@ -69,8 +75,8 @@ function safeJsonParse(text: string): { detail?: unknown; code?: unknown } | nul
   }
 }
 
-/** Dieselben Kernregeln wie beim Direktkauf (validateDirectCheckoutInput) -
- *  bewusst OHNE interval, da der Trial keinen Abrechnungsrhythmus hat. */
+/** Dieselben Kernregeln wie im Backend (siehe handleSignup: isValidEmail /
+ *  password.length / company_name) - nur fuer sofortiges Client-Feedback. */
 export function validateTrialSignupInput(input: TrialSignupInput): string | null {
   const email = input.email.trim();
   if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
@@ -87,15 +93,11 @@ export function validateTrialSignupInput(input: TrialSignupInput): string | null
 
 export async function createTrialSignup(
   apiBase: string,
-  apiKey: string,
   input: TrialSignupInput
 ): Promise<TrialSignupResult> {
-  const res = await fetch(`${apiBase.replace(/\/$/, "")}/api/v1/billing/trial-signup`, {
+  const res = await fetch(`${apiBase.replace(/\/$/, "")}/api/v1/signup`, {
     method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      "X-API-Key": apiKey,
-    },
+    headers: { "Content-Type": "application/json" },
     body: JSON.stringify({
       email: input.email.trim(),
       password: input.password,
@@ -112,6 +114,9 @@ export async function createTrialSignup(
     const detail = parsed && typeof parsed.detail === "string" ? parsed.detail : undefined;
     const code = parsed && typeof parsed.code === "string" ? parsed.code : undefined;
 
+    // Backend liefert bei 400 (ungueltige Eingabe, z.B. Passwort zu kurz)
+    // und 409 (E-Mail bereits registriert, code "email_already_registered")
+    // einen konkreten, fuer Endnutzer verstaendlichen "detail"-Text.
     const showDetail = res.status === 400 || res.status === 409;
     throw new TrialSignupError(
       res.status,
