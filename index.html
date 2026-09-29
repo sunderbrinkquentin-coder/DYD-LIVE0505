@@ -397,6 +397,14 @@
          Kommentar dort) - erfundene Preise in strukturierten Daten waeren
          irrefuehrend und ein Risiko fuer Google/Rich-Results.
     ═══════════════════════════════════════════════════════ -->
+    <!-- ═══════════════════════════════════════════════════════
+         SCHEMA 9 — SoftwareApplication DYD ORBIT (B2B, Bildungsträger)
+         Echte Preise (von Quentin bestaetigt): Starter 199 €/Monat,
+         Growth 399 €/Monat, Professional 699 €/Monat, Jahrespreis jeweils
+         exakt das 10-fache (2 Monate gratis). Netto-Preise angenommen
+         (valueAddedTaxIncluded: false) - siehe Kommentar in
+         PricingSection.tsx zur selben Annahme.
+    ═══════════════════════════════════════════════════════ -->
     <script type="application/ld+json">
     {
       "@context": "https://schema.org",
@@ -421,7 +429,54 @@
       "author": { "@id": "https://decide-your-dream.de/#organization" },
       "publisher": { "@id": "https://decide-your-dream.de/#organization" },
       "inLanguage": "de-DE",
-      "isAccessibleForFree": false
+      "isAccessibleForFree": false,
+      "offers": [
+        {
+          "@type": "Offer",
+          "name": "DYD ORBIT Starter",
+          "url": "https://decide-your-dream.de/#/business",
+          "price": "199.00",
+          "priceCurrency": "EUR",
+          "description": "Bis 200 Kurse, Skill-Gap-Matching, Basis-Dashboard, E-Mail-Support. Jährliche Abrechnung: 1990 € (2 Monate gratis).",
+          "priceSpecification": {
+            "@type": "UnitPriceSpecification",
+            "price": "199.00",
+            "priceCurrency": "EUR",
+            "unitText": "pro Monat",
+            "valueAddedTaxIncluded": false
+          }
+        },
+        {
+          "@type": "Offer",
+          "name": "DYD ORBIT Growth",
+          "url": "https://decide-your-dream.de/#/business",
+          "price": "399.00",
+          "priceCurrency": "EUR",
+          "description": "Bis 500 Kurse, erweiterte Auswertungen, priorisierter Support. Jährliche Abrechnung: 3990 € (2 Monate gratis).",
+          "priceSpecification": {
+            "@type": "UnitPriceSpecification",
+            "price": "399.00",
+            "priceCurrency": "EUR",
+            "unitText": "pro Monat",
+            "valueAddedTaxIncluded": false
+          }
+        },
+        {
+          "@type": "Offer",
+          "name": "DYD ORBIT Professional",
+          "url": "https://decide-your-dream.de/#/business",
+          "price": "699.00",
+          "priceCurrency": "EUR",
+          "description": "Bis 2.500 Kurse, White-Label-Option, persönlicher Ansprechpartner. Jährliche Abrechnung: 6990 € (2 Monate gratis).",
+          "priceSpecification": {
+            "@type": "UnitPriceSpecification",
+            "price": "699.00",
+            "priceCurrency": "EUR",
+            "unitText": "pro Monat",
+            "valueAddedTaxIncluded": false
+          }
+        }
+      ]
     }
     </script>
 
