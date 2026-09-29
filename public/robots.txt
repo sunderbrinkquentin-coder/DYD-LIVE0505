@@ -1,0 +1,29 @@
+# decide-your-dream.de
+# Klassische Suchmaschinen: alles erlaubt.
+User-agent: *
+Allow: /
+
+# KI-/GEO-Crawler (Antwort-Engines) explizit erlaubt, damit DYD, DYD NEXUS
+# und DYD ORBIT in KI-generierten Antworten zitiert werden können.
+User-agent: GPTBot
+Allow: /
+
+User-agent: ChatGPT-User
+Allow: /
+
+User-agent: ClaudeBot
+Allow: /
+
+User-agent: Claude-User
+Allow: /
+
+User-agent: anthropic-ai
+Allow: /
+
+User-agent: PerplexityBot
+Allow: /
+
+User-agent: Google-Extended
+Allow: /
+
+Sitemap: https://decide-your-dream.de/sitemap.xml
