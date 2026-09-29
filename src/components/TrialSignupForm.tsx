@@ -8,6 +8,10 @@ import {
 import type { BillingPlan } from "../lib/orbitDirectCheckout";
 
 const API_BASE: string = import.meta.env.VITE_ORBIT_API_BASE ?? "";
+/** Das Backend verlangt fuer den Trial-Signup-Endpunkt zusaetzlich einen
+ *  "X-API-Key"-Header (siehe orbitTrialSignup.ts fuer den ausfuehrlichen
+ *  Sicherheitshinweis dazu, was fuer eine Art Key das sein darf). */
+const API_KEY: string = import.meta.env.VITE_ORBIT_TRIAL_API_KEY ?? "";
 
 interface TrialSignupFormProps {
   plan: BillingPlan;
@@ -64,10 +68,14 @@ export function TrialSignupForm({ plan, onClose }: TrialSignupFormProps) {
       setErrorMessage("Der Trial ist aktuell nicht verfügbar (VITE_ORBIT_API_BASE fehlt).");
       return;
     }
+    if (!API_KEY) {
+      setErrorMessage("Der Trial ist aktuell nicht verfügbar (VITE_ORBIT_TRIAL_API_KEY fehlt).");
+      return;
+    }
 
     setSubmitting(true);
     try {
-      const result = await createTrialSignup(API_BASE, { email, password, companyName, plan, phone });
+      const result = await createTrialSignup(API_BASE, API_KEY, { email, password, companyName, plan, phone });
       setSubmitting(false);
       setSuccess({ loginUrl: result.login_url });
     } catch (err) {
