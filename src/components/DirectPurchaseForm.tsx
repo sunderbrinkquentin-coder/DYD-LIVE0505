@@ -1,6 +1,4 @@
-"use client";
-
-import { useState, type CSSProperties, type FormEvent } from "react";
+import { useState, type FormEvent, type ReactNode } from "react";
 import {
   createDirectCheckoutSession,
   validateDirectCheckoutInput,
@@ -9,7 +7,7 @@ import {
   type BillingPlan,
 } from "../lib/orbitDirectCheckout";
 
-const API_BASE = process.env.NEXT_PUBLIC_ORBIT_API_BASE ?? "";
+const API_BASE: string = import.meta.env.VITE_ORBIT_API_BASE ?? "";
 
 interface DirectPurchaseFormProps {
   /** Welcher Plan gekauft wird - von der jeweiligen Preis-Karte vorgegeben,
@@ -25,15 +23,17 @@ const PLAN_LABELS: Record<BillingPlan, string> = {
 };
 
 /**
- * NEU ("Direktkauf"): Formular fuer den sofortigen Kauf eines Plans direkt
- * auf der Website - OHNE vorherigen 7-Tage-Trial (siehe TrialSignupForm.tsx
- * fuer den Trial-Weg). Legt beim Absenden den Login-Account an und leitet
- * direkt zu Stripe Checkout weiter; Tenant + API-Key entstehen automatisch
- * NACH bestaetigter Zahlung (Backend-Webhook), nicht schon hier.
+ * "Direktkauf": Formular fuer den sofortigen Kauf eines Plans direkt auf der
+ * Website - ohne vorherigen 7-Tage-Trial. Legt beim Absenden den
+ * Login-Account an und leitet direkt zu Stripe Checkout weiter; Tenant +
+ * API-Key entstehen automatisch NACH bestaetigter Zahlung
+ * (Backend-Webhook), nicht schon hier.
  *
- * Intervall-Auswahl (monatlich/jaehrlich) ist bewusst Teil dieses
- * Formulars, nicht der Preis-Karte selbst, damit eine Karte nur EINEN
- * "Kaufen"-Einstieg braucht.
+ * success_url/cancel_url werden bewusst ueber den aktuellen Hash-Pfad
+ * gebaut (nicht nur origin+pathname): die App wird per createHashRouter
+ * geroutet (siehe routes/index.tsx), Query-Parameter muessen also
+ * INNERHALB des #-Teils der URL landen, sonst sieht react-router-dom sie
+ * nach der Stripe-Rueckleitung nicht.
  */
 export function DirectPurchaseForm({ plan, onClose }: DirectPurchaseFormProps) {
   const [interval, setIntervalValue] = useState<BillingInterval>("monthly");
@@ -54,20 +54,19 @@ export function DirectPurchaseForm({ plan, onClose }: DirectPurchaseFormProps) {
     }
 
     if (!API_BASE) {
-      setErrorMessage(
-        "Der Kauf ist aktuell nicht verfügbar (NEXT_PUBLIC_ORBIT_API_BASE fehlt)."
-      );
+      setErrorMessage("Der Kauf ist aktuell nicht verfügbar (VITE_ORBIT_API_BASE fehlt).");
       return;
     }
 
     setSubmitting(true);
     try {
-      const redirectBase = window.location.origin + window.location.pathname;
+      const hashPath = window.location.hash.replace(/^#/, "").split("?")[0] || "/";
+      const base = `${window.location.origin}/#${hashPath}`;
       const { checkout_url } = await createDirectCheckoutSession(
         API_BASE,
         { email, password, companyName, plan, interval },
-        `${redirectBase}?purchase=success`,
-        `${redirectBase}?purchase=cancelled`
+        `${base}?purchase=success`,
+        `${base}?purchase=cancelled`
       );
       window.location.href = checkout_url;
     } catch (err) {
@@ -81,26 +80,26 @@ export function DirectPurchaseForm({ plan, onClose }: DirectPurchaseFormProps) {
   }
 
   return (
-    <form style={styles.wrap} onSubmit={handleSubmit}>
-      <h2 style={styles.heading}>{PLAN_LABELS[plan]} kaufen</h2>
-      <p style={styles.text}>
-        Nach der Zahlung kannst du dich mit dieser E-Mail-Adresse und diesem Passwort direkt bei
-        ORBIT einloggen.
+    <form className="w-full flex flex-col gap-3 font-arimo" onSubmit={handleSubmit}>
+      <h2 className="font-poppins font-black text-xl text-[#0F1E34]">{PLAN_LABELS[plan]} kaufen</h2>
+      <p className="text-[13.5px] leading-relaxed text-[#55637A] mb-1">
+        Nach der Zahlung kannst du dich mit dieser E-Mail-Adresse und diesem Passwort direkt bei ORBIT
+        einloggen.
       </p>
 
-      <div style={styles.toggleRow}>
+      <div className="flex gap-2 mb-1">
         <IntervalButton active={interval === "monthly"} onClick={() => setIntervalValue("monthly")}>
           Monatlich
         </IntervalButton>
         <IntervalButton active={interval === "yearly"} onClick={() => setIntervalValue("yearly")}>
-          Jährlich <span style={styles.badge}>2 Monate gratis</span>
+          Jährlich <span className="ml-1.5 text-[11px] font-bold text-[#38BDF8]">2 Monate gratis</span>
         </IntervalButton>
       </div>
 
-      <label style={styles.label}>
+      <label className="flex flex-col gap-1.5 text-sm font-bold text-[#0F1E34]">
         Firmen-/Bildungsträger-Name
         <input
-          style={styles.input}
+          className="rounded-lg border border-[#E3EBF5] px-3 py-2.5 text-sm font-normal font-arimo focus:outline-none focus:border-[#38BDF8]"
           type="text"
           value={companyName}
           onChange={(e) => setCompanyName(e.target.value)}
@@ -110,10 +109,10 @@ export function DirectPurchaseForm({ plan, onClose }: DirectPurchaseFormProps) {
         />
       </label>
 
-      <label style={styles.label}>
+      <label className="flex flex-col gap-1.5 text-sm font-bold text-[#0F1E34]">
         E-Mail-Adresse
         <input
-          style={styles.input}
+          className="rounded-lg border border-[#E3EBF5] px-3 py-2.5 text-sm font-normal font-arimo focus:outline-none focus:border-[#38BDF8]"
           type="email"
           value={email}
           onChange={(e) => setEmail(e.target.value)}
@@ -123,10 +122,10 @@ export function DirectPurchaseForm({ plan, onClose }: DirectPurchaseFormProps) {
         />
       </label>
 
-      <label style={styles.label}>
+      <label className="flex flex-col gap-1.5 text-sm font-bold text-[#0F1E34]">
         Passwort
         <input
-          style={styles.input}
+          className="rounded-lg border border-[#E3EBF5] px-3 py-2.5 text-sm font-normal font-arimo focus:outline-none focus:border-[#38BDF8]"
           type="password"
           value={password}
           onChange={(e) => setPassword(e.target.value)}
@@ -137,14 +136,23 @@ export function DirectPurchaseForm({ plan, onClose }: DirectPurchaseFormProps) {
         />
       </label>
 
-      {errorMessage && <p style={styles.errorText}>{errorMessage}</p>}
+      {errorMessage && <p className="text-[13px] text-[#c23b3b] m-0">{errorMessage}</p>}
 
-      <button type="submit" style={{ ...styles.cta, ...(submitting ? styles.ctaDisabled : {}) }} disabled={submitting}>
+      <button
+        type="submit"
+        disabled={submitting}
+        className="mt-1 rounded-lg px-4 py-3 text-sm font-bold text-[#0A192F] disabled:opacity-60 disabled:cursor-default"
+        style={{ background: "linear-gradient(90deg, #8fecb4, #2f8fd6)" }}
+      >
         {submitting ? "Wird weitergeleitet…" : "Weiter zur Zahlung"}
       </button>
 
       {onClose && (
-        <button type="button" style={styles.closeButton} onClick={onClose}>
+        <button
+          type="button"
+          onClick={onClose}
+          className="text-[13px] text-[#55637A] underline bg-transparent border-0 cursor-pointer"
+        >
           Abbrechen
         </button>
       )}
@@ -159,113 +167,18 @@ function IntervalButton({
 }: {
   active: boolean;
   onClick: () => void;
-  children: React.ReactNode;
+  children: ReactNode;
 }) {
   return (
     <button
       type="button"
       onClick={onClick}
-      style={{ ...styles.toggleButton, ...(active ? styles.toggleButtonActive : {}) }}
+      className={`px-4 py-2 rounded-full text-[13px] font-bold border transition ${
+        active ? "text-white border-transparent" : "text-[#55637A] border-[#E3EBF5] bg-white"
+      }`}
+      style={active ? { background: "#0A192F" } : undefined}
     >
       {children}
     </button>
   );
 }
-
-const styles: Record<string, CSSProperties> = {
-  wrap: {
-    width: "100%",
-    maxWidth: 420,
-    display: "flex",
-    flexDirection: "column",
-    gap: 12,
-    fontFamily: "'Inter', system-ui, sans-serif",
-  },
-  heading: {
-    margin: "0 0 4px",
-    fontSize: 20,
-    color: "#0c1c34",
-  },
-  text: {
-    margin: "0 0 8px",
-    fontSize: 13.5,
-    lineHeight: 1.5,
-    color: "#5b6779",
-  },
-  toggleRow: {
-    display: "flex",
-    gap: 8,
-    marginBottom: 4,
-  },
-  toggleButton: {
-    border: "1px solid #e6eaf2",
-    background: "#fff",
-    color: "#5b6779",
-    borderRadius: 999,
-    padding: "8px 16px",
-    fontSize: 13,
-    fontWeight: 600,
-    fontFamily: "inherit",
-    cursor: "pointer",
-  },
-  toggleButtonActive: {
-    background: "#0c1c34",
-    borderColor: "#0c1c34",
-    color: "#fff",
-  },
-  badge: {
-    marginLeft: 6,
-    fontSize: 11,
-    fontWeight: 700,
-    color: "#2f8fd6",
-  },
-  label: {
-    display: "flex",
-    flexDirection: "column",
-    gap: 6,
-    fontSize: 13,
-    fontWeight: 600,
-    color: "#0c1c34",
-  },
-  input: {
-    border: "1px solid #e6eaf2",
-    borderRadius: 8,
-    padding: "10px 12px",
-    fontSize: 14,
-    fontFamily: "inherit",
-    fontWeight: 400,
-  },
-  errorText: {
-    color: "#c23b3b",
-    fontSize: 13,
-    margin: 0,
-  },
-  cta: {
-    display: "inline-block",
-    textAlign: "center",
-    textDecoration: "none",
-    border: "none",
-    borderRadius: 8,
-    padding: "12px 16px",
-    fontSize: 14,
-    fontWeight: 700,
-    fontFamily: "inherit",
-    cursor: "pointer",
-    background: "linear-gradient(90deg, #8fecb4, #2f8fd6)",
-    color: "#0c1c34",
-    marginTop: 4,
-  },
-  ctaDisabled: {
-    opacity: 0.6,
-    cursor: "default",
-  },
-  closeButton: {
-    background: "none",
-    border: "none",
-    color: "#5b6779",
-    fontSize: 13,
-    cursor: "pointer",
-    fontFamily: "inherit",
-    textDecoration: "underline",
-  },
-};
