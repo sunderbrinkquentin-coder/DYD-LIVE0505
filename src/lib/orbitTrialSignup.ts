@@ -3,19 +3,31 @@
  * abzufragen - passend zum Werbeversprechen "7 Tage kostenlos testen, ganz
  * ohne Zahlungsdaten" (siehe SelfServiceFeatures.tsx / content.ts).
  *
- * WICHTIG (bitte von dir bestaetigen/anpassen): dieser Client-Code ruft
- * POST /api/v1/billing/trial-signup auf - das ist eine ANNAHME, die den
- * Namenskonventionen von orbitDirectCheckout.ts folgt. Es muss auf deiner
- * Backend-Seite (Supabase Edge Function o.ae.) einen passenden Endpunkt
- * geben, der:
- *   1. Account + Tenant sofort anlegt (kein Stripe-Checkout, keine Karte),
- *   2. den 7-Tage-Countdown serverseitig startet,
- *   3. idealerweise eine login_url zurueckgibt, zu der wir direkt
- *      weiterleiten koennen - falls das (noch) nicht existiert, zeigen wir
- *      stattdessen eine Erfolgs-Meldung im Formular ("bitte E-Mails pruefen")
- *      an, siehe TrialSignupForm.tsx.
- * Falls der tatsaechliche Pfad/die Antwortstruktur anders aussieht, bitte
- * hier + in TrialSignupForm.tsx entsprechend anpassen.
+ * Ruft POST /api/v1/billing/trial-signup auf. Das Backend verlangt dafuer
+ * zusaetzlich zum JSON-Body einen "X-API-Key"-Header (Fehler ohne diesen:
+ * HTTP 401 "Fehlender Header 'X-API-Key'.").
+ *
+ * WICHTIG - Sicherheitshinweis zu diesem Key: alles, was hier als
+ * VITE_ORBIT_TRIAL_API_KEY eingetragen wird, landet 1:1 im oeffentlichen
+ * JS-Bundle der Website und ist damit fuer JEDEN Website-Besucher im
+ * Browser-Devtools sichtbar (Network-Tab oder einfach im ausgelieferten
+ * JS). Das ist NUR vertretbar, wenn dieser Key ein bewusst oeffentlicher
+ * "Signup-Key" ist, der lediglich diesen einen Endpunkt (Trial-Anlage)
+ * freischaltet und selbst im schlimmsten Fall (jeder kann ihn lesen und
+ * beliebig oft Trials anlegen) keinen Schaden anrichtet - vergleichbar mit
+ * einem Stripe "publishable key".
+ *
+ * Falls es sich stattdessen um einen ECHTEN Secret-Key handelt (z.B.
+ * derselbe Key, mit dem auch interne/administrative Endpunkte
+ * abgesichert sind), darf er NIEMALS hier landen. In dem Fall muesste
+ * stattdessen eine serverseitige Proxy-Funktion (z.B. eine eigene
+ * Supabase Edge Function ohne Secret im Client) den eigentlichen aufruf
+ * mit dem Key im Backend machen, und die Website wuerde nur DIESE Proxy-
+ * Funktion (ohne Key) aufrufen.
+ *
+ * -> Bitte bestaetigen, um welche Art Key es sich handelt, bevor
+ * VITE_ORBIT_TRIAL_API_KEY mit einem echten Wert in Bolt/Netlify gesetzt
+ * wird.
  */
 
 import type { BillingPlan } from "./orbitDirectCheckout";
@@ -73,10 +85,17 @@ export function validateTrialSignupInput(input: TrialSignupInput): string | null
   return null;
 }
 
-export async function createTrialSignup(apiBase: string, input: TrialSignupInput): Promise<TrialSignupResult> {
+export async function createTrialSignup(
+  apiBase: string,
+  apiKey: string,
+  input: TrialSignupInput
+): Promise<TrialSignupResult> {
   const res = await fetch(`${apiBase.replace(/\/$/, "")}/api/v1/billing/trial-signup`, {
     method: "POST",
-    headers: { "Content-Type": "application/json" },
+    headers: {
+      "Content-Type": "application/json",
+      "X-API-Key": apiKey,
+    },
     body: JSON.stringify({
       email: input.email.trim(),
       password: input.password,
