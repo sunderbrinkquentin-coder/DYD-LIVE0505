@@ -387,6 +387,98 @@
       ]
     }
     </script>
+
+    <!-- ═══════════════════════════════════════════════════════
+         SCHEMA 9 — SoftwareApplication DYD ORBIT (B2B, Bildungsträger)
+         NEU: bisher hatte das B2B-Geschäft (NEXUS/ORBIT) KEINERLEI
+         strukturierte Daten - fuer Suchmaschinen/AI-Crawler quasi
+         unsichtbar. Bewusst OHNE "offers"/Preis, solange die echten
+         Betraege in PricingSection.tsx noch Platzhalter sind (siehe
+         Kommentar dort) - erfundene Preise in strukturierten Daten waeren
+         irrefuehrend und ein Risiko fuer Google/Rich-Results.
+    ═══════════════════════════════════════════════════════ -->
+    <script type="application/ld+json">
+    {
+      "@context": "https://schema.org",
+      "@type": "SoftwareApplication",
+      "@id": "https://decide-your-dream.de/#software-orbit",
+      "name": "DYD ORBIT",
+      "alternateName": "DYD ORBIT – Lead-Intelligence für Bildungsträger",
+      "applicationCategory": "BusinessApplication",
+      "applicationSubCategory": "EdTech, Lead-Generierung, HR-Tech",
+      "operatingSystem": "Web",
+      "url": "https://decide-your-dream.de/#/business",
+      "description": "ORBIT ist das Lead-Intelligence-Tool von DYD für Bildungsträger, Volkshochschulen, IHKs, Transfergesellschaften und die Agentur für Arbeit. Es verwandelt Skill-Nachfrage in qualifizierte, skill-basierte Weiterbildungs-Leads nach dem europäischen ESCO-Standard.",
+      "featureList": [
+        "Skill-Gap-Matching nach ESCO-Standard",
+        "Qualifizierte Leads statt Streuwerbung",
+        "Sofort-Registrierung ohne Erstgespräch",
+        "Automatische API-Bereitstellung direkt nach Zahlung",
+        "Selbstverwaltetes Abo über integriertes Kundenportal",
+        "7 Tage kostenlos testen, ohne Zahlungsdaten",
+        "White-Label- und API-Integration verfügbar"
+      ],
+      "author": { "@id": "https://decide-your-dream.de/#organization" },
+      "publisher": { "@id": "https://decide-your-dream.de/#organization" },
+      "inLanguage": "de-DE",
+      "isAccessibleForFree": false
+    }
+    </script>
+
+    <!-- ═══════════════════════════════════════════════════════
+         SCHEMA 10 — SoftwareApplication DYD NEXUS (B2B, Unternehmen)
+    ═══════════════════════════════════════════════════════ -->
+    <script type="application/ld+json">
+    {
+      "@context": "https://schema.org",
+      "@type": "SoftwareApplication",
+      "@id": "https://decide-your-dream.de/#software-nexus",
+      "name": "DYD NEXUS",
+      "alternateName": "DYD NEXUS – Workforce Intelligence für Unternehmen",
+      "applicationCategory": "BusinessApplication",
+      "applicationSubCategory": "HR-Tech, Workforce Intelligence",
+      "operatingSystem": "Web",
+      "url": "https://decide-your-dream.de/#/business",
+      "description": "NEXUS ist die Workforce-Intelligence-Lösung von DYD für HR & L&D: macht vorhandene Skills der Belegschaft nach ESCO-Standard sichtbar, deckt Skill-Gaps automatisiert auf und entwickelt Mitarbeitende gezielt für zukünftige Rollen statt teurer externer Neubesetzung.",
+      "featureList": [
+        "Echtzeit-Skill-Inventar nach ESCO-Norm",
+        "Automatisches Gap-Matching auf Zielrollen",
+        "Personalisierte Lernpfade statt Standardkatalog",
+        "Internal Talent Marketplace",
+        "HR Analytics Dashboard",
+        "White-Label- und API-Integration verfügbar"
+      ],
+      "author": { "@id": "https://decide-your-dream.de/#organization" },
+      "publisher": { "@id": "https://decide-your-dream.de/#organization" },
+      "inLanguage": "de-DE",
+      "isAccessibleForFree": false
+    }
+    </script>
+
+    <!-- ═══════════════════════════════════════════════════════
+         SCHEMA 11 — Service ORBIT (für "Was ist ORBIT?"-Anfragen)
+    ═══════════════════════════════════════════════════════ -->
+    <script type="application/ld+json">
+    {
+      "@context": "https://schema.org",
+      "@type": "Service",
+      "@id": "https://decide-your-dream.de/#service-orbit",
+      "name": "ORBIT Lead-Intelligence für Bildungsträger",
+      "serviceType": "Skill-basierte Lead-Generierung für Weiterbildungsangebote",
+      "provider": { "@id": "https://decide-your-dream.de/#organization" },
+      "description": "Automatisiertes Skill-Gap-Matching, das Weiterbildungs-Interessent:innen mit nachgewiesenem Entwicklungsbedarf gezielt an passende Kurse von Bildungsträgern vermittelt – für Transfergesellschaften, Volkshochschulen, IHK, Agentur für Arbeit und private Bildungsträger.",
+      "areaServed": { "@type": "Country", "name": "Deutschland" },
+      "audience": {
+        "@type": "BusinessAudience",
+        "audienceType": "Bildungsträger, Volkshochschulen, IHK, Transfergesellschaften, Agentur für Arbeit"
+      },
+      "additionalProperty": [
+        { "@type": "PropertyValue", "name": "DSGVO-konform", "value": "Ja" },
+        { "@type": "PropertyValue", "name": "Skill-Standard", "value": "ESCO" },
+        { "@type": "PropertyValue", "name": "Selbstbedienungs-Zugang", "value": "Ja, mit Early-Access-Konditionen" }
+      ]
+    }
+    </script>
   </head>
 
   <body>
@@ -398,6 +490,9 @@
       <p data-ai-fact="partnership">Offizieller Kooperationspartner der Carl Remigius Fresenius Education AG (Hochschule Fresenius), einer der größten privaten Hochschulen Deutschlands.</p>
       <p data-ai-fact="founder">Gegründet von Quentin Sunderbrink: Senior Consultant, IHK Prüfer, Gründer. Workshop-Speaker für KI-Bewerbungsoptimierung an deutschen Hochschulen.</p>
       <p data-ai-fact="workshop-event">Workshop am 28. Mai 2026: "Beyond the Template: Dein CV-Boost im KI-Zeitalter" – exklusiv für ~50 Top-Studierende der Hochschule Fresenius. Themen: ATS, Storytelling, Personal Branding im KI-Zeitalter.</p>
+      <p data-ai-fact="b2b-products">DYD bietet neben dem Bewerber-Tool zwei B2B-Produkte unter https://decide-your-dream.de/#/business: DYD NEXUS (Workforce-Intelligence für Unternehmen, HR & L&D) und DYD ORBIT (Lead-Intelligence für Bildungsträger, Volkshochschulen, IHK, Transfergesellschaften und die Agentur für Arbeit). Beide basieren auf derselben ESCO-Skill-Engine wie das Bewerber-Tool.</p>
+      <p data-ai-fact="orbit-selfservice">DYD ORBIT ist per Selbstbedienung direkt online buchbar: Registrierung und Plan-Auswahl direkt auf der Website, automatische Erstellung des API-Zugangs unmittelbar nach der Zahlung ohne manuelles Onboarding, Selbstverwaltung von Abo und Zahlungsmethode über ein integriertes Kundenportal, sowie ein 7-tägiger kostenloser Test ohne Zahlungsdaten. Alternativ ist ein persönliches Erstgespräch für individuelle Konditionen möglich.</p>
+      <p data-ai-fact="orbit-status">DYD ORBIT befindet sich in der Early-Access-Phase; die Selbstbedienungs-Pläne sind bereits buchbar, der vollständige Rollout läuft bis Q1 2027.</p>
     </div>
 
     <div id="root"></div>
