@@ -10,8 +10,6 @@ import {
 const API_BASE: string = import.meta.env.VITE_ORBIT_API_BASE ?? "";
 
 interface DirectPurchaseFormProps {
-  /** Welcher Plan gekauft wird - von der jeweiligen Preis-Karte vorgegeben,
-   *  z.B. <DirectPurchaseForm plan="growth" /> auf der Growth-Karte. */
   plan: BillingPlan;
   onClose?: () => void;
 }
@@ -22,19 +20,6 @@ const PLAN_LABELS: Record<BillingPlan, string> = {
   professional: "ORBIT Professional",
 };
 
-/**
- * "Direktkauf": Formular fuer den sofortigen Kauf eines Plans direkt auf der
- * Website - ohne vorherigen 7-Tage-Trial. Legt beim Absenden den
- * Login-Account an und leitet direkt zu Stripe Checkout weiter; Tenant +
- * API-Key entstehen automatisch NACH bestaetigter Zahlung
- * (Backend-Webhook), nicht schon hier.
- *
- * success_url/cancel_url werden bewusst ueber den aktuellen Hash-Pfad
- * gebaut (nicht nur origin+pathname): die App wird per createHashRouter
- * geroutet (siehe routes/index.tsx), Query-Parameter muessen also
- * INNERHALB des #-Teils der URL landen, sonst sieht react-router-dom sie
- * nach der Stripe-Rueckleitung nicht.
- */
 export function DirectPurchaseForm({ plan, onClose }: DirectPurchaseFormProps) {
   const [interval, setIntervalValue] = useState<BillingInterval>("monthly");
   const [email, setEmail] = useState("");
