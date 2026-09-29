@@ -405,6 +405,15 @@
          (valueAddedTaxIncluded: false) - siehe Kommentar in
          PricingSection.tsx zur selben Annahme.
     ═══════════════════════════════════════════════════════ -->
+    <!-- ═══════════════════════════════════════════════════════
+         SCHEMA 9 — SoftwareApplication DYD ORBIT (B2B, Bildungsträger)
+         Echte Preise (von Quentin bestaetigt): Starter 199 €/Monat,
+         Growth 399 €/Monat, Professional 699 €/Monat, Jahrespreis jeweils
+         exakt das 10-fache (2 Monate gratis). KEINE Umsatzsteuer
+         ausgewiesen (vermutlich Kleinunternehmerregelung nach §19 UStG -
+         siehe additionalProperty unten sowie Kommentar in
+         PricingSection.tsx zur selben Annahme/Bitte um Bestaetigung).
+    ═══════════════════════════════════════════════════════ -->
     <script type="application/ld+json">
     {
       "@context": "https://schema.org",
@@ -430,6 +439,10 @@
       "publisher": { "@id": "https://decide-your-dream.de/#organization" },
       "inLanguage": "de-DE",
       "isAccessibleForFree": false,
+      "additionalProperty": [
+        { "@type": "PropertyValue", "name": "Umsatzsteuer", "value": "Gemäß § 19 UStG nicht ausgewiesen (Endpreise)" },
+        { "@type": "PropertyValue", "name": "Kostenloser Test", "value": "7 Tage, ohne Zahlungsdaten" }
+      ],
       "offers": [
         {
           "@type": "Offer",
@@ -437,13 +450,12 @@
           "url": "https://decide-your-dream.de/#/business",
           "price": "199.00",
           "priceCurrency": "EUR",
-          "description": "Bis 200 Kurse, Skill-Gap-Matching, Basis-Dashboard, E-Mail-Support. Jährliche Abrechnung: 1990 € (2 Monate gratis).",
+          "description": "Bis 200 Kurse, Skill-Gap-Matching, Basis-Dashboard, E-Mail-Support. Jährliche Abrechnung: 1990 € (2 Monate gratis). Endpreis, keine Umsatzsteuer gemäß §19 UStG.",
           "priceSpecification": {
             "@type": "UnitPriceSpecification",
             "price": "199.00",
             "priceCurrency": "EUR",
-            "unitText": "pro Monat",
-            "valueAddedTaxIncluded": false
+            "unitText": "pro Monat"
           }
         },
         {
@@ -452,13 +464,12 @@
           "url": "https://decide-your-dream.de/#/business",
           "price": "399.00",
           "priceCurrency": "EUR",
-          "description": "Bis 500 Kurse, erweiterte Auswertungen, priorisierter Support. Jährliche Abrechnung: 3990 € (2 Monate gratis).",
+          "description": "Bis 500 Kurse, erweiterte Auswertungen, priorisierter Support. Jährliche Abrechnung: 3990 € (2 Monate gratis). Endpreis, keine Umsatzsteuer gemäß §19 UStG.",
           "priceSpecification": {
             "@type": "UnitPriceSpecification",
             "price": "399.00",
             "priceCurrency": "EUR",
-            "unitText": "pro Monat",
-            "valueAddedTaxIncluded": false
+            "unitText": "pro Monat"
           }
         },
         {
@@ -467,13 +478,12 @@
           "url": "https://decide-your-dream.de/#/business",
           "price": "699.00",
           "priceCurrency": "EUR",
-          "description": "Bis 2.500 Kurse, White-Label-Option, persönlicher Ansprechpartner. Jährliche Abrechnung: 6990 € (2 Monate gratis).",
+          "description": "Bis 2.500 Kurse, White-Label-Option, persönlicher Ansprechpartner. Jährliche Abrechnung: 6990 € (2 Monate gratis). Endpreis, keine Umsatzsteuer gemäß §19 UStG.",
           "priceSpecification": {
             "@type": "UnitPriceSpecification",
             "price": "699.00",
             "priceCurrency": "EUR",
-            "unitText": "pro Monat",
-            "valueAddedTaxIncluded": false
+            "unitText": "pro Monat"
           }
         }
       ]
