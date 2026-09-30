@@ -409,6 +409,24 @@ function TabBContent({ onDemo }: { onDemo: (institution?: string) => void }) {
       <div>
         <motion.h3 variants={fadeUp} initial="hidden" whileInView="show" viewport={VIEWPORT} className="font-poppins font-bold text-xl text-[#0F1E34] mb-2 text-center">{tabB.process.title}</motion.h3>
         <ProcessRail steps={tabB.process.steps} />
+
+        {/* NEU (30.09.2026): direkter Sprung zur Buchung am Ende des
+            Prozesses - wer sich den ganzen Skill-Matching-Ablauf angesehen
+            hat und ueberzeugt ist, soll nicht erst weiter durch Segmente,
+            Benefits und Business-Case scrollen muessen, um den Preis
+            wiederzufinden (der jetzt weiter oben sitzt, siehe
+            PricingSection). */}
+        <div className="mt-8 text-center">
+          <button
+            type="button"
+            onClick={() => document.getElementById('orbit-pricing')?.scrollIntoView({ behavior: 'smooth', block: 'start' })}
+            className="inline-flex items-center gap-2 px-6 py-3 rounded-xl font-arimo font-bold text-sm text-white b2b-focus-ring transition hover:-translate-y-0.5 hover:shadow-lg hover:shadow-[#38BDF8]/25"
+            style={{ background: NAVY_SKY }}
+          >
+            Jetzt Plan wählen
+            <ArrowRight className="w-4 h-4" aria-hidden="true" />
+          </button>
+        </div>
       </div>
 
       <motion.div variants={container} initial="hidden" whileInView="show" viewport={VIEWPORT} className="grid md:grid-cols-3 gap-6">
