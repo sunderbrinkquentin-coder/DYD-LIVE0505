@@ -296,6 +296,36 @@ cpa: {
   delta: 'Weniger Streuverlust',
   deltaLabel: 'bei besserer Lead-Qualität',
 },
+      // NEU (30.09.2026): Daten fuer SelfServiceFeatures.tsx - die Komponente
+      // wurde in Bolt live angelegt (liest b2bContent.tabs.tabB.selfService),
+      // dieser Block hat dort urspruenglich gefehlt und den Absturz
+      // "Cannot read properties of undefined (reading 'title')" ausgeloest.
+      selfService: {
+        title: 'Sofort startklar – ohne Wartezeit',
+        subtitle: 'Kein Sales-Prozess, kein Warten auf ein Angebot: ORBIT ist in Minuten einsatzbereit.',
+        items: [
+          {
+            icon: 'bolt',
+            title: 'Direktkauf ohne Umweg',
+            desc: 'Plan wählen, bezahlen, loslegen – direkt hier auf der Website, ganz ohne Erstgespräch.',
+          },
+          {
+            icon: 'key',
+            title: 'API-Key automatisch',
+            desc: 'Nach der Zahlung wird Ihr Zugang sofort angelegt – der API-Key kommt direkt per E-Mail.',
+          },
+          {
+            icon: 'settings',
+            title: 'Eigenes Kundenportal',
+            desc: 'Kurse verwalten, Leads einsehen, Abo anpassen – alles zentral in Ihrem ORBIT-Dashboard.',
+          },
+          {
+            icon: 'gift',
+            title: '7 Tage kostenlos testen',
+            desc: 'Unverbindlich ausprobieren, bevor Sie sich entscheiden – ohne Zahlungsdaten.',
+          },
+        ],
+      },
       faq: [
         {
           q: 'Wie werden die Leads qualifiziert?',
@@ -396,7 +426,9 @@ cpa: {
       photoAlt: 'Porträt von Quentin Sunderbrink, Gründer von DYD',
       photoSrc: '/profile-picture.png',
       email: 'quentin@decideyourdream.de',
-      phone: '+49 211 12345678',
+      // KORREKTUR (30.09.2026): hier stand eine erkennbare Platzhalter-Nummer
+      // (+49 211 12345678) - durch die echte Nummer ersetzt.
+      phone: '0157 37567939',
       linkedin: 'https://www.linkedin.com/in/quentin-sunderbrink',
     },
     badges: ['DSGVO', 'ESCO', 'Made in Germany'],
