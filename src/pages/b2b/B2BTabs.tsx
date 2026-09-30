@@ -8,7 +8,8 @@ import { b2bContent } from './content';
 import ProcessRail from './ProcessRail';
 import { NexusMockup, OrbitMockup } from './ProductMockups';
 import { PricingSection } from './PricingSection';
-import { SelfServiceFeatures } from './SelfServiceFeatures';
+import { SkillGapWidget } from './SkillGapWidget';
+import { CalBookingButton } from './CalBookingButton';
 
 type TabId = 'unternehmen' | 'bildungstraeger';
 
@@ -343,8 +344,9 @@ function TabAContent({ onDemo }: { onDemo: () => void }) {
       <Delivery />
       <FAQ items={tabA.faq} onCta={onDemo} />
 
-      <div className="text-center">
+      <div className="flex flex-col sm:flex-row items-center justify-center gap-3 text-center">
         <button type="button" onClick={onDemo} className="inline-flex items-center gap-2 px-8 py-4 rounded-2xl font-arimo font-bold text-white b2b-focus-ring transition hover:shadow-xl hover:shadow-[#38BDF8]/25 hover:-translate-y-0.5" style={{ background: NAVY_SKY }}>{tabA.cta}<ArrowRight className="w-4 h-4" aria-hidden="true" /></button>
+        <CalBookingButton label="Termin direkt buchen" variant="secondary" />
       </div>
     </div>
   );
@@ -369,18 +371,9 @@ function TabBContent({ onDemo }: { onDemo: (institution?: string) => void }) {
         mockupMaxWidth="max-w-5xl"
       />
 
-      {/* NEU (Direktkauf, conversion-optimiert): Preis-Karten + kurzer
-          "Nach dem Kauf"-Prozess direkt UNTER der Demo - wer sich gerade das
-          Mockup angesehen hat, soll die Kaufoption sehen, solange das
-          Interesse am hoechsten ist, statt sich erst durch Segmente,
-          Prozess, Benefits, CPA-Vergleich und FAQ scrollen zu muessen. Der
-          "Erstgespräch"-Weg weiter unten bleibt unveraendert bestehen - fuer
-          alle, die groessere/individuelle Konditionen wollen.
-          ACHTUNG: Preise in PricingSection sind Platzhalter, siehe Kommentar dort. */}
-      <PricingSection />
-      <SelfServiceFeatures />
-
       <Narrative n={tabB.narrative} />
+
+      <SkillGapWidget onCta={() => onDemo('Skill-Gap-Widget')} />
 
       {/* Segment-Umschalter: Herausforderung/Lösung passen sich an den gewählten Bereich an */}
       <div>
@@ -437,11 +430,17 @@ function TabBContent({ onDemo }: { onDemo: (institution?: string) => void }) {
         <div className="mt-6 flex items-center justify-center gap-3"><span className="font-poppins font-black text-3xl text-[#0F1E34]">{tabB.cpa.delta}</span><span className="font-arimo font-bold text-[#0F1E34]">{tabB.cpa.deltaLabel}</span></div>
       </motion.div>
 
+      {/* NEU (Direktkauf): Preiskarten fuer Selbstbedienungs-Kauf, ergaenzend
+          zum "Erstgespräch"-Weg oben/unten - siehe PricingSection.tsx.
+          ACHTUNG: Preise darin sind Platzhalter, siehe Kommentar dort. */}
+      <PricingSection />
+
       <Delivery />
       <FAQ items={tabB.faq} onCta={() => onDemo(segment.label)} />
 
-      <div className="text-center">
+      <div className="flex flex-col sm:flex-row items-center justify-center gap-3 text-center">
         <button type="button" onClick={() => onDemo(segment.label)} className="inline-flex items-center gap-2 px-8 py-4 rounded-2xl font-arimo font-bold text-[#0A192F] b2b-focus-ring transition hover:shadow-xl hover:shadow-[#DEFF9A]/25 hover:-translate-y-0.5" style={{ background: LIME_SKY }}>{tabB.cta}<ArrowRight className="w-4 h-4" aria-hidden="true" /></button>
+        <CalBookingButton label="Termin direkt buchen" variant="secondary" />
       </div>
     </div>
   );
