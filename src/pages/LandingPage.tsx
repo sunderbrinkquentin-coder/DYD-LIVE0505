@@ -296,28 +296,6 @@ export default function LandingPage() {
                 />
               </motion.div>
 
-              {/* B2B Switcher — top-left */}
-              <a
-  href="#/business"
-  aria-label="Zur B2B-Version für Unternehmen und Bildungsträger"
-  className="group inline-flex rounded-full p-[1px] transition-all duration-300 hover:-translate-y-0.5 hover:shadow-[0_10px_28px_-10px_rgba(102,192,182,0.55)] focus:outline-none focus-visible:ring-2 focus-visible:ring-[#66c0b6]/60 focus-visible:ring-offset-2 focus-visible:ring-offset-[#0A192F]"
-  style={{
-    background:
-      'linear-gradient(120deg, rgba(102,192,182,0.9), rgba(56,189,248,0.5), rgba(102,192,182,0.15))',
-  }}
->
-  <span className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full text-xs font-bold text-white/90 bg-[#0A192F]/70 backdrop-blur-sm transition-colors group-hover:bg-[#0A192F]/50">
-    <span
-      className="flex items-center justify-center w-5 h-5 rounded-full"
-      style={{ background: 'rgba(102,192,182,0.18)' }}
-    >
-      <Building2 className="w-3 h-3 text-[#66c0b6]" />
-    </span>
-    Für Business
-    <ArrowRight className="w-3.5 h-3.5 text-[#66c0b6] transition-transform duration-300 group-hover:translate-x-0.5" />
-  </span>
-</a>
-
               <div className="hidden md:flex items-center gap-6">
                 <motion.button
                   type="button"
@@ -439,6 +417,24 @@ export default function LandingPage() {
                   </AnimatePresence>
                 </div>
 
+                {/* NEU (30.09.2026): "Für Business" war als dünner Pill direkt
+                    neben dem Logo oben links kaum zu sehen - Business-Besucher,
+                    die auf der B2C-Seite landen, haben ihn leicht übersehen.
+                    Jetzt als klar erkennbarer, umrandeter Button direkt neben
+                    den anderen Haupt-Aktionen (Login/CV checken) - deutlich
+                    präsenter, ohne mit dem primären "CV checken"-CTA (gefüllter
+                    Farbverlauf) zu verwechseln zu sein. */}
+                <motion.a
+                  href="#/business"
+                  aria-label="Zur B2B-Version für Unternehmen und Bildungsträger"
+                  className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl text-sm font-bold text-white border-2 border-[#66c0b6] bg-[#66c0b6]/15 hover:bg-[#66c0b6]/25 transition-colors"
+                  whileHover={{ scale: 1.05, y: -2 }}
+                  whileTap={{ scale: 0.95 }}
+                >
+                  <Building2 className="w-4 h-4 text-[#66c0b6]" />
+                  Für Business
+                </motion.a>
+
                 <motion.button
                   onClick={() => navigate(user ? '/dashboard' : '/login')}
                   className="text-white/70 hover:text-white transition-colors"
@@ -554,9 +550,10 @@ export default function LandingPage() {
                         <span className="text-sm text-white/80">Harmony Festival</span>
                         <span className="ml-auto text-[10px] font-bold text-[#00d4d4]/70">22.08.26</span>
                       </button>
-                      <button type="button" onClick={() => mobileNav('/business')} className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-left hover:bg-white/5 transition-colors">
-                        <Building2 className="w-4 h-4 text-white/50 flex-shrink-0" />
-                        <span className="text-sm text-white/80">Für Business</span>
+                      <button type="button" onClick={() => mobileNav('/business')} className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-left border border-[#66c0b6]/40 bg-[#66c0b6]/10 hover:bg-[#66c0b6]/20 transition-colors">
+                        <Building2 className="w-4 h-4 text-[#66c0b6] flex-shrink-0" />
+                        <span className="text-sm font-semibold text-white">Für Business</span>
+                        <ArrowRight className="w-3.5 h-3.5 text-[#66c0b6] ml-auto flex-shrink-0" />
                       </button>
                     </div>
                   </div>
