@@ -13,11 +13,6 @@ interface DirectPurchaseFormProps {
   /** Welcher Plan gekauft wird - von der jeweiligen Preis-Karte vorgegeben,
    *  z.B. <DirectPurchaseForm plan="growth" /> auf der Growth-Karte. */
   plan: BillingPlan;
-  /** NEU: uebernimmt den in PricingSection global gewaehlten Rhythmus
-   *  (Monatlich/Jaehrlich), damit im Modal niemand nochmal von vorn waehlen
-   *  muss. Default "monthly", falls das Formular woanders ohne Kontext
-   *  eingebunden wird. */
-  initialInterval?: BillingInterval;
   onClose?: () => void;
 }
 
@@ -40,11 +35,12 @@ const PLAN_LABELS: Record<BillingPlan, string> = {
  * INNERHALB des #-Teils der URL landen, sonst sieht react-router-dom sie
  * nach der Stripe-Rueckleitung nicht.
  */
-export function DirectPurchaseForm({ plan, initialInterval, onClose }: DirectPurchaseFormProps) {
-  const [interval, setIntervalValue] = useState<BillingInterval>(initialInterval ?? "monthly");
+export function DirectPurchaseForm({ plan, onClose }: DirectPurchaseFormProps) {
+  const [interval, setIntervalValue] = useState<BillingInterval>("monthly");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [companyName, setCompanyName] = useState("");
+  const [contactName, setContactName] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
@@ -52,7 +48,7 @@ export function DirectPurchaseForm({ plan, initialInterval, onClose }: DirectPur
     e.preventDefault();
     setErrorMessage(null);
 
-    const validationError = validateDirectCheckoutInput({ email, password, companyName, plan, interval });
+    const validationError = validateDirectCheckoutInput({ email, password, companyName, contactName, plan, interval });
     if (validationError) {
       setErrorMessage(validationError);
       return;
@@ -69,7 +65,7 @@ export function DirectPurchaseForm({ plan, initialInterval, onClose }: DirectPur
       const base = `${window.location.origin}/#${hashPath}`;
       const { checkout_url } = await createDirectCheckoutSession(
         API_BASE,
-        { email, password, companyName, plan, interval },
+        { email, password, companyName, contactName, plan, interval },
         `${base}?purchase=success`,
         `${base}?purchase=cancelled`
       );
@@ -100,6 +96,19 @@ export function DirectPurchaseForm({ plan, initialInterval, onClose }: DirectPur
           Jährlich <span className="ml-1.5 text-[11px] font-bold text-[#38BDF8]">2 Monate gratis</span>
         </IntervalButton>
       </div>
+
+      <label className="flex flex-col gap-1.5 text-sm font-bold text-[#0F1E34]">
+        Ihr Name
+        <input
+          className="rounded-lg border border-[#E3EBF5] px-3 py-2.5 text-sm font-normal font-arimo focus:outline-none focus:border-[#38BDF8]"
+          type="text"
+          value={contactName}
+          onChange={(e) => setContactName(e.target.value)}
+          placeholder="z.B. Anna Beispiel"
+          autoComplete="name"
+          required
+        />
+      </label>
 
       <label className="flex flex-col gap-1.5 text-sm font-bold text-[#0F1E34]">
         Firmen-/Bildungsträger-Name
