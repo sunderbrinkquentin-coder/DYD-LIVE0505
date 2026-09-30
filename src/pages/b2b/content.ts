@@ -177,6 +177,59 @@ export const b2bContent = {
         scenario: 'So könnte es aussehen: Statt teurer Streuwerbung erreicht Ihr Data-Bootcamp die Interessentin, deren Zielrolle exakt diese Kompetenz verlangt.',
       },
       intro: 'Verwandeln Sie Skill-Nachfrage in qualifizierte Leads.',
+      // NEU (30.09.2026): Daten fuer SkillGapWidget.tsx - interaktives
+      // "Show, don't tell"-Element direkt nach der emotionalen Narrative:
+      // statt nur zu behaupten, dass ORBIT Skill-Luecken sichtbar macht,
+      // zeigt es das an drei kuratierten Beispiel-Szenarien. Bewusst KEINE
+      // freie Kombination aus zwei Dropdowns (Rolle x Zielrolle), sondern
+      // feste, realistische Paare - vermeidet unsinnige/falsche
+      // Kombinationen und macht das Feature robust (siehe SelfServiceFeatures-
+      // Absturz weiter oben: jede hier referenzierte scenario existiert
+      // garantiert, keine dynamische Keys-Aufloesung noetig).
+      skillGapDemo: {
+        title: 'Sehen Sie das Matching in Aktion',
+        subtitle: 'Beispielhafte Profile – wählen Sie ein Szenario und sehen Sie die Skill-Lücke live.',
+        note: 'Illustrative Beispieldaten zur Veranschaulichung, kein Ergebnis einer echten Analyse.',
+        ctaLabel: 'Passende Weiterbildung als Lead anfragen',
+        scenarios: [
+          {
+            id: 'marketing-to-data',
+            fromLabel: 'Marketing-Managerin',
+            toLabel: 'Data & Analytics Lead',
+            recommendedCourse: 'Data Analytics Fundamentals (SQL & Visualisierung)',
+            skills: [
+              { label: 'Datenanalyse', has: 35, need: 90 },
+              { label: 'SQL / BI-Tools', has: 15, need: 75 },
+              { label: 'Stakeholder-Kommunikation', has: 85, need: 80 },
+              { label: 'Projektmanagement', has: 70, need: 65 },
+            ],
+          },
+          {
+            id: 'hr-to-hrbp',
+            fromLabel: 'Personalsachbearbeiter:in',
+            toLabel: 'HR Business Partner',
+            recommendedCourse: 'Strategisches HR-Management & Change-Begleitung',
+            skills: [
+              { label: 'Arbeitsrecht', has: 80, need: 70 },
+              { label: 'Change-Management', has: 20, need: 75 },
+              { label: 'Beratungskompetenz', has: 45, need: 85 },
+              { label: 'HR-Analytics', has: 25, need: 60 },
+            ],
+          },
+          {
+            id: 'career-changer-to-analyst',
+            fromLabel: 'Quereinsteiger:in (kfm. Ausbildung)',
+            toLabel: 'Junior Data Analyst',
+            recommendedCourse: 'Python & Datenanalyse für Einsteiger:innen',
+            skills: [
+              { label: 'Python-Grundlagen', has: 5, need: 70 },
+              { label: 'Statistik-Grundlagen', has: 20, need: 65 },
+              { label: 'Excel / Tabellenkalkulation', has: 75, need: 60 },
+              { label: 'Zahlenverständnis', has: 60, need: 65 },
+            ],
+          },
+        ],
+      },
       /* Segment-Umschalter: je nach Bereich unterscheiden sich Herausforderung
          und Lösung spürbar – statt eines generischen Blocks für alle,
          erkennt sich die Besucherin/der Besucher hier direkt wieder. */
