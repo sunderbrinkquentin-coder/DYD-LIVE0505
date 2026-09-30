@@ -417,31 +417,22 @@ export default function LandingPage() {
                   </AnimatePresence>
                 </div>
 
-                {/* NEU (30.09.2026): "Für Business" war als dünner Pill direkt
-                    neben dem Logo oben links kaum zu sehen. Ein erster Versuch
-                    mit dickem Rahmen war Quentin zu laut/störend im Vergleich
-                    zum primären "CV checken"-CTA. Jetzt als ruhiger
-                    Zielgruppen-Umschalter (gleiches Muster wie SegmentToggle
-                    in B2BHeader.tsx, nur umgekehrt) - liest sich als normale
-                    Navigation, nicht als zweiter Call-to-Action, sitzt aber
-                    weiterhin gut sichtbar in der Haupt-Aktionsreihe statt
-                    versteckt neben dem Logo. */}
-                <div
-                  role="group"
-                  aria-label="Zielgruppe"
-                  className="inline-flex items-center gap-1 p-1 rounded-full border border-white/15 bg-white/5"
+                {/* NEU (30.09.2026), 3. Anlauf: dicker Rahmen = zu laut, reiner
+                    Umschalter mit Hover-only-Farbe = zu unauffällig. Jetzt:
+                    durchgehend flächig eingefärbte Pille (sofort sichtbar,
+                    kein Rahmen/keine zweite Gradient-Animation wie beim
+                    "CV checken"-CTA, dadurch klar als sekundäre statt
+                    konkurrierende Aktion erkennbar). */}
+                <motion.a
+                  href="#/business"
+                  aria-label="Zur B2B-Version für Unternehmen und Bildungsträger"
+                  className="inline-flex items-center gap-1.5 px-4 py-2 rounded-full text-sm font-bold text-[#0A192F] bg-[#66c0b6] hover:bg-[#7dd4ca] shadow-md shadow-[#66c0b6]/25 transition-colors"
+                  whileHover={{ scale: 1.05, y: -2 }}
+                  whileTap={{ scale: 0.95 }}
                 >
-                  <span className="px-3.5 py-1.5 rounded-full text-xs font-bold text-white bg-white/10">
-                    Für Bewerber
-                  </span>
-                  <a
-                    href="#/business"
-                    aria-label="Zur B2B-Version für Unternehmen und Bildungsträger"
-                    className="px-3.5 py-1.5 rounded-full text-xs font-bold text-[#66c0b6] hover:text-white hover:bg-[#66c0b6]/20 transition-colors"
-                  >
-                    Für Business
-                  </a>
-                </div>
+                  <Building2 className="w-4 h-4" />
+                  Für Business
+                </motion.a>
 
                 <motion.button
                   onClick={() => navigate(user ? '/dashboard' : '/login')}
@@ -558,9 +549,9 @@ export default function LandingPage() {
                         <span className="text-sm text-white/80">Harmony Festival</span>
                         <span className="ml-auto text-[10px] font-bold text-[#00d4d4]/70">22.08.26</span>
                       </button>
-                      <button type="button" onClick={() => mobileNav('/business')} className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-left hover:bg-white/5 transition-colors">
-                        <Building2 className="w-4 h-4 text-[#66c0b6] flex-shrink-0" />
-                        <span className="text-sm font-semibold text-white">Für Business</span>
+                      <button type="button" onClick={() => mobileNav('/business')} className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-left bg-[#66c0b6] hover:bg-[#7dd4ca] transition-colors">
+                        <Building2 className="w-4 h-4 text-[#0A192F] flex-shrink-0" />
+                        <span className="text-sm font-bold text-[#0A192F]">Für Business</span>
                       </button>
                     </div>
                   </div>
