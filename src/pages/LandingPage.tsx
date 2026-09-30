@@ -274,27 +274,66 @@ export default function LandingPage() {
         <nav className="fixed top-0 w-full z-50 bg-black/40 backdrop-blur-xl border-b border-white/10">
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             <div className="flex items-center justify-between h-16">
-              <motion.div
-                className="flex items-center gap-3 cursor-pointer"
-                whileHover={{ scale: 1.05, rotate: 2 }}
-                whileTap={{ scale: 0.98 }}
-                onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}
-              >
-                <motion.img
-                  src="/DYD Logo RGB copy copy.svg"
-                  alt="DYD Logo"
-                  className="h-10 w-auto opacity-90 drop-shadow-lg"
+              {/* Logo + "Für Business" als linke Gruppe zusammengefasst, statt
+                  als eigenes justify-between-Element - sonst würde der
+                  Umschalter durch justify-between Richtung Mitte gezogen statt
+                  direkt am Logo zu kleben. */}
+              <div className="flex items-center gap-4">
+                <motion.div
+                  className="flex items-center gap-3 cursor-pointer"
+                  whileHover={{ scale: 1.05, rotate: 2 }}
+                  whileTap={{ scale: 0.98 }}
+                  onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}
+                >
+                  <motion.img
+                    src="/DYD Logo RGB copy copy.svg"
+                    alt="DYD Logo"
+                    className="h-10 w-auto opacity-90 drop-shadow-lg"
+                    animate={{
+                      filter: [
+                        'drop-shadow(0 0 8px rgba(102,192,182,0.3))',
+                        'drop-shadow(0 0 12px rgba(102,192,182,0.5))',
+                        'drop-shadow(0 0 8px rgba(102,192,182,0.3))',
+                      ],
+                    }}
+                    transition={{ duration: 3, repeat: Infinity, ease: 'easeInOut' }}
+                    onError={(e) => { e.currentTarget.style.display = 'none'; }}
+                  />
+                </motion.div>
+
+                {/* NEU (30.09.2026), 6. Anlauf: zurück auf die linke Seite
+                    (direkt neben dem Logo), aber diesmal deutlich größer als
+                    der ursprüngliche dünne Pill plus sanftem Glow-Puls (gleiche
+                    Animations-Sprache wie der Logo-Schein daneben), damit es
+                    sofort ins Auge fällt statt unterzugehen. */}
+                <motion.nav
+                  aria-label="Zielgruppe"
+                  className="hidden md:flex items-center gap-2 p-2 rounded-full border border-white/15 bg-white/5"
                   animate={{
-                    filter: [
-                      'drop-shadow(0 0 8px rgba(102,192,182,0.3))',
-                      'drop-shadow(0 0 12px rgba(102,192,182,0.5))',
-                      'drop-shadow(0 0 8px rgba(102,192,182,0.3))',
+                    boxShadow: [
+                      '0 0 0px rgba(102,192,182,0)',
+                      '0 0 24px rgba(102,192,182,0.5)',
+                      '0 0 0px rgba(102,192,182,0)',
                     ],
                   }}
                   transition={{ duration: 3, repeat: Infinity, ease: 'easeInOut' }}
-                  onError={(e) => { e.currentTarget.style.display = 'none'; }}
-                />
-              </motion.div>
+                >
+                  <span className="px-3 py-2 text-sm font-semibold text-white/55">
+                    Für Bewerber
+                  </span>
+                  <motion.a
+                    href="#/business"
+                    aria-label="Zur B2B-Version für Unternehmen und Bildungsträger"
+                    className="inline-flex items-center gap-2 px-6 py-2.5 rounded-full text-base font-bold text-[#0A192F]"
+                    style={{ background: 'linear-gradient(135deg, #66c0b6, #30E3CA)' }}
+                    whileHover={{ scale: 1.05 }}
+                    whileTap={{ scale: 0.95 }}
+                  >
+                    <Building2 className="w-5 h-5" />
+                    Für Business
+                  </motion.a>
+                </motion.nav>
+              </div>
 
               <div className="hidden md:flex items-center gap-6">
                 <motion.button
@@ -416,31 +455,6 @@ export default function LandingPage() {
                     )}
                   </AnimatePresence>
                 </div>
-
-                {/* NEU (30.09.2026), 5. Anlauf: gleicher Umschalter-Stil wie
-                    B2BHeader.tsx, aber deutlich mehr Platz/Gewicht fuer die
-                    "Für Business"-Pille (größeres Padding, größere Schrift,
-                    Icon) - Quentin fand die vorige Version zu klein/im
-                    Hintergrund. */}
-                <nav
-                  aria-label="Zielgruppe"
-                  className="flex items-center gap-1.5 p-1.5 rounded-full border border-white/15 bg-white/5"
-                >
-                  <span className="px-3 py-2 text-sm font-semibold text-white/55">
-                    Für Bewerber
-                  </span>
-                  <motion.a
-                    href="#/business"
-                    aria-label="Zur B2B-Version für Unternehmen und Bildungsträger"
-                    className="inline-flex items-center gap-1.5 px-5 py-2 rounded-full text-sm font-bold text-[#0A192F] transition-shadow hover:shadow-lg hover:shadow-[#66c0b6]/30"
-                    style={{ background: 'linear-gradient(135deg, #66c0b6, #30E3CA)' }}
-                    whileHover={{ scale: 1.05 }}
-                    whileTap={{ scale: 0.95 }}
-                  >
-                    <Building2 className="w-4 h-4" />
-                    Für Business
-                  </motion.a>
-                </nav>
 
                 <motion.button
                   onClick={() => navigate(user ? '/dashboard' : '/login')}
