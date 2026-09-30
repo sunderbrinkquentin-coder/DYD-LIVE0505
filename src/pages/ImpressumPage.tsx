@@ -35,6 +35,7 @@ export default function ImpressumPage() {
             <div>
               <h2 className="text-white font-semibold mb-2 text-lg">Kontakt</h2>
               <p>E-Mail: quentin@decideyourdream.de</p>
+              <p>Telefon: 0157 37567939</p>
             </div>
 
             <div>
