@@ -375,6 +375,17 @@ function TabBContent({ onDemo }: { onDemo: (institution?: string) => void }) {
 
       <SkillGapWidget onCta={() => onDemo('Skill-Gap-Widget')} />
 
+      {/* NEU (30.09.2026): Preiskarten fuer den Direktkauf weiter nach oben
+          geholt - Interessenten, die ORBIT schon kennen bzw. gleich buchen
+          wollen, mussten bisher am CPA-Vergleich, Segment-Umschalter, Prozess
+          und den Benefits vorbeiscrollen, bevor der Preis ueberhaupt sichtbar
+          war (Position 8 von 11 Bloecken). Jetzt direkt nach dem interaktiven
+          Beweis (Skill-Gap-Widget) - Segmente/Prozess/Benefits/Business-Case
+          bleiben als vertiefende Begruendung fuer alle, die noch weiterlesen,
+          weiter unten erhalten. ACHTUNG: Preise in PricingSection.tsx sind
+          weiterhin Platzhalter, siehe Kommentar dort. */}
+      <PricingSection />
+
       {/* Segment-Umschalter: Herausforderung/Lösung passen sich an den gewählten Bereich an */}
       <div>
         <motion.h3 variants={fadeUp} initial="hidden" whileInView="show" viewport={VIEWPORT} className="font-poppins font-bold text-xl text-[#0F1E34] mb-2 text-center">{tabB.segmentPicker.title}</motion.h3>
@@ -429,11 +440,6 @@ function TabBContent({ onDemo }: { onDemo: (institution?: string) => void }) {
         </div>
         <div className="mt-6 flex items-center justify-center gap-3"><span className="font-poppins font-black text-3xl text-[#0F1E34]">{tabB.cpa.delta}</span><span className="font-arimo font-bold text-[#0F1E34]">{tabB.cpa.deltaLabel}</span></div>
       </motion.div>
-
-      {/* NEU (Direktkauf): Preiskarten fuer Selbstbedienungs-Kauf, ergaenzend
-          zum "Erstgespräch"-Weg oben/unten - siehe PricingSection.tsx.
-          ACHTUNG: Preise darin sind Platzhalter, siehe Kommentar dort. */}
-      <PricingSection />
 
       <Delivery />
       <FAQ items={tabB.faq} onCta={() => onDemo(segment.label)} />
