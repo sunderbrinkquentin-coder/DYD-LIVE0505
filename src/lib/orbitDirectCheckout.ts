@@ -1,3 +1,20 @@
+/**
+ * "Direktkauf": ruft den oeffentlichen Endpunkt POST
+ * /api/v1/billing/direct-checkout-session der ORBIT-API auf (siehe
+ * handleCreateDirectCheckoutSession() im Supabase-Edge-Function-Code).
+ * Anders als der 7-Tage-Trial-Weg: hier bezahlt die Person SOFORT einen
+ * echten Plan direkt hier auf der Website, ohne vorherigen Trial - Tenant +
+ * API-Key entstehen automatisch, sobald die Zahlung bestaetigt ist (Webhook),
+ * NICHT schon bei diesem Aufruf hier.
+ *
+ * Ablauf: dieser Aufruf legt nur den Login-Account an und gibt eine
+ * Stripe-Checkout-URL zurueck, zu der du den Browser weiterleitest
+ * (window.location.href = checkout_url). Nach erfolgreicher Zahlung schickt
+ * Stripe die Person zur success_url zurueck - von dort aus kann sie sich mit
+ * der gerade vergebenen E-Mail+Passwort direkt bei ORBIT einloggen (Tenant +
+ * API-Key sind dann bereits angelegt).
+ */
+
 export type BillingPlan = "starter" | "growth" | "professional";
 export type BillingInterval = "monthly" | "yearly";
 
@@ -5,6 +22,10 @@ export interface DirectCheckoutInput {
   email: string;
   password: string;
   companyName: string;
+  /** NEU (Personalisierung): "Ihr Name" - fuer eine persoenliche Anrede in
+   *  der Bestaetigungsmail ("Hallo Anna," statt "Hallo Musterakademie
+   *  GmbH,"), siehe directPurchaseEmailHtml() im Backend. */
+  contactName: string;
   plan: BillingPlan;
   interval: BillingInterval;
 }
@@ -16,6 +37,7 @@ export interface DirectCheckoutResult {
 export class DirectCheckoutError extends Error {
   status: number;
   code?: string;
+
   constructor(status: number, message: string, code?: string) {
     super(message);
     this.name = "DirectCheckoutError";
@@ -25,17 +47,35 @@ export class DirectCheckoutError extends Error {
 }
 
 function safeJsonParse(text: string): { detail?: unknown; code?: unknown } | null {
-  try { return JSON.parse(text); } catch { return null; }
+  try {
+    return JSON.parse(text);
+  } catch {
+    return null;
+  }
 }
 
+/** Dieselben Regeln wie serverseitig (isValidEmail/password.length in
+ *  orbit-api.ts) - nur fuer sofortiges Client-Feedback. */
 export function validateDirectCheckoutInput(input: DirectCheckoutInput): string | null {
   const email = input.email.trim();
-  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) return "Bitte eine gültige E-Mail-Adresse angeben.";
-  if (input.password.length < 8) return "Das Passwort muss mindestens 8 Zeichen lang sein.";
-  if (!input.companyName.trim()) return "Bitte einen Bildungsträger-/Firmennamen angeben.";
+  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+    return "Bitte eine gültige E-Mail-Adresse angeben.";
+  }
+  if (input.password.length < 8) {
+    return "Das Passwort muss mindestens 8 Zeichen lang sein.";
+  }
+  if (!input.companyName.trim()) {
+    return "Bitte einen Bildungsträger-/Firmennamen angeben.";
+  }
+  if (!input.contactName.trim()) {
+    return "Bitte Ihren Namen angeben.";
+  }
   return null;
 }
 
+/** Ruft POST /api/v1/billing/direct-checkout-session auf. apiBase =
+ *  VITE_ORBIT_API_BASE. successUrl/cancelUrl muessen https:// sein
+ *  (Backend lehnt sonst ab, siehe isHttpsUrl() dort). */
 export async function createDirectCheckoutSession(
   apiBase: string,
   input: DirectCheckoutInput,
@@ -49,18 +89,21 @@ export async function createDirectCheckoutSession(
       email: input.email.trim(),
       password: input.password,
       company_name: input.companyName.trim(),
+      contact_name: input.contactName.trim(),
       plan: input.plan,
       interval: input.interval,
       success_url: successUrl,
       cancel_url: cancelUrl,
     }),
   });
+
   if (!res.ok) {
     const body = await res.text().catch(() => "");
     console.error(`Direktkauf-Checkout fehlgeschlagen (HTTP ${res.status})`, body);
     const parsed = body ? safeJsonParse(body) : null;
     const detail = parsed && typeof parsed.detail === "string" ? parsed.detail : undefined;
     const code = parsed && typeof parsed.code === "string" ? parsed.code : undefined;
+
     const showDetail = res.status === 400 || res.status === 409;
     throw new DirectCheckoutError(
       res.status,
@@ -68,5 +111,6 @@ export async function createDirectCheckoutSession(
       code
     );
   }
+
   return res.json() as Promise<DirectCheckoutResult>;
 }
