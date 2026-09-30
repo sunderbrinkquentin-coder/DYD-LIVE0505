@@ -1,7 +1,7 @@
 import { motion, useReducedMotion, type Variants } from 'framer-motion';
 import {
   Layers, Brain, ShieldCheck, Flag, Sparkles, Lock, GraduationCap,
-  CheckCircle2, Mail, Linkedin, Award, Calendar, MapPin, Users,
+  CheckCircle2, Mail, Linkedin, Award, Calendar, MapPin, Users, ArrowRight,
 } from 'lucide-react';
 import { b2bContent } from './content';
 
@@ -188,6 +188,49 @@ export function EventsSection() {
 
         <motion.div variants={fadeUp} initial="hidden" whileInView="show" viewport={VIEWPORT} className="mt-8 rounded-2xl p-5 border border-dashed border-[#DEFF9A]/30 bg-[#DEFF9A]/[0.03]">
           <p className="font-arimo text-sm text-white/40 italic text-center">{events.note}</p>
+        </motion.div>
+      </div>
+    </section>
+  );
+}
+
+/* ─── 4. Finale CTA-Band ───
+   NEU (30.09.2026): war fertig gebaut (siehe B2bfooter.tsx), aber nur in der
+   toten, nirgends gerouteten B2bpage.tsx eingebunden - auf der echten
+   /business-Route (B2BLandingPage.tsx) endete die Seite bisher abrupt nach
+   den Trust-Badges, ohne finalen Abschluss-CTA. Hier als eigener Abschnitt
+   im Stil der übrigen B2BSections ergänzt (kein zweiter, dopplter Footer -
+   der Impressum-/Navigations-Teil aus B2bfooter.tsx bleibt bewusst weg, weil
+   GlobalLayout bereits einen sitweiten Footer mit Link zu /impressum liefert
+   - siehe GlobalLayout.tsx). */
+type FinalCtaSectionProps = { onContact?: () => void };
+
+export function FinalCtaSection({ onContact }: FinalCtaSectionProps) {
+  const { finalCta } = b2bContent;
+  const { fadeUp } = useSectionAnims();
+
+  return (
+    <section aria-labelledby="b2b-final-cta-title" className="relative bg-[#0A192F] pt-4 pb-20 px-4 sm:px-6 lg:px-8">
+      <div className="max-w-4xl mx-auto">
+        <motion.div
+          variants={fadeUp}
+          initial="hidden"
+          whileInView="show"
+          viewport={VIEWPORT}
+          className="relative overflow-hidden rounded-3xl p-8 sm:p-12 text-center text-white"
+          style={{ background: 'radial-gradient(600px 240px at 50% 0%, rgba(86,212,255,0.25), transparent 70%), linear-gradient(135deg, #0e2748, #123059)' }}
+        >
+          <h2 id="b2b-final-cta-title" className="font-poppins font-black text-2xl sm:text-3xl mb-3" style={{ letterSpacing: '-0.02em' }}>{finalCta.title}</h2>
+          <p className="font-arimo text-white/70 max-w-xl mx-auto mb-7 leading-relaxed">{finalCta.subtitle}</p>
+          <button
+            type="button"
+            onClick={onContact}
+            className="inline-flex items-center gap-2 px-7 py-3.5 rounded-2xl font-arimo font-bold text-[#0A192F] b2b-focus-ring transition hover:shadow-xl hover:shadow-[#38BDF8]/30 hover:-translate-y-0.5"
+            style={{ background: 'linear-gradient(135deg, #DEFF9A, #38BDF8)' }}
+          >
+            {finalCta.cta}
+            <ArrowRight className="w-4 h-4" aria-hidden="true" />
+          </button>
         </motion.div>
       </div>
     </section>
