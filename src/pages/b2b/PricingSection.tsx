@@ -136,12 +136,24 @@ function BillingToggle({ value, onChange }: { value: BillingInterval; onChange: 
  * (ersetzt NICHT) den "Erstgespräch"-Weg weiter unten - fuer alle, die
  * groessere/individuelle Konditionen wollen.
  *
- * Visuelles Update: pro Plan ein eigenes Icon (Rocket/TrendingUp/Crown) +
- * Kurzbeschreibung, groessere/klarere Preis-Typo, farbige Check-Kreise statt
- * einfacher Haekchen, die "Beliebteste Wahl"-Karte leicht hervorgehoben
- * (Skalierung + Verlauf + staerkerer Schatten) und ein animierter
- * Pill-Umschalter (BillingToggle) statt zwei separater Buttons - insgesamt
- * naeher an gaengigen SaaS-Preisseiten (Stripe/Linear-Stil).
+ * NEU (30.09.2026), auf Quentins Wunsch: der Pitch-Teil (Ueberschrift bis
+ * Vertrauensleiste/MwSt-Hinweis) steckt jetzt in einer eigenen dunklen
+ * Showcase-Flaeche (gleiche Bildsprache wie der Narrative-Block auf dieser
+ * Seite) statt im weissen Seitenhintergrund unterzugehen - dadurch wirkt der
+ * Buchungsbereich als bewusste "Jetzt handeln"-Zone. Ueberschrift/Subline
+ * greifen jetzt direkt den Kernschmerz der Seite auf (verlorene Leads durch
+ * Warten) statt neutral zu beschreiben. "So geht's nach dem Kauf" +
+ * ProcessRail bleiben bewusst AUSSERHALB dieser dunklen Flaeche auf dem
+ * normalen Seiten-Hintergrund - das ist der ruhige, vertrauensbildende
+ * Nachklang nach dem intensiveren Kauf-Pitch, kein weiterer Verkaufsdruck.
+ *
+ * Visuelles Update (vorherige Runde): pro Plan ein eigenes Icon
+ * (Rocket/TrendingUp/Crown) + Kurzbeschreibung, groessere/klarere
+ * Preis-Typo, farbige Check-Kreise statt einfacher Haekchen, die
+ * "Beliebteste Wahl"-Karte hervorgehoben (Skalierung + Verlauf + staerkerer
+ * Schatten) und ein animierter Pill-Umschalter (BillingToggle) statt zwei
+ * separater Buttons - insgesamt naeher an gaengigen SaaS-Preisseiten
+ * (Stripe/Linear-Stil).
  *
  * Monatlich/Jaehrlich bleibt EIN gemeinsamer Umschalter fuer alle drei
  * Karten, animiert beim Wechsel (AnimatePresence), und der gewaehlte
@@ -174,148 +186,161 @@ export function PricingSection() {
 
   return (
     <div id="orbit-pricing">
-      <motion.div variants={fadeUp} initial="hidden" whileInView="show" viewport={VIEWPORT} className="text-center mb-10">
-        <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full mb-5 border border-[#DEFF9A]/40 bg-[#DEFF9A]/5">
-          <Sparkles className="w-3.5 h-3.5 text-[#0F1E34]" aria-hidden="true" />
-          <span className="font-arimo text-xs font-bold text-[#0F1E34] uppercase tracking-wide">Early-Access-Konditionen</span>
-        </div>
-        <h3 className="font-poppins font-bold text-xl sm:text-2xl text-[#0F1E34] mb-2">ORBIT direkt sichern</h3>
-        <p className="font-arimo text-[#55637A] max-w-2xl mx-auto leading-relaxed mb-7">
-          Sie wissen bereits, dass ORBIT zu Ihnen passt? Wählen Sie direkt einen Plan – Zugang inklusive
-          API-Key erhalten Sie sofort nach der Zahlung, ganz ohne Erstgespräch.
-        </p>
+      {/* Dunkle Showcase-Flaeche fuer den eigentlichen Kauf-Pitch */}
+      <div
+        className="relative overflow-hidden rounded-3xl px-6 py-14 sm:px-10 sm:py-16"
+        style={{
+          background:
+            "radial-gradient(700px 300px at 50% 0%, rgba(56,189,248,0.22), transparent 70%), linear-gradient(150deg, #0A192F, #123059)",
+        }}
+      >
+        <motion.div variants={fadeUp} initial="hidden" whileInView="show" viewport={VIEWPORT} className="text-center mb-10">
+          <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full mb-5 border border-[#DEFF9A]/40 bg-[#DEFF9A]/10">
+            <Sparkles className="w-3.5 h-3.5 text-[#DEFF9A]" aria-hidden="true" />
+            <span className="font-arimo text-xs font-bold text-[#DEFF9A] uppercase tracking-wide">Early-Access-Konditionen</span>
+          </div>
+          <h3 className="font-poppins font-black text-2xl sm:text-3xl text-white mb-3" style={{ letterSpacing: "-0.02em" }}>
+            Jeder Tag ohne ORBIT ist ein Tag verlorener Leads.
+          </h3>
+          <p className="font-arimo text-white/70 max-w-2xl mx-auto leading-relaxed mb-7">
+            Wählen Sie jetzt Ihren Plan – Zugang inklusive API-Key erhalten Sie sofort nach der Zahlung,
+            ganz ohne Erstgespräch und ohne Wartezeit.
+          </p>
 
-        <div className="flex justify-center">
-          <BillingToggle value={billingInterval} onChange={setBillingInterval} />
-        </div>
-      </motion.div>
+          <div className="flex justify-center">
+            <BillingToggle value={billingInterval} onChange={setBillingInterval} />
+          </div>
+        </motion.div>
 
-      <motion.div variants={container} initial="hidden" whileInView="show" viewport={VIEWPORT} className="grid md:grid-cols-3 gap-6 md:items-start">
-        {PLANS.map((p) => {
-          const yearlyPerMonth = Math.round(p.yearlyTotal / 12);
-          const price = billingInterval === "monthly" ? p.monthlyPrice : yearlyPerMonth;
-          const Icon = PLAN_ICONS[p.icon];
-          return (
-            <motion.div
-              key={p.plan}
-              variants={fadeUp}
-              className={`group relative rounded-3xl p-7 sm:p-8 flex flex-col transition-shadow duration-300 ${
-                p.highlighted
-                  ? "border-2 shadow-xl shadow-[#38BDF8]/15 md:scale-[1.04] z-10"
-                  : "border border-[#E3EBF5] bg-white hover:shadow-lg hover:border-[#38BDF8]/30"
-              }`}
-              style={
-                p.highlighted
-                  ? { borderColor: "#38BDF8", background: "linear-gradient(180deg, rgba(56,189,248,0.07), #ffffff 45%)" }
-                  : undefined
-              }
-            >
-              {p.highlighted && (
-                <span
-                  className="absolute -top-3.5 left-1/2 -translate-x-1/2 inline-flex items-center gap-1 px-3.5 py-1.5 rounded-full text-[11px] font-arimo font-bold text-[#0A192F] shadow-md"
-                  style={{ background: SKY_LIME }}
-                >
-                  <Sparkles className="w-3 h-3" aria-hidden="true" />
-                  Beliebteste Wahl
-                </span>
-              )}
-
-              <div
-                className="w-12 h-12 rounded-2xl flex items-center justify-center mb-5"
+        <motion.div variants={container} initial="hidden" whileInView="show" viewport={VIEWPORT} className="grid md:grid-cols-3 gap-6 md:items-start">
+          {PLANS.map((p) => {
+            const yearlyPerMonth = Math.round(p.yearlyTotal / 12);
+            const price = billingInterval === "monthly" ? p.monthlyPrice : yearlyPerMonth;
+            const Icon = PLAN_ICONS[p.icon];
+            return (
+              <motion.div
+                key={p.plan}
+                variants={fadeUp}
+                className={`group relative rounded-3xl p-7 sm:p-8 flex flex-col transition-shadow duration-300 bg-white ${
+                  p.highlighted
+                    ? "border-2 shadow-xl shadow-[#38BDF8]/25 md:scale-[1.04] z-10"
+                    : "border border-white/15 hover:shadow-lg"
+                }`}
                 style={
                   p.highlighted
-                    ? { background: SKY_LIME }
-                    : { background: "linear-gradient(135deg, rgba(10,25,47,0.06), rgba(56,189,248,0.10))" }
+                    ? { borderColor: "#38BDF8", background: "linear-gradient(180deg, rgba(56,189,248,0.07), #ffffff 45%)" }
+                    : undefined
                 }
               >
-                <Icon className={`w-6 h-6 ${p.highlighted ? "text-[#0A192F]" : "text-[#38BDF8]"}`} aria-hidden="true" />
-              </div>
-
-              <h4 className="font-poppins font-black text-2xl text-[#0F1E34] mb-1">{p.name}</h4>
-              <p className="font-arimo text-sm text-[#55637A] mb-0.5">{p.blurb}</p>
-              <p className="font-arimo text-xs text-[#94a3b8] mb-5">{p.courseLimit}</p>
-
-              <div className="mb-6 min-h-[64px]">
-                <AnimatePresence mode="wait">
-                  <motion.div
-                    key={billingInterval}
-                    initial={{ opacity: 0, y: 6 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    exit={{ opacity: 0, y: -6 }}
-                    transition={{ duration: 0.2 }}
+                {p.highlighted && (
+                  <span
+                    className="absolute -top-3.5 left-1/2 -translate-x-1/2 inline-flex items-center gap-1 px-3.5 py-1.5 rounded-full text-[11px] font-arimo font-bold text-[#0A192F] shadow-md whitespace-nowrap"
+                    style={{ background: SKY_LIME }}
                   >
-                    <div className="flex items-baseline gap-1.5">
-                      <span className="font-poppins font-black text-4xl text-[#0F1E34] tracking-tight">{formatPrice(price)}</span>
-                      <span className="font-arimo text-sm text-[#55637A]">/ Monat</span>
-                    </div>
-                    {billingInterval === "yearly" ? (
-                      <p className="font-arimo text-[11px] text-[#55637A] mt-1">
-                        {formatPrice(p.yearlyTotal)} pro Jahr{" "}
-                        <span className="text-[#94a3b8] line-through">{formatPrice(p.monthlyPrice * 12)}</span>{" "}
-                        <span className="font-bold text-[#38BDF8]">2 Monate gratis</span>
-                      </p>
-                    ) : (
-                      <p className="font-arimo text-[11px] text-[#94a3b8] mt-1">monatlich kündbar</p>
-                    )}
-                  </motion.div>
-                </AnimatePresence>
-              </div>
+                    <Sparkles className="w-3 h-3" aria-hidden="true" />
+                    Unsere Empfehlung
+                  </span>
+                )}
 
-              <ul className="space-y-3 mb-7 flex-1">
-                {p.features.map((f) => (
-                  <li key={f} className="flex items-start gap-2.5">
-                    <span
-                      className="mt-0.5 w-5 h-5 rounded-full flex items-center justify-center flex-shrink-0"
-                      style={{ background: p.highlighted ? "rgba(56,189,248,0.16)" : "rgba(15,30,52,0.05)" }}
+                <div
+                  className="w-12 h-12 rounded-2xl flex items-center justify-center mb-5"
+                  style={
+                    p.highlighted
+                      ? { background: SKY_LIME }
+                      : { background: "linear-gradient(135deg, rgba(10,25,47,0.06), rgba(56,189,248,0.10))" }
+                  }
+                >
+                  <Icon className={`w-6 h-6 ${p.highlighted ? "text-[#0A192F]" : "text-[#38BDF8]"}`} aria-hidden="true" />
+                </div>
+
+                <h4 className="font-poppins font-black text-2xl text-[#0F1E34] mb-1">{p.name}</h4>
+                <p className="font-arimo text-sm text-[#55637A] mb-0.5">{p.blurb}</p>
+                <p className="font-arimo text-xs text-[#94a3b8] mb-5">{p.courseLimit}</p>
+
+                <div className="mb-6 min-h-[64px]">
+                  <AnimatePresence mode="wait">
+                    <motion.div
+                      key={billingInterval}
+                      initial={{ opacity: 0, y: 6 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      exit={{ opacity: 0, y: -6 }}
+                      transition={{ duration: 0.2 }}
                     >
-                      <Check className="w-3 h-3 text-[#38BDF8]" aria-hidden="true" />
-                    </span>
-                    <span className="font-arimo text-sm text-[#0F1E34] leading-snug">{f}</span>
-                  </li>
-                ))}
-              </ul>
+                      <div className="flex items-baseline gap-1.5">
+                        <span className="font-poppins font-black text-4xl text-[#0F1E34] tracking-tight">{formatPrice(price)}</span>
+                        <span className="font-arimo text-sm text-[#55637A]">/ Monat</span>
+                      </div>
+                      {billingInterval === "yearly" ? (
+                        <p className="font-arimo text-[11px] text-[#55637A] mt-1">
+                          {formatPrice(p.yearlyTotal)} pro Jahr{" "}
+                          <span className="text-[#94a3b8] line-through">{formatPrice(p.monthlyPrice * 12)}</span>{" "}
+                          <span className="font-bold text-[#38BDF8]">2 Monate gratis</span>
+                        </p>
+                      ) : (
+                        <p className="font-arimo text-[11px] text-[#94a3b8] mt-1">monatlich kündbar</p>
+                      )}
+                    </motion.div>
+                  </AnimatePresence>
+                </div>
 
-              <button
-                type="button"
-                onClick={() => setOpenPurchasePlan(p.plan)}
-                className="w-full inline-flex items-center justify-center gap-2 px-5 py-3.5 rounded-xl font-arimo font-bold text-sm b2b-focus-ring transition-all hover:-translate-y-0.5"
-                style={
-                  p.highlighted
-                    ? { background: NAVY_SKY, color: "#fff", boxShadow: "0 10px 24px -8px rgba(56,189,248,0.5)" }
-                    : { border: "1px solid #E3EBF5", color: "#0F1E34" }
-                }
-              >
-                Jetzt kaufen
-              </button>
-              <button
-                type="button"
-                onClick={() => setOpenTrialPlan(p.plan)}
-                className="w-full mt-2.5 px-5 py-2 rounded-xl font-arimo font-bold text-xs text-[#38BDF8] hover:text-[#0F1E34] transition-colors b2b-focus-ring"
-              >
-                oder 7 Tage kostenlos testen
-              </button>
-            </motion.div>
-          );
-        })}
-      </motion.div>
+                <ul className="space-y-3 mb-7 flex-1">
+                  {p.features.map((f) => (
+                    <li key={f} className="flex items-start gap-2.5">
+                      <span
+                        className="mt-0.5 w-5 h-5 rounded-full flex items-center justify-center flex-shrink-0"
+                        style={{ background: p.highlighted ? "rgba(56,189,248,0.16)" : "rgba(15,30,52,0.05)" }}
+                      >
+                        <Check className="w-3 h-3 text-[#38BDF8]" aria-hidden="true" />
+                      </span>
+                      <span className="font-arimo text-sm text-[#0F1E34] leading-snug">{f}</span>
+                    </li>
+                  ))}
+                </ul>
 
-      <motion.div variants={fadeUp} initial="hidden" whileInView="show" viewport={VIEWPORT} className="flex flex-wrap items-center justify-center gap-x-6 gap-y-2 mt-9">
-        <span className="inline-flex items-center gap-1.5 font-arimo text-xs text-[#55637A]">
-          <ShieldCheck className="w-3.5 h-3.5 text-[#38BDF8]" aria-hidden="true" />DSGVO-konform, Server in der EU
-        </span>
-        <span className="inline-flex items-center gap-1.5 font-arimo text-xs text-[#55637A]">
-          <Zap className="w-3.5 h-3.5 text-[#38BDF8]" aria-hidden="true" />Zugang in Minuten, nicht Tagen
-        </span>
-        <span className="inline-flex items-center gap-1.5 font-arimo text-xs text-[#55637A]">
-          <Check className="w-3.5 h-3.5 text-[#38BDF8]" aria-hidden="true" />Monatlich kündbar
-        </span>
-      </motion.div>
+                <button
+                  type="button"
+                  onClick={() => setOpenPurchasePlan(p.plan)}
+                  className="w-full inline-flex items-center justify-center gap-2 px-5 py-3.5 rounded-xl font-arimo font-bold text-sm b2b-focus-ring transition-all hover:-translate-y-0.5"
+                  style={
+                    p.highlighted
+                      ? { background: NAVY_SKY, color: "#fff", boxShadow: "0 10px 24px -8px rgba(56,189,248,0.5)" }
+                      : { border: "1px solid #E3EBF5", color: "#0F1E34" }
+                  }
+                >
+                  Jetzt sichern
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setOpenTrialPlan(p.plan)}
+                  className="w-full mt-2.5 px-5 py-2 rounded-xl font-arimo font-bold text-xs text-[#38BDF8] hover:text-[#0F1E34] transition-colors b2b-focus-ring"
+                >
+                  oder 7 Tage kostenlos testen
+                </button>
+              </motion.div>
+            );
+          })}
+        </motion.div>
 
-      <motion.p variants={fadeUp} initial="hidden" whileInView="show" viewport={VIEWPORT} className="font-arimo text-[11px] text-[#94a3b8] text-center mt-3">
-        Alle Preise sind Endpreise – gemäß § 19 UStG weisen wir keine Umsatzsteuer aus.
-      </motion.p>
+        <motion.div variants={fadeUp} initial="hidden" whileInView="show" viewport={VIEWPORT} className="flex flex-wrap items-center justify-center gap-x-6 gap-y-2 mt-9">
+          <span className="inline-flex items-center gap-1.5 font-arimo text-xs text-white/60">
+            <ShieldCheck className="w-3.5 h-3.5 text-[#DEFF9A]" aria-hidden="true" />DSGVO-konform, Server in der EU
+          </span>
+          <span className="inline-flex items-center gap-1.5 font-arimo text-xs text-white/60">
+            <Zap className="w-3.5 h-3.5 text-[#DEFF9A]" aria-hidden="true" />Zugang in Minuten, nicht Tagen
+          </span>
+          <span className="inline-flex items-center gap-1.5 font-arimo text-xs text-white/60">
+            <Check className="w-3.5 h-3.5 text-[#DEFF9A]" aria-hidden="true" />Monatlich kündbar
+          </span>
+        </motion.div>
 
-      {/* Kurzer Prozess "Nach dem Kauf" - baut Vertrauen auf, BEVOR bezahlt wird */}
+        <motion.p variants={fadeUp} initial="hidden" whileInView="show" viewport={VIEWPORT} className="font-arimo text-[11px] text-white/40 text-center mt-3">
+          Alle Preise sind Endpreise – gemäß § 19 UStG weisen wir keine Umsatzsteuer aus.
+        </motion.p>
+      </div>
+
+      {/* Kurzer Prozess "Nach dem Kauf" - bewusst AUSSERHALB der dunklen
+          Showcase-Flaeche auf dem normalen Seiten-Hintergrund: ruhiger,
+          vertrauensbildender Nachklang statt weiterem Verkaufsdruck. */}
       <div className="mt-14">
         <motion.h4 variants={fadeUp} initial="hidden" whileInView="show" viewport={VIEWPORT} className="font-poppins font-bold text-lg text-[#0F1E34] mb-1 text-center">
           So geht&apos;s nach dem Kauf
