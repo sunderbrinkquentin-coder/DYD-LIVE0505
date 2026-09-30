@@ -83,6 +83,9 @@ export default function B2BFooter({ onContact }: B2BFooterProps) {
               <p>{imp.owner}</p>
               {imp.addressLines.map((line) => (<p key={line}>{line}</p>))}
               <p className="pt-1"><a href={`mailto:${imp.email}`} className="hover:text-white transition-colors">{imp.email}</a></p>
+              {imp.phone && (
+                <p><a href={`tel:${imp.phone.replace(/\s+/g, '')}`} className="hover:text-white transition-colors">{imp.phone}</a></p>
+              )}
               <p className="pt-2 text-xs text-white/40">{imp.responsible}</p>
             </div>
           </div>
