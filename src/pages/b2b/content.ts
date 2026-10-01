@@ -336,18 +336,31 @@ export const b2bContent = {
           desc: 'Skill-basierte Nachfrage ersetzt teure Reichweite und senkt Ihre Akquisekosten.',
         },
       ],
+// UEBERARBEITET (30.09.2026, auf Kundenwunsch nach kritischer Analyse):
+// vorher implizierte dieser Block einen quantifizierten Kostenvorteil
+// ("Hoher Streuverlust" vs. "Präzises Matching"), ohne eine einzige echte
+// Zahl zu nennen - als "Kostenvergleich" ohne Zahlen wirkungslos UND
+// inhaltlich ein Bruch zum tatsaechlichen Preismodell weiter oben (feste
+// Monats-/Jahrespakete statt Cost-per-Lead). Jetzt ehrlich strukturell
+// vergleichbar, ohne unbelegte Prozent-/Euro-Angaben zu erfinden: Ads =
+// variable Kosten PRO KLICK unabhaengig vom Interesse, ORBIT = fixer Plan
+// OHNE Cost-per-Click, Matching innerhalb des gebuchten Kurslimits
+// unbegrenzt. FALLS echte Vergleichszahlen vorliegen (z. B. durchschnittl.
+// CPC bei Bildungsanzeigen vs. effektive Kosten pro Lead ueber ORBIT),
+// waere der Block damit noch deutlich schlagkraeftiger - aktuell bewusst
+// ohne erfundene Zahlen.
 cpa: {
-  title: 'Business Case: Akquisekosten im Vergleich',
+  title: 'Business Case: Planbare Kosten statt Streuverlust',
   classicLabel: 'Klassisch',
   classicDesc: 'Google & LinkedIn Ads',
-  classicValue: 'Hoher Streuverlust',
-  classicUnit: 'breite Zielgruppen-Ansprache',
+  classicValue: 'Bezahlung pro Klick',
+  classicUnit: 'unabhängig vom tatsächlichen Interesse',
   dydLabel: 'Mit DYD ORBIT',
   dydDesc: 'Skill-Matching',
-  dydValue: 'Präzises Matching',
-  dydUnit: 'nach individuellem Skill-Gap',
-  delta: 'Weniger Streuverlust',
-  deltaLabel: 'bei besserer Lead-Qualität',
+  dydValue: 'Fester Plan, kein Cost-per-Click',
+  dydUnit: 'unbegrenztes Matching im gebuchten Kurslimit',
+  delta: 'Planbare Kosten',
+  deltaLabel: 'statt schwankender Klickpreise',
 },
       // NEU (30.09.2026): Daten fuer SelfServiceFeatures.tsx - die Komponente
       // wurde in Bolt live angelegt (liest b2bContent.tabs.tabB.selfService),
@@ -409,21 +422,43 @@ cpa: {
           a: 'Ja. Wie NEXUS lässt sich auch ORBIT unter Ihrer eigenen Marke ausrollen – mehr dazu finden Sie weiter unten im Bereich „Flexibel ausrollen".',
         },
         {
+          // UEBERARBEITET (30.09.2026, Widerspruch zum Self-Service-Kauf
+          // beseitigt): vorher beschrieb die Antwort ein Cost-per-Lead-Modell
+          // "nach Erstgespraech" - direkt unterhalb der echten, oeffentlich
+          // einsehbaren Fixpreis-Pakete (PricingSection) wirkte das wie ein
+          // zweites, widerspruechliches Preismodell. Jetzt konsistent zur
+          // tatsaechlichen Selbstbedienung, mit Sprung zurueck zu den
+          // Paketen statt Kontaktformular (siehe ctaAction in FAQ-Komponente,
+          // B2BTabs.tsx).
           q: 'Was kostet ORBIT?',
-          a: 'Wir arbeiten mit einem klar definierten Kostenziel pro qualifiziertem Lead, das spürbar unter klassischen Ad-Kanälen liegt. Das genaue Modell klären wir im Erstgespräch.',
+          a: 'Transparente Monats- oder Jahrespakete ab 199 € im Monat (siehe Pakete weiter oben) – Sie wählen direkt online und starten sofort, ganz ohne Erstgespräch. Unsicher, ob ORBIT passt? Einfach 7 Tage kostenlos testen. Für individuelle Konditionen bei größerem Bedarf, etwa mehrere Standorte oder Trägernetzwerke, sprechen wir gern persönlich.',
           cta: true,
+          ctaLabel: 'Zu den Paketen',
+          ctaAction: 'pricing',
         },
         {
           q: 'Ist das DSGVO-konform?',
           a: 'Ja, vollständig – Verarbeitung ausschließlich in Europa, Made in Germany. Gerade bei sensiblen Zielgruppen, etwa in Transfergesellschaften, legen wir besonderen Wert auf einen sorgfältigen Umgang mit personenbezogenen Daten.',
         },
         {
+          // UEBERARBEITET (30.09.2026): vorher klang "Early Access ab Q4
+          // 2026, Launch Q1 2027" so, als sei ORBIT noch nicht nutzbar -
+          // waehrend zwei Bloecke weiter oben bereits echter Self-Service-
+          // Kauf/Trial laeuft. Jetzt ehrlich: verfuegbar ab sofort, "Early
+          // Access" bleibt als Rahmen fuer die aktuellen Konditionen stehen
+          // (passt zum "Early-Access-Konditionen"-Badge in PricingSection),
+          // ohne ein konkretes, unbestaetigtes zukuenftiges Preisaenderungs-
+          // datum zu behaupten.
           q: 'Wann startet ORBIT?',
-          a: 'Early Access ab Q4 2026, Launch Q1 2027. Pilotpartner gestalten die Roadmap aktiv mit.',
+          a: 'ORBIT ist bereits verfügbar: Sie können direkt online einen Plan wählen oder 7 Tage kostenlos testen. Wir befinden uns aktuell in der Early-Access-Phase – die auf dieser Seite gezeigten Konditionen gelten für Bildungsträger, die jetzt einsteigen.',
         },
         {
+          // UEBERARBEITET (30.09.2026): vorher klang das nach einem
+          // verpflichtenden Erstgespraech als einzigem Zugang zu ORBIT -
+          // tatsaechlich ist "Pilotpartner" ein optionales Zusatzprogramm
+          // neben dem regulaeren Self-Service-Kauf/Trial.
           q: 'Wie werden wir Pilotpartner und was bedeutet das für uns?',
-          a: 'Im kurzen Erstgespräch klären wir gemeinsam Ihr Kursportfolio, Ihren Bereich und die weiteren Rahmenbedingungen. Als Pilotpartner erhalten Sie bevorzugte Konditionen und wirken aktiv auf die Weiterentwicklung von ORBIT ein.',
+          a: 'Dafür müssen Sie keinen Umweg gehen: Sie können ORBIT direkt online buchen oder testen. Wer zusätzlich als Pilotpartner aktiv an der Weiterentwicklung mitwirken möchte, meldet sich einfach kurz bei uns – Pilotpartner erhalten bevorzugte Konditionen und Einfluss auf die Roadmap.',
         },
       ],
       cta: 'Informationen anfragen',
