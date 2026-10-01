@@ -3,6 +3,7 @@ import { motion, AnimatePresence, useReducedMotion, type Variants } from 'framer
 import {
   Building2, GraduationCap, AlertTriangle, Sparkles, ArrowRight,
   TrendingDown, TrendingUp, Target, Filter, Zap, Plus, Palette, Code2, Check,
+  MousePointerClick,
 } from 'lucide-react';
 import { b2bContent } from './content';
 import ProcessRail from './ProcessRail';
@@ -131,11 +132,29 @@ function SegmentPicker({ segments, active, onChange }: { segments: readonly Segm
   );
 }
 
-/* ─── White Label / API ─── */
-function Delivery() {
+/* ─── White Label / API (+ optional ORBIT-spezifische Embed-Option) ─── */
+/** UEBERARBEITET (01.10.2026, iframe/Button-Embed auf Kundenwunsch
+ *  erklaert): "extraOption" wird NUR von TabBContent (ORBIT) mitgegeben -
+ *  NEXUS (TabAContent) ruft weiterhin `<Delivery />` ohne Props auf und
+ *  zeigt unveraendert nur White Label + API. Grund: das fertige iframe-
+ *  Embed (inkl. oeffentlichem, bewusst eingeschraenktem "Journey-Key") ist
+ *  ein ORBIT-Feature - im Dashboard unter "Journey einbetten" bereits
+ *  fertig gebaut (siehe EmbedBox in App.tsx des ORBIT-Dashboard-Projekts):
+ *  Bildungstraeger bekommen dort einen fertigen iframe-Code UND den
+ *  blanken Link separat ("z.B. fuer einen Button/Menuepunkt") zum
+ *  Kopieren, ganz ohne eigene Entwicklung. Auf der Marketing-Seite stand
+ *  das bisher nirgends - White Label/API klangen beide nach groesserem
+ *  Integrationsaufwand, obwohl die einfachste Variante (Link/iframe
+ *  hinter einem eigenen Button) in Wahrheit ein reines Copy-Paste ist. */
+function Delivery({
+  extraOption,
+}: {
+  extraOption?: { icon: string; title: string; desc: string; points: readonly string[] };
+}) {
   const { delivery } = b2bContent;
   const { container, fadeUp } = useAnims();
-  const iconMap: Record<string, typeof Palette> = { palette: Palette, code: Code2 };
+  const iconMap: Record<string, typeof Palette> = { palette: Palette, code: Code2, click: MousePointerClick };
+  const options = extraOption ? [...delivery.options, extraOption] : delivery.options;
 
   return (
     <div>
@@ -144,8 +163,14 @@ function Delivery() {
         <p className="font-arimo text-[#55637A] max-w-2xl mx-auto leading-relaxed">{delivery.subtitle}</p>
       </motion.div>
 
-      <motion.div variants={container} initial="hidden" whileInView="show" viewport={VIEWPORT} className="grid sm:grid-cols-2 gap-6 max-w-4xl mx-auto">
-        {delivery.options.map((o) => {
+      <motion.div
+        variants={container}
+        initial="hidden"
+        whileInView="show"
+        viewport={VIEWPORT}
+        className={options.length > 2 ? 'grid sm:grid-cols-2 lg:grid-cols-3 gap-6 max-w-5xl mx-auto' : 'grid sm:grid-cols-2 gap-6 max-w-4xl mx-auto'}
+      >
+        {options.map((o) => {
           const Icon = iconMap[o.icon] ?? Code2;
           return (
             <motion.div key={o.title} variants={fadeUp} className="rounded-2xl p-6 bg-white border border-[#E3EBF5] hover:shadow-lg hover:border-[#38BDF8]/40 transition-all">
@@ -487,7 +512,7 @@ function TabBContent({ onDemo }: { onDemo: (institution?: string) => void }) {
         <div className="mt-6 flex items-center justify-center gap-3"><span className="font-poppins font-black text-3xl text-[#0F1E34]">{tabB.cpa.delta}</span><span className="font-arimo font-bold text-[#0F1E34]">{tabB.cpa.deltaLabel}</span></div>
       </motion.div>
 
-      <Delivery />
+      <Delivery extraOption={tabB.embedOption} />
       <FAQ items={tabB.faq} onCta={() => onDemo(segment.label)} />
 
       <div className="flex flex-col sm:flex-row items-center justify-center gap-3 text-center">
