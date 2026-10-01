@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useRef, useState, type MouseEvent } from "react";
 import { motion, AnimatePresence, useReducedMotion, type Variants } from "framer-motion";
 import { Check, Sparkles, ShieldCheck, Zap, Rocket, TrendingUp, Crown } from "lucide-react";
 import { DirectPurchaseForm } from "../../components/DirectPurchaseForm";
@@ -184,6 +184,31 @@ export function PricingSection() {
   const [openTrialPlan, setOpenTrialPlan] = useState<BillingPlan | null>(null);
   const { container, fadeUp } = useAnims();
 
+  // FIX (01.10.2026, Rueckmeldung "wenn ich die Mail markiere, geht das
+  // Fenster weg"): die beiden Modal-Hintergruende unten hatten ein einfaches
+  // onClick={() => close()} - das schliesst nicht nur bei einem echten Klick
+  // auf den Hintergrund, sondern auch dann, wenn jemand TEXT IM FORMULAR
+  // MARKIERT (z.B. die E-Mail-Adresse per Klick-und-Ziehen auswaehlt) und
+  // die Maus dabei leicht ueber den Rand der Modal-Karte hinaus bewegt: der
+  // Browser feuert den resultierenden "click" dann auf dem naechsten
+  // gemeinsamen Vorfahren von Mousedown- und Mouseup-Ziel - und das ist hier
+  // direkt der Hintergrund-Div selbst, an dem das innere stopPropagation()
+  // (das nur normale Klicks INNERHALB der Karte abfaengt) gar nicht
+  // vorbeikommt, weil das Event dort gar nicht erst durchblubbert, sondern
+  // direkt am Hintergrund entsteht. Fix: nur schliessen, wenn der Mousedown
+  // UND der Click beide direkt auf dem Hintergrund-Element selbst waren
+  // (e.target === e.currentTarget bei beiden) - ein Drag, der irgendwo im
+  // Formular beginnt, schliesst das Modal dann nicht mehr, egal wo er endet.
+  const backdropMouseDownRef = useRef(false);
+  function handleBackdropMouseDown(e: MouseEvent<HTMLDivElement>) {
+    backdropMouseDownRef.current = e.target === e.currentTarget;
+  }
+  function handleBackdropClick(e: MouseEvent<HTMLDivElement>, close: () => void) {
+    const shouldClose = backdropMouseDownRef.current && e.target === e.currentTarget;
+    backdropMouseDownRef.current = false;
+    if (shouldClose) close();
+  }
+
   return (
     <div id="orbit-pricing">
       {/* Dunkle Showcase-Flaeche fuer den eigentlichen Kauf-Pitch */}
@@ -353,7 +378,8 @@ export function PricingSection() {
 
       {openPurchasePlan && (
         <div
-          onClick={() => setOpenPurchasePlan(null)}
+          onMouseDown={handleBackdropMouseDown}
+          onClick={(e) => handleBackdropClick(e, () => setOpenPurchasePlan(null))}
           className="fixed inset-0 z-[1000] flex items-center justify-center p-4"
           style={{ background: "rgba(10,25,47,0.6)" }}
         >
@@ -365,7 +391,8 @@ export function PricingSection() {
 
       {openTrialPlan && (
         <div
-          onClick={() => setOpenTrialPlan(null)}
+          onMouseDown={handleBackdropMouseDown}
+          onClick={(e) => handleBackdropClick(e, () => setOpenTrialPlan(null))}
           className="fixed inset-0 z-[1000] flex items-center justify-center p-4"
           style={{ background: "rgba(10,25,47,0.6)" }}
         >
