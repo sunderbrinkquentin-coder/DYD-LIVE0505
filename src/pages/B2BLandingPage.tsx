@@ -2,7 +2,7 @@ import { useState, useCallback } from 'react';
 import B2BHeader from './b2b/B2BHeader';
 import B2BHero from './b2b/B2BHero';
 import B2BTabs from './b2b/B2BTabs';
-import { PlatformOverviewSection, TrustSection, EventsSection, FinalCtaSection } from './b2b/B2BSections';
+import { PlatformOverviewSection, TrustSection, FinalCtaSection } from './b2b/B2BSections';
 import B2BContactModal from './b2b/B2BContactModal';
 
 type TabId = 'unternehmen' | 'bildungstraeger';
@@ -36,7 +36,13 @@ export default function B2BLandingPage() {
       <B2BTabs activeTab={activeTab} onTabChange={setActiveTab} onRequestDemo={openContact} />
       <PlatformOverviewSection activeTab={activeTab} />
       <TrustSection onContact={() => openContact(activeTab)} />
-      <EventsSection />
+      {/* NEU (01.10.2026, auf Kundenwunsch entfernt): EventsSection
+          ("DYD live: Workshops & Messeauftritte") stand hier zuvor direkt
+          vor dem finalen CTA-Band - sollte ganz raus. Die zugehoerigen
+          Inhalte bleiben als b2bContent.events in content.ts erhalten
+          (unschaedlich, falls spaeter doch wieder gebraucht), werden aber
+          nirgends mehr gerendert. Der Import von EventsSection wurde
+          entsprechend oben entfernt. */}
       <FinalCtaSection onContact={() => openContact(activeTab)} />
       <B2BContactModal open={modalOpen} onClose={() => setModalOpen(false)} segment={modalSegment} institution={modalInstitution} />
     </div>
