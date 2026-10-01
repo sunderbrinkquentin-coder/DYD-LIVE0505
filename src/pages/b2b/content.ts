@@ -392,6 +392,28 @@ cpa: {
           },
         ],
       },
+      // NEU (01.10.2026, iframe/Button-Embed auf Kundenwunsch erklaert):
+      // zusaetzliche dritte Karte im "Flexibel ausrollen"-Bereich, NUR fuer
+      // ORBIT (siehe extraOption-Prop an <Delivery /> in B2BTabs.tsx) - das
+      // beschriebene Feature ist im ORBIT-Dashboard bereits fertig gebaut
+      // (Button "Journey einbetten" -> EmbedBox in App.tsx des
+      // ORBIT-Dashboard-Projekts): generiert pro Tenant automatisch einen
+      // oeffentlichen, bewusst eingeschraenkten "Journey-Key" (Produkt
+      // "journey", kann NUR die Journey ausfuehren - keine Kurse verwalten,
+      // keine Leads einsehen), daraus einen fertigen iframe-Code UND
+      // separat den blanken Link ("z.B. fuer einen Button/Menuepunkt") -
+      // beides direkt im Dashboard kopierbar, keine eigene Entwicklung
+      // noetig.
+      embedOption: {
+        icon: 'click',
+        title: 'Direkt einbetten per Klick',
+        desc: 'Fertigen iframe-Code direkt im ORBIT-Dashboard kopieren und auf Ihrer eigenen Website hinter einem Button platzieren – Ihre Besucher:innen nutzen den Weiterbildungs-Finder direkt bei Ihnen, ganz ohne eigene Entwicklung.',
+        points: [
+          'Fertiger iframe-Code zum Einfügen, direkt im Dashboard',
+          'Alternativ nur der Link – z. B. hinter einem eigenen Button oder Menüpunkt',
+          'Eingeschränkter Journey-Key: kann keine Kurse verwalten oder Leads einsehen',
+        ],
+      },
       faq: [
         {
           q: 'Wie werden die Leads qualifiziert?',
