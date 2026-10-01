@@ -246,6 +246,18 @@ export const b2bContent = {
                 need: 65,
                 reason: 'Deckt den Bedarf der Zielrolle bereits ab – gute Basis, um datengetriebene Projekte zu steuern.',
               },
+              {
+                label: 'Business-Kontext & KPI-Verständnis',
+                has: 80,
+                need: 60,
+                reason: 'Die Marketing-Erfahrung bringt bereits ein starkes Verständnis für Geschäftskennzahlen mit – eine Stärke, die in der Zielrolle direkt weitergenutzt wird.',
+              },
+              {
+                label: 'Python-Grundlagen',
+                has: 10,
+                need: 55,
+                reason: 'Für komplexere Auswertungen und Automatisierungen in der Zielrolle sind Python-Kenntnisse hilfreich – hier besteht aktuell kaum Praxis.',
+              },
             ],
           },
           {
@@ -287,6 +299,18 @@ export const b2bContent = {
                 need: 60,
                 reason: 'Moderne HR Business Partner begründen Entscheidungen zunehmend datenbasiert – hier fehlt noch die Grundlage.',
               },
+              {
+                label: 'Gehaltsabrechnung / Entgeltprozesse',
+                has: 85,
+                need: 50,
+                reason: 'Tiefes Prozesswissen aus dem Tagesgeschäft, das in der Zielrolle weiterhin gebraucht wird – nur mit mehr strategischem Fokus statt operativer Abwicklung.',
+              },
+              {
+                label: 'Stakeholder-Management auf Führungsebene',
+                has: 30,
+                need: 70,
+                reason: 'HR Business Partner stehen im ständigen Austausch mit Führungskräften – hier braucht es mehr Souveränität im Umgang mit dieser Zielgruppe als aktuell vorhanden.',
+              },
             ],
           },
           {
@@ -327,6 +351,18 @@ export const b2bContent = {
                 has: 60,
                 need: 65,
                 reason: 'Fast auf Zielniveau – mit etwas gezielter Praxis schnell zu schließen.',
+              },
+              {
+                label: 'Kaufmännisches Prozessverständnis',
+                has: 80,
+                need: 55,
+                reason: 'Die kaufmännische Ausbildung bringt ein solides Verständnis für Geschäftsprozesse mit, das sich direkt auf die Analyse von Unternehmensdaten übertragen lässt.',
+              },
+              {
+                label: 'Datenvisualisierung (BI-Tools)',
+                has: 10,
+                need: 55,
+                reason: 'Ergebnisse müssen in der Zielrolle verständlich aufbereitet werden – hier ist noch wenig praktische Erfahrung mit BI-Tools vorhanden.',
               },
             ],
           },
