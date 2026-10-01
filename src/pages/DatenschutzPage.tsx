@@ -35,10 +35,11 @@ export default function DatenschutzPage() {
             </div>
 
             <div>
-              <h2 className="text-white font-semibold mb-3 text-xl">3. Hosting (Bolt)</h2>
-              <p>Unsere Website wird über Bolt (Serverstandort: EU) betrieben. Bolt speichert temporär Logfiles (z. B. IP-Adresse, Browser, Zugriffsdaten), um die Stabilität und Sicherheit der Seite zu gewährleisten.</p>
-              <p className="mt-2"><span className="text-white font-medium">Rechtsgrundlage:</span> Art. 6 Abs. 1 lit. f DSGVO (berechtigtes Interesse an sicherem Betrieb).</p>
-              <p><span className="text-white font-medium">Speicherdauer:</span> max. 7 Tage.</p>
+              <h2 className="text-white font-semibold mb-3 text-xl">3. Hosting (Netlify)</h2>
+              <p>Unsere Website wird von Netlify, Inc., 512 2nd Street, Suite 200, San Francisco, CA 94107, USA, gehostet. Netlify speichert dabei automatisiert Zugriffs-Logfiles (z. B. IP-Adresse, Browsertyp, Datum und Uhrzeit des Zugriffs), um den Betrieb, die Stabilität und die Sicherheit der Website zu gewährleisten.</p>
+              <p className="mt-2"><span className="text-white font-medium">Drittlandtransfer:</span> Da Netlify Daten in die USA übermitteln kann, stützt sich die Übermittlung in erster Linie auf die Zertifizierung von Netlify unter dem EU-US Data Privacy Framework (DPF); ergänzend bzw. hilfsweise kommen EU-Standardvertragsklauseln (SCCs) nach Art. 46 DSGVO zum Einsatz. Mit Netlify besteht ein Auftragsverarbeitungsvertrag (Data Processing Agreement) nach Art. 28 DSGVO.</p>
+              <p className="mt-2"><span className="text-white font-medium">Rechtsgrundlage:</span> Art. 6 Abs. 1 lit. f DSGVO (berechtigtes Interesse an einem sicheren und stabilen Betrieb der Website).</p>
+              <p><span className="text-white font-medium">Speicherdauer:</span> Zugriffs-Logfiles werden bei Netlify in der Regel bis zu 90 Tage online und zu Sicherungszwecken bis zu 1 Jahr in Offline-Backups vorgehalten.</p>
             </div>
 
             <div>
@@ -72,20 +73,13 @@ export default function DatenschutzPage() {
 
                 <div>
                   <h3 className="text-white font-medium mb-2">5.3 Verarbeitung durch OpenAI (KI-Optimierung)</h3>
-                  <p>Für die Optimierung der Lebensläufe verwenden wir die API von OpenAI, L.L.C., 3180 18th Street, San Francisco, CA 94110, USA.</p>
-                  <p className="mt-2">Mit OpenAI besteht ein Auftragsverarbeitungsvertrag (AVV) inkl. Standardvertragsklauseln (SCCs). OpenAI nutzt die übermittelten Daten nicht für Trainingszwecke.</p>
+                  <p>Für die Optimierung der Lebensläufe verwenden wir die API von OpenAI. Da DYD mit Sitz in Deutschland (EU) die Services nutzt, ist unsere Vertragspartnerin OpenAI Ireland Limited, Irland.</p>
+                  <p className="mt-2">Mit OpenAI besteht ein Auftragsverarbeitungsvertrag (Data Processing Addendum) inkl. EU-Standardvertragsklauseln (SCCs) nach Art. 46 DSGVO für etwaige Datenübermittlungen in die USA. Datenimporteurin im Rahmen dieser SCCs ist OpenAI OpCo, LLC, 1960 Bryant Street, San Francisco, CA 94110, USA. OpenAI nutzt die über die API übermittelten Daten nicht zum Training seiner Modelle.</p>
                   <p className="mt-2"><span className="text-white font-medium">Rechtsgrundlage:</span> Art. 6 Abs. 1 lit. b DSGVO (Vertragserfüllung) und Art. 6 Abs. 1 lit. a DSGVO (Einwilligung zur KI-Verarbeitung).</p>
+                  <p className="mt-2"><span className="text-white font-medium">Speicherdauer:</span> Über die API übermittelte Daten ("API Service Customer Data") werden von OpenAI für maximal 30 Tage gespeichert und danach gelöscht, soweit keine gesetzlichen Aufbewahrungspflichten entgegenstehen.</p>
                   <p className="mt-2"><span className="text-white font-medium">Zweck:</span> Erstellung optimierter Lebensläufe und Bewerbungsinhalte durch KI.</p>
                 </div>
 
-                <div>
-                  <h3 className="text-white font-medium mb-2">5.4 Verarbeitung durch APITemplate.io (PDF-/HTML-Erstellung)</h3>
-                  <p>Für die Erstellung und Formatierung optimierter Lebensläufe (z. B. PDF-Generierung) nutzen wir APITemplate.io.</p>
-                  <p className="mt-2"><span className="text-white font-medium">Anbieter:</span> Alphacloud Pte. Ltd., 68 Circular Road #02-01, 049422 Singapore</p>
-                  <p className="mt-2">Mit APITemplate besteht ein Auftragsverarbeitungsvertrag (DPA) inkl. Standardvertragsklauseln (SCCs).</p>
-                  <p className="mt-2"><span className="text-white font-medium">Rechtsgrundlage:</span> Art. 6 Abs. 1 lit. b DSGVO (Vertragserfüllung) und Art. 6 Abs. 1 lit. a DSGVO (Einwilligung in Drittlandtransfer).</p>
-                  <p className="mt-2"><span className="text-white font-medium">Zweck:</span> Erstellung druckfertiger, optimierter Lebenslauf-Dokumente im PDF- oder HTML-Format.</p>
-                </div>
               </div>
             </div>
 
