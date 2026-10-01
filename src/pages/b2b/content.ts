@@ -186,9 +186,24 @@ export const b2bContent = {
       // Kombinationen und macht das Feature robust (siehe SelfServiceFeatures-
       // Absturz weiter oben: jede hier referenzierte scenario existiert
       // garantiert, keine dynamische Keys-Aufloesung noetig).
+      // UEBERARBEITET (01.10.2026, auf Kundenwunsch "umfangreicher, wirklich
+      // hilfreich, conversion-optimiert"): jeder Skill hat jetzt zusaetzlich
+      // "reason" - eine kurze Begruendung, WARUM er fuer die Zielrolle zaehlt
+      // (Staerke oder Luecke), analog zur skill-detail-reason im echten
+      // ORBIT-Gap-Schritt - macht das Beispiel inhaltlich wertvoll statt nur
+      // eine Zahl zu zeigen. "recommendedCourse" (Singular) wurde durch
+      // "recommendedCourses" (Liste, 2 pro Szenario, je mit eigener
+      // matchReason) ersetzt - realistischer als EIN Kurs fuer eine ganze
+      // Skill-Luecke und naeher an der echten Produktlogik (courseMatcher.ts
+      // im ORBIT-Dashboard rankt ebenfalls mehrere Kurse). Die Skill-Chips in
+      // SkillGapWidget.tsx sind jetzt klickbar/aufklappbar (zeigen "reason"
+      // on demand) statt nur statischer Pillen - das war der "dynamisch"-Teil
+      // des Wunsches, ohne die komplette Live-Rollensuche aus der echten
+      // Journey auf die Marketing-Seite zu verlagern (das waere ein eigenes,
+      // deutlich groesseres Thema, siehe Chat).
       skillGapDemo: {
         title: 'Sehen Sie das Matching in Aktion',
-        subtitle: 'Beispielhafte Profile – wählen Sie ein Szenario und sehen Sie die Skill-Lücke live.',
+        subtitle: 'Beispielhafte Profile – wählen Sie ein Szenario, klicken Sie einen Skill an und sehen Sie die Begründung dahinter.',
         note: 'Illustrative Beispieldaten zur Veranschaulichung, kein Ergebnis einer echten Analyse.',
         ctaLabel: 'Passende Weiterbildung als Lead anfragen',
         scenarios: [
@@ -196,36 +211,123 @@ export const b2bContent = {
             id: 'marketing-to-data',
             fromLabel: 'Marketing-Managerin',
             toLabel: 'Data & Analytics Lead',
-            recommendedCourse: 'Data Analytics Fundamentals (SQL & Visualisierung)',
+            recommendedCourses: [
+              {
+                title: 'Data Analytics Fundamentals (SQL & Visualisierung)',
+                matchReason: 'Schließt die beiden größten Lücken – Datenanalyse und SQL – in einem Kurs.',
+              },
+              {
+                title: 'Storytelling mit Daten für Fortgeschrittene',
+                matchReason: 'Baut auf der bereits vorhandenen Kommunikationsstärke auf und verbindet sie mit den neuen Analyse-Skills.',
+              },
+            ],
             skills: [
-              { label: 'Datenanalyse', has: 35, need: 90 },
-              { label: 'SQL / BI-Tools', has: 15, need: 75 },
-              { label: 'Stakeholder-Kommunikation', has: 85, need: 80 },
-              { label: 'Projektmanagement', has: 70, need: 65 },
+              {
+                label: 'Datenanalyse',
+                has: 35,
+                need: 90,
+                reason: 'Die Zielrolle entscheidet datenbasiert – ohne solide Analysefähigkeiten fehlt die Grundlage für fundierte Empfehlungen.',
+              },
+              {
+                label: 'SQL / BI-Tools',
+                has: 15,
+                need: 75,
+                reason: 'Fast alle Auswertungen in der Zielrolle laufen über SQL-Abfragen und BI-Dashboards – aktuell kaum Praxis vorhanden.',
+              },
+              {
+                label: 'Stakeholder-Kommunikation',
+                has: 85,
+                need: 80,
+                reason: 'Bereits auf hohem Niveau vorhanden – eine der größten Stärken, da Analyseergebnisse verständlich vermittelt werden müssen.',
+              },
+              {
+                label: 'Projektmanagement',
+                has: 70,
+                need: 65,
+                reason: 'Deckt den Bedarf der Zielrolle bereits ab – gute Basis, um datengetriebene Projekte zu steuern.',
+              },
             ],
           },
           {
             id: 'hr-to-hrbp',
             fromLabel: 'Personalsachbearbeiter:in',
             toLabel: 'HR Business Partner',
-            recommendedCourse: 'Strategisches HR-Management & Change-Begleitung',
+            recommendedCourses: [
+              {
+                title: 'Strategisches HR-Management & Change-Begleitung',
+                matchReason: 'Deckt mit Change-Management und Beratungskompetenz die beiden größten Lücken ab.',
+              },
+              {
+                title: 'Einstieg in HR-Analytics',
+                matchReason: 'Schließt die dritte Lücke und ergänzt die vorhandene Arbeitsrechts-Expertise um eine datenbasierte Perspektive.',
+              },
+            ],
             skills: [
-              { label: 'Arbeitsrecht', has: 80, need: 70 },
-              { label: 'Change-Management', has: 20, need: 75 },
-              { label: 'Beratungskompetenz', has: 45, need: 85 },
-              { label: 'HR-Analytics', has: 25, need: 60 },
+              {
+                label: 'Arbeitsrecht',
+                has: 80,
+                need: 70,
+                reason: 'Übertrifft bereits die Anforderung der Zielrolle – eine der stärksten vorhandenen Grundlagen.',
+              },
+              {
+                label: 'Change-Management',
+                has: 20,
+                need: 75,
+                reason: 'HR Business Partner begleiten aktiv Veränderungsprozesse – hier liegt die größte Lücke zur Zielrolle.',
+              },
+              {
+                label: 'Beratungskompetenz',
+                has: 45,
+                need: 85,
+                reason: 'Die Zielrolle berät Führungskräfte auf Augenhöhe – dafür braucht es spürbar mehr Erfahrung als aktuell vorhanden.',
+              },
+              {
+                label: 'HR-Analytics',
+                has: 25,
+                need: 60,
+                reason: 'Moderne HR Business Partner begründen Entscheidungen zunehmend datenbasiert – hier fehlt noch die Grundlage.',
+              },
             ],
           },
           {
             id: 'career-changer-to-analyst',
             fromLabel: 'Quereinsteiger:in (kfm. Ausbildung)',
             toLabel: 'Junior Data Analyst',
-            recommendedCourse: 'Python & Datenanalyse für Einsteiger:innen',
+            recommendedCourses: [
+              {
+                title: 'Python & Datenanalyse für Einsteiger:innen',
+                matchReason: 'Setzt genau bei der größten Lücke (Python) an und baut die Statistik-Grundlagen direkt mit auf.',
+              },
+              {
+                title: 'Statistik-Basics für den Berufseinstieg',
+                matchReason: 'Vertieft das Zahlenverständnis gezielt dort, wo aktuell noch die größte Unsicherheit besteht.',
+              },
+            ],
             skills: [
-              { label: 'Python-Grundlagen', has: 5, need: 70 },
-              { label: 'Statistik-Grundlagen', has: 20, need: 65 },
-              { label: 'Excel / Tabellenkalkulation', has: 75, need: 60 },
-              { label: 'Zahlenverständnis', has: 60, need: 65 },
+              {
+                label: 'Python-Grundlagen',
+                has: 5,
+                need: 70,
+                reason: 'Die Zielrolle arbeitet täglich mit Python – aktuell so gut wie keine Vorerfahrung vorhanden, höchste Priorität.',
+              },
+              {
+                label: 'Statistik-Grundlagen',
+                has: 20,
+                need: 65,
+                reason: 'Fundierte Dateninterpretation braucht statistisches Grundverständnis – hier ist noch deutlich Luft nach oben.',
+              },
+              {
+                label: 'Excel / Tabellenkalkulation',
+                has: 75,
+                need: 60,
+                reason: 'Übertrifft bereits die Anforderung – eine gute Brücke zu komplexeren Analyse-Tools.',
+              },
+              {
+                label: 'Zahlenverständnis',
+                has: 60,
+                need: 65,
+                reason: 'Fast auf Zielniveau – mit etwas gezielter Praxis schnell zu schließen.',
+              },
             ],
           },
         ],
