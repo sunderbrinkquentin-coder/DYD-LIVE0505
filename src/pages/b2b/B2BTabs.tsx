@@ -176,7 +176,25 @@ function Delivery() {
 /* Fragen mit `cta: true` (z. B. die Preisfrage) bekommen einen kleinen Link zum
    Kontaktformular direkt unter der Antwort – genau am Punkt der höchsten
    Kaufabsicht, statt Besucher:innen erst bis zum Seitenende scrollen zu lassen. */
-function FAQ({ items, onCta }: { items: readonly { q: string; a: string; cta?: boolean }[]; onCta?: () => void }) {
+/** UEBERARBEITET (30.09.2026, FAQ/Pricing-Widerspruch beseitigt): FAQ-Items
+ *  koennen jetzt optional "ctaLabel" (eigener Button-Text) und "ctaAction"
+ *  mitgeben ("pricing" springt zu #orbit-pricing statt das Kontaktformular
+ *  zu oeffnen). Ohne ctaAction bleibt das alte Verhalten (Kontakt-CTA "Erst-
+ *  gespraech vereinbaren") unveraendert - wichtig, weil Tab A (NEXUS) sein
+ *  eigenes cta:true-FAQ-Item ("Was kostet die Pilotphase?") hat, das
+ *  weiterhin zu Recht aufs Erstgespraech verweist (NEXUS hat keinen
+ *  Self-Service-Kauf). Nur Tab Bs Preisfrage bekommt jetzt den neuen
+ *  "Zu den Paketen"-Sprung, weil ORBIT inzwischen direkt online kaufbar
+ *  ist - ein Kontakt-CTA unter der Preisfrage waere dort irrefuehrend
+ *  (klingt nach "Preis nur auf Anfrage", obwohl er auf derselben Seite
+ *  bereits offen einsehbar ist). */
+function FAQ({
+  items,
+  onCta,
+}: {
+  items: readonly { q: string; a: string; cta?: boolean; ctaLabel?: string; ctaAction?: 'contact' | 'pricing' }[];
+  onCta?: () => void;
+}) {
   const { reduce, container, fadeUp } = useAnims();
   const [open, setOpen] = useState<number | null>(0);
   return (
@@ -196,9 +214,19 @@ function FAQ({ items, onCta }: { items: readonly { q: string; a: string; cta?: b
                   <motion.div id={`faq-panel-${i}`} initial={{ height: 0, opacity: 0 }} animate={{ height: 'auto', opacity: 1 }} exit={{ height: 0, opacity: 0 }} transition={{ duration: reduce ? 0 : 0.25, ease: 'easeInOut' }} className="overflow-hidden">
                     <div className="px-5 pb-5">
                       <p className="font-arimo text-sm text-[#55637A] leading-relaxed">{item.a}</p>
-                      {item.cta && onCta && (
+                      {item.cta && item.ctaAction === 'pricing' && (
+                        <button
+                          type="button"
+                          onClick={() => document.getElementById('orbit-pricing')?.scrollIntoView({ behavior: 'smooth', block: 'start' })}
+                          className="mt-3 inline-flex items-center gap-1.5 font-arimo text-xs font-bold text-[#38BDF8] hover:text-[#0A192F] transition b2b-focus-ring rounded"
+                        >
+                          {item.ctaLabel ?? 'Zu den Paketen'}
+                          <ArrowRight className="w-3.5 h-3.5" aria-hidden="true" />
+                        </button>
+                      )}
+                      {item.cta && item.ctaAction !== 'pricing' && onCta && (
                         <button type="button" onClick={onCta} className="mt-3 inline-flex items-center gap-1.5 font-arimo text-xs font-bold text-[#38BDF8] hover:text-[#0A192F] transition b2b-focus-ring rounded">
-                          Erstgespräch vereinbaren
+                          {item.ctaLabel ?? 'Erstgespräch vereinbaren'}
                           <ArrowRight className="w-3.5 h-3.5" aria-hidden="true" />
                         </button>
                       )}
