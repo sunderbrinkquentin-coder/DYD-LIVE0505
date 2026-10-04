@@ -107,6 +107,17 @@ function buildCvFileName(cvData: Record<string, any>, jobData: Record<string, an
     .join('_');
 }
 
+// ── Telefonnummer lesbar formatieren: +4915737567939 → +49 157 37567939 ─────
+// Nur eindeutige Fälle (deutsche Mobilnummern) werden gruppiert, alles andere
+// bleibt unverändert, um keine falsche Vorwahl-Trennung zu erzeugen.
+function formatPhone(raw: unknown): string {
+  const original = typeof raw === 'string' ? raw.trim() : '';
+  const digits = original.replace(/[^\d+]/g, '');
+  const mobile = digits.match(/^(?:\+49|0049|0)(1[5-7]\d)(\d{6,8})$/);
+  if (mobile) return `+49 ${mobile[1]} ${mobile[2]}`;
+  return original;
+}
+
 interface LoadedCv {
   personalInfo: PersonalInfo;
   summary?: string;
@@ -167,7 +178,7 @@ export function CvExportRenderPage() {
             .maybeSingle()
         : await supabase
             .from('stored_cvs')
-            .select('cv_data, selected_template, job_data')
+            .select('cv_data, selected_template, job_data, is_paid, download_unlocked')
             .eq('id', cvId)
             .maybeSingle();
 
@@ -176,6 +187,17 @@ export function CvExportRenderPage() {
       if (error || !row) {
         setLoadError(`CV konnte nicht geladen werden. ${error?.message ?? ''}`);
         return;
+      }
+
+      // Zahlungs-Check: Im Session-Modus darf nur ein freigeschalteter CV gedruckt
+      // werden (vorher reichte es, die URL von Hand aufzurufen). Im Token-Modus
+      // prüft die Netlify-Function die Freischaltung bereits serverseitig.
+      if (!token) {
+        const paid = row as { is_paid?: boolean | null; download_unlocked?: boolean | null };
+        if (!paid.is_paid && !paid.download_unlocked) {
+          setLoadError('Dieser Lebenslauf ist noch nicht freigeschaltet.');
+          return;
+        }
       }
 
       if (token) {
@@ -201,7 +223,10 @@ export function CvExportRenderPage() {
 
       setData({
         fileName: buildCvFileName(cvData as Record<string, any>, jobData),
-        personalInfo: (cvData.personalInfo ?? {}) as PersonalInfo,
+        personalInfo: {
+          ...((cvData.personalInfo ?? {}) as PersonalInfo),
+          phone: formatPhone((cvData.personalInfo as PersonalInfo | undefined)?.phone),
+        } as PersonalInfo,
         summary: cvData.summary as string | undefined,
         sections: (cvData.sections ?? []) as EditorSection[],
         photoUrl: cvData.photoUrl as string | undefined,
@@ -338,10 +363,17 @@ export function CvExportRenderPage() {
         html body [data-pdf-root] button {
           display: none !important;
         }
+        /* Deutsche Silbentrennung statt Umbruch mitten im Wort ohne Trennstrich
+           ("Wirtschaftsingenieurwese / n") */
+        [data-pdf-root] {
+          -webkit-hyphens: auto;
+          hyphens: auto;
+          overflow-wrap: break-word;
+        }
         [data-break-atomic], [data-break-item] { break-inside: avoid; }
         [data-break-keep-next] { break-after: avoid; }
       `}</style>
-      <div ref={rootRef} data-pdf-root style={{ width: '794px', backgroundColor: pageBg }}>
+      <div ref={rootRef} data-pdf-root lang="de" style={{ width: '794px', backgroundColor: pageBg }}>
         {renderTemplate()}
       </div>
       {/* Von der Netlify-Function abgewartet, bevor page.pdf() aufgerufen wird. */}
