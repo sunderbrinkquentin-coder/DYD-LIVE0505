@@ -876,3 +876,82 @@ export function mapEditorDataToWizard(editorData: any): CVBuilderData {
     summary,
   };
 }
+// ─────────────────────────────────────────────────────────────────────────────
+// Grundlage für eine (erneute) Optimierung
+// ─────────────────────────────────────────────────────────────────────────────
+
+/** Felder, die nur der Live-Editor kennt. Dürfen NIE in einen neuen Optimierungs-
+ *  Eintrag gelangen: Der Editor bevorzugt ein vorhandenes `sections`-Array und würde
+ *  sonst die frisch optimierten Bullets ignorieren und den alten Stand anzeigen. */
+const EDITOR_ONLY_KEYS = [
+  'sections', 'personalInfo', 'contact', 'matching_text', 'matchingText',
+  'experience', 'experiences', 'education', 'skills', 'profile_summary',
+  'editor_data', 'optimized_cv',
+];
+
+function isEmptyValue(v: any): boolean {
+  if (v === null || v === undefined) return true;
+  if (typeof v === 'string') return v.trim() === '';
+  if (Array.isArray(v)) return v.length === 0;
+  if (typeof v === 'object') return Object.values(v).every(isEmptyValue);
+  return false;
+}
+
+/**
+ * Liefert aus beliebigem gespeicherten cv_data (Wizard-, Editor- oder Mischformat)
+ * die Wizard-Daten im AKTUELLSTEN Stand:
+ *  - Wurde der CV im Live-Editor bearbeitet, sind dessen Abschnitte (sections) die
+ *    Wahrheit – die flachen Wizard-Felder daneben sind dann veraltet.
+ *  - Felder, die der Editor nicht kennt (preferences, flags, internships, workValues,
+ *    hobbies, experienceLevel …), bleiben aus dem Original erhalten.
+ *  - Editor-only-Felder werden entfernt.
+ */
+export function toWizardBaseCv(raw: any): CVBuilderData | null {
+  let data = raw;
+  if (typeof data === 'string') {
+    try { data = JSON.parse(data); } catch { return null; }
+  }
+  if (!data || typeof data !== 'object') return null;
+
+  const hasEditorSections = Array.isArray(data.sections) && data.sections.length > 0;
+  const isLegacyEditorFormat = !!(data.contact || data.experience);
+  let base: any = { ...data };
+
+  if (hasEditorSections || isLegacyEditorFormat) {
+    let mapped: any = {};
+    try {
+      mapped = mapEditorDataToWizard(
+        hasEditorSections
+          ? {
+              // nur den Editor-Stand übergeben – sonst bevorzugt der Mapper die veralteten flachen Felder
+              sections: data.sections,
+              personalInfo: data.personalInfo,
+              contact: data.contact,
+              summary: data.summary,
+              photoUrl: data.photoUrl,
+              projects: data.projects,
+              languages: data.languages,
+            }
+          : data,
+      );
+    } catch {
+      mapped = {};
+    }
+
+    for (const [key, value] of Object.entries(mapped)) {
+      if (key === 'personalData') {
+        // Kontaktdaten feldweise zusammenführen (headline, drivingLicense … nicht verlieren)
+        const merged: any = { ...(data.personalData ?? {}) };
+        for (const [k, v] of Object.entries((value as any) ?? {})) {
+          if (!isEmptyValue(v)) merged[k] = v;
+        }
+        base.personalData = merged;
+      } else if (!isEmptyValue(value)) {
+        base[key] = value;
+      }
+    }
+  }
+
+  for (const key of EDITOR_ONLY_KEYS) delete base[key];
+  return base as CVBuilderData;
+}
