@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from 'react';
 import type { RefObject } from 'react';
 import {
   computeBreakPoints,
+  computePagedLayout,
   containerHeightFor,
   PAGE_HEIGHT_PX,
   type BreakOptions,
@@ -27,6 +28,12 @@ function isSame(a: BreakResult, b: BreakResult): boolean {
   if (Math.abs(a.contentHeight - b.contentHeight) > 1) return false;
   for (let i = 0; i < a.cuts.length; i++) {
     if (Math.abs(a.cuts[i] - b.cuts[i]) > 1) return false;
+  }
+  const pa = a.pushes ?? [];
+  const pb = b.pushes ?? [];
+  if (pa.length !== pb.length) return false;
+  for (let i = 0; i < pa.length; i++) {
+    if (pa[i].index !== pb[i].index || Math.abs(pa[i].px - pb[i].px) > 1) return false;
   }
   return true;
 }
@@ -55,7 +62,15 @@ export interface UseBreakPointsResult extends BreakResult {
 export function useBreakPoints(
   rootRef: RefObject<HTMLElement | null>,
   deps: unknown[],
-  options: BreakOptions = {}
+  options: BreakOptions & {
+    /**
+     * true (Standard): seitenweises Layout – jede Seite wird voll genutzt,
+     * überstehende Karten rutschen spaltenweise auf die nächste Seite
+     * (Ergebnis enthält `pushes`, die per applyPushes() auf jede sichtbare
+     * Kopie angewendet werden müssen). false: klassische Schnittsuche.
+     */
+    paged?: boolean;
+  } = {}
 ): UseBreakPointsResult {
   const [result, setResult] = useState<BreakResult>(INITIAL);
   const [isMeasuring, setIsMeasuring] = useState(true);
@@ -77,7 +92,10 @@ export function useBreakPoints(
       const root = rootRef.current;
       if (!root || root.scrollHeight < 50) return;
 
-      const next = computeBreakPoints(root, optionsRef.current);
+      const { paged = true, ...breakOptions } = optionsRef.current;
+      const next = paged
+        ? computePagedLayout(root, breakOptions)
+        : computeBreakPoints(root, breakOptions);
       if (!isSame(resultRef.current, next)) {
         setResult(next);
       }
