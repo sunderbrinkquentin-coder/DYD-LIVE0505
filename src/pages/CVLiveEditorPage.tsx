@@ -245,7 +245,7 @@ export function CVLiveEditorPage() {
     isFailed,
     error: statusError,
     elapsedSeconds,
-  } = useCvOptimizationStatus(cvId);
+  } = useCvOptimizationStatus(cvId, { timeoutSeconds: 180 });
 
   const [editorData, setEditorData] = useState<EditorData | null>(null);
   const [jobData, setJobData] = useState<any>(null);
@@ -267,6 +267,17 @@ export function CVLiveEditorPage() {
   const [pendingDeleteItem, setPendingDeleteItem] = useState<{ sectionIndex: number; itemIndex: number } | null>(null);
 
   const [showTips, setShowTips] = useState(false);
+  const optimizationTipsShownRef = useRef(false);
+
+  // Nach einer Optimierung die Tipps einmal automatisch aufklappen
+  useEffect(() => {
+    if (optimizationTipsShownRef.current) return;
+    const tips = (editorData as any)?._optimization?.tips;
+    if (Array.isArray(tips) && tips.length > 0) {
+      optimizationTipsShownRef.current = true;
+      setShowTips(true);
+    }
+  }, [editorData]);
   const [showPaymentSuccessBanner, setShowPaymentSuccessBanner] = useState(false);
   const [showJobDescription, setShowJobDescription] = useState(false);
 
@@ -628,6 +639,8 @@ const cloneRef = useRef<HTMLDivElement | null>(null);
 
       const personalInfo: any = {
         name: rawPersonal.name || builderPersonal.full_name || `${builderPersonal.firstName ?? ''} ${builderPersonal.lastName ?? ''}`.trim() || '',
+        // Headline/Positionierung unter dem Namen (von der Optimierung in personalData.headline geliefert)
+        title: rawPersonal.title || builderPersonal.headline || builderPersonal.title || '',
         email: rawPersonal.email || builderPersonal.email || '',
         phone: rawPersonal.phone || builderPersonal.phone || '',
         location: rawPersonal.location || builderPersonal.location || [builderPersonal.zipCode, builderPersonal.city].filter(Boolean).join(' ') || '',
@@ -772,7 +785,13 @@ const cloneRef = useRef<HTMLDivElement | null>(null);
           Object.assign(personalInfo, (personalSection as any).data);
         }
       } else {
-        const experienceItems = findArray(['experiences', 'workExperiences', 'workExperience', 'work_experience', 'cv_experience', 'experience']);
+        // Praktika/Werkstudententätigkeiten (internships) wurden bisher nie eingelesen.
+        // Sie laufen jetzt in derselben Sektion mit – eine zweite Sektion vom Typ
+        // 'experience' würde beim nächsten Laden per Typ-Deduplizierung verschwinden.
+        const experienceItems = [
+          ...findArray(['experiences', 'workExperiences', 'workExperience', 'work_experience', 'cv_experience', 'experience']),
+          ...findArray(['internships', 'praktika']),
+        ];
         if (experienceItems.length > 0) {
           const mappedExpItems = experienceItems.map((exp: any) => ({
             title: exp.title || exp.position || exp.role || exp.jobTitle || '',
@@ -806,6 +825,8 @@ const cloneRef = useRef<HTMLDivElement | null>(null);
               || '',
             grade: edu.grade || edu.grades || edu.note || edu.gpa || '',
             focus: Array.isArray(edu.focus) ? edu.focus : [],
+            // Von der Optimierung erzeugte Bullets (Schwerpunkte, Abschlussarbeit, Ausbildungsinhalte)
+            bulletPoints: Array.isArray(edu.bulletPoints) ? edu.bulletPoints.filter(Boolean) : [],
           }))
           // Ein Eintrag ohne Abschluss UND ohne Institution ist keine Station,
           // sondern ein leeres Objekt aus einer der drei zusammengeführten
@@ -1679,6 +1700,11 @@ const addSectionItem = (sectionIndex: number, defaultItem: any) => {
     );
   }
 
+  // Tipps der Optimierung (fehlende Kennzahlen, Angaben, Keywords) – nie im CV-Text
+  const optimizationMeta = (editorData as any)?._optimization ?? null;
+  const optimizationTips: string[] = Array.isArray(optimizationMeta?.tips) ? optimizationMeta.tips : [];
+  const missingKeywords: string[] = Array.isArray(optimizationMeta?.missing_keywords) ? optimizationMeta.missing_keywords : [];
+
   return (
     <div className="h-screen bg-[#050507] flex flex-col overflow-hidden font-sans w-full">
       {isPostPaymentFlow && templateConfirmed && (
@@ -2107,17 +2133,38 @@ const reorderSections = (fromIndex: number, toIndex: number) => {
       )}
 
       {showTips && (
-        <div className="fixed top-20 right-4 max-w-md bg-[#1a1a1a] border border-[#66c0b6]/30 rounded-xl p-4 shadow-2xl z-50">
+        <div className="fixed top-20 right-4 max-w-md max-h-[70vh] overflow-y-auto bg-[#1a1a1a] border border-[#66c0b6]/30 rounded-xl p-4 shadow-2xl z-50">
           <div className="flex items-start gap-3">
             <Sparkles size={20} className="text-[#66c0b6] flex-shrink-0 mt-1" />
-            <div className="flex-1">
-              <h3 className="text-white font-semibold mb-2">💡 Editor-Tipps</h3>
-              <ul className="text-sm text-white/70 space-y-1">
-                <li>• Klicke auf Texte, um sie direkt zu bearbeiten</li>
-                <li>• Wähle ein Design aus den Templates</li>
-                <li>• Lade ein Foto hoch</li>
-                <li>• Lade den fertigen CV als PDF herunter</li>
-              </ul>
+            <div className="flex-1 space-y-4">
+              {optimizationTips.length > 0 && (
+                <div>
+                  <h3 className="text-white font-semibold mb-2">So wird dein CV noch stärker</h3>
+                  <ul className="text-sm text-white/70 space-y-1.5">
+                    {optimizationTips.map((tip, i) => <li key={i}>• {tip}</li>)}
+                  </ul>
+                </div>
+              )}
+              {missingKeywords.length > 0 && (
+                <div>
+                  <h3 className="text-white font-semibold mb-2">Gefordert, aber im CV nicht belegt</h3>
+                  <p className="text-xs text-white/50 mb-2">Nur ergänzen, wenn du es wirklich kannst bzw. gemacht hast.</p>
+                  <div className="flex flex-wrap gap-1.5">
+                    {missingKeywords.map((k) => (
+                      <span key={k} className="px-2 py-0.5 rounded-md bg-amber-400/15 border border-amber-400/30 text-amber-200 text-xs">{k}</span>
+                    ))}
+                  </div>
+                </div>
+              )}
+              <div>
+                <h3 className="text-white font-semibold mb-2">💡 Editor-Tipps</h3>
+                <ul className="text-sm text-white/70 space-y-1">
+                  <li>• Klicke auf Texte, um sie direkt zu bearbeiten</li>
+                  <li>• Wähle ein Design aus den Templates</li>
+                  <li>• Lade ein Foto hoch</li>
+                  <li>• Lade den fertigen CV als PDF herunter</li>
+                </ul>
+              </div>
             </div>
             <button onClick={() => setShowTips(false)} className="text-white/50 hover:text-white">✕</button>
           </div>
