@@ -281,24 +281,58 @@ export function JobTargeting() {
         console.log('✅ [JOB-TARGETING] Token consumed for paid flow');
       }
 
+      // 5) Jede Optimierung bekommt ihren EIGENEN Eintrag.
+      //    Der Basis-CV (z. B. der letzte Lebenslauf bei der One-Click-Optimierung)
+      //    bleibt unverändert als Grundlage erhalten. Einzige Ausnahme: ein frischer,
+      //    noch nie optimierter Wizard-Entwurf (status 'draft') wird direkt verwendet,
+      //    damit nach dem Wizard kein leerer Doppel-Eintrag im Dashboard entsteht.
       let cvId: string;
       const isPaidRecord = isPaidFlow;
+      let reuseDraftRecord = false;
 
       if (existingCvId) {
+        const { data: existingRow } = await supabase
+          .from('stored_cvs')
+          .select('status, cv_data')
+          .eq('id', existingCvId)
+          .maybeSingle();
+
+        let existingCv: any = existingRow?.cv_data;
+        if (typeof existingCv === 'string') {
+          try { existingCv = JSON.parse(existingCv); } catch { existingCv = null; }
+        }
+
+        const wasOptimized = !!existingCv?._optimization || !!existingCv?.desired_job;
+        reuseDraftRecord =
+          !!existingRow &&
+          (existingRow.status === 'draft' || !existingRow.status) &&
+          !wasOptimized;
+      }
+
+      console.log(
+        reuseDraftRecord
+          ? '🟦 [JOB-TARGETING] Frischer Wizard-Entwurf → wird für die Optimierung verwendet'
+          : '🟦 [JOB-TARGETING] Neuer Eintrag für diese Optimierung, Basis bleibt erhalten:',
+        existingCvId ?? 'keine Basis',
+      );
+
+      const recordFields = {
+        user_id: currentUserId,
+        session_id: sessionId,
+        temp_id: tempId,
+        cv_data: cvDataPayload,
+        // baseCvId: von welchem Lebenslauf diese Optimierung ausging (Nachvollziehbarkeit)
+        job_data: { ...jobData, baseCvId: existingCvId ?? null },
+        source: fromDashboard ? 'dashboard_optimize' : 'wizard',
+        is_paid: isPaidRecord,
+        download_unlocked: isPaidRecord,
+        status: 'processing',
+      };
+
+      if (reuseDraftRecord && existingCvId) {
         const { error: updateError } = await supabase
           .from('stored_cvs')
-          .update({
-            user_id: currentUserId,
-            session_id: sessionId,
-            temp_id: tempId,
-            cv_data: cvDataPayload,
-            job_data: jobData,
-            source: fromDashboard ? 'dashboard_optimize' : 'wizard',
-            is_paid: isPaidRecord,
-            download_unlocked: isPaidRecord,
-            status: 'processing',
-            updated_at: new Date().toISOString(),
-          })
+          .update({ ...recordFields, updated_at: new Date().toISOString() })
           .eq('id', existingCvId);
 
         if (updateError) {
@@ -307,21 +341,11 @@ export function JobTargeting() {
         }
 
         cvId = existingCvId;
-        console.log('✅ [JOB-TARGETING] CV updated with status=processing, cvId:', cvId);
+        console.log('✅ [JOB-TARGETING] Entwurf auf status=processing gesetzt, cvId:', cvId);
       } else {
         const { data: insertedCv, error: insertError } = await supabase
           .from('stored_cvs')
-          .insert({
-            user_id: currentUserId,
-            session_id: sessionId,
-            temp_id: tempId,
-            cv_data: cvDataPayload,
-            job_data: jobData,
-            source: fromDashboard ? 'dashboard_optimize' : 'wizard',
-            is_paid: isPaidRecord,
-            download_unlocked: isPaidRecord,
-            status: 'processing',
-          })
+          .insert(recordFields)
           .select('id')
           .single();
 
@@ -331,10 +355,10 @@ export function JobTargeting() {
         }
 
         cvId = insertedCv.id;
-        console.log('✅ [JOB-TARGETING] CV inserted with status=processing, cvId:', cvId);
+        console.log('✅ [JOB-TARGETING] Neuer Eintrag mit status=processing, cvId:', cvId);
       }
 
-      // 5) Trigger CV Generator via Edge Function
+      // 6) Trigger CV Generator via Edge Function
       const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
       const callbackUrl = `${supabaseUrl}/functions/v1/make-cv-callback`;
 
