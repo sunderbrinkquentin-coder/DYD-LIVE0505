@@ -16,8 +16,8 @@ export const MIN_DENSITY = 0.86;
 const TEMPLATE_WIDTH_PX = 794;
 /** Ab dieser Füllung der letzten Seite (natürliches Layout) wird nichts verdichtet. */
 const LAST_PAGE_OK_FILL = 0.4;
-/** Puffer für Umbrüche an Stationsgrenzen (Seiten werden nie zu 100 % gefüllt). */
-const USABLE_PAGE_RATIO = 0.95;
+/** Kleiner Puffer: das seitenweise Layout füllt Seiten fast vollständig. */
+const USABLE_PAGE_RATIO = 0.98;
 const STEP = 0.02;
 
 export function clampDensity(value: unknown): number {
@@ -56,10 +56,18 @@ export function suggestDensity(result: BreakResult, current: number): number | n
   const visualHeight = result.contentHeight + result.footerHeight;
   if (visualHeight <= 0) return 1;
 
-  const naturalHeight = visualHeight / current;
+  // Ohne die Verschiebungen des seitenweisen Layouts schätzen – sonst zählt der
+  // Leerraum über verschobenen Karten als Inhalt.
+  const rawVisual = (result.rawContentHeight ?? result.contentHeight) + result.footerHeight;
+  const naturalHeight = rawVisual / current;
   const usable = PAGE_HEIGHT_PX * USABLE_PAGE_RATIO;
-  const naturalPages = Math.max(1, Math.ceil(naturalHeight / usable));
-  const lastPageFill = (naturalHeight - (naturalPages - 1) * usable) / PAGE_HEIGHT_PX;
+  const isNatural = current >= 0.999;
+  // Im unverdichteten Zustand zählt die ECHTE Aufteilung der Umbruch-Engine,
+  // sonst eine Schätzung aus der natürlichen Höhe.
+  const naturalPages = isNatural ? result.pageCount : Math.max(1, Math.ceil(naturalHeight / usable));
+  const lastPageFill = isNatural
+    ? (visualHeight - (result.cuts[result.cuts.length - 1] ?? 0)) / PAGE_HEIGHT_PX
+    : (naturalHeight - (naturalPages - 1) * usable) / PAGE_HEIGHT_PX;
 
   // Natürliches Layout ist gut verteilt → nicht verdichten
   if (naturalPages === 1 || lastPageFill >= LAST_PAGE_OK_FILL) return 1;
