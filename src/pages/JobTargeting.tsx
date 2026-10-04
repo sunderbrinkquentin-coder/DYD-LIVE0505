@@ -6,7 +6,7 @@ import { ArrowRight, Briefcase, Building2, Link2, FileText, Loader2, Zap, Layers
 import { motion, AnimatePresence } from 'framer-motion';
 import { AvatarSidebar } from '../components/cvbuilder/AvatarSidebar';
 import { CVBuilderData } from '../types/cvBuilder';
-import { mapEditorDataToWizard } from '../utils/cvDataMapper';
+import { toWizardBaseCv } from '../utils/cvDataMapper';
 import { sessionManager } from '../utils/sessionManager';
 import { getOrCreateTempId } from '../utils/tempIdManager';
 import { supabase } from '../lib/supabase';
@@ -198,16 +198,11 @@ export function JobTargeting() {
             job_description: deepSanitize(formData.jobDescription),
           };
 
-      // 3) CV-Daten übernehmen – ALLE Wizard-Felder, nichts geht verloren
-      //    Wurde der Basis-CV schon im Live-Editor gespeichert, liegt er im
-      //    Editor-Format (sections[]) vor → zurück ins Wizard-Format mappen,
-      //    sonst sieht die Optimierung keine einzige Station.
-      const isEditorFormat =
-        Array.isArray((resolvedBaseCvData as any).sections) &&
-        !(resolvedBaseCvData.workExperiences?.length);
-      const baseData: any = isEditorFormat
-        ? mapEditorDataToWizard(resolvedBaseCvData)
-        : resolvedBaseCvData;
+      // 3) CV-Daten übernehmen – ALLE Wizard-Felder im aktuellsten Stand.
+      //    toWizardBaseCv: Änderungen aus dem Live-Editor (sections) haben Vorrang
+      //    vor veralteten Wizard-Feldern, Editor-only-Felder werden entfernt
+      //    (sonst würde der Editor die neu optimierten Bullets ignorieren).
+      const baseData: any = toWizardBaseCv(resolvedBaseCvData) ?? resolvedBaseCvData;
 
       // Technische Felder aus früheren Optimierungsläufen nicht weitertragen
       const { _optimization, desired_job: _previousDesiredJob, ...wizardFields } = baseData;
@@ -358,7 +353,7 @@ export function JobTargeting() {
         console.log('✅ [JOB-TARGETING] Neuer Eintrag mit status=processing, cvId:', cvId);
       }
 
-      // 6) Trigger CV Generator via Edge Function
+      // 5) Trigger CV Generator via Edge Function
       const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
       const callbackUrl = `${supabaseUrl}/functions/v1/make-cv-callback`;
 
