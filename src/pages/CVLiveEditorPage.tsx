@@ -11,7 +11,7 @@ import { MinimalCVTemplate } from '../components/cv-templates/templates/MinimalC
 import { CreativeCVTemplate } from '../components/cv-templates/templates/CreativeCVTemplate';
 import { ProfessionalCVTemplate } from '../components/cv-templates/templates/ProfessionalCVTemplate';
 import { useBreakPoints } from '../components/cv-templates/useBreakPoints';
-import { PAGE_HEIGHT_PX, pageSliceHeight, debugBreaks } from '../components/cv-templates/breakEngine';
+import { PAGE_HEIGHT_PX, pageSliceHeight, debugBreaks, applyPushes } from '../components/cv-templates/breakEngine';
 import { DensityWrapper, clampDensity, suggestDensity, templateMinHeight } from '../components/cv-templates/layoutDensity';
 import PhotoUpload from '../components/PhotoUpload';
 import { CVOptimizerPaywall } from '../components/dashboard/CVOptimizerPaywall';
@@ -272,6 +272,11 @@ export function CVLiveEditorPage() {
   const optimizationTipsShownRef = useRef(false);
 
   const [showJourney, setShowJourney] = useState(false);
+  /** Wunsch-Schritt für die Journey (Klick auf eine Markierung im CV). */
+  const [journeyRequest, setJourneyRequest] = useState<{ id: string; nonce: number } | null>(null);
+  /** Positionen der Journey-Markierungen auf den Blättern. */
+  const [journeyMarkers, setJourneyMarkers] = useState<Array<{ id: string; n: number; x: number; y: number; state: 'open' | 'done' | 'skipped'; title: string }>>([]);
+  const stepBoxIndexRef = useRef<Map<number, string>>(new Map());
 
   // Nach einer Optimierung einmal automatisch öffnen: die geführte Journey,
   // falls Schritte vorhanden sind – sonst (ältere CVs) die einfache Tipp-Liste.
@@ -326,7 +331,9 @@ const cloneRef = useRef<HTMLDivElement | null>(null);
   const densityLoadedRef = useRef(false);
   const densityGiveUpRef = useRef<string | null>(null);
 
-  const breaks = useBreakPoints(cvPreviewRef, [editorData, selectedTemplate, photoUrl, photoPosition, density]);
+  // Seitenweises Layout (wie im PDF): volle Seiten, überstehende Karten rutschen
+  // spaltenweise auf die nächste Seite.
+  const breaks = useBreakPoints(cvPreviewRef, [editorData, selectedTemplate, photoUrl, photoPosition, density], { paged: true });
 
   // Gespeicherte Dichte einmalig übernehmen
   useEffect(() => {
@@ -375,7 +382,11 @@ const cloneRef = useRef<HTMLDivElement | null>(null);
     }
     if (!el) return;
     const recalc = () => {
-      const available = el.clientWidth;
+      // Nur die Inhaltsbreite zählt: clientWidth enthält das Padding (px-4 und
+      // bei offenem Feinschliff sm:pr-[420px]). Sonst ragt das Blatt auf dem
+      // Handy rechts aus dem Bild bzw. am Desktop unter das Feinschliff-Panel.
+      const cs = window.getComputedStyle(el);
+      const available = el.clientWidth - (parseFloat(cs.paddingLeft) || 0) - (parseFloat(cs.paddingRight) || 0);
       if (available > 0) setScale(available < 794 ? available / 794 : 1);
     };
     recalc();
@@ -437,6 +448,9 @@ const cloneRef = useRef<HTMLDivElement | null>(null);
     const b = measureBox(index);
     if (!b) return;
     setFocus({ index, ...b });
+    // Gehört zur Box ein Feinschliff-Schritt und ist die Journey offen → dorthin springen
+    const stepId = stepBoxIndexRef.current.get(index);
+    if (stepId && showJourney) setJourneyRequest({ id: stepId, nonce: Date.now() });
   };
 
   /** mousedown auf einer Box NICHT fokussieren lassen — sonst poppt die Tastatur
@@ -453,6 +467,33 @@ const cloneRef = useRef<HTMLDivElement | null>(null);
     if ((e.target as HTMLElement).closest('[data-drag-handle], .pdf-hidden')) return;
     if ((e.target as HTMLElement).closest(BOX_SELECTOR)) e.preventDefault();
   };
+
+  // Seitenweises Layout: Karten, die nicht mehr auf eine Seite passen, rutschen
+  // in ihrer Spalte auf die nächste Seite (margin-top). Die Engine berechnet das
+  // am versteckten Mess-Render; hier werden dieselben Verschiebungen nach JEDEM
+  // Render auf alle sichtbaren Kopien angewendet (A4-Blätter + Fokus-Ansicht),
+  // damit Editor, Fokus und PDF exakt dasselbe Bild zeigen.
+  useLayoutEffect(() => {
+    document.querySelectorAll<HTMLElement>('[data-page-copy]').forEach((el) => applyPushes(el, breaks.pushes));
+    applyPushes(cloneRef.current, breaks.pushes);
+  });
+
+  // Journey-Markierungen im CV: kleine nummerierte Punkte an jeder Stelle mit
+  // Verbesserungspotenzial. Positionen werden nach jeder Layout-Änderung neu
+  // gemessen (die Hilfsfunktionen stehen weiter unten → Zugriff über Ref).
+  const journeyHelpersRef = useRef<{ compute: () => typeof journeyMarkers } | null>(null);
+  useEffect(() => {
+    if (breaks.isMeasuring) return;
+    const id = requestAnimationFrame(() => {
+      const next = journeyHelpersRef.current?.compute() ?? [];
+      setJourneyMarkers((prev) =>
+        prev.length === next.length && prev.every((m, i) =>
+          m.id === next[i].id && m.state === next[i].state && Math.abs(m.x - next[i].x) < 1 && Math.abs(m.y - next[i].y) < 1)
+          ? prev
+          : next);
+    });
+    return () => cancelAnimationFrame(id);
+  }, [editorData, breaks.cuts, breaks.pushes, breaks.isMeasuring, scale, selectedTemplate]);
 
   // Wächst die Box beim Tippen (neuer Bullet), Bounds nachziehen. Diff-Guard
   // verhindert die Endlosschleife.
@@ -1763,9 +1804,23 @@ const addSectionItem = (sectionIndex: number, defaultItem: any) => {
   }
 
   // ── Verbesserungs-Journey ──────────────────────────────────────────────────
-  const journeySteps: JourneyStep[] = Array.isArray((editorData as any)?._optimization?.journey)
-    ? (editorData as any)._optimization.journey
+  const journeyKeywords: string[] = Array.isArray((editorData as any)?._optimization?.missing_keywords)
+    ? (editorData as any)._optimization.missing_keywords.filter((k: unknown) => typeof k === 'string' && k.trim())
     : [];
+  const journeySteps: JourneyStep[] = [
+    ...(Array.isArray((editorData as any)?._optimization?.journey) ? (editorData as any)._optimization.journey : []),
+    // Letzter Schritt: Begriffe aus der Stellenanzeige, die im CV noch fehlen
+    ...(journeyKeywords.length
+      ? [{
+          id: 'keywords',
+          target: { type: 'section', section: 'skills' } as const,
+          title: 'Begriffe aus der Stellenanzeige',
+          issues: ['Diese Begriffe nennt die Stellenanzeige, dein CV aber noch nicht. Ergänze nur, was du wirklich kannst – das verbessert die Trefferquote in Bewerbermanagement-Systemen.'],
+          question: '',
+          actionable: false,
+        }]
+      : []),
+  ];
   const journeyProgress: JourneyProgress = {
     done: (editorData as any)?._journey?.done ?? [],
     skipped: (editorData as any)?._journey?.skipped ?? [],
@@ -1810,36 +1865,48 @@ const addSectionItem = (sectionIndex: number, defaultItem: any) => {
     contact: [],
   };
 
+  /** Index (in BOX_SELECTOR-Reihenfolge) der Box, zu der ein Journey-Schritt gehört; -1 = keine. */
+  const findStepBoxIndex = (step: JourneyStep): number => {
+    const root = cvPreviewRef.current;
+    if (!root) return -1;
+    const boxes = Array.from(root.querySelectorAll<HTMLElement>(BOX_SELECTOR));
+    const textOf = (el: HTMLElement) => (el.textContent ?? '').replace(/\s+/g, ' ');
+    const norm = (t: string) => t.replace(/\s+/g, ' ').trim().slice(0, 40);
+    let candidates: HTMLElement[] = [];
+
+    if (step.target.type === 'station') {
+      const found = findStationItem(step.target.sid);
+      const title = norm(found?.item?.title || found?.item?.degree || '');
+      const org = norm(found?.item?.company || found?.item?.institution || '');
+      if (title) candidates = boxes.filter((b) => textOf(b).includes(title) && (!org || textOf(b).includes(org)));
+    } else if (step.target.type === 'summary') {
+      const start = norm(editorData?.summary ?? '');
+      if (start) candidates = boxes.filter((b) => textOf(b).includes(start));
+    } else if (step.target.type === 'headline' || (step.target.type === 'section' && step.target.section === 'contact')) {
+      candidates = boxes.filter((b) => b.tagName.toLowerCase() === 'header');
+    } else if (step.target.type === 'section') {
+      const labels = SECTION_LABELS[step.target.section] ?? [];
+      candidates = boxes.filter((b) => labels.some((l) => textOf(b).toLowerCase().includes(l.toLowerCase())));
+    }
+    if (!candidates.length) return -1;
+    // Die kleinste passende Box ist die spezifischste (Karte statt ganzer Sektion)
+    const el = candidates.sort((a, b) => textOf(a).length - textOf(b).length)[0];
+    return boxes.indexOf(el);
+  };
+
+  /** Y-Position (Bildschirm-Pixel innerhalb der Blätter) einer Box mit Oberkante `by` (Seitenkoordinaten). */
+  const sheetYFor = (by: number) => {
+    let pageIdx = 0;
+    for (let i = 0; i < breaks.cuts.length; i++) if (by >= breaks.cuts[i] - 1) pageIdx = i;
+    return pageIdx * (PAGE_HEIGHT_PX + SHEET_GAP_PX) * scale + (by - breaks.cuts[pageIdx]) * scale;
+  };
+
   /** Hebt den Abschnitt des Journey-Schritts groß hervor (gleiche Fokus-Ansicht wie beim Klick in den CV). */
   const focusJourneyStep = (step: JourneyStep | null) => {
     if (!step) { setFocus(null); return; }
     window.setTimeout(() => {
-      const root = cvPreviewRef.current;
-      if (!root) return;
-      const boxes = Array.from(root.querySelectorAll<HTMLElement>(BOX_SELECTOR));
-      const textOf = (el: HTMLElement) => (el.textContent ?? '').replace(/\s+/g, ' ');
-      const norm = (t: string) => t.replace(/\s+/g, ' ').trim().slice(0, 40);
-      let candidates: HTMLElement[] = [];
-
-      if (step.target.type === 'station') {
-        const found = findStationItem(step.target.sid);
-        const title = norm(found?.item?.title || found?.item?.degree || '');
-        const org = norm(found?.item?.company || found?.item?.institution || '');
-        if (title) candidates = boxes.filter((b) => textOf(b).includes(title) && (!org || textOf(b).includes(org)));
-      } else if (step.target.type === 'summary') {
-        const start = norm(editorData?.summary ?? '');
-        if (start) candidates = boxes.filter((b) => textOf(b).includes(start));
-      } else if (step.target.type === 'headline' || (step.target.type === 'section' && step.target.section === 'contact')) {
-        candidates = boxes.filter((b) => b.tagName.toLowerCase() === 'header');
-      } else if (step.target.type === 'section') {
-        const labels = SECTION_LABELS[step.target.section] ?? [];
-        candidates = boxes.filter((b) => labels.some((l) => textOf(b).toLowerCase().includes(l.toLowerCase())));
-      }
-      if (!candidates.length) { setFocus(null); return; }
-
-      // Die kleinste passende Box ist die spezifischste (Karte statt ganzer Sektion)
-      const el = candidates.sort((a, b) => textOf(a).length - textOf(b).length)[0];
-      const index = boxes.indexOf(el);
+      const index = findStepBoxIndex(step);
+      if (index < 0) { setFocus(null); return; }
       const b = measureBox(index);
       if (!b) return;
       setFocus({ index, ...b });
@@ -1848,13 +1915,65 @@ const addSectionItem = (sectionIndex: number, defaultItem: any) => {
       const main = mainAreaRef.current;
       const firstFrame = main?.querySelector<HTMLElement>('.a4-page-frame');
       if (main && firstFrame) {
-        let pageIdx = 0;
-        for (let i = 0; i < breaks.cuts.length; i++) if (b.by >= breaks.cuts[i] - 1) pageIdx = i;
-        const y = pageIdx * (PAGE_HEIGHT_PX + SHEET_GAP_PX) * scale + (b.by - breaks.cuts[pageIdx]) * scale;
+        const y = sheetYFor(b.by);
         const framesTop = firstFrame.getBoundingClientRect().top - main.getBoundingClientRect().top + main.scrollTop;
         main.scrollTo({ top: Math.max(0, framesTop + y - 120), behavior: 'smooth' });
       }
     }, 60);
+  };
+
+  /** Markierung im CV angeklickt → Journey öffnen und genau diesen Schritt zeigen. */
+  const openJourneyAt = (stepId: string) => {
+    setShowJourney(true);
+    setJourneyRequest({ id: stepId, nonce: Date.now() });
+  };
+
+  /** Hinweis aus der Journey: fehlenden Begriff als Fähigkeit ergänzen. */
+  const addSkillFromJourney = (name: string) => {
+    setHasEditorChanges(true);
+    setEditorData((prev: any) => {
+      if (!prev?.sections) return prev;
+      const idx = prev.sections.findIndex((sec: any) => sec?.type === 'skills');
+      if (idx < 0) {
+        return { ...prev, sections: [...prev.sections, { type: 'skills', title: 'Fähigkeiten', items: [{ name, level: '' }] }] };
+      }
+      return {
+        ...prev,
+        sections: prev.sections.map((sec: any, i: number) => {
+          if (i !== idx) return sec;
+          const items: any[] = Array.isArray(sec.items) ? sec.items : [];
+          if (items.some((it) => String(it?.name ?? it ?? '').toLowerCase() === name.toLowerCase())) return sec;
+          return { ...sec, items: [...items, typeof items[0] === 'string' ? name : { name, level: '' }] };
+        }),
+      };
+    });
+  };
+
+  journeyHelpersRef.current = {
+    compute: () => {
+      const map = new Map<number, string>();
+      const perBox = new Map<number, number>();
+      const out: typeof journeyMarkers = [];
+      journeySteps.forEach((step, n) => {
+        const idx = findStepBoxIndex(step);
+        if (idx < 0) return;
+        const b = measureBox(idx);
+        if (!b) return;
+        if (!map.has(idx)) map.set(idx, step.id);
+        const k = perBox.get(idx) ?? 0; // mehrere Schritte an derselben Box nebeneinander
+        perBox.set(idx, k + 1);
+        out.push({
+          id: step.id,
+          n: n + 1,
+          x: (b.bx + b.bw) * scale - 10 - k * 26,
+          y: sheetYFor(b.by) - 10,
+          state: journeyProgress.done.includes(step.id) ? 'done' : journeyProgress.skipped.includes(step.id) ? 'skipped' : 'open',
+          title: step.title,
+        });
+      });
+      stepBoxIndexRef.current = map;
+      return out;
+    },
   };
 
   const applyJourneyStation = (sid: string, bullets: string[]) => {
@@ -2000,7 +2119,7 @@ const addSectionItem = (sectionIndex: number, defaultItem: any) => {
         </div>
       </div>
 
-      <main ref={mainRefCallback} className={`flex-1 overflow-y-auto bg-[#1e1e24] w-full py-12 px-4 flex flex-col items-center ${showJourney && journeySteps.length > 0 ? 'sm:pr-[420px]' : ''}`}>
+      <main ref={mainRefCallback} className={`flex-1 overflow-y-auto overflow-x-hidden bg-[#1e1e24] w-full py-12 px-4 flex flex-col items-center ${showJourney && journeySteps.length > 0 ? 'sm:pr-[420px]' : ''}`}>
 
         {/* Ausgelagert nach src/components/cv-templates/pdfRenderStyles.ts —
             derselbe Text wird jetzt auch von CvExportRenderPage.tsx (Server-
@@ -2163,6 +2282,7 @@ const reorderSections = (fromIndex: number, toIndex: number) => {
                         <div
                           onMouseDownCapture={swallowMouseDown}
                           onClickCapture={openFocus}
+                          data-page-copy
                           style={{ position: 'absolute', top: `${-pageStart}px`, left: 0, width: '794px' }}
                         >
                           {renderTemplate()}
@@ -2172,6 +2292,31 @@ const reorderSections = (fromIndex: number, toIndex: number) => {
                  );
                 })
               )}
+
+              {/* ── Journey-Markierungen ──────────────────────────────────────
+                  Nummerierte Punkte an jeder Stelle mit Verbesserungspotenzial.
+                  Klick → Feinschliff öffnet genau diesen Schritt. Nur Editor-UI,
+                  nie im PDF (liegen außerhalb des Templates). */}
+              {!breaks.isMeasuring && journeySteps.length > 0 && journeyMarkers
+                .filter((m) => m.state !== 'skipped')
+                .map((m) => (
+                  <button
+                    key={m.id}
+                    type="button"
+                    data-journey-panel
+                    onMouseDown={(e) => e.preventDefault()}
+                    onClick={(e) => { e.stopPropagation(); openJourneyAt(m.id); }}
+                    title={m.state === 'done' ? `Verbessert: ${m.title}` : `Feinschliff: ${m.title}`}
+                    className={`absolute z-40 h-6 min-w-6 px-1.5 rounded-full text-[11px] font-bold flex items-center justify-center shadow-lg transition-transform hover:scale-110 ${
+                      m.state === 'done'
+                        ? 'bg-[#66c0b6] text-black'
+                        : 'bg-amber-400 text-black ring-4 ring-amber-400/25 animate-pulse'
+                    }`}
+                    style={{ top: `${m.y}px`, left: `${m.x}px` }}
+                  >
+                    {m.state === 'done' ? <Check size={13} strokeWidth={3} /> : m.n}
+                  </button>
+                ))}
 
               {/* ── In-Place-Fokus ────────────────────────────────────────────
                   Skalierter Ausschnitt DESSELBEN Renders, absolut über der
@@ -2339,6 +2484,9 @@ const reorderSections = (fromIndex: number, toIndex: number) => {
           getCurrentContent={getJourneyContent}
           onApplyStation={applyJourneyStation}
           onApplyText={applyJourneyText}
+          requestedStep={journeyRequest}
+          missingKeywords={journeyKeywords}
+          onAddSkill={addSkillFromJourney}
           onOpenCvCheck={() => navigate('/cv-check')}
           onClose={() => { setShowJourney(false); setFocus(null); }}
         />
