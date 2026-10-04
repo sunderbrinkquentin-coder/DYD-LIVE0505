@@ -37,11 +37,12 @@ import { useParams, useSearchParams } from 'react-router-dom';
 import { supabase } from '../lib/supabase';
 import { PDF_RENDER_STYLES_CSS } from '../components/cv-templates/pdfRenderStyles';
 import {
-  applyForcedPageBreaks,
   computeBreakPoints,
   containerHeightFor,
   PAGE_HEIGHT_PX,
+  type BreakResult,
 } from '../components/cv-templates/breakEngine';
+import { DensityWrapper, clampDensity, templateMinHeight } from '../components/cv-templates/layoutDensity';
 import type { CVTemplateProps, EditorSection, PersonalInfo } from '../components/cv-templates/EditableText';
 import type { CVTemplateType } from '../components/cv-templates/CVTemplateSelector';
 import { ModernCVTemplate } from '../components/cv-templates/templates/ModernCVTemplate';
@@ -126,6 +127,8 @@ interface LoadedCv {
   photoPosition?: { x: number; y: number };
   template: CVTemplateType;
   fileName: string;
+  /** Verdichtung aus dem Editor ("Seiten besser nutzen"), 1 = normal */
+  density: number;
 }
 
 export function CvExportRenderPage() {
@@ -141,8 +144,10 @@ export function CvExportRenderPage() {
 
   const [data, setData] = useState<LoadedCv | null>(null);
   const [loadError, setLoadError] = useState<string | null>(null);
-  const rootRef = useRef<HTMLDivElement | null>(null);
-  const breaksAppliedRef = useRef(false);
+  // Unsichtbarer Mess-Render (wie im Editor) → daraus die Seitenaufteilung
+  const measureRef = useRef<HTMLDivElement | null>(null);
+  const pagesRef = useRef<HTMLDivElement | null>(null);
+  const [breaks, setBreaks] = useState<BreakResult | null>(null);
   const [isMeasured, setIsMeasured] = useState(false);
   const printTriggeredRef = useRef(false);
 
@@ -232,6 +237,7 @@ export function CvExportRenderPage() {
         photoUrl: cvData.photoUrl as string | undefined,
         photoPosition: cvData.photoPosition as { x: number; y: number } | undefined,
         template,
+        density: clampDensity((cvData._layout as { density?: number } | undefined)?.density ?? 1),
       });
     }
 
@@ -251,7 +257,7 @@ export function CvExportRenderPage() {
     };
   }, [data?.fileName]);
 
-  const templateProps: CVTemplateProps | null = useMemo(() => {
+  const baseTemplateProps: CVTemplateProps | null = useMemo(() => {
     if (!data) return null;
     return {
       personalInfo: data.personalInfo,
@@ -265,50 +271,61 @@ export function CvExportRenderPage() {
     };
   }, [data]);
 
-  const renderTemplate = () => {
-    if (!templateProps || !data) return null;
+  /** Template im DensityWrapper – exakt wie im Live-Editor. */
+  const renderTemplate = (minHeightPx?: number) => {
+    if (!baseTemplateProps || !data) return null;
+    const props: CVTemplateProps = { ...baseTemplateProps, minHeightPx };
+    let tpl: JSX.Element | null = null;
     switch (data.template) {
-      case 'modern': return <ModernCVTemplate {...templateProps} />;
-      case 'classic': return <ClassicCVTemplate {...templateProps} />;
-      case 'minimal': return <MinimalCVTemplate {...templateProps} />;
-      case 'creative': return <CreativeCVTemplate {...templateProps} />;
-      case 'professional': return <ProfessionalCVTemplate {...templateProps} />;
-      default: return null;
+      case 'modern': tpl = <ModernCVTemplate {...props} />; break;
+      case 'classic': tpl = <ClassicCVTemplate {...props} />; break;
+      case 'minimal': tpl = <MinimalCVTemplate {...props} />; break;
+      case 'creative': tpl = <CreativeCVTemplate {...props} />; break;
+      case 'professional': tpl = <ProfessionalCVTemplate {...props} />; break;
     }
+    return tpl ? <DensityWrapper density={data.density}>{tpl}</DensityWrapper> : null;
   };
 
-  // Sobald Inhalt da ist: auf Fonts warten, EINMAL messen, Umbrüche als
-  // echte CSS-break-before setzen, dann Bereit-Flag setzen. Kein
-  // ResizeObserver/Debounce nötig wie in useBreakPoints — hier tippt
-  // niemand, der Inhalt ändert sich nach dem ersten Render nicht mehr.
-  useEffect(() => {
-    if (!data || breaksAppliedRef.current) return;
-    let cancelled = false;
+  const waitForLayout = () =>
+    new Promise((r) => requestAnimationFrame(() => requestAnimationFrame(() => setTimeout(r, 200))));
 
+  const waitForImages = async (root: HTMLElement | null) => {
+    if (!root) return;
+    const imgs = Array.from(root.querySelectorAll('img')).filter((img) => !img.complete);
+    await Promise.all(imgs.map((img) => new Promise((r) => { img.onload = r; img.onerror = r; })));
+  };
+
+  // 1) Fonts + Bilder abwarten, unsichtbaren Render messen → Seitenaufteilung.
+  //    Dieselbe Break-Engine wie im Editor.
+  useEffect(() => {
+    if (!data || breaks) return;
+    let cancelled = false;
     const run = async () => {
       const fonts = (document as unknown as { fonts?: FontFaceSet }).fonts;
       if (fonts?.ready) await fonts.ready;
-      // Zwei Frames warten, damit React committet und der Browser das
-      // Layout auflöst, plus ein kurzer Sicherheitsabstand fürs Foto.
-      await new Promise((r) => requestAnimationFrame(() => requestAnimationFrame(() => setTimeout(r, 200))));
+      await waitForImages(measureRef.current);
+      await waitForLayout();
       if (cancelled) return;
-
-      const root = rootRef.current;
+      const root = measureRef.current;
       if (!root || root.scrollHeight < 50) return;
-
-      const result = computeBreakPoints(root);
-      applyForcedPageBreaks(root, result);
-      root.style.minHeight = `${containerHeightFor(result, PAGE_HEIGHT_PX)}px`;
-
-      breaksAppliedRef.current = true;
-      setIsMeasured(true);
+      setBreaks(computeBreakPoints(root));
     };
-
     run();
-    return () => {
-      cancelled = true;
+    return () => { cancelled = true; };
+  }, [data, breaks]);
+
+  // 2) Sobald die A4-Blätter stehen und ihre Bilder geladen sind: bereit zum Druck
+  useEffect(() => {
+    if (!breaks || isMeasured) return;
+    let cancelled = false;
+    const run = async () => {
+      await waitForImages(pagesRef.current);
+      await waitForLayout();
+      if (!cancelled) setIsMeasured(true);
     };
-  }, [data]);
+    run();
+    return () => { cancelled = true; };
+  }, [breaks, isMeasured]);
 
   // Client-Druckweg: sobald Umbrüche berechnet und Fonts geladen sind, den
   // nativen Browser-Druckdialog öffnen ("Als PDF speichern"). Ersetzt den
@@ -334,14 +351,11 @@ export function CvExportRenderPage() {
   }
 
   const pageBg = TEMPLATE_PAGE_BG[data.template] ?? '#ffffff';
+  const minHeightPx = breaks ? templateMinHeight(containerHeightFor(breaks, PAGE_HEIGHT_PX), data.density) : undefined;
 
   return (
     <>
       <style>{PDF_RENDER_STYLES_CSS}</style>
-      {/* Puppeteer druckt im Print-Media-Type — .pdf-hidden hier zusätzlich
-          hart auf display:none, weil in diesem Kontext (kein zugeschnittener
-          A4-Frame, echter Fluss über mehrere Seiten) die Hover-Opacity-Logik
-          aus pdfRenderStyles.ts nicht greifen muss. */}
       <style>{`
         html, body { margin: 0; padding: 0; background: ${pageBg}; }
         @page { size: A4; margin: 0; }
@@ -367,19 +381,42 @@ export function CvExportRenderPage() {
            Leerflächen erzeugen (z. B. leere Beschreibung bei Stipendien/Zertifikaten). */
         html body [data-pdf-root] [data-placeholder]:empty::before { content: none !important; }
         html body [data-pdf-root] [contenteditable]:empty { display: none !important; }
-        /* Deutsche Silbentrennung statt Umbruch mitten im Wort ohne Trennstrich
-           ("Wirtschaftsingenieurwese / n") */
-        [data-pdf-root] {
-          -webkit-hyphens: auto;
-          hyphens: auto;
-          overflow-wrap: break-word;
+        [data-pdf-root] { overflow-wrap: break-word; }
+
+        /* Unsichtbarer Mess-Render – wird nie gedruckt */
+        [data-measure-root] { position: absolute; left: -20000px; top: 0; }
+        @media print { [data-measure-root] { display: none !important; } }
+
+        /* A4-Blätter – identisch zur Live-Editor-Vorschau: jedes Blatt zeigt den
+           Ausschnitt cuts[i] … cuts[i+1] desselben Renders. Abgeschnittener Text
+           landet nachweislich NICHT im Text-Layer des PDFs (ATS-sicher). */
+        .pdf-page {
+          position: relative;
+          width: 794px;
+          height: ${PAGE_HEIGHT_PX}px;
+          overflow: hidden;
+          background: ${pageBg};
+          break-after: page;
         }
-        [data-break-atomic], [data-break-item] { break-inside: avoid; }
-        [data-break-keep-next] { break-after: avoid; }
+        .pdf-page:last-child { break-after: auto; }
       `}</style>
-      <div ref={rootRef} data-pdf-root lang="de" style={{ width: '794px', backgroundColor: pageBg }}>
+
+      <div ref={measureRef} data-pdf-root data-measure-root lang="de" style={{ width: '794px', backgroundColor: pageBg }}>
         {renderTemplate()}
       </div>
+
+      {breaks && (
+        <div ref={pagesRef} data-pdf-root lang="de">
+          {breaks.cuts.map((cut, i) => (
+            <div key={i} className="pdf-page">
+              <div style={{ position: 'absolute', top: `${-cut}px`, left: 0, width: '794px' }}>
+                {renderTemplate(minHeightPx)}
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+
       {/* Von der Netlify-Function abgewartet, bevor page.pdf() aufgerufen wird. */}
       {isMeasured && <div data-export-ready="true" style={{ display: 'none' }} />}
     </>
