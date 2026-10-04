@@ -90,6 +90,19 @@ export interface BreakResult {
   footerHeight: number;
   /** Anzahl der Seiten. Entspricht cuts.length. */
   pageCount: number;
+  /**
+   * Nur bei computePagedLayout: Verschiebungen einzelner Karten/Blöcke auf die
+   * nächste Seite (Index in der Ziel-Liste, Pixel in Seitenkoordinaten). Müssen
+   * mit applyPushes() auf JEDE sichtbare Kopie des Renders angewendet werden.
+   */
+  pushes?: PushInstruction[];
+  /** Nur bei computePagedLayout: Inhaltshöhe OHNE Verschiebungen (für die Dichte-Schätzung). */
+  rawContentHeight?: number;
+}
+
+export interface PushInstruction {
+  index: number;
+  px: number;
 }
 
 const DEFAULTS: Required<BreakOptions> = {
@@ -161,7 +174,7 @@ function collectZones(root: HTMLElement, opts: Required<BreakOptions>): Zone[] {
   const measure = makeMeasure(root);
   const zones: Zone[] = [];
 
-  const push = (el: HTMLElement, reason: string, top: number, bottom: number) => {
+  const push = (_el: HTMLElement, reason: string, top: number, bottom: number) => {
     if (bottom - top < 4) return;
     // Eine Zone, die höher ist als eine Seite, kann nirgends am Stück stehen.
     // Sie wird ignoriert — sonst würde die Engine sie endlos nach unten schieben.
@@ -582,4 +595,187 @@ export function debugBreaks(root: HTMLElement, options: BreakOptions = {}): void
     console.warn('✗ Durchgeschnittene Zonen:', violations);
   }
   console.groupEnd();
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// SEITENWEISES LAYOUT MIT SPALTENWEISEM UMBRUCH ("wie in Word")
+// ─────────────────────────────────────────────────────────────────────────────
+//
+// Problem der klassischen Schnittsuche bei ZWEISPALTIGEN Templates: Es gibt
+// selten eine waagerechte Linie, die in BEIDEN Spalten zwischen zwei Karten
+// liegt. Die Engine musste deshalb oft viel zu früh schneiden (Seite 1 nur
+// ~60 % voll, große weiße Fläche) – oder der Rest landete einsam auf Seite 2.
+//
+// Lösung: Jede Seite wird voll genutzt (Schnitt immer exakt am Seitenende).
+// Jede Karte/jeder Block, der über das Seitenende ragen würde, wird IN SEINER
+// EIGENEN SPALTE auf die nächste Seite geschoben (margin-top). Die andere Spalte
+// läuft unabhängig weiter. Überschriften bleiben bei ihrem ersten Eintrag.
+// Sehr lange Stationen (> tallItemRatio × Seite) dürfen weiterhin geteilt werden.
+//
+// Die Verschiebungen werden als Liste zurückgegeben und mit applyPushes() auf
+// alle sichtbaren Kopien (A4-Blätter, Fokus-Ansicht, PDF) angewendet – alle
+// Kopien haben identisches DOM, daher stimmen die Indizes überein.
+
+// Zeilen (Bullets) sind Ziele zweiter Ordnung: Sie werden nur verschoben, wenn
+// ihre Karte so lang ist, dass sie geteilt werden darf – dann bricht die Seite
+// zwischen zwei Bullets statt mitten durch eine Textzeile.
+const PUSH_TARGET_SELECTOR = '[data-break-item],[data-break-atomic],[data-break-keep-next],[data-break-item] li,[data-break-line]';
+const PUSH_ATTR = 'data-page-push';
+const PUSH_ORIG_ATTR = 'data-page-push-orig';
+/** Abstand, mit dem eine verschobene Karte oben auf der neuen Seite beginnt. */
+const PAGE_TOP_GAP_PX = 28;
+/** Überschrift gilt als "gehört zum Eintrag", wenn sie so dicht darüber steht. */
+const HEADING_ATTACH_PX = 48;
+
+function listPushTargets(root: HTMLElement): HTMLElement[] {
+  return Array.from(root.querySelectorAll<HTMLElement>(PUSH_TARGET_SELECTOR));
+}
+
+/** Entfernt alle zuvor gesetzten Verschiebungen. */
+export function resetPushes(root: HTMLElement): void {
+  root.querySelectorAll<HTMLElement>(`[${PUSH_ATTR}]`).forEach((el) => {
+    el.style.marginTop = el.getAttribute(PUSH_ORIG_ATTR) ?? '';
+    el.removeAttribute(PUSH_ATTR);
+    el.removeAttribute(PUSH_ORIG_ATTR);
+  });
+}
+
+/** Transform-Skalierung einer Kopie (z. B. scale() der A4-Blätter oder der Fokus-Ansicht). */
+function rootScaleOf(root: HTMLElement): number {
+  const w = root.getBoundingClientRect().width;
+  return root.offsetWidth > 0 && w > 0 ? w / root.offsetWidth : 1;
+}
+
+function pushElement(el: HTMLElement, visualPx: number, rootScale: number): void {
+  // Unter CSS-zoom (Dichte) ist 1 CSS-Pixel des Elements kleiner als 1
+  // Seiten-Pixel → Verschiebung in die Koordinaten des Elements umrechnen.
+  // Eine transform-Skalierung der ganzen Kopie wird herausgerechnet.
+  const rectH = el.getBoundingClientRect().height;
+  const zoom = el.offsetHeight > 0 && rectH > 0 ? rectH / el.offsetHeight / rootScale : 1;
+  const cs = el.ownerDocument.defaultView?.getComputedStyle(el);
+  const base = cs ? parseFloat(cs.marginTop) || 0 : 0;
+  if (!el.hasAttribute(PUSH_ATTR)) el.setAttribute(PUSH_ORIG_ATTR, el.style.marginTop);
+  el.setAttribute(PUSH_ATTR, '1');
+  el.style.marginTop = `${base + visualPx / zoom}px`;
+}
+
+/** Wendet die Verschiebungen auf eine Kopie des Renders an (vorher zurücksetzen). */
+export function applyPushes(root: HTMLElement | null, pushes: PushInstruction[] | undefined): void {
+  if (!root) return;
+  resetPushes(root);
+  if (!pushes?.length) return;
+  const targets = listPushTargets(root);
+  const rootScale = rootScaleOf(root);
+  for (const p of pushes) {
+    const el = targets[p.index];
+    if (el) pushElement(el, p.px, rootScale);
+  }
+}
+
+function overlapsHorizontally(a: DOMRect, b: DOMRect): boolean {
+  return Math.min(a.right, b.right) - Math.max(a.left, b.left) > 4;
+}
+
+/**
+ * Seitenweises Layout: Schnitte exakt an den Seitenenden, überstehende Karten
+ * werden spaltenweise auf die nächste Seite geschoben. Verändert den Root
+ * (margin-top) – das Ergebnis enthält die Verschiebungen für alle Kopien.
+ */
+export function computePagedLayout(root: HTMLElement, options: BreakOptions = {}): BreakResult {
+  const opts = { ...DEFAULTS, ...options };
+  const { pageHeight, tolerancePx, maxPages, tallItemRatio, keepAheadPx } = opts;
+
+  resetPushes(root);
+  const rawContentHeight = findContentEnd(root);
+  const targets = listPushTargets(root);
+  const rootScale = rootScaleOf(root);
+  const pushes: PushInstruction[] = [];
+  const cuts: number[] = [0];
+  let cursor = 0;
+
+  for (let guard = 0; guard < maxPages; guard++) {
+    const contentHeight = findContentEnd(root);
+    const footerHeight = measureFooterHeight(root);
+    if (contentHeight + footerHeight - cursor <= pageHeight + tolerancePx) break;
+
+    const cut = cursor + pageHeight;
+    const measure = makeMeasure(root);
+    const boxes = targets.map((el) => {
+      if (!isRendered(el) || !isInFlow(el)) return null;
+      return { el, b: measure(el), rect: el.getBoundingClientRect() };
+    });
+
+    const planned = new Map<number, number>(); // Index → Verschiebung
+
+    const plan = (index: number, top: number) => {
+      const px = cut - top + PAGE_TOP_GAP_PX;
+      if (px <= 0) return;
+      // Bei überlappenden Zielen (Sektion + erste Karte) zählt die oberste Kante
+      planned.set(index, Math.max(planned.get(index) ?? 0, px));
+    };
+
+    boxes.forEach((box, i) => {
+      if (!box) return;
+      const { b } = box;
+      const isHeading = box.el.hasAttribute('data-break-keep-next');
+      const straddles = b.top < cut - tolerancePx && b.bottom > cut + tolerancePx;
+
+      // Überschrift einsam am Seitenfuß: ihr Folgeinhalt beginnt erst danach
+      if (isHeading && !straddles && b.top < cut && b.bottom > cut - keepAheadPx) {
+        if (b.top > cursor + 40) plan(i, b.top);
+        return;
+      }
+      if (!straddles) return;
+      const isLine = !isHeading && !box.el.matches('[data-break-item],[data-break-atomic]');
+      if (isLine) {
+        if (b.height > pageHeight * 0.3) return; // Absatz-artig lang → darf geteilt werden
+        if (b.top > cursor + 40) plan(i, b.top); // Karte ist zu lang (sonst wäre sie selbst verschoben)
+        return;
+      }
+      if (!isHeading && b.height > pageHeight * tallItemRatio) return; // sehr lang → darf geteilt werden
+
+      // Lange Karte, die beim Verschieben eine große Lücke hinterlassen würde:
+      // lieber zwischen zwei Bullets teilen (die Bullet-Regel oben greift dann).
+      // Voraussetzung: Kopf + mind. zwei Bullets bleiben auf der alten Seite.
+      if (!isHeading && b.height > pageHeight * 0.3 && cut - b.top > pageHeight * 0.2) {
+        const lis = Array.from(box.el.querySelectorAll<HTMLElement>('li')).filter(isRendered);
+        const second = lis[1];
+        if (lis.length >= 4 && second && measure(second).bottom < cut - tolerancePx) return;
+      }
+      if (b.top <= cursor + 40) return; // steht schon oben auf der Seite → nicht verschiebbar
+
+      // Gehört eine Überschrift direkt darüber (gleiche Spalte) dazu? Dann mitnehmen.
+      let index = i;
+      let top = b.top;
+      for (let k = i - 1; k >= 0; k--) {
+        const h = boxes[k];
+        if (!h || !h.el.hasAttribute('data-break-keep-next')) continue;
+        if (!overlapsHorizontally(h.rect, box.rect)) continue;
+        if (top - h.b.bottom <= HEADING_ATTACH_PX && h.b.top > cursor + 40) {
+          index = k;
+          top = h.b.top;
+        }
+        break;
+      }
+      plan(index, top);
+    });
+
+    // Verschachtelte Ziele (Sektion enthält Karte): nur das äußerste verschieben
+    const indices = [...planned.keys()].sort((a, b) => a - b);
+    for (const i of indices) {
+      const el = targets[i];
+      const nestedInPlanned = indices.some((j) => j !== i && targets[j].contains(el));
+      if (nestedInPlanned) continue;
+      const px = planned.get(i)!;
+      pushElement(el, px, rootScale);
+      pushes.push({ index: i, px });
+    }
+
+    cuts.push(cut);
+    cursor = cut;
+  }
+
+  const contentHeight = findContentEnd(root);
+  const footerHeight = measureFooterHeight(root);
+  return { cuts, contentHeight, footerHeight, pageCount: cuts.length, pushes, rawContentHeight };
 }
