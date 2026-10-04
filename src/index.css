@@ -346,13 +346,17 @@
       background: transparent !important;
     }
 
-    .cv-template-container {
+    body:not(.cv-export-print) .cv-template-container {
       width: 210mm !important;
       max-width: 210mm !important;
       margin: 0 !important;
       padding: 0 !important;
     }
-[data-pdf-section] {
+    /* Ältere Druckregeln – gelten NICHT für die PDF-Druckseite (/cv-export-render).
+       Dort zeigt jedes Blatt einen fertig berechneten Ausschnitt; diese Regeln
+       würden das Layout im Druck verändern (display:block, fester Footer auf
+       jeder Seite, verschobene Karten) und das PDF vom Editor abweichen lassen. */
+    body:not(.cv-export-print) [data-pdf-section] {
       page-break-inside: avoid !important;
       break-inside: avoid !important;
       position: relative !important;
@@ -362,20 +366,20 @@
     }
 
     /* 🛠️ FIX 3: Verhindert verwaiste Überschriften am Seitenende */
-    h1, h2, h3, h4, h5, h6 {
+    body:not(.cv-export-print) :is(h1, h2, h3, h4, h5, h6) {
       page-break-after: avoid !important;
       break-after: avoid !important;
       position: relative !important;
     }
 
     /* 🛠️ FIX 4: Listenpunkte sauber zusammenhalten */
-    li {
+    body:not(.cv-export-print) li {
       page-break-inside: avoid !important;
       break-inside: avoid !important;
     }
 
     /* 🛠️ FIX 5: Fester Footer-Druckschutz */
-    [data-pdf-footer] {
+    body:not(.cv-export-print) [data-pdf-footer] {
       position: fixed !important;
       bottom: 0 !important;
       left: 0 !important;
@@ -384,11 +388,11 @@
       break-inside: avoid !important;
     }
 
-    .cv-template-header {
+    body:not(.cv-export-print) .cv-template-header {
       page-break-after: avoid !important;
     }
 
-    .cv-template-section {
+    body:not(.cv-export-print) .cv-template-section {
       page-break-inside: auto !important; /* Erlaubt normalen Sektionen das Umbrechen */
     }
   }
