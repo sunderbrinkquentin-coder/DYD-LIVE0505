@@ -363,6 +363,10 @@ export function CvExportRenderPage() {
         html body [data-pdf-root] button {
           display: none !important;
         }
+        /* Leere Editor-Felder dürfen im PDF keine Platzhalter-Texte oder weißen
+           Leerflächen erzeugen (z. B. leere Beschreibung bei Stipendien/Zertifikaten). */
+        html body [data-pdf-root] [data-placeholder]:empty::before { content: none !important; }
+        html body [data-pdf-root] [contenteditable]:empty { display: none !important; }
         /* Deutsche Silbentrennung statt Umbruch mitten im Wort ohne Trennstrich
            ("Wirtschaftsingenieurwese / n") */
         [data-pdf-root] {
