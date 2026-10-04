@@ -2,11 +2,12 @@
 
 import { useState, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
-import { ArrowRight, Briefcase, Building2, Link2, FileText, Loader2, Zap, Layers, X } from 'lucide-react';
+import { ArrowRight, Briefcase, Building2, Link2, FileText, Loader2, Zap, Layers, X, AlertTriangle, Info } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { AvatarSidebar } from '../components/cvbuilder/AvatarSidebar';
 import { CVBuilderData } from '../types/cvBuilder';
 import { toWizardBaseCv } from '../utils/cvDataMapper';
+import { checkCvData, type CvIssue } from '../utils/cvDataCheck';
 import { sessionManager } from '../utils/sessionManager';
 import { getOrCreateTempId } from '../utils/tempIdManager';
 import { supabase } from '../lib/supabase';
@@ -87,6 +88,9 @@ export function JobTargeting() {
   const [isSaving, setIsSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [generalistMode, setGeneralistMode] = useState(false);
+  // Stufe 0: Datenprüfung vor der KI (Überschneidungen, Lücken, Standard-Daten)
+  const [dataIssues, setDataIssues] = useState<CvIssue[] | null>(null);
+  const [issuesAcknowledged, setIssuesAcknowledged] = useState(false);
 
   // ---------- Helper: Deep sanitize ----------
   const deepSanitize = (obj: any, depth = 0): any => {
@@ -135,7 +139,27 @@ export function JobTargeting() {
       return;
     }
 
+    // Stufe 0: Widersprüche in den Daten VOR der KI klären – die KI darf sie
+    // nicht "wegformulieren", sonst entstehen erfundene Angaben.
+    if (!issuesAcknowledged && baseCvData) {
+      const issues = checkCvData(toWizardBaseCv(baseCvData) ?? baseCvData);
+      if (issues.some((i) => i.severity === 'warning')) {
+        setDataIssues(issues);
+        return;
+      }
+    }
+
     await handleSubmit();
+  };
+
+  const handleOptimizeAnyway = async () => {
+    setIssuesAcknowledged(true);
+    setDataIssues(null);
+    await handleSubmit();
+  };
+
+  const handleFixData = () => {
+    navigate(existingCvId ? `/cv-wizard?cvId=${existingCvId}` : '/cv-wizard');
   };
 
   const handleSubmit = async () => {
@@ -353,7 +377,7 @@ export function JobTargeting() {
         console.log('✅ [JOB-TARGETING] Neuer Eintrag mit status=processing, cvId:', cvId);
       }
 
-      // 5) Trigger CV Generator via Edge Function
+      // 6) Trigger CV Generator via Edge Function
       const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
       const callbackUrl = `${supabaseUrl}/functions/v1/make-cv-callback`;
 
@@ -569,6 +593,53 @@ export function JobTargeting() {
               </div>
 
             </div>
+
+            {/* Stufe 0: Datenprüfung – erscheint nur bei echten Widersprüchen */}
+            <AnimatePresence>
+              {dataIssues && (
+                <motion.div
+                  initial={{ opacity: 0, y: 8 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, y: 8 }}
+                  className="rounded-2xl border border-amber-400/40 bg-amber-400/10 px-5 py-5 space-y-4"
+                >
+                  <div className="flex items-start gap-3">
+                    <AlertTriangle size={20} className="text-amber-300 flex-shrink-0 mt-0.5" />
+                    <div>
+                      <p className="font-semibold text-white">Bitte prüfe kurz deine Daten</p>
+                      <p className="text-sm text-white/60">
+                        Recruiter achten genau auf diese Punkte. Wir erfinden nichts – korrigiere sie am besten, bevor wir optimieren.
+                      </p>
+                    </div>
+                  </div>
+                  <ul className="space-y-2">
+                    {dataIssues.map((issue, i) => (
+                      <li key={i} className="flex items-start gap-2 text-sm text-white/80">
+                        {issue.severity === 'warning'
+                          ? <AlertTriangle size={14} className="text-amber-300 flex-shrink-0 mt-0.5" />
+                          : <Info size={14} className="text-[#66c0b6] flex-shrink-0 mt-0.5" />}
+                        <span>{issue.message}</span>
+                      </li>
+                    ))}
+                  </ul>
+                  <div className="flex flex-col sm:flex-row gap-3 pt-1">
+                    <button
+                      onClick={handleFixData}
+                      className="flex-1 px-5 py-3 rounded-xl bg-white text-black font-semibold hover:opacity-90 transition-all"
+                    >
+                      Daten korrigieren
+                    </button>
+                    <button
+                      onClick={handleOptimizeAnyway}
+                      disabled={isSaving}
+                      className="flex-1 px-5 py-3 rounded-xl border border-white/20 text-white/80 font-semibold hover:bg-white/5 transition-all disabled:opacity-50"
+                    >
+                      Trotzdem optimieren
+                    </button>
+                  </div>
+                </motion.div>
+              )}
+            </AnimatePresence>
 
             {/* CTA — außerhalb der gedimmten Form, immer klickbar */}
             <div className="flex flex-col items-center gap-4 pt-2">
