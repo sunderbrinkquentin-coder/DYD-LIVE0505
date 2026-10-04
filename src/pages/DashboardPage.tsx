@@ -22,7 +22,7 @@ import { AtsResultDisplay } from '../components/AtsResultDisplay';
 import { parseAtsJson } from '../types/ats';
 import { useAuth } from '../contexts/AuthContext';
 import { LearningPath } from '../types/learningPath';
-import { mapEditorDataToWizard } from '../utils/cvDataMapper';
+import { toWizardBaseCv } from '../utils/cvDataMapper';
 import { parseSkills, skillDisplayName, skillFromPath } from '../utils/skills';
 import AppMobileMenu from '../components/dashboard/AppMobileMenu';
 
@@ -42,31 +42,36 @@ function hasWizardContent(data: any): boolean {
   );
 }
 
-/** Nimmt rohes cv_data (String oder Objekt, Wizard- oder Optimizer-Format)
- *  und gibt garantiert Wizard-Format zurück — oder null, wenn nichts Brauchbares da ist. */
+/** Nimmt rohes cv_data (String oder Objekt, Wizard-, Editor- oder Mischformat)
+ *  und gibt garantiert Wizard-Format im AKTUELLSTEN Stand zurück — oder null.
+ *  Änderungen aus dem Live-Editor (sections) haben Vorrang vor veralteten Wizard-Feldern. */
 function normalizeCvData(raw: any): any | null {
+  const base = toWizardBaseCv(raw);
+  return base && hasWizardContent(base) ? base : null;
+}
+
+/** true, wenn dieser CV schon einmal optimiert wurde (dann ist er Historie und wird nie überschrieben). */
+function isOptimizedCv(raw: any): boolean {
   let data = raw;
   if (typeof data === 'string') {
-    try {
-      data = JSON.parse(data);
-    } catch {
-      return null;
-    }
+    try { data = JSON.parse(data); } catch { return false; }
   }
-  if (!data || typeof data !== 'object') return null;
+  return !!(data && (data._optimization || data.desired_job));
+}
 
-  if (hasWizardContent(data)) return data;
-
-  const isOptimizerFormat = Array.isArray(data.sections) || data.contact || data.experience;
-  if (isOptimizerFormat) {
-    try {
-      const mapped = mapEditorDataToWizard(data);
-      return hasWizardContent(mapped) ? mapped : null;
-    } catch {
-      return null;
-    }
-  }
-  return null;
+/** Grundlage für die One-Click-Optimierung: der zuletzt bearbeitete, FERTIGE Lebenslauf
+ *  (kein CV-Check, nicht in Bearbeitung/fehlgeschlagen, mit verwertbarem Inhalt). */
+function pickLatestCv(cvs: any[]): any | null {
+  const usable = cvs.filter(
+    (cv) =>
+      cv.source !== 'check' &&
+      cv.cv_data &&
+      !['processing', 'pending', 'failed'].includes(cv.status) &&
+      normalizeCvData(cv.cv_data) !== null,
+  );
+  if (usable.length === 0) return pickRichestCv(cvs);
+  const ts = (cv: any) => new Date(cv.updated_at || cv.created_at || 0).getTime();
+  return [...usable].sort((a, b) => ts(b) - ts(a))[0];
 }
 
 /** Wählt aus einer CV-Liste den Datensatz mit dem meisten Inhalt (source !== 'check'). */
@@ -102,6 +107,8 @@ export function DashboardPage() {
   const [newCvPopup, setNewCvPopup] = useState<{ jobTitle: string; company: string } | null>(null);
   const [existingCvDataForQuick, setExistingCvDataForQuick] = useState<any>(null);
   const [existingWizardCvId, setExistingWizardCvId] = useState<string | null>(null);
+  // Ist die gewählte Grundlage ein bereits optimierter CV? Dann wird sie nie überschrieben.
+  const [existingBaseIsOptimized, setExistingBaseIsOptimized] = useState(false);
   const [paywallFromCreateCv, setPaywallFromCreateCv] = useState(false);
   const [showCreateCVChoice, setShowCreateCVChoice] = useState(false);
   const [showWizardOverview, setShowWizardOverview] = useState(false);
@@ -409,16 +416,18 @@ export function DashboardPage() {
         if (!user) return;
         const { data: cvs } = await supabase
           .from('stored_cvs')
-          .select('id, cv_data, source, updated_at')
+          .select('id, cv_data, source, status, updated_at, created_at')
           .eq('user_id', user.id)
           .order('updated_at', { ascending: false });
 
-        const richest = pickRichestCv(cvs || []);
+        // One-Click-Grundlage = zuletzt fertiger Lebenslauf
+        const richest = pickLatestCv(cvs || []);
         const mapped = richest ? normalizeCvData(richest.cv_data) : null;
 
         if (mapped) {
           setExistingCvDataForQuick(mapped);
           setExistingWizardCvId(richest.id ?? null);
+          setExistingBaseIsOptimized(isOptimizedCv(richest.cv_data));
           setShowCreateCVChoice(true);
           return;
         }
@@ -646,17 +655,20 @@ export function DashboardPage() {
       // Fall back to existing state value
     }
 
-    const richestCv = pickRichestCv(userCVs);
+    // Grundlage für die neue Optimierung = zuletzt fertiger Lebenslauf
+    const latestCv = pickLatestCv(userCVs);
     setWizardOverviewMode('create');
 
-    if (richestCv) {
-      const mappedData = await fetchFreshCvData(richestCv.id, richestCv.cv_data);
+    if (latestCv) {
+      const mappedData = await fetchFreshCvData(latestCv.id, latestCv.cv_data);
       setExistingCvDataForQuick(mappedData);
-      setExistingWizardCvId(richestCv.id ?? null);
+      setExistingWizardCvId(latestCv.id ?? null);
+      setExistingBaseIsOptimized(isOptimizedCv(latestCv.cv_data));
       setShowWizardOverview(true);
     } else {
       setExistingCvDataForQuick(null);
       setExistingWizardCvId(null);
+      setExistingBaseIsOptimized(false);
       setShowWizardOverview(true);
     }
   };
@@ -674,9 +686,11 @@ export function DashboardPage() {
       const mappedData = await fetchFreshCvData(richestCv.id, richestCv.cv_data);
       setExistingCvDataForQuick(mappedData);
       setExistingWizardCvId(richestCv.id ?? null);
+      setExistingBaseIsOptimized(isOptimizedCv(richestCv.cv_data));
     } else {
       setExistingCvDataForQuick(null);
       setExistingWizardCvId(null);
+      setExistingBaseIsOptimized(false);
     }
     setShowWizardOverview(true);
   };
@@ -684,10 +698,12 @@ export function DashboardPage() {
 const handleWizardOverviewContinue = async (updatedData: any) => {
     setShowWizardOverview(false);
 
-    // In genau die Zeile zurückschreiben, die das Modal angezeigt hat
-    // (existingWizardCvId = pickRichestCv). Beim nächsten Öffnen lädt
-    // pickRichestCv dieselbe Zeile — jetzt mit den Änderungen.
-    if (existingWizardCvId && hasWizardContent(updatedData)) {
+    // In genau die Zeile zurückschreiben, die das Modal angezeigt hat.
+    // AUSNAHME: Ist diese Zeile ein bereits optimierter CV, bleibt sie unangetastet
+    // (Historie). Die Änderungen gehen dann per State an JobTargeting und landen
+    // dort im NEUEN Eintrag für die nächste Optimierung.
+    const mayWriteBack = !(wizardOverviewMode === 'create' && existingBaseIsOptimized);
+    if (existingWizardCvId && hasWizardContent(updatedData) && mayWriteBack) {
       try {
         await cvStorageService.saveCVData({
           id: existingWizardCvId,
