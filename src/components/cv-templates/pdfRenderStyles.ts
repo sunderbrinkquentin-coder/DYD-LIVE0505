@@ -27,6 +27,30 @@ export const PDF_RENDER_STYLES_CSS = `
     hyphens: auto;
   }
 
+  /* Leere Felder (z. B. Beschreibung bei Zertifikat/Stipendium) belegen in der
+     Vorschau UND im PDF keinen Platz – sonst entstehen weiße Lücken und unnötige
+     Seiten. Bearbeitet werden sie in der großen Fokus-Ansicht (Klick auf die Box),
+     die nicht unter diese Regel fällt und dort den Platzhalter zeigt. */
+  [data-pdf-root] [contenteditable]:empty:not(:focus),
+  .a4-page-frame [contenteditable]:empty:not(:focus) {
+    display: none !important;
+  }
+
+  /* "Ort hinzufügen" / "Zeitraum hinzufügen" usw. waren unsichtbar (opacity 0),
+     belegten aber eine eigene Zeile → weiße Leerflächen in jeder Karte und
+     verschobene Seitenumbrüche. In Vorschau-Blättern und PDF komplett aus dem
+     Layout; in der Fokus-Ansicht (Klick auf die Box) bleiben sie bedienbar. */
+  [data-pdf-root] [data-inline-control] .pdf-hidden,
+  .a4-page-frame [data-inline-control] .pdf-hidden {
+    display: none !important;
+  }
+  /* Steht in so einer Zeile NUR ein Button (z. B. eigene Zeile unter der Karte),
+     fällt die ganze Zeile weg – sonst bleibt eine leere Zeilenhöhe stehen. */
+  [data-pdf-root] [data-inline-control]:not(:has(> :not(.pdf-hidden))),
+  .a4-page-frame [data-inline-control]:not(:has(> :not(.pdf-hidden))) {
+    display: none !important;
+  }
+
   /* ─────────────────────────────────────────────────────────────────
      .pdf-hidden — Editor-Controls, die nicht ins PDF gehören.
 
