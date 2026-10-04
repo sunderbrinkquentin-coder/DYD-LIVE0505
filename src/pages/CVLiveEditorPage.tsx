@@ -18,6 +18,7 @@ import { supabase } from '../lib/supabase';
 import { useCvOptimizationStatus } from '../hooks/useCvOptimizationStatus';
 import { X, Plus } from 'lucide-react';
 import { AddStationModal, hasGuidedModal } from '../components/cvbuilder/AddStationModal';
+import { CvImprovementJourney, type JourneyStep, type JourneyProgress, type JourneyCurrentContent } from '../components/cv-editor/CvImprovementJourney';
 
 /** Abstand zwischen zwei sichtbaren A4-Blättern in der Vorschau. */
 const SHEET_GAP_PX = 32;
@@ -269,11 +270,20 @@ export function CVLiveEditorPage() {
   const [showTips, setShowTips] = useState(false);
   const optimizationTipsShownRef = useRef(false);
 
-  // Nach einer Optimierung die Tipps einmal automatisch aufklappen
+  const [showJourney, setShowJourney] = useState(false);
+
+  // Nach einer Optimierung einmal automatisch öffnen: die geführte Journey,
+  // falls Schritte vorhanden sind – sonst (ältere CVs) die einfache Tipp-Liste.
   useEffect(() => {
     if (optimizationTipsShownRef.current) return;
-    const tips = (editorData as any)?._optimization?.tips;
-    if (Array.isArray(tips) && tips.length > 0) {
+    const meta = (editorData as any)?._optimization;
+    const journey = meta?.journey;
+    const progress = (editorData as any)?._journey;
+    if (Array.isArray(journey) && journey.length > 0) {
+      optimizationTipsShownRef.current = true;
+      const allHandled = journey.every((s: any) => progress?.done?.includes(s.id) || progress?.skipped?.includes(s.id));
+      if (!allHandled) setShowJourney(true);
+    } else if (Array.isArray(meta?.tips) && meta.tips.length > 0) {
       optimizationTipsShownRef.current = true;
       setShowTips(true);
     }
@@ -421,6 +431,8 @@ const cloneRef = useRef<HTMLDivElement | null>(null);
     const onDown = (e: MouseEvent) => {
       const c = cloneRef.current;
       if (c && e.target instanceof Node && c.contains(e.target)) return;
+      // Bedienung der Verbesserungs-Journey lässt die hervorgehobene Box offen
+      if (e.target instanceof Element && e.target.closest('[data-journey-panel]')) return;
       setFocus(null);
     };
     const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') setFocus(null); };
@@ -794,6 +806,7 @@ const cloneRef = useRef<HTMLDivElement | null>(null);
         ];
         if (experienceItems.length > 0) {
           const mappedExpItems = experienceItems.map((exp: any) => ({
+            _sid: exp._sid,
             title: exp.title || exp.position || exp.role || exp.jobTitle || '',
             company: exp.company || exp.employer || exp.organization || '',
             location: exp.location || exp.ort || '',
@@ -815,6 +828,7 @@ const cloneRef = useRef<HTMLDivElement | null>(null);
 
         const allEduItemsMapped = allEduItems
           .map((edu: any) => ({
+            _sid: edu._sid,
             degree: edu.degree || edu.title || edu.qualification || edu.type || '',
             institution: edu.institution || edu.school || edu.university || '',
             date_from: formatDate(edu.date_from || edu.startDate || edu.startYear || ''),
@@ -910,6 +924,7 @@ const cloneRef = useRef<HTMLDivElement | null>(null);
         if (volItems.length > 0) {
           const items = volItems.map((vol: any, index: number) => ({
             id: index,
+            _sid: vol._sid,
             title: vol.role || vol.title || '',
             company: vol.organization || vol.company || '',
             // FIX: VolunteerWork liefert startDate/endDate (siehe
@@ -939,6 +954,7 @@ const cloneRef = useRef<HTMLDivElement | null>(null);
             type: 'projects',
             title: 'Projekte',
             items: projectItems.map((proj: any) => ({
+              _sid: proj._sid,
               title: proj.title || proj.name || '',
               role: proj.role || proj.position || '',
               description: proj.description || proj.summary || '',
@@ -1700,6 +1716,130 @@ const addSectionItem = (sectionIndex: number, defaultItem: any) => {
     );
   }
 
+  // ── Verbesserungs-Journey ──────────────────────────────────────────────────
+  const journeySteps: JourneyStep[] = Array.isArray((editorData as any)?._optimization?.journey)
+    ? (editorData as any)._optimization.journey
+    : [];
+  const journeyProgress: JourneyProgress = {
+    done: (editorData as any)?._journey?.done ?? [],
+    skipped: (editorData as any)?._journey?.skipped ?? [],
+  };
+  const journeyScoreBefore: number | null =
+    typeof (editorData as any)?._optimization?.score?.before === 'number'
+      ? (editorData as any)._optimization.score.before
+      : null;
+
+  const findStationItem = (sid: string) => {
+    const secs: any[] = editorData?.sections ?? [];
+    for (let si = 0; si < secs.length; si++) {
+      const items: any[] = Array.isArray(secs[si]?.items) ? secs[si].items : [];
+      const ii = items.findIndex((it) => it?._sid === sid);
+      if (ii >= 0) return { section: secs[si], item: items[ii] };
+    }
+    return null;
+  };
+
+  const getJourneyContent = (step: JourneyStep): JourneyCurrentContent | null => {
+    if (step.target.type === 'station') {
+      const found = findStationItem(step.target.sid);
+      if (!found) return null;
+      const it = found.item;
+      const bullets = Array.isArray(it.bulletPoints) && it.bulletPoints.length
+        ? it.bulletPoints
+        : typeof it.description === 'string' && it.description.trim()
+          ? it.description.split('\n').map((l: string) => l.replace(/^[-•\s]+/, '').trim()).filter(Boolean)
+          : [];
+      return { title: it.title || it.degree || '', company: it.company || it.institution || '', bullet_points: bullets };
+    }
+    if (step.target.type === 'summary') return { text: editorData?.summary ?? '' };
+    if (step.target.type === 'headline') return { text: editorData?.personalInfo?.title ?? '' };
+    return null;
+  };
+
+  const SECTION_LABELS: Record<string, string[]> = {
+    languages: ['Sprachen'],
+    skills: ['Fähigkeiten', 'Kenntnisse', 'Skills', 'Kompetenzen'],
+    credentials: ['Zertifikate', 'Stipendien'],
+    volunteer: ['Ehrenamt'],
+    contact: [],
+  };
+
+  /** Hebt den Abschnitt des Journey-Schritts groß hervor (gleiche Fokus-Ansicht wie beim Klick in den CV). */
+  const focusJourneyStep = (step: JourneyStep | null) => {
+    if (!step) { setFocus(null); return; }
+    window.setTimeout(() => {
+      const root = cvPreviewRef.current;
+      if (!root) return;
+      const boxes = Array.from(root.querySelectorAll<HTMLElement>(BOX_SELECTOR));
+      const textOf = (el: HTMLElement) => (el.textContent ?? '').replace(/\s+/g, ' ');
+      const norm = (t: string) => t.replace(/\s+/g, ' ').trim().slice(0, 40);
+      let candidates: HTMLElement[] = [];
+
+      if (step.target.type === 'station') {
+        const found = findStationItem(step.target.sid);
+        const title = norm(found?.item?.title || found?.item?.degree || '');
+        const org = norm(found?.item?.company || found?.item?.institution || '');
+        if (title) candidates = boxes.filter((b) => textOf(b).includes(title) && (!org || textOf(b).includes(org)));
+      } else if (step.target.type === 'summary') {
+        const start = norm(editorData?.summary ?? '');
+        if (start) candidates = boxes.filter((b) => textOf(b).includes(start));
+      } else if (step.target.type === 'headline' || (step.target.type === 'section' && step.target.section === 'contact')) {
+        candidates = boxes.filter((b) => b.tagName.toLowerCase() === 'header');
+      } else if (step.target.type === 'section') {
+        const labels = SECTION_LABELS[step.target.section] ?? [];
+        candidates = boxes.filter((b) => labels.some((l) => textOf(b).toLowerCase().includes(l.toLowerCase())));
+      }
+      if (!candidates.length) { setFocus(null); return; }
+
+      // Die kleinste passende Box ist die spezifischste (Karte statt ganzer Sektion)
+      const el = candidates.sort((a, b) => textOf(a).length - textOf(b).length)[0];
+      const index = boxes.indexOf(el);
+      const b = measureBox(index);
+      if (!b) return;
+      setFocus({ index, ...b });
+
+      // Box in den sichtbaren Bereich scrollen
+      const main = mainAreaRef.current;
+      const firstFrame = main?.querySelector<HTMLElement>('.a4-page-frame');
+      if (main && firstFrame) {
+        let pageIdx = 0;
+        for (let i = 0; i < breaks.cuts.length; i++) if (b.by >= breaks.cuts[i] - 1) pageIdx = i;
+        const y = pageIdx * (PAGE_HEIGHT_PX + SHEET_GAP_PX) * scale + (b.by - breaks.cuts[pageIdx]) * scale;
+        const framesTop = firstFrame.getBoundingClientRect().top - main.getBoundingClientRect().top + main.scrollTop;
+        main.scrollTo({ top: Math.max(0, framesTop + y - 120), behavior: 'smooth' });
+      }
+    }, 60);
+  };
+
+  const applyJourneyStation = (sid: string, bullets: string[]) => {
+    setHasEditorChanges(true);
+    setEditorData((prev: any) => {
+      if (!prev?.sections) return prev;
+      return {
+        ...prev,
+        sections: prev.sections.map((sec: any) => ({
+          ...sec,
+          items: Array.isArray(sec.items)
+            ? sec.items.map((it: any) => (it?._sid === sid ? { ...it, bulletPoints: bullets } : it))
+            : sec.items,
+        })),
+      };
+    });
+  };
+
+  const applyJourneyText = (type: 'summary' | 'headline', text: string) => {
+    setHasEditorChanges(true);
+    setEditorData((prev: any) => {
+      if (!prev) return prev;
+      if (type === 'summary') return { ...prev, summary: text };
+      return { ...prev, personalInfo: { ...(prev.personalInfo || {}), title: text } };
+    });
+  };
+
+  const updateJourneyProgress = (progress: JourneyProgress) => {
+    setEditorData((prev: any) => (prev ? { ...prev, _journey: progress } : prev));
+  };
+
   // Tipps der Optimierung (fehlende Kennzahlen, Angaben, Keywords) – nie im CV-Text
   const optimizationMeta = (editorData as any)?._optimization ?? null;
   const optimizationTips: string[] = Array.isArray(optimizationMeta?.tips) ? optimizationMeta.tips : [];
@@ -1755,7 +1895,14 @@ const addSectionItem = (sectionIndex: number, defaultItem: any) => {
               <button onClick={handleDownloadClick} disabled={isExportingPDF} className={`px-5 py-2 rounded-xl bg-gradient-to-r from-[#66c0b6] to-[#30E3CA] text-black font-bold text-sm hover:brightness-110 hover:shadow-lg hover:shadow-[#66c0b6]/30 transition-all flex items-center gap-2 ${isExportingPDF ? 'opacity-50 cursor-not-allowed' : 'animate-pulse-subtle'}`}>
                 {isExportingPDF ? <><Loader2 size={16} className="animate-spin" /> Generiere...</> : <><Download size={16} /> Herunterladen</>}
               </button>
-              <button onClick={() => setShowTips(!showTips)} className="px-3 py-2 rounded-lg bg-white/10 hover:bg-white/20 transition-all flex items-center gap-2"><Sparkles size={16} className="text-[#66c0b6]" /></button>
+              <button
+                onClick={() => (journeySteps.length > 0 ? setShowJourney((v) => !v) : setShowTips(!showTips))}
+                className="px-3 py-2 rounded-lg bg-white/10 hover:bg-white/20 transition-all flex items-center gap-2"
+                title={journeySteps.length > 0 ? 'CV-Feinschliff' : 'Tipps'}
+              >
+                <Sparkles size={16} className="text-[#66c0b6]" />
+                {journeySteps.length > 0 && <span className="text-sm text-white/90">Feinschliff</span>}
+              </button>
             </div>
           </div>
 
@@ -1807,7 +1954,7 @@ const addSectionItem = (sectionIndex: number, defaultItem: any) => {
         </div>
       </div>
 
-      <main ref={mainRefCallback} className="flex-1 overflow-y-auto bg-[#1e1e24] w-full py-12 px-4 flex flex-col items-center">
+      <main ref={mainRefCallback} className={`flex-1 overflow-y-auto bg-[#1e1e24] w-full py-12 px-4 flex flex-col items-center ${showJourney && journeySteps.length > 0 ? 'sm:pr-[420px]' : ''}`}>
 
         {/* Ausgelagert nach src/components/cv-templates/pdfRenderStyles.ts —
             derselbe Text wird jetzt auch von CvExportRenderPage.tsx (Server-
@@ -2130,6 +2277,23 @@ const reorderSections = (fromIndex: number, toIndex: number) => {
             </div>
           </div>
         </div>
+      )}
+
+      {showJourney && journeySteps.length > 0 && cvId && editorData && (
+        <CvImprovementJourney
+          cvId={cvId}
+          steps={journeySteps}
+          editorData={editorData}
+          scoreBefore={journeyScoreBefore}
+          progress={journeyProgress}
+          onProgressChange={updateJourneyProgress}
+          onFocusStep={focusJourneyStep}
+          getCurrentContent={getJourneyContent}
+          onApplyStation={applyJourneyStation}
+          onApplyText={applyJourneyText}
+          onOpenCvCheck={() => navigate('/cv-check')}
+          onClose={() => { setShowJourney(false); setFocus(null); }}
+        />
       )}
 
       {showTips && (
