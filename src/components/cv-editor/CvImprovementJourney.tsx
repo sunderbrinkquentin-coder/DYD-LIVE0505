@@ -55,6 +55,11 @@ interface Props {
   onApplyText: (type: 'summary' | 'headline', text: string) => void;
   onOpenCvCheck: () => void;
   onClose: () => void;
+  /** Von außen gewünschter Schritt (Klick auf eine Markierung im CV); nonce erzwingt den Sprung. */
+  requestedStep?: { id: string; nonce: number } | null;
+  /** Begriffe aus der Stellenanzeige, die im CV fehlen (Schritt "keywords"). */
+  missingKeywords?: string[];
+  onAddSkill?: (name: string) => void;
 }
 
 type Status = 'idle' | 'loading' | 'proposal' | 'error';
@@ -77,6 +82,9 @@ export function CvImprovementJourney({
   onApplyText,
   onOpenCvCheck,
   onClose,
+  requestedStep,
+  missingKeywords = [],
+  onAddSkill,
 }: Props) {
   const isOpen = (id: string) => !progress.done.includes(id) && !progress.skipped.includes(id);
   const firstOpen = Math.max(0, steps.findIndex((s) => isOpen(s.id)));
@@ -103,6 +111,29 @@ export function CvImprovementJourney({
     setError(null);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [step?.id]);
+
+  // Klick auf eine Markierung im CV → genau diesen Schritt zeigen
+  useEffect(() => {
+    if (!requestedStep) return;
+    const i = steps.findIndex((s) => s.id === requestedStep.id);
+    if (i < 0) return;
+    // Bereits erledigte/übersprungene Schritte wieder öffnen, damit man sie erneut bearbeiten kann
+    if (!isOpen(requestedStep.id)) {
+      onProgressChange({
+        done: progress.done.filter((id) => id !== requestedStep.id),
+        skipped: progress.skipped.filter((id) => id !== requestedStep.id),
+      });
+    }
+    setIndex(i);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [requestedStep?.nonce]);
+
+  // Fähigkeiten, die schon im CV stehen (für die Keyword-Chips)
+  const existingSkills = useMemo(() => {
+    const sec = (editorData?.sections ?? []).find((x: any) => x?.type === 'skills');
+    const items: any[] = Array.isArray(sec?.items) ? sec.items : [];
+    return new Set(items.map((it) => String(it?.name ?? it ?? '').trim().toLowerCase()));
+  }, [editorData]);
 
   // Beim Schließen die Hervorhebung entfernen
   useEffect(() => () => onFocusStep(null), []); // eslint-disable-line react-hooks/exhaustive-deps
@@ -265,8 +296,37 @@ export function CvImprovementJourney({
               ))}
             </div>
 
+            {/* Fehlende Begriffe aus der Stellenanzeige: per Klick als Fähigkeit ergänzen */}
+            {step.id === 'keywords' && missingKeywords.length > 0 && (
+              <div className="space-y-2">
+                <div className="flex flex-wrap gap-2">
+                  {missingKeywords.map((kw) => {
+                    const added = existingSkills.has(kw.trim().toLowerCase());
+                    return (
+                      <button
+                        key={kw}
+                        type="button"
+                        disabled={added || !onAddSkill}
+                        onClick={() => onAddSkill?.(kw)}
+                        className={`px-3 py-1.5 rounded-full text-xs font-medium border transition-colors ${
+                          added
+                            ? 'bg-[#66c0b6]/20 border-[#66c0b6]/50 text-[#66c0b6]'
+                            : 'bg-white/5 border-white/15 text-white/85 hover:border-[#66c0b6] hover:text-white'
+                        }`}
+                      >
+                        {added ? <><Check size={11} className="inline -mt-0.5 mr-1" />{kw}</> : <>+ {kw}</>}
+                      </button>
+                    );
+                  })}
+                </div>
+                <p className="text-xs text-white/45">
+                  Ein Klick fügt den Begriff unter „Fähigkeiten“ hinzu. Erfahrung mit dem Thema kannst du zusätzlich in einer passenden Station beschreiben.
+                </p>
+              </div>
+            )}
+
             {/* Reiner Hinweis (z. B. LinkedIn ergänzen) */}
-            {!step.actionable && (
+            {!step.actionable && step.id !== 'keywords' && (
               <p className="text-xs text-white/50">
                 Das kannst du direkt im CV ergänzen – klicke dafür einfach auf das jeweilige Feld.
               </p>
