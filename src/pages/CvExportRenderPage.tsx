@@ -25,7 +25,7 @@
 // Sicherheit: Diese Seite braucht keinen eingeloggten User. Sie liest die
 // CV-Zeile über ein kurzlebiges, einmaliges Export-Token, das die Netlify-
 // Function unmittelbar vor dem Aufruf selbst erzeugt (siehe dortige
-// Kommentare + supabase/migrations/20260905_add_cv_export_token.sql). Die
+// Kommentare + supabase/migrations/20261004120000_add_cv_export_token.sql). Die
 // Supabase-Abfrage unten filtert ausdrücklich nach `id` UND `export_token`
 // zusammen — die RLS-Policy allein reicht nicht als Schutz, siehe Migration.
 //
@@ -117,10 +117,21 @@ export function CvExportRenderPage() {
       //      Browser. Kein Token nötig, weil dieselbe Supabase-Session (via
       //      localStorage, gleiche Origin) mitläuft und die normale RLS-
       //      Policy (nur eigene Zeile lesbar) bereits schützt.
-      const query = supabase.from('stored_cvs').select('cv_data, selected_template, export_token_expires_at').eq('id', cvId);
+      // export_token_expires_at wird NUR im Token-Modus abgefragt. Vorher stand die
+      // Spalte in beiden Modi im SELECT – fehlt sie in der Datenbank, brach dadurch
+      // auch der normale Session-Druck ab ("column … does not exist").
       const { data: row, error } = token
-        ? await query.eq('export_token', token).maybeSingle()
-        : await query.maybeSingle();
+        ? await supabase
+            .from('stored_cvs')
+            .select('cv_data, selected_template, export_token_expires_at')
+            .eq('id', cvId)
+            .eq('export_token', token)
+            .maybeSingle()
+        : await supabase
+            .from('stored_cvs')
+            .select('cv_data, selected_template')
+            .eq('id', cvId)
+            .maybeSingle();
 
       if (cancelled) return;
 
@@ -130,7 +141,8 @@ export function CvExportRenderPage() {
       }
 
       if (token) {
-        const expiresAt = row.export_token_expires_at ? new Date(row.export_token_expires_at).getTime() : 0;
+        const rawExpiresAt = (row as { export_token_expires_at?: string | null }).export_token_expires_at;
+        const expiresAt = rawExpiresAt ? new Date(rawExpiresAt).getTime() : 0;
         if (!expiresAt || expiresAt < Date.now()) {
           setLoadError('Export-Token ist abgelaufen.');
           return;
