@@ -19,6 +19,14 @@
 // ─────────────────────────────────────────────────────────────────────────────
 
 export const PDF_RENDER_STYLES_CSS = `
+  /* Deutsche Silbentrennung – in Editor-Vorschau UND PDF identisch, damit beide
+     an denselben Stellen umbrechen (sonst unterschiedliche Seitenaufteilung). */
+  [data-pdf-root],
+  .a4-page-frame {
+    -webkit-hyphens: auto;
+    hyphens: auto;
+  }
+
   /* ─────────────────────────────────────────────────────────────────
      .pdf-hidden — Editor-Controls, die nicht ins PDF gehören.
 
