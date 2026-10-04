@@ -6,6 +6,7 @@ import { ArrowRight, Briefcase, Building2, Link2, FileText, Loader2, Zap, Layers
 import { motion, AnimatePresence } from 'framer-motion';
 import { AvatarSidebar } from '../components/cvbuilder/AvatarSidebar';
 import { CVBuilderData } from '../types/cvBuilder';
+import { mapEditorDataToWizard } from '../utils/cvDataMapper';
 import { sessionManager } from '../utils/sessionManager';
 import { getOrCreateTempId } from '../utils/tempIdManager';
 import { supabase } from '../lib/supabase';
@@ -197,31 +198,51 @@ export function JobTargeting() {
             job_description: deepSanitize(formData.jobDescription),
           };
 
-      // 3) CV-Daten direkt übernehmen – ALLES explizit aufgeführt
-const cvDataPayload: any = {
-  experienceLevel: resolvedBaseCvData.experienceLevel,
-  targetRole: resolvedBaseCvData.targetRole,
-  targetIndustry: resolvedBaseCvData.targetIndustry,
-  personalData: resolvedBaseCvData.personalData,
-  workExperiences: resolvedBaseCvData.workExperiences ?? [],
-  projects: resolvedBaseCvData.projects ?? [],
-  hardSkills: resolvedBaseCvData.hardSkills ?? [],
-  softSkills: resolvedBaseCvData.softSkills ?? [],
-  schoolEducation: resolvedBaseCvData.schoolEducation ?? [],
-  professionalEducation: resolvedBaseCvData.professionalEducation ?? [],
-  internships: resolvedBaseCvData.internships ?? [],
-  hobbies: resolvedBaseCvData.hobbies,
-  workValues: resolvedBaseCvData.workValues,
-  jobTarget: resolvedBaseCvData.jobTarget,
-  targetJob: resolvedBaseCvData.targetJob,
-  languages: resolvedBaseCvData.languages ?? [],
-  summary: resolvedBaseCvData.summary,
-  // ✅ Korrekte Feldnamen aus CVBuilderData
-  stipendien: resolvedBaseCvData.stipendien ?? [],
-  volunteerWork: resolvedBaseCvData.volunteerWork ?? [],
-  certificates: resolvedBaseCvData.certificates ?? [],
-  desired_job: sanitizedJobData,
-};
+      // 3) CV-Daten übernehmen – ALLE Wizard-Felder, nichts geht verloren
+      //    Wurde der Basis-CV schon im Live-Editor gespeichert, liegt er im
+      //    Editor-Format (sections[]) vor → zurück ins Wizard-Format mappen,
+      //    sonst sieht die Optimierung keine einzige Station.
+      const isEditorFormat =
+        Array.isArray((resolvedBaseCvData as any).sections) &&
+        !(resolvedBaseCvData.workExperiences?.length);
+      const baseData: any = isEditorFormat
+        ? mapEditorDataToWizard(resolvedBaseCvData)
+        : resolvedBaseCvData;
+
+      // Technische Felder aus früheren Optimierungsläufen nicht weitertragen
+      const { _optimization, desired_job: _previousDesiredJob, ...wizardFields } = baseData;
+
+      const cvDataPayload: any = deepSanitize({
+        // a) ALLE Felder übernehmen (preferences, flags, künftige Wizard-Felder …)
+        ...wizardFields,
+
+        // b) Kernfelder mit sicheren Defaults (nie undefined → nie leere Sektionen durch Lücken)
+        experienceLevel: baseData.experienceLevel,
+        targetRole: baseData.targetRole,
+        targetIndustry: baseData.targetIndustry,
+        personalData: baseData.personalData ?? {},
+        workExperiences: baseData.workExperiences ?? [],
+        internships: baseData.internships ?? [],
+        projects: baseData.projects ?? [],
+        schoolEducation: baseData.schoolEducation ?? [],
+        professionalEducation: baseData.professionalEducation ?? [],
+        hardSkills: baseData.hardSkills ?? [],
+        softSkills: baseData.softSkills ?? [],
+        languages: baseData.languages ?? [],
+        certificates: baseData.certificates ?? [],
+        stipendien: baseData.stipendien ?? [],
+        volunteerWork: baseData.volunteerWork ?? [],
+        hobbies: baseData.hobbies,
+        workValues: baseData.workValues,
+        jobTarget: baseData.jobTarget,
+        targetJob: baseData.targetJob,
+        preferences: baseData.preferences,
+        flags: baseData.flags,
+        summary: baseData.summary,
+
+        // c) Zielstelle für die Optimierung
+        desired_job: sanitizedJobData,
+      });
 
       // 4) Log & Speicherung in Supabase
       console.log('🟦 [JOB-TARGETING] CV payload field counts:', {
@@ -326,18 +347,20 @@ const cvDataPayload: any = {
         job_data: sanitizedJobData,
       };
 
-      console.log('[CV-GENERATOR] 📤 Final Payload to Edge Function:', JSON.stringify(payload, null, 2));
+      // Kein kompletter CV in der Browser-Konsole (enthält Kontaktdaten)
+      console.log('[CV-GENERATOR] 📤 Starte Optimierung für cvId:', cvId);
 
       const { data: invokeData, error: invokeError } = await supabase.functions.invoke(
         'trigger-cv-generator',
         { body: payload }
       );
 
-      const makeStatus = invokeData?.make_status ?? 0;
-      const makeAccepted = !invokeError && (makeStatus === 200 || makeStatus === 201 || makeStatus === 202);
+      // make_status heißt aus Kompatibilitätsgründen weiter so (Supabase-Engine liefert 202)
+      const engineStatus = invokeData?.make_status ?? 0;
+      const jobAccepted = !invokeError && (engineStatus === 200 || engineStatus === 201 || engineStatus === 202);
 
-      if (!makeAccepted) {
-        console.error('[CV-GENERATOR] ❌ Make.com not accepted:', invokeError, makeStatus, invokeData);
+      if (!jobAccepted) {
+        console.error('[CV-GENERATOR] ❌ Optimierung nicht gestartet:', invokeError, engineStatus, invokeData);
         await supabase
           .from('stored_cvs')
           .update({ status: 'failed', updated_at: new Date().toISOString() })
@@ -345,11 +368,11 @@ const cvDataPayload: any = {
         throw new Error(
           invokeError
             ? 'Der Optimierungsprozess konnte nicht gestartet werden. Bitte versuche es erneut.'
-            : `Make.com hat den Auftrag nicht akzeptiert (Status ${makeStatus}). Bitte versuche es erneut.`
+            : `Die Optimierung konnte nicht gestartet werden (Status ${engineStatus}). Bitte versuche es erneut.`
         );
       }
 
-      console.log('[CV-GENERATOR] ✅ Make.com accepted the job, make_status:', makeStatus, invokeData);
+      console.log('[CV-GENERATOR] ✅ Optimierung gestartet:', engineStatus, invokeData?.engine);
       console.log('🟩 [JOB-TARGETING] Navigate to CV Editor');
       navigate(`/cv/${cvId}`);
     } catch (err) {
@@ -363,8 +386,6 @@ const cvDataPayload: any = {
       setIsSaving(false);
     }
   };
-
-  const isValid = generalistMode || !!(formData.company && formData.jobTitle && formData.jobDescription);
 
   if (isLoadingCvData) {
     return (
