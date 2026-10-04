@@ -31,13 +31,15 @@
 //
 // ─────────────────────────────────────────────────────────────────────────────
 
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { useParams, useSearchParams } from 'react-router-dom';
 
 import { supabase } from '../lib/supabase';
 import { PDF_RENDER_STYLES_CSS } from '../components/cv-templates/pdfRenderStyles';
 import {
-  computeBreakPoints,
+  computePagedLayout,
+  applyPushes,
+  pageSliceHeight,
   containerHeightFor,
   PAGE_HEIGHT_PX,
   type BreakResult,
@@ -308,11 +310,25 @@ export function CvExportRenderPage() {
       if (cancelled) return;
       const root = measureRef.current;
       if (!root || root.scrollHeight < 50) return;
-      setBreaks(computeBreakPoints(root));
+      // Seitenweises Layout wie im Editor: volle Seiten, überstehende Karten
+      // rutschen spaltenweise auf die nächste Seite.
+      setBreaks(computePagedLayout(root));
     };
     run();
     return () => { cancelled = true; };
   }, [data, breaks]);
+
+  // Ältere globale Druckregeln (index.css) für diese Seite abschalten – sonst
+  // verändert der Browser beim Drucken das Layout und das PDF weicht vom Editor ab.
+  useEffect(() => {
+    document.body.classList.add('cv-export-print');
+    return () => document.body.classList.remove('cv-export-print');
+  }, []);
+
+  // Dieselben Verschiebungen auf jede Blatt-Kopie anwenden (nach jedem Render)
+  useLayoutEffect(() => {
+    pagesRef.current?.querySelectorAll<HTMLElement>('[data-page-copy]').forEach((el) => applyPushes(el, breaks?.pushes));
+  });
 
   // 2) Sobald die A4-Blätter stehen und ihre Bilder geladen sind: bereit zum Druck
   useEffect(() => {
@@ -373,7 +389,8 @@ export function CvExportRenderPage() {
         html body [data-pdf-root] [data-pdf-hidden],
         html body [data-pdf-root] [data-break-item] > .pdf-hidden,
         html body [data-pdf-root] [data-spacer-id] > .pdf-hidden,
-        html body [data-pdf-root] [data-inline-control],
+        html body [data-pdf-root] [data-inline-control] .pdf-hidden,
+        html body [data-pdf-root] [data-inline-control]:not(:has(> :not(.pdf-hidden))),
         html body [data-pdf-root] button {
           display: none !important;
         }
@@ -399,6 +416,10 @@ export function CvExportRenderPage() {
           break-after: page;
         }
         .pdf-page:last-child { break-after: auto; }
+        /* Der Inhalt eines Blatts ist bereits fertig aufgeteilt: Der Drucker darf
+           darin nichts mehr verschieben oder umbrechen. */
+        .pdf-page { break-inside: avoid; contain: layout paint; }
+        .pdf-page * { break-inside: auto !important; break-before: auto !important; break-after: auto !important; }
       `}</style>
 
       <div ref={measureRef} data-pdf-root data-measure-root lang="de" style={{ width: '794px', backgroundColor: pageBg }}>
@@ -409,8 +430,19 @@ export function CvExportRenderPage() {
         <div ref={pagesRef} data-pdf-root lang="de">
           {breaks.cuts.map((cut, i) => (
             <div key={i} className="pdf-page">
-              <div style={{ position: 'absolute', top: `${-cut}px`, left: 0, width: '794px' }}>
-                {renderTemplate(minHeightPx)}
+              {/* Wie im Editor: Nicht-letzte Blätter enden exakt am Schnitt,
+                  damit nichts von der Folgeseite doppelt erscheint. */}
+              <div
+                style={{
+                  position: 'relative',
+                  width: '794px',
+                  height: `${i === breaks.cuts.length - 1 ? PAGE_HEIGHT_PX : Math.min(PAGE_HEIGHT_PX, pageSliceHeight(breaks, i))}px`,
+                  overflow: 'hidden',
+                }}
+              >
+                <div data-page-copy style={{ position: 'absolute', top: `${-cut}px`, left: 0, width: '794px' }}>
+                  {renderTemplate(minHeightPx)}
+                </div>
               </div>
             </div>
           ))}
