@@ -70,6 +70,43 @@ const VALID_TEMPLATES: CVTemplateType[] = ['modern', 'classic', 'minimal', 'crea
 // CVTemplateProps als Pflichtfelder vorhanden sein.
 const noop = () => {};
 
+// ── Dateiname: Lebenslauf_Nachname_Firma ────────────────────────────────────
+// Der Browser übernimmt beim "Als PDF speichern" den Seitentitel als Dateinamen,
+// der serverseitige Druck schreibt ihn in die PDF-Metadaten. Deshalb wird
+// document.title auf genau diesen Namen gesetzt.
+const LEGAL_FORMS_RE =
+  /\b(gmbh\s*&\s*co\.?\s*kgaa?|gmbh\s*&\s*co\.?\s*kg|gmbh|mbh|ag|se|kgaa|kg|ohg|gbr|ug|e\.\s?v\.?|ev|inc\.?|ltd\.?|llc|plc|corp\.?|co\.?)(?=\s|$|[.,&])/gi;
+
+function toFileNamePart(value: string): string {
+  return value
+    .replace(/ä/g, 'ae').replace(/ö/g, 'oe').replace(/ü/g, 'ue')
+    .replace(/Ä/g, 'Ae').replace(/Ö/g, 'Oe').replace(/Ü/g, 'Ue').replace(/ß/g, 'ss')
+    .normalize('NFKD').replace(/[\u0300-\u036f]/g, '')
+    .replace(LEGAL_FORMS_RE, ' ')
+    .replace(/[^A-Za-z0-9]+/g, '_')
+    .replace(/^_+|_+$/g, '')
+    .slice(0, 40);
+}
+
+function buildCvFileName(cvData: Record<string, any>, jobData: Record<string, any> | null): string {
+  const info = cvData.personalInfo ?? {};
+  const pd = cvData.personalData ?? {};
+  const fullName = String(info.name ?? '').trim();
+  const lastName = String(
+    info.lastName || pd.lastName || (fullName ? fullName.split(/\s+/).slice(-1)[0] : ''),
+  );
+
+  const rawCompany = String(
+    jobData?.company || jobData?.companyName || cvData.desired_job?.company || '',
+  );
+  // Generalist-Modus hat keine echte Firma → Firmenteil weglassen
+  const company = /generalist/i.test(rawCompany) ? '' : rawCompany;
+
+  return ['Lebenslauf', toFileNamePart(lastName), toFileNamePart(company)]
+    .filter(Boolean)
+    .join('_');
+}
+
 interface LoadedCv {
   personalInfo: PersonalInfo;
   summary?: string;
@@ -77,6 +114,7 @@ interface LoadedCv {
   photoUrl?: string;
   photoPosition?: { x: number; y: number };
   template: CVTemplateType;
+  fileName: string;
 }
 
 export function CvExportRenderPage() {
@@ -123,13 +161,13 @@ export function CvExportRenderPage() {
       const { data: row, error } = token
         ? await supabase
             .from('stored_cvs')
-            .select('cv_data, selected_template, export_token_expires_at')
+            .select('cv_data, selected_template, job_data, export_token_expires_at')
             .eq('id', cvId)
             .eq('export_token', token)
             .maybeSingle()
         : await supabase
             .from('stored_cvs')
-            .select('cv_data, selected_template')
+            .select('cv_data, selected_template, job_data')
             .eq('id', cvId)
             .maybeSingle();
 
@@ -156,7 +194,13 @@ export function CvExportRenderPage() {
         ? (rawTemplate as CVTemplateType)
         : 'modern';
 
+      let jobData: Record<string, any> | null = (row as { job_data?: unknown }).job_data as Record<string, any> | null;
+      if (typeof jobData === 'string') {
+        try { jobData = JSON.parse(jobData); } catch { jobData = null; }
+      }
+
       setData({
+        fileName: buildCvFileName(cvData as Record<string, any>, jobData),
         personalInfo: (cvData.personalInfo ?? {}) as PersonalInfo,
         summary: cvData.summary as string | undefined,
         sections: (cvData.sections ?? []) as EditorSection[],
@@ -171,6 +215,16 @@ export function CvExportRenderPage() {
       cancelled = true;
     };
   }, [cvId, token]);
+
+  // Seitentitel = Dateiname beim Speichern als PDF (Lebenslauf_Nachname_Firma)
+  useEffect(() => {
+    if (!data?.fileName) return;
+    const previousTitle = document.title;
+    document.title = data.fileName;
+    return () => {
+      document.title = previousTitle;
+    };
+  }, [data?.fileName]);
 
   const templateProps: CVTemplateProps | null = useMemo(() => {
     if (!data) return null;
@@ -266,7 +320,24 @@ export function CvExportRenderPage() {
       <style>{`
         html, body { margin: 0; padding: 0; background: ${pageBg}; }
         @page { size: A4; margin: 0; }
-        .pdf-hidden { display: none !important; }
+        /* Hintergrundfarben/Akzente IMMER drucken – sonst lässt Chrome/Edge sie
+           weg, solange "Hintergrundgrafiken" im Druckdialog nicht angehakt ist. */
+        html, body, [data-pdf-root], [data-pdf-root] * {
+          -webkit-print-color-adjust: exact !important;
+          print-color-adjust: exact !important;
+        }
+        /* Editor-Steuerelemente ("+ Bullet", "Station löschen", Pfeile …) dürfen
+           nie im PDF landen. Die höhere Spezifität ist nötig: pdfRenderStyles
+           setzt "[data-break-item] > .pdf-hidden { display: flex !important }"
+           und blendet sie beim Hover ein – das schlug bisher bis ins PDF durch. */
+        html body [data-pdf-root] .pdf-hidden,
+        html body [data-pdf-root] [data-pdf-hidden],
+        html body [data-pdf-root] [data-break-item] > .pdf-hidden,
+        html body [data-pdf-root] [data-spacer-id] > .pdf-hidden,
+        html body [data-pdf-root] [data-inline-control],
+        html body [data-pdf-root] button {
+          display: none !important;
+        }
         [data-break-atomic], [data-break-item] { break-inside: avoid; }
         [data-break-keep-next] { break-after: avoid; }
       `}</style>
