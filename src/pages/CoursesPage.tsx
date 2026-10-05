@@ -14,6 +14,7 @@ import {
   ArrowLeft, Award, BookOpen, CheckCircle2, Loader2, QrCode, RefreshCw, Settings2, Sparkles, Target, Zap,
 } from 'lucide-react';
 import { AcademyCatalogSection } from '../components/career/AcademyCatalogSection';
+import { AcademyValueStrip } from '../components/career/AcademyPreviews';
 import { CATALOG_PRICE_LABEL, REGULAR_PRICE_LABEL } from '../services/academyCatalogService';
 import { useAuth } from '../contexts/AuthContext';
 import { supabase } from '../lib/supabase';
@@ -90,6 +91,9 @@ export default function CoursesPage() {
           searchable
           showEmpty
         />
+
+        {/* Das bekommst du */}
+        <AcademyValueStrip initialName={String(user?.user_metadata?.full_name || '')} />
 
         {/* So funktioniert's */}
         <section className="grid grid-cols-1 sm:grid-cols-3 gap-3">
