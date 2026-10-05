@@ -883,24 +883,6 @@ export default function LandingPage() {
           </div>
         </section>
 
-        {/* Kurse mit Zertifikat – direkt nach dem Hero */}
-        {isCatalogEnabled() && (
-          <section id="kurse" className="py-12 px-4 sm:px-6 lg:px-8" aria-label="Kurse mit Zertifikat – sofort starten">
-            <div className="max-w-6xl mx-auto">
-              <AcademyCatalogSection
-                variant="landing"
-                limit={6}
-                showAllLink
-                title="Kurse mit Zertifikat – sofort starten"
-                subtitle={`5 interaktive Lerneinheiten, Abschlussprüfung und prüfbares Zertifikat mit QR-Code. Ab ${CATALOG_PRICE_LABEL}, ohne Abo.`}
-              />
-            </div>
-          </section>
-        )}
-
-        {/* Scroll-Story: Kurs → Prüfung → Zertifikat mit eigenem Namen → LinkedIn */}
-        <AcademyScrollStory />
-
         <ProcessTimeline />
 
         <section
@@ -1187,7 +1169,7 @@ export default function LandingPage() {
 
         <section
           id="career-academy"
-          className="py-20 px-4 sm:px-6 lg:px-8 relative overflow-hidden"
+          className="pt-20 pb-6 px-4 sm:px-6 lg:px-8 relative overflow-x-clip"
           aria-label="Career Academy: Skill-Gap-Analyse und persönlicher Lernpfad"
         >
           <div className="absolute inset-0 pointer-events-none">
@@ -1256,17 +1238,26 @@ export default function LandingPage() {
               <p className="text-xs text-white/30 mt-3">Analyse kostenlos · Lernpfad ab 3,99 € · prüfbares Zertifikat inklusive · Kompetenzprofil ab 2 Zertifikaten</p>
             </motion.div>
 
-            {/* Fertige Kurse: eigene Seite */}
-            {isCatalogEnabled() && (
-              <button
-                onClick={() => navigate('/kurse')}
-                className="mt-6 inline-flex items-center gap-2 text-sm font-bold text-[#30E3CA] hover:text-white transition-colors"
-              >
-                Oder direkt einen fertigen Kurs starten – ab {CATALOG_PRICE_LABEL} <ArrowRight className="w-4 h-4" />
-              </button>
-            )}
           </div>
         </section>
+
+        {/* Career Academy, Teil 2: So läuft ein Kurs (Scroll-Story) */}
+        <AcademyScrollStory />
+
+        {/* Career Academy, Teil 3: fertige Kurse – direkt im Anschluss an die Story */}
+        {isCatalogEnabled() && (
+          <section id="kurse" className="pt-6 pb-16 px-4 sm:px-6 lg:px-8" aria-label="Kurse mit Zertifikat – sofort starten">
+            <div className="max-w-6xl mx-auto">
+              <AcademyCatalogSection
+                variant="landing"
+                limit={6}
+                showAllLink
+                title="Bereit? Such dir deinen Kurs aus"
+                subtitle={`Fertig erstellt und sofort startklar: 5 Lerneinheiten, Abschlussprüfung und prüfbares Zertifikat. Ab ${CATALOG_PRICE_LABEL}, ohne Abo.`}
+              />
+            </div>
+          </section>
+        )}
 
         <section
           id="kompetenzprofil"
