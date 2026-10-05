@@ -2,12 +2,13 @@
 //
 // "Beliebte Lernpfade" – fertige, allgemeine Lernpfade aus dem Katalog.
 // Sofort verfügbar (keine Generierung), 20 % günstiger als ein personalisierter
-// Lernpfad. Wird im Dashboard, auf der Career-Vision-Seite und auf der
-// Landingpage gezeigt. Ohne Katalog-Einträge rendert die Sektion nichts.
+// Lernpfad. Wird im Dashboard, auf der Career-Vision-Seite, auf der
+// Landingpage und auf der Kursseite (/kurse) gezeigt.
+// Ohne Katalog-Einträge rendert die Sektion nichts (außer showEmpty).
 
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
-import { Zap, Award, BookOpen, ArrowRight, Loader2, Flame } from 'lucide-react';
+import { Zap, Award, BookOpen, ArrowRight, Loader2, Flame, Search } from 'lucide-react';
 import {
   academyCatalogService,
   CATALOG_DISCOUNT_LABEL,
@@ -25,6 +26,12 @@ interface Props {
   /** Dunkles App-Design (Dashboard) oder Landingpage */
   variant?: 'app' | 'landing';
   className?: string;
+  /** Link "Alle Kurse ansehen" zur Kursseite */
+  showAllLink?: boolean;
+  /** Suchfeld über den Kursen (Kursseite) */
+  searchable?: boolean;
+  /** Auch ohne Kurse etwas anzeigen (Kursseite) */
+  showEmpty?: boolean;
 }
 
 export function AcademyCatalogSection({
@@ -34,12 +41,16 @@ export function AcademyCatalogSection({
   excludeSkills = [],
   variant = 'app',
   className = '',
+  showAllLink = false,
+  searchable = false,
+  showEmpty = false,
 }: Props) {
   const navigate = useNavigate();
   const location = useLocation();
   const [entries, setEntries] = useState<CatalogEntry[] | null>(null);
   const [busyId, setBusyId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [query, setQuery] = useState('');
 
   const excludeKey = excludeSkills.map((s) => s.trim().toLowerCase()).sort().join('|');
 
@@ -54,7 +65,21 @@ export function AcademyCatalogSection({
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [limit, excludeKey]);
 
-  if (!entries || entries.length === 0) return null;
+  const visible = useMemo(() => {
+    if (!entries) return [];
+    const q = query.trim().toLowerCase();
+    if (!q) return entries;
+    return entries.filter((e) => e.skill.toLowerCase().includes(q) || (e.description ?? '').toLowerCase().includes(q));
+  }, [entries, query]);
+
+  if (entries === null) {
+    return showEmpty ? (
+      <div className={`flex items-center gap-2 text-sm text-white/50 ${className}`}>
+        <Loader2 size={16} className="animate-spin" /> Kurse werden geladen …
+      </div>
+    ) : null;
+  }
+  if (entries.length === 0 && !showEmpty) return null;
 
   const buy = async (entry: CatalogEntry) => {
     setBusyId(entry.id);
@@ -85,55 +110,83 @@ export function AcademyCatalogSection({
           <h3 className={`font-black text-white mt-1 ${isLanding ? 'text-2xl sm:text-3xl' : 'text-lg'}`}>{title}</h3>
           <p className="text-sm text-white/50 mt-1 max-w-xl">{subtitle}</p>
         </div>
-      </div>
-
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
-        {entries.map((entry) => (
-          <div
-            key={entry.id}
-            className="relative rounded-2xl p-5 flex flex-col gap-3 transition-all hover:-translate-y-0.5"
-            style={{
-              background: 'linear-gradient(150deg,rgba(48,227,202,0.08),rgba(6,10,18,0.95) 60%)',
-              border: '1px solid rgba(48,227,202,0.2)',
-            }}
+        {showAllLink && entries.length > 0 && (
+          <button
+            onClick={() => navigate('/kurse')}
+            className="flex items-center gap-1.5 text-sm font-bold text-[#30E3CA] hover:text-white transition-colors"
           >
-            <div className="absolute top-3 right-3 px-2 py-0.5 rounded-full text-[10px] font-black text-black"
-              style={{ background: 'linear-gradient(90deg,#30E3CA,#66c0b6)' }}>
-              {CATALOG_DISCOUNT_LABEL}
-            </div>
-
-            <div className="pr-12">
-              <p className="text-base font-black text-white leading-snug">{entry.skill}</p>
-              {entry.description && <p className="text-xs text-white/50 mt-1 line-clamp-2">{entry.description}</p>}
-            </div>
-
-            <ul className="space-y-1.5 text-xs text-white/60">
-              <li className="flex items-center gap-2"><BookOpen size={13} className="text-[#66c0b6]" /> {entry.unit_count || 5} interaktive Lerneinheiten</li>
-              <li className="flex items-center gap-2"><Award size={13} className="text-[#66c0b6]" /> Abschlussprüfung + prüfbares Zertifikat</li>
-              <li className="flex items-center gap-2"><Zap size={13} className="text-[#66c0b6]" /> Ohne Wartezeit – direkt loslegen</li>
-            </ul>
-
-            {entry.purchases >= 3 && (
-              <p className="text-[11px] text-amber-300/80 flex items-center gap-1"><Flame size={12} /> {entry.purchases}× gestartet</p>
-            )}
-
-            <div className="mt-auto flex items-center justify-between gap-3 pt-1">
-              <div className="flex items-baseline gap-1.5">
-                <span className="text-xl font-black text-white">{CATALOG_PRICE_LABEL}</span>
-                <span className="text-xs text-white/35 line-through">{REGULAR_PRICE_LABEL}</span>
-              </div>
-              <button
-                onClick={() => buy(entry)}
-                disabled={busyId !== null}
-                className="px-4 py-2.5 rounded-xl text-sm font-black text-black flex items-center gap-1.5 transition-all hover:scale-[1.03] disabled:opacity-60"
-                style={{ background: 'linear-gradient(135deg,#30E3CA,#66c0b6)' }}
-              >
-                {busyId === entry.id ? <Loader2 size={15} className="animate-spin" /> : <>Starten <ArrowRight size={14} /></>}
-              </button>
-            </div>
-          </div>
-        ))}
+            Alle Kurse ansehen <ArrowRight size={14} />
+          </button>
+        )}
       </div>
+
+      {searchable && entries.length > 0 && (
+        <div className="relative max-w-md">
+          <Search size={16} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-white/35" />
+          <input
+            value={query}
+            onChange={(e) => setQuery(e.target.value)}
+            placeholder="Kurs suchen, z. B. Excel, Projektmanagement …"
+            className="w-full pl-10 pr-4 py-3 rounded-xl bg-white/5 border border-white/10 text-sm text-white placeholder-white/30 focus:outline-none focus:border-[#30E3CA]/50"
+          />
+        </div>
+      )}
+
+      {entries.length === 0 ? (
+        <div className="rounded-2xl p-6 text-sm text-white/55" style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.08)' }}>
+          Die ersten Kurse werden gerade vorbereitet. Schau bald wieder vorbei – oder starte direkt deinen persönlichen Lernpfad über die kostenlose Skill-Analyse.
+        </div>
+      ) : visible.length === 0 ? (
+        <p className="text-sm text-white/50">Kein Kurs zu „{query}“ gefunden. Für jeden Skill gibt es einen persönlichen Lernpfad über die Skill-Analyse.</p>
+      ) : (
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+          {visible.map((entry) => (
+            <div
+              key={entry.id}
+              className="relative rounded-2xl p-5 flex flex-col gap-3 transition-all hover:-translate-y-0.5"
+              style={{
+                background: 'linear-gradient(150deg,rgba(48,227,202,0.08),rgba(6,10,18,0.95) 60%)',
+                border: '1px solid rgba(48,227,202,0.2)',
+              }}
+            >
+              <div className="absolute top-3 right-3 px-2 py-0.5 rounded-full text-[10px] font-black text-black"
+                style={{ background: 'linear-gradient(90deg,#30E3CA,#66c0b6)' }}>
+                {CATALOG_DISCOUNT_LABEL}
+              </div>
+
+              <div className="pr-12">
+                <p className="text-base font-black text-white leading-snug">{entry.skill}</p>
+                {entry.description && <p className="text-xs text-white/50 mt-1 line-clamp-2">{entry.description}</p>}
+              </div>
+
+              <ul className="space-y-1.5 text-xs text-white/60">
+                <li className="flex items-center gap-2"><BookOpen size={13} className="text-[#66c0b6]" /> {entry.unit_count || 5} interaktive Lerneinheiten</li>
+                <li className="flex items-center gap-2"><Award size={13} className="text-[#66c0b6]" /> Abschlussprüfung + prüfbares Zertifikat</li>
+                <li className="flex items-center gap-2"><Zap size={13} className="text-[#66c0b6]" /> Ohne Wartezeit – direkt loslegen</li>
+              </ul>
+
+              {entry.purchases >= 3 && (
+                <p className="text-[11px] text-amber-300/80 flex items-center gap-1"><Flame size={12} /> {entry.purchases}× gestartet</p>
+              )}
+
+              <div className="mt-auto flex items-center justify-between gap-3 pt-1">
+                <div className="flex items-baseline gap-1.5">
+                  <span className="text-xl font-black text-white">{CATALOG_PRICE_LABEL}</span>
+                  <span className="text-xs text-white/35 line-through">{REGULAR_PRICE_LABEL}</span>
+                </div>
+                <button
+                  onClick={() => buy(entry)}
+                  disabled={busyId !== null}
+                  className="px-4 py-2.5 rounded-xl text-sm font-black text-black flex items-center gap-1.5 transition-all hover:scale-[1.03] disabled:opacity-60"
+                  style={{ background: 'linear-gradient(135deg,#30E3CA,#66c0b6)' }}
+                >
+                  {busyId === entry.id ? <Loader2 size={15} className="animate-spin" /> : <>Starten <ArrowRight size={14} /></>}
+                </button>
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
 
       {error && <p className="text-sm text-red-400">{error}</p>}
       <p className="text-[11px] text-white/30">
