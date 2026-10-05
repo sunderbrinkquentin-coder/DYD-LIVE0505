@@ -1,5 +1,6 @@
 import { Outlet, useLocation, Link } from 'react-router-dom';
 import { useEffect } from 'react';
+import { AdvisorWidget } from '../features/advisor/AdvisorWidget';
 
 const LEGAL_LINKS = [
   { to: '/impressum', label: 'Impressum' },
@@ -56,6 +57,8 @@ export function GlobalLayout() {
         <Outlet />
       </main>
       <GlobalFooter />
+      {/* KI-Produktberater – nur bei Freischaltung/Pilotgruppe sichtbar */}
+      <AdvisorWidget />
     </div>
   );
 }
