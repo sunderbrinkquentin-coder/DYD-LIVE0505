@@ -1022,6 +1022,7 @@ const handleGenerateCompetencyProfile = async (recipientName: string) => {
           <AcademyCatalogSection
             className="mb-8"
             limit={3}
+            showAllLink
             excludeSkills={learningPaths.filter((p) => p.is_paid && p.skill).map((p) => String(p.skill))}
           />
 
