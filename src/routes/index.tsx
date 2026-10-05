@@ -31,6 +31,7 @@ import CareerVisionPage from '../pages/CareerVisionPage';
 import LearningPathPage from '../pages/LearningPathPage';
 import LearningPathWaitingPage from '../pages/LearningPathWaitingPage';
 import CertificateVerifyPage from '../pages/CertificateVerifyPage';
+import CoursesPage from '../pages/CoursesPage';
 import HarmonyFestivalPage from '../pages/HarmonyFestivalPage';
 import FestivalPaymentSuccessPage from '../pages/FestivalPaymentSuccessPage';
 // 🔐 AUTH GUARD IMPORT
@@ -110,6 +111,7 @@ export const router = createHashRouter([
       { path: '/learning-path-waiting/:pathId', element: <LearningPathWaitingPage /> },
       // Öffentliche Echtheitsprüfung der Academy-Zertifikate (QR-Code)
       { path: '/verify/:certId', element: <CertificateVerifyPage /> },
+      { path: '/kurse', element: <CoursesPage /> },
       { path: '/business', element: <B2BLandingPage /> },
 
       { path: '/turnier', element: <FestivalTournamentBoard /> },
