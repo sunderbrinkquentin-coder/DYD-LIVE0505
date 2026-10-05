@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { AcademyCatalogSection } from '../components/career/AcademyCatalogSection';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { Target, TrendingUp, ArrowLeft, Award } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
@@ -103,6 +104,13 @@ export default function CareerVisionPage() {
             <CareerVisionSection cvId={cvId || undefined} onAnalysisComplete={handleAnalysisComplete} resumePathId={resumePathId} />
           </div>
         </div>
+
+        {/* Fertige Lernpfade aus dem Katalog */}
+        <AcademyCatalogSection
+          title="Direkt loslegen"
+          subtitle="Beliebte Lernpfade, die schon fertig sind – ohne Analyse und Wartezeit, 20 % günstiger."
+          excludeSkills={userPaths.filter((p) => p.is_paid && p.skill).map((p) => String(p.skill))}
+        />
 
         {/* Existing paths */}
         {!isLoading && userPaths.length > 0 && (
