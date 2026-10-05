@@ -1,5 +1,6 @@
 import { motion, useScroll, useTransform, AnimatePresence } from 'framer-motion';
 import { AcademyCatalogSection } from '../components/career/AcademyCatalogSection';
+import { AcademyScrollStory } from '../components/career/AcademyScrollStory';
 import { isCatalogEnabled, CATALOG_PRICE_LABEL } from '../services/academyCatalogService';
 import { useNavigate } from 'react-router-dom';
 import {
@@ -154,7 +155,7 @@ export default function LandingPage() {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-[#050507] via-[#0a0a0f] to-[#050507] text-white relative overflow-hidden">
+    <div className="min-h-screen bg-gradient-to-br from-[#050507] via-[#0a0a0f] to-[#050507] text-white relative overflow-x-clip">
       <FollowRewardPopup
         open={followPopupOpen}
         onClose={() => setFollowPopupOpen(false)}
@@ -896,6 +897,9 @@ export default function LandingPage() {
             </div>
           </section>
         )}
+
+        {/* Scroll-Story: Kurs → Prüfung → Zertifikat mit eigenem Namen → LinkedIn */}
+        <AcademyScrollStory />
 
         <ProcessTimeline />
 
