@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { X, Check, CreditCard, Loader, AlertCircle, Sparkles, Zap, Shield, TrendingUp, Award, Clock } from 'lucide-react';
 import { supabase } from '../../lib/supabase';
 import { tokenService } from '../../services/tokenService';
+import { advisorCheckoutMetadata } from '../../features/advisor/advisorAttribution';
 
 interface CVOptimizerPaywallProps {
   isOpen: boolean;
@@ -129,7 +130,7 @@ export function CVOptimizerPaywall({ isOpen, onClose, onSuccess, cvId, userId }:
           success_url: successUrl,
           cancel_url: cancelUrl,
           mode: 'payment',
-          metadata: { cv_id: cvId ?? '', source: 'cv_optimizer', token_count: String(plan.credits) },
+          metadata: { cv_id: cvId ?? '', source: 'cv_optimizer', token_count: String(plan.credits), ...advisorCheckoutMetadata() },
         }),
       });
 
