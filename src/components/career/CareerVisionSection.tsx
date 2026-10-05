@@ -60,7 +60,30 @@ type Phase =
   | 'revealing'      // completed received, brief success state
   | 'done'           // results fully visible
   | 'error'
+  | 'failed'         // Analyse abgebrochen (Server meldet status = failed)
   | 'fallback';
+
+/**
+ * Grobe Plausibilitätsprüfung der Zielposition – VOR der Zahlung.
+ * Fängt Tastaturfolgen und Zufallszeichen ab ("asdf", "asdfasdf", "xxxx").
+ * Die eigentliche Prüfung macht die Edge Function.
+ */
+function looksLikeJobTitle(raw: string): boolean {
+  const v = raw.trim().toLowerCase();
+  const letters = v.replace(/[^a-zäöüß]/g, '');
+  if (letters.length < 2) return false;
+  if (/^(.{1,4})\1+$/.test(letters)) return false;                     // asdfasdf, xxxx, abab
+  if (/(.)\1{3,}/.test(letters)) return false;                          // aaaa
+  if (/^(test|tests|testing|keine|nix|nichts|egal|bla|blabla|xyz|abc|job|beruf)$/.test(letters)) return false;
+  const keyboardRuns = ['qwert', 'wertz', 'asdf', 'sdfg', 'dfgh', 'fghj', 'ghjk', 'hjkl', 'yxcv', 'xcvb', 'cvbn', 'uiop', 'zuio', 'jklö'];
+  if (keyboardRuns.some((k) => letters.includes(k))) return false;
+  // Jedes längere Wort braucht einen Vokal ("Kfz", "IT", "HR" bleiben erlaubt)
+  const words = v.split(/[^a-zäöüß]+/).filter((w) => w.length >= 5);
+  if (words.some((w) => !/[aeiouyäöü]/.test(w))) return false;
+  return true;
+}
+
+const FAILED_SELECT = 'status,missing_skills,current_skills,strategic_outlook_2026,match_score,industry,target_job,target_company,error_code:skillgap_analysis->>error_code';
 
 function normalizeCurrentSkills(raw: unknown): RawSkill[] {
   return parseSkills(raw).map((s) => ({
@@ -859,6 +882,10 @@ export function CareerVisionSection({ cvId: initialCvId, onAnalysisComplete, res
   const [phase, setPhase] = useState<Phase>('idle');
   const [formError, setFormError] = useState<string | null>(null);
   const [apiError, setApiError] = useState<string | null>(null);
+  const [failCode, setFailCode] = useState<string | null>(null);
+  const [failedRole, setFailedRole] = useState('');
+  const [roleFix, setRoleFix] = useState('');
+  const [roleFixError, setRoleFixError] = useState<string | null>(null);
   const [result, setResult] = useState<AnalysisResult | null>(null);
   const [cvUploadFileName, setCvUploadFileName] = useState<string>('');
   const [preparing, setPreparing] = useState(false);
@@ -978,6 +1005,20 @@ export function CareerVisionSection({ cvId: initialCvId, onAnalysisComplete, res
     [cleanupListeners, industry, targetJob, targetCompany],
   );
 
+  // ── Abgebrochene Analyse anzeigen ───────────────────────────────────────────
+
+  const showFailed = useCallback((row: Record<string, unknown>) => {
+    if (pollTimerRef.current) clearTimeout(pollTimerRef.current);
+    if (fallbackTimRef.current) clearTimeout(fallbackTimRef.current);
+    const role = (row.target_job as string) ?? '';
+    setFailCode((row.error_code as string) || 'INTERNAL');
+    setFailedRole(role);
+    setRoleFix('');
+    setRoleFixError(null);
+    setApiError(null);
+    setPhase('failed');
+  }, []);
+
   // ── Polling learning_paths ──────────────────────────────────────────────────
 
   const startPolling = useCallback(
@@ -989,7 +1030,7 @@ export function CareerVisionSection({ cvId: initialCvId, onAnalysisComplete, res
         try {
           const { data } = await supabase
             .from('learning_paths')
-            .select('status,missing_skills,current_skills,strategic_outlook_2026,match_score,industry,target_job,target_company')
+            .select(FAILED_SELECT)
             .eq('id', pathId)
             .maybeSingle();
           if (data && COMPLETE_STATUSES.has(data.status as string)) {
@@ -997,8 +1038,7 @@ export function CareerVisionSection({ cvId: initialCvId, onAnalysisComplete, res
             return;
           }
           if (data?.status === 'failed') {
-            setApiError('Die Analyse wurde unterbrochen. Klicke auf „Ergebnis laden“, um sie neu zu starten – ohne zusätzliche Kosten.');
-            setPhase('fallback');
+            showFailed(data as Record<string, unknown>);
             return;
           }
         } catch (e: any) {
@@ -1057,6 +1097,10 @@ export function CareerVisionSection({ cvId: initialCvId, onAnalysisComplete, res
 
 const runAnalysis = useCallback(async () => {
     if (!targetJob.trim()) { setFormError('Bitte gib eine Zielposition ein.'); return; }
+    if (!looksLikeJobTitle(targetJob)) {
+      setFormError('Bitte gib eine echte Berufsbezeichnung ein, z. B. „Projektmanager“ oder „Data Analyst“.');
+      return;
+    }
     const consentAccepted = await requestConsent('skill-gap');
     if (!consentAccepted) return;
     if (!user?.id)          {
@@ -1147,7 +1191,7 @@ const runAnalysis = useCallback(async () => {
   ]);
   // ── Trigger skillgap Edge Function ──────────────────────────────────────────
 
-  const triggerSkillgapWebhook = useCallback(async (pathId: string) => {
+  const triggerSkillgapWebhook = useCallback(async (pathId: string, correctedTargetJob?: string) => {
     setPhase('waiting');
     completedRef.current = false;
     pathIdRef.current = pathId;
@@ -1155,10 +1199,15 @@ const runAnalysis = useCallback(async () => {
     // Analyse serverseitig starten (Edge Function skillgap-analyze).
     // Die Funktion prüft Login, Besitz und Zahlung selbst und verhindert Doppelstarts.
     try {
-      const { error: fnError } = await supabase.functions.invoke('skillgap-analyze', {
-        body: { learning_path_id: pathId },
+      const { data: started, error: fnError } = await supabase.functions.invoke('skillgap-analyze', {
+        body: { learning_path_id: pathId, ...(correctedTargetJob ? { target_job: correctedTargetJob } : {}) },
       });
       if (fnError) console.warn('[CVSection] skillgap-analyze:', fnError.message);
+      // Unbekannte Zielposition ohne Korrektur → sofort wieder die Korrekturmaske
+      if (started?.status === 'failed') {
+        showFailed({ target_job: correctedTargetJob || failedRole, error_code: started.error_code });
+        return;
+      }
     } catch (e: any) {
       console.warn('[CVSection] skillgap-analyze nicht erreichbar (Polling läuft weiter):', e.message);
     }
@@ -1169,7 +1218,7 @@ const runAnalysis = useCallback(async () => {
     fallbackTimRef.current = setTimeout(() => {
       if (!completedRef.current) setPhase('fallback');
     }, FALLBACK_TIMEOUT_MS);
-  }, [startRealtime, startPolling]);
+  }, [startRealtime, startPolling, showFailed, failedRole]);
 
   // ── Resume after Stripe redirect ────────────────────────────────────────────
 
@@ -1255,7 +1304,7 @@ const runAnalysis = useCallback(async () => {
           try {
             const { data: row } = await supabase
               .from('learning_paths')
-              .select('status, missing_skills, current_skills, strategic_outlook_2026, match_score, industry, target_job, target_company')
+              .select(FAILED_SELECT)
               .eq('id', resumePathId)
               .maybeSingle();
             if (row && COMPLETE_STATUSES.has(row.status as string)) {
@@ -1265,8 +1314,7 @@ const runAnalysis = useCallback(async () => {
             }
             if (row?.status === 'failed') {
               pollActive = false;
-              setApiError('Die Analyse wurde unterbrochen. Klicke auf „Ergebnis laden“, um sie neu zu starten – ohne zusätzliche Kosten.');
-              setPhase('fallback');
+              showFailed(row as Record<string, unknown>);
               return;
             }
           } catch (e: any) {
@@ -1298,6 +1346,11 @@ const runAnalysis = useCallback(async () => {
             let message = fnError.message;
             try { message = (await (fnError as any).context.json())?.error || message; } catch { /* ignore */ }
             throw new Error(message);
+          }
+          if (started?.status === 'failed') {
+            pollActive = false;
+            showFailed({ target_job: data!.target_job, error_code: started.error_code });
+            return;
           }
           if (started?.status === 'done') {
             const { data: row } = await supabase
@@ -1332,6 +1385,19 @@ const runAnalysis = useCallback(async () => {
     setResult(null);
   };
 
+  const handleRoleFix = async () => {
+    const pathId = pathIdRef.current;
+    const value = roleFix.trim();
+    if (!pathId) return;
+    if (!looksLikeJobTitle(value)) {
+      setRoleFixError('Bitte gib eine echte Berufsbezeichnung ein, z. B. „Projektmanager“ oder „Data Analyst“.');
+      return;
+    }
+    setRoleFixError(null);
+    setTargetJob(value);
+    await triggerSkillgapWebhook(pathId, value);
+  };
+
   const handleManualCheck = async () => {
     const pathId = pathIdRef.current;
     if (!pathId) return;
@@ -1359,7 +1425,7 @@ const runAnalysis = useCallback(async () => {
   const isAnalyzing   = phase === 'waiting' || phase === 'revealing';
   const showLoader    = isCvUploading || isAnalyzing;
   const showResult    = phase === 'done' && result !== null;
-  const showForm      = !showLoader && phase !== 'done' && phase !== 'fallback' && phase !== 'paywall';
+  const showForm      = !showLoader && phase !== 'done' && phase !== 'fallback' && phase !== 'paywall' && phase !== 'failed';
   const canSubmit     = !!targetJob.trim() && !showLoader;
 
   // Drag-drop handlers for the CV upload area
@@ -1411,6 +1477,59 @@ const runAnalysis = useCallback(async () => {
               <RefreshCw size={16} /> Erneut starten
             </button>
           </div>
+        </div>
+      )}
+
+      {/* Analyse abgebrochen */}
+      {phase === 'failed' && (
+        <div className="bg-red-500/10 border border-red-500/20 rounded-2xl p-6 space-y-4">
+          <div className="flex items-start gap-3">
+            <AlertCircle size={22} className="text-red-400 flex-shrink-0 mt-0.5" />
+            <div className="space-y-1">
+              {failCode === 'UNKNOWN_ROLE' ? (
+                <>
+                  <p className="font-semibold text-red-300">Zielposition nicht erkannt</p>
+                  <p className="text-sm text-white/60">
+                    „{failedRole}“ konnten wir keiner Berufsbezeichnung zuordnen. Gib deine Zielposition noch einmal ein –
+                    die Analyse startet dann neu, ohne zusätzliche Kosten.
+                  </p>
+                </>
+              ) : (
+                <>
+                  <p className="font-semibold text-red-300">Die Analyse wurde unterbrochen</p>
+                  <p className="text-sm text-white/60">
+                    Das lag an uns, nicht an dir. Starte sie einfach neu – ohne zusätzliche Kosten.
+                  </p>
+                </>
+              )}
+            </div>
+          </div>
+
+          {failCode === 'UNKNOWN_ROLE' ? (
+            <div className="space-y-2">
+              <div className="flex gap-3 flex-wrap">
+                <input
+                  value={roleFix}
+                  onChange={(e) => { setRoleFix(e.target.value); setRoleFixError(null); }}
+                  onKeyDown={(e) => { if (e.key === 'Enter') handleRoleFix(); }}
+                  placeholder="z. B. Projektmanager, Data Analyst, Pflegefachkraft"
+                  maxLength={120}
+                  className="flex-1 min-w-[220px] px-4 py-2.5 rounded-xl bg-white/5 border border-white/15 text-white placeholder-white/30 text-sm focus:outline-none focus:border-[#30E3CA]/60"
+                />
+                <button onClick={handleRoleFix} disabled={!roleFix.trim()}
+                  className="flex items-center gap-2 px-5 py-2.5 rounded-xl font-bold text-sm text-black disabled:opacity-50"
+                  style={{ background: 'linear-gradient(135deg,#30E3CA,#66c0b6)' }}>
+                  <RefreshCw size={16} /> Analyse starten
+                </button>
+              </div>
+              {roleFixError && <p className="text-xs text-red-300">{roleFixError}</p>}
+            </div>
+          ) : (
+            <button onClick={handleManualCheck}
+              className="flex items-center gap-2 px-5 py-2.5 rounded-xl bg-red-500/20 border border-red-500/30 text-red-200 hover:bg-red-500/30 transition-all font-medium text-sm">
+              <RefreshCw size={16} /> Kostenlos neu starten
+            </button>
+          )}
         </div>
       )}
 
