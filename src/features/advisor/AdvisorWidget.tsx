@@ -6,7 +6,7 @@
 
 import { useEffect, useId, useMemo, useRef, useState } from 'react';
 import { useLocation } from 'react-router-dom';
-import { Loader2, MessageCircle, RotateCcw, Send, Sparkles, X } from 'lucide-react';
+import { Loader2, RotateCcw, Send, Sparkles, X } from 'lucide-react';
 import { advisorHiddenOn, getAdvisorVariant, pageContext } from './advisorConfig';
 import { trackAdvisor } from './advisorAnalytics';
 import { AdvisorProductCard } from './AdvisorProductCard';
@@ -21,6 +21,18 @@ const STARTERS: Record<string, string[]> = {
   dashboard: ['Was ist mein nächster sinnvoller Schritt?', 'Welche Kurse gibt es?', 'Wie bekomme ich das Kompetenzprofil?'],
   faq: ['Gibt es ein Abo?', 'Was kostet der CV-Check?', 'Welches Angebot passt zu mir?'],
   other: ['Welches Angebot passt zu mir?', 'Was kostet der CV-Check?', 'Ich frage für ein Unternehmen'],
+};
+
+/** Kurze Begrüßung je Seite: ein Satz, nimmt die typische Frage der Seite auf */
+const WELCOME: Record<string, string> = {
+  home: 'Du willst wissen, was für dich passt? Frag mich einfach – ich antworte in Sekunden.',
+  courses: 'Unsicher, welcher Kurs zu dir passt? Frag mich einfach.',
+  career: 'Fragen zur Skill-Analyse oder zum Lernpfad? Frag mich einfach.',
+  cv: 'Fragen zu deinem Lebenslauf oder welches Paket passt? Frag mich einfach.',
+  business: 'Sie suchen die passende Lösung für Ihre Organisation? Fragen Sie mich gern.',
+  dashboard: 'Nicht sicher, was dein nächster Schritt ist? Frag mich einfach.',
+  faq: 'Deine Frage ist nicht dabei? Frag mich einfach.',
+  other: 'Falls du Fragen hast, frag mich einfach – ich antworte in Sekunden.',
 };
 
 export function AdvisorWidget() {
@@ -83,7 +95,7 @@ function AdvisorShell({ pathname }: { pathname: string }) {
 
   return (
     <>
-      {/* Einstieg: schmaler Reiter am rechten Rand – kollidiert nicht mit Buttons unten */}
+      {/* Einstieg: kleines rundes Icon am rechten Rand (mittig) – kollidiert nicht mit Buttons unten */}
       {!open && (
         <button
           ref={launcherRef}
@@ -91,12 +103,20 @@ function AdvisorShell({ pathname }: { pathname: string }) {
           onClick={openPanel}
           aria-expanded={open}
           aria-controls={panelId}
-          className="fixed right-0 top-[58%] sm:top-1/2 -translate-y-1/2 z-[60] flex items-center gap-2 pl-3 pr-2.5 py-3 rounded-l-2xl text-black font-black text-sm shadow-xl focus:outline-none focus-visible:ring-2 focus-visible:ring-white"
-          style={{ background: 'linear-gradient(135deg,#30E3CA,#66c0b6)', boxShadow: '0 10px 30px rgba(48,227,202,0.3)' }}
+          aria-label="KI-Berater Quentin öffnen"
+          title="Frag Quentin (KI)"
+          className="group fixed right-3 sm:right-4 top-[58%] sm:top-1/2 -translate-y-1/2 z-[60] w-12 h-12 rounded-full flex items-center justify-center text-black font-black text-lg transition-transform hover:scale-110 focus:outline-none focus-visible:ring-2 focus-visible:ring-white focus-visible:ring-offset-2 focus-visible:ring-offset-black"
+          style={{ background: 'linear-gradient(135deg,#30E3CA,#66c0b6)', boxShadow: '0 8px 24px rgba(48,227,202,0.35)' }}
         >
-          <MessageCircle size={18} aria-hidden />
-          <span className="hidden sm:inline [writing-mode:vertical-rl] rotate-180 tracking-wide">KI-Berater</span>
-          <span className="sr-only sm:hidden">KI-Berater öffnen</span>
+          <span aria-hidden>Q</span>
+          {/* KI-Abzeichen */}
+          <span className="absolute -bottom-0.5 -right-0.5 w-5 h-5 rounded-full flex items-center justify-center bg-[#0a1220] border border-[#30E3CA]/60 text-[#30E3CA]" aria-hidden>
+            <Sparkles size={11} />
+          </span>
+          {/* Hinweis beim Überfahren (Desktop) */}
+          <span className="pointer-events-none hidden sm:block absolute right-full mr-3 top-1/2 -translate-y-1/2 whitespace-nowrap rounded-lg px-2.5 py-1.5 text-xs font-bold text-white bg-[#0a1220] border border-white/10 opacity-0 group-hover:opacity-100 group-focus-visible:opacity-100 transition-opacity" aria-hidden>
+            Frag Quentin · KI
+          </span>
         </button>
       )}
 
@@ -112,10 +132,18 @@ function AdvisorShell({ pathname }: { pathname: string }) {
           {/* Kopf */}
           <header className="flex items-center justify-between gap-2 px-4 py-3 border-b border-white/10">
             <div className="flex items-center gap-2.5 min-w-0">
-              <span className="w-9 h-9 rounded-xl flex items-center justify-center bg-[#30E3CA]/15 text-[#30E3CA]"><Sparkles size={17} aria-hidden /></span>
+              {/* Avatar: Monogramm "Q" mit KI-Abzeichen */}
+              <span className="relative w-9 h-9 flex-shrink-0 rounded-xl flex items-center justify-center text-black font-black text-base" style={{ background: 'linear-gradient(135deg,#30E3CA,#66c0b6)' }} aria-hidden>
+                Q
+                <span className="absolute -bottom-1 -right-1 w-4 h-4 rounded-full flex items-center justify-center bg-[#0a1220] border border-[#30E3CA]/50 text-[#30E3CA]">
+                  <Sparkles size={9} />
+                </span>
+              </span>
               <div className="min-w-0">
-                <h2 id={titleId} className="text-sm font-black text-white leading-tight">DYD-Berater</h2>
-                <p className="text-[10px] text-white/45">KI-Assistent · Antworten können Fehler enthalten</p>
+                <h2 id={titleId} className="text-sm font-black text-white leading-tight">
+                  Quentin <span className="ml-1 align-middle text-[9px] font-black uppercase tracking-wider px-1.5 py-0.5 rounded-md bg-[#30E3CA]/15 text-[#30E3CA]">KI</span>
+                </h2>
+                <p className="text-[10px] text-white/45 truncate">Digitaler Berater · gebaut vom Gründer von DYD</p>
               </div>
             </div>
             <div className="flex items-center gap-1">
@@ -124,7 +152,7 @@ function AdvisorShell({ pathname }: { pathname: string }) {
                   <RotateCcw size={16} aria-hidden />
                 </button>
               )}
-              <button type="button" onClick={closePanel} className="p-2 rounded-lg text-white/50 hover:text-white hover:bg-white/10 focus:outline-none focus-visible:ring-2 focus-visible:ring-[#30E3CA]" aria-label="Berater schließen">
+              <button type="button" onClick={closePanel} className="p-2 rounded-lg text-white/50 hover:text-white hover:bg-white/10 focus:outline-none focus-visible:ring-2 focus-visible:ring-[#30E3CA]" aria-label="Quentin schließen">
                 <X size={18} aria-hidden />
               </button>
             </div>
@@ -133,7 +161,10 @@ function AdvisorShell({ pathname }: { pathname: string }) {
           {/* Verlauf */}
           <div ref={listRef} className="flex-1 overflow-y-auto px-4 py-4 space-y-4" aria-live="polite" aria-busy={chat.loading}>
             <div className="text-sm text-white/80 leading-relaxed">
-              <p>Hallo! Ich bin der KI-Berater von DYD. Ich erkläre dir unsere Angebote, Preise und Abläufe und helfe dir, das Passende zu finden.</p>
+              <p>
+                <span className="font-black text-white">Hi, ich bin Quentin.</span>{' '}
+                {WELCOME[ctx.page] ?? WELCOME.other}
+              </p>
               {chat.entries.length === 0 && (
                 <div className="flex flex-wrap gap-2 mt-3">
                   {starters.map((s) => (
@@ -152,7 +183,7 @@ function AdvisorShell({ pathname }: { pathname: string }) {
 
             {chat.loading && (
               <div className="flex items-center gap-2 text-xs text-white/50" role="status">
-                <Loader2 size={14} className="animate-spin" aria-hidden /> Berater schreibt …
+                <Loader2 size={14} className="animate-spin" aria-hidden /> Quentin schreibt …
               </div>
             )}
 
@@ -186,7 +217,7 @@ function AdvisorShell({ pathname }: { pathname: string }) {
             onSubmit={(e) => { e.preventDefault(); submit(draft); }}
           >
             <div className="flex items-end gap-2">
-              <label htmlFor={`${panelId}-input`} className="sr-only">Deine Frage an den Berater</label>
+              <label htmlFor={`${panelId}-input`} className="sr-only">Deine Frage an Quentin</label>
               <textarea
                 id={`${panelId}-input`}
                 ref={inputRef}
@@ -209,7 +240,7 @@ function AdvisorShell({ pathname }: { pathname: string }) {
               </button>
             </div>
             <p className="text-[10px] text-white/30 mt-2">
-              KI-gestützt (OpenAI). Gesprächsinhalte werden nicht gespeichert. Bitte keine sensiblen Daten eingeben.{' '}
+              Du schreibst mit einer KI (OpenAI), nicht mit Quentin persönlich. Gesprächsinhalte werden nicht gespeichert. Bitte keine sensiblen Daten eingeben.{' '}
               <a href="#/datenschutz" className="underline hover:text-white/60">Datenschutz</a>
             </p>
           </form>
