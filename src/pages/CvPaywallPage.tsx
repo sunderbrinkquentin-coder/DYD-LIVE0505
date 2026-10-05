@@ -7,6 +7,7 @@ import { supabase } from '../lib/supabase';
 import { useAuth } from '../contexts/AuthContext';
 import { validateStripePriceIds } from '../utils/stripeConfigValidator';
 import { tokenService } from '../services/tokenService';
+import { advisorCheckoutMetadata } from '../features/advisor/advisorAttribution';
 
 interface Package {
   id: string;
@@ -347,6 +348,7 @@ export default function CvPaywallPage() {
               cv_id: cvId,
               source: isCvCheckFlow ? 'cv_unlock' : 'cv_optimizer',
               token_count: String(pkg.optimizations),
+              ...advisorCheckoutMetadata(),
             },
           }),
         });
