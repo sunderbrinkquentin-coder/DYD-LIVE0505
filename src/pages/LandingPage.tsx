@@ -1,5 +1,6 @@
 import { motion, useScroll, useTransform, AnimatePresence } from 'framer-motion';
 import { AcademyCatalogSection } from '../components/career/AcademyCatalogSection';
+import { isCatalogEnabled, CATALOG_PRICE_LABEL } from '../services/academyCatalogService';
 import { useNavigate } from 'react-router-dom';
 import {
   Sparkles,
@@ -359,6 +360,17 @@ export default function LandingPage() {
 
                 <motion.button
                   type="button"
+                  onClick={() => navigate('/kurse')}
+                  className="text-white/70 hover:text-white transition-colors flex items-center gap-1.5"
+                  whileHover={{ scale: 1.05, y: -2 }}
+                  whileTap={{ scale: 0.95 }}
+                >
+                  Kurse
+                  <span className="text-[9px] font-black px-1.5 py-0.5 rounded-full bg-[#30E3CA]/15 text-[#30E3CA]">NEU</span>
+                </motion.button>
+
+                <motion.button
+                  type="button"
                   onClick={() => scrollToId('preise')}
                   className="text-white/70 hover:text-white transition-colors"
                   whileHover={{ scale: 1.05, y: -2 }}
@@ -563,6 +575,11 @@ export default function LandingPage() {
                         <TrendingUp className="w-4 h-4 text-white/50 flex-shrink-0" />
                         <span className="text-sm text-white/80">So funktioniert&apos;s</span>
                       </button>
+                      <button type="button" onClick={() => mobileNav('/kurse')} className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-left hover:bg-white/5 transition-colors">
+                        <GraduationCap className="w-4 h-4 text-[#30E3CA] flex-shrink-0" />
+                        <span className="text-sm text-white/80">Kurse mit Zertifikat</span>
+                        <span className="ml-auto text-[10px] font-bold text-[#30E3CA]/80">NEU</span>
+                      </button>
                       <button type="button" onClick={() => mobileScroll('preise')} className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-left hover:bg-white/5 transition-colors">
                         <Star className="w-4 h-4 text-white/50 flex-shrink-0" />
                         <span className="text-sm text-white/80">Preise</span>
@@ -755,6 +772,19 @@ export default function LandingPage() {
                 </motion.button>
               </motion.div>
 
+              {isCatalogEnabled() && (
+                <motion.div variants={fadeInUp} className="flex justify-center">
+                  <button
+                    onClick={() => navigate('/kurse')}
+                    className="group inline-flex items-center gap-2 px-4 py-2 rounded-full text-sm text-white/80 bg-[#30E3CA]/10 border border-[#30E3CA]/30 hover:bg-[#30E3CA]/20 transition-colors"
+                  >
+                    <span className="text-[10px] font-black px-1.5 py-0.5 rounded-full bg-[#30E3CA] text-black">NEU</span>
+                    Kurse mit Zertifikat – sofort starten ab {CATALOG_PRICE_LABEL}
+                    <ArrowRight className="w-4 h-4 transition-transform group-hover:translate-x-0.5" />
+                  </button>
+                </motion.div>
+              )}
+
               <motion.div
                 variants={fadeInUp}
                 className="text-sm text-white/50 pt-2 flex flex-wrap justify-center gap-4"
@@ -851,6 +881,21 @@ export default function LandingPage() {
             </motion.div>
           </div>
         </section>
+
+        {/* Kurse mit Zertifikat – direkt nach dem Hero */}
+        {isCatalogEnabled() && (
+          <section id="kurse" className="py-12 px-4 sm:px-6 lg:px-8" aria-label="Kurse mit Zertifikat – sofort starten">
+            <div className="max-w-6xl mx-auto">
+              <AcademyCatalogSection
+                variant="landing"
+                limit={6}
+                showAllLink
+                title="Kurse mit Zertifikat – sofort starten"
+                subtitle={`5 interaktive Lerneinheiten, Abschlussprüfung und prüfbares Zertifikat mit QR-Code. Ab ${CATALOG_PRICE_LABEL}, ohne Abo.`}
+              />
+            </div>
+          </section>
+        )}
 
         <ProcessTimeline />
 
@@ -1207,13 +1252,15 @@ export default function LandingPage() {
               <p className="text-xs text-white/30 mt-3">Analyse kostenlos · Lernpfad ab 3,99 € · prüfbares Zertifikat inklusive · Kompetenzprofil ab 2 Zertifikaten</p>
             </motion.div>
 
-            {/* Beliebte, fertige Lernpfade – sofort startklar */}
-            <AcademyCatalogSection
-              variant="landing"
-              className="mt-14 text-left"
-              title="Beliebte Lernpfade – sofort starten"
-              subtitle="Von anderen Nutzer:innen freigeschaltet und jetzt für alle verfügbar: 5 Lerneinheiten, Abschlussprüfung und prüfbares Zertifikat."
-            />
+            {/* Fertige Kurse: eigene Seite */}
+            {isCatalogEnabled() && (
+              <button
+                onClick={() => navigate('/kurse')}
+                className="mt-6 inline-flex items-center gap-2 text-sm font-bold text-[#30E3CA] hover:text-white transition-colors"
+              >
+                Oder direkt einen fertigen Kurs starten – ab {CATALOG_PRICE_LABEL} <ArrowRight className="w-4 h-4" />
+              </button>
+            )}
           </div>
         </section>
 
