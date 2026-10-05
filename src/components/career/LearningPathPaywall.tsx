@@ -11,6 +11,7 @@ import {
   academyCatalogService, skillKey, CATALOG_PRICE_LABEL, REGULAR_PRICE_LABEL, CATALOG_DISCOUNT_LABEL,
   type CatalogEntry,
 } from '../../services/academyCatalogService';
+import { advisorCheckoutMetadata } from '../../features/advisor/advisorAttribution';
 
 // Single path: 5 € — unlocks only the current learning path
 const PRICE_ID_SINGLE = import.meta.env.VITE_STRIPE_PRICE_LEARNING_PATH_SINGLE || 'price_1TWw5G3Sd9dZl64SKYanIg6m';
@@ -266,6 +267,7 @@ export function LearningPathPaywall({
             unlock_all: isAllPlan ? 'true' : 'false',
             ...(activeSkill ? { selected_skill: activeSkill } : {}),
             ...(allPathIds ? { all_path_ids: allPathIds } : {}),
+            ...advisorCheckoutMetadata(),
           },
         }),
       });
