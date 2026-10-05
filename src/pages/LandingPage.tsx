@@ -1,4 +1,5 @@
 import { motion, useScroll, useTransform, AnimatePresence } from 'framer-motion';
+import { AcademyCatalogSection } from '../components/career/AcademyCatalogSection';
 import { useNavigate } from 'react-router-dom';
 import {
   Sparkles,
@@ -1203,8 +1204,16 @@ export default function LandingPage() {
                 Skill-Gap kostenlos analysieren
                 <ArrowRight className="w-4 h-4" />
               </button>
-              <p className="text-xs text-white/30 mt-3">Analyse kostenlos · Lernpfad ab 5 € · Zertifikat inklusive · Kompetenzprofil ab 2 Zertifikaten</p>
+              <p className="text-xs text-white/30 mt-3">Analyse kostenlos · Lernpfad ab 3,99 € · prüfbares Zertifikat inklusive · Kompetenzprofil ab 2 Zertifikaten</p>
             </motion.div>
+
+            {/* Beliebte, fertige Lernpfade – sofort startklar */}
+            <AcademyCatalogSection
+              variant="landing"
+              className="mt-14 text-left"
+              title="Beliebte Lernpfade – sofort starten"
+              subtitle="Von anderen Nutzer:innen freigeschaltet und jetzt für alle verfügbar: 5 Lerneinheiten, Abschlussprüfung und prüfbares Zertifikat."
+            />
           </div>
         </section>
 
