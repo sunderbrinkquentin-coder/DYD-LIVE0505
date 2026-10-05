@@ -109,6 +109,7 @@ export default function CareerVisionPage() {
         <AcademyCatalogSection
           title="Direkt loslegen"
           subtitle="Beliebte Lernpfade, die schon fertig sind – ohne Analyse und Wartezeit, 20 % günstiger."
+          showAllLink
           excludeSkills={userPaths.filter((p) => p.is_paid && p.skill).map((p) => String(p.skill))}
         />
 
