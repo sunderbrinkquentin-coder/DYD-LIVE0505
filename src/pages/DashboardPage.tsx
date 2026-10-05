@@ -15,6 +15,7 @@ import { KanbanBoard } from '../components/dashboard/KanbanBoard';
 import { WizardCVOverview } from '../components/dashboard/WizardCVOverview';
 import { CareerVisionCard } from '../components/career/CareerVisionCard';
 import { AcademyCatalogSection } from '../components/career/AcademyCatalogSection';
+import { ProfileProgress } from '../components/career/AcademyPreviews';
 import { HarmonyTicketsSection } from '../components/dashboard/HarmonyTicketsSection';
 import { AccountSettingsModal } from '../components/dashboard/AccountSettingsModal';
 import { CertificateNameDialog } from '../components/dashboard/CertificateNameDialog';
@@ -1421,25 +1422,12 @@ const certReady = learningPaths.filter(
                         </span>
                       </button>
                     ) : (
-                      <div
-                        className="w-full flex items-center gap-3 px-4 py-3.5 rounded-2xl opacity-60"
-                        style={{ background: 'rgba(102,192,182,0.05)', border: '1px solid rgba(102,192,182,0.15)' }}
-                      >
-                        <div className="w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0" style={{ background: 'rgba(102,192,182,0.1)', border: '1px solid rgba(102,192,182,0.2)' }}>
-                          <FileStack size={18} className="text-[#66c0b6]/50" />
-                        </div>
-                        <div className="flex-1 text-left min-w-0">
-                          <p className="text-sm font-black text-white/60 leading-tight">
-                            Kompetenzprofil
-                          </p>
-                          <p className="text-[10px] text-white/35 mt-0.5">
-                            {certPaths.length === 1 ? 'Noch 1 weiteres Zertifikat nötig' : 'Absolviere 2 Lernpfade mit Zertifikat — dann werden alle zu einem Kompetenzprofil zusammengefasst'}
-                          </p>
-                        </div>
-                        <span className="text-[10px] font-bold text-white/30 flex-shrink-0">
-                          {certPaths.length}/2
-                        </span>
-                      </div>
+                      // Sammel-Ziel sichtbar machen: Fortschritt bis zum Kompetenzprofil
+                      <ProfileProgress
+                        certificates={certPaths.length}
+                        onAction={() => navigate('/kurse')}
+                        actionLabel="Kurs wählen"
+                      />
                     )}
                   </div>
                 )}
