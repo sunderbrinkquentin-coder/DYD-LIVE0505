@@ -5,15 +5,19 @@ import {
 } from 'lucide-react';
 import { supabase } from '../../lib/supabase';
 import { careerService } from '../../services/careerService';
+import {
+  academyCatalogService, skillKey, CATALOG_PRICE_LABEL, REGULAR_PRICE_LABEL, CATALOG_DISCOUNT_LABEL,
+  type CatalogEntry,
+} from '../../services/academyCatalogService';
 
 // Single path: 5 € — unlocks only the current learning path
 const PRICE_ID_SINGLE = import.meta.env.VITE_STRIPE_PRICE_LEARNING_PATH_SINGLE || 'price_1TWw5G3Sd9dZl64SKYanIg6m';
-// All paths: 9,99 € — unlocks every learning path for this user
+// All paths: 9,99 € — unlocks every skill of THIS analysis
 const PRICE_ID_ALL = import.meta.env.VITE_STRIPE_PRICE_LEARNING_PATH || 'price_1TWEoZ3Sd9dZl64S5I8uj597';
 
 const STRIPE_CHECKOUT_URL = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/stripe-checkout`;
 
-type Plan = 'single' | 'all';
+type Plan = 'single' | 'all' | 'catalog';
 
 interface SkillItem {
   skill_name?: string;
@@ -35,13 +39,13 @@ interface LearningPathPaywallProps {
 const BENEFITS_SINGLE = [
   {
     icon: BookOpen,
-    title: '5–10 strukturierte Lernmodule',
-    desc: 'Schritt-für-Schritt-Roadmap, genau auf diesen Lernpfad zugeschnitten',
+    title: '5 interaktive Lerneinheiten',
+    desc: 'Auf deinen Lebenslauf und deine Zielposition zugeschnitten',
   },
   {
     icon: Award,
-    title: 'Offizielles Abschlusszertifikat',
-    desc: 'Downloadbares PDF-Zertifikat nach Abschluss aller Module',
+    title: 'Prüfbares Abschlusszertifikat',
+    desc: 'PDF mit QR-Code zur Echtheitsprüfung – direkt für LinkedIn und deinen Lebenslauf',
   },
   {
     icon: TrendingUp,
@@ -55,16 +59,34 @@ const BENEFITS_SINGLE = [
   },
 ];
 
-const BENEFITS_ALL = [
+const BENEFITS_CATALOG = [
   {
-    icon: Layers,
-    title: 'Alle Lernpfade freischalten',
-    desc: 'Jeder neue Lernpfad, den du startest, ist automatisch freigeschaltet',
+    icon: Zap,
+    title: 'Sofort verfügbar',
+    desc: 'Der Lernpfad ist fertig – keine Generierung, keine Wartezeit',
+  },
+  {
+    icon: BookOpen,
+    title: '5 interaktive Lerneinheiten',
+    desc: 'Allgemeiner Standard-Lernpfad zum Skill – nicht auf deinen Lebenslauf zugeschnitten',
   },
   {
     icon: Award,
-    title: 'Unbegrenzte Zertifikate',
-    desc: 'Für jeden abgeschlossenen Lernpfad erhältst du ein offizielles Zertifikat',
+    title: 'Prüfbares Abschlusszertifikat',
+    desc: 'Gleiche Abschlussprüfung und gleiches Zertifikat wie beim persönlichen Lernpfad',
+  },
+];
+
+const BENEFITS_ALL = [
+  {
+    icon: Layers,
+    title: 'Alle Skills dieser Analyse',
+    desc: 'Jeder fehlende Skill aus deiner Analyse bekommt seinen eigenen Lernpfad',
+  },
+  {
+    icon: Award,
+    title: 'Ein Zertifikat pro Skill',
+    desc: 'Für jeden abgeschlossenen Lernpfad ein prüfbares Zertifikat',
   },
   {
     icon: TrendingUp,
@@ -79,7 +101,7 @@ const BENEFITS_ALL = [
   {
     icon: Zap,
     title: 'Lebenslanger Zugriff',
-    desc: 'Einmal zahlen — alle zukünftigen Lernpfade inklusive',
+    desc: 'Einmal zahlen — in deinem Tempo absolvieren',
   },
 ];
 
@@ -99,6 +121,8 @@ export function LearningPathPaywall({
   const [error, setError] = useState<string | null>(null);
   // Welchen Skill startet der User zuerst? (die "welchen Skill?"-Frage)
   const [chosenSkill, setChosenSkill] = useState<string | undefined>(selectedSkill);
+  // Fertiger Katalog-Pfad zum gewählten Skill (sofort verfügbar, 20 % günstiger)
+  const [catalogMatches, setCatalogMatches] = useState<Map<string, CatalogEntry>>(new Map());
 
   // Auswählbare Skills aus der Analyse (für Picker + All-Plan Row-Erzeugung)
   const skillOptions = (missingSkills ?? [])
@@ -129,22 +153,52 @@ export function LearningPathPaywall({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isOpen, missingSkills, targetJob]);
 
+  useEffect(() => {
+    if (!isOpen) return;
+    const names = [...new Set([...(missingSkills ?? []).map((s) => s.skill_name || s.name || ''), selectedSkill ?? '', targetJob ?? ''])]
+      .filter(Boolean) as string[];
+    academyCatalogService.findForSkills(names).then(setCatalogMatches).catch(() => {});
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isOpen]);
+
+  const activeSkillName = chosenSkill ?? selectedSkill;
+  const catalogEntry = activeSkillName ? catalogMatches.get(skillKey(activeSkillName)) ?? null : null;
+
+  // Katalog-Option nur, solange es zum gewählten Skill einen Katalog-Pfad gibt
+  useEffect(() => {
+    if (selectedPlan === 'catalog' && !catalogEntry) setSelectedPlan('single');
+  }, [selectedPlan, catalogEntry]);
+
   if (!isOpen) return null;
 
   const isAllPlan = selectedPlan === 'all';
+  const isCatalogPlan = selectedPlan === 'catalog' && !!catalogEntry;
+  const isSinglePlan = !isAllPlan && !isCatalogPlan;
   const priceId = isAllPlan ? PRICE_ID_ALL : PRICE_ID_SINGLE;
-  const benefits = isAllPlan ? BENEFITS_ALL : BENEFITS_SINGLE;
+  const benefits = isAllPlan ? BENEFITS_ALL : isCatalogPlan ? BENEFITS_CATALOG : BENEFITS_SINGLE;
 
   // Single-Plan braucht eine Skill-Wahl. Der useEffect oben füllt chosenSkill
   // per Fallback, sobald irgendein Skill-Signal (Analyse oder targetJob)
   // existiert — bleibt dies dennoch leer, gibt es wirklich nichts Sinnvolles
   // zum Freischalten, und das Modal zeigt das unten explizit an.
-  const singleNeedsChoice = !isAllPlan && !chosenSkill && !selectedSkill;
+  const singleNeedsChoice = !isAllPlan && !isCatalogPlan && !chosenSkill && !selectedSkill;
   const noSkillAtAll = !chosenSkill && !selectedSkill && !targetJob?.trim();
 
   const handleCheckout = async () => {
     setIsLoading(true);
     setError(null);
+
+    if (isCatalogPlan && catalogEntry) {
+      try {
+        const res = await academyCatalogService.startCheckout(catalogEntry, `/learning-path/${analysisPathId}`);
+        if ('ownedPathId' in res) window.location.hash = `#/learning-path/${res.ownedPathId}`;
+        if ('needsLogin' in res) window.location.hash = `#/login?redirect=${encodeURIComponent(`/learning-path/${analysisPathId}`)}`;
+      } catch (e: any) {
+        setError(e.message || 'Ein Fehler ist aufgetreten. Bitte versuche es erneut.');
+        setIsLoading(false);
+      }
+      return;
+    }
 
     try {
       const { data: { session } } = await supabase.auth.getSession();
@@ -281,19 +335,19 @@ export function LearningPathPaywall({
                 onClick={() => setSelectedPlan('single')}
                 className="relative flex flex-col items-center gap-1 py-3.5 px-3 rounded-xl transition-all duration-200"
                 style={{
-                  background: !isAllPlan ? 'linear-gradient(135deg,rgba(48,227,202,0.12),rgba(102,192,182,0.08))' : 'transparent',
-                  border: !isAllPlan ? '1px solid rgba(48,227,202,0.3)' : '1px solid transparent',
+                  background: isSinglePlan ? 'linear-gradient(135deg,rgba(48,227,202,0.12),rgba(102,192,182,0.08))' : 'transparent',
+                  border: isSinglePlan ? '1px solid rgba(48,227,202,0.3)' : '1px solid transparent',
                 }}
               >
-                {!isAllPlan && (
+                {isSinglePlan && (
                   <div className="absolute top-1.5 right-1.5 w-2 h-2 rounded-full bg-[#30E3CA]" />
                 )}
-                <span className="text-[10px] font-black uppercase tracking-widest" style={{ color: !isAllPlan ? '#30E3CA' : 'rgba(255,255,255,0.35)' }}>
+                <span className="text-[10px] font-black uppercase tracking-widest" style={{ color: isSinglePlan ? '#30E3CA' : 'rgba(255,255,255,0.35)' }}>
                   Einzelner Pfad
                 </span>
                 <div className="flex items-baseline gap-0.5">
-                  <span className="text-2xl font-black" style={{ color: !isAllPlan ? '#ffffff' : 'rgba(255,255,255,0.5)' }}>5</span>
-                  <span className="text-base font-black" style={{ color: !isAllPlan ? 'rgba(255,255,255,0.7)' : 'rgba(255,255,255,0.35)' }}>€</span>
+                  <span className="text-2xl font-black" style={{ color: isSinglePlan ? '#ffffff' : 'rgba(255,255,255,0.5)' }}>5</span>
+                  <span className="text-base font-black" style={{ color: isSinglePlan ? 'rgba(255,255,255,0.7)' : 'rgba(255,255,255,0.35)' }}>€</span>
                 </div>
                 <span className="text-[9px] text-white/30">Nur dieser Pfad</span>
               </button>
@@ -322,15 +376,17 @@ export function LearningPathPaywall({
                   <span className="text-2xl font-black" style={{ color: isAllPlan ? '#ffffff' : 'rgba(255,255,255,0.5)' }}>9<span className="text-base">,99</span></span>
                   <span className="text-base font-black" style={{ color: isAllPlan ? 'rgba(255,255,255,0.7)' : 'rgba(255,255,255,0.35)' }}>€</span>
                 </div>
-                <span className="text-[9px] text-white/30">Alle zukünftigen Pfade</span>
+                <span className="text-[9px] text-white/30">Alle Skills der Analyse</span>
               </button>
             </div>
 
             {/* Plan context hint */}
             <p className="text-[11px] text-white/35 text-center mt-2.5 leading-relaxed">
               {isAllPlan
-                ? 'Einmalig 9,99 € — schaltet jeden Lernpfad frei, den du jemals startest.'
-                : `Nur "${targetJob}" wird freigeschaltet. Weitere Pfade können einzeln oder mit dem Komplett-Paket erworben werden.`}
+                ? `Einmalig 9,99 € — schaltet alle ${skillCount || skillOptions.length || ''} Skills dieser Analyse frei.`.replace('  ', ' ')
+                : isCatalogPlan
+                  ? 'Allgemeiner Lernpfad – nicht auf deinen Lebenslauf zugeschnitten, dafür sofort verfügbar.'
+                  : `Ein persönlicher Lernpfad für deinen gewählten Skill. Weitere Pfade einzeln oder mit dem Komplett-Paket.`}
             </p>
           </div>
 
@@ -359,6 +415,40 @@ export function LearningPathPaywall({
                   );
                 })}
               </div>
+            </div>
+          )}
+
+          {/* Katalog-Angebot: fertiger, allgemeiner Lernpfad zum gewählten Skill */}
+          {!isAllPlan && catalogEntry && (
+            <div className="px-6 pb-4">
+              <button
+                onClick={() => setSelectedPlan(isCatalogPlan ? 'single' : 'catalog')}
+                className="w-full text-left rounded-2xl p-4 transition-all"
+                style={{
+                  background: isCatalogPlan ? 'linear-gradient(135deg,rgba(48,227,202,0.16),rgba(102,192,182,0.06))' : 'rgba(255,255,255,0.03)',
+                  border: `1px solid ${isCatalogPlan ? 'rgba(48,227,202,0.45)' : 'rgba(48,227,202,0.2)'}`,
+                }}
+              >
+                <div className="flex items-start gap-3">
+                  <div className="mt-0.5 w-4 h-4 rounded-full flex-shrink-0 flex items-center justify-center"
+                    style={{ border: `2px solid ${isCatalogPlan ? '#30E3CA' : 'rgba(255,255,255,0.3)'}` }}>
+                    {isCatalogPlan && <div className="w-2 h-2 rounded-full bg-[#30E3CA]" />}
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <span className="text-sm font-black text-white flex items-center gap-1"><Zap size={13} className="text-[#30E3CA]" /> Sofort starten</span>
+                      <span className="px-1.5 py-0.5 rounded-full text-[9px] font-black text-black bg-[#30E3CA]">{CATALOG_DISCOUNT_LABEL}</span>
+                    </div>
+                    <p className="text-[11px] text-white/50 mt-1 leading-relaxed">
+                      Fertiger Standard-Lernpfad „{catalogEntry.skill}" – ohne Wartezeit, mit Prüfung und Zertifikat. Nicht auf deinen Lebenslauf zugeschnitten.
+                    </p>
+                  </div>
+                  <div className="text-right flex-shrink-0">
+                    <p className="text-lg font-black text-white leading-none">{CATALOG_PRICE_LABEL}</p>
+                    <p className="text-[10px] text-white/35 line-through">{REGULAR_PRICE_LABEL}</p>
+                  </div>
+                </div>
+              </button>
             </div>
           )}
 
@@ -441,6 +531,7 @@ export function LearningPathPaywall({
                 background: isAllPlan
                   ? 'linear-gradient(135deg,#f59e0b,#f97316)'
                   : 'linear-gradient(135deg,#30E3CA,#66c0b6)',
+
                 animation: isLoading ? 'none' : 'lpPulse 2.5s ease-in-out infinite',
               }}
             >
@@ -455,7 +546,11 @@ export function LearningPathPaywall({
                 <>
                   <Sparkles size={19} className="relative z-10 group-hover:rotate-12 transition-transform" />
                   <span className="relative z-10">
-                    {isAllPlan ? 'Alle Lernpfade freischalten · 9,99 €' : `Lernpfad freischalten · 5 €`}
+                    {isAllPlan
+                      ? 'Alle Lernpfade freischalten · 9,99 €'
+                      : isCatalogPlan
+                        ? `Sofort starten · ${CATALOG_PRICE_LABEL}`
+                        : `Persönlichen Lernpfad freischalten · 5 €`}
                   </span>
                   <ArrowRight size={17} className="relative z-10 group-hover:translate-x-1 transition-transform" />
                 </>
