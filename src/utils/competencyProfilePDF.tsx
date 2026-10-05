@@ -274,10 +274,6 @@ export function CompetencyProfilePDF({ profile }: Props) {
             <Text style={styles.factValueAccent}>{entries.length}</Text>
           </View>
           <View style={styles.fact}>
-            <Text style={styles.factLabel}>LERNUMFANG</Text>
-            <Text style={styles.factValue}>{profile.total_hours} Std.</Text>
-          </View>
-          <View style={styles.fact}>
             <Text style={styles.factLabel}>LERNEINHEITEN</Text>
             <Text style={styles.factValue}>{totalUnits}</Text>
           </View>
@@ -327,10 +323,6 @@ export function CompetencyProfilePDF({ profile }: Props) {
               <View style={styles.entryMeta}>
                 <Text style={styles.entryMetaLabel}>LERNEINHEITEN</Text>
                 <Text style={styles.entryMetaValue}>{e.units}</Text>
-              </View>
-              <View style={styles.entryMeta}>
-                <Text style={styles.entryMetaLabel}>LERNUMFANG</Text>
-                <Text style={styles.entryMetaValue}>{e.hours} Zeitstunden</Text>
               </View>
             </View>
           </View>
