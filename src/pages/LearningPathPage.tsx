@@ -6,6 +6,8 @@ import {
 } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import { LearningPathPaywall } from '../components/career/LearningPathPaywall';
+import { AcademyCatalogSection } from '../components/career/AcademyCatalogSection';
+import { ProfileProgress } from '../components/career/AcademyPreviews';
 import { careerService } from '../services/careerService';
 import { certificateService, verifyUrlFor, type IssuedCertificate } from '../services/certificateService';
 import { LearningPath } from '../types/learningPath';
@@ -2081,6 +2083,8 @@ export default function LearningPathPage() {
   const [certName, setCertName] = useState('');
   const [cvStatus, setCvStatus] = useState<'idle' | 'busy' | 'added' | 'exists' | 'no_cv' | 'error'>('idle');
   const [nextSkills, setNextSkills] = useState<string[]>([]);
+  /** Anzahl eigener Zertifikate – für den Fortschritt zum Kompetenzprofil */
+  const [certCount, setCertCount] = useState<number | null>(null);
 
   const allUnitsPassed = completedUnits.size >= TOTAL_UNITS;
 
@@ -2486,6 +2490,16 @@ navigate(
   }, [learningPath, finalExamPhase, pollForFinalExam, cleanupFinalExamListeners, startExamSession]);
 
   const { profile } = useAuth() as any;
+
+  // Zertifikate zählen, sobald dieses ausgestellt ist (Fortschritt zum Kompetenzprofil)
+  useEffect(() => {
+    if (!user?.id || !(issuedCert || certificateUrl)) return;
+    supabase.from('learning_paths')
+      .select('id', { count: 'exact', head: true })
+      .eq('user_id', user.id)
+      .not('certificate_url', 'is', null)
+      .then(({ count }) => setCertCount(Math.max(count ?? 0, 1)));
+  }, [user?.id, issuedCert, certificateUrl]);
 
   // Name fürs Zertifikat vorbelegen (Profil → Kontodaten), nie den E-Mail-Teil
   useEffect(() => {
@@ -2947,6 +2961,11 @@ navigate(
                         <p className="text-xs text-red-400/85 text-center">Der Lebenslauf konnte gerade nicht aktualisiert werden.</p>
                       )}
 
+                      {/* Sammel-Ziel: Kompetenzprofil ab 2 Zertifikaten */}
+                      {certCount !== null && certCount < 2 && (
+                        <ProfileProgress certificates={certCount} onAction={() => navigate('/kurse')} actionLabel="Nächsten Kurs wählen" />
+                      )}
+
                       {/* Nächster Schritt */}
                       {nextSkills.length > 0 && (learningPath as any).analysis_id && (
                         <div className="rounded-2xl p-5 space-y-3" style={{ background: 'linear-gradient(135deg,rgba(48,227,202,0.08),rgba(6,7,15,0.9))', border: '1px solid rgba(48,227,202,0.2)' }}>
@@ -2966,6 +2985,17 @@ navigate(
                         </div>
                       )}
                     </div>
+                  )}
+
+                  {/* Direkt weitermachen: fertige Kurse */}
+                  {finalExamPassed && (issuedCert || certificateUrl) && (
+                    <AcademyCatalogSection
+                      title="Mach direkt weiter"
+                      subtitle="Sofort startklar – der nächste Kurs bringt dich deinem Kompetenzprofil näher."
+                      limit={3}
+                      showAllLink
+                      excludeSkills={[skillFromPath(learningPath as any) || ''].filter(Boolean)}
+                    />
                   )}
 
                   {finalExamPassed && (
