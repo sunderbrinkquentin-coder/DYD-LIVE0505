@@ -7,6 +7,7 @@ import {
   BarChart3, CheckCircle2, ShieldCheck,
 } from 'lucide-react';
 import { useAuth } from '../../contexts/AuthContext';
+import { CertificatePreview } from './AcademyPreviews';
 import { supabase } from '../../lib/supabase';
 import { uploadCvAndCreateRecord, triggerCvExtraction } from '../../services/cvUploadService';
 import { LearningPathPaywall } from './LearningPathPaywall';
@@ -733,6 +734,8 @@ function ResultView({ result, onNavigate }: { result: AnalysisResult; onNavigate
 
   const visibleCurrent = currentSkills.filter((s) => skillDisplayName(s) !== '(unbenannt)');
   const topSkill = visibleSkills[0];
+  const { user: authUser, profile: authProfile } = useAuth() as any;
+  const certName: string = (authProfile?.full_name || authUser?.user_metadata?.full_name || '').trim();
   const scoreColor = matchScore >= 70 ? '#22c55e' : matchScore >= 40 ? '#f59e0b' : '#30E3CA';
 
   const openPaywall = (skillName?: string) => {
@@ -814,6 +817,19 @@ function ResultView({ result, onNavigate }: { result: AnalysisResult; onNavigate
               </span>
             ))}
           </div>
+        </div>
+      )}
+
+      {/* Ergebnis vor Augen: persönliches Zertifikat zum wichtigsten Skill */}
+      {topSkill && (
+        <div className="rounded-2xl p-4 space-y-3" style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(48,227,202,0.18)' }}>
+          <div className="flex items-center justify-between gap-3">
+            <p className="text-xs font-black text-white flex items-center gap-1.5">
+              <Award size={14} className="text-[#30E3CA]" /> Dein Zertifikat für {skillDisplayName(topSkill)}
+            </p>
+            <span className="text-[10px] text-white/40">nach 5 Einheiten + Prüfung</span>
+          </div>
+          <CertificatePreview name={certName} skill={skillDisplayName(topSkill)} />
         </div>
       )}
 
