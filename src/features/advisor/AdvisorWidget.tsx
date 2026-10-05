@@ -1,7 +1,9 @@
 // src/features/advisor/AdvisorWidget.tsx
 //
 // KI-Produktberater: dezenter Einstieg am rechten Bildschirmrand (verdeckt
-// keine Buttons unten), öffnet sich nur auf Klick. Mobil als Vollbild-Blatt.
+// keine Buttons unten). Eine kleine Hinweisblase stellt Quentin einmal pro
+// Besuch vor (wegklickbar, verschwindet von selbst, öffnet nie den Chat von
+// allein). Der Chat öffnet sich nur auf Klick. Mobil als Vollbild-Blatt.
 // Antworten werden als reiner Text dargestellt (kein Modell-HTML).
 
 import { useEffect, useId, useMemo, useRef, useState } from 'react';
@@ -35,6 +37,27 @@ const WELCOME: Record<string, string> = {
   other: 'Falls du Fragen hast, frag mich einfach – ich antworte in Sekunden.',
 };
 
+/** Initialmeldung neben dem Icon – macht den KI-Berater sichtbar */
+const TEASER: Record<string, string> = {
+  business: 'Fragen zu ORBIT oder NEXUS? Ich helfe Ihnen gern.',
+  courses: 'Unsicher, welcher Kurs passt? Frag mich!',
+  default: 'Fragen? Frag mich – ich antworte in Sekunden.',
+};
+const TEASER_DELAY_MS = 4000;      // erst erscheinen, wenn die Seite steht
+const TEASER_VISIBLE_MS = 14000;   // danach von selbst ausblenden
+const TEASER_SEEN_KEY = 'dyd_advisor_teaser_seen';          // sessionStorage: 1x pro Besuch
+const TEASER_DISMISS_KEY = 'dyd_advisor_teaser_dismissed';  // localStorage: nach Wegklicken 7 Tage Ruhe
+const TEASER_DISMISS_DAYS = 7;
+
+function teaserAllowed(): boolean {
+  try {
+    if (sessionStorage.getItem(TEASER_SEEN_KEY)) return false;
+    const dismissed = Number(localStorage.getItem(TEASER_DISMISS_KEY) ?? 0);
+    if (dismissed && Date.now() - dismissed < TEASER_DISMISS_DAYS * 86_400_000) return false;
+  } catch { /* Speicher gesperrt: Hinweis trotzdem zeigen */ }
+  return true;
+}
+
 export function AdvisorWidget() {
   const location = useLocation();
   const variant = useMemo(() => getAdvisorVariant(), []);
@@ -58,8 +81,28 @@ function AdvisorShell({ pathname }: { pathname: string }) {
   const listRef = useRef<HTMLDivElement>(null);
   const panelId = useId();
   const titleId = useId();
+  const [teaser, setTeaser] = useState(false);
 
-  const openPanel = () => { setOpen(true); trackAdvisor('advisor_open'); };
+  // Initialmeldung: einmal pro Besuch, kurz verzögert, blendet sich selbst aus
+  useEffect(() => {
+    if (!teaserAllowed()) return;
+    let hideTimer: number | undefined;
+    const showTimer = window.setTimeout(() => {
+      try { sessionStorage.setItem(TEASER_SEEN_KEY, '1'); } catch { /* ignorieren */ }
+      setTeaser(true);
+      trackAdvisor('advisor_teaser_shown');
+      hideTimer = window.setTimeout(() => setTeaser(false), TEASER_VISIBLE_MS);
+    }, TEASER_DELAY_MS);
+    return () => { window.clearTimeout(showTimer); if (hideTimer) window.clearTimeout(hideTimer); };
+  }, []);
+
+  const dismissTeaser = () => {
+    setTeaser(false);
+    trackAdvisor('advisor_teaser_dismiss');
+    try { localStorage.setItem(TEASER_DISMISS_KEY, String(Date.now())); } catch { /* ignorieren */ }
+  };
+
+  const openPanel = () => { setTeaser(false); setOpen(true); trackAdvisor('advisor_open'); };
   const closePanel = () => {
     setOpen(false);
     trackAdvisor('advisor_close');
@@ -95,6 +138,45 @@ function AdvisorShell({ pathname }: { pathname: string }) {
 
   return (
     <>
+      {/* Initialmeldung neben dem Icon */}
+      {!open && teaser && (
+        <div
+          role="status"
+          className="advisor-teaser fixed z-[60] right-[4.25rem] sm:right-[4.75rem] top-[58%] sm:top-1/2 -translate-y-1/2 w-[min(260px,calc(100vw-6rem))]"
+        >
+          <div
+            className="relative rounded-2xl rounded-br-md pl-3.5 pr-8 py-2.5 text-left shadow-2xl"
+            style={{ background: '#0a1220', border: '1px solid rgba(48,227,202,0.4)', boxShadow: '0 12px 32px rgba(0,0,0,0.45)' }}
+          >
+            <button
+              type="button"
+              onClick={() => { trackAdvisor('advisor_teaser_click'); openPanel(); }}
+              className="block text-left focus:outline-none focus-visible:ring-2 focus-visible:ring-[#30E3CA] rounded-lg"
+            >
+              <span className="block text-[13px] font-black text-white leading-snug">
+                Hi, ich bin Quentin <span className="ml-1 align-middle text-[9px] font-black uppercase tracking-wider px-1.5 py-0.5 rounded-md bg-[#30E3CA]/15 text-[#30E3CA]">KI-Berater</span>
+              </span>
+              <span className="block text-xs text-white/70 leading-snug mt-0.5">
+                {TEASER[ctx.page] ?? TEASER.default}
+              </span>
+            </button>
+            <button
+              type="button"
+              onClick={dismissTeaser}
+              className="absolute top-1.5 right-1.5 p-1 rounded-md text-white/40 hover:text-white hover:bg-white/10 focus:outline-none focus-visible:ring-2 focus-visible:ring-[#30E3CA]"
+              aria-label="Hinweis schließen"
+            >
+              <X size={13} aria-hidden />
+            </button>
+          </div>
+        </div>
+      )}
+      <style>{`
+        @keyframes advisorTeaserIn { from { opacity: 0; transform: translate(8px, -50%); } to { opacity: 1; transform: translate(0, -50%); } }
+        .advisor-teaser { animation: advisorTeaserIn .35s ease-out both; }
+        @media (prefers-reduced-motion: reduce) { .advisor-teaser { animation: none; } }
+      `}</style>
+
       {/* Einstieg: kleines rundes Icon am rechten Rand (mittig) – kollidiert nicht mit Buttons unten */}
       {!open && (
         <button
