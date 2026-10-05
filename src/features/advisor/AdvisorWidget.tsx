@@ -6,7 +6,7 @@
 
 import { useEffect, useId, useMemo, useRef, useState } from 'react';
 import { useLocation } from 'react-router-dom';
-import { Loader2, MessageCircle, RotateCcw, Send, Sparkles, X } from 'lucide-react';
+import { Loader2, RotateCcw, Send, Sparkles, X } from 'lucide-react';
 import { advisorHiddenOn, getAdvisorVariant, pageContext } from './advisorConfig';
 import { trackAdvisor } from './advisorAnalytics';
 import { AdvisorProductCard } from './AdvisorProductCard';
@@ -83,7 +83,7 @@ function AdvisorShell({ pathname }: { pathname: string }) {
 
   return (
     <>
-      {/* Einstieg: schmaler Reiter am rechten Rand – kollidiert nicht mit Buttons unten */}
+      {/* Einstieg: kleines rundes Icon am rechten Rand (mittig) – kollidiert nicht mit Buttons unten */}
       {!open && (
         <button
           ref={launcherRef}
@@ -91,12 +91,20 @@ function AdvisorShell({ pathname }: { pathname: string }) {
           onClick={openPanel}
           aria-expanded={open}
           aria-controls={panelId}
-          className="fixed right-0 top-[58%] sm:top-1/2 -translate-y-1/2 z-[60] flex items-center gap-2 pl-3 pr-2.5 py-3 rounded-l-2xl text-black font-black text-sm shadow-xl focus:outline-none focus-visible:ring-2 focus-visible:ring-white"
-          style={{ background: 'linear-gradient(135deg,#30E3CA,#66c0b6)', boxShadow: '0 10px 30px rgba(48,227,202,0.3)' }}
+          aria-label="KI-Berater Quentin öffnen"
+          title="Frag Quentin (KI)"
+          className="group fixed right-3 sm:right-4 top-[58%] sm:top-1/2 -translate-y-1/2 z-[60] w-12 h-12 rounded-full flex items-center justify-center text-black font-black text-lg transition-transform hover:scale-110 focus:outline-none focus-visible:ring-2 focus-visible:ring-white focus-visible:ring-offset-2 focus-visible:ring-offset-black"
+          style={{ background: 'linear-gradient(135deg,#30E3CA,#66c0b6)', boxShadow: '0 8px 24px rgba(48,227,202,0.35)' }}
         >
-          <MessageCircle size={18} aria-hidden />
-          <span className="hidden sm:inline [writing-mode:vertical-rl] rotate-180 tracking-wide">Frag Quentin · KI</span>
-          <span className="sr-only sm:hidden">KI-Berater Quentin öffnen</span>
+          <span aria-hidden>Q</span>
+          {/* KI-Abzeichen */}
+          <span className="absolute -bottom-0.5 -right-0.5 w-5 h-5 rounded-full flex items-center justify-center bg-[#0a1220] border border-[#30E3CA]/60 text-[#30E3CA]" aria-hidden>
+            <Sparkles size={11} />
+          </span>
+          {/* Hinweis beim Überfahren (Desktop) */}
+          <span className="pointer-events-none hidden sm:block absolute right-full mr-3 top-1/2 -translate-y-1/2 whitespace-nowrap rounded-lg px-2.5 py-1.5 text-xs font-bold text-white bg-[#0a1220] border border-white/10 opacity-0 group-hover:opacity-100 group-focus-visible:opacity-100 transition-opacity" aria-hidden>
+            Frag Quentin · KI
+          </span>
         </button>
       )}
 
