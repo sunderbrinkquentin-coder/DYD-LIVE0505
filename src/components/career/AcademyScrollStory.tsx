@@ -18,12 +18,12 @@
 // über den Scroll-Fortschritt gesteuert. Bei "Bewegung reduzieren" erscheint
 // die ruhige Variante (AcademyValueStrip).
 
-import { useMemo, useRef, useState, type ReactNode } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
+import { useLocation, useNavigate } from 'react-router-dom';
 import { AnimatePresence, motion, useMotionValueEvent, useReducedMotion, useScroll } from 'framer-motion';
-import { ArrowRight, Check, FileStack, Linkedin, QrCode, ShieldCheck, Sparkles, Trophy, Zap } from 'lucide-react';
+import { ArrowRight, Check, FileStack, Linkedin, Loader2, QrCode, ShieldCheck, ShoppingBag, Sparkles, Trophy, Zap } from 'lucide-react';
 import { AcademyValueStrip, CertificatePreview } from './AcademyPreviews';
-import { CATALOG_PRICE_LABEL, isCatalogEnabled } from '../../services/academyCatalogService';
+import { academyCatalogService, CATALOG_PRICE_LABEL, isCatalogEnabled, REGULAR_PRICE_LABEL, type CatalogEntry } from '../../services/academyCatalogService';
 
 const TEAL = '#30E3CA';
 const LOGO = '/DYD Logo RGB.svg';
@@ -67,14 +67,44 @@ const clamp01 = (v: number) => Math.max(0, Math.min(1, v));
 const seg = (p: number, [a, b]: readonly number[]) => clamp01((p - a) / (b - a));
 const ease = (t: number) => 1 - Math.pow(1 - t, 3);
 
-export function AcademyScrollStory({ className = '' }: { className?: string }) {
+/**
+ * bookable: Während der ganzen Story ist "Kurs direkt buchen" sichtbar, und im
+ * letzten Kapitel stehen die beliebtesten Kurse mit Buchen-Button.
+ */
+export function AcademyScrollStory({ className = '', bookable = false }: { className?: string; bookable?: boolean }) {
   const reduce = useReducedMotion();
   if (reduce) return <AcademyValueStrip className={className} />;
-  return <Story className={className} />;
+  return <Story className={className} bookable={bookable} />;
 }
 
-function Story({ className }: { className: string }) {
+function Story({ className, bookable }: { className: string; bookable: boolean }) {
   const navigate = useNavigate();
+  const location = useLocation();
+  const canBook = bookable && isCatalogEnabled();
+  const [courses, setCourses] = useState<CatalogEntry[]>([]);
+  const [busyId, setBusyId] = useState<string | null>(null);
+  const [bookError, setBookError] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!canBook) return;
+    let alive = true;
+    academyCatalogService.list(3).then((list) => alive && setCourses(list)).catch(() => {});
+    return () => { alive = false; };
+  }, [canBook]);
+
+  const book = async (entry: CatalogEntry) => {
+    setBusyId(entry.id);
+    setBookError(null);
+    try {
+      const res = await academyCatalogService.startCheckout(entry, location.pathname);
+      if ('needsLogin' in res) navigate(`/login?redirect=${encodeURIComponent(location.pathname)}`);
+      else if ('ownedPathId' in res) navigate(`/learning-path/${res.ownedPathId}`);
+    } catch (e: any) {
+      setBookError(e?.message || 'Die Buchung konnte nicht gestartet werden.');
+    } finally {
+      setBusyId(null);
+    }
+  };
   const ref = useRef<HTMLDivElement>(null);
   const { scrollYProgress } = useScroll({ target: ref, offset: ['start start', 'end end'] });
   const [p, setP] = useState(0);
@@ -133,15 +163,31 @@ function Story({ className }: { className: string }) {
         </AnimatePresence>
 
         {/* Bühne */}
-        <div className="relative z-10 h-full max-w-6xl mx-auto px-4 sm:px-6 pt-20 pb-6">
+        <div className={`relative z-10 h-full max-w-6xl mx-auto px-4 sm:px-6 pt-20 ${canBook ? 'pb-20 lg:pb-6' : 'pb-6'}`}>
           <AnimatePresence mode="wait">
             {chapter === 'intro' && <IntroScene key="intro" name={name} setName={setName} t={seg(p, CH.intro)} />}
             {chapter === 'learn' && <LearnScene key="learn" t={seg(p, CH.learn)} />}
             {chapter === 'exam' && <ExamScene key="exam" t={seg(p, CH.exam)} />}
             {chapter === 'cert' && <CertScene key="cert" t={seg(p, CH.cert)} name={name} />}
-            {chapter === 'show' && <ShowScene key="show" t={seg(p, CH.show)} name={name} onCta={cta} />}
+            {chapter === 'show' && (
+              <ShowScene key="show" t={seg(p, CH.show)} name={name} onCta={cta}
+                courses={canBook ? courses : []} busyId={busyId} onBook={book} bookError={bookError} />
+            )}
           </AnimatePresence>
         </div>
+
+        {/* Jederzeit direkt buchen (ohne die Story zu Ende zu scrollen) */}
+        {canBook && chapter !== 'show' && (
+          <motion.button
+            onClick={cta}
+            className="absolute z-30 left-4 right-4 bottom-4 lg:left-auto lg:right-6 lg:bottom-auto lg:top-[18px] flex items-center justify-center gap-2 px-4 py-3 lg:py-2.5 rounded-full text-sm font-black text-black shadow-xl"
+            style={{ background: 'linear-gradient(135deg,#30E3CA,#66c0b6)', boxShadow: '0 10px 30px rgba(48,227,202,0.35)' }}
+            initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} whileHover={{ scale: 1.04 }}
+          >
+            <ShoppingBag size={15} /> Kurs direkt buchen
+            <span className="font-bold opacity-70">· ab {CATALOG_PRICE_LABEL}</span>
+          </motion.button>
+        )}
 
         {/* Fortschritt */}
         <div className="absolute bottom-0 left-0 right-0 h-1 bg-white/5 z-20">
@@ -464,7 +510,10 @@ function CertScene({ t, name }: { t: number; name: string }) {
 // ─────────────────────────────────────────────────────────────────────────────
 // 04 Zeigen – Smartphone mit LinkedIn-Profil
 // ─────────────────────────────────────────────────────────────────────────────
-function ShowScene({ t, name, onCta }: { t: number; name: string; onCta: () => void }) {
+function ShowScene({ t, name, onCta, courses, busyId, onBook, bookError }: {
+  t: number; name: string; onCta: () => void;
+  courses: CatalogEntry[]; busyId: string | null; onBook: (c: CatalogEntry) => void; bookError: string | null;
+}) {
   const land = ease(clamp01(t / 0.4));
   const showCta = t > 0.55;
   const chips = [
@@ -478,12 +527,32 @@ function ShowScene({ t, name, onCta }: { t: number; name: string; onCta: () => v
         <p className="text-[11px] font-black uppercase tracking-widest text-[#60A5FA]">Kapitel 4 · Zeigen</p>
         <h3 className="text-2xl sm:text-5xl font-black text-white leading-tight">Sichtbar,<br />wo Recruiter suchen.</h3>
         <p className="hidden sm:block text-white/60 max-w-md mx-auto lg:mx-0">Dein Zertifikat landet mit einem Klick in deinem LinkedIn-Profil und in deinem Lebenslauf – mit Prüf-Link für Arbeitgeber.</p>
+        {courses.length > 0 && (
+          <motion.div initial={false} animate={showCta ? { opacity: 1, y: 0 } : { opacity: 0, y: 20 }}
+            className="space-y-2 max-w-md mx-auto lg:mx-0 text-left" style={{ pointerEvents: showCta ? 'auto' : 'none' }}>
+            <p className="text-[10px] font-black uppercase tracking-widest text-white/40">Direkt buchen · sofort startklar</p>
+            {courses.map((c) => (
+              <div key={c.id} className="flex items-center justify-between gap-3 px-3.5 py-2.5 rounded-xl bg-white/[0.05] border border-white/10">
+                <div className="min-w-0">
+                  <p className="text-sm font-bold text-white truncate">{c.skill}</p>
+                  <p className="text-[11px] text-white/45">{CATALOG_PRICE_LABEL} <span className="line-through opacity-60">{REGULAR_PRICE_LABEL}</span> · mit Zertifikat</p>
+                </div>
+                <button onClick={() => onBook(c)} disabled={busyId !== null}
+                  className="flex-shrink-0 px-3.5 py-2 rounded-lg text-xs font-black text-black disabled:opacity-60"
+                  style={{ background: 'linear-gradient(135deg,#30E3CA,#66c0b6)' }}>
+                  {busyId === c.id ? <Loader2 size={14} className="animate-spin" /> : 'Buchen'}
+                </button>
+              </div>
+            ))}
+            {bookError && <p className="text-xs text-red-400">{bookError}</p>}
+          </motion.div>
+        )}
         <motion.div initial={false} animate={showCta ? { opacity: 1, y: 0 } : { opacity: 0, y: 20 }} className="pt-2">
           <button onClick={onCta} disabled={!showCta}
             className="group inline-flex items-center gap-2 px-7 py-4 rounded-2xl font-black text-black transition-transform hover:scale-[1.03]"
             style={{ background: 'linear-gradient(135deg,#30E3CA,#60A5FA)', boxShadow: '0 15px 45px rgba(48,227,202,0.35)' }}>
             <Sparkles size={18} />
-            {isCatalogEnabled() ? `Deinen Kurs starten – ab ${CATALOG_PRICE_LABEL}` : 'Kostenlose Skill-Analyse starten'}
+            {courses.length > 0 ? 'Alle Kurse ansehen' : isCatalogEnabled() ? `Deinen Kurs starten – ab ${CATALOG_PRICE_LABEL}` : 'Kostenlose Skill-Analyse starten'}
             <ArrowRight size={18} className="transition-transform group-hover:translate-x-1" />
           </button>
           <p className="text-[11px] text-white/35 mt-2">Einmalzahlung · kein Abo · Zertifikat inklusive</p>
