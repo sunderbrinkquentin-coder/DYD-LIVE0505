@@ -2,32 +2,25 @@ import { useState, useEffect, useRef, useCallback } from 'react';
 import { useParams, useNavigate, useSearchParams } from 'react-router-dom';
 import {
   ArrowLeft, Loader2, AlertCircle, Sparkles, Brain, Building2,
-  ArrowRight, Check, Award, PlayCircle, RefreshCw,
+  ArrowRight, Check, Award, PlayCircle, RefreshCw, Download, Linkedin, FileText, ShieldCheck, Clock,
 } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import { LearningPathPaywall } from '../components/career/LearningPathPaywall';
 import { careerService } from '../services/careerService';
-import { certificateService } from '../services/certificateService';
-import { CertificateNameDialog } from '../components/dashboard/CertificateNameDialog';
+import { certificateService, verifyUrlFor, type IssuedCertificate } from '../services/certificateService';
 import { LearningPath } from '../types/learningPath';
 import { supabase } from '../lib/supabase';
 import { parseSkills, skillDisplayName, skillFromPath, RawSkill } from '../utils/skills';
 
 // ── Constants ──────────────────────────────────────────────────────────────────
 
-const LEARNINGPATH_WEBHOOK_URL =
-  import.meta.env.VITE_MAKE_WEBHOOK_LEARNINGPATH
-  || 'https://hook.eu2.make.com/1pvur1oth8sibonqc3twq57itg2ti1d0';
-
-const FINAL_EXAM_WEBHOOK_URL =
-  import.meta.env.VITE_MAKE_WEBHOOK_FINAL_EXAM
-  || 'https://hook.eu2.make.com/jp9n42qofc5zvtab8x58o3i2j53ebpt2';
+// Lernpfad und Abschlussprüfung erstellt die Edge Function "trigger-learningpath".
 
 // Statuses where curriculum generation is already in flight — do not re-trigger Make.
 const IN_FLIGHT_STATUSES = new Set(['in_progress', 'curriculum_ready', 'completed']);
 
 const POLL_INTERVAL_MS = 4_000;
-const POLL_MAX = 75;
+const POLL_MAX = 150; // ~10 min
 
 const TOTAL_UNITS = 5;
 
@@ -813,7 +806,7 @@ function mapQuizQuestions(quiz: unknown): QuizQuestion[] {
 // ── FinalExamWaiting ──────────────────────────────────────────────────────────
 
 const EXAM_STAGES = [
-  { id: 'analyse',  icon: '🎯', label: 'Lernziele analysieren',   sub: 'IHK-Anforderungen werden geprüft',   dur: 0.20 },
+  { id: 'analyse',  icon: '🎯', label: 'Lernziele analysieren',   sub: 'Lernziele werden abgeglichen',   dur: 0.20 },
   { id: 'profile',  icon: '🧠', label: 'Wissensprofil erstellen', sub: 'Deine Stärken werden bewertet',      dur: 0.25 },
   { id: 'generate', icon: '📝', label: 'Fragen generieren',       sub: '10 Prüfungsfragen werden erstellt',  dur: 0.30 },
   { id: 'quality',  icon: '✅', label: 'Qualitätsprüfung',        sub: 'Prüfungsstandards werden geprüft',   dur: 0.25 },
@@ -821,7 +814,7 @@ const EXAM_STAGES = [
 
 const EXAM_QUOTES = [
   { text: 'Prüfungen sind keine Hindernisse — sie sind Meilensteine.', author: 'Decide your Dream' },
-  { text: 'Das Zertifikat beweist nicht nur dein Wissen — es beweist deine Disziplin.', author: 'IHK-Philosophie' },
+  { text: 'Das Zertifikat beweist nicht nur dein Wissen — es beweist deine Disziplin.', author: 'Decide your Dream' },
   { text: 'Vorbereitung ist der Schlüssel zum Erfolg.', author: 'Benjamin Franklin' },
   { text: 'Du hast die Module gemeistert. Der Rest ist Formsache.', author: 'Decide your Dream' },
 ];
@@ -2013,7 +2006,7 @@ function ModuleOverview({
             <p className="text-[11px] mt-1 leading-relaxed"
               style={{ color: allUnitsPassed ? 'rgba(251,191,36,0.65)' : 'rgba(255,255,255,0.2)' }}>
               {allUnitsPassed
-                ? `Mindestens ${MIN_PASS_SCORE}% erforderlich · personalisierbares PDF-Zertifikat`
+                ? `Mindestens ${MIN_PASS_SCORE}% erforderlich · prüfbares PDF-Zertifikat mit QR-Code`
                 : `Noch ${TOTAL_UNITS - doneCount} Einheit${TOTAL_UNITS - doneCount !== 1 ? 'en' : ''} zum Freischalten`}
             </p>
           </div>
@@ -2075,6 +2068,19 @@ export default function LearningPathPage() {
   const [certificateUrl, setCertificateUrl] = useState<string | null>(null);
   const [issuingCertificate, setIssuingCertificate] = useState(false);
   const [certificateError, setCertificateError] = useState<string | null>(null);
+
+  // Serverseitige Prüfung (academy-exam) + Abschluss
+  const [examSessionId, setExamSessionId] = useState<string | null>(null);
+  const [examSubmitting, setExamSubmitting] = useState(false);
+  const [examResult, setExamResult] = useState<{ correct: number; total: number } | null>(null);
+  const [examRetryAt, setExamRetryAt] = useState<string | null>(null);
+  const [examAttemptsLeft, setExamAttemptsLeft] = useState<number | null>(null);
+  const [examError, setExamError] = useState<string | null>(null);
+  const [issuedCert, setIssuedCert] = useState<IssuedCertificate | null>(null);
+  const [certPreviewUrl, setCertPreviewUrl] = useState<string | null>(null);
+  const [certName, setCertName] = useState('');
+  const [cvStatus, setCvStatus] = useState<'idle' | 'busy' | 'added' | 'exists' | 'no_cv' | 'error'>('idle');
+  const [nextSkills, setNextSkills] = useState<string[]>([]);
 
   const allUnitsPassed = completedUnits.size >= TOTAL_UNITS;
 
@@ -2227,36 +2233,15 @@ export default function LearningPathPage() {
 
     subscribeToCurriculum(path.id);
 
+    // Serverseitige Erstellung (prüft Login, Besitz und Zahlung selbst,
+    // verhindert Doppelstarts und setzt den Status).
     try {
-      const selectedSkill = skillFromPath(path);
-      const res = await fetch(LEARNINGPATH_WEBHOOK_URL, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          learning_path_id: path.id,   // Make MUST write this back — the column is NOT NULL
-          skill: selectedSkill,
-          selected_skill: selectedSkill,
-          missing_skills: selectedSkill ? [selectedSkill] : parseSkills(path.missing_skills),
-          current_skills: parseSkills(path.current_skills),
-          target_job: path.target_job,
-          target_company: path.target_company,
-          industry: path.industry,
-          user_id: path.user_id,
-          timeframe: '12_months',
-          learning_style: 'balanced',
-          timestamp: new Date().toISOString(),
-        }),
+      const { error: fnError } = await supabase.functions.invoke('trigger-learningpath', {
+        body: { learning_path_id: path.id },
       });
-      if (res.ok) {
-        const now = new Date().toISOString();
-        await supabase.from('learning_paths')
-          .update({ status: 'in_progress', updated_at: now, triggered_at: now })
-          .eq('id', path.id);
-      } else {
-        console.warn('[LearningPath] Webhook response:', res.status);
-      }
+      if (fnError) console.warn('[LearningPath] trigger-learningpath:', fnError.message);
     } catch (e: any) {
-      console.warn('[LearningPath] Curriculum webhook error (non-fatal):', e?.message);
+      console.warn('[LearningPath] trigger-learningpath nicht erreichbar (Polling läuft weiter):', e?.message);
     }
   }, [subscribeToCurriculum]);
 
@@ -2294,16 +2279,15 @@ export default function LearningPathPage() {
         // exam was passed AND the certificate was issued — restore from that,
         // not from final_exam_status, which can be 'done' with no certificate.
         const storedCertUrl = (path as any).certificate_url as string | null;
+        const storedScore = Number((path as any).final_exam_score ?? 0);
         if (storedCertUrl) {
           setCertificateUrl(storedCertUrl);
-          setFinalExamScore(Number((path as any).final_exam_score ?? MIN_PASS_SCORE));
+          setFinalExamScore(storedScore || MIN_PASS_SCORE);
           setFinalExamPhase('submitted');
-        } else if (row.final_exam) {
-          const qs = parseFinalExamQuestions(row.final_exam);
-          if (qs.length > 0) {
-            setFinalExamQuestions(qs);
-            setFinalExamPhase('ready');
-          }
+        } else if (storedScore >= MIN_PASS_SCORE) {
+          // Bestanden, aber noch kein Zertifikat → direkt zum Abschluss
+          setFinalExamScore(storedScore);
+          setFinalExamPhase('submitted');
         }
         return;
       }
@@ -2376,6 +2360,48 @@ navigate(
 
   // ── Final exam ──────────────────────────────────────────────────────────────
 
+  /** Holt eine Prüfungs-Session vom Server (Fragen ohne Lösungen). */
+  const startExamSession = useCallback(async (lpId: string): Promise<'ready' | 'not_ready' | 'blocked' | 'passed'> => {
+    const { data, error: fnError } = await supabase.functions.invoke('academy-exam', {
+      body: { action: 'questions', learning_path_id: lpId },
+    });
+    let res: any = data;
+    if (fnError && 'context' in (fnError as any)) {
+      try { res = await (fnError as any).context.json(); } catch { /* ignore */ }
+    }
+    if (res?.passed) {
+      setFinalExamScore(Number(res.passed_score ?? MIN_PASS_SCORE));
+      setFinalExamPhase('submitted');
+      return 'passed';
+    }
+    if (res?.code === 'COOLDOWN') {
+      setExamRetryAt(res.retry_at ?? null);
+      setExamAttemptsLeft(res.attempts_left_today ?? null);
+      setFinalExamScore(Number(res.best_score ?? 0));
+      setFinalExamPhase('submitted');
+      return 'blocked';
+    }
+    if (!res?.success) {
+      setExamError(res?.error || 'Die Prüfung konnte nicht geladen werden.');
+      setFinalExamPhase('error');
+      return 'blocked';
+    }
+    if (!res.exam_ready || !Array.isArray(res.questions) || res.questions.length === 0) return 'not_ready';
+
+    setExamSessionId(res.session_id);
+    setExamAttemptsLeft(res.attempts_left_today ?? null);
+    setFinalExamQuestions(res.questions.map((q: any) => ({
+      question_id: q.question_id,
+      question: q.question,
+      options: q.options,
+      correct_key: '',
+      rationale: '',
+    })));
+    setFinalExamAnswers({});
+    setFinalExamPhase('ready');
+    return 'ready';
+  }, []);
+
   const pollForFinalExam = useCallback((lpId: string) => {
     let polls = 0;
 
@@ -2400,12 +2426,10 @@ navigate(
         .limit(1);
 
       const examRaw = data?.[0]?.final_exam;
-      if (examRaw) {
-        const qs = parseFinalExamQuestions(examRaw);
-        if (qs.length > 0) {
+      if (examRaw && parseFinalExamQuestions(examRaw).length > 0) {
+        const outcome = await startExamSession(lpId);
+        if (outcome !== 'not_ready') {
           cleanupFinalExamListeners();
-          setFinalExamQuestions(qs);
-          setFinalExamPhase('ready');
           return;
         }
       }
@@ -2414,7 +2438,7 @@ navigate(
     };
 
     finalExamTimerRef.current = setTimeout(poll, 3_000);
-  }, [cleanupFinalExamListeners]);
+  }, [cleanupFinalExamListeners, startExamSession]);
 
   const triggerFinalExam = useCallback(async () => {
     if (!learningPath) return;
@@ -2423,28 +2447,22 @@ navigate(
     setFinalExamPhase('triggering');
     setFinalExamAnswers({});
     setCertificateError(null);
+    setExamError(null);
 
     const lpId = learningPath.id;
-    const selectedSkill = skillFromPath(learningPath);
 
+    // Gibt es die Prüfung schon (z. B. nach einem früheren Versuch)? Dann ohne
+    // neue Generierung direkt starten.
+    const existing = await startExamSession(lpId);
+    if (existing !== 'not_ready') return;
+
+    // Prüfung serverseitig erstellen lassen (meist schon vorbereitet; dann
+    // meldet die Funktion "done" und das Polling findet sie sofort).
     try {
-      await fetch(FINAL_EXAM_WEBHOOK_URL, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          learning_path_id: lpId,   // Make MUST write this back — the column is NOT NULL
-          skill: selectedSkill,
-          selected_skill: selectedSkill,
-          target_job: learningPath.target_job,
-          target_company: (learningPath as any).target_company || null,
-          user_id: learningPath.user_id,
-          timestamp: new Date().toISOString(),
-        }),
+      const { error: fnError } = await supabase.functions.invoke('trigger-learningpath', {
+        body: { learning_path_id: lpId, action: 'exam' },
       });
-      const now = new Date().toISOString();
-      await supabase.from('learning_paths')
-        .update({ final_exam_status: 'triggered', final_exam_triggered_at: now, updated_at: now })
-        .eq('id', lpId);
+      if (fnError) console.warn('[LearningPath] Prüfung starten:', fnError.message);
     } catch { /* non-fatal — the poll below still runs */ }
 
     setFinalExamPhase('waiting');
@@ -2455,88 +2473,121 @@ navigate(
         { event: 'UPDATE', schema: 'public', table: 'learning_results', filter: `learning_path_id=eq.${lpId}` },
         (payload) => {
           const row = payload.new as any;
-          if (row?.final_exam != null) {
-            const qs = parseFinalExamQuestions(row.final_exam);
-            if (qs.length > 0) {
-              cleanupFinalExamListeners();
-              setFinalExamQuestions(qs);
-              setFinalExamPhase('ready');
-            }
+          if (row?.final_exam != null && parseFinalExamQuestions(row.final_exam).length > 0) {
+            startExamSession(lpId).then((outcome) => {
+              if (outcome !== 'not_ready') cleanupFinalExamListeners();
+            });
           }
         })
       .subscribe();
     finalExamChannelRef.current = channel;
 
     pollForFinalExam(lpId);
-  }, [learningPath, finalExamPhase, pollForFinalExam, cleanupFinalExamListeners]);
+  }, [learningPath, finalExamPhase, pollForFinalExam, cleanupFinalExamListeners, startExamSession]);
 
-  const recipientName = useCallback((): string => {
-    // TODO: read the real name from cv_profiles — an IHK-oriented certificate
-    // should not carry "q.mueller" derived from an email local part.
-    const meta = (user as any)?.user_metadata;
-    return meta?.full_name || meta?.name || user?.email?.split('@')[0] || 'Teilnehmer';
-  }, [user]);
+  const { profile } = useAuth() as any;
 
-const [certDialogOpen, setCertDialogOpen] = useState(false);
-const [certDialogBusy, setCertDialogBusy] = useState(false);
+  // Name fürs Zertifikat vorbelegen (Profil → Kontodaten), nie den E-Mail-Teil
+  useEffect(() => {
+    if (certName) return;
+    const n = (profile?.full_name || (user as any)?.user_metadata?.full_name || '').trim();
+    if (n) setCertName(n);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [profile?.full_name, user]);
 
-const issueCertificate = useCallback(async (path: LearningPath, recipientName?: string) => {
-  setIssuingCertificate(true);
-  setCertDialogBusy(true);
-  setCertificateError(null);
-  try {
-    const url = await careerService.generateCertificate(path.id, { recipientName });
-    if (!url) throw new Error('generateCertificate lieferte keine URL');
-    setCertificateUrl(url);
+  // Vorschau-URL des frisch erzeugten PDFs aufräumen
+  useEffect(() => () => { if (certPreviewUrl) URL.revokeObjectURL(certPreviewUrl); }, [certPreviewUrl]);
 
-    await supabase.from('learning_paths')
-      .update({ final_exam_status: 'done', updated_at: new Date().toISOString() })
-      .eq('id', path.id);
-  } catch (err: any) {
-    if (err?.message === 'MISSING_NAME') {
-      setCertDialogOpen(true);
-    } else {
-      setCertificateError(err?.message || 'Das Zertifikat konnte nicht erstellt werden.');
-    }
-  } finally {
-    setIssuingCertificate(false);
-    setCertDialogBusy(false);
-  }
-}, []);
-
-const handleFinalExamSubmit = async () => {
-  if (!learningPath) return;
-
-  const correct = finalExamQuestions.filter(
-    q => finalExamAnswers[q.question_id] === q.correct_key
-  ).length;
-  const pct = finalExamQuestions.length > 0
-    ? Math.round((correct / finalExamQuestions.length) * 100)
-    : 0;
-
-  setFinalExamScore(pct);
-  setFinalExamPhase('submitted');
-  setCertificateError(null);
-
-  if (pct < MIN_PASS_SCORE) return;
-
-  try {
-    await careerService.completeLearningPath(learningPath.id, pct);
-  } catch (err: any) {
-    console.error('[FinalExam] completeLearningPath:', err);
-    setCertificateError(
-      `Dein Ergebnis konnte nicht gespeichert werden: ${err?.message ?? err}`
+  /** Nächste sinnvolle Skills aus der zugehörigen Gap-Analyse (noch nicht freigeschaltet). */
+  const loadNextSkills = useCallback(async (path: LearningPath) => {
+    const analysisId = (path as any).analysis_id as string | null;
+    if (!analysisId) return;
+    const [analysis, siblings] = await Promise.all([
+      careerService.getLearningPath(analysisId),
+      careerService.getSkillPathsForAnalysis(analysisId),
+    ]);
+    if (!analysis) return;
+    const unlocked = new Set(
+      siblings.filter((p) => p.is_paid).map((p) => String(p.skill ?? '').trim().toLowerCase())
     );
-    return;
-  }
+    const names = parseSkills(analysis.missing_skills)
+      .map((sk: any) => skillDisplayName(sk))
+      .filter((n: string) => n && !unlocked.has(n.trim().toLowerCase()));
+    setNextSkills(names.slice(0, 3));
+  }, []);
 
-  await issueCertificate(learningPath);
-};
-  const retakeFinalExam = () => {
-    setFinalExamAnswers({});
-    setFinalExamScore(0);
+  const issueCertificate = useCallback(async (path: LearningPath, name: string) => {
+    setIssuingCertificate(true);
     setCertificateError(null);
-    setFinalExamPhase('ready');
+    try {
+      const result = await certificateService.issue(path.id, name);
+      setIssuedCert(result);
+      if (result.url) setCertificateUrl(result.url);
+      setCertPreviewUrl(URL.createObjectURL(result.blob));
+      loadNextSkills(path);
+    } catch (err: any) {
+      setCertificateError(
+        err?.message === 'MISSING_NAME'
+          ? 'Bitte gib deinen Vor- und Nachnamen so ein, wie er auf dem Zertifikat stehen soll.'
+          : err?.message || 'Das Zertifikat konnte nicht erstellt werden.'
+      );
+    } finally {
+      setIssuingCertificate(false);
+    }
+  }, [loadNextSkills]);
+
+  const handleFinalExamSubmit = async () => {
+    if (!learningPath || !examSessionId || examSubmitting) return;
+    setExamSubmitting(true);
+    setExamError(null);
+    try {
+      const { data, error: fnError } = await supabase.functions.invoke('academy-exam', {
+        body: { action: 'submit', session_id: examSessionId, answers: finalExamAnswers },
+      });
+      let res: any = data;
+      if (fnError && 'context' in (fnError as any)) {
+        try { res = await (fnError as any).context.json(); } catch { /* ignore */ }
+      }
+      if (!res?.success) {
+        setExamError(res?.error || 'Deine Antworten konnten nicht übermittelt werden. Bitte versuche es erneut.');
+        return;
+      }
+      setExamSessionId(null);
+      setFinalExamScore(Number(res.score ?? 0));
+      setExamResult({ correct: Number(res.correct ?? 0), total: Number(res.total ?? 0) });
+      setExamRetryAt(res.retry_at ?? null);
+      setExamAttemptsLeft(res.attempts_left_today ?? null);
+      setFinalExamPhase('submitted');
+      if (res.passed) {
+        setLearningPath((prev) => (prev ? { ...prev, status: 'completed', final_exam_score: res.score } : prev));
+        loadNextSkills(learningPath);
+      }
+    } finally {
+      setExamSubmitting(false);
+    }
+  };
+
+  const retakeFinalExam = async () => {
+    if (!learningPath) return;
+    setFinalExamAnswers({});
+    setExamResult(null);
+    setCertificateError(null);
+    setFinalExamPhase('triggering');
+    const outcome = await startExamSession(learningPath.id);
+    if (outcome === 'not_ready') setFinalExamPhase('idle');
+  };
+
+  const handleAddToCv = async () => {
+    const certId = issuedCert?.certificateId || (learningPath as any)?.certificate_id;
+    if (!certId || !learningPath) return;
+    setCvStatus('busy');
+    try {
+      const skill = issuedCert?.data.skill || skillFromPath(learningPath) || 'Lernpfad';
+      const year = String(new Date(issuedCert?.data.completion_date || Date.now()).getFullYear());
+      setCvStatus(await certificateService.addToCv({ name: `Zertifikat ${skill}`, year, verifyUrl: verifyUrlFor(certId) }));
+    } catch {
+      setCvStatus('error');
+    }
   };
 
   const backToOverview = () => {
@@ -2574,7 +2625,6 @@ const handleFinalExamSubmit = async () => {
   }
 
   const finalExamPassed = finalExamScore >= MIN_PASS_SCORE;
-  const finalExamCorrect = Math.round((finalExamScore / 100) * finalExamQuestions.length);
 
   return (
     <div className="min-h-screen bg-[#020617] text-white">
@@ -2729,104 +2779,210 @@ const handleFinalExamSubmit = async () => {
                   );
                 })}
 
+                {examError && (
+                  <p className="text-xs text-red-400/85 text-center">{examError}</p>
+                )}
                 <button
-                  disabled={Object.keys(finalExamAnswers).length < finalExamQuestions.length}
+                  disabled={examSubmitting || Object.keys(finalExamAnswers).length < finalExamQuestions.length}
                   onClick={handleFinalExamSubmit}
                   className="w-full py-4 rounded-2xl font-black text-[15px] text-black flex items-center justify-center gap-2 transition-all disabled:opacity-40 disabled:cursor-not-allowed hover:scale-[1.02] active:scale-[0.98]"
                   style={{ background: 'linear-gradient(135deg,#22c55e,#4ade80)' }}>
-                  Prüfung abgeben
-                  <Check size={18} />
+                  {examSubmitting ? <><Loader2 size={18} className="animate-spin" /> Wird ausgewertet …</> : <>Prüfung abgeben <Check size={18} /></>}
                 </button>
               </div>
             )}
 
-            {/* Final exam — result */}
-            {finalExamPhase === 'submitted' && (
-              <div className="max-w-2xl mx-auto space-y-4" style={{ animation: 'lp_fadeUp 0.4s ease' }}>
-                <div className="rounded-2xl p-6 text-center space-y-3"
-                  style={{
-                    background: finalExamPassed ? 'rgba(34,197,94,0.07)' : 'rgba(248,113,113,0.06)',
-                    border: `1px solid ${finalExamPassed ? 'rgba(34,197,94,0.3)' : 'rgba(248,113,113,0.25)'}`,
-                  }}>
-                  <div className="text-5xl font-black" style={{ color: finalExamPassed ? '#4ade80' : '#f87171' }}>
-                    {finalExamScore}%
+            {/* Final exam — result & Abschluss */}
+            {finalExamPhase === 'submitted' && (() => {
+              const certId: string | null = issuedCert?.certificateId || (learningPath as any).certificate_id || null;
+              const verifyUrl = certId ? verifyUrlFor(certId) : null;
+              const skillName = issuedCert?.data.skill || skillFromPath(learningPath) || learningPath.target_job || 'Lernpfad';
+              const retryLabel = examRetryAt
+                ? new Date(examRetryAt).toLocaleString('de-DE', { weekday: 'short', hour: '2-digit', minute: '2-digit' })
+                : null;
+              const retryBlocked = !!examRetryAt && new Date(examRetryAt).getTime() > Date.now();
+
+              return (
+                <div className="max-w-2xl mx-auto space-y-4" style={{ animation: 'lp_fadeUp 0.4s ease' }}>
+                  {/* Ergebnis */}
+                  <div className="rounded-2xl p-6 text-center space-y-2"
+                    style={{
+                      background: finalExamPassed ? 'rgba(34,197,94,0.07)' : 'rgba(248,113,113,0.06)',
+                      border: `1px solid ${finalExamPassed ? 'rgba(34,197,94,0.3)' : 'rgba(248,113,113,0.25)'}`,
+                    }}>
+                    {finalExamPassed && <div className="text-3xl">🎉</div>}
+                    <div className="text-5xl font-black" style={{ color: finalExamPassed ? '#4ade80' : '#f87171' }}>
+                      {finalExamScore}%
+                    </div>
+                    <p className="text-lg font-bold text-white">
+                      {finalExamPassed ? `Bestanden – ${skillName} gemeistert!` : 'Noch nicht bestanden'}
+                    </p>
+                    <p className="text-sm text-white/55">
+                      {examResult
+                        ? `${examResult.correct} von ${examResult.total} Fragen richtig`
+                        : finalExamPassed ? 'Du hast die Abschlussprüfung bestanden.' : ''}
+                      {!finalExamPassed && ` · für das Zertifikat sind mindestens ${MIN_PASS_SCORE} % nötig.`}
+                    </p>
                   </div>
-                  <p className="text-lg font-bold text-white">
-                    {finalExamPassed ? 'Bestanden!' : 'Nicht bestanden'}
-                  </p>
-                  <p className="text-sm text-white/55">
-                    {finalExamPassed
-                      ? 'Du hast die Abschlussprüfung bestanden.'
-                      : `${finalExamCorrect} von ${finalExamQuestions.length} richtig — für das Zertifikat sind mindestens ${MIN_PASS_SCORE}% erforderlich.`}
-                  </p>
-                </div>
 
-                {finalExamPassed && (
-                  <div className="space-y-3">
-                    {issuingCertificate && (
-                      <div className="flex items-center justify-center gap-2 text-[#30E3CA]/70 text-xs py-2">
-                        <Loader2 size={13} className="animate-spin" />
-                        <span>Zertifikat wird erstellt…</span>
-                      </div>
-                    )}
-
-                    {certificateError && (
-                      <div className="rounded-xl px-4 py-3.5 space-y-3"
-                        style={{ background: 'rgba(248,113,113,0.06)', border: '1px solid rgba(248,113,113,0.25)' }}>
-                        <p className="text-xs text-red-400/85 leading-relaxed">{certificateError}</p>
-                        <button
-                          onClick={() => setCertDialogOpen(true)}
-                          disabled={issuingCertificate}
-                          className="w-full py-2.5 rounded-lg font-bold text-xs text-white/80 transition-all hover:bg-white/5 disabled:opacity-40"
-                          style={{ border: '1px solid rgba(255,255,255,0.12)' }}>
-                          Zertifikat erneut erstellen
-                        </button>
-                      </div>
-                    )}
-
-                    {certificateUrl && (
+                  {/* Nicht bestanden: Wiederholung mit Wartezeit */}
+                  {!finalExamPassed && (
+                    <div className="space-y-2">
+                      {retryBlocked && (
+                        <p className="flex items-center justify-center gap-1.5 text-xs text-white/50">
+                          <Clock size={13} /> Nächster Versuch ab {retryLabel} – nutze die Zeit, um die Lerneinheiten zu wiederholen.
+                        </p>
+                      )}
+                      {examAttemptsLeft != null && !retryBlocked && (
+                        <p className="text-center text-xs text-white/40">Noch {examAttemptsLeft} Versuch{examAttemptsLeft === 1 ? '' : 'e'} heute · Fragen und Antworten werden neu gemischt</p>
+                      )}
                       <button
-                        onClick={() => certificateService.downloadCertificate(certificateUrl)}
+                        onClick={retakeFinalExam}
+                        disabled={retryBlocked}
+                        className="w-full py-3 rounded-xl font-bold text-sm text-white/80 transition-all hover:bg-white/5 disabled:opacity-40 disabled:cursor-not-allowed"
+                        style={{ border: '1px solid rgba(255,255,255,0.12)' }}>
+                        Prüfung wiederholen
+                      </button>
+                      <button onClick={backToOverview} className="w-full py-2.5 text-sm text-white/45 hover:text-white/70">
+                        Lerneinheiten wiederholen
+                      </button>
+                    </div>
+                  )}
+
+                  {/* Bestanden, noch kein Zertifikat: Name bestätigen */}
+                  {finalExamPassed && !issuedCert && !certificateUrl && (
+                    <div className="rounded-2xl p-5 space-y-3" style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(48,227,202,0.25)' }}>
+                      <div className="flex items-center gap-2">
+                        <Award size={18} className="text-[#30E3CA]" />
+                        <p className="font-bold text-white">Dein Zertifikat</p>
+                      </div>
+                      <p className="text-sm text-white/55">So erscheint dein Name auf dem Zertifikat und auf der öffentlichen Prüfseite.</p>
+                      <input
+                        value={certName}
+                        onChange={(e) => setCertName(e.target.value)}
+                        onKeyDown={(e) => { if (e.key === 'Enter' && certName.trim()) issueCertificate(learningPath, certName); }}
+                        placeholder="Vor- und Nachname"
+                        disabled={issuingCertificate}
+                        className="w-full px-4 py-3 rounded-xl text-sm font-semibold text-white placeholder-white/25 outline-none"
+                        style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.12)' }}
+                      />
+                      {certificateError && <p className="text-xs text-red-400/85">{certificateError}</p>}
+                      <button
+                        onClick={() => issueCertificate(learningPath, certName)}
+                        disabled={!certName.trim() || issuingCertificate}
+                        className="w-full py-3.5 rounded-xl font-black text-sm text-black flex items-center justify-center gap-2 transition-all disabled:opacity-40 hover:scale-[1.01]"
+                        style={{ background: 'linear-gradient(135deg,#30E3CA,#66c0b6)' }}>
+                        {issuingCertificate
+                          ? <><Loader2 size={15} className="animate-spin" /> Zertifikat wird erstellt …</>
+                          : <><Award size={15} /> Zertifikat erstellen</>}
+                      </button>
+                    </div>
+                  )}
+
+                  {/* Zertifikat da: Vorschau + Aktionen */}
+                  {finalExamPassed && (issuedCert || certificateUrl) && (
+                    <div className="space-y-3">
+                      {certPreviewUrl && (navigator as any).pdfViewerEnabled ? (
+                        <div className="rounded-2xl overflow-hidden border border-white/10 bg-white">
+                          <iframe title="Zertifikat-Vorschau" src={`${certPreviewUrl}#toolbar=0&navpanes=0&view=FitH`} className="w-full aspect-[1.414] block" />
+                        </div>
+                      ) : issuedCert ? (
+                        // Handys zeigen PDFs nicht eingebettet → kompakte Vorschau der Angaben
+                        <div className="rounded-2xl bg-white text-[#0A192F] p-5 border-l-[6px] border-[#30E3CA] space-y-1">
+                          <p className="text-[10px] font-black tracking-[0.2em] text-[#2BA597]">ZERTIFIKAT · {issuedCert.certificateId}</p>
+                          <p className="text-xl font-black">{issuedCert.data.recipient_name}</p>
+                          <p className="text-sm text-[#3B4A63]">Lernpfad zur Kompetenz <b>{issuedCert.data.skill}</b></p>
+                          <p className="text-xs text-[#6B7280]">Abschlussprüfung bestanden · {Math.round(Number(issuedCert.data.final_score ?? 0))} %</p>
+                        </div>
+                      ) : null}
+
+                      <button
+                        onClick={() => issuedCert
+                          ? certificateService.downloadBlob(issuedCert.blob, issuedCert.fileName)
+                          : certificateUrl && certificateService.downloadCertificate(certificateUrl)}
                         className="w-full py-4 rounded-2xl font-black text-[15px] text-black flex items-center justify-center gap-2 transition-all hover:scale-[1.02] active:scale-[0.98]"
                         style={{ background: 'linear-gradient(135deg,#22c55e,#4ade80)', boxShadow: '0 4px 24px rgba(34,197,94,0.3)' }}>
-                        <Award size={18} />
-                        Zertifikat herunterladen
+                        <Download size={18} /> Zertifikat herunterladen
                       </button>
-                    )}
 
+                      <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
+                        {certId && verifyUrl && (
+                          <a
+                            href={certificateService.linkedInAddUrl({
+                              name: `${skillName} – DYD Career Academy`,
+                              certificateId: certId,
+                              issuedAt: issuedCert?.data.completion_date || new Date().toISOString(),
+                              verifyUrl,
+                            })}
+                            target="_blank" rel="noopener noreferrer"
+                            className="py-3 rounded-xl text-sm font-bold text-white/85 flex items-center justify-center gap-1.5 hover:bg-white/5"
+                            style={{ border: '1px solid rgba(255,255,255,0.12)' }}>
+                            <Linkedin size={15} /> Zu LinkedIn
+                          </a>
+                        )}
+                        {certId && (
+                          <button
+                            onClick={handleAddToCv}
+                            disabled={cvStatus === 'busy' || cvStatus === 'added' || cvStatus === 'exists'}
+                            className="py-3 rounded-xl text-sm font-bold text-white/85 flex items-center justify-center gap-1.5 hover:bg-white/5 disabled:opacity-70"
+                            style={{ border: '1px solid rgba(255,255,255,0.12)' }}>
+                            {cvStatus === 'busy' ? <Loader2 size={15} className="animate-spin" />
+                              : cvStatus === 'added' || cvStatus === 'exists' ? <Check size={15} className="text-[#4ade80]" />
+                              : <FileText size={15} />}
+                            {cvStatus === 'added' ? 'Im Lebenslauf' : cvStatus === 'exists' ? 'Schon im Lebenslauf' : 'Zum Lebenslauf'}
+                          </button>
+                        )}
+                        {verifyUrl && (
+                          <a href={verifyUrl} target="_blank" rel="noopener noreferrer"
+                            className="py-3 rounded-xl text-sm font-bold text-white/85 flex items-center justify-center gap-1.5 hover:bg-white/5"
+                            style={{ border: '1px solid rgba(255,255,255,0.12)' }}>
+                            <ShieldCheck size={15} /> Prüfseite
+                          </a>
+                        )}
+                      </div>
+                      {cvStatus === 'no_cv' && (
+                        <p className="text-xs text-white/45 text-center">Du hast noch keinen Lebenslauf bei DYD – erstelle einen im Dashboard, dann kannst du das Zertifikat hinzufügen.</p>
+                      )}
+                      {cvStatus === 'error' && (
+                        <p className="text-xs text-red-400/85 text-center">Der Lebenslauf konnte gerade nicht aktualisiert werden.</p>
+                      )}
+
+                      {/* Nächster Schritt */}
+                      {nextSkills.length > 0 && (learningPath as any).analysis_id && (
+                        <div className="rounded-2xl p-5 space-y-3" style={{ background: 'linear-gradient(135deg,rgba(48,227,202,0.08),rgba(6,7,15,0.9))', border: '1px solid rgba(48,227,202,0.2)' }}>
+                          <p className="text-[10px] font-black uppercase tracking-widest text-[#30E3CA]/70">Dein nächster Schritt</p>
+                          <p className="text-sm text-white/70">Diese Skills fehlen dir laut deiner Analyse noch für {learningPath.target_job}:</p>
+                          <div className="flex flex-wrap gap-2">
+                            {nextSkills.map((sk) => (
+                              <button
+                                key={sk}
+                                onClick={() => navigate(`/learning-path/${(learningPath as any).analysis_id}?unlock_skill=${encodeURIComponent(sk)}`)}
+                                className="px-3 py-2 rounded-xl text-xs font-bold text-white flex items-center gap-1.5 hover:scale-[1.02] transition-all"
+                                style={{ background: 'rgba(48,227,202,0.12)', border: '1px solid rgba(48,227,202,0.35)' }}>
+                                {sk} <ArrowRight size={12} />
+                              </button>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  )}
+
+                  {finalExamPassed && (
                     <button
                       onClick={backToOverview}
                       className="w-full py-3 rounded-xl font-bold text-sm text-white/60 transition-all hover:bg-white/5"
                       style={{ border: '1px solid rgba(255,255,255,0.1)' }}>
                       Zur Übersicht
                     </button>
-                  </div>
-                )}
-
-                {!finalExamPassed && (
-                  <button
-                    onClick={retakeFinalExam}
-                    className="w-full py-3 rounded-xl font-bold text-sm text-white/70 transition-all hover:bg-white/5"
-                    style={{ border: '1px solid rgba(255,255,255,0.1)' }}>
-                    Prüfung wiederholen
-                  </button>
-                )}
-              </div>
-            )}
+                  )}
+                </div>
+              );
+            })()}
           </div>
         )}
 
-        <CertificateNameDialog
-          open={certDialogOpen}
-          onClose={() => setCertDialogOpen(false)}
-          onConfirm={(name) => {
-            setCertDialogOpen(false);
-            issueCertificate(learningPath, name);
-          }}
-          initialName={(user as any)?.user_metadata?.full_name || recipientName()}
-          variant="certificate"
-          busy={certDialogBusy}
-        />
+
       </div>
     </div>
   );
