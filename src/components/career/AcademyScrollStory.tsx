@@ -86,7 +86,12 @@ function Story({ className }: { className: string }) {
 
   const chapter: Chapter = p < CH.intro[1] ? 'intro' : p < CH.learn[1] ? 'learn' : p < CH.exam[1] ? 'exam' : p < CH.cert[1] ? 'cert' : 'show';
   const mood = MOOD[chapter];
-  const cta = () => navigate(isCatalogEnabled() ? '/kurse' : '/career-vision');
+  // Stehen die Kurse direkt darunter (Landingpage), dorthin scrollen – sonst zur Kursseite
+  const cta = () => {
+    const below = document.getElementById('kurse');
+    if (below) below.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    else navigate(isCatalogEnabled() ? '/kurse' : '/career-vision');
+  };
 
   return (
     <section ref={ref} className={`relative ${className}`} style={{ height: '620vh' }} aria-label="So läuft ein Kurs der DYD Career Academy">
@@ -161,6 +166,7 @@ function IntroScene({ name, setName, t }: { name: string; setName: (v: string) =
   const words = ['Lernen.', 'Bestehen.', 'Zeigen.'];
   return (
     <motion.div {...sceneMotion} className="h-full flex flex-col items-center justify-center text-center gap-8">
+      <p className="text-[11px] font-black uppercase tracking-widest text-white/45 -mb-4">Career Academy · So läuft dein Kurs</p>
       <div className="flex flex-wrap justify-center gap-x-4 sm:gap-x-6">
         {words.map((w, i) => (
           <motion.span key={w}
