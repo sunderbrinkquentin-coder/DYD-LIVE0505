@@ -19,9 +19,12 @@ export type AdvisorEvent =
   | 'advisor_checkout_started'    // Checkout nach Berater-Klick gestartet
   | 'advisor_unanswered'
   | 'advisor_error'
-  | 'advisor_reset';
+  | 'advisor_reset'
+  | 'advisor_teaser_shown'        // Hinweisblase neben dem Icon angezeigt
+  | 'advisor_teaser_click'        // Hinweisblase angeklickt (öffnet den Chat)
+  | 'advisor_teaser_dismiss';     // Hinweisblase weggeklickt
 
-const ONCE_PER_SESSION: AdvisorEvent[] = ['advisor_assignment', 'advisor_start'];
+const ONCE_PER_SESSION: AdvisorEvent[] = ['advisor_assignment', 'advisor_start', 'advisor_teaser_shown'];
 
 function hasConsent(): boolean {
   try { return localStorage.getItem('dyd_cookie_consent_v1') === 'accepted'; } catch { return false; }
