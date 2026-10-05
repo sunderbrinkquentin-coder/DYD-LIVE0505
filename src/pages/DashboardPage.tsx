@@ -14,6 +14,7 @@ import { TokenPaywallModal } from '../components/dashboard/TokenPaywallModal';
 import { KanbanBoard } from '../components/dashboard/KanbanBoard';
 import { WizardCVOverview } from '../components/dashboard/WizardCVOverview';
 import { CareerVisionCard } from '../components/career/CareerVisionCard';
+import { AcademyCatalogSection } from '../components/career/AcademyCatalogSection';
 import { HarmonyTicketsSection } from '../components/dashboard/HarmonyTicketsSection';
 import { AccountSettingsModal } from '../components/dashboard/AccountSettingsModal';
 import { CertificateNameDialog } from '../components/dashboard/CertificateNameDialog';
@@ -1016,6 +1017,13 @@ const handleGenerateCompetencyProfile = async (recipientName: string) => {
               </div>
             </div>
           </div>
+
+          {/* Beliebte Lernpfade aus dem Katalog – sofort startklar, 20 % günstiger */}
+          <AcademyCatalogSection
+            className="mb-8"
+            limit={3}
+            excludeSkills={learningPaths.filter((p) => p.is_paid && p.skill).map((p) => String(p.skill))}
+          />
 
           {/* ══════════════════════════════════════════════════════════════════
               Dein Profil — jederzeit erreichbarer Zugang zu den Basisdaten aus
