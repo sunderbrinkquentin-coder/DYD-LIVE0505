@@ -3,6 +3,7 @@ import { useState, useMemo, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '../../lib/supabase';
 import { validateStripePriceIds } from '../../utils/stripeConfigValidator';
+import { advisorCheckoutMetadata } from '../../features/advisor/advisorAttribution';
 
 interface TokenPaywallModalProps {
   isOpen: boolean;
@@ -145,7 +146,7 @@ export function TokenPaywallModal({ isOpen, onClose, onSuccess, defaultPlan, suc
             success_url: successUrl,
             cancel_url: cancelUrl,
             mode: 'payment',
-            metadata: { source: 'token_purchase' },
+            metadata: { source: 'token_purchase', ...advisorCheckoutMetadata() },
           }),
           signal: controller.signal,
         });
