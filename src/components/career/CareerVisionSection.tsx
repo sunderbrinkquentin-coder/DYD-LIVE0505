@@ -996,6 +996,11 @@ export function CareerVisionSection({ cvId: initialCvId, onAnalysisComplete, res
             handleCompletion(pathId, data as Record<string, unknown>);
             return;
           }
+          if (data?.status === 'failed') {
+            setApiError('Die Analyse wurde unterbrochen. Klicke auf „Ergebnis laden“, um sie neu zu starten – ohne zusätzliche Kosten.');
+            setPhase('fallback');
+            return;
+          }
         } catch (e: any) {
           console.warn('[CVSection] Poll exception:', e.message);
         }
@@ -1147,44 +1152,15 @@ const runAnalysis = useCallback(async () => {
     completedRef.current = false;
     pathIdRef.current = pathId;
 
-    const makeUrl = import.meta.env.VITE_MAKE_WEBHOOK_SKILLGAP;
-    if (makeUrl) {
-      try {
-        const { data: lp } = await supabase
-          .from('learning_paths')
-          .select('user_id, target_job, target_company, vision_description, industry, cv_id')
-          .eq('id', pathId)
-          .maybeSingle();
-
-        let cvData: string | null = null;
-        if (lp?.cv_id) {
-          const { data: cv } = await supabase
-            .from('stored_cvs')
-            .select('cv_data')
-            .eq('id', lp.cv_id)
-            .maybeSingle();
-          if (cv) cvData = (cv.cv_data as string | null) ?? null;
-        }
-
-        await fetch(makeUrl, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            learning_path_id: pathId,
-            user_id: lp?.user_id ?? null,
-            target_job: lp?.target_job ?? null,
-            target_company: lp?.target_company ?? null,
-            vision_description: lp?.vision_description ?? null,
-            industry: lp?.industry ?? null,
-            cv_data: cvData,
-            timestamp: new Date().toISOString(),
-          }),
-        });
-      } catch (e: any) {
-        console.warn('[CVSection] Make webhook call failed (continuing polling):', e.message);
-      }
-    } else {
-      console.warn('[CVSection] VITE_MAKE_WEBHOOK_SKILLGAP not set');
+    // Analyse serverseitig starten (Edge Function skillgap-analyze).
+    // Die Funktion prüft Login, Besitz und Zahlung selbst und verhindert Doppelstarts.
+    try {
+      const { error: fnError } = await supabase.functions.invoke('skillgap-analyze', {
+        body: { learning_path_id: pathId },
+      });
+      if (fnError) console.warn('[CVSection] skillgap-analyze:', fnError.message);
+    } catch (e: any) {
+      console.warn('[CVSection] skillgap-analyze nicht erreichbar (Polling läuft weiter):', e.message);
     }
 
     startRealtime(pathId);
@@ -1287,6 +1263,12 @@ const runAnalysis = useCallback(async () => {
               showResult(row as Record<string, unknown>);
               return;
             }
+            if (row?.status === 'failed') {
+              pollActive = false;
+              setApiError('Die Analyse wurde unterbrochen. Klicke auf „Ergebnis laden“, um sie neu zu starten – ohne zusätzliche Kosten.');
+              setPhase('fallback');
+              return;
+            }
           } catch (e: any) {
             console.error('[SkillGap] Poll error:', e.message);
           }
@@ -1299,44 +1281,38 @@ const runAnalysis = useCallback(async () => {
         if (!completedRef.current) setPhase('fallback');
       }, 240_000);
 
-      // 6. Nach der Zahlung: erst CV extrahieren, dann Skill-Gap
-      const makeUrl = import.meta.env.VITE_MAKE_WEBHOOK_SKILLGAP;
-      if (!makeUrl) {
-        setApiError('Konfigurationsfehler: VITE_MAKE_WEBHOOK_SKILLGAP ist nicht gesetzt.');
-      } else {
-        (async () => {
-          try {
-            let cvData: string | null = null;
-            if (data!.cv_id) {
-              setPhase('cv_uploading');
-              cvData = await waitForCvData(data!.cv_id as string, (data!.user_id as string) ?? null);
-              if (cancelled) return;
-              setPhase('waiting');
-            }
-
-            const res = await fetch(makeUrl, {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({
-                id: resumePathId,
-                learning_path_id: resumePathId,
-                user_id: data!.user_id ?? null,
-                target_job: data!.target_job ?? null,
-                target_company: data!.target_company ?? null,
-                vision_description: data!.vision_description ?? null,
-                industry: data!.industry ?? null,
-                cv_data: cvData,
-                timestamp: new Date().toISOString(),
-              }),
-            });
-            if (!res.ok) throw new Error(`Status ${res.status}`);
-          } catch (e: any) {
-            console.error('[SkillGap] Fehler:', e.message);
-            setApiError(e.message);
-            setPhase('idle');
+      // 6. Nach der Zahlung: erst CV extrahieren, dann Skill-Gap (Edge Function)
+      (async () => {
+        try {
+          if (data!.cv_id) {
+            setPhase('cv_uploading');
+            await waitForCvData(data!.cv_id as string, (data!.user_id as string) ?? null);
+            if (cancelled) return;
+            setPhase('waiting');
           }
-        })();
-      }
+
+          const { data: started, error: fnError } = await supabase.functions.invoke('skillgap-analyze', {
+            body: { learning_path_id: resumePathId },
+          });
+          if (fnError) {
+            let message = fnError.message;
+            try { message = (await (fnError as any).context.json())?.error || message; } catch { /* ignore */ }
+            throw new Error(message);
+          }
+          if (started?.status === 'done') {
+            const { data: row } = await supabase
+              .from('learning_paths')
+              .select('status,missing_skills,current_skills,strategic_outlook_2026,match_score,industry,target_job,target_company')
+              .eq('id', resumePathId)
+              .maybeSingle();
+            if (row) showResult(row as Record<string, unknown>);
+          }
+        } catch (e: any) {
+          console.error('[SkillGap] Fehler:', e.message);
+          setApiError(e.message || 'Die Analyse konnte nicht gestartet werden. Bitte versuche es erneut.');
+          setPhase('idle');
+        }
+      })();
     })();
 
     return () => {
