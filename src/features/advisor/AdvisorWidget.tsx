@@ -95,8 +95,8 @@ function AdvisorShell({ pathname }: { pathname: string }) {
           style={{ background: 'linear-gradient(135deg,#30E3CA,#66c0b6)', boxShadow: '0 10px 30px rgba(48,227,202,0.3)' }}
         >
           <MessageCircle size={18} aria-hidden />
-          <span className="hidden sm:inline [writing-mode:vertical-rl] rotate-180 tracking-wide">KI-Berater</span>
-          <span className="sr-only sm:hidden">KI-Berater öffnen</span>
+          <span className="hidden sm:inline [writing-mode:vertical-rl] rotate-180 tracking-wide">Frag Quentin · KI</span>
+          <span className="sr-only sm:hidden">KI-Berater Quentin öffnen</span>
         </button>
       )}
 
@@ -112,10 +112,18 @@ function AdvisorShell({ pathname }: { pathname: string }) {
           {/* Kopf */}
           <header className="flex items-center justify-between gap-2 px-4 py-3 border-b border-white/10">
             <div className="flex items-center gap-2.5 min-w-0">
-              <span className="w-9 h-9 rounded-xl flex items-center justify-center bg-[#30E3CA]/15 text-[#30E3CA]"><Sparkles size={17} aria-hidden /></span>
+              {/* Avatar: Monogramm "Q" mit KI-Abzeichen */}
+              <span className="relative w-9 h-9 flex-shrink-0 rounded-xl flex items-center justify-center text-black font-black text-base" style={{ background: 'linear-gradient(135deg,#30E3CA,#66c0b6)' }} aria-hidden>
+                Q
+                <span className="absolute -bottom-1 -right-1 w-4 h-4 rounded-full flex items-center justify-center bg-[#0a1220] border border-[#30E3CA]/50 text-[#30E3CA]">
+                  <Sparkles size={9} />
+                </span>
+              </span>
               <div className="min-w-0">
-                <h2 id={titleId} className="text-sm font-black text-white leading-tight">DYD-Berater</h2>
-                <p className="text-[10px] text-white/45">KI-Assistent · Antworten können Fehler enthalten</p>
+                <h2 id={titleId} className="text-sm font-black text-white leading-tight">
+                  Quentin <span className="ml-1 align-middle text-[9px] font-black uppercase tracking-wider px-1.5 py-0.5 rounded-md bg-[#30E3CA]/15 text-[#30E3CA]">KI</span>
+                </h2>
+                <p className="text-[10px] text-white/45 truncate">Digitaler Berater · gebaut vom Gründer von DYD</p>
               </div>
             </div>
             <div className="flex items-center gap-1">
@@ -124,7 +132,7 @@ function AdvisorShell({ pathname }: { pathname: string }) {
                   <RotateCcw size={16} aria-hidden />
                 </button>
               )}
-              <button type="button" onClick={closePanel} className="p-2 rounded-lg text-white/50 hover:text-white hover:bg-white/10 focus:outline-none focus-visible:ring-2 focus-visible:ring-[#30E3CA]" aria-label="Berater schließen">
+              <button type="button" onClick={closePanel} className="p-2 rounded-lg text-white/50 hover:text-white hover:bg-white/10 focus:outline-none focus-visible:ring-2 focus-visible:ring-[#30E3CA]" aria-label="Quentin schließen">
                 <X size={18} aria-hidden />
               </button>
             </div>
@@ -133,7 +141,11 @@ function AdvisorShell({ pathname }: { pathname: string }) {
           {/* Verlauf */}
           <div ref={listRef} className="flex-1 overflow-y-auto px-4 py-4 space-y-4" aria-live="polite" aria-busy={chat.loading}>
             <div className="text-sm text-white/80 leading-relaxed">
-              <p>Hallo! Ich bin der KI-Berater von DYD. Ich erkläre dir unsere Angebote, Preise und Abläufe und helfe dir, das Passende zu finden.</p>
+              <p>Hi, ich bin Quentin – genauer gesagt seine KI-Version.</p>
+              <p className="mt-2">
+                Der echte Quentin hat DYD gegründet und mich selbst entwickelt, damit du jederzeit eine ehrliche Antwort bekommst – auch nachts um zwei.
+                Ich erkläre dir Angebote, Preise und Abläufe und helfe dir, das Passende zu finden. Ohne Verkaufsdruck, versprochen.
+              </p>
               {chat.entries.length === 0 && (
                 <div className="flex flex-wrap gap-2 mt-3">
                   {starters.map((s) => (
@@ -152,7 +164,7 @@ function AdvisorShell({ pathname }: { pathname: string }) {
 
             {chat.loading && (
               <div className="flex items-center gap-2 text-xs text-white/50" role="status">
-                <Loader2 size={14} className="animate-spin" aria-hidden /> Berater schreibt …
+                <Loader2 size={14} className="animate-spin" aria-hidden /> Quentin schreibt …
               </div>
             )}
 
@@ -186,7 +198,7 @@ function AdvisorShell({ pathname }: { pathname: string }) {
             onSubmit={(e) => { e.preventDefault(); submit(draft); }}
           >
             <div className="flex items-end gap-2">
-              <label htmlFor={`${panelId}-input`} className="sr-only">Deine Frage an den Berater</label>
+              <label htmlFor={`${panelId}-input`} className="sr-only">Deine Frage an Quentin</label>
               <textarea
                 id={`${panelId}-input`}
                 ref={inputRef}
@@ -209,7 +221,7 @@ function AdvisorShell({ pathname }: { pathname: string }) {
               </button>
             </div>
             <p className="text-[10px] text-white/30 mt-2">
-              KI-gestützt (OpenAI). Gesprächsinhalte werden nicht gespeichert. Bitte keine sensiblen Daten eingeben.{' '}
+              Du schreibst mit einer KI (OpenAI), nicht mit Quentin persönlich. Gesprächsinhalte werden nicht gespeichert. Bitte keine sensiblen Daten eingeben.{' '}
               <a href="#/datenschutz" className="underline hover:text-white/60">Datenschutz</a>
             </p>
           </form>
