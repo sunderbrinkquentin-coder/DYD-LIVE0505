@@ -773,18 +773,16 @@ export default function LandingPage() {
                 </motion.button>
               </motion.div>
 
-              {isCatalogEnabled() && (
-                <motion.div variants={fadeInUp} className="flex justify-center">
-                  <button
-                    onClick={() => navigate('/kurse')}
-                    className="group inline-flex items-center gap-2 px-4 py-2 rounded-full text-sm text-white/80 bg-[#30E3CA]/10 border border-[#30E3CA]/30 hover:bg-[#30E3CA]/20 transition-colors"
-                  >
-                    <span className="text-[10px] font-black px-1.5 py-0.5 rounded-full bg-[#30E3CA] text-black">NEU</span>
-                    Kurse mit Zertifikat – sofort starten ab {CATALOG_PRICE_LABEL}
-                    <ArrowRight className="w-4 h-4 transition-transform group-hover:translate-x-0.5" />
-                  </button>
-                </motion.div>
-              )}
+              <motion.div variants={fadeInUp} className="flex justify-center">
+                <button
+                  onClick={() => scrollToId('academy-story')}
+                  className="group inline-flex items-center gap-2 px-4 py-2 rounded-full text-sm text-white/85 bg-[#30E3CA]/10 border border-[#30E3CA]/35 hover:bg-[#30E3CA]/20 transition-colors"
+                >
+                  <span className="text-[10px] font-black px-1.5 py-0.5 rounded-full bg-[#30E3CA] text-black">NEU</span>
+                  Erlebe in 30 Sekunden, wie aus einem Kurs dein Zertifikat wird
+                  <ChevronDown className="w-4 h-4 transition-transform group-hover:translate-y-0.5" />
+                </button>
+              </motion.div>
 
               <motion.div
                 variants={fadeInUp}
@@ -882,6 +880,27 @@ export default function LandingPage() {
             </motion.div>
           </div>
         </section>
+
+        {/* ═══ Direkt nach dem Hero: Scroll-Story → Kurse (direkt buchbar) ═══ */}
+        {/* Career Academy, Teil 2: So läuft ein Kurs (Scroll-Story) */}
+        <div id="academy-story">
+          <AcademyScrollStory bookable />
+        </div>
+
+        {/* Career Academy, Teil 3: fertige Kurse – direkt im Anschluss an die Story */}
+        {isCatalogEnabled() && (
+          <section id="kurse" className="pt-6 pb-16 px-4 sm:px-6 lg:px-8" aria-label="Kurse mit Zertifikat – sofort starten">
+            <div className="max-w-6xl mx-auto">
+              <AcademyCatalogSection
+                variant="landing"
+                limit={6}
+                showAllLink
+                title="Bereit? Such dir deinen Kurs aus"
+                subtitle={`Fertig erstellt und sofort startklar: 5 Lerneinheiten, Abschlussprüfung und prüfbares Zertifikat. Ab ${CATALOG_PRICE_LABEL}, ohne Abo.`}
+              />
+            </div>
+          </section>
+        )}
 
         <ProcessTimeline />
 
@@ -1169,7 +1188,7 @@ export default function LandingPage() {
 
         <section
           id="career-academy"
-          className="pt-20 pb-6 px-4 sm:px-6 lg:px-8 relative overflow-x-clip"
+          className="py-20 px-4 sm:px-6 lg:px-8 relative overflow-x-clip"
           aria-label="Career Academy: Skill-Gap-Analyse und persönlicher Lernpfad"
         >
           <div className="absolute inset-0 pointer-events-none">
@@ -1240,24 +1259,6 @@ export default function LandingPage() {
 
           </div>
         </section>
-
-        {/* Career Academy, Teil 2: So läuft ein Kurs (Scroll-Story) */}
-        <AcademyScrollStory />
-
-        {/* Career Academy, Teil 3: fertige Kurse – direkt im Anschluss an die Story */}
-        {isCatalogEnabled() && (
-          <section id="kurse" className="pt-6 pb-16 px-4 sm:px-6 lg:px-8" aria-label="Kurse mit Zertifikat – sofort starten">
-            <div className="max-w-6xl mx-auto">
-              <AcademyCatalogSection
-                variant="landing"
-                limit={6}
-                showAllLink
-                title="Bereit? Such dir deinen Kurs aus"
-                subtitle={`Fertig erstellt und sofort startklar: 5 Lerneinheiten, Abschlussprüfung und prüfbares Zertifikat. Ab ${CATALOG_PRICE_LABEL}, ohne Abo.`}
-              />
-            </div>
-          </section>
-        )}
 
         <section
           id="kompetenzprofil"
