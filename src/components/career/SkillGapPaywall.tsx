@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { X, Search, TrendingUp, BarChart3, CheckCircle2, ArrowRight, Sparkles, Clock, ShieldCheck, Brain } from 'lucide-react';
 import { supabase } from '../../lib/supabase';
+import { advisorCheckoutMetadata } from '../../features/advisor/advisorAttribution';
 
 const PRICE_ID = import.meta.env.VITE_STRIPE_PRICE_SKILLGAP || 'price_1TX5kM3Sd9dZl64SnHfqWvLx';
 const STRIPE_CHECKOUT_URL = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/stripe-checkout`;
@@ -77,6 +78,7 @@ export function SkillGapPaywall({ isOpen, onClose, learningPathId, targetJob, ta
             skillgap_path_id: learningPathId,
             target_job: targetJob,
             source: 'skillgap_analysis',
+            ...advisorCheckoutMetadata(),
           },
         }),
       });
