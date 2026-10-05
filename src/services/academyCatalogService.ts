@@ -6,6 +6,7 @@
 // Vision) an. Diese ist danach für alle sofort und 20 % günstiger erhältlich.
 
 import { supabase } from '../lib/supabase';
+import { advisorCheckoutMetadata } from '../features/advisor/advisorAttribution';
 
 /** Stripe-Preis für Katalog-Lernpfade (3,99 €). Ohne Preis werden keine Angebote gezeigt. */
 export const CATALOG_PRICE_ID: string = (import.meta.env.VITE_STRIPE_PRICE_LEARNING_PATH_CATALOG as string | undefined) || '';
@@ -69,6 +70,20 @@ export const academyCatalogService = {
     return map;
   },
 
+  /** Titel und Lernziele der Lerneinheiten eines Katalog-Kurses (Kursdetail) */
+  async units(catalogId: string): Promise<{ unit_id: number; title: string; objectives: string[] }[]> {
+    const { data, error } = await supabase.rpc('academy_catalog_units', { p_catalog_id: catalogId });
+    if (error) {
+      console.warn('[Catalog] units:', error.message);
+      return [];
+    }
+    const seen = new Set<number>();
+    return ((data as any[]) ?? [])
+      .filter((u) => !seen.has(u.unit_id) && seen.add(u.unit_id))
+      .sort((a, b) => a.unit_id - b.unit_id)
+      .map((u) => ({ unit_id: u.unit_id, title: String(u.title ?? ''), objectives: Array.isArray(u.objectives) ? u.objectives.map(String) : [] }));
+  },
+
   /**
    * Startet den Kauf eines Katalog-Pfads. Legt (falls nötig) die eigene,
    * noch nicht bezahlte Lernpfad-Zeile an und leitet zu Stripe weiter.
@@ -127,6 +142,7 @@ export const academyCatalogService = {
           catalog_id: entry.id,
           source: 'learning_path_catalog',
           selected_skill: entry.skill,
+          ...advisorCheckoutMetadata(),
         },
       }),
     });
