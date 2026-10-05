@@ -6,6 +6,7 @@ const LEGAL_LINKS = [
   { to: '/datenschutz', label: 'Datenschutzerklärung' },
   { to: '/agb', label: 'AGB' },
   { to: '/faq', label: 'FAQ' },
+  { to: '/kurse', label: 'Kurse' },
 ];
 
 function GlobalFooter() {
