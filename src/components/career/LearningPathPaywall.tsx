@@ -4,6 +4,8 @@ import {
   ArrowRight, Sparkles, Clock, Zap, Lock, ShieldCheck, Layers,
 } from 'lucide-react';
 import { supabase } from '../../lib/supabase';
+import { useAuth } from '../../contexts/AuthContext';
+import { CertificatePreview } from './AcademyPreviews';
 import { careerService } from '../../services/careerService';
 import {
   academyCatalogService, skillKey, CATALOG_PRICE_LABEL, REGULAR_PRICE_LABEL, CATALOG_DISCOUNT_LABEL,
@@ -116,6 +118,8 @@ export function LearningPathPaywall({
   isOpen, onClose, analysisPathId, targetJob, targetCompany,
   skillCount = 0, selectedSkill, missingSkills,
 }: LearningPathPaywallProps) {
+  const { user, profile } = useAuth() as any;
+  const userName: string = (profile?.full_name || user?.user_metadata?.full_name || '').trim();
   const [selectedPlan, setSelectedPlan] = useState<Plan>('single');
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -475,6 +479,17 @@ export function LearningPathPaywall({
             <div className="mx-6 mb-4 px-4 py-3 rounded-xl text-sm"
               style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.1)', color: 'rgba(255,255,255,0.5)' }}>
               Wähle oben einen Skill aus, um fortzufahren.
+            </div>
+          )}
+
+          {/* Persönliche Zertifikat-Vorschau: das Ergebnis vor Augen */}
+          {activeSkillName && !isAllPlan && (
+            <div className="px-6 pb-5">
+              <p className="text-[10px] font-black uppercase tracking-widest text-white/35 mb-3">
+                {userName ? `Dein Zertifikat, ${userName.split(' ')[0]}` : 'So sieht dein Zertifikat aus'}
+              </p>
+              <CertificatePreview name={userName} skill={activeSkillName} />
+              <p className="text-[10px] text-white/35 mt-2 text-center">Mit QR-Code prüfbar · für LinkedIn und deinen Lebenslauf</p>
             </div>
           )}
 
