@@ -14,7 +14,7 @@ import {
   ArrowLeft, Award, BookOpen, CheckCircle2, Loader2, QrCode, RefreshCw, Settings2, Sparkles, Target, Zap,
 } from 'lucide-react';
 import { AcademyCatalogSection } from '../components/career/AcademyCatalogSection';
-import { AcademyValueStrip } from '../components/career/AcademyPreviews';
+import { AcademyScrollStory } from '../components/career/AcademyScrollStory';
 import { CATALOG_PRICE_LABEL, REGULAR_PRICE_LABEL } from '../services/academyCatalogService';
 import { useAuth } from '../contexts/AuthContext';
 import { supabase } from '../lib/supabase';
@@ -81,9 +81,25 @@ export default function CoursesPage() {
             <span className="flex items-center gap-1.5"><QrCode size={14} className="text-[#66c0b6]" /> Zertifikat mit QR-Prüfung</span>
             <span className="flex items-center gap-1.5"><CheckCircle2 size={14} className="text-[#66c0b6]" /> Direkt in LinkedIn & Lebenslauf</span>
           </div>
+          <div className="flex flex-col sm:flex-row items-center justify-center gap-3 pt-3">
+            <button
+              onClick={() => document.getElementById('kurse')?.scrollIntoView({ behavior: 'smooth', block: 'start' })}
+              className="w-full sm:w-auto px-6 py-3.5 rounded-xl font-black text-black flex items-center justify-center gap-2 transition-transform hover:scale-[1.03]"
+              style={{ background: 'linear-gradient(135deg,#30E3CA,#66c0b6)' }}
+            >
+              Kurs wählen & buchen
+            </button>
+            <button
+              onClick={() => document.getElementById('kurs-story')?.scrollIntoView({ behavior: 'smooth', block: 'start' })}
+              className="w-full sm:w-auto px-6 py-3.5 rounded-xl font-bold text-white bg-white/5 border border-white/15 hover:bg-white/10 transition-colors"
+            >
+              ▶ So läuft ein Kurs ab
+            </button>
+          </div>
         </section>
 
         {/* Kurse */}
+        <div id="kurse" className="scroll-mt-20">
         <AcademyCatalogSection
           title="Alle Kurse"
           subtitle="Wähle einen Kurs und leg sofort los."
@@ -91,9 +107,12 @@ export default function CoursesPage() {
           searchable
           showEmpty
         />
+        </div>
 
         {/* Das bekommst du */}
-        <AcademyValueStrip initialName={String(user?.user_metadata?.full_name || '')} />
+        <div id="kurs-story" className="-mx-4">
+          <AcademyScrollStory bookable />
+        </div>
 
         {/* So funktioniert's */}
         <section className="grid grid-cols-1 sm:grid-cols-3 gap-3">
