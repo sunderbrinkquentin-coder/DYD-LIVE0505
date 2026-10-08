@@ -624,6 +624,20 @@ cpa: {
       cta: 'Informationen anfragen',
     },
   },
+  orbitVideo: {
+    eyebrow: 'ORBIT IN 24 SEKUNDEN',
+    heading: 'Vom Weiterbildungswunsch zum passenden Kurs.',
+    description:
+      'Sehen Sie, wie ORBIT in wenigen Sekaden aus einem Karrierewunsch eine qualifizierte Lead-Empfehlung macht – automatisch, präzise und ohne manuellen Aufwand.',
+    steps: [
+      { num: '01', title: 'Profil erfassen', desc: 'Berufsweg und Erfahrungen werden automatisch eingelesen.' },
+      { num: '02', title: 'Skill-Gap analysieren', desc: 'ORBIT vergleicht vorhandene Kompetenzen mit der Zielrolle.' },
+      { num: '03', title: 'Passenden Kurs finden', desc: 'Die Lücke wird mit dem passenden Kursangebot geschlossen.' },
+    ],
+    cta: 'Persönliche Demo vereinbaren',
+    videoSrc: '/2026-10-07_Mi_0830_ORBIT.mp4',
+    posterSrc: '',
+  },
   platformOverview: {
     title: 'Eine Plattform, ein Standard',
     subtitle:
