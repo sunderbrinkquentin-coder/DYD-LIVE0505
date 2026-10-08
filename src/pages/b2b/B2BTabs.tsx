@@ -11,6 +11,7 @@ import { NexusMockup, OrbitMockup } from './ProductMockups';
 import { PricingSection } from './PricingSection';
 import { SkillGapWidget } from './SkillGapWidget';
 import { CalBookingButton } from './CalBookingButton';
+import OrbitVideoShowcase from './OrbitVideoShowcase';
 
 type TabId = 'unternehmen' | 'bildungstraeger';
 
@@ -425,6 +426,11 @@ function TabBContent({ onDemo }: { onDemo: (institution?: string) => void }) {
       />
 
       <Narrative n={tabB.narrative} />
+
+      {/* NEU (08.10.2026): 4 Hochkant-Kurzvideos (Überblick, Beratung,
+          Bedenken, Lead-Qualität) - schneller Überblick für Bildungsträger,
+          nach dem ORBIT-Einstieg und vor Skill-Gap-Widget + Self-Service-Preisen. */}
+      <OrbitVideoShowcase />
 
       <SkillGapWidget onCta={() => onDemo('Skill-Gap-Widget')} />
 
