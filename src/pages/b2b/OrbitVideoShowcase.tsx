@@ -11,8 +11,8 @@ import { Sparkles, Volume2, VolumeX, Play, AlertCircle, ArrowRight } from 'lucid
    Bei "Bewegung reduzieren" (OS-Einstellung) kein Autoplay, nur Play-Button. */
 
 // ▼ Public-URL des Supabase-Storage-Buckets (mit / am Ende).
-//   Project-Ref aus src/lib/supabase.ts übernommen; Bucket-Name ggf. anpassen.
-const VIDEO_BASE = 'https://vuumqarzylewhzvtbtcl.supabase.co/storage/v1/object/public/videos/';
+//   Project-Ref aus src/lib/supabase.ts übernommen; Bucket: marketing (geprüft, alle 4 Dateien erreichbar).
+const VIDEO_BASE = 'https://vuumqarzylewhzvtbtcl.supabase.co/storage/v1/object/public/marketing/';
 
 const VIEWPORT = { once: true, margin: '-60px' } as const;
 const SKY_LIME = 'linear-gradient(135deg, #38BDF8, #DEFF9A)';
