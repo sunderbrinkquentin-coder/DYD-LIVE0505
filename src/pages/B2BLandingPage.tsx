@@ -33,7 +33,6 @@ export default function B2BLandingPage() {
     <div className="min-h-screen bg-[#0A192F]">
       <B2BHeader onContact={() => openContact(activeTab)} />
       <B2BHero onCtaClick={handleHeroCta} />
-      <OrbitVideoSection onDemo={openContact} />
       <PlatformOverviewSection activeTab={activeTab} />
       <TrustSection onContact={() => openContact(activeTab)} />
       {/* NEU (01.10.2026, auf Kundenwunsch entfernt): EventsSection
