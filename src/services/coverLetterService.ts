@@ -1,5 +1,5 @@
 import { supabase } from '../lib/supabase';
-import type { CoverLetter, CoverLetterContent, CoverLetterTone } from '../types/coverLetter';
+import type { CoverLetter, CoverLetterBrief, CoverLetterContent } from '../types/coverLetter';
 
 const FN_URL = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1`;
 
@@ -50,8 +50,8 @@ export const coverLetterService = {
     return (data as CoverLetter) ?? null;
   },
 
-  generate(applicationId: string, tone: CoverLetterTone, focus?: string) {
-    return callFunction<CoverLetter>('cover-letter', { action: 'generate', application_id: applicationId, tone, focus });
+  generate(applicationId: string, brief: CoverLetterBrief) {
+    return callFunction<CoverLetter>('cover-letter', { action: 'generate', application_id: applicationId, brief });
   },
 
   rewriteParagraph(coverLetterId: string, paragraphId: string, instruction: string) {
@@ -63,8 +63,8 @@ export const coverLetterService = {
     });
   },
 
-  regenerate(coverLetterId: string, tone?: CoverLetterTone, focus?: string) {
-    return callFunction<CoverLetter>('cover-letter', { action: 'regenerate', cover_letter_id: coverLetterId, tone, focus });
+  regenerate(coverLetterId: string, brief?: CoverLetterBrief) {
+    return callFunction<CoverLetter>('cover-letter', { action: 'regenerate', cover_letter_id: coverLetterId, brief });
   },
 
   async save(id: string, letter: CoverLetterContent): Promise<void> {
