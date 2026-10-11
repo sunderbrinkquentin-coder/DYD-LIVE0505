@@ -17,6 +17,8 @@ import { ApplicationDrawer, Tab as DrawerTab } from './ApplicationDrawer';
 import { ApplicationInsights } from './ApplicationInsights';
 import { AddApplicationModal } from './AddApplicationModal';
 import { StatusCelebrationModal } from '../StatusCelebrationModal';
+import { CvReadyLetterModal } from './CvReadyLetterModal';
+import { supabase } from '../../../lib/supabase';
 
 interface ApplicationBoardProps {
   /** CV, der gerade neu erstellt wurde → zugehörige Bewerbung hervorheben */
@@ -124,6 +126,42 @@ export function ApplicationBoard({ highlightedCvId }: ApplicationBoardProps) {
       setLetterAfterCreate(true);
       setAddStatus('preparing');
     }
+  }, [loading, searchParams, apps, letterStates, setSearchParams]);
+
+  // Direkt nach dem CV-Export (?cvReady=<cvId>): Pop-up "Jetzt Anschreiben dazu erstellen"
+  const [cvReadyOffer, setCvReadyOffer] = useState<{ app: TrackedApplication; addon: boolean } | null>(null);
+  const cvReadyHandled = useRef(false);
+  useEffect(() => {
+    const cvId = searchParams.get('cvReady');
+    if (loading || !cvId || cvReadyHandled.current) return;
+    cvReadyHandled.current = true;
+    const next = new URLSearchParams(searchParams);
+    next.delete('cvReady');
+    setSearchParams(next, { replace: true });
+
+    (async () => {
+      const { data: cv } = await supabase
+        .from('stored_cvs')
+        .select('id, job_data, cv_data, is_paid, download_unlocked')
+        .eq('id', cvId)
+        .maybeSingle();
+      if (!cv) return;
+      let app = apps.find((a) => a.cv_id === cvId);
+      if (!app) {
+        // Falls der DB-Trigger die Bewerbung (noch) nicht angelegt hat: jetzt anlegen
+        const jd = (cv.job_data ?? {}) as Record<string, string>;
+        const cd = (cv.cv_data ?? {}) as { desired_job?: { job_title?: string; company?: string }; targetJob?: string; targetCompany?: string };
+        app = await applicationService.create({
+          cv_id: cv.id,
+          job_title: jd.positionTitle || jd.jobTitle || jd.job_title || cd.desired_job?.job_title || cd.targetJob || 'Neue Bewerbung',
+          company: jd.company || jd.companyName || cd.desired_job?.company || cd.targetCompany || null,
+          status: 'preparing',
+        });
+        setApps((prev) => [app!, ...prev]);
+      }
+      if (letterStates[app.id] === 'unlocked') return;
+      setCvReadyOffer({ app, addon: !!(cv.is_paid || cv.download_unlocked) });
+    })().catch((e) => console.error('[ApplicationBoard] cvReady', e));
   }, [loading, searchParams, apps, letterStates, setSearchParams]);
 
   // ─── abgeleitete Daten ──────────────────────────────────────────────
@@ -386,6 +424,21 @@ export function ApplicationBoard({ highlightedCvId }: ApplicationBoardProps) {
             setOpenTab(letterAfterCreate ? 'letter' : 'details');
             setLetterAfterCreate(false);
             setOpenId(app.id);
+          }}
+        />
+      )}
+
+      {cvReadyOffer && (
+        <CvReadyLetterModal
+          app={cvReadyOffer.app}
+          addonPrice={cvReadyOffer.addon}
+          onLater={() => setCvReadyOffer(null)}
+          onStart={() => {
+            const target = cvReadyOffer.app;
+            setCvReadyOffer(null);
+            setOpenTab('letter');
+            setAwaitingLetterPayment(false);
+            setOpenId(target.id);
           }}
         />
       )}
