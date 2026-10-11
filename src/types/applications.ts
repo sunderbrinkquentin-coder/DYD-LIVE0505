@@ -43,6 +43,8 @@ export interface TrackedApplication {
   notes: string | null;
   closing_reason: string | null;
   prep_checklist: Record<string, boolean>;
+  /** Antworten aus dem Anschreiben-Fragebogen (werden wiederverwendet) */
+  cover_letter_brief: import('./coverLetter').CoverLetterBrief | null;
   created_at: string;
   updated_at: string;
   /** per Join geladen: verknüpfter CV */
