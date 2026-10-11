@@ -15,7 +15,9 @@ const BENEFITS = [
 
 export function CoverLetterSection({ isLoggedIn }: CoverLetterSectionProps) {
   const navigate = useNavigate();
-  const cta = () => navigate(isLoggedIn ? '/dashboard#kanban-section' : '/login?redirect=/dashboard');
+  // Eingeloggt: direkt im Dashboard den Anschreiben-Flow öffnen; sonst Login mit Rücksprung dorthin
+  const target = '/dashboard?anschreiben=1';
+  const cta = () => navigate(isLoggedIn ? target : `/login?redirect=${encodeURIComponent(target)}`);
 
   return (
     <section
