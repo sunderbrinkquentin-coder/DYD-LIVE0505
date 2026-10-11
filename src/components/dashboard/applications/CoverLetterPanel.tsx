@@ -2,14 +2,14 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import {
   Check, ChevronDown, Copy, CreditCard, FileDown, HelpCircle, Lightbulb, Loader2, Lock, Pencil,
-  Maximize2, Minimize2, Quote, RefreshCw, ShieldCheck, Sparkles, UserRound, Wand2, X,
+  CircleDashed, Maximize2, Minimize2, Quote, Target, RefreshCw, ShieldCheck, Sparkles, UserRound, Wand2, X,
 } from 'lucide-react';
 import type { ApplicationUpdate, TrackedApplication } from '../../../types/applications';
 import type { CoverLetter, CoverLetterBrief, CoverLetterContent, CoverLetterParagraph } from '../../../types/coverLetter';
 import { COVER_LETTER_PRICE, REWRITE_PRESETS, ROLE_LABEL, formatEuro } from '../../../types/coverLetter';
 import { CoverLetterStudio } from './CoverLetterStudio';
 import {
-  CoverLetterError, coverLetterService, downloadLetterDocx, letterToPlainText,
+  CoverLetterError, coverLetterService, downloadLetterDocx, letterHeaderLines, letterToPlainText,
 } from '../../../services/coverLetterService';
 import { supabase } from '../../../lib/supabase';
 import { tokenService } from '../../../services/tokenService';
@@ -172,9 +172,14 @@ export function CoverLetterPanel({ app, onPatch, awaitingPayment, onLetterChange
   /** Wird vom Studio aufgerufen – Fehler werden dort angezeigt */
   const generate = async (brief: CoverLetterBrief, jobText: string) => {
     setError('');
+    const r = brief.recipient;
     await onPatch(app.id, {
       cover_letter_brief: brief,
       ...(jobText && !app.job_description ? { job_description: jobText } : {}),
+      // Kontaktdaten aus dem Fragebogen auch in der Bewerbung pflegen
+      ...(r.name ? { contact_name: `${r.salutation === 'frau' ? 'Frau ' : r.salutation === 'herr' ? 'Herr ' : ''}${r.title ? `${r.title} ` : ''}${r.name}` } : {}),
+      ...(r.role ? { contact_role: r.role } : {}),
+      ...(r.company && !app.company ? { company: r.company } : {}),
     });
     setAndNotify(await coverLetterService.generate(app.id, brief));
     setExpanded(true);
@@ -471,6 +476,53 @@ export function CoverLetterPanel({ app, onPatch, awaitingPayment, onLetterChange
     </div>
   );
 
+  // DIN-5008-Briefkopf: Absender rechts, Empfänger links, Ort/Datum rechts
+  const header = letterHeaderLines(l);
+  const letterhead = (large: boolean) => {
+    if (!header.sender.length && !header.recipient.length) return null;
+    const size = large ? 'text-[13px]' : 'text-[11.5px]';
+    return (
+      <div className={`mb-6 ${size} leading-relaxed text-gray-600`}>
+        {header.sender.length > 0 && <p className="text-right text-gray-500">{header.sender.join(' · ')}</p>}
+        <div className="mt-4 grid grid-cols-[1fr_auto] items-end gap-4">
+          <div>{header.recipient.map((line) => <p key={line} className="text-gray-800">{line}</p>)}</div>
+          <p className="text-right text-gray-500">{header.placeDate}</p>
+        </div>
+      </div>
+    );
+  };
+
+  // Abdeckung der Kernanforderungen – stärkstes Qualitäts-Signal vor dem Kauf
+  const reqs = l.meta.requirements ?? [];
+  const covered = reqs.filter((r) => r.covered).length;
+  const requirementsBox = (dark: boolean) =>
+    reqs.length > 0 && (
+      <div className={`rounded-2xl p-4 ${dark ? 'border border-white/10 bg-white/[0.04]' : 'border border-gray-200 bg-white'}`}>
+        <div className="flex items-center justify-between gap-3">
+          <p className={`flex items-center gap-1.5 text-[13px] font-semibold ${dark ? 'text-white' : 'text-gray-900'}`}>
+            <Target className="h-4 w-4 text-[#30E3CA]" /> Passung zur Anzeige
+          </p>
+          <span className={`text-[13px] font-black ${dark ? 'text-[#30E3CA]' : 'text-[#2f857c]'}`}>{covered}/{reqs.length}</span>
+        </div>
+        <div className={`mt-2 h-1.5 overflow-hidden rounded-full ${dark ? 'bg-white/10' : 'bg-gray-100'}`}>
+          <div className="h-full rounded-full bg-gradient-to-r from-[#66c0b6] to-[#30E3CA]" style={{ width: `${(covered / reqs.length) * 100}%` }} />
+        </div>
+        <ul className="mt-3 space-y-1.5">
+          {reqs.map((r) => (
+            <li key={r.label} className={`flex items-center gap-2 text-[12.5px] ${dark ? (r.covered ? 'text-white/85' : 'text-white/40') : r.covered ? 'text-gray-800' : 'text-gray-400'}`}>
+              {r.covered ? <Check className="h-3.5 w-3.5 flex-shrink-0 text-[#30E3CA]" strokeWidth={3} /> : <CircleDashed className="h-3.5 w-3.5 flex-shrink-0" />}
+              {r.label}
+            </li>
+          ))}
+        </ul>
+        {covered < reqs.length && (
+          <p className={`mt-2 text-[11px] ${dark ? 'text-white/40' : 'text-gray-400'}`}>
+            Nicht abgedeckt heißt: dazu steht nichts in deinem CV – wir erfinden nichts. Nach dem Freischalten kannst du es ergänzen.
+          </p>
+        )}
+      </div>
+    );
+
   const paywallBox = (compact: boolean) => locked && (
     <div className="rounded-2xl border border-[#66c0b6]/40 bg-white p-4 text-gray-900 shadow-[0_8px_30px_rgba(0,0,0,0.12)]">
       {waitingForWebhook ? (
@@ -480,16 +532,19 @@ export function CoverLetterPanel({ app, onPatch, awaitingPayment, onLetterChange
       ) : (
         <>
           <p className="flex items-center gap-1.5 text-[15px] font-bold">
-            <Lock className="h-4 w-4 text-[#3a9e94]" /> Komplettes Anschreiben freischalten
+            <Lock className="h-4 w-4 text-[#3a9e94]" /> Dein Anschreiben ist fertig
           </p>
-          <p className={`mt-1 text-[12px] text-gray-500 ${compact ? 'hidden' : ''}`}>
-            {lockedCount} weitere {lockedCount === 1 ? 'Absatz ist' : 'Absätze sind'} fertig geschrieben – die Erklärungen siehst du schon.
+          <p className={`mt-1 text-[12.5px] text-gray-600 ${compact ? 'hidden' : ''}`}>
+            {lockedCount} weitere {lockedCount === 1 ? 'Absatz ist' : 'Absätze sind'} geschrieben
+            {reqs.length > 0 && <> und decken <b className="text-gray-900">{covered} von {reqs.length}</b> Kernanforderungen ab</>}.
+            Schalte sie frei und schick es heute noch ab.
           </p>
           <ul className={`mt-3 space-y-1 text-[12px] text-gray-600 ${compact ? 'hidden' : ''}`}>
             {[
-              `Alle ${l.paragraphs.length} Absätze inkl. Belegen aus Anzeige & CV`,
-              'Frei bearbeiten + 20× Absätze mit KI umformulieren',
-              'Export als Word & Text · 2× komplett neu erstellen',
+              'Vollständiger Text mit Briefkopf, sofort versandfertig',
+              'Word-Download & Kopieren für Online-Formulare',
+              'Jeden Absatz frei bearbeiten oder per Klick umformulieren',
+              'Nicht zufrieden? 2× komplett neu schreiben ist inklusive',
             ].map((b) => (
               <li key={b} className="flex items-start gap-1.5"><Check className="mt-0.5 h-3.5 w-3.5 flex-shrink-0 text-[#3a9e94]" /> {b}</li>
             ))}
@@ -513,8 +568,8 @@ export function CoverLetterPanel({ app, onPatch, awaitingPayment, onLetterChange
                 className="relative flex w-full items-center justify-between rounded-xl bg-gradient-to-r from-[#66c0b6] to-[#30E3CA] px-4 py-3 text-black disabled:opacity-60"
               >
                 <span className="text-left">
-                  <span className="block text-[14px] font-bold">Kombi-Preis zu deinem CV</span>
-                  <span className="block text-[11px]">statt {formatEuro(COVER_LETTER_PRICE.single)}</span>
+                  <span className="block text-[14px] font-bold">Jetzt freischalten</span>
+                  <span className="block text-[11px]">Kombi-Preis zum CV · statt {formatEuro(COVER_LETTER_PRICE.single)}</span>
                 </span>
                 <span className="text-[18px] font-black">{busy === 'addon' ? <Loader2 className="h-5 w-5 animate-spin" /> : formatEuro(COVER_LETTER_PRICE.addon)}</span>
               </button>
@@ -528,7 +583,7 @@ export function CoverLetterPanel({ app, onPatch, awaitingPayment, onLetterChange
                 }`}
               >
                 {busy === 'single' ? <Loader2 className="h-4 w-4 animate-spin" /> : <CreditCard className="h-4 w-4" />}
-                Für {formatEuro(COVER_LETTER_PRICE.single)} freischalten
+                Freischalten & herunterladen · {formatEuro(COVER_LETTER_PRICE.single)}
               </button>
             )}
           </div>
@@ -571,6 +626,7 @@ export function CoverLetterPanel({ app, onPatch, awaitingPayment, onLetterChange
 
             {/* Papier */}
             <div className="rounded-2xl bg-white p-6 text-gray-900 shadow-2xl sm:p-10">
+              {letterhead(true)}
               <p className="mb-5 text-[16px] font-bold">{l.subject}</p>
               <p className="mb-5 text-[15px] text-gray-800">{l.salutation}</p>
               <div className="space-y-6">
@@ -590,13 +646,17 @@ export function CoverLetterPanel({ app, onPatch, awaitingPayment, onLetterChange
               <p className="mt-6 text-[15px] text-gray-800">{l.closing}</p>
               {l.sender_name && <p className="text-[15px] text-gray-800">{l.sender_name}</p>}
             </div>
+            {locked && <div className="mt-4 lg:hidden">{requirementsBox(true)}</div>}
           </div>
 
           {/* Seitenleiste: Paywall bzw. Werkzeuge */}
           <aside className="lg:sticky lg:top-6 lg:self-start">
             <div className="space-y-4">
               {locked ? (
-                <div className="hidden lg:block">{paywallBox(false)}</div>
+                <div className="hidden space-y-4 lg:block">
+                  {paywallBox(false)}
+                  {requirementsBox(true)}
+                </div>
               ) : (
                 <div className="rounded-2xl bg-white p-4">{toolbar}</div>
               )}
@@ -639,8 +699,10 @@ export function CoverLetterPanel({ app, onPatch, awaitingPayment, onLetterChange
 
       {error && <p className="mb-3 rounded-lg bg-red-50 px-3 py-2 text-[12px] text-red-700">{error}</p>}
       <div className="mb-3">{badges(false)}</div>
+      {reqs.length > 0 && <div className="mb-3">{requirementsBox(false)}</div>}
 
       <div className="rounded-xl border border-gray-200 bg-white p-4 shadow-sm">
+        {letterhead(false)}
         <p className="mb-3 text-[13.5px] font-bold text-gray-900">{l.subject}</p>
         <p className="mb-3 text-[13.5px] text-gray-800">{l.salutation}</p>
         <div className="space-y-4">
