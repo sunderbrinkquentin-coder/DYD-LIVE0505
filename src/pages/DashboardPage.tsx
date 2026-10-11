@@ -11,7 +11,7 @@ import { OptimizeJobModal } from '../components/dashboard/OptimizeJobModal';
 import { CreateCVChoiceModal } from '../components/dashboard/CreateCVChoiceModal';
 import { CVAdjustmentModal } from '../components/dashboard/CVAdjustmentModal';
 import { TokenPaywallModal } from '../components/dashboard/TokenPaywallModal';
-import { KanbanBoard } from '../components/dashboard/KanbanBoard';
+import { ApplicationBoard } from '../components/dashboard/applications/ApplicationBoard';
 import { WizardCVOverview } from '../components/dashboard/WizardCVOverview';
 import { CareerVisionCard } from '../components/career/CareerVisionCard';
 import { AcademyCatalogSection } from '../components/career/AcademyCatalogSection';
@@ -90,7 +90,7 @@ export function DashboardPage() {
 
   const [userCVs, setUserCVs] = useState<any[]>([]);
   const [cvChecks, setCvChecks] = useState<any[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
+  const [, setIsLoading] = useState(true);
   const [selectedCVForOptimize, setSelectedCVForOptimize] = useState<any | null>(null);
   const [showOptimizeModal, setShowOptimizeModal] = useState(false);
   const [showAdjustmentModal, setShowAdjustmentModal] = useState(false);
@@ -1775,20 +1775,13 @@ const certReady = learningPaths.filter(
       <div className="container mx-auto px-3 sm:px-4 pb-6">
         <div id="kanban-section" className="flex items-center gap-2 mb-2">
           <Briefcase size={20} className="text-white/50" />
-          <h2 className="text-base sm:text-lg font-bold text-white">Bewerbungs-Kanban</h2>
+          <h2 className="text-base sm:text-lg font-bold text-white">Bewerbungsmanagement</h2>
         </div>
         <p className="text-xs sm:text-sm text-white/60 mb-3">
-          Verschiebe deine Bewerbungen zwischen den Spalten um den Status zu aktualisieren
+          Karten ziehen (auch per Touch) oder anklicken für Details, Timeline &amp; Interview-Vorbereitung
         </p>
 
-        {isLoading ? (
-          <div className="text-center py-12">
-            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#66c0b6] mx-auto"></div>
-            <p className="mt-4 text-white/60">Lade Bewerbungen...</p>
-          </div>
-        ) : (
-          <KanbanBoard cvs={userCVs} onCVUpdate={loadCVs} highlightedCvId={highlightedCvId} />
-        )}
+        <ApplicationBoard highlightedCvId={highlightedCvId} />
       </div>
 
       {showWizardOverview && (
