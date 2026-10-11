@@ -1,7 +1,7 @@
 // src/pages/DashboardPage.tsx
 import { useState, useEffect } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
-import { Plus, Briefcase, LogOut, ClipboardCheck, Coins, CheckCircle, Target, Lock, Calendar, FileSearch, ChevronDown, ChevronUp, Download, FileText, X, Zap, ArrowRight, Settings, CreditCard as Edit2, Award, Sparkles, GraduationCap, FileStack } from 'lucide-react';
+import { Home, PenLine, Plus, Briefcase, LogOut, ClipboardCheck, Coins, CheckCircle, Target, Lock, Calendar, FileSearch, ChevronDown, ChevronUp, Download, FileText, X, Zap, ArrowRight, Settings, CreditCard as Edit2, Award, Sparkles, GraduationCap, FileStack } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import { cvStorageService } from '../services/cvStorageService';
 import { tokenService } from '../services/tokenService';
@@ -916,6 +916,31 @@ const handleGenerateCompetencyProfile = async (recipientName: string) => {
             </div>
 
             <div className="flex flex-wrap gap-2">
+              <button
+                onClick={() => navigate('/')}
+                className="px-3 py-2 rounded-lg bg-white/5 border border-white/10 hover:bg-white/10 transition-all flex items-center gap-2 text-white/70 hover:text-white text-sm"
+                title="Zur Startseite (du bleibst eingeloggt)"
+              >
+                <Home size={18} />
+                <span className="hidden sm:inline">Startseite</span>
+              </button>
+
+              <button
+                onClick={() => {
+                  setSearchParams((prev) => {
+                    const next = new URLSearchParams(prev);
+                    next.set('anschreiben', '1');
+                    return next;
+                  });
+                }}
+                className="relative px-3 py-2 rounded-lg border border-[#30E3CA]/50 bg-[#30E3CA]/10 hover:bg-[#30E3CA]/20 transition-all flex items-center gap-2 text-white text-sm font-semibold"
+                title="KI-Anschreiben erstellen"
+              >
+                <PenLine size={18} className="text-[#30E3CA]" />
+                <span className="hidden sm:inline">Anschreiben</span>
+                <span className="absolute -top-2 -right-2 text-[9px] font-black px-1.5 py-0.5 rounded-full bg-[#30E3CA] text-black">NEU</span>
+              </button>
+
               <div className="px-3 py-2 rounded-lg bg-white/5 border border-white/10 flex items-center gap-2">
                 <Coins size={18} className="text-[#66c0b6]" />
                 <div>
