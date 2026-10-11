@@ -6,7 +6,7 @@ import {
 import type { ApplicationUpdate, TrackedApplication } from '../../../types/applications';
 import type { CoverLetter, CoverLetterBrief, CoverLetterContent, CoverLetterParagraph } from '../../../types/coverLetter';
 import { COVER_LETTER_PRICE, REWRITE_PRESETS, ROLE_LABEL, formatEuro } from '../../../types/coverLetter';
-import { CoverLetterWizard } from './CoverLetterWizard';
+import { CoverLetterStudio } from './CoverLetterStudio';
 import {
   CoverLetterError, coverLetterService, downloadLetterDocx, letterToPlainText,
 } from '../../../services/coverLetterService';
@@ -21,13 +21,6 @@ interface CoverLetterPanelProps {
   onLetterChange?: (letter: CoverLetter) => void;
 }
 
-const GEN_STEPS = [
-  'Stellenanzeige analysieren',
-  'Deine Antworten einarbeiten',
-  'Passende Belege in deinem CV finden',
-  'Anschreiben in deinem Ton formulieren',
-  'Floskel-Check & Feinschliff',
-];
 const FILLER =
   'Mit meiner Erfahrung in vergleichbaren Projekten bringe ich genau die Kompetenzen mit, die Sie in Ihrer Ausschreibung beschreiben. ';
 
@@ -99,9 +92,8 @@ export function CoverLetterPanel({ app, onPatch, awaitingPayment, onLetterChange
   const [error, setError] = useState('');
 
   // Generator
-  const [wizardMode, setWizardMode] = useState<'regenerate' | null>(null);
-  const [generating, setGenerating] = useState(false);
-  const [genStep, setGenStep] = useState(0);
+  const [studioMode, setStudioMode] = useState<'new' | 'regenerate' | null>(null);
+  const autoOpened = useRef(false);
 
   // Paywall
   const [credits, setCredits] = useState(0);
@@ -164,23 +156,14 @@ export function CoverLetterPanel({ app, onPatch, awaitingPayment, onLetterChange
   }, [waitingForWebhook, letter, setAndNotify]);
 
   // ── Aktionen ───────────────────────────────────────────────────────
+  /** Wird vom Studio aufgerufen – Fehler werden dort angezeigt */
   const generate = async (brief: CoverLetterBrief, jobText: string) => {
     setError('');
-    setGenerating(true);
-    setGenStep(0);
-    const stepTimer = window.setInterval(() => setGenStep((s) => Math.min(s + 1, GEN_STEPS.length - 1)), 5000);
-    try {
-      await onPatch(app.id, {
-        cover_letter_brief: brief,
-        ...(jobText && !app.job_description ? { job_description: jobText } : {}),
-      });
-      setAndNotify(await coverLetterService.generate(app.id, brief));
-    } catch (e) {
-      setError((e as Error).message);
-    } finally {
-      window.clearInterval(stepTimer);
-      setGenerating(false);
-    }
+    await onPatch(app.id, {
+      cover_letter_brief: brief,
+      ...(jobText && !app.job_description ? { job_description: jobText } : {}),
+    });
+    setAndNotify(await coverLetterService.generate(app.id, brief));
   };
 
   const unlockWithCredit = async () => {
@@ -263,27 +246,24 @@ export function CoverLetterPanel({ app, onPatch, awaitingPayment, onLetterChange
 
   const regenerate = async (brief: CoverLetterBrief) => {
     if (!letter) return;
-    setWizardMode(null);
     setError('');
-    setGenerating(true);
-    setGenStep(0);
-    const stepTimer = window.setInterval(() => setGenStep((s) => Math.min(s + 1, GEN_STEPS.length - 1)), 5000);
-    try {
-      await onPatch(app.id, { cover_letter_brief: brief });
-      setAndNotify(await coverLetterService.regenerate(letter.id, brief));
-    } catch (e) {
-      setError((e as Error).message);
-    } finally {
-      window.clearInterval(stepTimer);
-      setGenerating(false);
-    }
+    await onPatch(app.id, { cover_letter_brief: brief });
+    setAndNotify(await coverLetterService.regenerate(letter.id, brief));
   };
 
   const openRegenerate = () => {
     if (window.confirm('Antworten anpassen und komplett neu schreiben? Deine Änderungen am Text gehen dabei verloren.')) {
-      setWizardMode('regenerate');
+      setStudioMode('regenerate');
     }
   };
+
+  // Wer den Anschreiben-Tab ohne Anschreiben öffnet, will eins erstellen → Studio direkt öffnen
+  useEffect(() => {
+    if (!loading && !letter && !autoOpened.current) {
+      autoOpened.current = true;
+      setStudioMode('new');
+    }
+  }, [loading, letter]);
 
   const copy = async () => {
     if (!letter) return;
@@ -298,48 +278,51 @@ export function CoverLetterPanel({ app, onPatch, awaitingPayment, onLetterChange
     return <div className="flex justify-center py-10"><Loader2 className="h-6 w-6 animate-spin text-[#66c0b6]" /></div>;
   }
 
-  if (generating) {
-    return (
-      <div className="py-8">
-        <div className="mx-auto mb-5 flex h-12 w-12 items-center justify-center rounded-2xl bg-gradient-to-br from-[#66c0b6] to-[#30E3CA]">
-          <Sparkles className="h-6 w-6 animate-pulse text-black" />
-        </div>
-        <ul className="mx-auto max-w-xs space-y-2">
-          {GEN_STEPS.map((s, i) => (
-            <li key={s} className={`flex items-center gap-2 text-[13px] ${i <= genStep ? 'text-gray-900' : 'text-gray-300'}`}>
-              {i < genStep ? <Check className="h-4 w-4 text-[#3a9e94]" /> : i === genStep ? <Loader2 className="h-4 w-4 animate-spin text-[#66c0b6]" /> : <span className="h-4 w-4" />}
-              {s}
-            </li>
-          ))}
-        </ul>
-        <p className="mt-5 text-center text-[11px] text-gray-400">Dauert ca. 30–40 Sekunden – wir schreiben nicht aus der Schablone.</p>
-      </div>
-    );
-  }
+  const studio = studioMode && (
+    <CoverLetterStudio
+      app={app}
+      mode={studioMode}
+      onClose={() => setStudioMode(null)}
+      onGenerate={(brief, jobText) => (studioMode === 'regenerate' ? regenerate(brief) : generate(brief, jobText))}
+    />
+  );
 
-  // ── Fragebogen: erstes Anschreiben oder "Antworten anpassen & neu" ──
-  if (!letter || wizardMode === 'regenerate') {
+  // ── Noch kein Anschreiben: Einstieg ins Studio ─────────────────────
+  if (!letter) {
     return (
       <div>
-        {!letter && (
-          <div className="mb-4 rounded-2xl border border-[#66c0b6]/30 bg-gradient-to-br from-[#66c0b6]/10 to-[#30E3CA]/5 p-4">
-            <p className="flex items-center gap-1.5 text-[14px] font-bold text-gray-900">
-              <Sparkles className="h-4 w-4 text-[#3a9e94]" /> Dein Anschreiben für {app.company || 'diese Stelle'}
-            </p>
-            <p className="mt-1 text-[12.5px] text-gray-600">
-              6 kurze Fragen, dann schreiben wir es – in deinem Ton, passend zu Level und Branche, ohne KI-Floskeln.
-              Zu jedem Absatz erklären wir dir, <b>warum</b> er so formuliert ist.
+        {studio}
+        <div className="overflow-hidden rounded-2xl bg-[#0b0d0e] text-white">
+          <div className="relative p-5">
+            <div className="pointer-events-none absolute -right-10 -top-10 h-40 w-40 rounded-full bg-[#30E3CA]/20 blur-3xl" />
+            <p className="text-[11px] font-semibold uppercase tracking-widest text-[#30E3CA]">Anschreiben-Studio</p>
+            <h3 className="mt-1.5 text-[19px] font-black leading-snug">
+              Dein Anschreiben für {app.company || 'diese Stelle'} – in deinem Ton
+            </h3>
+            <ul className="mt-4 space-y-2 text-[13px] text-white/75">
+              {[
+                '6 kurze Fragen statt Vorlage – ca. 1 Minute',
+                'Passend zu deinem Level und zur Branche',
+                'Floskel-Check: klingt nach dir, nicht nach KI',
+                'Jeder Absatz erklärt und frei bearbeitbar',
+              ].map((t) => (
+                <li key={t} className="flex items-start gap-2">
+                  <Check className="mt-0.5 h-4 w-4 flex-shrink-0 text-[#30E3CA]" /> {t}
+                </li>
+              ))}
+            </ul>
+            <button
+              onClick={() => setStudioMode('new')}
+              className="mt-5 flex w-full items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-[#66c0b6] to-[#30E3CA] py-3 text-[15px] font-bold text-black shadow-[0_8px_30px_rgba(48,227,202,0.3)] hover:brightness-110"
+            >
+              <Wand2 className="h-4 w-4" /> Los geht's
+            </button>
+            <p className="mt-2 text-center text-[11px] text-white/40">
+              Vorschau kostenlos · danach ab {formatEuro(COVER_LETTER_PRICE.addon)} · kein Abo
             </p>
           </div>
-        )}
-        {error && <p className="mb-3 rounded-lg bg-red-50 px-3 py-2 text-[12px] text-red-700">{error}</p>}
-        <CoverLetterWizard
-          app={app}
-          onSubmit={(brief, jobText) => (letter ? regenerate(brief) : generate(brief, jobText))}
-          onCancel={letter ? () => setWizardMode(null) : undefined}
-          submitLabel={letter ? 'Neu schreiben' : undefined}
-          showPriceHint={!letter}
-        />
+        </div>
+        {error && <p className="mt-3 rounded-lg bg-red-50 px-3 py-2 text-[12px] text-red-700">{error}</p>}
       </div>
     );
   }
@@ -349,6 +332,7 @@ export function CoverLetterPanel({ app, onPatch, awaitingPayment, onLetterChange
 
   return (
     <div>
+      {studio}
       {/* Toolbar */}
       {!locked && (
         <div className="mb-3 flex flex-wrap items-center gap-1.5">
