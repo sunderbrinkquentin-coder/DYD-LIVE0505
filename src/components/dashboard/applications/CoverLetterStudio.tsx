@@ -4,10 +4,11 @@ import {
   AlertCircle, ArrowLeft, ArrowRight, Check, FileText, PenLine, RotateCcw, ShieldCheck, Sparkles, Wand2, X,
 } from 'lucide-react';
 import type { TrackedApplication } from '../../../types/applications';
-import type { CoverLetterBrief } from '../../../types/coverLetter';
+import type { CoverLetterBrief, LetterRecipient, LetterSender } from '../../../types/coverLetter';
 import {
   COVER_LETTER_PRICE, CULTURE_OPTIONS, EMPTY_BRIEF, LENGTH_OPTIONS, LEVEL_OPTIONS, MOTIVATION_OPTIONS,
   SPECIAL_OPTIONS, START_OPTIONS, TONE_OPTIONS, formatEuro,
+  EMPTY_RECIPIENT, EMPTY_SENDER, buildSalutation,
 } from '../../../types/coverLetter';
 import { supabase } from '../../../lib/supabase';
 
@@ -23,7 +24,7 @@ interface CoverLetterStudioProps {
   onGenerate: (brief: CoverLetterBrief, jobText: string) => Promise<void>;
 }
 
-type StepId = 'job' | 'level' | 'culture' | 'motivation' | 'strengths' | 'special' | 'style';
+type StepId = 'job' | 'level' | 'culture' | 'motivation' | 'strengths' | 'special' | 'contact' | 'style';
 type Phase = 'questions' | 'writing' | 'done' | 'error';
 
 interface Highlight { id: string; label: string; sub?: string }
@@ -46,7 +47,7 @@ function extractHighlights(cvRaw: unknown): Highlight[] {
   for (const raw of asArr(cv.workExperiences ?? cv.experience ?? cv.experiences ?? cv.berufserfahrung)) {
     const j = asObj(raw);
     const title = txt(j.jobTitle, j.position, j.title, j.role);
-    const company = txt(j.company, j.employer, j.unternehmen);
+    const company = txt(j.company, j.employer, j.unternehmen, j.firma);
     const from = yearOf(j.startDate ?? j.start ?? j.from);
     const to = j.current ? 'heute' : yearOf(j.endDate ?? j.end ?? j.to);
     if (title) push(company ? `${title} · ${company}` : title, [from, to].filter(Boolean).join('–'));
@@ -75,6 +76,71 @@ function guessLevel(cvRaw: unknown): CoverLetterBrief['level'] {
   return undefined;
 }
 
+
+// ─── Absender aus dem CV ─────────────────────────────────────────────
+function extractSender(cvRaw: unknown): Partial<LetterSender> {
+  const cv = asObj(cvRaw);
+  const pd = asObj(cv.personalData ?? cv.personal_data ?? cv.personalInfo ?? cv.contact ?? cv.kontakt);
+  const name = txt(pd.fullName, pd.name, [txt(pd.firstName, pd.vorname), txt(pd.lastName, pd.nachname)].filter(Boolean).join(' '));
+  const zip = txt(pd.zipCode, pd.zip, pd.plz);
+  const city = txt(pd.city, pd.ort, pd.location);
+  return {
+    name,
+    street: txt(pd.street, pd.address, pd.strasse, pd.adresse),
+    zip_city: [zip, city].filter(Boolean).join(' '),
+    phone: txt(pd.phone, pd.telefon, pd.mobile),
+    email: txt(pd.email, pd.mail),
+  };
+}
+
+// ─── Empfänger aus Bewerbung + Stellenanzeige erkennen ───────────────
+function detectRecipient(app: TrackedApplication): { recipient: Partial<LetterRecipient>; detected: (keyof LetterRecipient)[] } {
+  const text = app.job_description ?? '';
+  const detected: (keyof LetterRecipient)[] = [];
+  const r: Partial<LetterRecipient> = {};
+  if (app.company) r.company = app.company;
+  if (app.contact_role) r.role = app.contact_role;
+
+  const contact = app.contact_name ?? '';
+  const person =
+    contact.match(/^(Frau|Herr)\s+((?:Dr\.|Prof\.(?:\s*Dr\.)?)\s+)?(.+)$/) ??
+    text.match(/(Frau|Herr)\s+((?:Dr\.|Prof\.(?:\s*Dr\.)?)\s+)?([A-ZÄÖÜ][a-zäöüß]+(?:[\s-][A-ZÄÖÜ][a-zäöüß]+){0,2})/);
+  if (person) {
+    r.salutation = person[1] === 'Frau' ? 'frau' : 'herr';
+    r.title = (person[2] ?? '').trim();
+    r.name = person[3].trim();
+    if (!contact) {
+      detected.push('name');
+      // Rolle direkt hinter dem Namen, z. B. "Frau Dr. Lea Becker, Head of People"
+      const after = text.slice((person.index ?? 0) + person[0].length);
+      const role = after.match(/^\s*[,(–-]\s*([A-ZÄÖÜ][^,.()\n]{2,40})/);
+      if (role && !r.role) { r.role = role[1].trim(); detected.push('role'); }
+    }
+  } else if (contact) {
+    r.name = contact;
+  }
+
+  const ref = text.match(/(?:Kennziffer|Referenz(?:nummer)?|Ref\.?-?Nr\.?|Job-?ID|Stellen-?ID)\s*[:#]?\s*([A-Z0-9][\w/-]{2,20})/i);
+  if (ref) { r.reference = ref[1]; detected.push('reference'); }
+
+  const street = text.match(/([A-ZÄÖÜ][\wäöüß.-]*(?:straße|strasse|str\.|weg|allee|platz|ring|gasse|damm|ufer)\s+\d+[a-z]?)/i);
+  if (street) { r.street = street[1]; detected.push('street'); }
+
+  const zipCity = text.match(/\b(\d{5})\s+([A-ZÄÖÜ][a-zäöüß]+(?:[\s-](?:am|an der|im|[A-ZÄÖÜ][a-zäöüß]+))*)/);
+  if (zipCity) { r.zip_city = `${zipCity[1]} ${zipCity[2]}`; detected.push('zip_city'); }
+  else if (app.location) r.zip_city = app.location;
+
+  return { recipient: r, detected };
+}
+
+const mergeEmpty = <T extends object>(base: T, add: Partial<T>): T => {
+  const out = { ...base };
+  for (const [k, v] of Object.entries(add) as [keyof T, T[keyof T]][]) {
+    const cur = out[k];
+    if ((cur === '' || cur === undefined || (k === 'salutation' && cur === 'unbekannt')) && v) out[k] = v;
+  }
+  return out;
+};
 
 // ─── UI-Bausteine (dunkles DYD-Design) ───────────────────────────────
 function OptionCard({
@@ -263,10 +329,16 @@ export function CoverLetterStudio({ app, mode, onClose, onGenerate }: CoverLette
   const [brief, setBrief] = useState<CoverLetterBrief>(() => {
     try {
       const raw = localStorage.getItem(draftKey);
-      if (raw) return { ...EMPTY_BRIEF, ...JSON.parse(raw) };
+      if (raw) {
+        const saved = JSON.parse(raw);
+        return { ...EMPTY_BRIEF, ...saved, recipient: { ...EMPTY_RECIPIENT, ...saved.recipient }, sender: { ...EMPTY_SENDER, ...saved.sender } };
+      }
     } catch { /* ignore */ }
-    return { ...EMPTY_BRIEF, ...(app.cover_letter_brief ?? {}) };
+    const saved = app.cover_letter_brief ?? EMPTY_BRIEF;
+    const base = { ...EMPTY_BRIEF, ...saved, recipient: { ...EMPTY_RECIPIENT, ...saved.recipient }, sender: { ...EMPTY_SENDER, ...saved.sender } };
+    return { ...base, recipient: mergeEmpty(base.recipient, detectRecipient(app).recipient) };
   });
+  const [detected] = useState(() => detectRecipient(app).detected);
   const [jobText, setJobText] = useState('');
   const [highlights, setHighlights] = useState<Highlight[]>([]);
   const [levelSuggested, setLevelSuggested] = useState(false);
@@ -277,7 +349,7 @@ export function CoverLetterStudio({ app, mode, onClose, onGenerate }: CoverLette
   const advanceTimer = useRef<number>();
 
   const steps: StepId[] = useMemo(
-    () => [...(app.job_description ? [] : (['job'] as StepId[])), 'level', 'culture', 'motivation', 'strengths', 'special', 'style'],
+    () => [...(app.job_description ? [] : (['job'] as StepId[])), 'level', 'culture', 'motivation', 'strengths', 'special', 'contact', 'style'],
     [app.job_description]
   );
   const step = steps[stepIdx];
@@ -314,6 +386,8 @@ export function CoverLetterStudio({ app, mode, onClose, onGenerate }: CoverLette
       }
       if (!alive) return;
       setHighlights(extractHighlights(cvData));
+      const sender = extractSender(cvData);
+      setBrief((b) => ({ ...b, sender: mergeEmpty(b.sender, sender) }));
       const guess = guessLevel(cvData);
       if (guess) {
         setBrief((b) => (b.level ? b : { ...b, level: guess }));
@@ -410,6 +484,14 @@ export function CoverLetterStudio({ app, mode, onClose, onGenerate }: CoverLette
     },
     { label: 'Im Fokus', value: brief.highlights.length ? brief.highlights.map((h) => h.split(' · ')[0]).join(', ') : brief.proudest ? 'Dein Erfolg' : null },
     { label: 'Besonderheit', value: brief.special === 'none' ? (stepIdx > steps.indexOf('special') ? 'keine' : null) : SPECIAL_OPTIONS.find((o) => o.id === brief.special)?.label ?? null },
+    {
+      label: 'An',
+      value: stepIdx >= steps.indexOf('contact')
+        ? brief.recipient.name
+          ? `${brief.recipient.title ? `${brief.recipient.title} ` : ''}${brief.recipient.name}${brief.recipient.company ? `, ${brief.recipient.company}` : ''}`
+          : brief.recipient.company || 'Personalabteilung'
+        : null,
+    },
     { label: 'Stil', value: stepIdx >= steps.indexOf('style') ? `${TONE_OPTIONS.find((t) => t.id === brief.tone)?.label} · ${LENGTH_OPTIONS.find((o) => o.id === brief.length)?.label}` : null },
   ];
 
@@ -605,6 +687,77 @@ export function CoverLetterStudio({ app, mode, onClose, onGenerate }: CoverLette
                           />
                         </>
                       )}
+                    </>
+                  )}
+
+                  {step === 'contact' && (
+                    <>
+                      <h2 className="mt-2 text-2xl font-black leading-tight sm:text-3xl">An wen geht dein Anschreiben?</h2>
+                      <p className="mt-2 text-[14px] text-white/55">
+                        Eine persönliche Anrede wirkt deutlich stärker als „Sehr geehrte Damen und Herren“.
+                        {detected.length > 0 && <span className="text-[#30E3CA]"> Einiges haben wir schon aus der Anzeige übernommen.</span>}
+                      </p>
+
+                      <Label>Ansprechpartner:in</Label>
+                      <div className="flex flex-wrap gap-2">
+                        {([['frau', 'Frau'], ['herr', 'Herr'], ['divers', 'Divers / ohne Anrede'], ['unbekannt', 'Weiß ich nicht']] as const).map(([id, label]) => (
+                          <Pill key={id} active={brief.recipient.salutation === id} onClick={() => set('recipient', { ...brief.recipient, salutation: id })}>{label}</Pill>
+                        ))}
+                      </div>
+                      {brief.recipient.salutation !== 'unbekannt' ? (
+                        <div className="mt-3 grid gap-2.5 sm:grid-cols-[110px_1fr]">
+                          <input value={brief.recipient.title} onChange={(e) => set('recipient', { ...brief.recipient, title: e.target.value })} placeholder="Titel (Dr.)" className={fieldCls} />
+                          <div className="relative">
+                            <input value={brief.recipient.name} onChange={(e) => set('recipient', { ...brief.recipient, name: e.target.value })} placeholder="Vor- und Nachname" className={fieldCls} />
+                            {detected.includes('name') && <span className="absolute right-3 top-1/2 -translate-y-1/2 rounded-full bg-[#30E3CA]/15 px-2 py-0.5 text-[10px] font-semibold text-[#30E3CA]">aus Anzeige</span>}
+                          </div>
+                          <input value={brief.recipient.role} onChange={(e) => set('recipient', { ...brief.recipient, role: e.target.value })} placeholder="Position, z. B. Recruiterin" className={`${fieldCls} sm:col-span-2`} />
+                        </div>
+                      ) : (
+                        <p className="mt-3 rounded-2xl border border-amber-300/20 bg-amber-300/[0.06] px-4 py-3 text-[13px] text-amber-100/80">
+                          Tipp: Oft steht der Name unten in der Anzeige, auf der Karriereseite oder auf LinkedIn. Ein kurzer Blick lohnt sich – sonst nutzen wir „Sehr geehrte Damen und Herren“.
+                        </p>
+                      )}
+
+                      <Label hint="(für den Briefkopf)">Unternehmen & Adresse</Label>
+                      <div className="grid gap-2.5 sm:grid-cols-2">
+                        <input value={brief.recipient.company} onChange={(e) => set('recipient', { ...brief.recipient, company: e.target.value })} placeholder="Unternehmen" className={fieldCls} />
+                        <input value={brief.recipient.department} onChange={(e) => set('recipient', { ...brief.recipient, department: e.target.value })} placeholder="Abteilung (optional)" className={fieldCls} />
+                        <input value={brief.recipient.street} onChange={(e) => set('recipient', { ...brief.recipient, street: e.target.value })} placeholder="Straße & Hausnummer" className={fieldCls} />
+                        <input value={brief.recipient.zip_city} onChange={(e) => set('recipient', { ...brief.recipient, zip_city: e.target.value })} placeholder="PLZ & Ort" className={fieldCls} />
+                        <div className="relative sm:col-span-2">
+                          <input value={brief.recipient.reference} onChange={(e) => set('recipient', { ...brief.recipient, reference: e.target.value })} placeholder="Kennziffer / Referenznummer (falls angegeben)" className={fieldCls} />
+                          {detected.includes('reference') && <span className="absolute right-3 top-1/2 -translate-y-1/2 rounded-full bg-[#30E3CA]/15 px-2 py-0.5 text-[10px] font-semibold text-[#30E3CA]">aus Anzeige</span>}
+                        </div>
+                      </div>
+
+                      <Label hint="(aus deinem CV übernommen)">Deine Kontaktdaten</Label>
+                      <div className="grid gap-2.5 sm:grid-cols-2">
+                        <input value={brief.sender.name} onChange={(e) => set('sender', { ...brief.sender, name: e.target.value })} placeholder="Dein Name" className={fieldCls} />
+                        <input value={brief.sender.street} onChange={(e) => set('sender', { ...brief.sender, street: e.target.value })} placeholder="Straße & Hausnummer" className={fieldCls} />
+                        <input value={brief.sender.zip_city} onChange={(e) => set('sender', { ...brief.sender, zip_city: e.target.value })} placeholder="PLZ & Ort" className={fieldCls} />
+                        <input value={brief.sender.phone} onChange={(e) => set('sender', { ...brief.sender, phone: e.target.value })} placeholder="Telefon" className={fieldCls} />
+                        <input value={brief.sender.email} onChange={(e) => set('sender', { ...brief.sender, email: e.target.value })} placeholder="E-Mail" className={`${fieldCls} sm:col-span-2`} />
+                      </div>
+
+                      {/* Live-Vorschau des Briefkopfs */}
+                      <div className="mt-6 rounded-2xl bg-white p-5 text-[12px] leading-relaxed text-gray-700">
+                        <p className="text-right text-gray-500">
+                          {[brief.sender.name, brief.sender.street, brief.sender.zip_city].filter(Boolean).join(' · ') || 'Dein Name · Adresse'}
+                        </p>
+                        <div className="mt-3">
+                          <p>{brief.recipient.company || 'Unternehmen'}</p>
+                          {brief.recipient.name && brief.recipient.salutation !== 'unbekannt' && (
+                            <p>{brief.recipient.salutation === 'frau' ? 'Frau ' : brief.recipient.salutation === 'herr' ? 'Herrn ' : ''}{brief.recipient.title ? `${brief.recipient.title} ` : ''}{brief.recipient.name}</p>
+                          )}
+                          {brief.recipient.street && <p>{brief.recipient.street}</p>}
+                          {brief.recipient.zip_city && <p>{brief.recipient.zip_city}</p>}
+                        </div>
+                        <p className="mt-3 font-semibold text-gray-900">
+                          Bewerbung als {app.job_title}{brief.recipient.reference ? ` – Kennziffer ${brief.recipient.reference}` : ''}
+                        </p>
+                        <p className="mt-2">{buildSalutation(brief.recipient)}</p>
+                      </div>
                     </>
                   )}
 
