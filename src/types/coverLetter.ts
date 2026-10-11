@@ -35,7 +35,50 @@ export interface CoverLetterContent {
     cliches_fixed?: number;
     /** Welche Angaben aus dem Fragebogen eingeflossen sind (kurz) */
     personal_details?: string[];
+    /** Kernanforderungen der Anzeige und ob das Anschreiben sie abdeckt */
+    requirements?: { label: string; covered: boolean }[];
   };
+  /** DIN-5008-Briefkopf (bei Vorschau sichtbar) */
+  sender?: LetterSender;
+  recipient?: LetterRecipient;
+  place_date?: string;
+}
+
+export type ContactSalutation = 'frau' | 'herr' | 'divers' | 'unbekannt';
+
+export interface LetterRecipient {
+  company: string;
+  salutation: ContactSalutation;
+  title: string;      // z. B. "Dr."
+  name: string;       // Vor- und Nachname
+  role: string;       // z. B. "Head of People"
+  department: string; // z. B. "Personalabteilung"
+  street: string;
+  zip_city: string;
+  reference: string;  // Kennziffer / Referenznummer
+}
+
+export interface LetterSender {
+  name: string;
+  street: string;
+  zip_city: string;
+  phone: string;
+  email: string;
+}
+
+export const EMPTY_RECIPIENT: LetterRecipient = {
+  company: '', salutation: 'unbekannt', title: '', name: '', role: '', department: '', street: '', zip_city: '', reference: '',
+};
+export const EMPTY_SENDER: LetterSender = { name: '', street: '', zip_city: '', phone: '', email: '' };
+
+/** Anrede nach DIN 5008 / üblicher Praxis */
+export function buildSalutation(r: Pick<LetterRecipient, 'salutation' | 'title' | 'name'>): string {
+  const last = r.name.trim().split(/\s+/).slice(-1)[0] ?? '';
+  const t = r.title.trim() ? `${r.title.trim()} ` : '';
+  if (r.salutation === 'frau' && last) return `Sehr geehrte Frau ${t}${last},`;
+  if (r.salutation === 'herr' && last) return `Sehr geehrter Herr ${t}${last},`;
+  if (r.salutation === 'divers' && r.name.trim()) return `Guten Tag ${t}${r.name.trim()},`;
+  return 'Sehr geehrte Damen und Herren,';
 }
 
 export interface CoverLetter {
@@ -101,6 +144,8 @@ export interface CoverLetterBrief {
   salary: string;
   tone: CoverLetterTone;
   length: LetterLength;
+  recipient: LetterRecipient;
+  sender: LetterSender;
 }
 
 export const EMPTY_BRIEF: CoverLetterBrief = {
@@ -115,6 +160,8 @@ export const EMPTY_BRIEF: CoverLetterBrief = {
   salary: '',
   tone: 'professionell',
   length: 'standard',
+  recipient: EMPTY_RECIPIENT,
+  sender: EMPTY_SENDER,
 };
 
 type Opt<T extends string> = { id: T; label: string; hint?: string; emoji?: string };
