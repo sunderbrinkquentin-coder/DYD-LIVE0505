@@ -1,13 +1,12 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import {
   Check, ChevronDown, Copy, CreditCard, FileDown, HelpCircle, Lightbulb, Loader2, Lock, Pencil,
-  Quote, RefreshCw, Sparkles, Wand2,
+  Quote, RefreshCw, ShieldCheck, Sparkles, UserRound, Wand2,
 } from 'lucide-react';
 import type { ApplicationUpdate, TrackedApplication } from '../../../types/applications';
-import type { CoverLetter, CoverLetterContent, CoverLetterParagraph, CoverLetterTone } from '../../../types/coverLetter';
-import {
-  COVER_LETTER_PRICE, REWRITE_PRESETS, ROLE_LABEL, TONE_OPTIONS, formatEuro,
-} from '../../../types/coverLetter';
+import type { CoverLetter, CoverLetterBrief, CoverLetterContent, CoverLetterParagraph } from '../../../types/coverLetter';
+import { COVER_LETTER_PRICE, REWRITE_PRESETS, ROLE_LABEL, formatEuro } from '../../../types/coverLetter';
+import { CoverLetterWizard } from './CoverLetterWizard';
 import {
   CoverLetterError, coverLetterService, downloadLetterDocx, letterToPlainText,
 } from '../../../services/coverLetterService';
@@ -22,7 +21,13 @@ interface CoverLetterPanelProps {
   onLetterChange?: (letter: CoverLetter) => void;
 }
 
-const GEN_STEPS = ['Stellenanzeige analysieren', 'Passende Belege in deinem CV finden', 'Anschreiben formulieren', 'Erklärungen schreiben'];
+const GEN_STEPS = [
+  'Stellenanzeige analysieren',
+  'Deine Antworten einarbeiten',
+  'Passende Belege in deinem CV finden',
+  'Anschreiben in deinem Ton formulieren',
+  'Floskel-Check & Feinschliff',
+];
 const FILLER =
   'Mit meiner Erfahrung in vergleichbaren Projekten bringe ich genau die Kompetenzen mit, die Sie in Ihrer Ausschreibung beschreiben. ';
 
@@ -94,9 +99,7 @@ export function CoverLetterPanel({ app, onPatch, awaitingPayment, onLetterChange
   const [error, setError] = useState('');
 
   // Generator
-  const [tone, setTone] = useState<CoverLetterTone>('professionell');
-  const [focus, setFocus] = useState('');
-  const [jobText, setJobText] = useState('');
+  const [wizardMode, setWizardMode] = useState<'regenerate' | null>(null);
   const [generating, setGenerating] = useState(false);
   const [genStep, setGenStep] = useState(0);
 
@@ -161,14 +164,17 @@ export function CoverLetterPanel({ app, onPatch, awaitingPayment, onLetterChange
   }, [waitingForWebhook, letter, setAndNotify]);
 
   // ── Aktionen ───────────────────────────────────────────────────────
-  const generate = async () => {
+  const generate = async (brief: CoverLetterBrief, jobText: string) => {
     setError('');
     setGenerating(true);
     setGenStep(0);
-    const stepTimer = window.setInterval(() => setGenStep((s) => Math.min(s + 1, GEN_STEPS.length - 1)), 4000);
+    const stepTimer = window.setInterval(() => setGenStep((s) => Math.min(s + 1, GEN_STEPS.length - 1)), 5000);
     try {
-      if (jobText.trim() && !app.job_description) await onPatch(app.id, { job_description: jobText.trim() });
-      setAndNotify(await coverLetterService.generate(app.id, tone, focus.trim() || undefined));
+      await onPatch(app.id, {
+        cover_letter_brief: brief,
+        ...(jobText && !app.job_description ? { job_description: jobText } : {}),
+      });
+      setAndNotify(await coverLetterService.generate(app.id, brief));
     } catch (e) {
       setError((e as Error).message);
     } finally {
@@ -255,16 +261,27 @@ export function CoverLetterPanel({ app, onPatch, awaitingPayment, onLetterChange
     }
   };
 
-  const regenerate = async () => {
-    if (!letter || !window.confirm('Komplett neu schreiben? Deine Änderungen gehen dabei verloren.')) return;
-    setBusy('regenerate');
+  const regenerate = async (brief: CoverLetterBrief) => {
+    if (!letter) return;
+    setWizardMode(null);
     setError('');
+    setGenerating(true);
+    setGenStep(0);
+    const stepTimer = window.setInterval(() => setGenStep((s) => Math.min(s + 1, GEN_STEPS.length - 1)), 5000);
     try {
-      setAndNotify(await coverLetterService.regenerate(letter.id));
+      await onPatch(app.id, { cover_letter_brief: brief });
+      setAndNotify(await coverLetterService.regenerate(letter.id, brief));
     } catch (e) {
       setError((e as Error).message);
     } finally {
-      setBusy(null);
+      window.clearInterval(stepTimer);
+      setGenerating(false);
+    }
+  };
+
+  const openRegenerate = () => {
+    if (window.confirm('Antworten anpassen und komplett neu schreiben? Deine Änderungen am Text gehen dabei verloren.')) {
+      setWizardMode('regenerate');
     }
   };
 
@@ -295,77 +312,34 @@ export function CoverLetterPanel({ app, onPatch, awaitingPayment, onLetterChange
             </li>
           ))}
         </ul>
-        <p className="mt-5 text-center text-[11px] text-gray-400">Dauert ca. 20–30 Sekunden</p>
+        <p className="mt-5 text-center text-[11px] text-gray-400">Dauert ca. 30–40 Sekunden – wir schreiben nicht aus der Schablone.</p>
       </div>
     );
   }
 
-  // ── Noch kein Anschreiben: Generator ───────────────────────────────
-  if (!letter) {
+  // ── Fragebogen: erstes Anschreiben oder "Antworten anpassen & neu" ──
+  if (!letter || wizardMode === 'regenerate') {
     return (
       <div>
-        <div className="rounded-2xl border border-[#66c0b6]/30 bg-gradient-to-br from-[#66c0b6]/10 to-[#30E3CA]/5 p-4">
-          <p className="flex items-center gap-1.5 text-[14px] font-bold text-gray-900">
-            <Sparkles className="h-4 w-4 text-[#3a9e94]" /> Anschreiben für {app.company || 'diese Stelle'}
-          </p>
-          <p className="mt-1 text-[12.5px] text-gray-600">
-            Passgenau aus Stellenanzeige + deinem CV – und zu jedem Absatz erklären wir dir,
-            <b> warum </b>er so formuliert ist. Vorschau kostenlos.
-          </p>
-        </div>
-
-        {!app.job_description && (
-          <div className="mt-4">
-            <label className="mb-1 block text-[11px] font-semibold text-gray-600">
-              Stellenanzeige einfügen <span className="font-normal text-gray-400">(empfohlen – macht das Anschreiben deutlich passgenauer)</span>
-            </label>
-            <textarea
-              rows={4}
-              value={jobText}
-              onChange={(e) => setJobText(e.target.value)}
-              placeholder="Anzeigentext hier hineinkopieren…"
-              className="w-full rounded-lg border border-gray-200 px-2.5 py-1.5 text-[13px] outline-none focus:border-[#66c0b6] focus:ring-2 focus:ring-[#66c0b6]/20"
-            />
+        {!letter && (
+          <div className="mb-4 rounded-2xl border border-[#66c0b6]/30 bg-gradient-to-br from-[#66c0b6]/10 to-[#30E3CA]/5 p-4">
+            <p className="flex items-center gap-1.5 text-[14px] font-bold text-gray-900">
+              <Sparkles className="h-4 w-4 text-[#3a9e94]" /> Dein Anschreiben für {app.company || 'diese Stelle'}
+            </p>
+            <p className="mt-1 text-[12.5px] text-gray-600">
+              6 kurze Fragen, dann schreiben wir es – in deinem Ton, passend zu Level und Branche, ohne KI-Floskeln.
+              Zu jedem Absatz erklären wir dir, <b>warum</b> er so formuliert ist.
+            </p>
           </div>
         )}
-
-        <p className="mb-1.5 mt-4 text-[11px] font-semibold text-gray-600">Tonalität</p>
-        <div className="grid grid-cols-2 gap-1.5">
-          {TONE_OPTIONS.map((t) => (
-            <button
-              key={t.id}
-              onClick={() => setTone(t.id)}
-              className={`rounded-lg border px-2.5 py-1.5 text-left transition-all ${
-                tone === t.id ? 'border-[#66c0b6] bg-[#66c0b6]/10' : 'border-gray-200 hover:border-gray-300'
-              }`}
-            >
-              <span className="block text-[12.5px] font-semibold text-gray-900">{t.label}</span>
-              <span className="block text-[11px] text-gray-500">{t.hint}</span>
-            </button>
-          ))}
-        </div>
-
-        <label className="mb-1 mt-4 block text-[11px] font-semibold text-gray-600">
-          Was soll besonders rüberkommen? <span className="font-normal text-gray-400">(optional)</span>
-        </label>
-        <input
-          value={focus}
-          onChange={(e) => setFocus(e.target.value)}
-          placeholder="z. B. Quereinstieg erklären, Führungserfahrung betonen"
-          className="w-full rounded-lg border border-gray-200 px-2.5 py-1.5 text-[13px] outline-none focus:border-[#66c0b6] focus:ring-2 focus:ring-[#66c0b6]/20"
+        {error && <p className="mb-3 rounded-lg bg-red-50 px-3 py-2 text-[12px] text-red-700">{error}</p>}
+        <CoverLetterWizard
+          app={app}
+          onSubmit={(brief, jobText) => (letter ? regenerate(brief) : generate(brief, jobText))}
+          onCancel={letter ? () => setWizardMode(null) : undefined}
+          submitLabel={letter ? 'Neu schreiben' : undefined}
+          showPriceHint={!letter}
         />
-
-        {error && <p className="mt-3 rounded-lg bg-red-50 px-3 py-2 text-[12px] text-red-700">{error}</p>}
-
-        <button
-          onClick={generate}
-          className="mt-4 flex w-full items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-[#66c0b6] to-[#30E3CA] py-2.5 text-[14px] font-bold text-black shadow-sm hover:opacity-90"
-        >
-          <Wand2 className="h-4 w-4" /> Kostenlose Vorschau erstellen
-        </button>
-        <p className="mt-2 text-center text-[11px] text-gray-400">
-          Freischalten ab {formatEuro(COVER_LETTER_PRICE.addon)} · kein Abo
-        </p>
       </div>
     );
   }
@@ -388,12 +362,12 @@ export function CoverLetterPanel({ app, onPatch, awaitingPayment, onLetterChange
             <FileDown className="h-3.5 w-3.5" /> Word
           </button>
           <button
-            onClick={regenerate}
-            disabled={letter.regenerate_count >= 2 || busy === 'regenerate'}
+            onClick={openRegenerate}
+            disabled={letter.regenerate_count >= 2}
             className="flex items-center gap-1 rounded-lg bg-gray-100 px-2.5 py-1.5 text-[12px] hover:bg-gray-200 disabled:opacity-40"
-            title="Komplett neu schreiben (max. 2×)"
+            title="Antworten anpassen und komplett neu schreiben (max. 2×)"
           >
-            <RefreshCw className={`h-3.5 w-3.5 ${busy === 'regenerate' ? 'animate-spin' : ''}`} /> Neu ({2 - letter.regenerate_count})
+            <RefreshCw className="h-3.5 w-3.5" /> Antworten anpassen ({2 - letter.regenerate_count})
           </button>
           <span className="ml-auto text-[11px] text-gray-400">
             {saveState === 'saving' ? 'Speichere…' : saveState === 'saved' ? 'Gespeichert' : `${l.meta.word_count} Wörter`}
@@ -402,6 +376,20 @@ export function CoverLetterPanel({ app, onPatch, awaitingPayment, onLetterChange
       )}
 
       {error && <p className="mb-3 rounded-lg bg-red-50 px-3 py-2 text-[12px] text-red-700">{error}</p>}
+
+      {/* Qualitäts-Signale: Floskel-Check + was aus den Antworten eingeflossen ist */}
+      {(l.meta.cliches_fixed !== undefined || (l.meta.personal_details?.length ?? 0) > 0) && (
+        <div className="mb-3 flex flex-wrap items-center gap-1.5 text-[11px]">
+          <span className="flex items-center gap-1 rounded-full bg-[#66c0b6]/15 px-2 py-0.5 font-semibold text-[#2f857c]">
+            <ShieldCheck className="h-3 w-3" /> Floskel-Check bestanden
+          </span>
+          {l.meta.personal_details?.map((d) => (
+            <span key={d} className="flex items-center gap-1 rounded-full bg-gray-100 px-2 py-0.5 text-gray-600">
+              <UserRound className="h-3 w-3" /> {d}
+            </span>
+          ))}
+        </div>
+      )}
 
       {/* Brief */}
       <div className="rounded-xl border border-gray-200 bg-white p-4 shadow-sm">
