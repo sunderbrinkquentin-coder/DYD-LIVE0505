@@ -53,6 +53,7 @@ import { AboutSection } from '../components/landing/AboutSection';
 import { ProcessTimeline } from '../components/landing/ProcessTimeline';
 import { FollowRewardPopup, shouldShowFollowPopup } from '../components/landing/FollowRewardPopup';
 import { PodcastSection } from '../components/landing/PodcastSection';
+import { CoverLetterSection } from '../components/landing/CoverLetterSection';
 
 const FESTIVAL_SECTIONS = [
   { label: 'Programm',   anchor: 'programm',  emoji: '🎶' },
@@ -977,6 +978,8 @@ export default function LandingPage() {
             </motion.div>
           </div>
         </section>
+
+        <CoverLetterSection isLoggedIn={!!user} />
 
         <section
           id="features"
