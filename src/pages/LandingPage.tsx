@@ -45,6 +45,7 @@ import {
   Menu,
   LogIn,
   LayoutDashboard,
+  PenLine,
 } from 'lucide-react';
 import { useState, useEffect } from 'react';
 import { useAuth } from '../contexts/AuthContext';
@@ -362,6 +363,17 @@ export default function LandingPage() {
 
                 <motion.button
                   type="button"
+                  onClick={() => scrollToId('anschreiben')}
+                  className="text-white/70 hover:text-white transition-colors flex items-center gap-1.5"
+                  whileHover={{ scale: 1.05, y: -2 }}
+                  whileTap={{ scale: 0.95 }}
+                >
+                  Anschreiben
+                  <span className="text-[9px] font-black px-1.5 py-0.5 rounded-full bg-[#30E3CA]/15 text-[#30E3CA]">NEU</span>
+                </motion.button>
+
+                <motion.button
+                  type="button"
                   onClick={() => navigate('/kurse')}
                   className="text-white/70 hover:text-white transition-colors flex items-center gap-1.5"
                   whileHover={{ scale: 1.05, y: -2 }}
@@ -546,6 +558,7 @@ export default function LandingPage() {
                       {[
                         { icon: Search, label: 'CV checken', sub: 'ATS-Score in Sekunden', onClick: () => mobileGate('/cv-check') },
                         { icon: FileText, label: 'CV erstellen', sub: 'KI-Wizard in 5 Min.', onClick: () => mobileGate('/cv-wizard') },
+                        { icon: PenLine, label: 'KI-Anschreiben · NEU', sub: 'Jeder Satz erklärt – Vorschau gratis', onClick: () => mobileScroll('anschreiben') },
                         { icon: GraduationCap, label: 'Career Academy · Skill-Gap', sub: 'Lücken finden & schließen', onClick: () => mobileGate('/career-vision') },
                         { icon: Kanban, label: 'Bewerbermanagement', sub: 'Kanban für alle Bewerbungen', onClick: () => mobileNav(user ? '/dashboard' : '/login?redirect=/dashboard') },
                       ].map((item) => (
@@ -717,14 +730,16 @@ export default function LandingPage() {
                 <br />
                 · Automatische Optimierung für jede Stellenanzeige
   <br />
-  · Kostenloses Bewerbermanagement im Kanban 
+  · KI-Anschreiben – jeder Satz erklärt
+  <br />
+  · Kostenloses Bewerbermanagement im Kanban
                 <br />
                 · Career Academy für deine Skill-Gaps
               </motion.p>
 
               <motion.div
                 variants={fadeInUp}
-                className="grid grid-cols-1 sm:grid-cols-3 gap-3 max-w-4xl mx-auto pt-4"
+                className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 max-w-5xl mx-auto pt-4"
               >
                 <motion.button
                   onClick={() => navigate('/cv-check')}
@@ -760,6 +775,18 @@ export default function LandingPage() {
                   <FileText className="w-6 h-6 text-[#66c0b6]" />
                   <span className="font-bold text-base">CV erstellen</span>
                   <span className="text-xs font-medium text-white/50">Mit KI-Wizard in 5 Min.</span>
+                </motion.button>
+
+                <motion.button
+                  onClick={() => scrollToId('anschreiben')}
+                  className="group relative px-6 py-6 rounded-2xl border-2 border-[#30E3CA]/60 bg-[#30E3CA]/10 text-white backdrop-blur-sm flex flex-col items-center gap-2 hover:bg-[#30E3CA]/20 transition-colors"
+                  whileHover={{ scale: 1.03, y: -3 }}
+                  whileTap={{ scale: 0.98 }}
+                >
+                  <span className="absolute top-2 right-2 text-[9px] font-black uppercase tracking-widest bg-[#30E3CA] text-black px-2 py-0.5 rounded-full">Neu</span>
+                  <PenLine className="w-6 h-6 text-[#30E3CA]" />
+                  <span className="font-bold text-base">Anschreiben</span>
+                  <span className="text-xs font-medium text-white/60">Jeder Satz erklärt</span>
                 </motion.button>
 
                 <motion.button
@@ -882,7 +909,10 @@ export default function LandingPage() {
           </div>
         </section>
 
-        {/* ═══ Direkt nach dem Hero: Scroll-Story → Kurse (direkt buchbar) ═══ */}
+        {/* ═══ Direkt nach dem Hero: KI-Anschreiben (neues Produkt, maximale Sichtbarkeit) ═══ */}
+        <CoverLetterSection isLoggedIn={!!user} />
+
+        {/* ═══ Danach: Scroll-Story → Kurse (direkt buchbar) ═══ */}
         {/* Career Academy, Teil 2: So läuft ein Kurs (Scroll-Story) */}
         <div id="academy-story">
           <AcademyScrollStory bookable />
@@ -978,8 +1008,6 @@ export default function LandingPage() {
             </motion.div>
           </div>
         </section>
-
-        <CoverLetterSection isLoggedIn={!!user} />
 
         <section
           id="features"
@@ -1540,6 +1568,34 @@ export default function LandingPage() {
                   </div>
                 </motion.div>
               </div>
+
+              {/* Anschreiben als Zusatzprodukt direkt bei den Preisen */}
+              <motion.div
+                initial={{ opacity: 0, y: 16 }}
+                whileInView={{ opacity: 1, y: 0 }}
+                viewport={{ once: true }}
+                className="mt-6 flex flex-col sm:flex-row items-center gap-4 p-5 sm:p-6 rounded-2xl border-2 border-[#30E3CA]/40 bg-gradient-to-r from-[#30E3CA]/10 to-transparent"
+                data-ai-fact="price-cover-letter"
+              >
+                <span className="flex-shrink-0 w-12 h-12 rounded-xl bg-gradient-to-br from-[#66c0b6] to-[#30E3CA] flex items-center justify-center">
+                  <PenLine className="w-6 h-6 text-black" />
+                </span>
+                <div className="flex-1 text-center sm:text-left">
+                  <p className="font-bold text-white">
+                    KI-Anschreiben <span className="ml-1 text-[10px] font-black px-1.5 py-0.5 rounded-full bg-[#30E3CA] text-black align-middle">NEU</span>
+                  </p>
+                  <p className="text-sm text-white/60">
+                    Passend zur Stelle, jeder Absatz erklärt, frei bearbeitbar. Vorschau kostenlos –{' '}
+                    <b className="text-white">3,99 €</b>, zur CV-Optimierung nur <b className="text-white">+2,99 €</b> oder 1 Credit.
+                  </p>
+                </div>
+                <button
+                  onClick={() => scrollToId('anschreiben')}
+                  className="flex-shrink-0 px-5 py-3 rounded-xl bg-gradient-to-r from-[#66c0b6] to-[#30E3CA] text-black font-bold hover:opacity-90 transition-all text-sm"
+                >
+                  So funktioniert's
+                </button>
+              </motion.div>
 
               <motion.div
                 initial={{ opacity: 0 }}
