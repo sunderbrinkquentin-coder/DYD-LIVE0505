@@ -102,6 +102,30 @@ export function ApplicationBoard({ highlightedCvId }: ApplicationBoardProps) {
     setSearchParams(next, { replace: true });
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
+  // Einstieg "Anschreiben erstellen" (Landingpage, Dashboard-Header, Menü): ?anschreiben=1
+  // → passende Bewerbung ohne Anschreiben öffnen, sonst neue Bewerbung anlegen
+  const [letterAfterCreate, setLetterAfterCreate] = useState(false);
+  useEffect(() => {
+    if (loading || searchParams.get('anschreiben') !== '1') return;
+    const next = new URLSearchParams(searchParams);
+    next.delete('anschreiben');
+    setSearchParams(next, { replace: true });
+    document.getElementById('kanban-section')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+
+    const order: ApplicationStatus[] = ['preparing', 'saved', 'applied'];
+    const candidate = order
+      .flatMap((s) => apps.filter((a) => a.status === s))
+      .find((a) => letterStates[a.id] !== 'unlocked');
+    if (candidate) {
+      setOpenTab('letter');
+      setAwaitingLetterPayment(false);
+      setOpenId(candidate.id);
+    } else {
+      setLetterAfterCreate(true);
+      setAddStatus('preparing');
+    }
+  }, [loading, searchParams, apps, letterStates, setSearchParams]);
+
   // ─── abgeleitete Daten ──────────────────────────────────────────────
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase();
@@ -187,6 +211,11 @@ export function ApplicationBoard({ highlightedCvId }: ApplicationBoardProps) {
   const handleOpenLetter = (app: TrackedApplication) => handleOpen(app, 'letter');
   const highlightedApp = apps.find((a) => a.id === highlightedAppId);
   const showLetterUpsell = highlightedApp && !letterStates[highlightedApp.id];
+  const missingLetters = apps.filter(
+    (a) => ['saved', 'preparing', 'applied'].includes(a.status) && letterStates[a.id] !== 'unlocked'
+  );
+  const firstMissing =
+    missingLetters.find((a) => a.status === 'preparing') ?? missingLetters.find((a) => a.status === 'saved') ?? missingLetters[0];
 
   // ─── Render ─────────────────────────────────────────────────────────
   if (loading) {
@@ -243,6 +272,27 @@ export function ApplicationBoard({ highlightedCvId }: ApplicationBoardProps) {
             className="flex-shrink-0 rounded-xl bg-gradient-to-r from-[#66c0b6] to-[#30E3CA] px-4 py-2 text-sm font-bold text-black"
           >
             Anschreiben erstellen
+          </button>
+        </div>
+      )}
+
+      {!showLetterUpsell && firstMissing && (
+        <div className="mb-3 flex flex-col gap-2 rounded-2xl border border-[#30E3CA]/35 bg-[#30E3CA]/[0.07] px-4 py-3 sm:flex-row sm:items-center">
+          <p className="flex flex-1 items-center gap-2 text-sm text-white/80">
+            <span className="rounded-full bg-[#30E3CA] px-1.5 py-0.5 text-[10px] font-black text-black">NEU</span>
+            <span>
+              <b className="text-white">KI-Anschreiben:</b>{' '}
+              {missingLetters.length === 1
+                ? 'Für eine Bewerbung fehlt noch das Anschreiben.'
+                : `Für ${missingLetters.length} Bewerbungen fehlt noch das Anschreiben.`}{' '}
+              <span className="text-white/55">Jeder Absatz erklärt · Vorschau kostenlos</span>
+            </span>
+          </p>
+          <button
+            onClick={() => handleOpenLetter(firstMissing)}
+            className="flex flex-shrink-0 items-center justify-center gap-1.5 rounded-xl bg-gradient-to-r from-[#66c0b6] to-[#30E3CA] px-4 py-2 text-sm font-bold text-black"
+          >
+            <Sparkles className="h-4 w-4" /> Jetzt erstellen
           </button>
         </div>
       )}
@@ -326,10 +376,15 @@ export function ApplicationBoard({ highlightedCvId }: ApplicationBoardProps) {
       {addStatus && (
         <AddApplicationModal
           initialStatus={addStatus}
-          onClose={() => setAddStatus(null)}
+          onClose={() => {
+            setAddStatus(null);
+            setLetterAfterCreate(false);
+          }}
           onCreated={(app) => {
             setApps((prev) => [app, ...prev]);
             setAddStatus(null);
+            setOpenTab(letterAfterCreate ? 'letter' : 'details');
+            setLetterAfterCreate(false);
             setOpenId(app.id);
           }}
         />
