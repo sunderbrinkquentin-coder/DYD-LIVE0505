@@ -18,7 +18,7 @@ async function authHeader() {
 async function callFunction<T>(name: string, body: unknown): Promise<T> {
   const res = await fetch(`${FN_URL}/${name}`, { method: 'POST', headers: await authHeader(), body: JSON.stringify(body) });
   const data = await res.json().catch(() => ({}));
-  if (!res.ok) throw new CoverLetterError(data.error || 'Unbekannter Fehler', data.code, res.status);
+  if (!res.ok) throw new CoverLetterError(data.error || `Der Server ist gerade nicht erreichbar (${res.status}). Bitte versuch es gleich noch einmal.`, data.code, res.status);
   return data as T;
 }
 
