@@ -105,32 +105,58 @@ export const coverLetterService = {
 };
 
 // ─── Export-Helfer ───────────────────────────────────────────────────
+/** Zeilen des DIN-5008-Briefkopfs */
+export function letterHeaderLines(l: CoverLetterContent) {
+  const sender = l.sender
+    ? [l.sender.name, l.sender.street, l.sender.zip_city, l.sender.phone, l.sender.email].filter(Boolean)
+    : [];
+  const r = l.recipient;
+  const person =
+    r && r.name && r.salutation !== 'unbekannt'
+      ? `${r.salutation === 'frau' ? 'Frau ' : r.salutation === 'herr' ? 'Herrn ' : ''}${r.title ? `${r.title} ` : ''}${r.name}`
+      : '';
+  const recipient = r ? [r.company, r.department, person, r.street, r.zip_city].filter(Boolean) : [];
+  return { sender, recipient, placeDate: l.place_date || new Date().toLocaleDateString('de-DE') };
+}
+
 export function letterToPlainText(l: CoverLetterContent): string {
+  const h = letterHeaderLines(l);
   return [
+    ...(h.sender.length ? [h.sender.join(' · '), ''] : []),
+    ...(h.recipient.length ? [...h.recipient, ''] : []),
+    h.placeDate,
+    '',
     l.subject,
     '',
     l.salutation,
     '',
     ...l.paragraphs.map((p) => `${p.text ?? ''}\n`),
     l.closing,
+    '',
     l.sender_name,
   ].join('\n').trim();
 }
 
 export async function downloadLetterDocx(l: CoverLetterContent, fileBase: string) {
-  const { Document, Packer, Paragraph, TextRun } = await import('docx');
-  const para = (text: string, opts: { bold?: boolean; after?: number } = {}) =>
+  const { AlignmentType, Document, Packer, Paragraph, TextRun } = await import('docx');
+  const h = letterHeaderLines(l);
+  const para = (text: string, opts: { bold?: boolean; after?: number; right?: boolean; size?: number } = {}) =>
     new Paragraph({
+      alignment: opts.right ? AlignmentType.RIGHT : AlignmentType.LEFT,
       spacing: { after: opts.after ?? 200, line: 300 },
-      children: [new TextRun({ text, bold: opts.bold, font: 'Calibri', size: 22 })],
+      children: [new TextRun({ text, bold: opts.bold, font: 'Calibri', size: opts.size ?? 22 })],
     });
+  const block = (lines: string[], after = 400, size?: number, right = false) =>
+    lines.map((t, i) => para(t, { after: i === lines.length - 1 ? after : 0, size, right }));
 
   const doc = new Document({
     sections: [
       {
-        properties: { page: { margin: { top: 1700, bottom: 1130, left: 1417, right: 1134 } } },
+        properties: { page: { margin: { top: 1134, bottom: 1134, left: 1417, right: 1134 } } },
         children: [
-          para(new Date().toLocaleDateString('de-DE'), { after: 400 }),
+          ...(h.sender.length ? block(h.sender, 500, 20, true) : []),
+          ...(h.recipient.length ? block(h.recipient, 500) : []),
+          para(h.placeDate, { after: 400, right: true }),
           para(l.subject, { bold: true, after: 400 }),
           para(l.salutation),
           ...l.paragraphs.map((p) => para(p.text ?? '')),
