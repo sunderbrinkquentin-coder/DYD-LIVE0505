@@ -1,7 +1,8 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
+import { createPortal } from 'react-dom';
 import {
   Check, ChevronDown, Copy, CreditCard, FileDown, HelpCircle, Lightbulb, Loader2, Lock, Pencil,
-  Quote, RefreshCw, ShieldCheck, Sparkles, UserRound, Wand2,
+  Maximize2, Minimize2, Quote, RefreshCw, ShieldCheck, Sparkles, UserRound, Wand2, X,
 } from 'lucide-react';
 import type { ApplicationUpdate, TrackedApplication } from '../../../types/applications';
 import type { CoverLetter, CoverLetterBrief, CoverLetterContent, CoverLetterParagraph } from '../../../types/coverLetter';
@@ -24,7 +25,7 @@ interface CoverLetterPanelProps {
 const FILLER =
   'Mit meiner Erfahrung in vergleichbaren Projekten bringe ich genau die Kompetenzen mit, die Sie in Ihrer Ausschreibung beschreiben. ';
 
-function AutoTextarea({ value, onChange }: { value: string; onChange: (v: string) => void }) {
+function AutoTextarea({ value, onChange, large }: { value: string; onChange: (v: string) => void; large?: boolean }) {
   const ref = useRef<HTMLTextAreaElement>(null);
   useEffect(() => {
     const el = ref.current;
@@ -39,22 +40,28 @@ function AutoTextarea({ value, onChange }: { value: string; onChange: (v: string
       value={value}
       onChange={(e) => onChange(e.target.value)}
       rows={3}
-      className="w-full resize-none rounded-lg border border-transparent bg-transparent p-1.5 text-[13.5px] leading-relaxed text-gray-800 outline-none transition-colors hover:border-gray-200 focus:border-[#66c0b6] focus:bg-white focus:ring-2 focus:ring-[#66c0b6]/15"
+      className={`w-full resize-none rounded-lg border border-transparent bg-transparent p-1.5 ${large ? 'text-[15px] leading-[1.75]' : 'text-[13.5px] leading-relaxed'} text-gray-800 outline-none transition-colors hover:border-gray-200 focus:border-[#66c0b6] focus:bg-white focus:ring-2 focus:ring-[#66c0b6]/15`}
     />
   );
 }
 
-function WhyBox({ p, defaultOpen }: { p: CoverLetterParagraph; defaultOpen?: boolean }) {
-  const [open, setOpen] = useState(!!defaultOpen);
+function WhyBox({ p, defaultOpen, isStatic }: { p: CoverLetterParagraph; defaultOpen?: boolean; isStatic?: boolean }) {
+  const [open, setOpen] = useState(!!defaultOpen || !!isStatic);
   return (
-    <div className="mt-1">
-      <button
-        onClick={() => setOpen((v) => !v)}
-        className="flex items-center gap-1 text-[11px] font-semibold text-[#3a9e94] hover:underline"
-      >
-        <HelpCircle className="h-3 w-3" /> Warum steht das hier?
-        <ChevronDown className={`h-3 w-3 transition-transform ${open ? 'rotate-180' : ''}`} />
-      </button>
+    <div className={isStatic ? '' : 'mt-1'}>
+      {isStatic ? (
+        <p className="flex items-center gap-1 text-[11px] font-semibold text-[#3a9e94]">
+          <HelpCircle className="h-3 w-3" /> Warum steht das hier?
+        </p>
+      ) : (
+        <button
+          onClick={() => setOpen((v) => !v)}
+          className="flex items-center gap-1 text-[11px] font-semibold text-[#3a9e94] hover:underline"
+        >
+          <HelpCircle className="h-3 w-3" /> Warum steht das hier?
+          <ChevronDown className={`h-3 w-3 transition-transform ${open ? 'rotate-180' : ''}`} />
+        </button>
+      )}
       {open && (
         <div className="mt-1.5 rounded-lg border border-[#66c0b6]/25 bg-[#66c0b6]/[0.07] p-2.5 text-[12px] text-gray-700">
           <p>{p.why}</p>
@@ -93,6 +100,8 @@ export function CoverLetterPanel({ app, onPatch, awaitingPayment, onLetterChange
 
   // Generator
   const [studioMode, setStudioMode] = useState<'new' | 'regenerate' | null>(null);
+  /** Großansicht: direkt nach dem Erstellen (Vorschau + Paywall), danach optional */
+  const [expanded, setExpanded] = useState(false);
   const autoOpened = useRef(false);
 
   // Paywall
@@ -109,10 +118,14 @@ export function CoverLetterPanel({ app, onPatch, awaitingPayment, onLetterChange
   const [copied, setCopied] = useState(false);
   const saveTimer = useRef<number>();
 
+  // Callback per Ref, damit ein Re-Render des Boards das Laden NICHT neu startet
+  // (sonst verschwand das Studio mitten im Schreiben → keine Warteanzeige)
+  const onLetterChangeRef = useRef(onLetterChange);
+  onLetterChangeRef.current = onLetterChange;
   const setAndNotify = useCallback((l: CoverLetter) => {
     setLetter(l);
-    onLetterChange?.(l);
-  }, [onLetterChange]);
+    onLetterChangeRef.current?.(l);
+  }, []);
 
   // ── Laden ──────────────────────────────────────────────────────────
   useEffect(() => {
@@ -164,6 +177,7 @@ export function CoverLetterPanel({ app, onPatch, awaitingPayment, onLetterChange
       ...(jobText && !app.job_description ? { job_description: jobText } : {}),
     });
     setAndNotify(await coverLetterService.generate(app.id, brief));
+    setExpanded(true);
   };
 
   const unlockWithCredit = async () => {
@@ -176,6 +190,7 @@ export function CoverLetterPanel({ app, onPatch, awaitingPayment, onLetterChange
       setCredits((c) => Math.max(0, c - 1));
       const fresh = await coverLetterService.get(letter.id);
       if (fresh) setAndNotify(fresh);
+      setExpanded(false); // nach dem Kauf: in der Seitenansicht weiterarbeiten
     } catch (e) {
       setError((e as Error).message);
     } finally {
@@ -249,6 +264,7 @@ export function CoverLetterPanel({ app, onPatch, awaitingPayment, onLetterChange
     setError('');
     await onPatch(app.id, { cover_letter_brief: brief });
     setAndNotify(await coverLetterService.regenerate(letter.id, brief));
+    setExpanded(true);
   };
 
   const openRegenerate = () => {
@@ -274,10 +290,7 @@ export function CoverLetterPanel({ app, onPatch, awaitingPayment, onLetterChange
   };
 
   // ── Render ─────────────────────────────────────────────────────────
-  if (loading) {
-    return <div className="flex justify-center py-10"><Loader2 className="h-6 w-6 animate-spin text-[#66c0b6]" /></div>;
-  }
-
+  // Studio immer zuerst rendern – es darf durch Lade-Zustände nie verschwinden
   const studio = studioMode && (
     <CoverLetterStudio
       app={app}
@@ -286,6 +299,15 @@ export function CoverLetterPanel({ app, onPatch, awaitingPayment, onLetterChange
       onGenerate={(brief, jobText) => (studioMode === 'regenerate' ? regenerate(brief) : generate(brief, jobText))}
     />
   );
+
+  if (loading) {
+    return (
+      <>
+        {studio}
+        <div className="flex justify-center py-10"><Loader2 className="h-6 w-6 animate-spin text-[#66c0b6]" /></div>
+      </>
+    );
+  }
 
   // ── Noch kein Anschreiben: Einstieg ins Studio ─────────────────────
   if (!letter) {
@@ -329,204 +351,314 @@ export function CoverLetterPanel({ app, onPatch, awaitingPayment, onLetterChange
 
   const l = letter.letter;
   const locked = !letter.is_unlocked;
+  const lockedCount = l.paragraphs.filter((p) => p.text === null).length;
 
+  // ── Bausteine (Seitenansicht + Großansicht teilen sich dieselben Teile) ──
+  const toolbar = !locked && (
+    <div className="flex flex-wrap items-center gap-1.5">
+      <button onClick={copy} className="flex items-center gap-1 rounded-lg bg-gray-100 px-2.5 py-1.5 text-[12px] text-gray-800 hover:bg-gray-200">
+        {copied ? <Check className="h-3.5 w-3.5 text-[#3a9e94]" /> : <Copy className="h-3.5 w-3.5" />} {copied ? 'Kopiert' : 'Kopieren'}
+      </button>
+      <button
+        onClick={async () => { await flushSave(); await downloadLetterDocx(l, `${app.company || ''}-${app.job_title}`); }}
+        className="flex items-center gap-1 rounded-lg bg-gray-100 px-2.5 py-1.5 text-[12px] text-gray-800 hover:bg-gray-200"
+      >
+        <FileDown className="h-3.5 w-3.5" /> Word
+      </button>
+      <button
+        onClick={openRegenerate}
+        disabled={letter.regenerate_count >= 2}
+        className="flex items-center gap-1 rounded-lg bg-gray-100 px-2.5 py-1.5 text-[12px] text-gray-800 hover:bg-gray-200 disabled:opacity-40"
+        title="Antworten anpassen und komplett neu schreiben (max. 2×)"
+      >
+        <RefreshCw className="h-3.5 w-3.5" /> Antworten anpassen ({2 - letter.regenerate_count})
+      </button>
+      <span className="ml-auto text-[11px] text-gray-400">
+        {saveState === 'saving' ? 'Speichere…' : saveState === 'saved' ? 'Gespeichert' : `${l.meta.word_count} Wörter`}
+      </span>
+    </div>
+  );
+
+  const badges = (dark: boolean) =>
+    (l.meta.cliches_fixed !== undefined || (l.meta.personal_details?.length ?? 0) > 0) && (
+      <div className="flex flex-wrap items-center gap-1.5 text-[11px]">
+        {l.meta.cliches_fixed !== undefined && (
+          <span className={`flex items-center gap-1 rounded-full px-2 py-0.5 font-semibold ${dark ? 'bg-[#30E3CA]/15 text-[#30E3CA]' : 'bg-[#66c0b6]/15 text-[#2f857c]'}`}>
+            <ShieldCheck className="h-3 w-3" /> Floskel-Check bestanden
+          </span>
+        )}
+        {l.meta.personal_details?.map((d) => (
+          <span key={d} className={`flex items-center gap-1 rounded-full px-2 py-0.5 ${dark ? 'bg-white/10 text-white/75' : 'bg-gray-100 text-gray-600'}`}>
+            <UserRound className="h-3 w-3" /> {d}
+          </span>
+        ))}
+      </div>
+    );
+
+  const paragraphText = (p: CoverLetterParagraph, large: boolean) => {
+    const size = large ? 'text-[15px] leading-[1.75]' : 'text-[13.5px] leading-relaxed';
+    if (p.text === null) {
+      return (
+        <p aria-hidden className={`pointer-events-none select-none text-gray-800 blur-[5px] ${size}`}>
+          {FILLER.repeat(Math.ceil((p.text_length ?? 300) / FILLER.length)).slice(0, p.text_length ?? 300)}
+        </p>
+      );
+    }
+    if (locked) return <p className={`text-gray-800 ${size}`}>{p.text}</p>;
+    return <AutoTextarea value={p.text} onChange={(v) => editParagraph(p.id, v)} large={large} />;
+  };
+
+  const rewriteControls = (p: CoverLetterParagraph) =>
+    !locked && (
+      <div className="mt-1">
+        {rewriteFor === p.id ? (
+          <div className="rounded-lg border border-gray-200 bg-gray-50 p-2">
+            <div className="flex flex-wrap gap-1">
+              {REWRITE_PRESETS.map((preset) => (
+                <button
+                  key={preset}
+                  disabled={!!rewriting}
+                  onClick={() => rewrite(p.id, preset)}
+                  className="rounded-md border border-gray-200 bg-white px-2 py-0.5 text-[11px] text-gray-700 hover:border-[#66c0b6] disabled:opacity-50"
+                >
+                  {preset}
+                </button>
+              ))}
+            </div>
+            <div className="mt-1.5 flex gap-1.5">
+              <input
+                value={rewriteText}
+                onChange={(e) => setRewriteText(e.target.value)}
+                onKeyDown={(e) => e.key === 'Enter' && rewrite(p.id, rewriteText)}
+                placeholder="Eigener Wunsch, z. B. „Erwähne mein Projekt bei X“"
+                className="flex-1 rounded-md border border-gray-200 px-2 py-1 text-[12px] text-gray-900 outline-none focus:border-[#66c0b6]"
+              />
+              <button
+                onClick={() => rewrite(p.id, rewriteText)}
+                disabled={!!rewriting || !rewriteText.trim()}
+                className="rounded-md bg-[#0d1514] px-2.5 text-[12px] font-medium text-white disabled:opacity-40"
+              >
+                {rewriting === p.id ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : 'Los'}
+              </button>
+            </div>
+          </div>
+        ) : (
+          <button
+            onClick={() => { setRewriteFor(p.id); setRewriteText(''); }}
+            className="flex items-center gap-1 text-[11px] text-gray-400 opacity-100 transition-opacity hover:text-gray-700 sm:opacity-0 sm:group-hover:opacity-100"
+          >
+            <Wand2 className="h-3 w-3" /> Mit KI umformulieren
+          </button>
+        )}
+      </div>
+    );
+
+  const roleLabel = (p: CoverLetterParagraph) => (
+    <div className="mb-0.5 flex items-center gap-2">
+      <span className="text-[10px] font-bold uppercase tracking-wider text-gray-400">{ROLE_LABEL[p.role]}</span>
+      {p.edited && <span className="flex items-center gap-0.5 text-[10px] text-gray-400"><Pencil className="h-2.5 w-2.5" /> bearbeitet</span>}
+    </div>
+  );
+
+  const tipsBox = l.tips.length > 0 && (
+    <div className="rounded-xl border border-amber-200 bg-amber-50 p-3">
+      <p className="mb-1 flex items-center gap-1.5 text-[12px] font-semibold text-amber-900">
+        <Lightbulb className="h-3.5 w-3.5" /> Bevor du es abschickst
+      </p>
+      <ul className="list-disc space-y-0.5 pl-5 text-[12px] text-amber-900">
+        {l.tips.map((t, i) => <li key={i}>{t}</li>)}
+      </ul>
+    </div>
+  );
+
+  const paywallBox = (compact: boolean) => locked && (
+    <div className="rounded-2xl border border-[#66c0b6]/40 bg-white p-4 text-gray-900 shadow-[0_8px_30px_rgba(0,0,0,0.12)]">
+      {waitingForWebhook ? (
+        <p className="flex items-center justify-center gap-2 text-[13px] text-gray-700">
+          <Loader2 className="h-4 w-4 animate-spin text-[#66c0b6]" /> Zahlung erhalten – wird freigeschaltet…
+        </p>
+      ) : (
+        <>
+          <p className="flex items-center gap-1.5 text-[15px] font-bold">
+            <Lock className="h-4 w-4 text-[#3a9e94]" /> Komplettes Anschreiben freischalten
+          </p>
+          <p className={`mt-1 text-[12px] text-gray-500 ${compact ? 'hidden' : ''}`}>
+            {lockedCount} weitere {lockedCount === 1 ? 'Absatz ist' : 'Absätze sind'} fertig geschrieben – die Erklärungen siehst du schon.
+          </p>
+          <ul className={`mt-3 space-y-1 text-[12px] text-gray-600 ${compact ? 'hidden' : ''}`}>
+            {[
+              `Alle ${l.paragraphs.length} Absätze inkl. Belegen aus Anzeige & CV`,
+              'Frei bearbeiten + 20× Absätze mit KI umformulieren',
+              'Export als Word & Text · 2× komplett neu erstellen',
+            ].map((b) => (
+              <li key={b} className="flex items-start gap-1.5"><Check className="mt-0.5 h-3.5 w-3.5 flex-shrink-0 text-[#3a9e94]" /> {b}</li>
+            ))}
+          </ul>
+
+          <div className="mt-3 space-y-2">
+            {credits > 0 && (
+              <button
+                onClick={unlockWithCredit}
+                disabled={!!busy}
+                className="flex w-full items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-[#66c0b6] to-[#30E3CA] py-3 text-[14px] font-bold text-black disabled:opacity-60"
+              >
+                {busy === 'credit' ? <Loader2 className="h-4 w-4 animate-spin" /> : <Sparkles className="h-4 w-4" />}
+                Mit 1 Credit freischalten <span className="font-normal">({credits} verfügbar)</span>
+              </button>
+            )}
+            {addonEligible && credits === 0 && (
+              <button
+                onClick={() => buy('addon')}
+                disabled={!!busy}
+                className="relative flex w-full items-center justify-between rounded-xl bg-gradient-to-r from-[#66c0b6] to-[#30E3CA] px-4 py-3 text-black disabled:opacity-60"
+              >
+                <span className="text-left">
+                  <span className="block text-[14px] font-bold">Kombi-Preis zu deinem CV</span>
+                  <span className="block text-[11px]">statt {formatEuro(COVER_LETTER_PRICE.single)}</span>
+                </span>
+                <span className="text-[18px] font-black">{busy === 'addon' ? <Loader2 className="h-5 w-5 animate-spin" /> : formatEuro(COVER_LETTER_PRICE.addon)}</span>
+              </button>
+            )}
+            {!(addonEligible && credits === 0) && (
+              <button
+                onClick={() => buy('single')}
+                disabled={!!busy}
+                className={`flex w-full items-center justify-center gap-2 rounded-xl py-3 text-[14px] font-bold disabled:opacity-60 ${
+                  credits > 0 ? 'border border-gray-200 text-gray-800 hover:bg-gray-50' : 'bg-gradient-to-r from-[#66c0b6] to-[#30E3CA] text-black'
+                }`}
+              >
+                {busy === 'single' ? <Loader2 className="h-4 w-4 animate-spin" /> : <CreditCard className="h-4 w-4" />}
+                Für {formatEuro(COVER_LETTER_PRICE.single)} freischalten
+              </button>
+            )}
+          </div>
+          <p className="mt-2 text-center text-[11px] text-gray-400">
+            {compact ? `${lockedCount} weitere Absätze fertig · kein Abo` : 'Einmalzahlung · kein Abo · sichere Zahlung über Stripe'}
+          </p>
+        </>
+      )}
+    </div>
+  );
+
+  // ── Großansicht (Vollbild): direkt nach dem Erstellen – Brief links, Erklärungen daneben ──
+  const bigView = expanded && createPortal(
+    <div className="fixed inset-0 z-[78] flex flex-col bg-[#070809] text-white" role="dialog" aria-modal="true">
+      <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_at_top,rgba(48,227,202,0.12),transparent_60%)]" />
+      <header className="relative flex items-center gap-3 border-b border-white/[0.07] px-4 py-3 sm:px-6">
+        <div className="min-w-0 flex-1">
+          <p className="text-[11px] font-semibold uppercase tracking-widest text-[#30E3CA]">
+            {locked ? 'Dein Anschreiben ist fertig' : 'Dein Anschreiben'}
+          </p>
+          <p className="truncate text-[14px] font-semibold">
+            {app.job_title}
+            {app.company && <span className="font-normal text-white/50"> · {app.company}</span>}
+          </p>
+        </div>
+        <button
+          onClick={() => setExpanded(false)}
+          className="flex items-center gap-1.5 rounded-xl px-3 py-2 text-[13px] text-white/60 hover:bg-white/10 hover:text-white"
+        >
+          {locked ? <X className="h-4 w-4" /> : <Minimize2 className="h-4 w-4" />}
+          <span className="hidden sm:inline">{locked ? 'Schließen' : 'Seitenansicht'}</span>
+        </button>
+      </header>
+
+      <div className="relative flex-1 overflow-y-auto">
+        <div className="mx-auto grid max-w-7xl gap-6 px-4 py-6 sm:px-6 lg:grid-cols-[1fr_360px] lg:py-8">
+          <div className="min-w-0">
+            <div className="mb-4">{badges(true)}</div>
+            {error && <p className="mb-3 rounded-lg bg-red-500/15 px-3 py-2 text-[13px] text-red-200">{error}</p>}
+
+            {/* Papier */}
+            <div className="rounded-2xl bg-white p-6 text-gray-900 shadow-2xl sm:p-10">
+              <p className="mb-5 text-[16px] font-bold">{l.subject}</p>
+              <p className="mb-5 text-[15px] text-gray-800">{l.salutation}</p>
+              <div className="space-y-6">
+                {l.paragraphs.map((p) => (
+                  <div key={p.id} className="group grid gap-3 xl:grid-cols-[1fr_260px] xl:gap-6">
+                    <div>
+                      {roleLabel(p)}
+                      {paragraphText(p, true)}
+                      {rewriteControls(p)}
+                    </div>
+                    <div className="xl:pt-4">
+                      <WhyBox p={p} isStatic />
+                    </div>
+                  </div>
+                ))}
+              </div>
+              <p className="mt-6 text-[15px] text-gray-800">{l.closing}</p>
+              {l.sender_name && <p className="text-[15px] text-gray-800">{l.sender_name}</p>}
+            </div>
+          </div>
+
+          {/* Seitenleiste: Paywall bzw. Werkzeuge */}
+          <aside className="lg:sticky lg:top-6 lg:self-start">
+            <div className="space-y-4">
+              {locked ? (
+                <div className="hidden lg:block">{paywallBox(false)}</div>
+              ) : (
+                <div className="rounded-2xl bg-white p-4">{toolbar}</div>
+              )}
+              {tipsBox}
+              {!locked && (
+                <button
+                  onClick={() => setExpanded(false)}
+                  className="flex w-full items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-[#66c0b6] to-[#30E3CA] py-3 text-[14px] font-bold text-black"
+                >
+                  Fertig – zurück zur Bewerbung
+                </button>
+              )}
+            </div>
+          </aside>
+        </div>
+      </div>
+
+      {/* Mobil: Paywall als festes Bottom-Sheet */}
+      {locked && <div className="relative border-t border-white/10 p-3 lg:hidden">{paywallBox(true)}</div>}
+    </div>,
+    document.body
+  );
+
+  // ── Seitenansicht (Drawer) ──────────────────────────────────────────
   return (
     <div>
       {studio}
-      {/* Toolbar */}
-      {!locked && (
-        <div className="mb-3 flex flex-wrap items-center gap-1.5">
-          <button onClick={copy} className="flex items-center gap-1 rounded-lg bg-gray-100 px-2.5 py-1.5 text-[12px] hover:bg-gray-200">
-            {copied ? <Check className="h-3.5 w-3.5 text-[#3a9e94]" /> : <Copy className="h-3.5 w-3.5" />} {copied ? 'Kopiert' : 'Kopieren'}
-          </button>
-          <button
-            onClick={async () => { await flushSave(); await downloadLetterDocx(l, `${app.company || ''}-${app.job_title}`); }}
-            className="flex items-center gap-1 rounded-lg bg-gray-100 px-2.5 py-1.5 text-[12px] hover:bg-gray-200"
-          >
-            <FileDown className="h-3.5 w-3.5" /> Word
-          </button>
-          <button
-            onClick={openRegenerate}
-            disabled={letter.regenerate_count >= 2}
-            className="flex items-center gap-1 rounded-lg bg-gray-100 px-2.5 py-1.5 text-[12px] hover:bg-gray-200 disabled:opacity-40"
-            title="Antworten anpassen und komplett neu schreiben (max. 2×)"
-          >
-            <RefreshCw className="h-3.5 w-3.5" /> Antworten anpassen ({2 - letter.regenerate_count})
-          </button>
-          <span className="ml-auto text-[11px] text-gray-400">
-            {saveState === 'saving' ? 'Speichere…' : saveState === 'saved' ? 'Gespeichert' : `${l.meta.word_count} Wörter`}
-          </span>
-        </div>
-      )}
+      {bigView}
+
+      <div className="mb-3 flex items-center gap-2">
+        <div className="min-w-0 flex-1">{toolbar}</div>
+        <button
+          onClick={() => setExpanded(true)}
+          className="flex flex-shrink-0 items-center gap-1 rounded-lg bg-gray-100 px-2.5 py-1.5 text-[12px] text-gray-800 hover:bg-gray-200"
+          title="In großer Ansicht öffnen"
+        >
+          <Maximize2 className="h-3.5 w-3.5" /> Großansicht
+        </button>
+      </div>
 
       {error && <p className="mb-3 rounded-lg bg-red-50 px-3 py-2 text-[12px] text-red-700">{error}</p>}
+      <div className="mb-3">{badges(false)}</div>
 
-      {/* Qualitäts-Signale: Floskel-Check + was aus den Antworten eingeflossen ist */}
-      {(l.meta.cliches_fixed !== undefined || (l.meta.personal_details?.length ?? 0) > 0) && (
-        <div className="mb-3 flex flex-wrap items-center gap-1.5 text-[11px]">
-          <span className="flex items-center gap-1 rounded-full bg-[#66c0b6]/15 px-2 py-0.5 font-semibold text-[#2f857c]">
-            <ShieldCheck className="h-3 w-3" /> Floskel-Check bestanden
-          </span>
-          {l.meta.personal_details?.map((d) => (
-            <span key={d} className="flex items-center gap-1 rounded-full bg-gray-100 px-2 py-0.5 text-gray-600">
-              <UserRound className="h-3 w-3" /> {d}
-            </span>
-          ))}
-        </div>
-      )}
-
-      {/* Brief */}
       <div className="rounded-xl border border-gray-200 bg-white p-4 shadow-sm">
         <p className="mb-3 text-[13.5px] font-bold text-gray-900">{l.subject}</p>
         <p className="mb-3 text-[13.5px] text-gray-800">{l.salutation}</p>
-
         <div className="space-y-4">
           {l.paragraphs.map((p, i) => (
             <div key={p.id} className="group">
-              <div className="mb-0.5 flex items-center gap-2">
-                <span className="text-[10px] font-bold uppercase tracking-wider text-gray-400">{ROLE_LABEL[p.role]}</span>
-                {p.edited && <span className="flex items-center gap-0.5 text-[10px] text-gray-400"><Pencil className="h-2.5 w-2.5" /> bearbeitet</span>}
-              </div>
-
-              {p.text === null ? (
-                <p aria-hidden className="pointer-events-none select-none text-[13.5px] leading-relaxed text-gray-800 blur-[5px]">
-                  {FILLER.repeat(Math.ceil((p.text_length ?? 300) / FILLER.length)).slice(0, p.text_length ?? 300)}
-                </p>
-              ) : locked ? (
-                <p className="text-[13.5px] leading-relaxed text-gray-800">{p.text}</p>
-              ) : (
-                <AutoTextarea value={p.text} onChange={(v) => editParagraph(p.id, v)} />
-              )}
-
+              {roleLabel(p)}
+              {paragraphText(p, false)}
               <WhyBox p={p} defaultOpen={locked && i === 0} />
-
-              {!locked && (
-                <div className="mt-1">
-                  {rewriteFor === p.id ? (
-                    <div className="rounded-lg border border-gray-200 bg-gray-50 p-2">
-                      <div className="flex flex-wrap gap-1">
-                        {REWRITE_PRESETS.map((preset) => (
-                          <button
-                            key={preset}
-                            disabled={!!rewriting}
-                            onClick={() => rewrite(p.id, preset)}
-                            className="rounded-md border border-gray-200 bg-white px-2 py-0.5 text-[11px] hover:border-[#66c0b6] disabled:opacity-50"
-                          >
-                            {preset}
-                          </button>
-                        ))}
-                      </div>
-                      <div className="mt-1.5 flex gap-1.5">
-                        <input
-                          value={rewriteText}
-                          onChange={(e) => setRewriteText(e.target.value)}
-                          onKeyDown={(e) => e.key === 'Enter' && rewrite(p.id, rewriteText)}
-                          placeholder="Eigener Wunsch, z. B. „Erwähne mein Projekt bei X“"
-                          className="flex-1 rounded-md border border-gray-200 px-2 py-1 text-[12px] outline-none focus:border-[#66c0b6]"
-                        />
-                        <button
-                          onClick={() => rewrite(p.id, rewriteText)}
-                          disabled={!!rewriting || !rewriteText.trim()}
-                          className="rounded-md bg-gray-900 px-2.5 text-[12px] font-medium text-white disabled:opacity-40"
-                        >
-                          {rewriting === p.id ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : 'Los'}
-                        </button>
-                      </div>
-                    </div>
-                  ) : (
-                    <button
-                      onClick={() => { setRewriteFor(p.id); setRewriteText(''); }}
-                      className="flex items-center gap-1 text-[11px] text-gray-400 opacity-100 transition-opacity hover:text-gray-700 sm:opacity-0 sm:group-hover:opacity-100"
-                    >
-                      <Wand2 className="h-3 w-3" /> Mit KI umformulieren
-                    </button>
-                  )}
-                </div>
-              )}
+              {rewriteControls(p)}
             </div>
           ))}
         </div>
-
         <p className="mt-4 text-[13.5px] text-gray-800">{l.closing}</p>
         {l.sender_name && <p className="text-[13.5px] text-gray-800">{l.sender_name}</p>}
       </div>
 
-      {/* Tipps */}
-      {l.tips.length > 0 && (
-        <div className="mt-3 rounded-xl border border-amber-200 bg-amber-50 p-3">
-          <p className="mb-1 flex items-center gap-1.5 text-[12px] font-semibold text-amber-900">
-            <Lightbulb className="h-3.5 w-3.5" /> Bevor du es abschickst
-          </p>
-          <ul className="list-disc space-y-0.5 pl-5 text-[12px] text-amber-900">
-            {l.tips.map((t, i) => <li key={i}>{t}</li>)}
-          </ul>
-        </div>
-      )}
-
-      {/* Paywall */}
-      {locked && (
-        <div className="sticky bottom-0 mt-4 rounded-2xl border border-[#66c0b6]/40 bg-white p-4 shadow-[0_-8px_24px_rgba(0,0,0,0.08)]">
-          {waitingForWebhook ? (
-            <p className="flex items-center justify-center gap-2 text-[13px] text-gray-700">
-              <Loader2 className="h-4 w-4 animate-spin text-[#66c0b6]" /> Zahlung erhalten – wird freigeschaltet…
-            </p>
-          ) : (
-            <>
-              <p className="flex items-center gap-1.5 text-[14px] font-bold text-gray-900">
-                <Lock className="h-4 w-4 text-[#3a9e94]" /> Komplettes Anschreiben freischalten
-              </p>
-              <ul className="mt-2 space-y-1 text-[12px] text-gray-600">
-                {[
-                  `Alle ${l.paragraphs.length} Absätze inkl. Belegen aus Anzeige & CV`,
-                  'Frei bearbeiten + 20× Absätze mit KI umformulieren',
-                  'Export als Word & Text · 2× komplett neu erstellen',
-                ].map((b) => (
-                  <li key={b} className="flex items-start gap-1.5"><Check className="mt-0.5 h-3.5 w-3.5 flex-shrink-0 text-[#3a9e94]" /> {b}</li>
-                ))}
-              </ul>
-
-              <div className="mt-3 space-y-2">
-                {credits > 0 && (
-                  <button
-                    onClick={unlockWithCredit}
-                    disabled={!!busy}
-                    className="flex w-full items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-[#66c0b6] to-[#30E3CA] py-2.5 text-[14px] font-bold text-black disabled:opacity-60"
-                  >
-                    {busy === 'credit' ? <Loader2 className="h-4 w-4 animate-spin" /> : <Sparkles className="h-4 w-4" />}
-                    Mit 1 Credit freischalten <span className="font-normal">({credits} verfügbar)</span>
-                  </button>
-                )}
-                {addonEligible && credits === 0 && (
-                  <button
-                    onClick={() => buy('addon')}
-                    disabled={!!busy}
-                    className="relative flex w-full items-center justify-between rounded-xl bg-gradient-to-r from-[#66c0b6] to-[#30E3CA] px-4 py-2.5 text-black disabled:opacity-60"
-                  >
-                    <span className="text-left">
-                      <span className="block text-[14px] font-bold">Kombi-Preis zu deinem CV</span>
-                      <span className="block text-[11px]">statt {formatEuro(COVER_LETTER_PRICE.single)}</span>
-                    </span>
-                    <span className="text-[18px] font-black">{busy === 'addon' ? <Loader2 className="h-5 w-5 animate-spin" /> : formatEuro(COVER_LETTER_PRICE.addon)}</span>
-                  </button>
-                )}
-                {!(addonEligible && credits === 0) && (
-                  <button
-                    onClick={() => buy('single')}
-                    disabled={!!busy}
-                    className={`flex w-full items-center justify-center gap-2 rounded-xl py-2.5 text-[14px] font-bold disabled:opacity-60 ${
-                      credits > 0 ? 'border border-gray-200 text-gray-800 hover:bg-gray-50' : 'bg-gradient-to-r from-[#66c0b6] to-[#30E3CA] text-black'
-                    }`}
-                  >
-                    {busy === 'single' ? <Loader2 className="h-4 w-4 animate-spin" /> : <CreditCard className="h-4 w-4" />}
-                    Für {formatEuro(COVER_LETTER_PRICE.single)} freischalten
-                  </button>
-                )}
-              </div>
-              <p className="mt-2 text-center text-[11px] text-gray-400">Einmalzahlung · kein Abo · sichere Zahlung über Stripe</p>
-            </>
-          )}
-        </div>
-      )}
+      {tipsBox && <div className="mt-3">{tipsBox}</div>}
+      {locked && <div className="sticky bottom-0 mt-4">{paywallBox(false)}</div>}
     </div>
   );
 }
