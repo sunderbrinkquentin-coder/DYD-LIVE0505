@@ -55,6 +55,9 @@ import { ProcessTimeline } from '../components/landing/ProcessTimeline';
 import { FollowRewardPopup, shouldShowFollowPopup } from '../components/landing/FollowRewardPopup';
 import { PodcastSection } from '../components/landing/PodcastSection';
 import { CoverLetterSection } from '../components/landing/CoverLetterSection';
+import { SocialFollowSection } from '../components/landing/SocialFollowSection';
+import { InstagramIcon, LinkedinIcon, TikTokIcon } from '../components/landing/SocialIcons';
+import { DYD_SOCIALS } from '../config/socials';
 
 const FESTIVAL_SECTIONS = [
   { label: 'Programm',   anchor: 'programm',  emoji: '🎶' },
@@ -483,6 +486,39 @@ export default function LandingPage() {
                   </AnimatePresence>
                 </div>
 
+                <div className="flex items-center gap-1.5">
+                  <a
+                    href={DYD_SOCIALS.instagram.url}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    aria-label={`DYD auf Instagram (${DYD_SOCIALS.instagram.handle})`}
+                    title="DYD auf Instagram"
+                    className="flex h-9 w-9 items-center justify-center rounded-lg border border-white/10 bg-white/5 text-white/70 transition-all hover:border-transparent hover:bg-gradient-to-br hover:from-[#f09433] hover:via-[#dc2743] hover:to-[#bc1888] hover:text-white"
+                  >
+                    <InstagramIcon className="h-4 w-4" />
+                  </a>
+                  <a
+                    href={DYD_SOCIALS.tiktok.url}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    aria-label="DYD auf TikTok"
+                    title="DYD auf TikTok"
+                    className="flex h-9 w-9 items-center justify-center rounded-lg border border-white/10 bg-white/5 text-white/70 transition-all hover:border-white/25 hover:bg-black hover:text-white"
+                  >
+                    <TikTokIcon className="h-4 w-4" />
+                  </a>
+                  <a
+                    href={DYD_SOCIALS.linkedin.url}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    aria-label="DYD auf LinkedIn"
+                    title="DYD auf LinkedIn"
+                    className="flex h-9 w-9 items-center justify-center rounded-lg border border-white/10 bg-white/5 text-white/70 transition-all hover:border-transparent hover:bg-[#0a66c2] hover:text-white"
+                  >
+                    <LinkedinIcon className="h-4 w-4" />
+                  </a>
+                </div>
+
                 <motion.button
                   onClick={() => navigate(user ? '/dashboard' : '/login')}
                   className="text-white/70 hover:text-white transition-colors"
@@ -632,6 +668,48 @@ export default function LandingPage() {
                         <Lightbulb className="w-4 h-4 text-white/50 flex-shrink-0" />
                         <span className="text-sm text-white/80">FAQ</span>
                       </button>
+                    </div>
+                  </div>
+
+                  {/* Social */}
+                  <div>
+                    <p className="px-1 mb-2 text-[10px] font-black uppercase tracking-widest text-white/30">
+                      Folge DYD
+                    </p>
+                    <div className="grid grid-cols-3 gap-2">
+                      <a
+                        href={DYD_SOCIALS.instagram.url}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="flex flex-col items-center gap-1.5 rounded-xl border border-white/10 bg-white/5 px-2 py-3 hover:bg-white/10"
+                      >
+                        <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-gradient-to-br from-[#f09433] via-[#dc2743] to-[#bc1888] text-white">
+                          <InstagramIcon className="h-4 w-4" />
+                        </span>
+                        <span className="text-xs font-semibold text-white">Instagram</span>
+                      </a>
+                      <a
+                        href={DYD_SOCIALS.tiktok.url}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="flex flex-col items-center gap-1.5 rounded-xl border border-white/10 bg-white/5 px-2 py-3 hover:bg-white/10"
+                      >
+                        <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-black text-white ring-1 ring-white/15">
+                          <TikTokIcon className="h-4 w-4" />
+                        </span>
+                        <span className="text-xs font-semibold text-white">TikTok</span>
+                      </a>
+                      <a
+                        href={DYD_SOCIALS.linkedin.url}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="flex flex-col items-center gap-1.5 rounded-xl border border-white/10 bg-white/5 px-2 py-3 hover:bg-white/10"
+                      >
+                        <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-[#0a66c2] text-white">
+                          <LinkedinIcon className="h-4 w-4" />
+                        </span>
+                        <span className="text-xs font-semibold text-white">LinkedIn</span>
+                      </a>
                     </div>
                   </div>
 
@@ -1008,6 +1086,8 @@ export default function LandingPage() {
             </motion.div>
           </div>
         </section>
+
+        <SocialFollowSection />
 
         <section
           id="features"
@@ -2265,11 +2345,11 @@ export default function LandingPage() {
                   <p className="text-[10px] font-black uppercase tracking-widest text-white/30 mb-2.5">DYD</p>
                   <div className="flex items-center gap-3">
                     <a
-                      href="https://www.instagram.com/harmonyfestivaldus"
+                      href={DYD_SOCIALS.instagram.url}
                       target="_blank"
                       rel="noopener noreferrer"
                       className="group w-10 h-10 rounded-lg bg-white/5 hover:bg-gradient-to-br hover:from-[#f09433] hover:via-[#e6683c] hover:to-[#dc2743] border border-white/10 hover:border-transparent flex items-center justify-center transition-all"
-                      title="@harmonyfestivaldus auf Instagram"
+                      title={`${DYD_SOCIALS.instagram.handle} auf Instagram`}
                     >
                       <svg viewBox="0 0 24 24" fill="none" className="w-4 h-4 text-white/70 group-hover:text-white transition-colors" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
                         <rect x="2" y="2" width="20" height="20" rx="5" ry="5"/>
@@ -2287,6 +2367,15 @@ export default function LandingPage() {
                       <svg viewBox="0 0 24 24" fill="currentColor" className="w-4 h-4 text-white/70 group-hover:text-white transition-colors">
                         <path d="M20.447 20.452h-3.554v-5.569c0-1.328-.027-3.037-1.852-3.037-1.853 0-2.136 1.445-2.136 2.939v5.667H9.351V9h3.414v1.561h.046c.477-.9 1.637-1.85 3.37-1.85 3.601 0 4.267 2.37 4.267 5.455v6.286zM5.337 7.433a2.062 2.062 0 01-2.063-2.065 2.064 2.064 0 112.063 2.065zm1.782 13.019H3.555V9h3.564v11.452zM22.225 0H1.771C.792 0 0 .774 0 1.729v20.542C0 23.227.792 24 1.771 24h20.451C23.2 24 24 23.227 24 22.271V1.729C24 .774 23.2 0 22.222 0h.003z"/>
                       </svg>
+                    </a>
+                    <a
+                      href={DYD_SOCIALS.tiktok.url}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="group w-10 h-10 rounded-lg bg-white/5 hover:bg-black border border-white/10 hover:border-white/20 flex items-center justify-center transition-all"
+                      title="DYD auf TikTok"
+                    >
+                      <TikTokIcon className="w-4 h-4 text-white/70 group-hover:text-white transition-colors" />
                     </a>
                   </div>
                 </div>
