@@ -160,7 +160,7 @@ export function AboutSection() {
                   Founder · DYD &amp; Harmony Festival
                 </p>
                 <a
-                  href="https://www.instagram.com/dyd_harmony"
+                  href="https://www.instagram.com/dyd_1408"
                   target="_blank"
                   rel="noopener noreferrer"
                   className="inline-flex items-center gap-1.5 mt-2 px-3 py-1 rounded-full text-xs font-semibold transition-all"
@@ -171,7 +171,7 @@ export function AboutSection() {
                     <circle cx="12" cy="12" r="4"/>
                     <circle cx="17.5" cy="6.5" r="0.5" fill="currentColor" stroke="none"/>
                   </svg>
-                  @dyd_harmony
+                  @dyd_1408
                 </a>
               </div>
             </div>
