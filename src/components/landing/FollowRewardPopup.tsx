@@ -43,8 +43,8 @@ const CHANNELS: Channel[] = [
     id: 'dyd-instagram',
     group: 'dyd',
     label: 'Instagram',
-    handle: '@dyd_harmony',
-    href: 'https://www.instagram.com/dyd_harmony',
+    handle: '@dyd_1408',
+    href: 'https://www.instagram.com/dyd_1408',
     Icon: InstagramIcon,
   },
   {
