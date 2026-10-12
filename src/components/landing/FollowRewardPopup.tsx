@@ -2,6 +2,7 @@ import { useEffect } from 'react';
 import type * as React from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Sparkles, X, Music2, Gift, ArrowRight } from 'lucide-react';
+import { DYD_SOCIALS } from '../../config/socials';
 
 function InstagramIcon({ className, style }: { className?: string; style?: React.CSSProperties }) {
   return (
@@ -45,6 +46,14 @@ const CHANNELS: Channel[] = [
     handle: '@dyd_harmony',
     href: 'https://www.instagram.com/dyd_harmony',
     Icon: InstagramIcon,
+  },
+  {
+    id: 'dyd-tiktok',
+    group: 'dyd',
+    label: 'TikTok',
+    handle: DYD_SOCIALS.tiktok.displayName,
+    href: DYD_SOCIALS.tiktok.url,
+    Icon: Music2,
   },
   {
     id: 'dyd-linkedin',
