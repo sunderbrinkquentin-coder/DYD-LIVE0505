@@ -5,8 +5,8 @@
 export const DYD_SOCIALS = {
   instagram: {
     label: 'Instagram',
-    handle: '@dyd_harmony',
-    url: 'https://www.instagram.com/dyd_harmony',
+    handle: '@dyd_1408',
+    url: 'https://www.instagram.com/dyd_1408',
   },
   tiktok: {
     label: 'TikTok',
