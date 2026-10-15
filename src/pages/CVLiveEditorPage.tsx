@@ -2402,9 +2402,17 @@ const reorderSections = (fromIndex: number, toIndex: number) => {
                 const FOCUS = 1.8;
                 const containerW = 794 * scale;
 
-                const w0 = focus.bw * scale;
-                const h0 = focus.bh * scale;
-                const x0 = focus.bx * scale;
+                // Kleiner Rand um den Kasten, damit Schatten/Rahmen/Unterlängen am Rand
+                // nicht abgeschnitten werden (Template-Pixel).
+                const PAD = 8;
+                const fbx = Math.max(0, focus.bx - PAD);
+                const fby = Math.max(0, focus.by - PAD);
+                const fbw = Math.min(794 - fbx, focus.bw + (focus.bx - fbx) + PAD);
+                const fbh = focus.bh + (focus.by - fby) + PAD;
+
+                const w0 = fbw * scale;
+                const h0 = fbh * scale;
+                const x0 = fbx * scale;
 
                 let pageIdx = 0;
                 for (let i = 0; i < breaks.cuts.length; i++) {
@@ -2412,10 +2420,17 @@ const reorderSections = (fromIndex: number, toIndex: number) => {
                 }
                 const y0 =
                   pageIdx * (PAGE_HEIGHT_PX + SHEET_GAP_PX) * scale +
-                  (focus.by - breaks.cuts[pageIdx]) * scale;
+                  (fby - breaks.cuts[pageIdx]) * scale;
 
+                // FIX (Quentin: "Kasten soll vollständig sichtbar sein, nicht abgeschnitten"):
+                // Zoomfaktor so wählen, dass der GANZE Kasten in Breite UND Höhe ins Bild passt.
+                // Vorher war der Zoom fest (bis 1.8x) und die Höhe wurde gekappt → unten abgeschnitten.
+                // Nur wenn ein Kasten selbst bei MIN_K noch zu hoch ist, wird innen gescrollt.
+                const MIN_K = 0.85;
+                const maxH = typeof window !== 'undefined' ? Math.max(240, window.innerHeight - 200) : Infinity;
                 const fitRatio = (containerW - 8) / w0;
-                const k = Math.max(1, Math.min(FOCUS, fitRatio));
+                const fitHeight = maxH / h0;
+                const k = Math.max(Math.min(MIN_K, fitRatio), Math.min(FOCUS, fitRatio, fitHeight));
 
                 const w1 = w0 * k;
                 const h1 = h0 * k;
@@ -2423,11 +2438,6 @@ const reorderSections = (fromIndex: number, toIndex: number) => {
                 const s = scale * k;
 
                 const bg = TEMPLATE_PAGE_BG[selectedTemplate] ?? '#ffffff';
-                // FIX (Scrollen in der großen Box): Platz für Kopfzeile + "Fertig"-Button lassen,
-                // und die Box anhand der ANGEZEIGTEN Höhe zentrieren. Vorher wurde mit der vollen
-                // Höhe h1 zentriert → der obere Teil lag oberhalb des Scrollbereichs (negatives
-                // top) und war weder sichtbar noch erreichbar.
-                const maxH = typeof window !== 'undefined' ? Math.max(240, window.innerHeight - 200) : h1;
                 const shownH = Math.min(h1, maxH);
                 const top = Math.max(0, y0 - (shownH - h0) / 2);
 
@@ -2459,7 +2469,7 @@ const reorderSections = (fromIndex: number, toIndex: number) => {
                           left: 0,
                           width: '794px',
                           transformOrigin: 'top left',
-                          transform: `translate(${-focus.bx * s}px, ${-focus.by * s}px) scale(${s})`,
+                          transform: `translate(${-fbx * s}px, ${-fby * s}px) scale(${s})`,
                           backgroundColor: bg,
                         }}
                       >
