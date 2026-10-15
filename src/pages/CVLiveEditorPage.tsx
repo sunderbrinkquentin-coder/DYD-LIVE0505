@@ -19,7 +19,7 @@ import { supabase } from '../lib/supabase';
 import { useCvOptimizationStatus } from '../hooks/useCvOptimizationStatus';
 import { X, Plus } from 'lucide-react';
 import { AddStationModal, hasGuidedModal } from '../components/cvbuilder/AddStationModal';
-import { CvImprovementJourney, type JourneyStep, type JourneyProgress, type JourneyCurrentContent } from '../components/cv-editor/CvImprovementJourney';
+import { CvImprovementJourney, type JourneyStep, type JourneyProgress, type JourneyCurrentContent, type JourneyStationPatch } from '../components/cv-editor/CvImprovementJourney';
 
 /** Abstand zwischen zwei sichtbaren A4-Blättern in der Vorschau. */
 const SHEET_GAP_PX = 32;
@@ -284,11 +284,11 @@ export function CVLiveEditorPage() {
     if (optimizationTipsShownRef.current) return;
     const meta = (editorData as any)?._optimization;
     const journey = meta?.journey;
-    const progress = (editorData as any)?._journey;
     if (Array.isArray(journey) && journey.length > 0) {
+      // Bewusst NICHT mehr automatisch öffnen: das Anpassen-Panel ist ein
+      // optionales Zusatzangebot ("Gefällt dir etwas nicht?"), keine Pflicht-
+      // Checkliste. Einstieg über den schwebenden Button bzw. die Toolbar.
       optimizationTipsShownRef.current = true;
-      const allHandled = journey.every((s: any) => progress?.done?.includes(s.id) || progress?.skipped?.includes(s.id));
-      if (!allHandled) setShowJourney(true);
     } else if (Array.isArray(meta?.tips) && meta.tips.length > 0) {
       optimizationTipsShownRef.current = true;
       setShowTips(true);
@@ -1883,7 +1883,16 @@ const addSectionItem = (sectionIndex: number, defaultItem: any) => {
         : typeof it.description === 'string' && it.description.trim()
           ? it.description.split('\n').map((l: string) => l.replace(/^[-•\s]+/, '').trim()).filter(Boolean)
           : [];
-      return { title: it.title || it.degree || '', company: it.company || it.institution || '', bullet_points: bullets };
+      const isEducation = found.section?.type === 'education' || ('degree' in it && !('title' in it));
+      return {
+        title: it.title || it.degree || '',
+        company: it.company || it.institution || '',
+        date_from: it.date_from || '',
+        date_to: it.date_to || '',
+        bullet_points: bullets,
+        bulletSource: Array.isArray(it.bulletPoints) && it.bulletPoints.length ? 'bullets' : 'description',
+        isEducation,
+      };
     }
     if (step.target.type === 'summary') return { text: editorData?.summary ?? '' };
     if (step.target.type === 'headline') return { text: editorData?.personalInfo?.title ?? '' };
@@ -2025,6 +2034,38 @@ const addSectionItem = (sectionIndex: number, defaultItem: any) => {
     });
   };
 
+  /** Bearbeitung im rechten Panel → Station im CV aktualisieren (richtige Feldnamen je Typ). */
+  const updateJourneyStation = (sid: string, patch: JourneyStationPatch) => {
+    setHasEditorChanges(true);
+    setEditorData((prev: any) => {
+      if (!prev?.sections) return prev;
+      return {
+        ...prev,
+        sections: prev.sections.map((sec: any) => ({
+          ...sec,
+          items: Array.isArray(sec.items)
+            ? sec.items.map((it: any) => {
+                if (it?._sid !== sid) return it;
+                const isEdu = sec.type === 'education' || ('degree' in it && !('title' in it));
+                const next = { ...it };
+                if (patch.title !== undefined) next[isEdu ? 'degree' : 'title'] = patch.title;
+                if (patch.company !== undefined) next[isEdu ? 'institution' : 'company'] = patch.company;
+                if (patch.date_from !== undefined) next.date_from = patch.date_from;
+                if (patch.date_to !== undefined) next.date_to = patch.date_to;
+                if (patch.bullets !== undefined) {
+                  // Kamen die Punkte aus `description` (z. B. Schwerpunkte bei Ausbildung),
+                  // dorthin zurückschreiben – sonst erscheinen sie doppelt.
+                  if (patch.bulletSource === 'description') next.description = patch.bullets.join('\n');
+                  else next.bulletPoints = patch.bullets;
+                }
+                return next;
+              })
+            : sec.items,
+        })),
+      };
+    });
+  };
+
   const applyJourneyText = (type: 'summary' | 'headline', text: string) => {
     setHasEditorChanges(true);
     setEditorData((prev: any) => {
@@ -2096,10 +2137,10 @@ const addSectionItem = (sectionIndex: number, defaultItem: any) => {
               <button
                 onClick={() => (journeySteps.length > 0 ? setShowJourney((v) => !v) : setShowTips(!showTips))}
                 className="px-3 py-2 rounded-lg bg-white/10 hover:bg-white/20 transition-all flex items-center gap-2"
-                title={journeySteps.length > 0 ? 'CV-Feinschliff' : 'Tipps'}
+                title={journeySteps.length > 0 ? 'Gefällt dir etwas nicht? Hier anpassen' : 'Tipps'}
               >
                 <Sparkles size={16} className="text-[#66c0b6]" />
-                {journeySteps.length > 0 && <span className="text-sm text-white/90">Feinschliff</span>}
+                {journeySteps.length > 0 && <span className="text-sm text-white/90">Anpassen</span>}
               </button>
             </div>
           </div>
@@ -2330,7 +2371,8 @@ const reorderSections = (fromIndex: number, toIndex: number) => {
                   Nummerierte Punkte an jeder Stelle mit Verbesserungspotenzial.
                   Klick → Feinschliff öffnet genau diesen Schritt. Nur Editor-UI,
                   nie im PDF (liegen außerhalb des Templates). */}
-              {!breaks.isMeasuring && journeySteps.length > 0 && journeyMarkers
+              {/* Nur bei geöffnetem Anpassen-Panel – sonst wirken die Punkte wie eine To-do-Liste */}
+              {!breaks.isMeasuring && showJourney && journeySteps.length > 0 && journeyMarkers
                 .filter((m) => m.state !== 'skipped')
                 .map((m) => (
                   <button
@@ -2339,11 +2381,11 @@ const reorderSections = (fromIndex: number, toIndex: number) => {
                     data-journey-panel
                     onMouseDown={(e) => e.preventDefault()}
                     onClick={(e) => { e.stopPropagation(); openJourneyAt(m.id); }}
-                    title={m.state === 'done' ? `Verbessert: ${m.title}` : `Feinschliff: ${m.title}`}
+                    title={m.state === 'done' ? `Angepasst: ${m.title}` : `Anpassen: ${m.title}`}
                     className={`absolute z-40 h-6 min-w-6 px-1.5 rounded-full text-[11px] font-bold flex items-center justify-center shadow-lg transition-transform hover:scale-110 ${
                       m.state === 'done'
                         ? 'bg-[#66c0b6] text-black'
-                        : 'bg-amber-400 text-black ring-4 ring-amber-400/25 animate-pulse'
+                        : 'bg-white text-[#0A192F] ring-2 ring-[#66c0b6]/60'
                     }`}
                     style={{ top: `${m.y}px`, left: `${m.x}px` }}
                   >
@@ -2514,6 +2556,19 @@ const reorderSections = (fromIndex: number, toIndex: number) => {
         </div>
       )}
 
+      {/* Optionaler Einstieg ins Anpassen-Panel (auch auf dem Handy sichtbar) */}
+      {!showJourney && !focus && journeySteps.length > 0 && cvId && editorData && (
+        <button
+          type="button"
+          data-journey-panel
+          onClick={() => setShowJourney(true)}
+          className="fixed z-[55] bottom-4 right-4 px-4 py-2.5 rounded-full bg-[#121216] border border-[#66c0b6]/40 shadow-2xl text-sm text-white/90 hover:text-white hover:border-[#66c0b6] flex items-center gap-2 transition-colors"
+        >
+          <Sparkles size={15} className="text-[#66c0b6]" />
+          Gefällt dir etwas nicht? Anpassen
+        </button>
+      )}
+
       {showJourney && journeySteps.length > 0 && cvId && editorData && (
         <CvImprovementJourney
           cvId={cvId}
@@ -2526,6 +2581,7 @@ const reorderSections = (fromIndex: number, toIndex: number) => {
           getCurrentContent={getJourneyContent}
           onApplyStation={applyJourneyStation}
           onApplyText={applyJourneyText}
+          onUpdateStation={updateJourneyStation}
           requestedStep={journeyRequest}
           missingKeywords={journeyKeywords}
           onAddSkill={addSkillFromJourney}
