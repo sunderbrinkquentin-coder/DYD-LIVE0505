@@ -75,6 +75,14 @@ export const PDF_RENDER_STYLES_CSS = `
     transition: opacity 0.12s ease;
     white-space: nowrap;
   }
+  /* FIX (Quentin: "Skills kann ich gar nicht bearbeiten"): Griff + Auf/Ab-Pfeile
+     eines Chips liegen absolut LINKS neben dem Chip (left:-22…-64px) – also genau
+     über dem vorherigen Chip. Unsichtbar (opacity 0), aber klickbar: jeder Klick
+     auf einen Skill traf den Griff des Nachbar-Chips, und der Editor ignoriert
+     Klicks auf Griffe bewusst. Bei Chips daher komplett ausblenden. */
+  [data-chip-row] [data-drag-handle] {
+    display: none !important;
+  }
   [data-break-item],
   [data-break-atomic],
   [data-spacer-id],
