@@ -1,6 +1,7 @@
 // src/components/cv-editor/CvImprovementJourney.tsx
 //
-// Optionales Anpassen-Panel im Live-Editor ("Gefällt dir etwas nicht?").
+// Optionales Anpassen-Panel im Live-Editor ("Möchtest du etwas anders haben?").
+// Keine Bewertung, kein Score, keine Mängel-Hinweise im Vordergrund.
 // Bewusst KEINE Pflicht-Checkliste: kein Fortschrittsbalken, kein "1/7",
 // kein "Überspringen". Pro Abschnitt, von oben nach unten:
 //   1. Inhalt direkt hier bearbeiten (Titel, Zeitraum, Stichpunkte bzw. Text)
@@ -11,9 +12,8 @@
 // Der Abschnitt wird parallel im CV hervorgehoben (onFocusStep).
 
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { ArrowLeft, ArrowRight, Check, Loader2, RotateCcw, Sparkles, X, Lightbulb, PenLine, ChevronDown, Plus, Trash2 } from 'lucide-react';
+import { ArrowLeft, ArrowRight, Check, Loader2, RotateCcw, Sparkles, X, PenLine, ChevronDown, Plus, Trash2 } from 'lucide-react';
 import { supabase } from '../../lib/supabase';
-import { scoreEditorCv, scoreLabel } from '../../utils/cvShortScore';
 
 export type JourneyTarget =
   | { type: 'station'; sid: string }
@@ -153,7 +153,6 @@ export function CvImprovementJourney({
   cvId,
   steps,
   editorData,
-  scoreBefore,
   progress,
   onProgressChange,
   onFocusStep,
@@ -161,7 +160,6 @@ export function CvImprovementJourney({
   onApplyStation,
   onApplyText,
   onUpdateStation,
-  onOpenCvCheck,
   onClose,
   requestedStep,
   missingKeywords = [],
@@ -177,7 +175,6 @@ export function CvImprovementJourney({
   const [status, setStatus] = useState<Status>('idle');
   const [proposal, setProposal] = useState<Proposal | null>(null);
   const [view, setView] = useState<'before' | 'after'>('after');
-  const [showAllIssues, setShowAllIssues] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [justApplied, setJustApplied] = useState(false);
   const [draft, setDraft] = useState<JourneyCurrentContent | null>(null);
@@ -191,8 +188,6 @@ export function CvImprovementJourney({
   const isStation = step?.target.type === 'station';
   const isText = step?.target.type === 'summary' || step?.target.type === 'headline';
 
-  const liveScore = useMemo(() => scoreEditorCv(editorData).total, [editorData]);
-
   // Neuer Abschnitt: im CV hervorheben, Auswahl + Entwurf zurücksetzen
   useEffect(() => {
     onFocusStep(step);
@@ -205,7 +200,6 @@ export function CvImprovementJourney({
     setStatus('idle');
     setProposal(null);
     setView('after');
-    setShowAllIssues(false);
     setError(null);
     setJustApplied(false);
     draftDirtyRef.current = false;
@@ -344,7 +338,6 @@ export function CvImprovementJourney({
     setFocus((prev) => (prev.includes(label) ? prev.filter((l) => l !== label) : [...prev, label].slice(-3)));
 
   // ── Darstellung ──────────────────────────────────────────────────────────
-  const scoreDelta = scoreBefore != null ? liveScore - scoreBefore : null;
   const beforeSet = new Set((draft?.bullet_points ?? []).map((b) => b.trim()));
   const proposalShown: JourneyCurrentContent | null =
     status === 'proposal' && proposal ? (view === 'after' ? proposal : contentForAi()) : null;
@@ -367,18 +360,13 @@ export function CvImprovementJourney({
             <h3 className="text-white font-semibold">CV anpassen</h3>
           </div>
           <div className="flex items-center gap-3">
-            <div className="flex items-baseline gap-1" title={`Kurz-Score Sprache & Struktur · ${scoreLabel(liveScore)}`}>
-              <span className="text-sm font-semibold text-white/80 tabular-nums">{liveScore}</span>
-              <span className="text-[10px] text-white/40">/100</span>
-              {scoreDelta != null && scoreDelta > 0 && <span className="text-[11px] text-[#66c0b6] font-semibold">+{scoreDelta}</span>}
-            </div>
             <button onClick={onClose} className="text-white/50 hover:text-white" aria-label="Schließen">
               <X size={18} />
             </button>
           </div>
         </div>
         <p className="mt-1 text-xs text-white/45">
-          Dein CV ist fertig. Gefällt dir etwas nicht? Ändere es hier – oder lass es dir umformulieren.
+          Dein CV ist fertig. Möchtest du etwas anders haben? Ändere es hier direkt – oder lass dir eine andere Formulierung vorschlagen.
         </p>
 
         {/* Abschnitts-Auswahl statt Fortschrittsbalken */}
@@ -510,25 +498,6 @@ export function CvImprovementJourney({
               </p>
             )}
 
-            {/* 2 · Tipp (dezent, aufklappbar) */}
-            {step.issues.length > 0 && step.issues[0] && (
-              <div className="flex items-start gap-2 rounded-lg bg-white/[0.03] px-3 py-2">
-                <Lightbulb size={14} className="text-amber-300/80 flex-shrink-0 mt-0.5" />
-                <div className="text-xs text-white/60 leading-snug">
-                  <p><span className="text-white/75">Tipp:</span> {step.issues[0]}</p>
-                  {step.issues.length > 1 && (
-                    <>
-                      {showAllIssues && step.issues.slice(1).map((issue, i) => <p key={i} className="mt-1">{issue}</p>)}
-                      <button onClick={() => setShowAllIssues((v) => !v)} className="mt-1 text-[11px] text-white/40 hover:text-white/70 flex items-center gap-0.5">
-                        {showAllIssues ? 'Weniger' : `+${step.issues.length - 1} weitere`}
-                        <ChevronDown size={12} className={showAllIssues ? 'rotate-180' : ''} />
-                      </button>
-                    </>
-                  )}
-                </div>
-              </div>
-            )}
-
             {/* Begriffe aus der Stellenanzeige */}
             {step.id === 'keywords' && missingKeywords.length > 0 && (
               <div className="space-y-2">
@@ -553,7 +522,7 @@ export function CvImprovementJourney({
                   })}
                 </div>
                 <p className="text-xs text-white/45">
-                  Ein Klick fügt den Begriff unter „Fähigkeiten“ hinzu. Ergänze nur, was du wirklich kannst.
+                  Diese Begriffe stehen in der Stellenanzeige. Wenn du sie beherrschst, kannst du sie mit einem Klick unter „Fähigkeiten“ ergänzen – ganz optional.
                 </p>
               </div>
             )}
@@ -566,12 +535,17 @@ export function CvImprovementJourney({
                   onClick={() => setShowAi((v) => !v)}
                   className="w-full px-3 py-2.5 flex items-center justify-between text-sm text-white/85 hover:text-white"
                 >
-                  <span className="flex items-center gap-2"><Sparkles size={14} className="text-[#66c0b6]" /> Gefällt dir nicht? Umformulieren lassen</span>
+                  <span className="flex items-center gap-2"><Sparkles size={14} className="text-[#66c0b6]" /> Andere Formulierung vorschlagen lassen</span>
                   <ChevronDown size={14} className={`text-white/40 transition-transform ${showAi ? 'rotate-180' : ''}`} />
                 </button>
 
                 {showAi && (
                   <div className="px-3 pb-3 space-y-4">
+                    {step.issues[0] && (
+                      <p className="text-xs text-white/50 leading-snug">
+                        <span className="text-white/70">Idee:</span> {step.issues[0]}
+                      </p>
+                    )}
                     {directions.length > 0 && (
                       <div className="space-y-2">
                         <p className="text-[13px] text-white font-medium">Was soll sich ändern?</p>
@@ -697,9 +671,6 @@ export function CvImprovementJourney({
             </button>
           </div>
         )}
-        <button onClick={onOpenCvCheck} className="w-full text-left text-[11px] text-white/40 hover:text-white/70">
-          Der Kurz-Score bewertet nur Sprache & Struktur. Inhalt, ATS-Lesbarkeit und Stellen-Passung prüft der ausführliche CV-Check →
-        </button>
       </div>
     </div>
   );
