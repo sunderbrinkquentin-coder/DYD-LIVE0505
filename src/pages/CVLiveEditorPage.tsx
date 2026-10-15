@@ -22,6 +22,8 @@ import { AddStationModal, hasGuidedModal } from '../components/cvbuilder/AddStat
 import { CvImprovementJourney, type JourneyStep, type JourneyProgress, type JourneyCurrentContent, type JourneyStationPatch } from '../components/cv-editor/CvImprovementJourney';
 
 /** Abstand zwischen zwei sichtbaren A4-Blättern in der Vorschau. */
+/** Nummerierte Journey-Punkte im CV anzeigen? Aus, damit der CV nicht "fehlerhaft" wirkt. */
+const SHOW_JOURNEY_MARKERS = false;
 const SHEET_GAP_PX = 32;
 const BOX_SELECTOR = '[data-break-item],[data-break-atomic],[data-pdf-section],header';
 /**
@@ -2137,7 +2139,7 @@ const addSectionItem = (sectionIndex: number, defaultItem: any) => {
               <button
                 onClick={() => (journeySteps.length > 0 ? setShowJourney((v) => !v) : setShowTips(!showTips))}
                 className="px-3 py-2 rounded-lg bg-white/10 hover:bg-white/20 transition-all flex items-center gap-2"
-                title={journeySteps.length > 0 ? 'Gefällt dir etwas nicht? Hier anpassen' : 'Tipps'}
+                title={journeySteps.length > 0 ? 'Etwas anders haben? Hier anpassen' : 'Tipps'}
               >
                 <Sparkles size={16} className="text-[#66c0b6]" />
                 {journeySteps.length > 0 && <span className="text-sm text-white/90">Anpassen</span>}
@@ -2371,8 +2373,8 @@ const reorderSections = (fromIndex: number, toIndex: number) => {
                   Nummerierte Punkte an jeder Stelle mit Verbesserungspotenzial.
                   Klick → Feinschliff öffnet genau diesen Schritt. Nur Editor-UI,
                   nie im PDF (liegen außerhalb des Templates). */}
-              {/* Nur bei geöffnetem Anpassen-Panel – sonst wirken die Punkte wie eine To-do-Liste */}
-              {!breaks.isMeasuring && showJourney && journeySteps.length > 0 && journeyMarkers
+              {/* Ausgeschaltet: nummerierte Punkte wirken wie eine Mängelliste. Klick auf einen Bereich im CV springt trotzdem zum passenden Abschnitt im Panel. */}
+              {SHOW_JOURNEY_MARKERS && !breaks.isMeasuring && showJourney && journeySteps.length > 0 && journeyMarkers
                 .filter((m) => m.state !== 'skipped')
                 .map((m) => (
                   <button
@@ -2565,7 +2567,7 @@ const reorderSections = (fromIndex: number, toIndex: number) => {
           className="fixed z-[55] bottom-4 right-4 px-4 py-2.5 rounded-full bg-[#121216] border border-[#66c0b6]/40 shadow-2xl text-sm text-white/90 hover:text-white hover:border-[#66c0b6] flex items-center gap-2 transition-colors"
         >
           <Sparkles size={15} className="text-[#66c0b6]" />
-          Gefällt dir etwas nicht? Anpassen
+          Etwas anders haben? Anpassen
         </button>
       )}
 
