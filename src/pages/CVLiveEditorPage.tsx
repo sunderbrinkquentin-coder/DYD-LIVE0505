@@ -315,6 +315,13 @@ export function CVLiveEditorPage() {
   // In-Place-Fokus: welche Box ist groß? Bounds in echten Template-Pixeln (794-Basis).
 const [focus, setFocus] = useState<null | { index: number; bx: number; by: number; bw: number; bh: number }>(null);
 const cloneRef = useRef<HTMLDivElement | null>(null);
+// Das SKALIERTE Innenelement der Fokus-Ansicht. Die Umbruch-Verschiebungen müssen hier
+// angewendet werden: applyPushes rechnet die Skalierung aus genau diesem Element heraus.
+const cloneInnerRef = useRef<HTMLDivElement | null>(null);
+// Lage des fokussierten Kastens IN der Fokus-Ansicht selbst (Template-Pixel). Die
+// Fokus-Ansicht blendet zusätzliche Bedienelemente/leere Felder ein, die im CV
+// ausgeblendet sind – dadurch sitzt der Kasten dort tiefer bzw. ist höher.
+const [cloneBox, setCloneBox] = useState<null | { index: number; x: number; y: number; w: number; h: number }>(null);
   // ───────────────────────────────────────────────────────────────────────────
   // DIE UMBRUCH-ENGINE
   //
@@ -477,7 +484,30 @@ const cloneRef = useRef<HTMLDivElement | null>(null);
   // damit Editor, Fokus und PDF exakt dasselbe Bild zeigen.
   useLayoutEffect(() => {
     document.querySelectorAll<HTMLElement>('[data-page-copy]').forEach((el) => applyPushes(el, breaks.pushes));
-    applyPushes(cloneRef.current, breaks.pushes);
+    // FIX (Fokus-Ansicht bei Ausbildung/Skills/… verschoben): vorher auf den UNskalierten
+    // Außen-Container angewendet → Skalierung 1 erkannt, Verschiebungen um den Zoomfaktor zu
+    // klein → alles unterhalb des ersten verschobenen Kastens saß falsch.
+    applyPushes(cloneInnerRef.current, breaks.pushes);
+
+    // FIX (Quentin: "bei den anderen Kästen ist die Ansicht verschoben"): echten
+    // Kasten in der Fokus-Ansicht messen und Ausschnitt danach ausrichten.
+    const inner = cloneInnerRef.current;
+    if (inner && focus) {
+      const el = inner.querySelectorAll<HTMLElement>(BOX_SELECTOR)[focus.index];
+      const ir = inner.getBoundingClientRect();
+      const k = ir.width / 794;
+      if (el && k > 0) {
+        const r = el.getBoundingClientRect();
+        const next = { index: focus.index, x: (r.left - ir.left) / k, y: (r.top - ir.top) / k, w: r.width / k, h: r.height / k };
+        setCloneBox((prev) =>
+          prev && prev.index === next.index &&
+          Math.abs(prev.x - next.x) < 0.5 && Math.abs(prev.y - next.y) < 0.5 &&
+          Math.abs(prev.w - next.w) < 0.5 && Math.abs(prev.h - next.h) < 0.5
+            ? prev
+            : next,
+        );
+      }
+    }
   });
 
   // Journey-Markierungen im CV: kleine nummerierte Punkte an jeder Stelle mit
@@ -1603,8 +1633,22 @@ const cloneRef = useRef<HTMLDivElement | null>(null);
             updatedItem = { title: String(currentItem), position: String(currentItem), degree: String(currentItem), description: String(currentItem), bulletPoints: [] };
           }
 
+          const SKILL_SECTION_TYPES = ['skills', 'hard_skills', 'soft_skills', 'tools', 'technical_skills'];
           if (field === 'bulletPoints') {
             updatedItem.bulletPoints = Array.isArray(value) ? [...value] : [];
+          } else if (SKILL_SECTION_TYPES.includes(sec.type) && (field === 'skill' || field === 'name')) {
+            // FIX Skills: Die Chips zeigen "Name (Niveau)". Beim Bearbeiten kam dieser
+            // Anzeigetext 1:1 zurück → Niveau doppelt ("Excel (Experte) (Experte)").
+            // Außerdem schrieben die Templates in `skill`, geladen wird aber `name`
+            // zuerst → nach dem Neuladen war die Änderung weg. Jetzt: Niveau-Suffix
+            // abtrennen und BEIDE Felder setzen.
+            let text = String(value ?? '');
+            const level = String(updatedItem.level ?? '').trim();
+            if (level && text.trimEnd().endsWith(`(${level})`)) {
+              text = text.trimEnd().slice(0, -(`(${level})`.length)).trimEnd();
+            }
+            updatedItem.name = text;
+            updatedItem.skill = text;
           } else {
             updatedItem[field] = value;
           }
@@ -2405,10 +2449,16 @@ const reorderSections = (fromIndex: number, toIndex: number) => {
                 // Kleiner Rand um den Kasten, damit Schatten/Rahmen/Unterlängen am Rand
                 // nicht abgeschnitten werden (Template-Pixel).
                 const PAD = 8;
-                const fbx = Math.max(0, focus.bx - PAD);
-                const fby = Math.max(0, focus.by - PAD);
-                const fbw = Math.min(794 - fbx, focus.bw + (focus.bx - fbx) + PAD);
-                const fbh = focus.bh + (focus.by - fby) + PAD;
+                // Ausschnitt (was gezeigt wird): Lage des Kastens in der Fokus-Ansicht selbst.
+                const cb = cloneBox && cloneBox.index === focus.index
+                  ? cloneBox
+                  : { x: focus.bx, y: focus.by, w: focus.bw, h: focus.bh };
+                const fbx = Math.max(0, cb.x - PAD);
+                const fby = Math.max(0, cb.y - PAD);
+                const fbw = Math.min(794 - fbx, cb.w + (cb.x - fbx) + PAD);
+                const fbh = cb.h + (cb.y - fby) + PAD;
+                // Platzierung (wo die Box erscheint): über dem Original-Kasten im CV.
+                const placeY = Math.max(0, focus.by - PAD);
 
                 const w0 = fbw * scale;
                 const h0 = fbh * scale;
@@ -2420,7 +2470,7 @@ const reorderSections = (fromIndex: number, toIndex: number) => {
                 }
                 const y0 =
                   pageIdx * (PAGE_HEIGHT_PX + SHEET_GAP_PX) * scale +
-                  (fby - breaks.cuts[pageIdx]) * scale;
+                  (placeY - breaks.cuts[pageIdx]) * scale;
 
                 // FIX (Quentin: "Kasten soll vollständig sichtbar sein, nicht abgeschnitten"):
                 // Zoomfaktor so wählen, dass der GANZE Kasten in Breite UND Höhe ins Bild passt.
@@ -2463,6 +2513,7 @@ const reorderSections = (fromIndex: number, toIndex: number) => {
                   >
                     <div style={{ position: 'relative', width: `${w1}px`, height: `${h1}px` }}>
                       <div
+                        ref={cloneInnerRef}
                         style={{
                           position: 'absolute',
                           top: 0,
