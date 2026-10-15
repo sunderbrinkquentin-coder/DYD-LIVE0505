@@ -512,6 +512,16 @@ const cloneRef = useRef<HTMLDivElement | null>(null);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [editorData, selectedTemplate, scale, breaks.pageCount, focus?.index]);
 
+  // Große Box beim Öffnen komplett ins Bild holen (bei hohen Boxen: Oberkante zuerst).
+  useEffect(() => {
+    if (focus == null) return;
+    const id = window.setTimeout(() => {
+      cloneRef.current?.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+      cloneRef.current?.scrollTo({ top: 0 });
+    }, 120);
+    return () => window.clearTimeout(id);
+  }, [focus?.index]);
+
   // Klick außerhalb der großen Box / Escape schließt.
   useEffect(() => {
     if (focus == null) return;
@@ -679,7 +689,11 @@ const cloneRef = useRef<HTMLDivElement | null>(null);
         const lower = str.toLowerCase();
         if (lower === 'present' || lower === 'heute' || lower === 'aktuell' || lower === 'current' || lower === 'now') return 'Heute';
         if (/^\d{2}\/\d{4}$/.test(str)) return str;
-        if (/^\d{4}$/.test(str)) return `01/${str}`;
+        // FIX: Nur ein Jahr bekannt → auch nur das Jahr zeigen. Vorher wurde
+        // daraus "01/2020" – ein erfundener Januar, der im CV falsch aussah.
+        if (/^\d{4}$/.test(str)) return str;
+        const slashMY = str.match(/^(\d{1,2})\/(\d{4})$/);
+        if (slashMY) return `${slashMY[1].padStart(2, '0')}/${slashMY[2]}`;
         const iso = str.match(/^(\d{4})-(\d{2})/);
         if (iso) {
           const y = iso[1];
@@ -695,6 +709,14 @@ const cloneRef = useRef<HTMLDivElement | null>(null);
         const dotMY = str.match(/^(\d{1,2})\.(\d{4})$/);
         if (dotMY) return `${dotMY[1].padStart(2, '0')}/${dotMY[2]}`;
         return str;
+      };
+
+      /** "3" + "2020" → "03/2020"; nur Jahr → "2020"; nichts → "". */
+      const monthYear = (month: any, year: any): string => {
+        const y = String(year ?? '').trim();
+        if (!y) return '';
+        const m = String(month ?? '').trim();
+        return /^\d{1,2}$/.test(m) && +m >= 1 && +m <= 12 ? `${m.padStart(2, '0')}/${y}` : y;
       };
 
       const findArray = (fieldNames: string[]): any[] => {
@@ -918,8 +940,19 @@ const cloneRef = useRef<HTMLDivElement | null>(null);
             _sid: edu._sid,
             degree: edu.degree || edu.title || edu.qualification || edu.type || '',
             institution: edu.institution || edu.school || edu.university || '',
-            date_from: formatDate(edu.date_from || edu.startDate || edu.startYear || ''),
-            date_to: formatDate(edu.date_to || edu.endDate || edu.endYear || edu.year || ''),
+            // FIX: Wizard/Optimierung liefern Monat und Jahr GETRENNT
+            // (startMonth/startYear, endMonth/endYear – siehe cvBuilder.ts).
+            // Bisher wurde nur das Jahr gelesen → Monat verloren → "01/2020".
+            date_from: formatDate(
+              edu.date_from || edu.startDate || edu.start_date || edu.from
+              || monthYear(edu.startMonth || edu.start_month, edu.startYear || edu.start_year) || ''
+            ),
+            date_to: edu.current
+              ? 'Heute'
+              : formatDate(
+                  edu.date_to || edu.endDate || edu.end_date || edu.to
+                  || monthYear(edu.endMonth || edu.end_month, edu.endYear || edu.end_year || edu.year) || ''
+                ),
             location: edu.location || edu.ort || '',
             description: edu.description
               || (Array.isArray(edu.focus) ? edu.focus.join(', ') : edu.focus)
@@ -2343,11 +2376,16 @@ const reorderSections = (fromIndex: number, toIndex: number) => {
                 const w1 = w0 * k;
                 const h1 = h0 * k;
                 const left = Math.max(0, Math.min(containerW - w1, x0 - (w1 - w0) / 2));
-                const top = y0 - (h1 - h0) / 2;
                 const s = scale * k;
 
                 const bg = TEMPLATE_PAGE_BG[selectedTemplate] ?? '#ffffff';
-                const maxH = typeof window !== 'undefined' ? window.innerHeight - 120 : h1;
+                // FIX (Scrollen in der großen Box): Platz für Kopfzeile + "Fertig"-Button lassen,
+                // und die Box anhand der ANGEZEIGTEN Höhe zentrieren. Vorher wurde mit der vollen
+                // Höhe h1 zentriert → der obere Teil lag oberhalb des Scrollbereichs (negatives
+                // top) und war weder sichtbar noch erreichbar.
+                const maxH = typeof window !== 'undefined' ? Math.max(240, window.innerHeight - 200) : h1;
+                const shownH = Math.min(h1, maxH);
+                const top = Math.max(0, y0 - (shownH - h0) / 2);
 
                 return (
                   <div
@@ -2357,8 +2395,12 @@ const reorderSections = (fromIndex: number, toIndex: number) => {
                       top: `${top}px`,
                       left: `${left}px`,
                       width: `${w1}px`,
-                      height: `${Math.min(h1, maxH)}px`,
-                      overflow: h1 > maxH ? 'auto' : 'hidden',
+                      height: `${shownH}px`,
+                      overflowX: 'hidden',
+                      overflowY: h1 > maxH ? 'auto' : 'hidden',
+                      // Mausrad/Touch scrollt zuerst die Box, nicht die ganze Seite dahinter
+                      overscrollBehavior: 'contain',
+                      WebkitOverflowScrolling: 'touch',
                       background: bg,
                       borderRadius: 8,
                       boxShadow: '0 18px 50px rgba(0,0,0,0.55), 0 0 0 1px rgba(102,192,182,0.55)',
