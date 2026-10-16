@@ -22,7 +22,10 @@ export type AdvisorEvent =
   | 'advisor_reset'
   | 'advisor_teaser_shown'        // Hinweisblase neben dem Icon angezeigt
   | 'advisor_teaser_click'        // Hinweisblase angeklickt (öffnet den Chat)
-  | 'advisor_teaser_dismiss';     // Hinweisblase weggeklickt
+  | 'advisor_teaser_dismiss'      // Hinweisblase weggeklickt
+  | 'advisor_lead_open'           // Erstgespräch-Formular im Chat geöffnet
+  | 'advisor_lead_submit'         // Anfrage aus dem Chat abgeschickt
+  | 'advisor_booking_click';      // Termin wählen (Cal.com) aus dem Chat
 
 const ONCE_PER_SESSION: AdvisorEvent[] = ['advisor_assignment', 'advisor_start', 'advisor_teaser_shown'];
 
