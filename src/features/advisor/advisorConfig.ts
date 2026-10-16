@@ -66,6 +66,7 @@ export function pageContext(pathname: string): { page: string; product: string |
   if (pathname.startsWith('/kurse')) return { page: 'courses', product: 'academy_course' };
   if (pathname.startsWith('/career-vision')) return { page: 'career', product: 'skillgap_analysis' };
   if (pathname.startsWith('/cv-check') || pathname.startsWith('/cv-upload') || pathname.startsWith('/cv-result')) return { page: 'cv', product: 'cv_check' };
+  if (pathname.startsWith('/business/automatisierung')) return { page: 'automation', product: null };
   if (pathname.startsWith('/business')) return { page: 'business', product: null };
   if (pathname.startsWith('/dashboard')) return { page: 'dashboard', product: null };
   if (pathname.startsWith('/faq')) return { page: 'faq', product: null };
