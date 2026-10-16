@@ -10,6 +10,7 @@ import CVEditor from '../pages/CVEditor';
 import AgentFlow from '../pages/AgentFlow';
 import { DashboardPage } from '../pages/DashboardPage';
 import B2BLandingPage from '../pages/B2BLandingPage';
+import AutomationLandingPage from '../pages/AutomationLandingPage';
 import { CVWizard } from '../pages/CVWizard';
 import CVCheckPage from '../pages/CVCheckPage';
 import CvResultPage from '../pages/CvResultPage';
@@ -113,6 +114,7 @@ export const router = createHashRouter([
       { path: '/verify/:certId', element: <CertificateVerifyPage /> },
       { path: '/kurse', element: <CoursesPage /> },
       { path: '/business', element: <B2BLandingPage /> },
+      { path: '/business/automatisierung', element: <AutomationLandingPage /> },
 
       { path: '/turnier', element: <FestivalTournamentBoard /> },
       { path: '/turnier/:tournamentId', element: <FestivalTournamentBoard /> },
