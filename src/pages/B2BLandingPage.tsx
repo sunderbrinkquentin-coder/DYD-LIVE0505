@@ -1,15 +1,19 @@
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useEffect } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import B2BHeader from './b2b/B2BHeader';
 import B2BHero from './b2b/B2BHero';
-import B2BTabs from './b2b/B2BTabs';
+import B2BTabs, { type TabId } from './b2b/B2BTabs';
 import OrbitVideoSection from './b2b/OrbitVideoSection';
 import { PlatformOverviewSection, TrustSection, FinalCtaSection } from './b2b/B2BSections';
 import B2BContactModal from './b2b/B2BContactModal';
 
-type TabId = 'unternehmen' | 'bildungstraeger';
+const VALID_TABS: TabId[] = ['unternehmen', 'bildungstraeger', 'automatisierung'];
 
 export default function B2BLandingPage() {
-  const [activeTab, setActiveTab] = useState<TabId>('unternehmen');
+  // Tab per Link teilbar/ansteuerbar: #/business?tab=automatisierung
+  const [searchParams] = useSearchParams();
+  const tabParam = searchParams.get('tab') as TabId | null;
+  const [activeTab, setActiveTab] = useState<TabId>(tabParam && VALID_TABS.includes(tabParam) ? tabParam : 'unternehmen');
   const [modalOpen, setModalOpen] = useState(false);
   const [modalSegment, setModalSegment] = useState<TabId>('unternehmen');
   /* Optionaler Kontext aus dem ORBIT-Tab (z. B. "Live-Demo" oder das gewählte
@@ -23,6 +27,14 @@ export default function B2BLandingPage() {
     setModalOpen(true);
   }, []);
 
+  // Mit ?tab=… geöffnet (auch wenn die Seite schon offen ist) → Tab wählen + hinscrollen
+  useEffect(() => {
+    if (!tabParam || !VALID_TABS.includes(tabParam)) return;
+    setActiveTab(tabParam);
+    const t = window.setTimeout(() => document.getElementById('b2b-tabs')?.scrollIntoView({ behavior: 'smooth', block: 'start' }), 300);
+    return () => window.clearTimeout(t);
+  }, [tabParam]);
+
   const handleHeroCta = (tab: TabId) => {
     setActiveTab(tab);
     requestAnimationFrame(() => {
@@ -32,7 +44,7 @@ export default function B2BLandingPage() {
 
   return (
     <div className="min-h-screen bg-[#0A192F]">
-      <B2BHeader onContact={() => openContact(activeTab)} />
+      <B2BHeader onContact={() => openContact(activeTab)} activeTab={activeTab} onNavigate={handleHeroCta} />
       <B2BHero onCtaClick={handleHeroCta} />
       <B2BTabs activeTab={activeTab} onTabChange={setActiveTab} onRequestDemo={openContact} />
       <PlatformOverviewSection activeTab={activeTab} />
