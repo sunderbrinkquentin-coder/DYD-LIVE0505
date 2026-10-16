@@ -8,11 +8,17 @@
 
 import { useEffect, useId, useMemo, useRef, useState } from 'react';
 import { useLocation } from 'react-router-dom';
-import { Loader2, RotateCcw, Send, Sparkles, X } from 'lucide-react';
+import { CalendarDays, Loader2, RotateCcw, Send, Sparkles, X } from 'lucide-react';
 import { advisorHiddenOn, getAdvisorVariant, pageContext } from './advisorConfig';
 import { trackAdvisor } from './advisorAnalytics';
 import { AdvisorProductCard } from './AdvisorProductCard';
 import { useAdvisorChat, type ChatEntry } from './useAdvisorChat';
+import { AdvisorLeadCard, type LeadView } from './AdvisorLeadCard';
+
+/** Firmenkontext erkannt → Erstgespräch früh anbieten */
+const B2B_PAGES = ['business', 'automation'];
+const B2B_RE = /f[üu]r (ein|unser|mein) unternehmen|unser(e|em|en)? (firma|unternehmen|team|betrieb|mitarbeit)|\bfirma\b|gmbh|\bbetrieb\b|mitarbeitende|belegschaft|automatisier|software|\bapp\b|app-?idee|\bcrm\b|workflow|nexus|orbit|bildungstr|akademie|wir als/i;
+const MEETING_RE = /termin|gespr[äa]ch|telefon|anruf|kontakt|treffen|demo|beratung|angebot|preis|kosten|was kostet/i;
 
 const STARTERS: Record<string, string[]> = {
   home: ['Welches Angebot passt zu mir?', 'Was kostet der CV-Check?', 'Ich frage für ein Unternehmen'],
@@ -84,6 +90,9 @@ function AdvisorShell({ pathname }: { pathname: string }) {
   const panelId = useId();
   const titleId = useId();
   const [teaser, setTeaser] = useState(false);
+  const [leadShown, setLeadShown] = useState(false);
+  const [leadView, setLeadView] = useState<LeadView>('teaser');
+  const [leadSlot, setLeadSlot] = useState(false);
 
   // Initialmeldung: einmal pro Besuch, kurz verzögert, blendet sich selbst aus
   useEffect(() => {
@@ -115,7 +124,7 @@ function AdvisorShell({ pathname }: { pathname: string }) {
   useEffect(() => {
     const el = listRef.current;
     if (el) el.scrollTo({ top: el.scrollHeight, behavior: 'smooth' });
-  }, [chat.entries, chat.loading, chat.error]);
+  }, [chat.entries, chat.loading, chat.error, leadShown, leadView]);
 
   // Escape schließt; mobil: Hintergrund nicht scrollen, solange offen
   useEffect(() => {
@@ -136,6 +145,14 @@ function AdvisorShell({ pathname }: { pathname: string }) {
   };
 
   const lastAssistant = [...chat.entries].reverse().find((e) => e.role === 'assistant');
+  const userText = chat.entries.filter((e) => e.role === 'user').map((e) => e.text).join(' ');
+  const isB2B = B2B_PAGES.includes(ctx.page) || B2B_RE.test(userText) || chat.entries.some((e) => e.contactOffer);
+  const assistantCount = chat.entries.filter((e) => e.role === 'assistant').length;
+  // Erstgespräch: im Firmenkontext direkt nach der ersten Antwort, bei Termin-/Preisfragen sofort
+  const showLead = leadShown || (isB2B && assistantCount >= 1);
+  const wantsMeeting = isB2B && MEETING_RE.test(userText);
+  const openLead = (view: LeadView = 'teaser') => { setLeadShown(true); setLeadView(view); };
+  const resetChat = () => { chat.reset(); setLeadShown(false); setLeadView('teaser'); setLeadSlot(false); };
   const starters = STARTERS[ctx.page] ?? STARTERS.other;
 
   return (
@@ -231,8 +248,13 @@ function AdvisorShell({ pathname }: { pathname: string }) {
               </div>
             </div>
             <div className="flex items-center gap-1">
+              {isB2B && leadView !== 'sent' && (
+                <button type="button" onClick={() => openLead('teaser')} className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-[11px] font-black text-[#30E3CA] bg-[#30E3CA]/10 border border-[#30E3CA]/30 hover:bg-[#30E3CA]/20 focus:outline-none focus-visible:ring-2 focus-visible:ring-[#30E3CA]" title="Kostenloses Erstgespräch">
+                  <CalendarDays size={13} aria-hidden /> Erstgespräch
+                </button>
+              )}
               {chat.entries.length > 0 && (
-                <button type="button" onClick={chat.reset} className="p-2 rounded-lg text-white/50 hover:text-white hover:bg-white/10 focus:outline-none focus-visible:ring-2 focus-visible:ring-[#30E3CA]" aria-label="Gespräch neu starten" title="Neu starten">
+                <button type="button" onClick={resetChat} className="p-2 rounded-lg text-white/50 hover:text-white hover:bg-white/10 focus:outline-none focus-visible:ring-2 focus-visible:ring-[#30E3CA]" aria-label="Gespräch neu starten" title="Neu starten">
                   <RotateCcw size={16} aria-hidden />
                 </button>
               )}
@@ -258,6 +280,11 @@ function AdvisorShell({ pathname }: { pathname: string }) {
                     </button>
                   ))}
                 </div>
+              )}
+              {chat.entries.length === 0 && B2B_PAGES.includes(ctx.page) && !leadShown && (
+                <button type="button" onClick={() => openLead('teaser')} className="mt-3 inline-flex items-center gap-1.5 text-xs font-bold text-[#30E3CA] hover:underline focus:outline-none focus-visible:ring-2 focus-visible:ring-[#30E3CA] rounded">
+                  <CalendarDays size={13} aria-hidden /> Oder direkt ein kostenloses Erstgespräch vereinbaren
+                </button>
               )}
             </div>
 
@@ -293,6 +320,12 @@ function AdvisorShell({ pathname }: { pathname: string }) {
                 ))}
               </div>
             )}
+
+            {showLead && (!chat.loading || leadView !== 'teaser') && (
+              <div className={wantsMeeting && leadView === 'teaser' ? 'ring-2 ring-[#30E3CA]/40 rounded-2xl' : ''}>
+                <AdvisorLeadCard page={ctx.page} entries={chat.entries} view={leadView} setView={setLeadView} withSlot={leadSlot} setWithSlot={setLeadSlot} />
+              </div>
+            )}
           </div>
 
           {/* Eingabe */}
@@ -324,7 +357,7 @@ function AdvisorShell({ pathname }: { pathname: string }) {
               </button>
             </div>
             <p className="text-[10px] text-white/30 mt-2">
-              Du schreibst mit einer KI (OpenAI), nicht mit Quentin persönlich. Gesprächsinhalte werden nicht gespeichert. Bitte keine sensiblen Daten eingeben.{' '}
+              Du schreibst mit einer KI (OpenAI), nicht mit Quentin persönlich. Gesprächsinhalte werden nicht gespeichert – außer du schickst sie selbst mit einer Anfrage mit. Bitte keine sensiblen Daten eingeben.{' '}
               <a href="#/datenschutz" className="underline hover:text-white/60">Datenschutz</a>
             </p>
           </form>
