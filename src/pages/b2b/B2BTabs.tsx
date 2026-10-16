@@ -3,7 +3,7 @@ import { motion, AnimatePresence, useReducedMotion, type Variants } from 'framer
 import {
   Building2, GraduationCap, AlertTriangle, Sparkles, ArrowRight,
   TrendingDown, TrendingUp, Target, Filter, Zap, Plus, Palette, Code2, Check,
-  MousePointerClick,
+  MousePointerClick, Workflow, ArrowUpRight,
 } from 'lucide-react';
 import { b2bContent } from './content';
 import ProcessRail from './ProcessRail';
@@ -313,13 +313,14 @@ export default function B2BTabs({ initialTab = 'unternehmen', activeTab: control
   return (
     <section ref={tabSectionRef} id="b2b-tabs" aria-label="DYD für Unternehmen und Bildungsträger" className="relative bg-[#F6F9FD] py-20 px-4 sm:px-6 lg:px-8 scroll-mt-20 lg:scroll-mt-24">
       <div className="max-w-6xl mx-auto">
-        <div className="flex gap-2 p-1.5 rounded-2xl bg-white border border-[#E3EBF5] shadow-sm mb-12 max-w-xl mx-auto" role="tablist" aria-label="Zielgruppe wählen" onKeyDown={onTabKeyDown}>
+        <div className="flex items-stretch gap-2 max-w-3xl mx-auto mb-12">
+        <div className="flex-1 flex gap-2 p-1.5 rounded-2xl bg-white border border-[#E3EBF5] shadow-sm" role="tablist" aria-label="Zielgruppe wählen" onKeyDown={onTabKeyDown}>
           {tabMeta.map((t, i) => {
             const selected = activeTab === t.id;
             const Icon = t.Icon;
             return (
               <button key={t.id} ref={(el) => (tabRefs.current[i] = el)} role="tab" id={`tab-${t.id}`} aria-selected={selected} aria-controls={`panel-${t.id}`} tabIndex={selected ? 0 : -1} onClick={() => handleTabClick(t.id)}
-                className={`flex-1 flex items-center justify-center gap-2 px-4 py-3 rounded-xl text-sm font-arimo font-bold transition b2b-focus-ring ${selected ? 'text-white shadow-md' : 'text-[#55637A] hover:text-[#0F1E34]'}`}
+                className={`flex-1 min-w-0 flex flex-col sm:flex-row items-center justify-center gap-1 sm:gap-2 px-2 sm:px-4 py-2.5 sm:py-3 rounded-xl text-[11px] sm:text-sm leading-tight font-arimo font-bold transition b2b-focus-ring ${selected ? 'text-white shadow-md' : 'text-[#55637A] hover:text-[#0F1E34]'}`}
                 style={selected ? { background: NAVY_SKY } : undefined}>
                 <Icon className="w-4 h-4" aria-hidden="true" />
                 <span className="hidden sm:inline">{t.label}</span>
@@ -327,6 +328,14 @@ export default function B2BTabs({ initialTab = 'unternehmen', activeTab: control
               </button>
             );
           })}
+        </div>
+        {/* Dritter Bereich als eigener Link (eigene Seite) – gleiche Höhe wie die Tabs,
+            aber klar abgesetzt, damit sichtbar ist: das ist ein anderes Angebot. */}
+        <a href="#/business/automatisierung" className="flex flex-col sm:flex-row items-center justify-center gap-1 sm:gap-2 px-3 sm:px-5 rounded-2xl border-2 border-dashed border-[#c5dd8a] bg-[#f7fde8] text-[#3f5a0f] font-arimo text-[11px] sm:text-sm font-bold hover:bg-[#effad3] b2b-focus-ring transition" aria-label="Automatisierung & Software – eigene Seite">
+          <Workflow className="w-4 h-4" aria-hidden="true" />
+          <span className="hidden sm:inline">Automatisierung</span><span className="sm:hidden">Software</span>
+          <ArrowUpRight className="w-3.5 h-3.5 hidden sm:block" aria-hidden="true" />
+        </a>
         </div>
 
         <AnimatePresence mode="wait">
