@@ -1,227 +1,246 @@
 // src/pages/b2b/automationContent.ts
 //
-// Inhalte für den B2B-Tab "Automatisierung" (NEU, 16.10.2026).
-// Bewusst als eigene Datei neben content.ts, damit Texte zentral pflegbar
-// bleiben, ohne die große content.ts weiter aufzublähen.
+// Inhalte der eigenen Landingpage "Automatisierung & Software"
+// (#/business/automatisierung, NEU 16.10.2026).
 //
-// WICHTIG – Referenzen: Die drei Projekte werden NEUTRAL beschrieben (keine
-// Projekt-, Firmen- oder Personennamen, keine echten Zahlen). Die Bilder
-// sind nachgebaute Ansichten mit erfundenen Beispieldaten (AutomationMockups.tsx),
-// KEINE Screenshots der echten Apps.
+// Referenzen: Funktionen 1:1 aus dem echten Code der Projekte abgeleitet.
+// Bilder unter /public/b2b/refs/ sind ECHTE Screenshots der Anwendungen –
+// lokal gestartet mit erfundenen Beispieldaten (keine Kunden-, Konto- oder
+// Personendaten, Namen/Logos neutralisiert). Projektnamen bewusst neutral.
+
+export type RefShot = { src: string; alt: string; caption: string; device: 'desktop' | 'mobile' | 'document' };
+export type Reference = {
+  id: string;
+  short: string;
+  category: string;
+  icon: 'mic' | 'crm' | 'chart' | 'ticket' | 'trophy' | 'bot';
+  title: string;
+  pitch: string;
+  shots: RefShot[];
+  automations: string[];
+  ai: string[];
+  control: string;
+  stack: string[];
+  disclaimer?: string;
+};
 
 export const automationContent = {
-  tab: {
-    label: 'Automatisierung & Software',
-    short: 'Automatisierung',
+  meta: {
+    title: 'Automatisierung & individuelle Software | DYD',
   },
 
-  intro: {
-    eyebrow: 'Automatisierung & individuelle Software',
-    headline: 'Weniger Handarbeit. Mehr Zeit für das, was zählt.',
+  hero: {
+    eyebrow: 'DYD Automatisierung & Software',
+    headline: ['Software, die', 'mitarbeitet.'],
     subline:
-      'Wir bauen schlanke Web-Apps, Workflows und KI-Assistenten, die wiederkehrende Aufgaben übernehmen – passgenau für Ihre Abläufe statt Standard-Software von der Stange.',
-    chips: ['Workflows', 'KI-Assistenten', 'Interne Tools', 'Dashboards', 'Schnittstellen'],
+      'Wir bauen Web-Apps, KI-Assistenten und Automatisierungen, die Routinearbeit übernehmen – und Ihnen trotzdem die Kontrolle lassen. Keine Folien, sondern Systeme, die täglich laufen.',
+    ctaPrimary: 'Kostenlosen Prozess-Check starten',
+    ctaSecondary: 'Live-Projekte ansehen',
+    proof: [
+      { value: '7', label: 'selbst entwickelte Systeme live' },
+      { value: 'KI + Freigabe', label: 'nichts geht ungeprüft nach außen' },
+      { value: 'Fester Preis', label: 'für den ersten Baustein' },
+    ],
   },
 
-  /** In-Page-Navigation des Tabs – hilft, sich im Bereich zurechtzufinden. */
-  subnav: [
-    { id: 'auto-leistungen', label: 'Leistungen' },
-    { id: 'auto-referenzen', label: 'Referenzen' },
-    { id: 'auto-ablauf', label: 'Ablauf' },
-    { id: 'auto-faq', label: 'Fragen' },
-  ],
-
-  services: {
-    title: 'Was wir für Sie automatisieren',
-    subtitle: 'Typische Aufgaben, die heute Zeit kosten – und morgen im Hintergrund laufen.',
-    items: [
-      { icon: 'workflow', title: 'Wiederkehrende Abläufe', desc: 'Daten übertragen, Status setzen, Erinnerungen verschicken – automatisch und nachvollziehbar.' },
-      { icon: 'bot', title: 'KI-Assistenten', desc: 'Texte vorbereiten, Inhalte prüfen, Informationen zusammenfassen – mit Freigabe durch Ihr Team.' },
-      { icon: 'crm', title: 'Vertrieb & CRM', desc: 'Leads, Follow-ups und Pipeline an einem Ort – mit klarer Tagesansicht statt Excel-Listen.' },
-      { icon: 'dashboard', title: 'Dashboards & Reporting', desc: 'Die wichtigsten Kennzahlen live auf einen Blick, statt Berichte von Hand zu bauen.' },
-      { icon: 'plug', title: 'Schnittstellen', desc: 'Bestehende Tools sinnvoll verbinden – per API, Webhook oder Automatisierungsplattform.' },
-      { icon: 'app', title: 'Individuelle Web-Apps', desc: 'Interne Tools, die genau zu Ihrem Prozess passen – im Browser und auf dem Handy nutzbar.' },
+  /** Interaktive Einstiegsfrage: Wo verlieren Sie Zeit? → passende Referenz */
+  finder: {
+    title: 'Wo verlieren Sie heute die meiste Zeit?',
+    subtitle: 'Wählen Sie einen Bereich – wir zeigen Ihnen ein echtes System, das genau das löst.',
+    options: [
+      { id: 'vertrieb', label: 'Vertrieb & Kundenkontakt', ref: 'crm', checkArea: 'Vertrieb & Kundenkontakt', pain: 'Follow-ups vergessen, Antworten formulieren, Überblick behalten.' },
+      { id: 'content', label: 'Content & Redaktion', ref: 'podcast', checkArea: 'Content & Redaktion', pain: 'Texte für jeden Kanal, Freigaben, Veröffentlichungsplanung.' },
+      { id: 'events', label: 'Events & Tickets', ref: 'tickets', checkArea: 'Events & Tickets', pain: 'Ticketverkauf, Teilnehmerlisten, Abläufe vor Ort.' },
+      { id: 'service', label: 'Anfragen & Beratung', ref: 'chatbot', checkArea: 'Anfragen & Beratung', pain: 'Immer gleiche Fragen beantworten, passende Angebote empfehlen.' },
+      { id: 'daten', label: 'Daten & Entscheidungen', ref: 'trading', checkArea: 'Daten & Reporting', pain: 'Regeln konsequent anwenden, Risiken überwachen, alles dokumentieren.' },
+      { id: 'ablauf', label: 'Abläufe vor Ort', ref: 'turnier', checkArea: 'Events & Tickets', pain: 'Pläne auf Papier, Ergebnisse auf Zuruf, Wartezeiten.' },
     ],
   },
 
   references: {
-    title: 'Referenzen aus der Praxis',
-    subtitle: 'Fünf Projekte aus Medien, Vertrieb, Finanzen und Events – ein Prinzip: Routine automatisieren, Kontrolle behalten.',
-    note: 'Nachgebaute Ansichten mit Beispieldaten – aus Datenschutzgründen ohne echte Inhalte.',
-    /** Hinweis für Projekte mit echtem Event-Motiv (Plakat/Flyer) */
-    noteWithPoster: 'Links: originales Event-Motiv. Rechts: nachgebaute Ansicht mit Beispieldaten.',
-    projects: [
-      {
-        id: 'podcast',
-        tab: 'Content',
-        icon: 'mic',
-        category: 'Medien & Content',
-        title: 'Produktions-Studio für einen Karriere-Podcast',
-        summary:
-          'Ein zentrales Studio, in dem ein Podcast-Team Episoden vorbereitet, Inhalte prüft und Veröffentlichungen plant.',
-        before: [
-          'Themen, Gästefragen und Notizen verteilt auf mehrere Tools',
-          'Freigaben per Nachricht – der aktuelle Stand war oft unklar',
-          'Veröffentlichungen mussten einzeln und von Hand geplant werden',
-        ],
-        solution: [
-          'Episoden-Board von der Idee bis zur Veröffentlichung',
-          'KI-gestützte Vorbereitung: Leitfaden, Fragen und Shownotes als Entwurf',
-          'Prüfschritt mit Checkliste, bevor etwas live geht',
-          'Redaktionskalender für alle geplanten Veröffentlichungen',
-          'Geschützter Team-Zugang',
-        ],
-        outcomes: [
-          'Ein Ort für den gesamten Produktionsprozess',
-          'Klarer Status jeder Episode für das ganze Team',
-          'Vorbereitung startet mit einem Entwurf statt mit einem leeren Blatt',
-        ],
-        stack: ['Web-App', 'KI-Textassistent', 'Datenbank & Login', 'Redaktionsplanung'],
-      },
+    eyebrow: 'Live-Projekte',
+    title: 'Echte Systeme. Echte Oberflächen.',
+    subtitle: 'Alle Bilder sind Screenshots der laufenden Anwendungen – gezeigt mit Beispieldaten, damit keine echten Kunden- oder Kontodaten sichtbar sind.',
+    items: [
       {
         id: 'crm',
-        tab: 'CRM',
-        icon: 'crm',
+        short: 'Vertriebs-CRM',
         category: 'Vertrieb',
-        title: 'Schlankes Vertriebs-CRM mit Tagesfokus',
-        summary:
-          'Ein maßgeschneidertes CRM, das jeden Morgen zeigt, was heute zu tun ist – für mehrere Produkte und Leistungen gleichzeitig.',
-        before: [
-          'Kontakte und Gesprächsnotizen in Listen und Postfächern',
-          'Follow-ups gingen im Tagesgeschäft unter',
-          'Kein Überblick, in welcher Phase welcher Kontakt steht',
+        icon: 'crm',
+        title: 'Vertriebs-CRM mit KI-Berater',
+        pitch: 'Jeden Morgen ein fertiges Tagesbriefing: Was ist heute wichtig, wen anrufen, was droht liegen zu bleiben. Die KI schreibt mit – verschickt wird erst nach Freigabe.',
+        shots: [
+          { src: '/b2b/refs/crm-cockpit.webp', alt: 'Cockpit des Vertriebs-CRM mit KI-Tagesbriefing', caption: 'Cockpit: KI-Briefing mit den 3 wichtigsten Schritten des Tages', device: 'desktop' },
+          { src: '/b2b/refs/crm-freigabe.webp', alt: 'Freigabe-Postfach mit KI-Entwurf einer Follow-up-Mail', caption: 'Freigabe: KI-Entwurf prüfen, anpassen, mit einem Klick senden', device: 'desktop' },
+          { src: '/b2b/refs/crm-unternehmen.webp', alt: 'Unternehmensliste mit Score und nächstem Schritt', caption: 'Pipeline mit Score, Phase und fälligem nächsten Schritt', device: 'desktop' },
         ],
-        solution: [
-          '„Heute“-Ansicht mit fälligen Aufgaben und Follow-ups',
-          'Pipeline nach Phasen – per Klick weiterschieben',
-          'Kontakte nach Produkt bzw. Leistung getrennt',
-          'Anmeldung per Magic Link – ohne Passwort-Chaos',
-          'Als App auf dem Handy nutzbar',
+        automations: [
+          'Tagesbriefing werktags automatisch, Wochenreview freitags',
+          'Gesprächsnotizen → Zusammenfassung + To-Dos mit Fälligkeit',
+          'Lead-Finder recherchiert passende Unternehmen inkl. Fit-Score',
+          'Fällige Follow-ups werden erkannt und als Entwurf vorbereitet',
         ],
-        outcomes: [
-          'Kein Follow-up mehr vergessen',
-          'Pipeline-Überblick in Sekunden statt Suchen in Listen',
-          'Vertrieb auch unterwegs vom Handy aus',
-        ],
-        stack: ['Web-App (mobil)', 'Datenbank & Magic-Link-Login', 'Automatische Erinnerungen'],
+        ai: ['Antwort-Assistent: erkennt Interesse, Einwand oder „später“ und schlägt die Antwort vor', 'Termin-Briefing mit Bedarfsfragen und Einwandbehandlung', 'Aufholplan, wenn ein Monatsziel wackelt'],
+        control: 'Nach außen geht nichts ohne Freigabe.',
+        stack: ['Web-App & Handy-App', 'KI-Berater', 'E-Mail-Versand', 'Push-Erinnerungen'],
       },
       {
-        id: 'trading',
-        tab: 'Trading',
-        icon: 'chart',
-        category: 'Finanzen',
-        title: 'Regelbasierte Trading-Automatisierung',
-        summary:
-          'Eine App, die festgelegte Investment-Regeln automatisch ausführt – mit klaren Grenzen, Freigaben und vollständigem Protokoll.',
-        before: [
-          'Marktbeobachtung und Ausführung kosteten täglich Zeit',
-          'Regeln wurden im Alltag nicht konsequent eingehalten',
-          'Kaum Übersicht über Entscheidungen und deren Gründe',
+        id: 'podcast',
+        short: 'Podcast-Studio',
+        category: 'Content & Redaktion',
+        icon: 'mic',
+        title: 'Produktions-Studio für einen Podcast',
+        pitch: 'Vom ersten Gedanken bis zur Veröffentlichung an einem Ort: Episoden-Workflow, KI-Textentwürfe für alle Kanäle und eine klare Freigabe pro Text.',
+        shots: [
+          { src: '/b2b/refs/podcast-start.webp', alt: 'Startseite des Podcast-Studios mit Fokus-Aufgaben und aktueller Folge', caption: 'Start: Fokus des Tages, aktuelle Folge, Veröffentlichungskalender', device: 'desktop' },
+          { src: '/b2b/refs/podcast-texte.webp', alt: 'Textprüfung einer Episode mit sieben KI-Entwürfen', caption: 'Texte prüfen: 7 KI-Entwürfe – Shownotes, Beschreibungen, Social Posts', device: 'desktop' },
         ],
-        solution: [
-          'Strategien als feste Regeln definieren',
-          'Risiko-Grenzen, die automatisch greifen',
-          'Freigabe-Modus: Vorschläge erst nach Bestätigung ausführen',
-          'Lückenloses Protokoll jeder Aktion',
-          'Übersichtliches Dashboard mit Status auf einen Blick',
+        automations: [
+          'Produktionsaufgaben entstehen automatisch aus dem Episodenstand',
+          'Aufgaben nach Veröffentlichungstermin priorisiert',
+          'Veröffentlichungskalender mit allen geplanten Folgen',
+          'Leistungsdaten der Plattformen an einem Ort',
         ],
-        outcomes: [
-          '„Automatisch investieren. Volle Kontrolle.“ – Regeln statt Bauchgefühl',
-          'Weniger Zeit vor dem Bildschirm',
-          'Jede Entscheidung ist nachvollziehbar dokumentiert',
+        ai: ['Aus dem Transkript: Shownotes, Beschreibungen, YouTube- und LinkedIn-Texte', 'Brainstorming-Partner für neue Folgen', 'Gast-Briefing zur Vorbereitung'],
+        control: 'Jeder Text wird einzeln geprüft und freigegeben.',
+        stack: ['Web-App', 'KI-Textassistent', 'Kalender', 'Team-Login'],
+      },
+      {
+        id: 'chatbot',
+        short: 'KI-Chatbot',
+        category: 'Beratung & Vertrieb',
+        icon: 'bot',
+        title: 'KI-Produktberater für eine Website',
+        pitch: 'Ein Chatbot, der nicht nur Fragen beantwortet, sondern das passende Angebot empfiehlt – mit Preis, Inhalten und direktem Weg zum Kauf.',
+        shots: [
+          { src: '/b2b/refs/chatbot-mobil.webp', alt: 'KI-Berater im Chat mit Produktempfehlung', caption: 'Empfehlung mit Produktkarte, Preis und nächstem Schritt', device: 'mobile' },
+          { src: '/b2b/refs/chatbot-desktop.webp', alt: 'KI-Berater als Fenster auf der Website', caption: 'Auf jeder Seite verfügbar – mit passenden Einstiegsfragen', device: 'desktop' },
         ],
-        stack: ['Web-App', 'Regel-Engine', 'Broker-Schnittstelle', 'Protokollierung'],
-        disclaimer: 'Technische Referenz – keine Anlageberatung.',
+        automations: [
+          'Kennt die Seite, auf der der Besucher gerade ist',
+          'Produktkarten mit Preis, Inhalten und Direkt-Link',
+          '„Passt nicht“ wird gemerkt, keine Wiederholung',
+          'Testbetrieb mit Vergleichsgruppe und Auswertung',
+        ],
+        ai: ['Versteht freie Fragen statt starrer Klickpfade', 'Bietet Kontakt an, wenn eine Frage offen bleibt'],
+        control: 'Schlüssel nur auf dem Server, Gespräche werden nicht gespeichert.',
+        stack: ['Website-Widget', 'KI-Schnittstelle', 'Analytics'],
       },
       {
         id: 'tickets',
-        tab: 'Tickets',
-        icon: 'ticket',
+        short: 'Ticketsystem',
         category: 'Events',
-        poster: true,
-        title: 'Ticketsystem für ein Musik- & Comedy-Festival',
-        summary:
-          'Ein eigener Ticketshop für ein eintägiges Festival: Programmpunkte einzeln oder als Bundle buchen, online bezahlen, Ticket sofort als PDF erhalten.',
-        before: [
-          'Ticketplattformen mit hohen Gebühren und wenig Gestaltungsspielraum',
-          'Einzelne Programmpunkte ließen sich nicht flexibel kombinieren',
-          'Teilnehmerlisten mussten von Hand zusammengeführt werden',
+        icon: 'ticket',
+        title: 'Ticketsystem für ein Festival',
+        pitch: 'Eigener Ticketshop statt teurer Plattform: Programmpunkte einzeln oder als Bundle buchen, online bezahlen – das PDF-Ticket entsteht automatisch.',
+        shots: [
+          { src: '/b2b/refs/tickets-shop.webp', alt: 'Ticketauswahl mit Bundle-Angebot', caption: 'Ticketauswahl: Bundle, Einzeltickets, Freigetränk inklusive', device: 'desktop' },
+          { src: '/b2b/refs/ticket-pdf.webp', alt: 'Automatisch erzeugtes PDF-Ticket mit Beispieldaten', caption: 'Automatisch erzeugtes PDF-Ticket – inkl. Programm und Turnier-Team', device: 'document' },
         ],
-        solution: [
-          'Ticketauswahl mit Einzel-Tickets und günstigerem Bundle',
+        automations: [
           'Sichere Online-Zahlung direkt im Shop',
-          'Ticket wird automatisch als PDF erzeugt und zugestellt',
-          'Alle Tickets gesammelt im eigenen Konto abrufbar',
-          'Passende Zusatzangebote direkt beim Kauf (z. B. Merch)',
+          'PDF-Ticket mit Programm, Einlass und Ticketnummer',
+          'Tickets im Kundenkonto jederzeit abrufbar',
+          'Turnier-Startplätze landen direkt in der Turnierverwaltung',
         ],
-        outcomes: [
-          'Volle Kontrolle über Gestaltung, Preise und Daten',
-          'Kein manuelles Versenden von Tickets mehr',
-          'Startplätze fürs Turnier landen automatisch in der Turnierverwaltung',
-        ],
-        stack: ['Web-App', 'Online-Zahlung', 'PDF-Erstellung', 'Datenbank & Login'],
+        ai: [],
+        control: 'Volle Kontrolle über Preise, Gestaltung und Daten.',
+        stack: ['Web-App', 'Online-Zahlung', 'PDF-Erstellung', 'Kundenkonto'],
       },
       {
-        id: 'tournament',
-        tab: 'Turnier',
+        id: 'turnier',
+        short: 'Live-Turnier',
+        category: 'Events vor Ort',
         icon: 'trophy',
-        category: 'Events',
-        poster: true,
-        title: 'Live-Turnierverwaltung für ein Bierpong-Turnier',
-        summary:
-          'Vom Ticket bis zum Finale: Teams, Gruppen, Tische und Spielzeiten werden automatisch geplant – das Publikum verfolgt alles live.',
-        before: [
-          'Spielpläne auf Papier, Ergebnisse auf Zuruf',
-          'Wartezeiten, weil Tische nicht gleichmäßig belegt waren',
-          'Niemand wusste, wer wann gegen wen spielt',
+        title: 'Live-Turnierverwaltung',
+        pitch: 'Gruppen auslosen, Tische belegen, Zeit stoppen, Ergebnisse eintragen – die Turnierleitung steuert alles vom Handy, die Gäste sehen alles live.',
+        shots: [
+          { src: '/b2b/refs/turnier-tableau.webp', alt: 'Live-Tableau mit Rundentimer und Tischbelegung', caption: 'Live-Tableau für Gäste: Timer, Tische, Tabellen in Echtzeit', device: 'desktop' },
+          { src: '/b2b/refs/turnier-cockpit.webp', alt: 'Turnier-Cockpit der Turnierleitung', caption: 'Turnier-Cockpit: Teams, Spielwellen, Ergebnis-Eingabe', device: 'desktop' },
         ],
-        solution: [
-          'Teams werden direkt aus den Ticketkäufen übernommen',
-          'Gruppen auslosen und Spielplan per Klick erzeugen',
-          'Spielwellen automatisch auf freie Tische verteilen',
-          'Rundentimer, Ergebnis-Eingabe und automatische K.-o.-Runde',
-          'Live-Board für alle Gäste – aktualisiert sich in Echtzeit',
+        automations: [
+          'Teams werden aus den Ticketkäufen übernommen',
+          'Gruppen und Spielplan per Klick',
+          'Spielwellen automatisch auf freie Tische verteilt',
+          'K.-o.-Runde entsteht automatisch aus den Tabellen',
         ],
-        outcomes: [
-          'Turnierleitung steuert alles vom Handy aus',
-          'Keine Zettelwirtschaft und keine Rechenfehler bei Tabellen',
-          'Gäste sehen jederzeit, wann sie dran sind',
-        ],
-        stack: ['Web-App (mobil)', 'Echtzeit-Datenbank', 'Spielplan-Logik', 'Live-Board'],
+        ai: [],
+        control: 'Korrekturen jederzeit möglich, jede Partie nachvollziehbar.',
+        stack: ['Web-App (mobil)', 'Echtzeit-Datenbank', 'Live-Anzeige'],
       },
-    ],
+      {
+        id: 'trading',
+        short: 'Trading-Bot',
+        category: 'Finanzen & Daten',
+        icon: 'chart',
+        title: 'Regelbasierter Trading-Assistent',
+        pitch: 'Feste Regeln statt Bauchgefühl: Der Assistent handelt nach Trend und Momentum, ein Risikowächter prüft stündlich – Echtgeld erst nach bestandener Demo-Phase.',
+        shots: [
+          { src: '/b2b/refs/trading-depot.webp', alt: 'Depotansicht im Demo-Modus', caption: 'Depot im Demo-Modus mit Verlauf und Aufteilung', device: 'mobile' },
+          { src: '/b2b/refs/trading-bot.webp', alt: 'Steuerung des Bots mit Kill-Switch', caption: 'Steuerung: pausieren, ausführen, Kill-Switch', device: 'mobile' },
+          { src: '/b2b/refs/trading-aktivitaet.webp', alt: 'Aktivitätsprotokoll mit Begründung je Order', caption: 'Protokoll: jede Order mit Begründung', device: 'mobile' },
+        ],
+        automations: [
+          'Läuft werktags serverseitig nach festem Zeitplan',
+          'Risikowächter prüft stündlich, Stop-Loss beim Broker',
+          'Echtgeld nur nach Demo-Phase und mit Budget-Deckel',
+          'Rückblick-Test der Strategie vor dem Einsatz',
+        ],
+        ai: [],
+        control: 'Kill-Switch schließt mit einem Klick alle Positionen.',
+        stack: ['Handy-App', 'Regel-Engine', 'Broker-Schnittstelle', 'Protokollierung'],
+        disclaimer: 'Technische Referenz – keine Anlageberatung.',
+      },
+    ] as Reference[],
   },
 
-  process: {
-    title: 'So arbeiten wir zusammen',
+  approach: {
+    eyebrow: 'So arbeiten wir',
+    title: 'Vom Problem zum laufenden System',
     steps: [
-      { title: 'Erstgespräch', desc: 'Kostenlos: Wir verstehen Ihren Ablauf und wo heute Zeit verloren geht.', icon: 'search' },
-      { title: 'Konzept & Angebot', desc: 'Klarer Umfang, fester Preis, ein erster sinnvoller Schritt.', icon: 'target' },
-      { title: 'Prototyp', desc: 'Sie testen früh eine klickbare Version und geben Feedback.', icon: 'rocket' },
-      { title: 'Übergabe & Betreuung', desc: 'Einführung, Dokumentation und auf Wunsch laufende Weiterentwicklung.', icon: 'growth' },
+      { title: 'Prozess-Check', desc: 'Kostenlos, 30 Minuten: Wo geht Zeit verloren, was lässt sich sinnvoll automatisieren?', icon: 'search' },
+      { title: 'Fester Preis', desc: 'Ein klar abgegrenzter erster Baustein mit festem Preis – keine offene Stundenabrechnung.', icon: 'target' },
+      { title: 'Früh testen', desc: 'Sie klicken früh eine echte Version durch und geben Feedback, bevor alles fertig ist.', icon: 'rocket' },
+      { title: 'Laufen lassen', desc: 'Übergabe mit Einführung und Dokumentation. Weiterentwicklung auf Wunsch.', icon: 'growth' },
     ],
   },
 
-  principles: {
-    title: 'Worauf Sie sich verlassen können',
-    items: [
-      { title: 'Sie behalten die Kontrolle', desc: 'Wichtige Schritte laufen mit Freigabe – Automatisierung ersetzt keine Entscheidung.' },
-      { title: 'Klein starten, schnell nutzen', desc: 'Lieber ein Ablauf, der in kurzer Zeit wirkt, als ein Großprojekt über Monate.' },
-      { title: 'Nachvollziehbar & dokumentiert', desc: 'Sie wissen jederzeit, was automatisch passiert und warum.' },
-    ],
+  principles: [
+    { title: 'Mensch entscheidet', desc: 'KI bereitet vor, Sie geben frei. Wichtige Schritte laufen nie unbemerkt.' },
+    { title: 'Klein starten', desc: 'Ein Ablauf, der schnell wirkt – statt eines Großprojekts über Monate.' },
+    { title: 'Nachvollziehbar', desc: 'Protokolle und Begründungen zeigen jederzeit, was automatisch passiert ist.' },
+  ],
+
+  check: {
+    eyebrow: 'Kostenloser Prozess-Check',
+    title: 'In 3 Klicks zum Erstgespräch',
+    subtitle: 'Beantworten Sie drei kurze Fragen – wir melden uns mit einer ersten Einschätzung.',
+    areas: ['Vertrieb & Kundenkontakt', 'Content & Redaktion', 'Events & Tickets', 'Anfragen & Beratung', 'Daten & Reporting', 'Etwas anderes'],
+    volumes: ['Ein paar Stunden pro Woche', 'Mehrere Stunden pro Tag', 'Ein ganzes Team ist damit beschäftigt'],
+    timings: ['So schnell wie möglich', 'In den nächsten 3 Monaten', 'Ich informiere mich erst'],
+    success: 'Danke! Wir melden uns innerhalb von 24 Stunden mit einer ersten Einschätzung.',
   },
 
   faq: [
-    { q: 'Was kostet ein Automatisierungs-Projekt?', a: 'Das hängt vom Umfang ab. Nach dem kostenlosen Erstgespräch erhalten Sie ein Angebot mit festem Preis für einen klar abgegrenzten ersten Schritt – ohne versteckte Folgekosten.', cta: true, ctaLabel: 'Erstgespräch anfragen' },
-    { q: 'Wie schnell sehen wir ein erstes Ergebnis?', a: 'Wir starten bewusst mit einem kleinen, klar abgegrenzten Baustein. So können Sie früh eine klickbare Version testen, statt lange auf ein fertiges Gesamtsystem zu warten.' },
-    { q: 'Müssen wir unsere bestehenden Tools ersetzen?', a: 'Nein. Oft ist es am sinnvollsten, vorhandene Tools zu verbinden und nur die Lücken mit einer eigenen Lösung zu schließen.' },
-    { q: 'Wie gehen Sie mit unseren Daten um?', a: 'Wir arbeiten nur mit den Daten, die für den jeweiligen Ablauf nötig sind, und klären Zugriffe, Speicherorte und Verantwortlichkeiten gemeinsam mit Ihnen vor dem Start.' },
-    { q: 'Was passiert nach der Übergabe?', a: 'Sie erhalten eine Einführung und eine Dokumentation. Auf Wunsch betreuen und erweitern wir die Lösung weiter – Sie sind aber nicht daran gebunden.' },
+    { q: 'Was kostet ein Projekt?', a: 'Nach dem kostenlosen Prozess-Check bekommen Sie ein Angebot mit festem Preis für einen klar abgegrenzten ersten Baustein. Keine offene Stundenabrechnung, keine versteckten Folgekosten.' },
+    { q: 'Wie schnell gibt es ein erstes Ergebnis?', a: 'Wir starten mit einem kleinen Baustein, den Sie früh als klickbare Version testen – statt monatelang auf ein Gesamtsystem zu warten.' },
+    { q: 'Müssen wir unsere Tools ersetzen?', a: 'Nein. Oft ist es am sinnvollsten, vorhandene Tools zu verbinden und nur die Lücken mit einer eigenen Lösung zu schließen.' },
+    { q: 'Was passiert mit unseren Daten?', a: 'Wir nutzen nur die Daten, die der Ablauf braucht, und klären Zugriffe, Speicherorte und Verantwortlichkeiten vor dem Start gemeinsam mit Ihnen.' },
+    { q: 'Wie verlässlich ist die KI?', a: 'KI bereitet vor – Menschen entscheiden. In allen unseren Systemen gehen wichtige Schritte erst nach Freigabe raus, und jede Aktion ist protokolliert.' },
+    { q: 'Was ist der Unterschied zur DYD Skill-Plattform?', a: 'Die Skill-Plattform (NEXUS/ORBIT) ist ein fertiges Produkt für HR, L&D und Bildungsträger. Automatisierung & Software ist individuelle Entwicklung für Ihre eigenen Abläufe – unabhängig von Branche und Thema.' },
   ],
 
   cta: {
-    title: 'Welcher Ablauf kostet Sie heute am meisten Zeit?',
-    subtitle: 'Erzählen Sie uns davon – im Erstgespräch zeigen wir, was sich davon automatisieren lässt.',
-    button: 'Erstgespräch vereinbaren',
+    title: 'Welcher Ablauf soll als Erstes laufen?',
+    subtitle: 'Im kostenlosen Prozess-Check finden wir den Baustein mit der größten Wirkung.',
+    button: 'Prozess-Check starten',
+  },
+
+  /** Teaser auf der Skill-Plattform-Seite (Abgrenzung + Verweis) */
+  teaser: {
+    eyebrow: 'Außerdem von DYD',
+    title: 'Automatisierung & individuelle Software',
+    text: 'Unabhängig von Skills und Weiterbildung: Wir bauen Web-Apps, KI-Assistenten und Automatisierungen für Ihre eigenen Abläufe.',
+    button: 'Live-Projekte ansehen',
   },
 } as const;
