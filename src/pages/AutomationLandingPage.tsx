@@ -11,7 +11,7 @@ import { useEffect, useRef, useState } from 'react';
 import { AnimatePresence, motion, useReducedMotion, type Variants } from 'framer-motion';
 import {
   ArrowRight, Bot, CalendarCheck, Check, ChevronDown, Eye, LineChart, Mic, Rocket, Search, ShieldCheck,
-  Sparkles, Target, Ticket, TrendingUp, Trophy, Users, Zap, FileText, Layers,
+  Sparkles, Target, Ticket, TrendingUp, Trophy, Users, Zap, FileText, Layers, Heart,
 } from 'lucide-react';
 import B2BHeader from './b2b/B2BHeader';
 import { CalBookingButton } from './b2b/CalBookingButton';
@@ -19,7 +19,7 @@ import { automationContent as c } from './b2b/automationContent';
 import { BrowserFrame, LIME, PhoneFrame, ProcessCheck, SKY, ShotViewer } from './b2b/automationParts';
 
 const VIEWPORT = { once: true, margin: '-60px' } as const;
-const refIcons = { mic: Mic, crm: Users, chart: LineChart, ticket: Ticket, trophy: Trophy, bot: Bot } as const;
+const refIcons = { mic: Mic, crm: Users, chart: LineChart, ticket: Ticket, trophy: Trophy, bot: Bot, heart: Heart } as const;
 const stepIcons: Record<string, typeof Search> = { search: Search, target: Target, rocket: Rocket, growth: TrendingUp };
 
 function useAnims() {
@@ -108,7 +108,7 @@ export default function AutomationLandingPage() {
 
   return (
     <div className="min-h-screen bg-[#07111f] text-white overflow-x-hidden">
-      <B2BHeader area="automation" ctaLabel="Prozess-Check" onContact={() => startCheck()} />
+      <B2BHeader active="automatisierung" ctaLabel="Prozess-Check" onContact={() => startCheck()} />
 
       {/* ── HERO ───────────────────────────────────────────────────────── */}
       <section ref={heroRef} className="relative pt-28 lg:pt-36 pb-20 px-4 sm:px-6 lg:px-8 overflow-hidden">
@@ -186,7 +186,7 @@ export default function AutomationLandingPage() {
               <div className="md:col-span-5 order-2 md:order-1">
                 <p className="font-arimo text-xs font-bold uppercase tracking-wide text-[#EF8A8A] mb-2">Heute</p>
                 <p className="font-arimo text-white/75 mb-5">{finder.pain}</p>
-                <p className="font-arimo text-xs font-bold uppercase tracking-wide text-[#DEFF9A] mb-2 flex items-center gap-1.5"><FinderIcon className="w-3.5 h-3.5" aria-hidden="true" />So läuft es im Projekt „{finderRef.short}“</p>
+                <p className="font-arimo text-xs font-bold uppercase tracking-wide text-[#DEFF9A] mb-2 flex items-center gap-1.5"><FinderIcon className="w-3.5 h-3.5" aria-hidden="true" />{finderRef.concept ? `So könnte es aussehen – Beispiel „${finderRef.short}“` : `So läuft es im Projekt „${finderRef.short}“`}</p>
                 <ul className="space-y-2 mb-6">
                   {finderRef.automations.slice(0, 3).map((a) => (
                     <li key={a} className="flex items-start gap-2 font-arimo text-sm text-white/85"><Check className="w-4 h-4 text-[#DEFF9A] flex-shrink-0 mt-0.5" aria-hidden="true" />{a}</li>
@@ -241,11 +241,16 @@ export default function AutomationLandingPage() {
                 <ShotViewer shots={ref.shots} />
               </div>
               <div className="lg:col-span-5 min-w-0">
-                <span className="inline-flex items-center px-2.5 py-1 rounded-full font-arimo text-[10px] font-bold uppercase tracking-wide bg-[#DEFF9A]/12 text-[#DEFF9A] mb-3">{ref.category}</span>
+                <div className="flex flex-wrap items-center gap-2 mb-3">
+                  <span className="inline-flex items-center px-2.5 py-1 rounded-full font-arimo text-[10px] font-bold uppercase tracking-wide bg-[#DEFF9A]/12 text-[#DEFF9A]">{ref.category}</span>
+                  {ref.concept
+                    ? <span className="inline-flex items-center px-2.5 py-1 rounded-full font-arimo text-[10px] font-bold uppercase tracking-wide bg-[#ff7aa2]/15 text-[#ffb3c9]">Beispielansicht · Konzept</span>
+                    : <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full font-arimo text-[10px] font-bold uppercase tracking-wide bg-[#22c55e]/12 text-[#86efac]"><span className="h-1.5 w-1.5 rounded-full bg-[#22c55e]" />Live im Einsatz</span>}
+                </div>
                 <h3 className="font-poppins font-black text-2xl sm:text-3xl leading-tight mb-3" style={{ letterSpacing: '-0.02em' }}>{ref.title}</h3>
                 <p className="font-arimo text-white/70 leading-relaxed mb-6">{ref.pitch}</p>
 
-                <p className="font-arimo text-xs font-bold uppercase tracking-wide text-[#38BDF8] mb-2 flex items-center gap-1.5"><Zap className="w-3.5 h-3.5" aria-hidden="true" />Läuft automatisch</p>
+                <p className="font-arimo text-xs font-bold uppercase tracking-wide text-[#38BDF8] mb-2 flex items-center gap-1.5"><Zap className="w-3.5 h-3.5" aria-hidden="true" />{ref.concept ? 'Was automatisch laufen würde' : 'Läuft automatisch'}</p>
                 <ul className="space-y-2 mb-5">
                   {ref.automations.map((a) => (
                     <li key={a} className="flex items-start gap-2 font-arimo text-sm text-white/85"><Check className="w-4 h-4 text-[#38BDF8] flex-shrink-0 mt-0.5" aria-hidden="true" />{a}</li>
