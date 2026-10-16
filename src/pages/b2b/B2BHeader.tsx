@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import { motion, AnimatePresence, useReducedMotion } from 'framer-motion';
-import { Menu, X, ArrowRight } from 'lucide-react';
+import { Menu, X, ArrowRight, Building2, GraduationCap, Workflow } from 'lucide-react';
 import { b2bContent } from './content';
 import DydLogo from './DydLogo';
 
@@ -60,12 +60,25 @@ function SegmentToggle({
   );
 }
 
+type NavTab = 'unternehmen' | 'bildungstraeger' | 'automatisierung';
+
+/** Bereichs-Navigation (NEU, 16.10.2026): springt direkt zum passenden Tab. */
+const NAV_ITEMS: { id: NavTab; label: string; Icon: typeof Building2 }[] = [
+  { id: 'unternehmen', label: 'Unternehmen', Icon: Building2 },
+  { id: 'bildungstraeger', label: 'Bildungsträger', Icon: GraduationCap },
+  { id: 'automatisierung', label: 'Automatisierung', Icon: Workflow },
+];
+
 type B2BHeaderProps = {
   /** Öffnet das Kontakt-/Lead-Modal (ohne Segment → Nutzer wählt im Modal). */
   onContact?: () => void;
+  /** Aktiver Tab – für die Markierung in der Bereichs-Navigation */
+  activeTab?: NavTab;
+  /** Tab wählen + hinscrollen */
+  onNavigate?: (tab: NavTab) => void;
 };
 
-export default function B2BHeader({ onContact }: B2BHeaderProps) {
+export default function B2BHeader({ onContact, activeTab, onNavigate }: B2BHeaderProps) {
   const [scrolled, setScrolled] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
   const reduceMotion = useReducedMotion() ?? false;
@@ -97,6 +110,11 @@ export default function B2BHeader({ onContact }: B2BHeaderProps) {
     };
   }, [mobileOpen, closeMobile]);
 
+  const handleNavigate = (tab: NavTab) => {
+    closeMobile();
+    onNavigate?.(tab);
+  };
+
   const handleContact = () => {
     closeMobile();
     onContact?.();
@@ -124,6 +142,25 @@ export default function B2BHeader({ onContact }: B2BHeaderProps) {
               <span className="text-[9px] font-arimo font-semibold text-[#66c0b6] hidden sm:block">Decide Your Dream</span>
             </span>
           </a>
+
+          {/* Desktop: Bereichs-Navigation */}
+          {onNavigate && (
+            <nav aria-label="Bereiche" className="hidden lg:flex items-center gap-1">
+              {NAV_ITEMS.map((n) => (
+                <button
+                  key={n.id}
+                  type="button"
+                  onClick={() => handleNavigate(n.id)}
+                  aria-current={activeTab === n.id ? 'true' : undefined}
+                  className={`px-3 py-2 rounded-full text-sm font-arimo font-semibold transition-colors b2b-focus-ring ${
+                    activeTab === n.id ? 'text-white bg-white/10' : 'text-white/60 hover:text-white'
+                  }`}
+                >
+                  {n.label}
+                </button>
+              ))}
+            </nav>
+          )}
 
           {/* Desktop: Toggle + CTA */}
           <div className="hidden md:flex items-center gap-4">
@@ -169,6 +206,23 @@ export default function B2BHeader({ onContact }: B2BHeaderProps) {
             className="md:hidden overflow-hidden bg-[#0A192F]/95 backdrop-blur-xl border-b border-white/10"
           >
             <div className="px-4 py-4 space-y-3">
+              {onNavigate && (
+                <nav aria-label="Bereiche" className="grid gap-1.5">
+                  {NAV_ITEMS.map((n) => (
+                    <button
+                      key={n.id}
+                      type="button"
+                      onClick={() => handleNavigate(n.id)}
+                      className={`flex items-center gap-3 w-full px-4 py-3 rounded-xl text-left text-sm font-arimo font-semibold b2b-focus-ring ${
+                        activeTab === n.id ? 'bg-white/10 text-white' : 'text-white/70 hover:bg-white/5'
+                      }`}
+                    >
+                      <n.Icon className="w-4 h-4 text-[#38BDF8]" aria-hidden="true" />
+                      {n.label}
+                    </button>
+                  ))}
+                </nav>
+              )}
               <SegmentToggle fluid reduceMotion={reduceMotion} />
               <button
                 type="button"
