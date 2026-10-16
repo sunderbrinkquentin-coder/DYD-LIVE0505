@@ -6,7 +6,7 @@ import { supabase } from '../../lib/supabase';
 type ContactModalProps = {
   open: boolean;
   onClose: () => void;
-  segment: 'unternehmen' | 'bildungstraeger';
+  segment: 'unternehmen' | 'bildungstraeger' | 'automatisierung';
   /** Optionaler Kontext aus dem ORBIT-Tab (z. B. "Live-Demo" oder das gewählte
       Segment wie "IHK") – wird beim Öffnen als Gesprächsgrundlage in die
       Nachricht vorausgefüllt, ohne ein zusätzliches Pflichtfeld einzuführen. */
@@ -36,11 +36,11 @@ export default function B2BContactModal({ open, onClose, segment, institution }:
 
   useEffect(() => {
     if (open) {
-      setForm(institution ? { ...emptyForm, message: `Interessiert als: ${institution}` } : emptyForm);
+      setForm(institution ? { ...emptyForm, message: segment === 'automatisierung' ? `Bezug: ${institution}\n\nUnser Ablauf, der automatisiert werden soll: ` : `Interessiert als: ${institution}` } : emptyForm);
       setStatus('idle');
       setErrorMsg('');
     }
-  }, [open, institution]);
+  }, [open, institution, segment]);
 
   useEffect(() => {
     if (!open) return;
@@ -85,7 +85,7 @@ export default function B2BContactModal({ open, onClose, segment, institution }:
     }
   };
 
-  const segmentLabel = segment === 'unternehmen' ? 'Unternehmen' : 'Bildungsträger';
+  const segmentLabel = segment === 'unternehmen' ? 'Unternehmen' : segment === 'automatisierung' ? 'Automatisierung & Software' : 'Bildungsträger';
 
   return (
     <AnimatePresence>
