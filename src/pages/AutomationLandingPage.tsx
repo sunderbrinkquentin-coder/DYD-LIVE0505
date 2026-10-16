@@ -8,6 +8,7 @@
 // Mobile: schwebende CTA-Leiste, sobald der Hero aus dem Bild ist.
 
 import { useEffect, useRef, useState } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import { AnimatePresence, motion, useReducedMotion, type Variants } from 'framer-motion';
 import {
   ArrowRight, Bot, CalendarCheck, Check, ChevronDown, Eye, LineChart, Mic, Rocket, Search, ShieldCheck,
@@ -100,6 +101,20 @@ export default function AutomationLandingPage() {
   const go = (id: string) => document.getElementById(id)?.scrollIntoView({ behavior: reduce ? 'auto' : 'smooth', block: 'start' });
   const openRef = (id: string) => { setActiveRef(id); requestAnimationFrame(() => go('projekte')); };
   const startCheck = (area?: string) => { setPresetArea(area ?? null); requestAnimationFrame(() => go('prozess-check')); };
+
+  // Sprungziele aus dem KI-Berater: ?check=1 → Prozess-Check, ?projekt=<id> → Live-Projekt
+  const [params] = useSearchParams();
+  const checkParam = params.get('check');
+  const projektParam = params.get('projekt');
+  useEffect(() => {
+    if (!checkParam && !projektParam) return;
+    const t = window.setTimeout(() => {
+      if (projektParam && c.references.items.some((r) => r.id === projektParam)) openRef(projektParam);
+      else if (checkParam) startCheck();
+    }, 350);
+    return () => window.clearTimeout(t);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [checkParam, projektParam]);
 
   const ref = c.references.items.find((r) => r.id === activeRef) ?? c.references.items[0];
   const finder = c.finder.options.find((o) => o.id === finderPick) ?? c.finder.options[0];
