@@ -9,10 +9,10 @@ export const b2bContent = {
     cta: 'Kontakt aufnehmen',
   },
   hero: {
-    eyebrow: 'B2B & Partnerschaften',
-    headline: 'Skill Intelligence für Unternehmen und Bildungsträger.',
+    eyebrow: 'DYD für Business',
+    headline: 'Drei Wege, wie DYD Ihre Organisation voranbringt.',
     subline:
-      'Die KI-gestützte Plattform von DYD übersetzt Erfahrung, Karriereziele und Kompetenzlücken in messbare Ergebnisse – nach EU-ESCO-Standard. Made in Germany, DSGVO-konform.',
+      'Wählen Sie Ihren Bereich: Skill-Intelligence für HR und Bildung – oder individuelle Software und KI für Ihre eigenen Abläufe.',
     ctaPrimary: 'Für Unternehmen',
     ctaSecondary: 'Für Bildungsträger',
     trustChips: [
