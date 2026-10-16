@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { motion, AnimatePresence, useReducedMotion } from 'framer-motion';
-import { Menu, X, ArrowRight, Layers, Workflow } from 'lucide-react';
+import { Menu, X, ArrowRight, Building2, GraduationCap, Workflow } from 'lucide-react';
+import { BUSINESS_AREAS, type BusinessAreaId } from './businessAreas';
 import { b2bContent } from './content';
 import DydLogo from './DydLogo';
 
@@ -60,34 +61,34 @@ function SegmentToggle({
   );
 }
 
-export type B2BArea = 'skills' | 'automation';
+const AREA_ICONS = { unternehmen: Building2, bildungstraeger: GraduationCap, automatisierung: Workflow } as const;
 
 /**
- * Bereichs-Weiche (NEU, 16.10.2026): trennt die zwei B2B-Angebote klar –
- * Skill-Plattform (NEXUS/ORBIT, fertiges Produkt) vs. Automatisierung &
- * Software (individuelle Entwicklung). Echte Links auf zwei eigene Seiten.
+ * Business-Navigation (16.10.2026): EINE Ebene mit drei gleichrangigen
+ * Bereichen statt verschachtelter Weichen. Echte Links – Unternehmen und
+ * Bildungsträger öffnen den passenden Tab auf #/business, Automatisierung
+ * die eigene Seite.
  */
-function AreaSwitch({ area, fluid = false }: { area: B2BArea; fluid?: boolean }) {
-  const items = [
-    { id: 'skills' as const, href: '#/business', label: 'Skill-Plattform', Icon: Layers },
-    { id: 'automation' as const, href: '#/business/automatisierung', label: 'Automatisierung', Icon: Workflow },
-  ];
+function AreaNav({ active, fluid = false, onPick }: { active?: BusinessAreaId; fluid?: boolean; onPick?: () => void }) {
   return (
-    <nav aria-label="Angebot" className={`flex items-center gap-1 ${fluid ? 'w-full grid grid-cols-2' : ''}`}>
-      {items.map((it) => {
-        const active = it.id === area;
+    <nav aria-label="Bereiche" className={fluid ? 'grid gap-1.5' : 'flex items-center gap-1'}>
+      {BUSINESS_AREAS.map((a) => {
+        const on = a.id === active;
+        const Icon = AREA_ICONS[a.id];
         return (
           <a
-            key={it.id}
-            href={it.href}
-            aria-current={active ? 'page' : undefined}
-            className={`inline-flex items-center justify-center gap-1.5 px-3.5 py-2 rounded-full text-sm font-arimo font-bold transition-colors b2b-focus-ring ${
-              active ? 'text-white bg-white/12 ring-1 ring-white/20' : 'text-white/55 hover:text-white'
-            }`}
-            style={active ? { background: 'rgba(255,255,255,0.10)' } : undefined}
+            key={a.id}
+            href={a.href}
+            onClick={onPick}
+            aria-current={on ? 'page' : undefined}
+            className={`relative inline-flex items-center gap-2 rounded-full font-arimo font-bold transition-colors b2b-focus-ring ${
+              fluid ? 'w-full px-4 py-3 text-sm rounded-xl' : 'px-3.5 py-2 text-sm'
+            } ${on ? 'text-white' : 'text-white/60 hover:text-white'}`}
+            style={on ? { background: 'rgba(255,255,255,0.10)', boxShadow: `inset 0 -2px 0 ${a.accent}` } : undefined}
           >
-            <it.Icon className={`w-4 h-4 ${active ? (it.id === 'automation' ? 'text-[#DEFF9A]' : 'text-[#38BDF8]') : ''}`} aria-hidden="true" />
-            {it.label}
+            <Icon className="w-4 h-4" style={{ color: on ? a.accent : undefined }} aria-hidden="true" />
+            {a.label}
+            {fluid && <span className="ml-auto text-[11px] font-semibold text-white/40">{a.product}</span>}
           </a>
         );
       })}
@@ -98,13 +99,13 @@ function AreaSwitch({ area, fluid = false }: { area: B2BArea; fluid?: boolean })
 type B2BHeaderProps = {
   /** Öffnet das Kontakt-/Lead-Modal (ohne Segment → Nutzer wählt im Modal). */
   onContact?: () => void;
-  /** Welche B2B-Seite gerade aktiv ist (für die Bereichs-Weiche) */
-  area?: B2BArea;
+  /** Aktiver Business-Bereich (Markierung in der Navigation) */
+  active?: BusinessAreaId;
   /** Eigener Text für den Kontakt-Button */
   ctaLabel?: string;
 };
 
-export default function B2BHeader({ onContact, area = 'skills', ctaLabel }: B2BHeaderProps) {
+export default function B2BHeader({ onContact, active, ctaLabel }: B2BHeaderProps) {
   const [scrolled, setScrolled] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
   const reduceMotion = useReducedMotion() ?? false;
@@ -164,14 +165,15 @@ export default function B2BHeader({ onContact, area = 'skills', ctaLabel }: B2BH
             </span>
           </a>
 
-          {/* Desktop: Bereichs-Weiche */}
+          {/* Desktop: drei Bereiche */}
           <div className="hidden lg:flex">
-            <AreaSwitch area={area} />
+            <AreaNav active={active} />
           </div>
 
           {/* Desktop: Toggle + CTA */}
-          <div className="hidden md:flex items-center gap-4">
-            <SegmentToggle reduceMotion={reduceMotion} />
+          <div className="hidden lg:flex items-center gap-4">
+            {/* Bewerber/Business-Umschalter erst ab xl – darunter wird es neben den drei Bereichen zu eng */}
+            <div className="hidden xl:block"><SegmentToggle reduceMotion={reduceMotion} /></div>
             <button
               type="button"
               onClick={handleContact}
@@ -186,7 +188,7 @@ export default function B2BHeader({ onContact, area = 'skills', ctaLabel }: B2BH
           {/* Mobile: Hamburger */}
           <button
             type="button"
-            className="md:hidden p-2 -mr-2 text-white b2b-focus-ring rounded-lg"
+            className="lg:hidden p-2 -mr-2 text-white b2b-focus-ring rounded-lg"
             onClick={() => setMobileOpen((v) => !v)}
             aria-label={mobileOpen ? 'Menü schließen' : 'Menü öffnen'}
             aria-expanded={mobileOpen}
@@ -210,10 +212,10 @@ export default function B2BHeader({ onContact, area = 'skills', ctaLabel }: B2BH
             animate={{ height: 'auto', opacity: 1 }}
             exit={{ height: 0, opacity: 0 }}
             transition={{ duration: reduceMotion ? 0 : 0.25, ease: 'easeInOut' }}
-            className="md:hidden overflow-hidden bg-[#0A192F]/95 backdrop-blur-xl border-b border-white/10"
+            className="lg:hidden overflow-hidden bg-[#0A192F]/95 backdrop-blur-xl border-b border-white/10"
           >
             <div className="px-4 py-4 space-y-3">
-              <AreaSwitch area={area} fluid />
+              <AreaNav active={active} fluid onPick={closeMobile} />
               <SegmentToggle fluid reduceMotion={reduceMotion} />
               <button
                 type="button"
