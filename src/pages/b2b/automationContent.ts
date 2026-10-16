@@ -13,7 +13,7 @@ export type Reference = {
   id: string;
   short: string;
   category: string;
-  icon: 'mic' | 'crm' | 'chart' | 'ticket' | 'trophy' | 'bot';
+  icon: 'mic' | 'crm' | 'chart' | 'ticket' | 'trophy' | 'bot' | 'heart';
   title: string;
   pitch: string;
   shots: RefShot[];
@@ -22,6 +22,8 @@ export type Reference = {
   control: string;
   stack: string[];
   disclaimer?: string;
+  /** true = Beispielansicht/Konzept, KEIN Screenshot einer laufenden App */
+  concept?: boolean;
 };
 
 export const automationContent = {
@@ -53,6 +55,7 @@ export const automationContent = {
       { id: 'events', label: 'Events & Tickets', ref: 'tickets', checkArea: 'Events & Tickets', pain: 'Ticketverkauf, Teilnehmerlisten, Abläufe vor Ort.' },
       { id: 'service', label: 'Anfragen & Beratung', ref: 'chatbot', checkArea: 'Anfragen & Beratung', pain: 'Immer gleiche Fragen beantworten, passende Angebote empfehlen.' },
       { id: 'daten', label: 'Daten & Entscheidungen', ref: 'trading', checkArea: 'Daten & Reporting', pain: 'Regeln konsequent anwenden, Risiken überwachen, alles dokumentieren.' },
+      { id: 'appidee', label: 'Eigene App-Idee', ref: 'beziehung', checkArea: 'Etwas anderes', pain: 'Eine klare Idee für eine App – aber kein Team, das sie entwirft und baut.' },
       { id: 'ablauf', label: 'Abläufe vor Ort', ref: 'turnier', checkArea: 'Events & Tickets', pain: 'Pläne auf Papier, Ergebnisse auf Zuruf, Wartezeiten.' },
     ],
   },
@@ -60,7 +63,7 @@ export const automationContent = {
   references: {
     eyebrow: 'Live-Projekte',
     title: 'Echte Systeme. Echte Oberflächen.',
-    subtitle: 'Alle Bilder sind Screenshots der laufenden Anwendungen – gezeigt mit Beispieldaten, damit keine echten Kunden- oder Kontodaten sichtbar sind.',
+    subtitle: 'Screenshots der laufenden Anwendungen – gezeigt mit Beispieldaten, damit keine echten Kunden- oder Kontodaten sichtbar sind. Konzepte sind als Beispielansicht gekennzeichnet.',
     items: [
       {
         id: 'crm',
@@ -190,6 +193,28 @@ export const automationContent = {
         control: 'Kill-Switch schließt mit einem Klick alle Positionen.',
         stack: ['Handy-App', 'Regel-Engine', 'Broker-Schnittstelle', 'Protokollierung'],
         disclaimer: 'Technische Referenz – keine Anlageberatung.',
+      },
+      {
+        id: 'beziehung',
+        short: 'Fernbeziehungs-App',
+        category: 'Consumer-App',
+        icon: 'heart',
+        concept: true,
+        title: 'App für Fernbeziehungen',
+        pitch: 'Nähe trotz Entfernung: Countdown bis zum Wiedersehen, beide Uhrzeiten auf einen Blick, eine Frage des Tages und KI-Ideen für gemeinsame Abende auf Distanz.',
+        shots: [
+          { src: '/b2b/refs/fernbeziehung-heute.webp', alt: 'Beispielansicht: Startseite mit Countdown, Zeitzonen und Frage des Tages', caption: 'Beispielansicht „Heute“: Countdown, beide Uhrzeiten, Frage des Tages', device: 'mobile' },
+          { src: '/b2b/refs/fernbeziehung-gemeinsam.webp', alt: 'Beispielansicht: gemeinsamer Plan mit KI-Date-Ideen und Terminen', caption: 'Beispielansicht „Gemeinsam“: KI-Date-Ideen und gemeinsame Termine', device: 'mobile' },
+        ],
+        automations: [
+          'Erinnerungen passend zur Zeitzone beider Partner',
+          'Countdown bis zum nächsten Treffen',
+          'Jahrestage und Termine mit Vorab-Erinnerung',
+          'Antworten werden erst sichtbar, wenn beide geantwortet haben',
+        ],
+        ai: ['Date-Ideen für Abende auf Distanz', 'Frage des Tages, abgestimmt auf das Paar'],
+        control: 'Private Inhalte nur für das Paar sichtbar.',
+        stack: ['Handy-App', 'Push-Benachrichtigungen', 'KI-Vorschläge', 'Gemeinsamer Kalender'],
       },
     ] as Reference[],
   },
