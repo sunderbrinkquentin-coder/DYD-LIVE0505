@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import { motion, AnimatePresence, useReducedMotion } from 'framer-motion';
-import { Menu, X, ArrowRight, Building2, GraduationCap, Workflow } from 'lucide-react';
+import { Menu, X, ArrowRight, Layers, Workflow } from 'lucide-react';
 import { b2bContent } from './content';
 import DydLogo from './DydLogo';
 
@@ -60,25 +60,51 @@ function SegmentToggle({
   );
 }
 
-type NavTab = 'unternehmen' | 'bildungstraeger' | 'automatisierung';
+export type B2BArea = 'skills' | 'automation';
 
-/** Bereichs-Navigation (NEU, 16.10.2026): springt direkt zum passenden Tab. */
-const NAV_ITEMS: { id: NavTab; label: string; Icon: typeof Building2 }[] = [
-  { id: 'unternehmen', label: 'Unternehmen', Icon: Building2 },
-  { id: 'bildungstraeger', label: 'Bildungsträger', Icon: GraduationCap },
-  { id: 'automatisierung', label: 'Automatisierung', Icon: Workflow },
-];
+/**
+ * Bereichs-Weiche (NEU, 16.10.2026): trennt die zwei B2B-Angebote klar –
+ * Skill-Plattform (NEXUS/ORBIT, fertiges Produkt) vs. Automatisierung &
+ * Software (individuelle Entwicklung). Echte Links auf zwei eigene Seiten.
+ */
+function AreaSwitch({ area, fluid = false }: { area: B2BArea; fluid?: boolean }) {
+  const items = [
+    { id: 'skills' as const, href: '#/business', label: 'Skill-Plattform', Icon: Layers },
+    { id: 'automation' as const, href: '#/business/automatisierung', label: 'Automatisierung', Icon: Workflow },
+  ];
+  return (
+    <nav aria-label="Angebot" className={`flex items-center gap-1 ${fluid ? 'w-full grid grid-cols-2' : ''}`}>
+      {items.map((it) => {
+        const active = it.id === area;
+        return (
+          <a
+            key={it.id}
+            href={it.href}
+            aria-current={active ? 'page' : undefined}
+            className={`inline-flex items-center justify-center gap-1.5 px-3.5 py-2 rounded-full text-sm font-arimo font-bold transition-colors b2b-focus-ring ${
+              active ? 'text-white bg-white/12 ring-1 ring-white/20' : 'text-white/55 hover:text-white'
+            }`}
+            style={active ? { background: 'rgba(255,255,255,0.10)' } : undefined}
+          >
+            <it.Icon className={`w-4 h-4 ${active ? (it.id === 'automation' ? 'text-[#DEFF9A]' : 'text-[#38BDF8]') : ''}`} aria-hidden="true" />
+            {it.label}
+          </a>
+        );
+      })}
+    </nav>
+  );
+}
 
 type B2BHeaderProps = {
   /** Öffnet das Kontakt-/Lead-Modal (ohne Segment → Nutzer wählt im Modal). */
   onContact?: () => void;
-  /** Aktiver Tab – für die Markierung in der Bereichs-Navigation */
-  activeTab?: NavTab;
-  /** Tab wählen + hinscrollen */
-  onNavigate?: (tab: NavTab) => void;
+  /** Welche B2B-Seite gerade aktiv ist (für die Bereichs-Weiche) */
+  area?: B2BArea;
+  /** Eigener Text für den Kontakt-Button */
+  ctaLabel?: string;
 };
 
-export default function B2BHeader({ onContact, activeTab, onNavigate }: B2BHeaderProps) {
+export default function B2BHeader({ onContact, area = 'skills', ctaLabel }: B2BHeaderProps) {
   const [scrolled, setScrolled] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
   const reduceMotion = useReducedMotion() ?? false;
@@ -110,11 +136,6 @@ export default function B2BHeader({ onContact, activeTab, onNavigate }: B2BHeade
     };
   }, [mobileOpen, closeMobile]);
 
-  const handleNavigate = (tab: NavTab) => {
-    closeMobile();
-    onNavigate?.(tab);
-  };
-
   const handleContact = () => {
     closeMobile();
     onContact?.();
@@ -143,24 +164,10 @@ export default function B2BHeader({ onContact, activeTab, onNavigate }: B2BHeade
             </span>
           </a>
 
-          {/* Desktop: Bereichs-Navigation */}
-          {onNavigate && (
-            <nav aria-label="Bereiche" className="hidden lg:flex items-center gap-1">
-              {NAV_ITEMS.map((n) => (
-                <button
-                  key={n.id}
-                  type="button"
-                  onClick={() => handleNavigate(n.id)}
-                  aria-current={activeTab === n.id ? 'true' : undefined}
-                  className={`px-3 py-2 rounded-full text-sm font-arimo font-semibold transition-colors b2b-focus-ring ${
-                    activeTab === n.id ? 'text-white bg-white/10' : 'text-white/60 hover:text-white'
-                  }`}
-                >
-                  {n.label}
-                </button>
-              ))}
-            </nav>
-          )}
+          {/* Desktop: Bereichs-Weiche */}
+          <div className="hidden lg:flex">
+            <AreaSwitch area={area} />
+          </div>
 
           {/* Desktop: Toggle + CTA */}
           <div className="hidden md:flex items-center gap-4">
@@ -171,7 +178,7 @@ export default function B2BHeader({ onContact, activeTab, onNavigate }: B2BHeade
               className="inline-flex items-center gap-1.5 px-5 py-2.5 rounded-full text-sm font-arimo font-bold text-[#0A192F] b2b-focus-ring transition-shadow hover:shadow-lg hover:shadow-[#38BDF8]/30"
               style={{ background: CTA_GRADIENT }}
             >
-              {b2bContent.header.cta}
+              {ctaLabel ?? b2bContent.header.cta}
               <ArrowRight className="w-3.5 h-3.5" aria-hidden="true" />
             </button>
           </div>
@@ -206,23 +213,7 @@ export default function B2BHeader({ onContact, activeTab, onNavigate }: B2BHeade
             className="md:hidden overflow-hidden bg-[#0A192F]/95 backdrop-blur-xl border-b border-white/10"
           >
             <div className="px-4 py-4 space-y-3">
-              {onNavigate && (
-                <nav aria-label="Bereiche" className="grid gap-1.5">
-                  {NAV_ITEMS.map((n) => (
-                    <button
-                      key={n.id}
-                      type="button"
-                      onClick={() => handleNavigate(n.id)}
-                      className={`flex items-center gap-3 w-full px-4 py-3 rounded-xl text-left text-sm font-arimo font-semibold b2b-focus-ring ${
-                        activeTab === n.id ? 'bg-white/10 text-white' : 'text-white/70 hover:bg-white/5'
-                      }`}
-                    >
-                      <n.Icon className="w-4 h-4 text-[#38BDF8]" aria-hidden="true" />
-                      {n.label}
-                    </button>
-                  ))}
-                </nav>
-              )}
+              <AreaSwitch area={area} fluid />
               <SegmentToggle fluid reduceMotion={reduceMotion} />
               <button
                 type="button"
@@ -230,7 +221,7 @@ export default function B2BHeader({ onContact, activeTab, onNavigate }: B2BHeade
                 className="flex items-center justify-center gap-1.5 w-full px-5 py-3 rounded-full text-sm font-arimo font-bold text-[#0A192F] b2b-focus-ring"
                 style={{ background: CTA_GRADIENT }}
               >
-                {b2bContent.header.cta}
+                {ctaLabel ?? b2bContent.header.cta}
                 <ArrowRight className="w-4 h-4" aria-hidden="true" />
               </button>
             </div>
