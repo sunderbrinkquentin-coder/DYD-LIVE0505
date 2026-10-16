@@ -6,7 +6,7 @@ import DydLogo from './DydLogo';
 const trustIcons = [ShieldCheck, Award, GraduationCap, Globe];
 const CTA_GRADIENT = 'linear-gradient(135deg, #DEFF9A, #38BDF8)';
 
-type HeroTabId = 'unternehmen' | 'bildungstraeger' | 'automatisierung';
+type HeroTabId = 'unternehmen' | 'bildungstraeger';
 
 export default function B2BHero({ onCtaClick }: { onCtaClick?: (tab: HeroTabId) => void }) {
   const { hero } = b2bContent;
@@ -130,19 +130,6 @@ export default function B2BHero({ onCtaClick }: { onCtaClick?: (tab: HeroTabId) 
           >
             <GraduationCap className="w-4 h-4 text-[#38BDF8]" aria-hidden="true" />
             {hero.ctaSecondary}
-          </button>
-        </motion.div>
-
-        {/* NEU (16.10.2026): dritter Bereich "Automatisierung & Software" – bewusst
-            als dezenter Link, damit die zwei Haupt-Zielgruppen vorne bleiben. */}
-        <motion.div variants={fadeUp} className="-mt-6 mb-12">
-          <button
-            type="button"
-            onClick={() => onCtaClick?.('automatisierung')}
-            className="group inline-flex items-center gap-1.5 font-arimo text-sm font-semibold text-white/60 hover:text-[#DEFF9A] transition b2b-focus-ring rounded"
-          >
-            Prozesse automatisieren & individuelle Software
-            <ArrowRight className="w-3.5 h-3.5 group-hover:translate-x-0.5 transition-transform" aria-hidden="true" />
           </button>
         </motion.div>
 
