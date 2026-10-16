@@ -1,10 +1,11 @@
 import { motion, useReducedMotion, type Variants } from 'framer-motion';
-import { ArrowRight, Building2, GraduationCap, ShieldCheck, Award, Globe, Sparkles } from 'lucide-react';
+import { ArrowRight, Building2, GraduationCap, ShieldCheck, Award, Globe, Sparkles, Workflow } from 'lucide-react';
+import { BUSINESS_AREAS } from './businessAreas';
 import { b2bContent } from './content';
 import DydLogo from './DydLogo';
 
 const trustIcons = [ShieldCheck, Award, GraduationCap, Globe];
-const CTA_GRADIENT = 'linear-gradient(135deg, #DEFF9A, #38BDF8)';
+const AREA_ICONS = { unternehmen: Building2, bildungstraeger: GraduationCap, automatisierung: Workflow } as const;
 
 type HeroTabId = 'unternehmen' | 'bildungstraeger';
 
@@ -50,7 +51,7 @@ export default function B2BHero({ onCtaClick }: { onCtaClick?: (tab: HeroTabId) 
         variants={container}
         initial="hidden"
         animate="show"
-        className="relative z-10 max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-20 text-center"
+        className="relative z-10 max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-20 text-center"
       >
         {/* Prominentes, animiertes Logo */}
         <motion.div variants={fadeUp} className="flex justify-center mb-6">
@@ -107,30 +108,38 @@ export default function B2BHero({ onCtaClick }: { onCtaClick?: (tab: HeroTabId) 
           {hero.subline}
         </motion.p>
 
-        {/* CTA-Buttons */}
-        <motion.div
-          variants={fadeUp}
-          className="flex flex-col sm:flex-row gap-4 justify-center items-center mb-12"
-        >
-          <button
-            type="button"
-            onClick={() => onCtaClick?.('unternehmen')}
-            className="group inline-flex items-center gap-2 px-7 py-3.5 rounded-2xl font-arimo font-bold text-[#0A192F] b2b-focus-ring transition hover:shadow-xl hover:shadow-[#DEFF9A]/25 hover:-translate-y-0.5"
-            style={{ background: CTA_GRADIENT }}
-          >
-            <Building2 className="w-4 h-4" aria-hidden="true" />
-            {hero.ctaPrimary}
-            <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" aria-hidden="true" />
-          </button>
-          <button
-            type="button"
-            onClick={() => onCtaClick?.('bildungstraeger')}
-            className="group inline-flex items-center gap-2 px-7 py-3.5 rounded-2xl font-arimo font-bold text-white b2b-focus-ring transition hover:bg-white/10 hover:-translate-y-0.5"
-            style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.18)' }}
-          >
-            <GraduationCap className="w-4 h-4 text-[#38BDF8]" aria-hidden="true" />
-            {hero.ctaSecondary}
-          </button>
+        {/* Drei gleichrangige Bereiche (16.10.2026) – ersetzt die zwei
+            Zielgruppen-Buttons. Unternehmen/Bildungsträger öffnen den Tab
+            weiter unten, Automatisierung die eigene Seite. */}
+        <motion.div variants={fadeUp} className="grid sm:grid-cols-3 gap-3 sm:gap-4 mb-10 text-left">
+          {BUSINESS_AREAS.map((area) => {
+            const Icon = AREA_ICONS[area.id];
+            const isTab = area.id !== 'automatisierung';
+            const inner = (
+              <>
+                <div className="flex items-center justify-between mb-4">
+                  <span className="flex h-11 w-11 items-center justify-center rounded-xl" style={{ background: `${area.accent}22`, border: `1px solid ${area.accent}55` }}>
+                    <Icon className="w-5 h-5" style={{ color: area.accent }} aria-hidden="true" />
+                  </span>
+                  <span className="font-arimo text-[10px] font-bold uppercase tracking-[0.14em]" style={{ color: area.accent }}>{area.product}</span>
+                </div>
+                <p className="font-poppins font-black text-xl text-white leading-tight">{area.label}</p>
+                <p className="font-arimo text-xs font-semibold text-white/45 mb-2">{area.forWhom}</p>
+                <p className="font-arimo text-sm text-white/70 leading-snug mb-5">{area.promise}</p>
+                <span className="mt-auto inline-flex items-center gap-1.5 font-arimo text-sm font-bold" style={{ color: area.accent }}>
+                  {isTab ? 'Ansehen' : 'Live-Projekte ansehen'}
+                  <ArrowRight className="w-4 h-4 transition-transform group-hover:translate-x-1" aria-hidden="true" />
+                </span>
+              </>
+            );
+            const cls = 'group flex flex-col h-full rounded-2xl p-5 sm:p-6 b2b-focus-ring transition hover:-translate-y-1';
+            const style = { background: 'rgba(255,255,255,0.04)', border: `1px solid ${area.accent}33`, boxShadow: `0 20px 50px -30px ${area.accent}66` };
+            return isTab ? (
+              <button key={area.id} type="button" onClick={() => onCtaClick?.(area.id as HeroTabId)} className={`${cls} text-left`} style={style}>{inner}</button>
+            ) : (
+              <a key={area.id} href={area.href} className={cls} style={style}>{inner}</a>
+            );
+          })}
         </motion.div>
 
         {/* Trust-Chips */}
@@ -150,24 +159,6 @@ export default function B2BHero({ onCtaClick }: { onCtaClick?: (tab: HeroTabId) 
           })}
         </motion.div>
 
-        {/* Stat-Chips */}
-        <motion.div variants={fadeUp} className="flex flex-wrap justify-center gap-4">
-          {hero.statChips.map((stat) => (
-            <div
-              key={stat.label}
-              className="flex items-baseline gap-1.5 px-5 py-2.5 rounded-2xl"
-              style={{ background: 'rgba(56,189,248,0.06)', border: '1px solid rgba(56,189,248,0.15)' }}
-            >
-              <span
-                className="font-poppins font-black text-[#DEFF9A]"
-                style={{ fontSize: '1.5rem', letterSpacing: '-0.02em' }}
-              >
-                {stat.value}
-              </span>
-              <span className="text-xs font-arimo font-semibold text-white/50">{stat.label}</span>
-            </div>
-          ))}
-        </motion.div>
       </motion.div>
     </section>
   );
