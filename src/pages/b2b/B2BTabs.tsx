@@ -3,7 +3,7 @@ import { motion, AnimatePresence, useReducedMotion, type Variants } from 'framer
 import {
   Building2, GraduationCap, AlertTriangle, Sparkles, ArrowRight,
   TrendingDown, TrendingUp, Target, Filter, Zap, Plus, Palette, Code2, Check,
-  MousePointerClick,
+  MousePointerClick, Workflow,
 } from 'lucide-react';
 import { b2bContent } from './content';
 import ProcessRail from './ProcessRail';
@@ -12,8 +12,10 @@ import { PricingSection } from './PricingSection';
 import { SkillGapWidget } from './SkillGapWidget';
 import { CalBookingButton } from './CalBookingButton';
 import OrbitVideoShowcase from './OrbitVideoShowcase';
+import AutomationTab from './AutomationTab';
+import { automationContent } from './automationContent';
 
-type TabId = 'unternehmen' | 'bildungstraeger';
+export type TabId = 'unternehmen' | 'bildungstraeger' | 'automatisierung';
 
 const NAVY_SKY = 'linear-gradient(135deg, #0A192F, #38BDF8)';
 const LIME_SKY = 'linear-gradient(135deg, #DEFF9A, #38BDF8)';
@@ -289,6 +291,7 @@ export default function B2BTabs({ initialTab = 'unternehmen', activeTab: control
   const tabMeta = [
     { id: 'unternehmen' as const, Icon: Building2, label: tabA.label, short: 'Unternehmen' },
     { id: 'bildungstraeger' as const, Icon: GraduationCap, label: tabB.label, short: 'Bildungsträger' },
+    { id: 'automatisierung' as const, Icon: Workflow, label: automationContent.tab.label, short: automationContent.tab.short },
   ];
 
   const selectTab = (tab: TabId) => { if (onTabChange) onTabChange(tab); else setInternalTab(tab); };
@@ -311,19 +314,19 @@ export default function B2BTabs({ initialTab = 'unternehmen', activeTab: control
   const requestDemo = (segment: TabId, institution?: string) => { onRequestDemo?.(segment, institution); };
 
   return (
-    <section ref={tabSectionRef} id="b2b-tabs" aria-label="DYD für Unternehmen und Bildungsträger" className="relative bg-[#F6F9FD] py-20 px-4 sm:px-6 lg:px-8 scroll-mt-20 lg:scroll-mt-24">
+    <section ref={tabSectionRef} id="b2b-tabs" aria-label="DYD für Unternehmen, Bildungsträger und Automatisierung" className="relative bg-[#F6F9FD] py-20 px-4 sm:px-6 lg:px-8 scroll-mt-20 lg:scroll-mt-24">
       <div className="max-w-6xl mx-auto">
-        <div className="flex gap-2 p-1.5 rounded-2xl bg-white border border-[#E3EBF5] shadow-sm mb-12 max-w-xl mx-auto" role="tablist" aria-label="Zielgruppe wählen" onKeyDown={onTabKeyDown}>
+        <div className="flex gap-2 p-1.5 rounded-2xl bg-white border border-[#E3EBF5] shadow-sm mb-12 max-w-3xl mx-auto" role="tablist" aria-label="Zielgruppe wählen" onKeyDown={onTabKeyDown}>
           {tabMeta.map((t, i) => {
             const selected = activeTab === t.id;
             const Icon = t.Icon;
             return (
               <button key={t.id} ref={(el) => (tabRefs.current[i] = el)} role="tab" id={`tab-${t.id}`} aria-selected={selected} aria-controls={`panel-${t.id}`} tabIndex={selected ? 0 : -1} onClick={() => handleTabClick(t.id)}
-                className={`flex-1 flex items-center justify-center gap-2 px-4 py-3 rounded-xl text-sm font-arimo font-bold transition b2b-focus-ring ${selected ? 'text-white shadow-md' : 'text-[#55637A] hover:text-[#0F1E34]'}`}
+                className={`flex-1 min-w-0 flex flex-col sm:flex-row items-center justify-center gap-1 sm:gap-2 px-1.5 sm:px-4 py-2.5 sm:py-3 rounded-xl text-[11px] sm:text-sm leading-tight font-arimo font-bold transition b2b-focus-ring ${selected ? 'text-white shadow-md' : 'text-[#55637A] hover:text-[#0F1E34]'}`}
                 style={selected ? { background: NAVY_SKY } : undefined}>
                 <Icon className="w-4 h-4" aria-hidden="true" />
                 <span className="hidden sm:inline">{t.label}</span>
-                <span className="sm:hidden">{t.short}</span>
+                <span className="sm:hidden truncate max-w-full">{t.short}</span>
               </button>
             );
           })}
@@ -333,6 +336,10 @@ export default function B2BTabs({ initialTab = 'unternehmen', activeTab: control
           {activeTab === 'unternehmen' ? (
             <motion.div key="panel-a" role="tabpanel" id="panel-unternehmen" aria-labelledby="tab-unternehmen" tabIndex={0} initial={{ opacity: 0, y: reduce ? 0 : 16 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: reduce ? 0 : -16 }} transition={{ duration: reduce ? 0 : 0.35 }} className="b2b-focus-ring rounded-2xl">
               <TabAContent onDemo={() => requestDemo('unternehmen')} />
+            </motion.div>
+          ) : activeTab === 'automatisierung' ? (
+            <motion.div key="panel-c" role="tabpanel" id="panel-automatisierung" aria-labelledby="tab-automatisierung" tabIndex={0} initial={{ opacity: 0, y: reduce ? 0 : 16 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: reduce ? 0 : -16 }} transition={{ duration: reduce ? 0 : 0.35 }} className="b2b-focus-ring rounded-2xl">
+              <AutomationTab onContact={(context) => requestDemo('automatisierung', context)} />
             </motion.div>
           ) : (
             <motion.div key="panel-b" role="tabpanel" id="panel-bildungstraeger" aria-labelledby="tab-bildungstraeger" tabIndex={0} initial={{ opacity: 0, y: reduce ? 0 : 16 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: reduce ? 0 : -16 }} transition={{ duration: reduce ? 0 : 0.35 }} className="b2b-focus-ring rounded-2xl">
