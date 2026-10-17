@@ -18,23 +18,28 @@ export const NAVY = '#0A192F';
 /* ─── Geräterahmen ─────────────────────────────────────────────────────── */
 export function BrowserFrame({ src, alt, eager = false, className = '' }: { src: string; alt: string; eager?: boolean; className?: string }) {
   return (
-    <div className={`rounded-xl overflow-hidden bg-[#0b1626] border border-white/10 shadow-[0_30px_80px_-30px_rgba(0,0,0,0.7)] ${className}`}>
-      <div className="flex items-center gap-1.5 px-3 py-2 bg-[#0d1b2e] border-b border-white/5" aria-hidden="true">
-        <span className="w-2 h-2 rounded-full bg-[#ff5f57]" />
-        <span className="w-2 h-2 rounded-full bg-[#febc2e]" />
-        <span className="w-2 h-2 rounded-full bg-[#28c840]" />
+    <div className={`relative rounded-xl p-[1px] bg-gradient-to-br from-white/25 via-white/10 to-white/[0.04] shadow-[0_40px_90px_-30px_rgba(0,0,0,0.85),0_0_60px_-20px_rgba(56,189,248,0.25)] ${className}`}>
+      <div className="rounded-[calc(0.75rem-1px)] overflow-hidden bg-[#0b1626] ring-1 ring-black/40">
+        <div className="relative flex items-center gap-1.5 px-3 py-2 bg-gradient-to-b from-[#12233c] to-[#0d1b2e] border-b border-white/5" aria-hidden="true">
+          <span className="w-2 h-2 rounded-full bg-[#ff5f57] shadow-[0_0_6px_rgba(255,95,87,0.6)]" />
+          <span className="w-2 h-2 rounded-full bg-[#febc2e] shadow-[0_0_6px_rgba(254,188,46,0.5)]" />
+          <span className="w-2 h-2 rounded-full bg-[#28c840] shadow-[0_0_6px_rgba(40,200,64,0.5)]" />
+          <span className="ml-3 h-4 flex-1 max-w-[220px] rounded-full bg-white/[0.06]" />
+        </div>
+        <img src={src} alt={alt} loading={eager ? 'eager' : 'lazy'} decoding="async" className="block w-full h-auto" />
       </div>
-      <img src={src} alt={alt} loading={eager ? 'eager' : 'lazy'} decoding="async" className="block w-full h-auto" />
     </div>
   );
 }
 
 export function PhoneFrame({ src, alt, eager = false, className = '' }: { src: string; alt: string; eager?: boolean; className?: string }) {
   return (
-    <div className={`rounded-[2rem] p-1.5 bg-[#05101f] border border-white/15 shadow-[0_30px_80px_-25px_rgba(0,0,0,0.8)] ${className}`}>
-      <div className="relative rounded-[1.6rem] overflow-hidden">
-        <span aria-hidden="true" className="absolute top-1.5 left-1/2 -translate-x-1/2 w-16 h-4 rounded-full bg-black/80 z-10" />
-        <img src={src} alt={alt} loading={eager ? 'eager' : 'lazy'} decoding="async" className="block w-full h-auto" />
+    <div className={`relative rounded-[2rem] p-[1px] bg-gradient-to-b from-white/30 via-white/10 to-white/[0.05] shadow-[0_45px_90px_-25px_rgba(0,0,0,0.9),0_0_50px_-15px_rgba(56,189,248,0.3)] ${className}`}>
+      <div className="rounded-[calc(2rem-1px)] p-[7px] bg-gradient-to-b from-[#0d1c30] via-[#071426] to-[#04101f] ring-1 ring-black/50">
+        <div className="relative rounded-[1.55rem] overflow-hidden ring-1 ring-white/10">
+          <span aria-hidden="true" className="absolute top-1.5 left-1/2 -translate-x-1/2 w-16 h-4 rounded-full bg-black/85 z-10 shadow-[inset_0_0_4px_rgba(0,0,0,0.8)]" />
+          <img src={src} alt={alt} loading={eager ? 'eager' : 'lazy'} decoding="async" className="block w-full h-auto" />
+        </div>
       </div>
     </div>
   );
@@ -42,8 +47,10 @@ export function PhoneFrame({ src, alt, eager = false, className = '' }: { src: s
 
 export function DocFrame({ src, alt, className = '' }: { src: string; alt: string; className?: string }) {
   return (
-    <div className={`rounded-md overflow-hidden bg-white shadow-[0_30px_80px_-25px_rgba(0,0,0,0.7)] rotate-[-1deg] ${className}`}>
-      <img src={src} alt={alt} loading="lazy" decoding="async" className="block w-full h-auto" />
+    <div className={`relative rounded-md p-[1px] bg-gradient-to-br from-white/25 via-white/10 to-white/[0.04] shadow-[0_40px_90px_-25px_rgba(0,0,0,0.85),0_0_50px_-20px_rgba(222,255,154,0.2)] rotate-[-1deg] ${className}`}>
+      <div className="rounded-[calc(0.375rem-1px)] overflow-hidden bg-white ring-1 ring-black/20">
+        <img src={src} alt={alt} loading="lazy" decoding="async" className="block w-full h-auto" />
+      </div>
     </div>
   );
 }
@@ -73,11 +80,11 @@ export function ShotViewer({ shots }: { shots: readonly RefShot[] }) {
     <div>
       {allMobile ? (
         /* Handy-Apps: alle Ansichten nebeneinander statt Umschalten */
-        <div className="flex gap-3 sm:gap-5 justify-start sm:justify-center items-end overflow-x-auto snap-x snap-mandatory pb-2 -mx-1 px-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+        <div className="flex gap-4 sm:gap-7 justify-start sm:justify-center items-end overflow-x-auto snap-x snap-mandatory pb-3 -mx-1 px-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
           {shots.map((s, k) => (
             <figure key={s.src} className={`flex-shrink-0 snap-center ${k === 1 ? 'sm:-translate-y-6' : ''}`}>
-              <PhoneFrame src={s.src} alt={s.alt} className="w-[180px] sm:w-[200px]" />
-              <figcaption className="mt-3 max-w-[200px] text-center font-arimo text-[11px] text-white/55 leading-snug">{s.caption}</figcaption>
+              <PhoneFrame src={s.src} alt={s.alt} className="w-[185px] sm:w-[210px]" />
+              <figcaption className="mt-3 max-w-[210px] text-center font-arimo text-[11px] text-white/60 leading-snug">{s.caption}</figcaption>
             </figure>
           ))}
         </div>

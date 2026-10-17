@@ -22,7 +22,7 @@ DYD ist ein Produkt der DYD UG (haftungsbeschränkt), Sitz Düsseldorf. Der ATS-
 
 ## Automatisierung & individuelle Software (B2B)
 
-DYD entwickelt Web-Apps, KI-Assistenten und Automatisierungen für einzelne Geschäftsabläufe – nach dem Prinzip "KI bereitet vor, der Mensch gibt frei". Sieben selbst entwickelte Systeme sind live im Einsatz, darunter ein Vertriebs-CRM mit KI-Tagesbriefing, ein Podcast-Produktionsstudio, ein KI-Produktberater, ein Ticketsystem mit automatischer PDF-Erstellung, eine Echtzeit-Turnierverwaltung, ein regelbasierter Trading-Assistent und eine Consumer-App für Fernbeziehungen.
+DYD entwickelt Web-Apps, KI-Assistenten und Automatisierungen für einzelne Geschäftsabläufe – nach dem Prinzip "KI bereitet vor, der Mensch gibt frei". Sieben selbst entwickelte Systeme sind live im Einsatz, darunter ein Vertriebs-CRM mit KI-Tagesbriefing, ein Podcast-Produktionsstudio, ein KI-Produktberater, ein Ticketsystem mit automatischer PDF-Erstellung, eine Echtzeit-Turnierverwaltung, ein regelbasierter Trading-Assistent und eine Online-Terminbuchung mit automatischen Erinnerungen.
 
 - **Ablauf:** Kostenloser Prozess-Check (30 Minuten) → fester Preis für einen klar abgegrenzten ersten Baustein (keine offene Stundenabrechnung) → frühe klickbare Version → Übergabe mit Einführung und Dokumentation.
 - **Preislogik (transparent kalkuliert):** Kalkulationsbasis 50 €/Stunde plus 30 % Puffer. Typische Preisspannen: Automatisierung eines einzelnen Ablaufs ab ca. 1.000 €, KI-Chatbot ca. 2.000–3.500 €, Ticketsystem ca. 2.500–4.000 €, eigenes CRM ca. 3.000–5.000 €, eigene App ca. 3.000–6.000 €. Der verbindliche Preis wird als fester Preis nach dem kostenlosen Prozess-Check zugesagt.

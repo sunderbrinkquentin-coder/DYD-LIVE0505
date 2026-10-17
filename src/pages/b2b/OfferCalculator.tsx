@@ -82,16 +82,30 @@ export function OfferCalculator({ onCheck }: { onCheck: (presetArea?: string) =>
             exit={{ opacity: 0, y: reduce ? 0 : -8 }}
             transition={{ duration: reduce ? 0 : 0.25 }}
           >
-            <div className="grid sm:grid-cols-2 gap-3 mb-4">
-              <div className="rounded-2xl p-4 border border-[#DEFF9A]/25 bg-[#DEFF9A]/[0.06]">
-                <p className="flex items-center gap-1.5 font-arimo text-[11px] font-bold uppercase tracking-wide text-[#DEFF9A] mb-1"><Euro className="w-3.5 h-3.5" aria-hidden="true" />Übliche Preisspanne</p>
-                <p className="font-poppins font-black text-2xl text-white leading-tight">{result.priceMin} – {result.priceMax}</p>
-                <p className="font-arimo text-[11px] text-white/45 mt-1">Fester Preis nach Prozess-Check – keine Stundenabrechnung.</p>
+            {/* Preis-Hero */}
+            <div className="relative rounded-[1.25rem] p-[1px] mb-4 bg-gradient-to-br from-[#DEFF9A]/70 via-[#38BDF8]/40 to-white/10 shadow-[0_30px_70px_-25px_rgba(56,189,248,0.35)]">
+              <div className="rounded-[calc(1.25rem-1px)] p-5 sm:p-6 bg-[#0A192F]">
+                <div className="flex items-center justify-between gap-2 mb-2">
+                  <p className="flex items-center gap-1.5 font-arimo text-[11px] font-bold uppercase tracking-wide text-[#DEFF9A]"><Euro className="w-3.5 h-3.5" aria-hidden="true" />Übliche Preisspanne</p>
+                  <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full font-arimo text-[10px] font-bold bg-[#22c55e]/15 text-[#86efac]">Fester Preis</span>
+                </div>
+                <p className="font-poppins font-black text-3xl sm:text-4xl leading-none bg-gradient-to-r from-[#DEFF9A] to-[#38BDF8] bg-clip-text text-transparent" style={{ letterSpacing: '-0.02em' }}>
+                  {result.priceMin} – {result.priceMax}
+                </p>
+                <p className="font-arimo text-xs text-white/50 mt-2">Verbindlicher Festpreis nach dem kostenlosen Prozess-Check – keine offene Stundenabrechnung.</p>
               </div>
+            </div>
+
+            <div className="grid grid-cols-2 gap-3 mb-4">
               <div className="rounded-2xl p-4 border border-[#38BDF8]/25 bg-[#38BDF8]/[0.06]">
                 <p className="flex items-center gap-1.5 font-arimo text-[11px] font-bold uppercase tracking-wide text-[#38BDF8] mb-1"><Clock className="w-3.5 h-3.5" aria-hidden="true" />Umsetzungsdauer</p>
-                <p className="font-poppins font-black text-2xl text-white leading-tight">{result.weeksLabel}</p>
-                <p className="font-arimo text-[11px] text-white/45 mt-1">{result.hoursLabel}</p>
+                <p className="font-poppins font-black text-xl text-white leading-tight">{result.weeksLabel}</p>
+                <p className="font-arimo text-[11px] text-white/45 mt-1">frühe klickbare Version noch früher</p>
+              </div>
+              <div className="rounded-2xl p-4 border border-white/10 bg-white/[0.03]">
+                <p className="flex items-center gap-1.5 font-arimo text-[11px] font-bold uppercase tracking-wide text-white/60 mb-1"><Calculator className="w-3.5 h-3.5" aria-hidden="true" />Aufwand</p>
+                <p className="font-poppins font-black text-xl text-white leading-tight">{result.hoursLabel.split(' ')[0]}</p>
+                <p className="font-arimo text-[11px] text-white/45 mt-1">Arbeitsstunden inkl. Puffer</p>
               </div>
             </div>
 
@@ -114,25 +128,37 @@ export function OfferCalculator({ onCheck }: { onCheck: (presetArea?: string) =>
               </div>
             </div>
 
+            {/* Vertrauenselemente */}
+            <div className="flex flex-wrap gap-x-4 gap-y-1.5 mb-5">
+              {[
+                'Antwort innerhalb von 24 h',
+                'Kostenlos & unverbindlich',
+                'Feste Zieldauer genannt',
+              ].map((t) => (
+                <span key={t} className="inline-flex items-center gap-1.5 font-arimo text-[11px] font-semibold text-white/60"><Check className="w-3.5 h-3.5 text-[#DEFF9A]" aria-hidden="true" />{t}</span>
+              ))}
+            </div>
+
             <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3">
               <button
                 type="button"
                 onClick={() => onCheck()}
-                className="group inline-flex items-center justify-center gap-2 px-6 py-3.5 rounded-2xl font-arimo font-bold text-[#0A192F] b2b-focus-ring transition hover:-translate-y-0.5 hover:shadow-xl hover:shadow-[#DEFF9A]/25"
+                className="group inline-flex items-center justify-center gap-2 w-full sm:flex-1 px-6 py-4 rounded-2xl font-arimo font-bold text-base text-[#0A192F] b2b-focus-ring transition hover:-translate-y-0.5 hover:shadow-xl hover:shadow-[#DEFF9A]/25"
                 style={{ background: 'linear-gradient(135deg, #DEFF9A, #38BDF8)' }}
               >
-                Kostenlosen Prozess-Check starten
+                Jetzt Preis eingrenzen – kostenlos
                 <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" aria-hidden="true" />
               </button>
               {exampleRef && (
                 <a
                   href={`#/business/automatisierung?projekt=${exampleRef}`}
-                  className="inline-flex items-center justify-center gap-2 px-6 py-3.5 rounded-2xl font-arimo font-bold text-sm text-white border border-white/20 hover:bg-white/5 b2b-focus-ring transition"
+                  className="inline-flex items-center justify-center gap-2 px-5 py-4 rounded-2xl font-arimo font-bold text-sm text-white border border-white/20 hover:bg-white/5 b2b-focus-ring transition flex-shrink-0"
                 >
                   Live-Beispiel ansehen
                 </a>
               )}
             </div>
+            <p className="font-arimo text-[11px] text-white/40 text-center mt-3">30 Minuten · online · ohne Verpflichtung</p>
           </motion.div>
         )}
       </AnimatePresence>

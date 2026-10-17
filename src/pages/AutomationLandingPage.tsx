@@ -12,7 +12,7 @@ import { useSearchParams } from 'react-router-dom';
 import { AnimatePresence, motion, useReducedMotion, type Variants } from 'framer-motion';
 import {
   ArrowRight, Bot, CalendarCheck, Check, ChevronDown, Eye, LineChart, Mic, Rocket, Search, ShieldCheck,
-  Sparkles, Target, Ticket, TrendingUp, Trophy, Users, Zap, FileText, Layers, Heart,
+  Sparkles, Target, Ticket, TrendingUp, Trophy, Users, Zap, FileText, Layers, CalendarDays,
 } from 'lucide-react';
 import B2BHeader from './b2b/B2BHeader';
 import { CalBookingButton } from './b2b/CalBookingButton';
@@ -21,7 +21,7 @@ import { BrowserFrame, LIME, PhoneFrame, ProcessCheck, SKY, ShotViewer } from '.
 import { OfferCalculator } from './b2b/OfferCalculator';
 
 const VIEWPORT = { once: true, margin: '-60px' } as const;
-const refIcons = { mic: Mic, crm: Users, chart: LineChart, ticket: Ticket, trophy: Trophy, bot: Bot, heart: Heart } as const;
+const refIcons = { mic: Mic, crm: Users, chart: LineChart, ticket: Ticket, trophy: Trophy, bot: Bot, calendar: CalendarDays } as const;
 const stepIcons: Record<string, typeof Search> = { search: Search, target: Target, rocket: Rocket, growth: TrendingUp };
 
 function useAnims() {
@@ -34,6 +34,7 @@ function useAnims() {
 /** Rotierende Status-Meldungen im Hero – zeigen, was die Systeme tagtäglich erledigen */
 const LIVE_EVENTS = [
   { Icon: Sparkles, text: 'Tagesbriefing erstellt', meta: 'Vertriebs-CRM · 07:00' },
+  { Icon: CalendarDays, text: 'Termin bestätigt · 24h-Erinnerung geplant', meta: 'Terminbuchung' },
   { Icon: FileText, text: '7 Textentwürfe zur Freigabe', meta: 'Podcast-Studio' },
   { Icon: Ticket, text: 'PDF-Ticket automatisch versendet', meta: 'Ticketsystem' },
   { Icon: ShieldCheck, text: 'Risiko-Grenzen geprüft', meta: 'Trading-Assistent · stündlich' },
@@ -260,7 +261,7 @@ export default function AutomationLandingPage() {
                 <div className="flex flex-wrap items-center gap-2 mb-3">
                   <span className="inline-flex items-center px-2.5 py-1 rounded-full font-arimo text-[10px] font-bold uppercase tracking-wide bg-[#DEFF9A]/12 text-[#DEFF9A]">{ref.category}</span>
                   {ref.concept
-                    ? <span className="inline-flex items-center px-2.5 py-1 rounded-full font-arimo text-[10px] font-bold uppercase tracking-wide bg-[#ff7aa2]/15 text-[#ffb3c9]">Beispielansicht · Konzept</span>
+                    ? <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full font-arimo text-[10px] font-bold uppercase tracking-wide bg-[#38BDF8]/12 text-[#7dd3fc]"><Eye className="w-3 h-3" aria-hidden="true" />Beispielansicht</span>
                     : <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full font-arimo text-[10px] font-bold uppercase tracking-wide bg-[#22c55e]/12 text-[#86efac]"><span className="h-1.5 w-1.5 rounded-full bg-[#22c55e]" />Live im Einsatz</span>}
                 </div>
                 <h3 className="font-poppins font-black text-2xl sm:text-3xl leading-tight mb-3" style={{ letterSpacing: '-0.02em' }}>{ref.title}</h3>

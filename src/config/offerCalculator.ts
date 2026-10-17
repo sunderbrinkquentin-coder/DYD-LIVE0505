@@ -94,7 +94,7 @@ export const PROJECT_TYPES: ProjectTypeInfo[] = [
     hoursMax: 120,
     weeks: [4, 8],
     includes: ['Von der Idee zur nutzbaren App', 'Frühe Testversion zum Klicken', 'Übergabe inkl. Einführung'],
-    exampleRef: 'beziehung',
+    exampleRef: 'buchung',
   },
 ];
 
