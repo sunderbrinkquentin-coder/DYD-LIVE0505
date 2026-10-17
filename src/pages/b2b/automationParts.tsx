@@ -7,7 +7,7 @@
 
 import { useEffect, useState } from 'react';
 import { AnimatePresence, motion, useReducedMotion } from 'framer-motion';
-import { ArrowLeft, ArrowRight, Check, CheckCircle2, Loader2, Maximize2, X } from 'lucide-react';
+import { ArrowLeft, ArrowRight, Check, CheckCircle2, Loader2, Maximize2, Sparkles, Smartphone, Rocket, Wand2, X } from 'lucide-react';
 import { supabase } from '../../lib/supabase';
 import { VoiceInput } from '../../components/VoiceInput';
 import { triggerB2bBriefing } from '../../lib/b2bBriefing';
@@ -16,6 +16,9 @@ import { automationContent as c, type RefShot } from './automationContent';
 export const LIME = '#DEFF9A';
 export const SKY = '#38BDF8';
 export const NAVY = '#0A192F';
+
+/** Terminvorschläge für das Erstgespräch im Prozess-Check */
+const SLOTS = ['Diese Woche', 'Nächste Woche', 'Vormittags', 'Nachmittags', 'Abends'];
 
 /* ─── Geräterahmen ─────────────────────────────────────────────────────── */
 export function BrowserFrame({ src, alt, eager = false, className = '' }: { src: string; alt: string; eager?: boolean; className?: string }) {
@@ -146,6 +149,73 @@ export function ShotViewer({ shots }: { shots: readonly RefShot[] }) {
   );
 }
 
+/* ─── Eigene App-Idee: individuelles Erlebnis-Panel ────────────────────── */
+const APP_IDEAS = ['Kunden-App', 'Buchungs-App', 'Community-App', 'Sales-App', 'Mitglieder-App', 'Ihre Idee'];
+
+export function AppIdeaPanel({ startCheck, openRef }: { startCheck: (area?: string, details?: string) => void; openRef: (id: string) => void }) {
+  const reduce = useReducedMotion() ?? false;
+  const [idea, setIdea] = useState<string>('');
+
+  return (
+    <div className="grid md:grid-cols-12 gap-6 items-center rounded-3xl p-5 sm:p-8 bg-gradient-to-br from-[#DEFF9A]/[0.07] via-white/[0.03] to-[#38BDF8]/[0.07] border border-[#DEFF9A]/30">
+      <div className="md:col-span-5 order-2 md:order-1">
+        <div className="flex items-center gap-2 mb-3">
+          <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full font-arimo text-[10px] font-bold uppercase tracking-wide bg-[#DEFF9A]/15 text-[#DEFF9A]"><Wand2 className="w-3 h-3" aria-hidden="true" />100 % individuell</span>
+          <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full font-arimo text-[10px] font-bold uppercase tracking-wide bg-[#38BDF8]/15 text-[#7dd3fc]">Idee → klickbare App</span>
+        </div>
+        <p className="font-poppins font-black text-2xl leading-tight mb-3" style={{ letterSpacing: '-0.02em' }}>
+          Ihre App. Ganz nach Ihren Wünschen.
+        </p>
+        <p className="font-arimo text-white/75 mb-4 leading-relaxed">
+          Bei einer eigenen App bin ich <span className="font-bold text-[#DEFF9A]">ganz individuell unterwegs</span> – von der ersten Skizze über Design und Funktionen bis zum Betrieb. Sie sagen, was Ihre Kunden brauchen; ich setze es um, Schritt für Schritt mit frühen Testversionen zum Anfassen.
+        </p>
+        <p className="font-arimo text-xs font-bold uppercase tracking-wide text-[#DEFF9A] mb-2 flex items-center gap-1.5"><Rocket className="w-3.5 h-3.5" aria-hidden="true" />Was Sie bekommen</p>
+        <ul className="space-y-2 mb-5">
+          {['Alles nach Ihren Kundenwünschen – keine Baukasten-Grenzen', 'Früh eine klickbare Version statt langer Wartezeit', 'Fester Preis pro Baustein, flexibel erweiterbar', 'Übergabe inkl. Einführung – Sie behalten die Kontrolle'].map((t) => (
+            <li key={t} className="flex items-start gap-2 font-arimo text-sm text-white/85"><Check className="w-4 h-4 text-[#DEFF9A] flex-shrink-0 mt-0.5" aria-hidden="true" />{t}</li>
+          ))}
+        </ul>
+
+        <p className="font-arimo text-[11px] font-bold uppercase tracking-wide text-white/60 mb-2">Wonach klingt es bei Ihnen?</p>
+        <div className="flex flex-wrap gap-1.5 mb-5">
+          {APP_IDEAS.map((label) => (
+            <button key={label} type="button" aria-pressed={idea === label}
+              onClick={() => setIdea(idea === label ? '' : label)}
+              className={`px-3 py-1.5 rounded-full font-arimo text-xs font-bold border transition b2b-focus-ring ${idea === label ? 'text-[#0A192F] border-transparent' : 'text-white/70 border-white/15 hover:text-white hover:border-[#DEFF9A]/50'}`}
+              style={idea === label ? { background: 'linear-gradient(135deg, #DEFF9A, #38BDF8)' } : undefined}>
+              {label}
+            </button>
+          ))}
+        </div>
+
+        <div className="flex flex-col sm:flex-row gap-2.5">
+          <button type="button" onClick={() => startCheck('Eigene App-Idee', idea ? `Eigene App – Richtung: ${idea}` : 'Eigene App – individuelle Idee')}
+            className="group inline-flex items-center justify-center gap-2 px-5 py-3 rounded-xl font-arimo font-bold text-sm text-[#0A192F] b2b-focus-ring transition hover:-translate-y-0.5 hover:shadow-xl hover:shadow-[#DEFF9A]/25"
+            style={{ background: 'linear-gradient(135deg, #DEFF9A, #38BDF8)' }}>
+            App-Idee als Anfrage starten <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" aria-hidden="true" />
+          </button>
+          <button type="button" onClick={() => openRef('beziehung')} className="inline-flex items-center justify-center gap-2 px-5 py-3 rounded-xl font-arimo font-bold text-sm text-white border border-white/20 hover:bg-white/5 b2b-focus-ring">
+            Beispiel-App ansehen <Smartphone className="w-4 h-4 text-[#38BDF8]" aria-hidden="true" />
+          </button>
+        </div>
+      </div>
+      <button type="button" onClick={() => openRef('beziehung')} className="md:col-span-7 order-1 md:order-2 block text-left b2b-focus-ring rounded-xl group" aria-label="Beispiel einer eigenen App ansehen">
+        <motion.div whileHover={reduce ? undefined : { scale: 1.015 }} transition={{ type: 'spring', stiffness: 300, damping: 24 }} className="relative">
+          <div className="flex gap-5 justify-center items-end">
+            <PhoneFrame src="/b2b/refs/fernbeziehung-heute.webp" alt="Startseite einer selbst entwickelten App mit Countdown und Frage des Tages" className="w-[185px] sm:w-[205px]" />
+            <PhoneFrame src="/b2b/refs/fernbeziehung-ideen.webp" alt="Funktionen einer selbst entwickelten App mit KI-Vorschlägen" className="w-[185px] sm:w-[205px] sm:-translate-y-6" />
+          </div>
+          <div className="absolute inset-x-0 bottom-0 flex justify-center">
+            <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full font-arimo text-[11px] font-bold bg-black/70 text-white border border-white/20 backdrop-blur group-hover:bg-black/85 transition">
+              <Smartphone className="w-3.5 h-3.5 text-[#38BDF8]" aria-hidden="true" />So sah eine eigene App-Idee live aus
+            </span>
+          </div>
+        </motion.div>
+      </button>
+    </div>
+  );
+}
+
 /* ─── Prozess-Check: 3 Schritte → Anfrage ──────────────────────────────── */
 export function ProcessCheck({ presetArea, presetDetails }: { presetArea?: string | null; presetDetails?: string | null }) {
   const reduce = useReducedMotion() ?? false;
@@ -154,6 +224,8 @@ export function ProcessCheck({ presetArea, presetDetails }: { presetArea?: strin
   const [volume, setVolume] = useState<string>('');
   const [timing, setTiming] = useState<string>('');
   const [form, setForm] = useState({ name: '', company: '', email: '', phone: '', note: '' });
+  const [decider, setDecider] = useState(false);
+  const [slot, setSlot] = useState('');
   const [status, setStatus] = useState<'idle' | 'sending' | 'done' | 'error'>('idle');
   const [error, setError] = useState('');
 
@@ -171,6 +243,8 @@ export function ProcessCheck({ presetArea, presetDetails }: { presetArea?: strin
       volume ? `Zeitaufwand heute: ${volume}` : '',
       timing ? `Zeitrahmen: ${timing}` : '',
       presetDetails ? `Rechner-Auswahl: ${presetDetails}` : '',
+      slot ? `Terminwunsch Erstgespräch: ${slot}` : '',
+      `Entscheider:in: ${decider ? 'ja' : 'nein'}`,
       form.note.trim() ? `Anliegen: ${form.note.trim()}` : '',
     ].filter(Boolean).join('\n');
     try {
@@ -198,6 +272,8 @@ export function ProcessCheck({ presetArea, presetDetails }: { presetArea?: strin
           zeitaufwand_heute: volume,
           zeitrahmen: timing,
           rechner_auswahl: presetDetails || '–',
+          entscheidet: decider ? 'ja' : 'nein',
+          terminwunsch_erstgespraech: slot || 'offen',
           anliegen: form.note.trim(),
         },
       });
@@ -279,6 +355,26 @@ export function ProcessCheck({ presetArea, presetDetails }: { presetArea?: strin
                 <input className={input} type="tel" placeholder="Telefon (optional)" autoComplete="tel" value={form.phone} onChange={(e) => setForm({ ...form, phone: e.target.value })} aria-label="Telefon" />
               </div>
               <textarea className={`${input} resize-none`} rows={3} placeholder="Optional: Welcher Ablauf nervt am meisten?" value={form.note} onChange={(e) => setForm({ ...form, note: e.target.value })} aria-label="Ablauf beschreiben" />
+              <div>
+                <p className="font-arimo text-[11px] font-bold uppercase tracking-wide text-white/60 mb-1.5">Terminwunsch für das Erstgespräch</p>
+                <div className="flex flex-wrap gap-2" role="group" aria-label="Terminwunsch">
+                  {SLOTS.map((s) => {
+                    const active = slot === s;
+                    return (
+                      <button key={s} type="button" aria-pressed={active}
+                        onClick={() => setSlot(active ? '' : s)}
+                        className={`px-3 py-1.5 rounded-lg font-arimo text-xs font-bold border transition b2b-focus-ring ${active ? 'border-[#DEFF9A] bg-[#DEFF9A]/10 text-[#DEFF9A]' : 'border-white/15 text-white/60 hover:border-white/35 hover:text-white'}`}>
+                        {s}
+                      </button>
+                    );
+                  })}
+                </div>
+                <p className="font-arimo text-[11px] text-white/40 mt-1.5">Ihren Wunschtermin bestätigen wir Ihnen direkt – Ihr Terminvorschlag geht mit der Anfrage raus.</p>
+              </div>
+              <label className="flex items-start gap-2.5 rounded-xl px-3.5 py-3 bg-white/[0.04] border border-white/10 cursor-pointer select-none">
+                <input type="checkbox" checked={decider} onChange={(e) => setDecider(e.target.checked)} className="mt-0.5 w-4 h-4 accent-[#DEFF9A]" />
+                <span className="font-arimo text-xs text-white/75 leading-relaxed">Ich bin Entscheider:in und kann über das Projekt entscheiden.</span>
+              </label>
               {status === 'error' && <p className="font-arimo text-sm text-red-400">{error}</p>}
               <button type="submit" disabled={status === 'sending'} className="mt-1 inline-flex items-center justify-center gap-2 w-full px-6 py-4 rounded-2xl font-arimo font-bold text-[#0A192F] b2b-focus-ring transition hover:shadow-xl hover:shadow-[#DEFF9A]/20 disabled:opacity-60" style={{ background: `linear-gradient(135deg, ${LIME}, ${SKY})` }}>
                 {status === 'sending' ? <><Loader2 className="w-4 h-4 animate-spin" aria-hidden="true" /> Wird gesendet …</> : <>Kostenlose Einschätzung anfordern <ArrowRight className="w-4 h-4" aria-hidden="true" /></>}

@@ -17,7 +17,7 @@ import {
 import B2BHeader from './b2b/B2BHeader';
 import { CalBookingButton } from './b2b/CalBookingButton';
 import { automationContent as c } from './b2b/automationContent';
-import { BrowserFrame, LIME, PhoneFrame, ProcessCheck, SKY, ShotViewer } from './b2b/automationParts';
+import { BrowserFrame, LIME, PhoneFrame, ProcessCheck, SKY, ShotViewer, AppIdeaPanel } from './b2b/automationParts';
 import { OfferCalculator } from './b2b/OfferCalculator';
 
 const VIEWPORT = { once: true, margin: '-60px' } as const;
@@ -204,6 +204,11 @@ export default function AutomationLandingPage() {
             })}
           </div>
           <AnimatePresence mode="wait">
+            {finder.id === 'appidee' ? (
+              <motion.div key="appidee" initial={{ opacity: 0, y: reduce ? 0 : 12 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }} transition={{ duration: reduce ? 0 : 0.25 }}>
+                <AppIdeaPanel startCheck={startCheck} openRef={openRef} />
+              </motion.div>
+            ) : (
             <motion.div key={finder.id} initial={{ opacity: 0, y: reduce ? 0 : 12 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }} transition={{ duration: reduce ? 0 : 0.25 }}
               className="grid md:grid-cols-12 gap-6 items-center rounded-3xl p-5 sm:p-8 bg-white/[0.03] border border-white/10">
               <div className="md:col-span-5 order-2 md:order-1">
@@ -230,6 +235,7 @@ export default function AutomationLandingPage() {
                   : <BrowserFrame src={finderRef.shots[0].src} alt={finderRef.shots[0].alt} />}
               </button>
             </motion.div>
+            )}
           </AnimatePresence>
         </div>
       </section>
