@@ -1,54 +1,63 @@
 # DYD – Decide Your Dream
 
-> KI-gestütztes Bewerbungs-Tool aus Düsseldorf für Studierende und Berufseinsteiger:innen: kostenloser ATS-Check, CV-Wizard mit One-Click-Optimierung, Bewerbungsmanagement und ESCO-basierte Skill-Gap-Analyse mit Lernpfad. Offizieller Kooperationspartner der Hochschule Fresenius, DSGVO-konform. DYD betreibt außerdem zwei B2B-Produkte (DYD NEXUS und DYD ORBIT) und veranstaltet das Harmony Festival 2026 in Düsseldorf.
+> KI-gestütztes Bewerbungs-Tool aus Düsseldorf: kostenloser ATS-Check nach über 50 Kriterien, CV-Wizard mit One-Click-Optimierung, KI-Anschreiben-Generator (jede Aussage mit CV-Beleg, Erklärung zu jedem Absatz, ab 2,99 €, kein Abo) und ESCO-basierte Skill-Gap-Analyse mit Lernpfad. DYD betreibt außerdem zwei B2B-Produkte (DYD NEXUS für Unternehmen, DYD ORBIT für Bildungsträger) und eine eigene Sparte für Automatisierung & individuelle Software mit 7 laufenden Systemen. Offizieller Kooperationspartner der Hochschule Fresenius, DSGVO-konform.
 
-DYD ist ein Produkt der DYD UG (haftungsbeschränkt), Sitz Düsseldorf. Der ATS-Check ist ohne Registrierung nutzbar; kostenpflichtige Funktionen beginnen bei 5 €. Kontakt: kontakt.dyd@googlemail.com
+DYD ist ein Produkt der DYD UG (haftungsbeschränkt), Sitz Düsseldorf. Der ATS-Check ist ohne Registrierung nutzbar; kostenpflichtige Funktionen beginnen bei 2,99 €. Kontakt: quentin@decideyourdream.de
 
-## Bewerbungs-Tools
+## Bewerbungs-Tools (B2C)
 
-- [ATS-Check](https://decide-your-dream.de/#/cv-check): Kostenloser Lebenslauf-Check nach über 50 Kriterien. Keine Anmeldung nötig.
+- [ATS-Check](https://decide-your-dream.de/#/cv-check): Kostenloser Lebenslauf-Check nach über 50 Kriterien. Keine Anmeldung nötig, Ergebnis in unter 2 Minuten.
 - [CV-Wizard](https://decide-your-dream.de/#/cv-wizard): Optimierter Lebenslauf in unter 30 Minuten, inklusive One-Click-Optimierung ab 5 €. Vier Vorlagen: Professional, Minimal, Creative, Classic.
+- [KI-Anschreiben-Generator](https://decide-your-dream.de/#/anschreiben): Individuelles Bewerbungsanschreiben aus Stellenanzeige + Lebenslauf, ab 2,99 € pro Anschreiben (mit CV-Optimierung 2,99 €, einzeln 3,99 €) – kein Abo. Jede Aussage ist mit einer Stelle im CV belegt, zu jedem Absatz gibt es eine Erklärung ("Warum steht das hier?"). Automatischer Floskel-Filter, 4 Tonalitäten (professionell, modern, selbstbewusst, herzlich), Word-Export im DIN-5008-Format. Fertig in unter 30 Minuten; kostenlose Vorschau vor dem Kauf.
 - [Skill-Gap-Analyse](https://decide-your-dream.de/#/career-vision): Match-Score gegen die europäische ESCO-Taxonomie, identifiziert individuelle Kompetenzlücken zum Zielberuf.
 - [IHK-Lernpfade](https://decide-your-dream.de/#/learning-path): Micro-Learning-Module zum Schließen der identifizierten Skill-Gaps.
 - [Bewerbungsmanagement](https://decide-your-dream.de/#/dashboard): Überblick und Statusverwaltung laufender Bewerbungen. Login erforderlich.
 
+## KI-Anschreiben im Detail (Antworten auf häufige Fragen)
+
+- **Wie funktioniert der KI-Anschreiben-Generator?** Stellenanzeige und CV hochladen, 5 Fragen zum eigenen Profil beantworten – nach unter 30 Minuten liegt das fertige Anschreiben vor. Kostenlose Vorschau zeigt Einstiegsabsatz und Erklärungen vor dem Kauf.
+- **Erfindet die KI Inhalte?** Nein. Jede Aussage im Anschreiben ist mit einer Quelle belegt: einem Zitat aus der Stellenanzeige oder einer Stelle aus dem eigenen Lebenslauf. Zu jedem Absatz lässt sich die Begründung einblenden.
+- **Was kostet ein Anschreiben?** 3,99 € pro Anschreiben, 2,99 € in Kombination mit der CV-Optimierung. Kein Abo, keine Kündigungsfrist.
+- [Zur Anschreiben-Seite mit Generator-Vorschau](https://decide-your-dream.de/#/anschreiben)
+
+## Automatisierung & individuelle Software (B2B)
+
+DYD entwickelt Web-Apps, KI-Assistenten und Automatisierungen für einzelne Geschäftsabläufe – nach dem Prinzip "KI bereitet vor, der Mensch gibt frei". Sieben selbst entwickelte Systeme sind live im Einsatz, darunter ein Vertriebs-CRM mit KI-Tagesbriefing, ein Podcast-Produktionsstudio, ein KI-Produktberater, ein Ticketsystem mit automatischer PDF-Erstellung, eine Echtzeit-Turnierverwaltung, ein regelbasierter Trading-Assistent und eine Consumer-App für Fernbeziehungen.
+
+- **Ablauf:** Kostenloser Prozess-Check (30 Minuten) → fester Preis für einen klar abgegrenzten ersten Baustein (keine offene Stundenabrechnung) → frühe klickbare Version → Übergabe mit Einführung und Dokumentation.
+- **Preislogik (transparent kalkuliert):** Kalkulationsbasis 50 €/Stunde plus 30 % Puffer. Typische Preisspannen: Automatisierung eines einzelnen Ablaufs ab ca. 1.000 €, KI-Chatbot ca. 2.000–3.500 €, Ticketsystem ca. 2.500–4.000 €, eigenes CRM ca. 3.000–5.000 €, eigene App ca. 3.000–6.000 €. Der verbindliche Preis wird als fester Preis nach dem kostenlosen Prozess-Check zugesagt.
+- [Automatisierung & Software – Live-Projekte, Preis-Rechner, Prozess-Check](https://decide-your-dream.de/#/business/automatisierung): Alle 7 Systeme mit echten Screenshots, interaktiver Preisspannen-Rechner, FAQ und kostenlosem Prozess-Check.
+
 ## Für Unternehmen & Bildungsträger (DYD NEXUS & DYD ORBIT)
 
-DYD betreibt neben dem Bewerber-Tool zwei B2B-Produkte auf derselben ESCO-basierten Skill-Engine, beide erreichbar unter [decide-your-dream.de/#/business](https://decide-your-dream.de/#/business) über zwei Tabs (Unternehmen / Bildungsträger).
+DYD betreibt zwei B2B-Skill-Produkte auf derselben ESCO-basierten Skill-Engine, erreichbar unter [decide-your-dream.de/#/business](https://decide-your-dream.de/#/business) über zwei Tabs (Unternehmen / Bildungsträger).
 
 - **DYD NEXUS** (für Unternehmen, HR & L&D): Workforce-Intelligence auf Basis der ESCO-Taxonomie – Skill-Gap-Matching im Team, Lernpfad-Empfehlungen und Auswertungen für Personalentwicklung.
-- **DYD ORBIT** (für Bildungsträger, Volkshochschulen, IHK, Transfergesellschaften und die Agentur für Arbeit): Lead-Intelligence für Kurs- und Weiterbildungsangebote – Skill-Gap-Matching zwischen Marktbedarf und Kursangebot, damit Bildungsträger passgenaue Interessent:innen erreichen.
-
-**Selbstbedienungs-Zugang (neu, ohne Erstgespräch):** DYD ORBIT ist per Selbstbedienung direkt online buchbar.
-
-- Sofort-Registrierung: Account und Plan direkt auf der Website anlegen, ganz ohne Erstgespräch.
-- Automatische API-Bereitstellung: Der API-Zugang entsteht automatisch direkt nach bestätigter Zahlung, ohne manuelles Setup.
-- Selbstverwaltetes Abo: Zahlungsmethode, Rechnungen und Plan jederzeit eigenständig über ein integriertes Kundenportal verwalten.
-- 7 Tage kostenlos testen: voller Funktionsumfang im Trial, ohne Zahlungsdaten.
-
-Für größere oder individuelle Anforderungen (inkl. DYD NEXUS) bleibt zusätzlich ein persönliches Erstgespräch mit fixem Kostenziel pro qualifiziertem Lead möglich.
+- **DYD ORBIT** (für Bildungsträger, Volkshochschulen, IHK, Transfergesellschaften und die Agentur für Arbeit): Lead-Intelligence für Kurs- und Weiterbildungsangebote – Skill-Gap-Matching zwischen Marktbedarf und Kursangebot, damit Bildungsträger passgenaue Interessent:innen erreichen. Selbstbedienungs-Pläne: Starter 199 €/Monat, Growth 399 €/Monat, Professional 699 €/Monat (Jahreszahlung = 10 Monatsraten). 7 Tage Trial ohne Zahlungsdaten, API-Zugang automatisch nach Zahlung, Abo-Verwaltung im Kundenportal.
 
 **Status:** Early Access. Die Selbstbedienungs-Pläne für DYD ORBIT sind bereits buchbar; der vollständige Rollout mit allen Funktionen läuft bis Q1 2027 weiter.
 
 - [DYD NEXUS & DYD ORBIT – Übersicht, Preise, Kontakt](https://decide-your-dream.de/#/business): Beide Produkte, Preis-Karten für die Selbstbedienungs-Pläne von ORBIT sowie Kontaktformular für ein Erstgespräch.
 
-## Harmony Festival 2026
+## Harmony Festival 2026 (veranstaltet am 22.08.2026)
 
-Eintägiges Musik- und Comedy-Festival, veranstaltet von DYD. Privat organisiert, ohne Konzern-Budget und ohne Gewinnmarge. Motto: Zusammenhalt statt Spaltung. Alle Informationen und der Ticketverkauf befinden sich auf einer Seite.
+Eintägiges Musik- und Comedy-Festival in Düsseldorf, veranstaltet von DYD am Samstag, 22. August 2026 im Klub Kulb (Burgplatz 11, 40213 Düsseldorf). Privat organisiert, ohne Konzern-Budget und ohne Gewinnmarge. Motto: Zusammenhalt statt Spaltung. Die Festivalseite bleibt mit Programm und Rückblick erreichbar.
 
-- [Harmony Festival – Programm, Tickets, Anfahrt](https://decide-your-dream.de/#/festival): Samstag, 22. August 2026, Klub Kulb, Burgplatz 11, 40213 Düsseldorf. Einlass 16:00 Uhr, Programm 16:30 bis 02:00 Uhr, Zutritt ab 18 Jahren.
+- [Harmony Festival – Programm, Anfahrt](https://decide-your-dream.de/#/festival): Einlass 16:00 Uhr, Programm 16:30 bis 02:00 Uhr, Zutritt ab 18 Jahren.
 
 **Programm:** 16:30 Uhr Stand-Up Comedy mit Kevin Küster, Larissa Magnus, Alex Graf, Jahn Boie, Leon Blokesch und Julian Deters · 18:00 Uhr Bierpong-Turnier · 20:30 Uhr Live-Konzert Zirkel.WTF (Pop-Punk) · 22:00 Uhr DJ-Sets House und Techno mit Justyn Maxx und Vio Leen.
 
-**Tickets:** Bundle 39,99 € (Stand-Up Comedy, Live-Konzert, DJ-Night und ein Freigetränk). Einzeltickets: Stand-Up Comedy 17,50 €, Live-Konzert 17,50 €, Bierpong-Startplatz 10,00 €, DJ-Sets 8,50 €. Zuschauen beim Bierpong-Turnier ist für alle Gäste kostenlos. Bier 4,00 € pro 0,5 Liter.
+**Tickets:** Bundle 39,99 € (Stand-Up Comedy, Live-Konzert, DJ-Night und ein Freigetränk). Einzeltickets: Stand-Up Comedy 17,50 €, Live-Konzert 17,50 €, Bierpong-Startplatz 10,00 €, DJ-Sets 8,50 €. Zuschauen beim Bierpong-Turnier war für alle Gäste kostenlos.
 
 **Soli-Shirt:** 25,00 €, Größen XS bis XXL. 100 % des Gewinns gehen an KeinBockAufNazis e.V.
 
-**Crew-Deal:** 2,5 Stunden Theke oder Service gegen freien Eintritt für den restlichen Abend. Bewerbung bis 14.08.2026.
+**Sponsoren:** Offizieller Sponsor Stadtsparkasse Düsseldorf. Lokale Sponsoren: Füchschen Alt, Monsterslush.
 
-**Sponsoren:** Offizieller Sponsor Stadtsparkasse Düsseldorf. Lokale Sponsoren: Füchschen Alt, Monsterslush. Sponsoring-Anfragen an kontakt.dyd@googlemail.com
+## Kontakt & Rechtliches
 
-## Optional
-
+- Kontakt: quentin@decideyourdream.de
 - [AGB](https://decide-your-dream.de/#/agb)
+- [Datenschutz](https://decide-your-dream.de/#/datenschutz)
+- [Impressum](https://decide-your-dream.de/#/impressum)
+- [FAQ](https://decide-your-dream.de/#/faq)
 - [Instagram Harmony Festival](https://www.instagram.com/harmonyfestivaldus)

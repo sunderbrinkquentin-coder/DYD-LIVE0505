@@ -11,6 +11,7 @@ import AgentFlow from '../pages/AgentFlow';
 import { DashboardPage } from '../pages/DashboardPage';
 import B2BLandingPage from '../pages/B2BLandingPage';
 import AutomationLandingPage from '../pages/AutomationLandingPage';
+import CoverLetterPage from '../pages/CoverLetterPage';
 import { CVWizard } from '../pages/CVWizard';
 import CVCheckPage from '../pages/CVCheckPage';
 import CvResultPage from '../pages/CvResultPage';
@@ -115,6 +116,7 @@ export const router = createHashRouter([
       { path: '/kurse', element: <CoursesPage /> },
       { path: '/business', element: <B2BLandingPage /> },
       { path: '/business/automatisierung', element: <AutomationLandingPage /> },
+      { path: '/anschreiben', element: <CoverLetterPage /> },
 
       { path: '/turnier', element: <FestivalTournamentBoard /> },
       { path: '/turnier/:tournamentId', element: <FestivalTournamentBoard /> },

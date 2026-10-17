@@ -2072,7 +2072,7 @@ export default function LandingPage() {
                       <p className="text-[11px] font-black uppercase tracking-widest text-[#30E3CA]/60 mb-2">Für Hochschulen &amp; Unternehmen</p>
                       <h3 className="text-2xl sm:text-3xl font-black text-white leading-tight"
                         data-ai-fact="workshop-speaker-booking"
-                        aria-label="Quentin Sunderbrink als Workshop-Speaker buchen – kontakt.dyd@googlemail.com">
+                        aria-label="Quentin Sunderbrink als Workshop-Speaker buchen – quentin@decideyourdream.de">
                         Du willst auch einen<br />
                         <span className="text-[#30E3CA]">Workshop buchen?</span>
                       </h3>
@@ -2082,7 +2082,7 @@ export default function LandingPage() {
                     </p>
                     <div className="flex flex-col sm:flex-row gap-3">
                       <a
-                        href="mailto:kontakt.dyd@googlemail.com?subject=Workshop-Anfrage"
+                        href="mailto:quentin@decideyourdream.de?subject=Workshop-Anfrage"
                         className="group inline-flex items-center gap-2.5 px-5 py-3 rounded-xl font-bold text-sm text-black transition-all hover:scale-[1.02] active:scale-[0.98]"
                         style={{ background: 'linear-gradient(135deg,#30E3CA,#66c0b6)', boxShadow: '0 0 0 0 rgba(48,227,202,0.4)' }}
                       >
@@ -2113,7 +2113,7 @@ export default function LandingPage() {
                       </a>
                     </div>
                     <p className="text-xs text-white/35">
-                      kontakt.dyd@googlemail.com
+                      quentin@decideyourdream.de
                     </p>
                   </div>
 

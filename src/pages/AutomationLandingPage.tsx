@@ -18,6 +18,7 @@ import B2BHeader from './b2b/B2BHeader';
 import { CalBookingButton } from './b2b/CalBookingButton';
 import { automationContent as c } from './b2b/automationContent';
 import { BrowserFrame, LIME, PhoneFrame, ProcessCheck, SKY, ShotViewer } from './b2b/automationParts';
+import { OfferCalculator } from './b2b/OfferCalculator';
 
 const VIEWPORT = { once: true, margin: '-60px' } as const;
 const refIcons = { mic: Mic, crm: Users, chart: LineChart, ticket: Ticket, trophy: Trophy, bot: Bot, heart: Heart } as const;
@@ -328,6 +329,20 @@ export default function AutomationLandingPage() {
                 </div>
               </motion.div>
             ))}
+          </motion.div>
+        </div>
+      </section>
+
+      {/* ── ANGEBOTS-RECHNER ───────────────────────────────────────────── */}
+      <section id="kosten" className="px-4 sm:px-6 lg:px-8 py-24 scroll-mt-16">
+        <div className="max-w-4xl mx-auto">
+          <motion.div variants={fadeUp} initial="hidden" whileInView="show" viewport={VIEWPORT} className="text-center mb-10">
+            <span className="inline-block font-arimo text-xs font-bold uppercase tracking-[0.18em] text-[#DEFF9A] mb-3">Transparent kalkuliert</span>
+            <h2 className="font-poppins font-black text-3xl sm:text-4xl mb-3" style={{ letterSpacing: '-0.03em' }}>Was kostet Ihr Projekt?</h2>
+            <p className="font-arimo text-white/60 max-w-2xl mx-auto">Ehrliche Größenordnung statt versteckter Preise: Wählen Sie Typ und Umfang – Sie sehen sofort die übliche Preisspanne und Dauer. Der endgültige Preis wird als fester Preis im kostenlosen Prozess-Check zugesagt.</p>
+          </motion.div>
+          <motion.div variants={fadeUp} initial="hidden" whileInView="show" viewport={VIEWPORT}>
+            <OfferCalculator onCheck={() => startCheck()} />
           </motion.div>
         </div>
       </section>

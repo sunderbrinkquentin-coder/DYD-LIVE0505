@@ -2179,13 +2179,13 @@ signal: controller.signal,
                 <motion.a
                   whileHover={{ scale: 1.02 }}
                   whileTap={{ scale: 0.98 }}
-                  href="mailto:kontakt.dyd@googlemail.com?subject=Sponsoring%20Harmony%202026"
+                  href="mailto:quentin@decideyourdream.de?subject=Sponsoring%20Harmony%202026"
                   className="btn-cyan inline-flex items-center gap-2.5 px-7 py-3.5 rounded-xl"
                   style={{ fontSize: '15px', textDecoration: 'none' }}>
                   <Building2 className="w-4 h-4" /> Sponsoring anfragen
                 </motion.a>
                 <span style={{ fontFamily: "'Inter', sans-serif", fontSize: '13px', color: 'rgba(160,230,230,0.4)', lineHeight: 1.6 }}>
-                  Kontakt: kontakt.dyd@googlemail.com
+                  Kontakt: quentin@decideyourdream.de
                 </span>
               </div>
             </div>

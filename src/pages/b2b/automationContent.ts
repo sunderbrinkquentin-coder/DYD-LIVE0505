@@ -55,7 +55,7 @@ export const automationContent = {
       { id: 'events', label: 'Events & Tickets', ref: 'tickets', checkArea: 'Events & Tickets', pain: 'Ticketverkauf, Teilnehmerlisten, Abläufe vor Ort.' },
       { id: 'service', label: 'Anfragen & Beratung', ref: 'chatbot', checkArea: 'Anfragen & Beratung', pain: 'Immer gleiche Fragen beantworten, passende Angebote empfehlen.' },
       { id: 'daten', label: 'Daten & Entscheidungen', ref: 'trading', checkArea: 'Daten & Reporting', pain: 'Regeln konsequent anwenden, Risiken überwachen, alles dokumentieren.' },
-      { id: 'appidee', label: 'Eigene App-Idee', ref: 'beziehung', checkArea: 'Etwas anderes', pain: 'Eine klare Idee für eine App – aber kein Team, das sie entwirft und baut.' },
+      { id: 'appidee', label: 'Eigene App-Idee', ref: 'beziehung', checkArea: 'Etwas anderes', pain: 'Eine klare Idee für eine App – aber kein Team, das sie entwirft, baut und betreibt.' },
       { id: 'ablauf', label: 'Abläufe vor Ort', ref: 'turnier', checkArea: 'Events & Tickets', pain: 'Pläne auf Papier, Ergebnisse auf Zuruf, Wartezeiten.' },
     ],
   },
@@ -63,7 +63,7 @@ export const automationContent = {
   references: {
     eyebrow: 'Live-Projekte',
     title: 'Echte Systeme. Echte Oberflächen.',
-    subtitle: 'Screenshots der laufenden Anwendungen – gezeigt mit Beispieldaten, damit keine echten Kunden- oder Kontodaten sichtbar sind. Konzepte sind als Beispielansicht gekennzeichnet.',
+    subtitle: 'Screenshots der laufenden Anwendungen – gezeigt mit Beispieldaten, damit keine echten Kunden- oder Kontodaten sichtbar sind. Alle 7 Systeme sind live im Einsatz.',
     items: [
       {
         id: 'crm',
@@ -199,12 +199,11 @@ export const automationContent = {
         short: 'Fernbeziehungs-App',
         category: 'Consumer-App',
         icon: 'heart',
-        concept: true,
         title: 'App für Fernbeziehungen',
-        pitch: 'Nähe trotz Entfernung: Countdown bis zum Wiedersehen, beide Uhrzeiten auf einen Blick, eine Frage des Tages und KI-Ideen für gemeinsame Abende auf Distanz.',
+        pitch: 'Vom eigenen Konzept bis zur laufenden App: Countdown bis zum Wiedersehen, beide Uhrzeiten auf einen Blick, eine Frage des Tages und KI-Ideen für gemeinsame Abende auf Distanz – jetzt live im Einsatz.',
         shots: [
-          { src: '/b2b/refs/fernbeziehung-heute.webp', alt: 'Beispielansicht: Startseite mit Countdown, Zeitzonen und Frage des Tages', caption: 'Beispielansicht „Heute“: Countdown, beide Uhrzeiten, Frage des Tages', device: 'mobile' },
-          { src: '/b2b/refs/fernbeziehung-gemeinsam.webp', alt: 'Beispielansicht: gemeinsamer Plan mit KI-Date-Ideen und Terminen', caption: 'Beispielansicht „Gemeinsam“: KI-Date-Ideen und gemeinsame Termine', device: 'mobile' },
+          { src: '/b2b/refs/fernbeziehung-heute.webp', alt: 'Startseite der Fernbeziehungs-App mit Countdown, Zeitzonen und Frage des Tages', caption: '„Heute“: Countdown bis zum Wiedersehen, beide Uhrzeiten, Frage des Tages', device: 'mobile' },
+          { src: '/b2b/refs/fernbeziehung-gemeinsam.webp', alt: 'Gemeinsamer Plan der Fernbeziehungs-App mit KI-Date-Ideen und Terminen', caption: '„Gemeinsam“: KI-Date-Ideen und gemeinsame Termine', device: 'mobile' },
         ],
         automations: [
           'Erinnerungen passend zur Zeitzone beider Partner',
