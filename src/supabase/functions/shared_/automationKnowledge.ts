@@ -27,6 +27,7 @@ Referenzprojekte (neutral beschreiben, keine Namen von Kunden, Personen oder Pro
 - Live-Turnierverwaltung (turnier): Teams aus Ticketkäufen, Gruppen/Spielplan per Klick, Tischverteilung, Timer, automatische K.-o.-Runde, Live-Tableau.
 - Regelbasierter Trading-Assistent (trading): feste Regeln, Risikowächter, Kill-Switch, Echtgeld erst nach Demo-Phase (technische Referenz, KEINE Anlageberatung).
 - Online-Terminbuchung (buchung) – LIVE: Kunden buchen Termine selbst, Bestätigung und 24h-Erinnerung gehen automatisch raus, Doppelbuchungen ausgeschlossen, Kalender-Sync, Storno-Link; nutzbar als eigenes Modul oder erster Baustein einer eigenen App.
+- App für Fernbeziehungen (beziehung) – LIVE, eigene App: Countdown „Wann sehen wir uns wieder“ mit Vorab-Erinnerung, beide Uhrzeiten/Zeitzonen, Vorschläge was das Paar gemeinsam unternehmen kann, süße Nachrichten mit KI-Formulierungsvorschlag, digitale Date-Ideen für Abende auf Distanz. Beispiel dafür, wie eine eigene App-Idee als erste Version aussieht.
 
 Typische Einsatzfelder (Beispiele für Ideen): Angebote/Rechnungen vorbereiten, E-Mail-Postfach vorsortieren und Antworten entwerfen, Anfragen aus Formularen automatisch weiterverarbeiten, Termin- und Erinnerungsabläufe, Reporting aus mehreren Quellen, Wissensdatenbank mit KI-Suche für Mitarbeitende, Onboarding-Checklisten, Event- und Ticketabwicklung, Social-Media-Texte, interne Freigabeprozesse, Excel-Listen durch eine kleine Web-App ersetzen.
 

@@ -24,6 +24,8 @@ export type ProjectTypeInfo = {
   includes: string[];
   /** Individueller Nutzen-Satz, der im Rechner-Ergebnis gezeigt wird */
   tagline: string;
+  /** Optional: Hinweis auf besonderen individuellen Spielraum (z. B. eigene App) */
+  flexNote?: string;
   /** Meistgewählter Typ (Badge im Rechner) */
   popular?: boolean;
   /** Verwandte Referenzprojekt-ID aus automationContent (fuer Verlinkung) */
@@ -106,6 +108,8 @@ export const PROJECT_TYPES: ProjectTypeInfo[] = [
     weeks: [4, 8],
     includes: ['Von der Idee zur nutzbaren App', 'Frühe Testversion zum Klicken', 'Übergabe inkl. Einführung'],
     tagline: 'Von der Idee zur klickbaren App – Ihr erster Baustein geht live.',
+    /** Individueller Spielraum: bei eigenen Apps ist der Umfang frei verhandelbar */
+    flexNote: 'Besonders individuell: Hier bin ich ganz flexibel unterwegs und gehe auf Ihre Kundenwünsche ein – der Regler unten zeigt, wie sich Ihr Budget auswirkt.',
     exampleRef: 'buchung',
   },
 ];
@@ -143,6 +147,29 @@ export function estimate(typeId: string, size: ProjectSizeId): OfferEstimate | n
 
 export function typeIncludes(typeId: string): string[] {
   return PROJECT_TYPES.find((t) => t.id === typeId)?.includes ?? [];
+}
+
+/**
+ * Budgetgesteuerte Live-Schaetzung: Der Nutzer schiebt einen Regler zwischen
+ * minimum und maximum des Projekttyps; daraus ergeben sich Stunden, Preis
+ * und Dauer. `fraction` 0..1 innerhalb des Aufwandsbereichs des Typs.
+ */
+export function estimateByBudget(typeId: string, fraction: number): (OfferEstimate & { low: number; high: number; weeksLabelShort: string }) | null {
+  const type = PROJECT_TYPES.find((t) => t.id === typeId);
+  if (!type) return null;
+  const f = Math.min(1, Math.max(0, fraction));
+  const hours = type.hoursMin + (type.hoursMax - type.hoursMin) * f;
+  const price = round500(hours * HOURLY_RATE * BUFFER_FACTOR);
+  const weeks = Math.round(type.weeks[0] + (type.weeks[1] - type.weeks[0]) * f);
+  return {
+    priceMin: eur(price),
+    priceMax: eur(round500(price * 1.15)),
+    low: price,
+    high: round500(price * 1.15),
+    weeksLabel: `${type.weeks[0]}–${type.weeks[1]} Wochen`,
+    weeksLabelShort: `ca. ${weeks} Woche${weeks === 1 ? '' : 'n'}`,
+    hoursLabel: `${Math.round(hours)} Std. Aufwand (inkl. Puffer)`,
+  };
 }
 
 export function projectTypeInfo(typeId: string): ProjectTypeInfo | undefined {

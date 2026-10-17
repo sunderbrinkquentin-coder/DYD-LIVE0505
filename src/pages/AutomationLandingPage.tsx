@@ -12,7 +12,7 @@ import { useSearchParams } from 'react-router-dom';
 import { AnimatePresence, motion, useReducedMotion, type Variants } from 'framer-motion';
 import {
   ArrowRight, Bot, CalendarCheck, Check, ChevronDown, Eye, LineChart, Mic, Rocket, Search, ShieldCheck,
-  Sparkles, Target, Ticket, TrendingUp, Trophy, Users, Zap, FileText, Layers, CalendarDays,
+  Sparkles, Target, Ticket, TrendingUp, Trophy, Users, Zap, FileText, Layers, CalendarDays, Heart,
 } from 'lucide-react';
 import B2BHeader from './b2b/B2BHeader';
 import { CalBookingButton } from './b2b/CalBookingButton';
@@ -21,7 +21,7 @@ import { BrowserFrame, LIME, PhoneFrame, ProcessCheck, SKY, ShotViewer } from '.
 import { OfferCalculator } from './b2b/OfferCalculator';
 
 const VIEWPORT = { once: true, margin: '-60px' } as const;
-const refIcons = { mic: Mic, crm: Users, chart: LineChart, ticket: Ticket, trophy: Trophy, bot: Bot, calendar: CalendarDays } as const;
+const refIcons = { mic: Mic, crm: Users, chart: LineChart, ticket: Ticket, trophy: Trophy, bot: Bot, calendar: CalendarDays, heart: Heart } as const;
 const stepIcons: Record<string, typeof Search> = { search: Search, target: Target, rocket: Rocket, growth: TrendingUp };
 
 function useAnims() {
@@ -39,6 +39,7 @@ const LIVE_EVENTS = [
   { Icon: Ticket, text: 'PDF-Ticket automatisch versendet', meta: 'Ticketsystem' },
   { Icon: ShieldCheck, text: 'Risiko-Grenzen geprüft', meta: 'Trading-Assistent · stündlich' },
   { Icon: Bot, text: 'Passendes Angebot empfohlen', meta: 'KI-Chatbot' },
+  { Icon: Heart, text: 'Date-Idee vorgeschlagen', meta: 'Fernbeziehungs-App' },
 ];
 
 function LiveTicker() {
@@ -71,6 +72,7 @@ export default function AutomationLandingPage() {
   const [activeRef, setActiveRef] = useState<string>(c.references.items[0].id);
   const [finderPick, setFinderPick] = useState<string>(c.finder.options[0].id);
   const [presetArea, setPresetArea] = useState<string | null>(null);
+  const [presetDetails, setPresetDetails] = useState<string | null>(null);
   const [openFaq, setOpenFaq] = useState<number | null>(0);
   const [showSticky, setShowSticky] = useState(false);
   const heroRef = useRef<HTMLElement>(null);
@@ -102,7 +104,11 @@ export default function AutomationLandingPage() {
 
   const go = (id: string) => document.getElementById(id)?.scrollIntoView({ behavior: reduce ? 'auto' : 'smooth', block: 'start' });
   const openRef = (id: string) => { setActiveRef(id); requestAnimationFrame(() => go('projekte')); };
-  const startCheck = (area?: string) => { setPresetArea(area ?? null); requestAnimationFrame(() => go('prozess-check')); };
+  const startCheck = (area?: string, details?: string) => {
+    setPresetArea(area ?? null);
+    setPresetDetails(details ?? null);
+    requestAnimationFrame(() => go('prozess-check'));
+  };
 
   // Sprungziele aus dem KI-Berater: ?check=1 → Prozess-Check, ?projekt=<id> → Live-Projekt
   const [params] = useSearchParams();
@@ -343,7 +349,7 @@ export default function AutomationLandingPage() {
             <p className="font-arimo text-white/60 max-w-2xl mx-auto">Ehrliche Größenordnung statt versteckter Preise: Wählen Sie Typ und Umfang – Sie sehen sofort die übliche Preisspanne und Dauer. Der endgültige Preis wird als fester Preis im kostenlosen Prozess-Check zugesagt.</p>
           </motion.div>
           <motion.div variants={fadeUp} initial="hidden" whileInView="show" viewport={VIEWPORT}>
-            <OfferCalculator onCheck={() => startCheck()} />
+            <OfferCalculator onCheck={startCheck} />
           </motion.div>
         </div>
       </section>
@@ -367,7 +373,7 @@ export default function AutomationLandingPage() {
             </div>
           </motion.div>
           <motion.div variants={fadeUp} initial="hidden" whileInView="show" viewport={VIEWPORT} className="lg:col-span-7 rounded-[2rem] p-6 sm:p-8 bg-gradient-to-b from-white/[0.07] to-white/[0.03] border border-white/12 shadow-2xl">
-            <ProcessCheck presetArea={presetArea} />
+            <ProcessCheck presetArea={presetArea} presetDetails={presetDetails} />
           </motion.div>
         </div>
       </section>

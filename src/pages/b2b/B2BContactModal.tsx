@@ -2,6 +2,8 @@ import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { X, Send, CheckCircle2, AlertCircle, Loader2 } from 'lucide-react';
 import { supabase } from '../../lib/supabase';
+import { VoiceInput } from '../../components/VoiceInput';
+import { triggerB2bBriefing } from '../../lib/b2bBriefing';
 
 type ContactModalProps = {
   open: boolean;
@@ -75,6 +77,22 @@ export default function B2BContactModal({ open, onClose, segment, institution }:
       });
 
       if (error) throw error;
+
+      triggerB2bBriefing({
+        source: 'kontakt-modal',
+        contact: {
+          name: form.contact_name,
+          company: form.company_name,
+          email: form.email,
+          phone: form.phone || null,
+        },
+        segment,
+        need: form.message || '(keine Nachricht angegeben)',
+        answers: {
+          nachricht: form.message,
+          institution: institution || '–',
+        },
+      });
 
       setStatus('success');
       setForm(emptyForm);
@@ -191,6 +209,10 @@ export default function B2BContactModal({ open, onClose, segment, institution }:
                       placeholder="Wie können wir Ihnen helfen?"
                       className="w-full rounded-xl border border-[#E3EBF5] bg-[#F6F9FD] px-4 py-3 font-arimo text-sm text-[#0F1E34] placeholder:text-[#55637A]/40 outline-none focus:border-[#38BDF8] focus:ring-2 focus:ring-[#38BDF8]/20 transition-all resize-none"
                     />
+                    <div className="flex items-center justify-between gap-2 mt-1.5">
+                      <span className="font-arimo text-[11px] text-[#55637A]/60">Gerne auch per Sprache – einfach einsprechen.</span>
+                      <VoiceInput value={form.message} onChange={(message) => handleChange('message', message)} variant="light" label="Nachricht diktieren" />
+                    </div>
                   </div>
 
                   {status === 'error' && (

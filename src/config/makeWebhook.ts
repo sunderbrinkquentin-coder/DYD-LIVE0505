@@ -98,6 +98,14 @@ export function getSkillGapWebhookUrlSafe(): string | null {
   return getSafeWebhookUrl("VITE_MAKE_WEBHOOK_SKILLGAP");
 }
 
+let b2bBriefingUrl: string | null = null;
+export function getB2bBriefingWebhookUrl(): string | null {
+  if (b2bBriefingUrl === null) {
+    b2bBriefingUrl = getSafeWebhookUrl("VITE_MAKE_WEBHOOK_B2B_BRIEFING");
+  }
+  return b2bBriefingUrl;
+}
+
 export function isMakeWebhookConfigured(): boolean {
   try {
     getMakeWebhookUrl();

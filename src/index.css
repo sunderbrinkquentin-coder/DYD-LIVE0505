@@ -428,6 +428,52 @@
   border-radius: 8px;
 }
 
+/* Budget-Regler im Angebots-Rechner (b2b-range) */
+.b2b-range {
+  height: 44px;
+}
+.b2b-range::-webkit-slider-runnable-track {
+  height: 10px;
+  border-radius: 9999px;
+  background: linear-gradient(90deg, rgba(222, 255, 154, 0.55), rgba(56, 189, 248, 0.45));
+  border: 1px solid rgba(255, 255, 255, 0.14);
+}
+.b2b-range::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 30px;
+  height: 30px;
+  margin-top: -11px;
+  border-radius: 9999px;
+  background: linear-gradient(135deg, #DEFF9A, #38BDF8);
+  border: 3px solid #0A192F;
+  box-shadow: 0 0 0 2px rgba(222, 255, 154, 0.55), 0 10px 24px rgba(56, 189, 248, 0.45);
+  cursor: grab;
+  transition: transform 0.15s ease;
+}
+.b2b-range::-webkit-slider-thumb:active {
+  cursor: grabbing;
+  transform: scale(1.12);
+}
+.b2b-range::-moz-range-track {
+  height: 10px;
+  border-radius: 9999px;
+  background: linear-gradient(90deg, rgba(222, 255, 154, 0.55), rgba(56, 189, 248, 0.45));
+  border: 1px solid rgba(255, 255, 255, 0.14);
+}
+.b2b-range::-moz-range-thumb {
+  width: 30px;
+  height: 30px;
+  border-radius: 9999px;
+  background: linear-gradient(135deg, #DEFF9A, #38BDF8);
+  border: 3px solid #0A192F;
+  box-shadow: 0 0 0 2px rgba(222, 255, 154, 0.55), 0 10px 24px rgba(56, 189, 248, 0.45);
+  cursor: grab;
+}
+.b2b-range::-moz-range-thumb:active {
+  cursor: grabbing;
+}
+
 @media (prefers-reduced-motion: reduce) {
   .b2b-glow-blob,
   .b2b-glow-blob-2 {

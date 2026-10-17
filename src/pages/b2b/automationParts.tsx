@@ -9,6 +9,8 @@ import { useEffect, useState } from 'react';
 import { AnimatePresence, motion, useReducedMotion } from 'framer-motion';
 import { ArrowLeft, ArrowRight, Check, CheckCircle2, Loader2, Maximize2, X } from 'lucide-react';
 import { supabase } from '../../lib/supabase';
+import { VoiceInput } from '../../components/VoiceInput';
+import { triggerB2bBriefing } from '../../lib/b2bBriefing';
 import { automationContent as c, type RefShot } from './automationContent';
 
 export const LIME = '#DEFF9A';
@@ -145,7 +147,7 @@ export function ShotViewer({ shots }: { shots: readonly RefShot[] }) {
 }
 
 /* ─── Prozess-Check: 3 Schritte → Anfrage ──────────────────────────────── */
-export function ProcessCheck({ presetArea }: { presetArea?: string | null }) {
+export function ProcessCheck({ presetArea, presetDetails }: { presetArea?: string | null; presetDetails?: string | null }) {
   const reduce = useReducedMotion() ?? false;
   const [step, setStep] = useState(0);
   const [area, setArea] = useState<string>('');
@@ -165,10 +167,11 @@ export function ProcessCheck({ presetArea }: { presetArea?: string | null }) {
     setStatus('sending'); setError('');
     const message = [
       `Prozess-Check (Automatisierung)`,
-      `Bereich: ${area}`,
-      `Zeitaufwand heute: ${volume}`,
-      `Zeitrahmen: ${timing}`,
-      form.note.trim() ? `\nAblauf: ${form.note.trim()}` : '',
+      area ? `Bereich: ${area}` : '',
+      volume ? `Zeitaufwand heute: ${volume}` : '',
+      timing ? `Zeitrahmen: ${timing}` : '',
+      presetDetails ? `Rechner-Auswahl: ${presetDetails}` : '',
+      form.note.trim() ? `Anliegen: ${form.note.trim()}` : '',
     ].filter(Boolean).join('\n');
     try {
       const { error: err } = await supabase.from('b2b_contact_requests').insert({
@@ -180,6 +183,24 @@ export function ProcessCheck({ presetArea }: { presetArea?: string | null }) {
         message,
       });
       if (err) throw err;
+      triggerB2bBriefing({
+        source: 'prozess-check',
+        contact: {
+          name: form.name.trim(),
+          company: form.company.trim(),
+          email: form.email.trim(),
+          phone: form.phone.trim() || null,
+        },
+        segment: 'automatisierung',
+        need: message,
+        answers: {
+          bereich: area,
+          zeitaufwand_heute: volume,
+          zeitrahmen: timing,
+          rechner_auswahl: presetDetails || '–',
+          anliegen: form.note.trim(),
+        },
+      });
       setStatus('done');
     } catch (err) {
       setStatus('error');
@@ -242,6 +263,15 @@ export function ProcessCheck({ presetArea }: { presetArea?: string | null }) {
                   <span key={t} className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-[#DEFF9A]/10 border border-[#DEFF9A]/30 font-arimo text-[11px] font-bold text-[#DEFF9A]"><Check className="w-3 h-3" aria-hidden="true" />{t}</span>
                 ))}
               </div>
+              {presetDetails && (
+                <div className="rounded-xl px-3.5 py-2.5 bg-[#38BDF8]/[0.08] border border-[#38BDF8]/25 flex items-start gap-2">
+                  <Check className="w-4 h-4 text-[#38BDF8] flex-shrink-0 mt-0.5" aria-hidden="true" />
+                  <div className="font-arimo text-xs text-[#7dd3fc] leading-relaxed">
+                    <span className="font-bold text-white">Aus dem Angebots-Rechner übernommen:</span>
+                    <span className="block mt-0.5">{presetDetails}</span>
+                  </div>
+                </div>
+              )}
               <div className="grid sm:grid-cols-2 gap-3">
                 <input className={input} required placeholder="Ihr Name *" autoComplete="name" value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} aria-label="Ihr Name" />
                 <input className={input} placeholder="Unternehmen" autoComplete="organization" value={form.company} onChange={(e) => setForm({ ...form, company: e.target.value })} aria-label="Unternehmen" />

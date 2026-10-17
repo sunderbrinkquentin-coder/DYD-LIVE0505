@@ -13,7 +13,7 @@ export type Reference = {
   id: string;
   short: string;
   category: string;
-  icon: 'mic' | 'crm' | 'chart' | 'ticket' | 'trophy' | 'bot' | 'calendar';
+  icon: 'mic' | 'crm' | 'chart' | 'ticket' | 'trophy' | 'bot' | 'calendar' | 'heart';
   title: string;
   pitch: string;
   shots: RefShot[];
@@ -39,7 +39,7 @@ export const automationContent = {
     ctaPrimary: 'Kostenlosen Prozess-Check starten',
     ctaSecondary: 'Live-Projekte ansehen',
     proof: [
-      { value: '7', label: 'selbst entwickelte Systeme' },
+      { value: '8', label: 'selbst entwickelte Systeme' },
       { value: 'KI + Freigabe', label: 'nichts geht ungeprüft nach außen' },
       { value: 'Fester Preis', label: 'für den ersten Baustein' },
     ],
@@ -215,6 +215,28 @@ export const automationContent = {
         control: 'Öffnungs-, Puffer- und Stornierungszeiten bestimmen Sie selbst.',
         stack: ['Handy-App', 'Online-Zahlung (optional)', 'E-Mail & Push', 'Kalender-Sync'],
         disclaimer: 'Beispielansicht – zeigt den typischen ersten Baustein einer eigenen App.',
+      },
+      {
+        id: 'beziehung',
+        short: 'Fernbeziehungs-App',
+        category: 'Eigene App',
+        icon: 'heart',
+        title: 'App für Fernbeziehungen',
+        pitch: 'Vom eigenen Konzept bis zur laufenden App: Countdown bis zum Wiedersehen, Date-Ideen und süße Nachrichten – die komplette Erstversion einer eigenen App, gebaut und live im Einsatz.',
+        shots: [
+          { src: '/b2b/refs/fernbeziehung-heute.webp', alt: 'Startseite der Fernbeziehungs-App mit Countdown bis zum Wiedersehen und Frage des Tages', caption: '„Heute“: Countdown bis zum Wiedersehen, beide Uhrzeiten, Frage des Tages', device: 'mobile' },
+          { src: '/b2b/refs/fernbeziehung-ideen.webp', alt: 'Date-Ideen und süße Nachrichten der Fernbeziehungs-App', caption: '„Gemeinsam“: süße Nachrichten mit KI-Vorschlag und Date-Ideen', device: 'mobile' },
+        ],
+        automations: [
+          '„Wann sehen wir uns wieder“ – Countdown mit Vorab-Erinnerung',
+          'Vorschläge, was ihr gemeinsam unternehmen könnt',
+          'Süße Nachrichten mit KI-Formulierungsvorschlag',
+          'Digitale Date-Ideen für Abende auf Distanz',
+        ],
+        ai: ['Formulierungsvorschläge für süße Nachrichten', 'Date-Ideen, abgestimmt auf das Paar'],
+        control: 'Private Inhalte nur für das Paar sichtbar.',
+        stack: ['Handy-App', 'Push-Benachrichtigungen', 'KI-Vorschläge', 'Gemeinsamer Kalender'],
+        disclaimer: 'Beispiel aus dem Konzeptbereich – zeigt, wie eine eigene App-Idee als erste Version aussieht.',
       },
     ] as Reference[],
   },
