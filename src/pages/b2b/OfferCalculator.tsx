@@ -7,8 +7,9 @@
 
 import { useMemo, useState } from 'react';
 import { motion, useReducedMotion, AnimatePresence } from 'framer-motion';
-import { ArrowRight, Check, Clock, Euro, PackageCheck, Calculator, XCircle } from 'lucide-react';
-import { PROJECT_TYPES, SIZE_LABELS, estimate, typeIncludes, exampleRefFor, type ProjectSizeId } from '../../config/offerCalculator';
+import { ArrowRight, Check, Clock, Euro, PackageCheck, Calculator, XCircle, Sparkles, Flame } from 'lucide-react';
+import { PROJECT_TYPES, SIZE_LABELS, estimate, typeIncludes, exampleRefFor, projectTypeInfo, type ProjectSizeId } from '../../config/offerCalculator';
+import { CalBookingButton } from './CalBookingButton';
 
 const NOT_INCLUDED = ['Laufende Betriebs- und KI-Nutzungsgebühren', 'Spätere Weiterentwicklungen (auf Wunsch, wieder fester Preis)'];
 
@@ -20,6 +21,7 @@ export function OfferCalculator({ onCheck }: { onCheck: (presetArea?: string) =>
   const result = useMemo(() => estimate(typeId, size), [typeId, size]);
   const includes = useMemo(() => typeIncludes(typeId), [typeId]);
   const exampleRef = exampleRefFor(typeId);
+  const type = projectTypeInfo(typeId);
 
   return (
     <div className="rounded-[2rem] p-6 sm:p-8 bg-gradient-to-b from-white/[0.07] to-white/[0.03] border border-white/12">
@@ -43,9 +45,10 @@ export function OfferCalculator({ onCheck }: { onCheck: (presetArea?: string) =>
               type="button"
               onClick={() => setTypeId(t.id)}
               aria-pressed={typeId === t.id}
-              className={`px-3.5 py-2 rounded-xl font-arimo text-xs sm:text-sm font-bold border transition b2b-focus-ring ${typeId === t.id ? 'text-[#0A192F] border-transparent' : 'text-white/70 border-white/15 hover:text-white hover:border-white/35'}`}
+              className={`inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl font-arimo text-xs sm:text-sm font-bold border transition b2b-focus-ring ${typeId === t.id ? 'text-[#0A192F] border-transparent' : 'text-white/70 border-white/15 hover:text-white hover:border-white/35'}`}
               style={typeId === t.id ? { background: 'linear-gradient(135deg, #DEFF9A, #38BDF8)' } : undefined}
             >
+              {t.popular && typeId !== t.id && <Sparkles className="w-3.5 h-3.5 text-[#DEFF9A]" aria-hidden="true" />}
               {t.label}
             </button>
           ))}
@@ -92,6 +95,7 @@ export function OfferCalculator({ onCheck }: { onCheck: (presetArea?: string) =>
                 <p className="font-poppins font-black text-3xl sm:text-4xl leading-none bg-gradient-to-r from-[#DEFF9A] to-[#38BDF8] bg-clip-text text-transparent" style={{ letterSpacing: '-0.02em' }}>
                   {result.priceMin} – {result.priceMax}
                 </p>
+                {type && <p className="font-arimo text-sm text-[#7dd3fc] mt-3 flex items-start gap-1.5"><Sparkles className="w-4 h-4 flex-shrink-0 mt-0.5" aria-hidden="true" />{type.tagline}</p>}
                 <p className="font-arimo text-xs text-white/50 mt-2">Verbindlicher Festpreis nach dem kostenlosen Prozess-Check – keine offene Stundenabrechnung.</p>
               </div>
             </div>
@@ -129,7 +133,7 @@ export function OfferCalculator({ onCheck }: { onCheck: (presetArea?: string) =>
             </div>
 
             {/* Vertrauenselemente */}
-            <div className="flex flex-wrap gap-x-4 gap-y-1.5 mb-5">
+            <div className="flex flex-wrap gap-x-4 gap-y-1.5 mb-4">
               {[
                 'Antwort innerhalb von 24 h',
                 'Kostenlos & unverbindlich',
@@ -137,6 +141,12 @@ export function OfferCalculator({ onCheck }: { onCheck: (presetArea?: string) =>
               ].map((t) => (
                 <span key={t} className="inline-flex items-center gap-1.5 font-arimo text-[11px] font-semibold text-white/60"><Check className="w-3.5 h-3.5 text-[#DEFF9A]" aria-hidden="true" />{t}</span>
               ))}
+            </div>
+
+            {/* Knappheit + Empfehlung */}
+            <div className="flex flex-col sm:flex-row items-start sm:items-center gap-2 sm:gap-4 mb-5 rounded-2xl px-4 py-3 bg-[#DEFF9A]/[0.06] border border-[#DEFF9A]/20">
+              <span className="inline-flex items-center gap-1.5 font-arimo text-[12px] font-bold text-[#DEFF9A]"><Flame className="w-4 h-4" aria-hidden="true" />Aktuell 2 freie Projektplätze pro Monat</span>
+              <span className="font-arimo text-[11px] text-white/50">Der Prozess-Check sichert Ihren Platz – unverbindlich.</span>
             </div>
 
             <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3">
@@ -157,6 +167,9 @@ export function OfferCalculator({ onCheck }: { onCheck: (presetArea?: string) =>
                   Live-Beispiel ansehen
                 </a>
               )}
+            </div>
+            <div className="flex justify-center mt-3">
+              <CalBookingButton label="Lieber direkt Termin buchen?" variant="secondary" className="!px-5 !py-2.5 text-sm" />
             </div>
             <p className="font-arimo text-[11px] text-white/40 text-center mt-3">30 Minuten · online · ohne Verpflichtung</p>
           </motion.div>

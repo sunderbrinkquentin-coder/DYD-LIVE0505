@@ -22,6 +22,10 @@ export type ProjectTypeInfo = {
   weeks: [number, number];
   /** Was beim Typ typischerweise enthalten ist */
   includes: string[];
+  /** Individueller Nutzen-Satz, der im Rechner-Ergebnis gezeigt wird */
+  tagline: string;
+  /** Meistgewählter Typ (Badge im Rechner) */
+  popular?: boolean;
   /** Verwandte Referenzprojekt-ID aus automationContent (fuer Verlinkung) */
   exampleRef?: string;
 };
@@ -40,6 +44,7 @@ export const PROJECT_TYPES: ProjectTypeInfo[] = [
     hoursMax: 20,
     weeks: [1, 2],
     includes: ['Ein klar abgegrenzter Ablauf', 'Einmalige Übergabe mit Kurzdoku', 'Feste Zieldauer genannt'],
+    tagline: 'Ihr Ablauf läuft danach von allein – Sie sparen jede Woche Zeit.',
     exampleRef: 'podcast',
   },
   {
@@ -49,6 +54,8 @@ export const PROJECT_TYPES: ProjectTypeInfo[] = [
     hoursMax: 45,
     weeks: [2, 3],
     includes: ['Chat-Widget auf Ihrer Website', 'KI-Anbindung im Hintergrund', 'Testbetrieb mit Auswertung'],
+    tagline: 'Ihr Chatbot berät Kunden rund um die Uhr – auch wenn Sie schlafen.',
+    popular: true,
     exampleRef: 'chatbot',
   },
   {
@@ -58,6 +65,7 @@ export const PROJECT_TYPES: ProjectTypeInfo[] = [
     hoursMax: 50,
     weeks: [2, 4],
     includes: ['Online-Verkauf & Bezahlung', 'Automatische Tickets als PDF', 'Teilnehmerverwaltung'],
+    tagline: 'Ihr eigener Ticketshop verkauft, zieht Geld ein und stellt Tickets aus.',
     exampleRef: 'tickets',
   },
   {
@@ -67,6 +75,7 @@ export const PROJECT_TYPES: ProjectTypeInfo[] = [
     hoursMax: 60,
     weeks: [3, 5],
     includes: ['Eigene Verwaltungsoberfläche', 'Rollen & Freigaben', 'Dokumentation & Einführung'],
+    tagline: 'Verwaltung mit wenigen Klicks – statt Excel-Chaos und Papierzetteln.',
     exampleRef: 'turnier',
   },
   {
@@ -76,6 +85,7 @@ export const PROJECT_TYPES: ProjectTypeInfo[] = [
     hoursMax: 70,
     weeks: [3, 6],
     includes: ['Kundenüberblick & Tagesplan', 'KI-Vorbereitung, Sie geben frei', 'Anbindung bestehender Tools'],
+    tagline: 'Jeden Morgen ein fertiger Tagesplan – KI bereitet vor, Sie geben frei.',
     exampleRef: 'crm',
   },
   {
@@ -85,6 +95,7 @@ export const PROJECT_TYPES: ProjectTypeInfo[] = [
     hoursMax: 90,
     weeks: [4, 8],
     includes: ['Regel-Engine mit Protokoll', 'Risikokontrollen & Grenzen', 'Höchste Nachvollziehbarkeit'],
+    tagline: 'Feste Regeln statt Bauchgefühl – jede Entscheidung nachvollziehbar.',
     exampleRef: 'trading',
   },
   {
@@ -94,6 +105,7 @@ export const PROJECT_TYPES: ProjectTypeInfo[] = [
     hoursMax: 120,
     weeks: [4, 8],
     includes: ['Von der Idee zur nutzbaren App', 'Frühe Testversion zum Klicken', 'Übergabe inkl. Einführung'],
+    tagline: 'Von der Idee zur klickbaren App – Ihr erster Baustein geht live.',
     exampleRef: 'buchung',
   },
 ];
@@ -131,6 +143,10 @@ export function estimate(typeId: string, size: ProjectSizeId): OfferEstimate | n
 
 export function typeIncludes(typeId: string): string[] {
   return PROJECT_TYPES.find((t) => t.id === typeId)?.includes ?? [];
+}
+
+export function projectTypeInfo(typeId: string): ProjectTypeInfo | undefined {
+  return PROJECT_TYPES.find((t) => t.id === typeId);
 }
 
 export function exampleRefFor(typeId: string): string | undefined {
