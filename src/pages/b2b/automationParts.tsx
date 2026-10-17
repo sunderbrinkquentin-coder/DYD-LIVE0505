@@ -216,7 +216,7 @@ export function AppIdeaPanel({ startCheck, openRef }: { startCheck: (area?: stri
   );
 }
 
-/* ─── Prozess-Check: 3 Schritte → Anfrage ──────────────────────────────── */
+/* ─── Prozess-Check: Termin (Pflicht) → Kontakt → optionale Bedarfsanalyse ── */
 export function ProcessCheck({ presetArea, presetDetails }: { presetArea?: string | null; presetDetails?: string | null }) {
   const reduce = useReducedMotion() ?? false;
   const [step, setStep] = useState(0);
@@ -228,8 +228,11 @@ export function ProcessCheck({ presetArea, presetDetails }: { presetArea?: strin
   const [slot, setSlot] = useState('');
   const [status, setStatus] = useState<'idle' | 'sending' | 'done' | 'error'>('idle');
   const [error, setError] = useState('');
+  // Umfangreiche Bedarfsanalyse (Schritt 5, optional – auch später per Mail ausfüllbar)
+  const [na, setNa] = useState({ goal: '', users: '', tools: '', data: '', budget: '', integration: '' });
+  const [naSkipped, setNaSkipped] = useState(false);
 
-  // Vorauswahl aus dem "Wo verlieren Sie Zeit?"-Finder
+  // Vorauswahl aus dem "Wo verlieren Sie Zeit?"-Finder: direkt zum Termin
   useEffect(() => {
     if (presetArea) { setArea(presetArea); setStep(1); }
   }, [presetArea]);
@@ -237,15 +240,25 @@ export function ProcessCheck({ presetArea, presetDetails }: { presetArea?: strin
   const submit = async (e: React.FormEvent) => {
     e.preventDefault();
     setStatus('sending'); setError('');
+    if (!slot) { setError('Bitte wählen Sie zuerst einen Terminwunsch aus.'); return; }
+    const naLines = [
+      na.goal.trim() && `Ziel: ${na.goal.trim()}`,
+      na.users.trim() && `Nutzer: ${na.users.trim()}`,
+      na.tools.trim() && `Bestehende Tools: ${na.tools.trim()}`,
+      na.data.trim() && `Datenlage: ${na.data.trim()}`,
+      na.budget.trim() && `Budgetrahmen: ${na.budget.trim()}`,
+      na.integration.trim() && `Anbindung: ${na.integration.trim()}`,
+    ].filter(Boolean) as string[];
     const message = [
       `Prozess-Check (Automatisierung)`,
       area ? `Bereich: ${area}` : '',
       volume ? `Zeitaufwand heute: ${volume}` : '',
       timing ? `Zeitrahmen: ${timing}` : '',
       presetDetails ? `Rechner-Auswahl: ${presetDetails}` : '',
-      slot ? `Terminwunsch Erstgespräch: ${slot}` : '',
+      `Terminwunsch Erstgespräch: ${slot} (Pflichtfeld)`,
       `Entscheider:in: ${decider ? 'ja' : 'nein'}`,
       form.note.trim() ? `Anliegen: ${form.note.trim()}` : '',
+      naSkipped ? 'Bedarfsanalyse: wird später per Fragebogen nachgereicht' : (naLines.length ? `Bedarfsanalyse:\n${naLines.map((l) => `- ${l}`).join('\n')}` : ''),
     ].filter(Boolean).join('\n');
     try {
       const { error: err } = await supabase.from('b2b_contact_requests').insert({
@@ -273,8 +286,9 @@ export function ProcessCheck({ presetArea, presetDetails }: { presetArea?: strin
           zeitrahmen: timing,
           rechner_auswahl: presetDetails || '–',
           entscheidet: decider ? 'ja' : 'nein',
-          terminwunsch_erstgespraech: slot || 'offen',
+          terminwunsch_erstgespraech: slot,
           anliegen: form.note.trim(),
+          bedarfsanalyse: naSkipped ? 'nachgereicht-später' : (naLines.join(' | ') || 'offen'),
         },
       });
       setStatus('done');
@@ -297,15 +311,22 @@ export function ProcessCheck({ presetArea, presetDetails }: { presetArea?: strin
     </button>
   );
 
-  const titles = ['Um welchen Bereich geht es?', 'Wie viel Zeit kostet das heute?', 'Wann soll es losgehen?', 'Wohin dürfen wir die Einschätzung schicken?'];
+  const titles = [
+    'Wann passt Ihnen das Erstgespräch?',
+    'Um welchen Bereich geht es?',
+    'Wie viel Zeit kostet das heute?',
+    'Wohin dürfen wir die Einschätzung schicken?',
+    'Optional: Bedarfsanalyse (2 Minuten)',
+  ];
   const input = 'w-full px-4 py-3 rounded-xl bg-white/[0.05] border border-white/12 text-white placeholder-white/35 font-arimo text-sm focus:outline-none focus:border-[#DEFF9A]';
+  const naInput = `${input} resize-none`;
 
   if (status === 'done') {
     return (
       <div className="text-center py-10">
         <CheckCircle2 className="w-12 h-12 mx-auto text-[#DEFF9A] mb-4" aria-hidden="true" />
-        <p className="font-poppins font-black text-2xl text-white mb-2">Anfrage ist da!</p>
-        <p className="font-arimo text-white/65 max-w-md mx-auto">{c.check.success}</p>
+        <p className="font-poppins font-black text-2xl text-white mb-2">Terminwunsch ist eingegangen!</p>
+        <p className="font-arimo text-white/65 max-w-md mx-auto">Wir bestätigen {slot} kurz per E-Mail. Falls Sie die Bedarfsanalyse übersprungen haben, senden wir Ihnen den Fragebogen bequem per Mail – gerne vorab ausfüllen.</p>
       </div>
     );
   }
@@ -314,7 +335,7 @@ export function ProcessCheck({ presetArea, presetDetails }: { presetArea?: strin
     <div>
       {/* Fortschritt */}
       <div className="flex items-center gap-2 mb-6" aria-hidden="true">
-        {[0, 1, 2, 3].map((k) => (
+        {[0, 1, 2, 3, 4].map((k) => (
           <span key={k} className="h-1.5 flex-1 rounded-full transition-colors" style={{ background: k <= step ? LIME : 'rgba(255,255,255,0.12)' }} />
         ))}
       </div>
@@ -329,10 +350,19 @@ export function ProcessCheck({ presetArea, presetDetails }: { presetArea?: strin
 
       <AnimatePresence mode="wait">
         <motion.div key={step} initial={{ opacity: 0, x: reduce ? 0 : 16 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: reduce ? 0 : -16 }} transition={{ duration: reduce ? 0 : 0.2 }}>
-          {step === 0 && <div className="grid sm:grid-cols-2 gap-2.5">{c.check.areas.map((a) => <Choice key={a} value={a} current={area} onPick={setArea} />)}</div>}
-          {step === 1 && <div className="grid gap-2.5">{c.check.volumes.map((a) => <Choice key={a} value={a} current={volume} onPick={setVolume} />)}</div>}
-          {step === 2 && <div className="grid gap-2.5">{c.check.timings.map((a) => <Choice key={a} value={a} current={timing} onPick={setTiming} />)}</div>}
-          {step === 3 && (
+          {step === 0 && (
+            <div className="grid gap-3">
+              <p className="font-arimo text-sm text-white/65">Bitte wählen Sie zuerst einen Terminwunsch – ohne Termin geht es nicht weiter. Wir bestätigen Ihren Wunsch direkt per E-Mail.</p>
+              <div className="grid sm:grid-cols-2 gap-2.5">
+                {SLOTS.map((s) => <Choice key={s} value={s} current={slot} onPick={setSlot} />)}
+              </div>
+              <p className="font-arimo text-[11px] text-white/40">Sie wollen lieber direkt einen konkreten Slot buchen? <a href="#/business/automatisierung" className="underline hover:text-white/70">Kalender-Termin buchen</a> (falls eingerichtet) – oder Sie wählen oben einen Wunsch, und wir schlagen Ihnen konkrete Zeiten per Mail vor.</p>
+            </div>
+          )}
+          {step === 1 && <div className="grid sm:grid-cols-2 gap-2.5">{c.check.areas.map((a) => <Choice key={a} value={a} current={area} onPick={setArea} />)}</div>}
+          {step === 2 && <div className="grid gap-2.5">{c.check.volumes.map((a) => <Choice key={a} value={a} current={volume} onPick={setVolume} />)}</div>}
+          {step === 3 && <div className="grid gap-2.5">{c.check.timings.map((a) => <Choice key={a} value={a} current={timing} onPick={setTiming} />)}</div>}
+          {step === 4 && (
             <form onSubmit={submit} className="grid gap-3">
               <div className="flex flex-wrap gap-1.5 mb-1">
                 {[area, volume, timing].filter(Boolean).map((t) => (
@@ -377,10 +407,33 @@ export function ProcessCheck({ presetArea, presetDetails }: { presetArea?: strin
               </label>
               {status === 'error' && <p className="font-arimo text-sm text-red-400">{error}</p>}
               <button type="submit" disabled={status === 'sending'} className="mt-1 inline-flex items-center justify-center gap-2 w-full px-6 py-4 rounded-2xl font-arimo font-bold text-[#0A192F] b2b-focus-ring transition hover:shadow-xl hover:shadow-[#DEFF9A]/20 disabled:opacity-60" style={{ background: `linear-gradient(135deg, ${LIME}, ${SKY})` }}>
-                {status === 'sending' ? <><Loader2 className="w-4 h-4 animate-spin" aria-hidden="true" /> Wird gesendet …</> : <>Kostenlose Einschätzung anfordern <ArrowRight className="w-4 h-4" aria-hidden="true" /></>}
+                {status === 'sending' ? <><Loader2 className="w-4 h-4 animate-spin" aria-hidden="true" /> Wird gesendet …</> : <>Weiter zur Bedarfsanalyse <ArrowRight className="w-4 h-4" aria-hidden="true" /></>}
               </button>
               <p className="font-arimo text-[11px] text-white/40 text-center">Unverbindlich und kostenlos. Ihre Angaben nutzen wir nur für diese Anfrage. <a href="/#/datenschutz" className="underline hover:text-white/70">Datenschutz</a></p>
             </form>
+          )}
+          {step === 5 && (
+            <div className="grid gap-3">
+              <p className="font-arimo text-sm text-white/65">Hilft uns, Ihnen ein passgenaues individuelles Angebot inkl. Erstgespräch vorzubereiten. Sie können diesen Teil auch überspringen – dann schicken wir Ihnen den Fragebogen per E-Mail nach.</p>
+              <div className="grid sm:grid-cols-2 gap-3">
+                <input className={input} placeholder="Was soll die Lösung am Ende können?" value={na.goal} onChange={(e) => setNa({ ...na, goal: e.target.value })} aria-label="Ziel der Lösung" />
+                <input className={input} placeholder="Wer nutzt sie? (Anzahl/Rolle)" value={na.users} onChange={(e) => setNa({ ...na, users: e.target.value })} aria-label="Nutzer" />
+                <input className={input} placeholder="Welche Tools laufen heute? (Excel, CRM, …)" value={na.tools} onChange={(e) => setNa({ ...na, tools: e.target.value })} aria-label="Bestehende Tools" />
+                <input className={input} placeholder="Budgetrahmen (optional)" value={na.budget} onChange={(e) => setNa({ ...na, budget: e.target.value })} aria-label="Budgetrahmen" />
+              </div>
+              <textarea className={naInput} rows={2} placeholder="Welche Daten liegen vor? (Excel, Datenbank, Papier …)" value={na.data} onChange={(e) => setNa({ ...na, data: e.target.value })} aria-label="Datenlage" />
+              <textarea className={naInput} rows={2} placeholder="Muss etwas angebunden werden? (Website, Buchhaltung, Kasse …)" value={na.integration} onChange={(e) => setNa({ ...na, integration: e.target.value })} aria-label="Anbindungen" />
+              {status === 'error' && <p className="font-arimo text-sm text-red-400">{error}</p>}
+              <div className="grid sm:grid-cols-2 gap-2.5">
+                <button type="button" onClick={() => setNaSkipped(true)} className="inline-flex items-center justify-center gap-2 px-5 py-3 rounded-xl font-arimo font-bold text-sm text-white border border-white/20 hover:bg-white/5 b2b-focus-ring">
+                  Später per E-Mail ausfüllen
+                </button>
+                <button type="button" onClick={submit} disabled={status === 'sending'} className="inline-flex items-center justify-center gap-2 px-5 py-3 rounded-xl font-arimo font-bold text-sm text-[#0A192F] b2b-focus-ring transition disabled:opacity-60" style={{ background: `linear-gradient(135deg, ${LIME}, ${SKY})` }}>
+                  {status === 'sending' ? <><Loader2 className="w-4 h-4 animate-spin" aria-hidden="true" /> Wird gesendet …</> : <>Alles absenden <Check className="w-4 h-4" aria-hidden="true" /></>}
+                </button>
+              </div>
+              <p className="font-arimo text-[11px] text-white/40 text-center">Unverbindlich und kostenlos. Ihre Angaben nutzen wir nur für diese Anfrage. <a href="/#/datenschutz" className="underline hover:text-white/70">Datenschutz</a></p>
+            </div>
           )}
         </motion.div>
       </AnimatePresence>
