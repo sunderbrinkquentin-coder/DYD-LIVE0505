@@ -11,10 +11,10 @@
 //      wird sofort in b2b_contact_requests nachgetragen; am Ende geht das
 //      Briefing an den Make.com-Webhook.
 
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import { AnimatePresence, motion, useReducedMotion } from 'framer-motion';
 import {
-  ArrowLeft, ArrowRight, Bot, CalendarCheck, Check, CheckCircle2, Loader2, Send, Sparkles, User, X,
+  ArrowLeft, ArrowRight, CalendarCheck, Check, CheckCircle2, Loader2, Send, Sparkles, User, X,
 } from 'lucide-react';
 import { supabase } from '../../lib/supabase';
 import { triggerB2bBriefing } from '../../lib/b2bBriefing';
@@ -36,16 +36,33 @@ function nextBusinessDays(count = 10): Date[] {
   return out;
 }
 
-const fmtDay = (d: Date) =>
-  `${d.toLocaleDateString('de-DE', { weekday: 'short' })}, ${d.toLocaleDateString('de-DE', { day: '2-digit', month: '2-digit' })}`;
+const fmtFull = (d: Date, time: string) =>
+  `${d.toLocaleDateString('de-DE', { weekday: 'long', day: '2-digit', month: 'long', year: 'numeric' })} · ${time} Uhr`;
+
+/* ─── Avatar & Chat-Bausteine ──────────────────────────────────────────── */
+const AVATAR_SRC = '/profile-picture.png';
+
+function AdvisorAvatar() {
+  return (
+    <span className="relative flex-shrink-0">
+      <img src={AVATAR_SRC} alt="KI-Berater von DYD" className="w-8 h-8 rounded-xl object-cover ring-1 ring-[#DEFF9A]/50" />
+      <span className="absolute -bottom-0.5 -right-0.5 w-2.5 h-2.5 rounded-full bg-[#DEFF9A] ring-2 ring-[#0A192F]" aria-hidden="true" />
+    </span>
+  );
+}
+
+function BotBubble({ children }: { children: ReactNode }) {
+  return (
+    <div className="flex items-start gap-2.5">
+      <AdvisorAvatar />
+      <div className="rounded-2xl rounded-tl-sm px-3.5 py-2.5 bg-white/[0.06] border border-white/10 font-arimo text-sm text-white/85 leading-relaxed">{children}</div>
+    </div>
+  );
+}
 
 const toLocalISO = (d: Date) =>
   `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
 
-const fmtFull = (d: Date, time: string) =>
-  `${d.toLocaleDateString('de-DE', { weekday: 'long', day: '2-digit', month: 'long', year: 'numeric' })} · ${time} Uhr`;
-
-/* ─── Frage-Engine: Basisfragen + dynamische Nachfragen ────────────────── */
 interface ChatQuestion {
   id: string;
   short: string;
@@ -88,7 +105,7 @@ function followUpFor(id: string, answer: string): ChatQuestion | null {
 }
 
 /** Persönliche Reaktionszeile des Beraters auf eine Antwort */
-function reactTo(id: string, answer: string): string {
+function reactTo(id: string, answer: string, name: string): string {
   const a = answer.toLowerCase();
   switch (id) {
     case 'ziel':
@@ -109,9 +126,9 @@ function reactTo(id: string, answer: string): string {
       return 'Anbindungen baue ich so, dass sie erweiterbar bleiben.';
     case 'budget':
       if (a.includes('noch offen')) return 'Völlig okay – wir finden den passenden Rahmen im Gespräch.';
-      return 'Danke, das hilft bei der ersten Größenordnung.';
+      return name ? `Danke ${name}, das hilft bei der ersten Größenordnung.` : 'Danke, das hilft bei der ersten Größenordnung.';
     default:
-      return 'Sehr hilfreich, danke!';
+      return name ? `Danke, ${name} – sehr hilfreich!` : 'Sehr hilfreich, danke!';
   }
 }
 
@@ -132,7 +149,7 @@ export function ProzessCheckFlow({ presetArea, presetDetails }: { presetArea?: s
 
   // Chat-Zustand
   const [chatStarted, setChatStarted] = useState(false);
-  const [asked, setAsked] = useState<string[]>([]); // Reihenfolge der gestellten Fragen
+  const [askedQs, setAskedQs] = useState<ChatQuestion[]>([]); // gestellte Fragen (inkl. Nachfragen)
   const [answers, setAnswers] = useState<Record<string, string>>({});
   const [reactions, setReactions] = useState<string[]>([]); // Bot-Reaktionszeilen je Frage (Index = asked.length)
   const [typing, setTyping] = useState(false);
@@ -143,7 +160,8 @@ export function ProzessCheckFlow({ presetArea, presetDetails }: { presetArea?: s
 
   const appointmentFull = day && time ? fmtFull(day, time) : '';
   const nextBase = QUESTION_ORDER.find((id) => !answers[id]);
-  const pendingQ: ChatQuestion | null = followUpFor(asked[asked.length - 1] ?? '', answers[asked[asked.length - 1] ?? ''] ?? '')
+  const lastQ = askedQs[askedQs.length - 1];
+  const pendingQ: ChatQuestion | null = followUpFor(lastQ?.id ?? '', answers[lastQ?.id ?? ''] ?? '')
     ?? (nextBase ? QUESTION_MAP[nextBase] : null);
   const input = 'w-full px-4 py-3 rounded-xl bg-white/[0.05] border border-white/12 text-white placeholder-white/35 font-arimo text-sm focus:outline-none focus:border-[#DEFF9A]';
 
@@ -152,7 +170,7 @@ export function ProzessCheckFlow({ presetArea, presetDetails }: { presetArea?: s
       chatEndRef.current?.scrollIntoView({ behavior: reduce ? 'auto' : 'smooth', block: 'nearest' });
       if (!typing) chatInputRef.current?.focus();
     }
-  }, [asked, typing, chatStarted, step, reduce]);
+  }, [askedQs, typing, chatStarted, step, reduce]);
 
   /** Nachricht zusammenbauen – wird bei jeder Antwort aktualisiert */
   const buildMessage = (a: Record<string, string>, analysisNote: string) => [
@@ -189,12 +207,9 @@ export function ProzessCheckFlow({ presetArea, presetDetails }: { presetArea?: s
     setChatDraft('');
     setTyping(true);
     window.setTimeout(() => {
-      setReactions((r) => [...r, reactTo(pendingQ.id, value)]);
+      setReactions((r) => [...r, reactTo(pendingQ.id, value, form.name.trim())]);
       setTyping(false);
-      setAsked((prev) => {
-        const isFollowUp = !QUESTION_ORDER.includes(pendingQ.id);
-        return isFollowUp ? [...prev, pendingQ.id] : [...prev];
-      });
+      setAskedQs((prev) => (prev[prev.length - 1]?.id === pendingQ.id ? prev : [...prev, pendingQ]));
     }, reduce ? 0 : 750);
   };
 
@@ -278,15 +293,15 @@ export function ProzessCheckFlow({ presetArea, presetDetails }: { presetArea?: s
   if (status === 'done') {
     return (
       <div className="text-center py-10">
-        <CheckCircle2 className="w-12 h-12 mx-auto text-[#DEFF9A] mb-4" aria-hidden="true" />
+        <div className="inline-flex mb-4"><AdvisorAvatar /></div>
         <p className="font-poppins font-black text-2xl text-white mb-2">Termin gesichert!</p>
         <p className="font-arimo text-white/70 max-w-md mx-auto mb-3">
           Ihr Erstgespräch: <span className="font-bold text-white">{appointmentFull}</span>.
         </p>
         <p className="font-arimo text-white/60 max-w-md mx-auto">
           {answeredCount >= 4
-            ? `Der KI-Berater hat ${answeredCount} Punkte von Ihnen erfasst – Ihr vorbereiteter Berater schaut sich das vor dem Termin an.`
-            : 'Die Bestätigung mit einem kurzen Fragebogen geht in wenigen Minuten an ' + form.email.trim() + ' – 2 Minuten vor dem Termin ausfüllen genügt.'}
+            ? `Ihr KI-Berater hat ${answeredCount} Punkte von Ihnen erfasst – Ihr vorbereiteter Berater schaut sich das vor dem Termin an.`
+            : `Die Bestätigung mit einem kurzen Fragebogen geht in wenigen Minuten an ${form.email.trim()} – 2 Minuten vor dem Termin ausfüllen genügt.`}
         </p>
       </div>
     );
@@ -322,23 +337,25 @@ export function ProzessCheckFlow({ presetArea, presetDetails }: { presetArea?: s
               <p className="font-arimo text-sm text-white/65">Wählen Sie Datum und Uhrzeit – das ist Ihr verbindlicher Terminwunsch für das kostenlose Erstgespräch (30 Min., online). Wir bestätigen sofort per E-Mail.</p>
               <div>
                 <p className="font-arimo text-[11px] font-bold uppercase tracking-wide text-white/60 mb-2 flex items-center gap-1.5"><CalendarCheck className="w-3.5 h-3.5 text-[#38BDF8]" aria-hidden="true" />Datum</p>
-                <div className="flex flex-wrap gap-2">
+                <div className="grid grid-cols-3 sm:grid-cols-5 gap-2">
                   {days.map((d) => {
                     const sel = day?.toDateString() === d.toDateString();
                     return (
                       <button key={d.toISOString()} type="button" aria-pressed={sel}
                         onClick={() => { setDay(sel ? null : d); setCustomDate(false); }}
-                        className={`px-3.5 py-2 rounded-xl font-arimo text-xs font-bold border transition b2b-focus-ring ${sel ? 'border-[#DEFF9A] bg-[#DEFF9A]/10 text-[#DEFF9A]' : 'border-white/15 text-white/70 hover:border-white/35 hover:text-white'}`}>
-                        {fmtDay(d)}
+                        className={`group rounded-xl border px-2 py-2.5 text-center transition b2b-focus-ring ${sel ? 'border-[#DEFF9A] bg-[#DEFF9A]/10' : 'border-white/12 bg-white/[0.03] hover:border-white/35'}`}>
+                        <span className={`block font-arimo text-[10px] font-bold uppercase tracking-wide ${sel ? 'text-[#DEFF9A]' : 'text-white/45'}`}>{d.toLocaleDateString('de-DE', { weekday: 'short' })}</span>
+                        <span className={`block font-poppins font-black text-lg leading-tight ${sel ? 'text-[#DEFF9A]' : 'text-white/85 group-hover:text-white'}`}>{d.getDate()}.</span>
+                        <span className={`block font-arimo text-[10px] ${sel ? 'text-[#DEFF9A]/80' : 'text-white/40'}`}>{d.toLocaleDateString('de-DE', { month: 'short' })}</span>
                       </button>
                     );
                   })}
-                  <button type="button" aria-pressed={customDate}
-                    onClick={() => { setCustomDate(!customDate); if (!customDate) setDay(null); }}
-                    className={`px-3.5 py-2 rounded-xl font-arimo text-xs font-bold border transition b2b-focus-ring ${customDate ? 'border-[#DEFF9A] bg-[#DEFF9A]/10 text-[#DEFF9A]' : 'border-white/15 text-white/70 hover:border-white/35 hover:text-white'}`}>
-                    Anderes Datum
-                  </button>
                 </div>
+                <button type="button" aria-pressed={customDate}
+                  onClick={() => { setCustomDate(!customDate); if (!customDate) setDay(null); }}
+                  className={`mt-1 px-3.5 py-2 rounded-xl font-arimo text-xs font-bold border transition b2b-focus-ring ${customDate ? 'border-[#DEFF9A] bg-[#DEFF9A]/10 text-[#DEFF9A]' : 'border-white/15 text-white/70 hover:border-white/35 hover:text-white'}`}>
+                  Anderes Datum
+                </button>
                 {customDate && (
                   <input type="date" min={toLocalISO(new Date())} value={day ? toLocalISO(day) : ''}
                     onChange={(e) => { if (e.target.value) { const [y, m, dd] = e.target.value.split('-').map(Number); setDay(new Date(y, m - 1, dd)); } }}
@@ -348,32 +365,37 @@ export function ProzessCheckFlow({ presetArea, presetDetails }: { presetArea?: s
               </div>
               <div>
                 <p className="font-arimo text-[11px] font-bold uppercase tracking-wide text-white/60 mb-2 flex items-center gap-1.5"><CalendarCheck className="w-3.5 h-3.5 text-[#38BDF8]" aria-hidden="true" />Uhrzeit</p>
-                <div className="flex flex-wrap gap-2">
+                <div className="grid grid-cols-3 sm:grid-cols-6 gap-2">
                   {TIMES.map((t) => {
                     const sel = time === t;
                     return (
                       <button key={t} type="button" aria-pressed={sel}
                         onClick={() => { setTime(sel ? '' : t); setCustomTime(false); }}
-                        className={`px-3.5 py-2 rounded-xl font-arimo text-xs font-bold border transition b2b-focus-ring ${sel ? 'border-[#DEFF9A] bg-[#DEFF9A]/10 text-[#DEFF9A]' : 'border-white/15 text-white/70 hover:border-white/35 hover:text-white'}`}>
-                        {t} Uhr
+                        className={`rounded-xl border px-2 py-2.5 text-center transition b2b-focus-ring ${sel ? 'border-[#DEFF9A] bg-[#DEFF9A]/10' : 'border-white/12 bg-white/[0.03] hover:border-white/35'}`}>
+                        <span className={`block font-poppins font-black text-sm leading-tight ${sel ? 'text-[#DEFF9A]' : 'text-white/85'}`}>{t}</span>
+                        <span className={`block font-arimo text-[10px] ${sel ? 'text-[#DEFF9A]/80' : 'text-white/40'}`}>Uhr</span>
                       </button>
                     );
                   })}
-                  <button type="button" aria-pressed={customTime}
-                    onClick={() => { setCustomTime(!customTime); if (!customTime) setTime(''); }}
-                    className={`px-3.5 py-2 rounded-xl font-arimo text-xs font-bold border transition b2b-focus-ring ${customTime ? 'border-[#DEFF9A] bg-[#DEFF9A]/10 text-[#DEFF9A]' : 'border-white/15 text-white/70 hover:border-white/35 hover:text-white'}`}>
-                    Andere Uhrzeit
-                  </button>
                 </div>
+                <button type="button" aria-pressed={customTime}
+                  onClick={() => { setCustomTime(!customTime); if (!customTime) setTime(''); }}
+                  className={`mt-2 px-3.5 py-2 rounded-xl font-arimo text-xs font-bold border transition b2b-focus-ring ${customTime ? 'border-[#DEFF9A] bg-[#DEFF9A]/10 text-[#DEFF9A]' : 'border-white/15 text-white/70 hover:border-white/35 hover:text-white'}`}>
+                  Andere Uhrzeit
+                </button>
                 {customTime && (
                   <input type="time" value={time} onChange={(e) => setTime(e.target.value)}
                     className="mt-2 px-4 py-2.5 rounded-xl bg-white/[0.05] border border-white/12 text-white font-arimo text-sm focus:outline-none focus:border-[#DEFF9A] [color-scheme:dark]"
                     aria-label="Freie Uhrzeit wählen" />
                 )}
               </div>
-              {day && time && (
-                <div className="rounded-xl px-4 py-3 bg-[#DEFF9A]/[0.07] border border-[#DEFF9A]/25 font-arimo text-sm text-white flex items-center gap-2">
-                  <Check className="w-4 h-4 text-[#DEFF9A] flex-shrink-0" aria-hidden="true" />Ihr Termin: <span className="font-bold">{appointmentFull}</span>
+                {day && time && (
+                <div className="mt-1.5 rounded-xl px-4 py-3 bg-[#DEFF9A]/[0.07] border border-[#DEFF9A]/25">
+                  <div className="flex items-center gap-2 font-arimo text-sm text-white">
+                    <Check className="w-4 h-4 text-[#DEFF9A] flex-shrink-0" aria-hidden="true" />Ihr Termin:
+                    <span className="font-bold">{appointmentFull}</span>
+                  </div>
+                  <p className="mt-1 font-arimo text-[11px] text-white/50">30 Minuten, kostenlos & online – Bestätigung folgt sofort per E-Mail.</p>
                 </div>
               )}
               <div className="flex flex-col sm:flex-row items-center gap-2.5">
@@ -428,14 +450,23 @@ export function ProzessCheckFlow({ presetArea, presetDetails }: { presetArea?: s
             <div className="grid lg:grid-cols-5 gap-3">
               {/* Live-Profil (füllt sich mit jeder Antwort) */}
               <div className="lg:col-span-2 rounded-2xl bg-white/[0.03] border border-white/10 p-4 order-2 lg:order-1">
-                <p className="font-arimo text-[11px] font-bold uppercase tracking-wide text-[#DEFF9A] mb-3 flex items-center gap-1.5"><Sparkles className="w-3.5 h-3.5" aria-hidden="true" />Ihr Profil – wird gerade erstellt</p>
+                <div className="flex items-center justify-between mb-3">
+                  <p className="font-arimo text-[11px] font-bold uppercase tracking-wide text-[#DEFF9A] flex items-center gap-1.5"><Sparkles className="w-3.5 h-3.5" aria-hidden="true" />Ihr Profil</p>
+                  <span className="font-poppins font-black text-xs px-2 py-0.5 rounded-full bg-[#DEFF9A]/10 text-[#DEFF9A] border border-[#DEFF9A]/30">{answeredCount}/{QUESTION_ORDER.length}</span>
+                </div>
+                {/* Fortschrittsbalken */}
+                <div className="h-1.5 rounded-full bg-white/10 overflow-hidden mb-4" role="progressbar" aria-valuemin={0} aria-valuemax={QUESTION_ORDER.length} aria-valuenow={answeredCount}>
+                  <div className="h-full rounded-full transition-all duration-500" style={{ width: `${(answeredCount / QUESTION_ORDER.length) * 100}%`, background: `linear-gradient(90deg, ${SKY}, ${LIME})` }} />
+                </div>
                 <dl className="space-y-2.5">
                   {QUESTION_ORDER.map((id) => {
                     const q = QUESTION_MAP[id];
                     const v = answers[id];
                     return (
-                      <div key={id}>
-                        <dt className="font-arimo text-[10px] font-bold uppercase tracking-wide text-white/40">{q.short}</dt>
+                      <div key={id} className={v ? '' : 'opacity-60'}>
+                        <dt className="font-arimo text-[10px] font-bold uppercase tracking-wide text-white/40 flex items-center gap-1.5">
+                          {v && <Check className="w-3 h-3 text-[#DEFF9A] flex-shrink-0" aria-hidden="true" />}{q.short}
+                        </dt>
                         <dd className={`font-arimo text-sm leading-snug ${v ? 'text-white' : 'text-white/25 italic'}`}>{v ?? 'offen …'}</dd>
                       </div>
                     );
@@ -452,84 +483,78 @@ export function ProzessCheckFlow({ presetArea, presetDetails }: { presetArea?: s
 
               {/* Chat */}
               <div className="lg:col-span-3 order-1 lg:order-2 grid gap-3 content-start">
+                {/* Chat-Kopfzeile mit Avatar */}
+                <div className="flex items-center gap-3 rounded-2xl bg-white/[0.03] border border-white/10 px-4 py-3">
+                  <AdvisorAvatar />
+                  <div className="flex-1 min-w-0">
+                    <p className="font-poppins font-bold text-sm text-white leading-tight">DYD KI-Berater</p>
+                    <p className="font-arimo text-[11px] text-white/50">Bereitet Ihr Gespräch vor · online</p>
+                  </div>
+                  <span className="flex items-center gap-1.5 font-arimo text-[11px] font-bold text-[#DEFF9A]">
+                    <span className="relative flex h-2 w-2">
+                      <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-[#DEFF9A] opacity-60" aria-hidden="true" />
+                      <span className="relative inline-flex rounded-full h-2 w-2 bg-[#DEFF9A]" aria-hidden="true" />
+                    </span>
+                    live
+                  </span>
+                </div>
                 <div className="rounded-2xl bg-white/[0.03] border border-white/10 p-4 max-h-[360px] overflow-y-auto space-y-3">
                   {/* Begrüßung, personalisiert */}
-                  <div className="flex items-start gap-2.5">
-                    <span className="w-8 h-8 rounded-xl flex items-center justify-center flex-shrink-0" style={{ background: `linear-gradient(135deg, ${LIME}, ${SKY})` }}><Bot className="w-4 h-4 text-[#0A192F]" aria-hidden="true" /></span>
-                    <div className="rounded-2xl rounded-tl-sm px-3.5 py-2.5 bg-white/[0.06] border border-white/10 font-arimo text-sm text-white/85 leading-relaxed">
-                      {form.name.trim() ? `${form.name.trim()},` : 'Herzlich willkommen'}{form.company.trim() ? ` (${form.company.trim()})` : ''} – Ihr Termin am <span className="font-bold">{appointmentFull}</span> ist fix. Ich bereite Ihr Gespräch vor – dauert ~2 Minuten.
-                      <p className="mt-2 font-bold text-[#DEFF9A]">Erkläre direkt dein Anliegen, damit wir keine Zeit verlieren.</p>
-                    </div>
-                  </div>
+                  <BotBubble>
+                    {form.name.trim() ? `Hi ${form.name.trim()}` : 'Herzlich willkommen'}{form.company.trim() ? ` von ${form.company.trim()}` : ''}! Ihr Termin am <span className="font-bold">{appointmentFull}</span> ist fix. Ich bereite Ihr Gespräch vor – dauert nur ~2 Minuten.
+                    <p className="mt-2 font-bold text-[#DEFF9A]">Los geht's mit der ersten Frage:</p>
+                  </BotBubble>
 
-                  {asked.map((id, k) => {
-                    const q = QUESTION_MAP[id];
-                    return (
-                      <div key={id} className="space-y-2">
-                        <div className="flex items-start gap-2.5">
-                          <span className="w-8 h-8 rounded-xl flex items-center justify-center flex-shrink-0" style={{ background: `linear-gradient(135deg, ${LIME}, ${SKY})` }}><Bot className="w-4 h-4 text-[#0A192F]" aria-hidden="true" /></span>
-                          <div className="rounded-2xl rounded-tl-sm px-3.5 py-2.5 bg-white/[0.06] border border-white/10 font-arimo text-sm text-white/85 leading-relaxed">{q.label}</div>
-                        </div>
-                        <div className="flex items-start gap-2.5 justify-end">
-                          <div className="rounded-2xl rounded-tr-sm px-3.5 py-2.5 font-arimo text-sm bg-[#38BDF8]/15 border border-[#38BDF8]/30 text-white leading-relaxed">{answers[id]}</div>
-                          <span className="w-8 h-8 rounded-xl flex items-center justify-center flex-shrink-0 bg-white/10"><User className="w-4 h-4 text-white/70" aria-hidden="true" /></span>
-                        </div>
-                        {reactions[k] && (
-                          <div className="flex items-start gap-2.5">
-                            <span className="w-8 h-8 rounded-xl flex items-center justify-center flex-shrink-0" style={{ background: `linear-gradient(135deg, ${LIME}, ${SKY})` }}><Bot className="w-4 h-4 text-[#0A192F]" aria-hidden="true" /></span>
-                            <div className="rounded-2xl rounded-tl-sm px-3.5 py-2.5 bg-white/[0.06] border border-white/10 font-arimo text-sm text-white/85 leading-relaxed">{reactions[k]}</div>
-                          </div>
-                        )}
+                  {askedQs.map((q, k) => (
+                    <div key={q.id} className="space-y-2">
+                      <BotBubble>{q.label}</BotBubble>
+                      <div className="flex items-start gap-2.5 justify-end">
+                        <div className="rounded-2xl rounded-tr-sm px-3.5 py-2.5 font-arimo text-sm bg-[#38BDF8]/15 border border-[#38BDF8]/30 text-white leading-relaxed">{answers[q.id]}</div>
+                        <span className="w-8 h-8 rounded-xl flex items-center justify-center flex-shrink-0 bg-white/10"><User className="w-4 h-4 text-white/70" aria-hidden="true" /></span>
                       </div>
-                    );
-                  })}
+                      {reactions[k] && <BotBubble>{reactions[k]}</BotBubble>}
+                    </div>
+                  ))}
 
                   {typing && (
-                    <div className="flex items-start gap-2.5">
-                      <span className="w-8 h-8 rounded-xl flex items-center justify-center flex-shrink-0" style={{ background: `linear-gradient(135deg, ${LIME}, ${SKY})` }}><Bot className="w-4 h-4 text-[#0A192F]" aria-hidden="true" /></span>
-                      <div className="rounded-2xl rounded-tl-sm px-3.5 py-3 bg-white/[0.06] border border-white/10 flex gap-1" aria-label="Berater schreibt">
+                    <BotBubble>
+                      <span className="flex gap-1" aria-label="Berater schreibt">
                         {[0, 1, 2].map((d) => <span key={d} className="w-1.5 h-1.5 rounded-full bg-white/50 animate-bounce" style={{ animationDelay: `${d * 150}ms` }} />)}
-                      </div>
-                    </div>
+                      </span>
+                    </BotBubble>
                   )}
 
                   {/* Aktuelle Frage */}
                   {!typing && pendingQ && (
-                    <div className="flex items-start gap-2.5">
-                      <span className="w-8 h-8 rounded-xl flex items-center justify-center flex-shrink-0" style={{ background: `linear-gradient(135deg, ${LIME}, ${SKY})` }}><Bot className="w-4 h-4 text-[#0A192F]" aria-hidden="true" /></span>
-                      <div className="flex-1 rounded-2xl rounded-tl-sm px-3.5 py-2.5 bg-white/[0.06] border border-white/10">
-                        <p className="font-arimo text-sm text-white/85 leading-relaxed mb-2">{pendingQ.label}</p>
-                        {pendingQ.chips && (
-                          <div className="flex flex-wrap gap-1.5 mb-2">
-                            {pendingQ.chips.map((chip) => (
-                              <button key={chip} type="button" onClick={() => answerCurrent(chip)}
-                                className="px-2.5 py-1 rounded-full font-arimo text-[11px] font-bold border border-white/15 text-white/70 hover:text-white hover:border-[#DEFF9A]/50 transition b2b-focus-ring">
-                                {chip}
-                              </button>
-                            ))}
-                          </div>
-                        )}
-                        <div className="flex gap-2">
-                          <input ref={chatInputRef} className={input} placeholder={pendingQ.placeholder ?? 'Ihre Antwort …'} value={chatDraft} onChange={(e) => setChatDraft(e.target.value)}
-                            onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); answerCurrent(chatDraft); } }}
-                            aria-label={pendingQ.label} />
-                          <button type="button" onClick={() => answerCurrent(chatDraft)}
-                            className="w-11 h-11 rounded-xl flex items-center justify-center flex-shrink-0 b2b-focus-ring" style={{ background: `linear-gradient(135deg, ${LIME}, ${SKY})` }} aria-label="Antwort senden">
-                            <Send className="w-4 h-4 text-[#0A192F]" aria-hidden="true" />
-                          </button>
+                    <BotBubble>
+                      <p className="mb-2">{pendingQ.label}</p>
+                      {pendingQ.chips && (
+                        <div className="flex flex-wrap gap-1.5 mb-2">
+                          {pendingQ.chips.map((chip) => (
+                            <button key={chip} type="button" onClick={() => answerCurrent(chip)}
+                              className="px-2.5 py-1 rounded-full font-arimo text-[11px] font-bold border border-white/15 text-white/70 hover:text-white hover:border-[#DEFF9A]/50 transition b2b-focus-ring">
+                              {chip}
+                            </button>
+                          ))}
                         </div>
+                      )}
+                      <div className="flex gap-2">
+                        <input ref={chatInputRef} className={input} placeholder={pendingQ.placeholder ?? 'Ihre Antwort …'} value={chatDraft} onChange={(e) => setChatDraft(e.target.value)}
+                          onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); answerCurrent(chatDraft); } }}
+                          aria-label={pendingQ.label} />
+                        <button type="button" onClick={() => answerCurrent(chatDraft)}
+                          className="w-11 h-11 rounded-xl flex items-center justify-center flex-shrink-0 b2b-focus-ring" style={{ background: `linear-gradient(135deg, ${LIME}, ${SKY})` }} aria-label="Antwort senden">
+                          <Send className="w-4 h-4 text-[#0A192F]" aria-hidden="true" />
+                        </button>
                       </div>
-                    </div>
+                    </BotBubble>
                   )}
 
                   {/* Abschluss */}
                   {!typing && !pendingQ && (
-                    <div className="flex items-start gap-2.5">
-                      <span className="w-8 h-8 rounded-xl flex items-center justify-center flex-shrink-0" style={{ background: `linear-gradient(135deg, ${LIME}, ${SKY})` }}><Bot className="w-4 h-4 text-[#0A192F]" aria-hidden="true" /></span>
-                      <div className="rounded-2xl rounded-tl-sm px-3.5 py-2.5 bg-white/[0.06] border border-white/10 font-arimo text-sm text-white/85 leading-relaxed">
-                        Perfekt – {answeredCount} Punkte erfasst! Ihr Profil ist vollständig. Ihr Gespräch am <span className="font-bold">{appointmentFull}</span> kann direkt konkret starten.
-                      </div>
-                    </div>
+                    <BotBubble>
+                      Perfekt – <span className="font-bold">{answeredCount} Punkte erfasst</span>! Ihr Profil ist vollständig. Ihr Gespräch am <span className="font-bold">{appointmentFull}</span> kann direkt konkret starten.
+                    </BotBubble>
                   )}
                   <div ref={chatEndRef} />
                 </div>
