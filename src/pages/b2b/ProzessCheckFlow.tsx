@@ -14,7 +14,7 @@
 import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import { AnimatePresence, motion, useReducedMotion } from 'framer-motion';
 import {
-  ArrowLeft, ArrowRight, CalendarCheck, Check, CheckCircle2, Loader2, Send, Sparkles, User, X,
+  ArrowLeft, ArrowRight, CalendarCheck, Check, CheckCircle2, Loader2, Send, Sparkles, X,
 } from 'lucide-react';
 import { supabase } from '../../lib/supabase';
 import { triggerB2bBriefing } from '../../lib/b2bBriefing';
@@ -52,11 +52,23 @@ function AdvisorAvatar() {
 }
 
 function BotBubble({ children }: { children: ReactNode }) {
+  const reduce = useReducedMotion() ?? false;
   return (
-    <div className="flex items-start gap-2.5">
+    <motion.div initial={{ opacity: 0, y: reduce ? 0 : 8 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: reduce ? 0 : 0.25, ease: 'easeOut' }} className="flex items-start gap-2.5">
       <AdvisorAvatar />
       <div className="rounded-2xl rounded-tl-sm px-3.5 py-2.5 bg-white/[0.06] border border-white/10 font-arimo text-sm text-white/85 leading-relaxed">{children}</div>
-    </div>
+    </motion.div>
+  );
+}
+
+function UserBubble({ children, name }: { children: ReactNode; name: string }) {
+  const reduce = useReducedMotion() ?? false;
+  const initials = name.trim().split(/\s+/).map((w) => w[0]?.toUpperCase() ?? '').join('').slice(0, 2) || 'SIE';
+  return (
+    <motion.div initial={{ opacity: 0, y: reduce ? 0 : 8 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: reduce ? 0 : 0.2, ease: 'easeOut' }} className="flex items-start gap-2.5 justify-end">
+      <div className="rounded-2xl rounded-tr-sm px-3.5 py-2.5 font-arimo text-sm bg-[#38BDF8]/15 border border-[#38BDF8]/30 text-white leading-relaxed max-w-[75%]">{children}</div>
+      <span className="w-8 h-8 rounded-xl flex items-center justify-center flex-shrink-0 bg-[#38BDF8]/15 border border-[#38BDF8]/35 font-poppins font-black text-[11px] text-[#38BDF8]" aria-hidden="true">{initials}</span>
+    </motion.div>
   );
 }
 
@@ -72,12 +84,12 @@ interface ChatQuestion {
 }
 
 const BASE_QUESTIONS: ChatQuestion[] = [
-  { id: 'ziel', short: 'Ziel', label: 'Was soll die Lösung am Ende für Ihr Geschäft tun?', chips: ['Zeit sparen', 'Fehler reduzieren', 'Mehr Umsatz', 'Kunden besser bedienen'], placeholder: 'z. B. Angebote in 5 Minuten statt 2 Tagen' },
-  { id: 'nutzer', short: 'Nutzer', label: 'Wer arbeitet damit – und wie viele?', chips: ['Nur ich', '2–5 Personen', '6–20 Personen', 'Kunden selbst'], placeholder: 'z. B. Vertrieb (3) + Backoffice (2)' },
-  { id: 'tools', short: 'Tools heute', label: 'Mit welchen Tools arbeiten Sie heute?', chips: ['Excel / Tabellen', 'E-Mail & Outlook', 'CRM / Warenwirtschaft', 'Papier & Telefon'], placeholder: 'z. B. Excel, Lexware, Gmail' },
-  { id: 'daten', short: 'Datenlage', label: 'Wo liegen Ihre Daten heute?', chips: ['Excel', 'Datenbank', 'Papier / Scans', 'In mehreren Köpfen'], placeholder: 'z. B. Kundenliste in Excel, Rechnungen auf Papier' },
-  { id: 'schnittstellen', short: 'Schnittstellen', label: 'Soll etwas angebunden werden?', chips: ['Website', 'Buchhaltung', 'Shop / Bestellungen', 'Kalender / E-Mail', 'Noch offen'], placeholder: 'z. B. Google Kalender + SEPA-Lastschrift' },
-  { id: 'budget', short: 'Budget', label: 'Welcher Rahmen passt ungefähr?', chips: ['bis 3.000 €', '3.000–8.000 €', '8.000–20.000 €', 'Noch offen'], placeholder: 'gerne auch „weiß nicht" – ich ordne das ein' },
+  { id: 'ziel', short: 'Ziel', label: 'Fangen wir mit dem Wichtigsten an: Was soll die Lösung am Ende konkret für Ihr Geschäft tun?', chips: ['Zeit sparen', 'Fehler reduzieren', 'Mehr Umsatz', 'Kunden besser bedienen'], placeholder: 'z. B. Angebote in 5 Minuten statt 2 Tagen' },
+  { id: 'nutzer', short: 'Nutzer', label: 'Stark. Und wer wird damit arbeiten – nur Sie, oder gleich ein ganzes Team?', chips: ['Nur ich', '2–5 Personen', '6–20 Personen', 'Kunden selbst'], placeholder: 'z. B. Vertrieb (3) + Backoffice (2)' },
+  { id: 'tools', short: 'Tools heute', label: 'Verstanden. Mit welchen Tools arbeitet Ihr Team denn heute so?', chips: ['Excel / Tabellen', 'E-Mail & Outlook', 'CRM / Warenwirtschaft', 'Papier & Telefon'], placeholder: 'z. B. Excel, Lexware, Gmail' },
+  { id: 'daten', short: 'Datenlage', label: 'Alles klar. Und wo liegen aktuell Ihre Daten – in Excel, in einem System, auf Papier?', chips: ['Excel', 'Datenbank', 'Papier / Scans', 'In mehreren Köpfen'], placeholder: 'z. B. Kundenliste in Excel, Rechnungen auf Papier' },
+  { id: 'schnittstellen', short: 'Schnittstellen', label: 'Fast durch! Soll noch etwas angebunden werden – Website, Buchhaltung, Shop, Kalender?', chips: ['Website', 'Buchhaltung', 'Shop / Bestellungen', 'Kalender / E-Mail', 'Noch offen'], placeholder: 'z. B. Google Kalender + SEPA-Lastschrift' },
+  { id: 'budget', short: 'Budget', label: 'Und zum Schluss: In welchem Rahmen bewegt sich Ihr Budget grob?', chips: ['bis 3.000 €', '3.000–8.000 €', '8.000–20.000 €', 'Noch offen'], placeholder: 'gerne auch „weiß nicht“ – ich ordne das ein' },
 ];
 
 const QUESTION_ORDER = BASE_QUESTIONS.map((q) => q.id);
@@ -104,31 +116,42 @@ function followUpFor(id: string, answer: string): ChatQuestion | null {
   return null;
 }
 
-/** Persönliche Reaktionszeile des Beraters auf eine Antwort */
+/** Reaktion des Beraters – geht inhaltlich auf die Antwort ein, wie im echten Gespräch */
 function reactTo(id: string, answer: string, name: string): string {
   const a = answer.toLowerCase();
+  const vorname = name.split(/\s+/)[0];
+  const du = vorname ? `, ${vorname}` : '';
   switch (id) {
     case 'ziel':
-      if (a.includes('umsatz')) return 'Sehr gut – Umsatzthemen haben meist den schnellsten Hebel. Ich schaue gleich, wo wir ansetzen.';
-      if (a.includes('fehler')) return 'Fehlerquellen zu eliminieren ist oft der größte Gewinn. Notiert.';
-      return 'Das ist ein klares Ziel – genau richtig, so arbeitet es sich zielgerichtet.';
+      if (a.includes('umsatz') || a.includes('verkauf')) return `Sehr gut${du} – Umsatz ist der Hebel mit der kürzesten Wirkung. Genau da schaue ich im Gespräch zuerst hin.`;
+      if (a.includes('fehler')) return 'Fehlerquellen zu eliminieren bringt oft mehr als jede neue Funktion – guter Ansatz.';
+      if (a.includes('zeit')) return 'Zeit ist das, was am Ende jeder zurückgewinnen will – mal sehen, wo bei Ihnen die Minuten liegen.';
+      return 'Klingt nach einem klaren Ziel – genau so lässt sich ein Projekt sauber aufsetzen.';
     case 'nutzer':
-      if (a.includes('nur ich')) return 'Dann bauen wir schlank und für Sie optimiert – kein Ballast.';
-      return 'Perfekt, mehrere Nutzer bedeuten: Rollen und Freigaben plane ich von Anfang an mit.';
+      if (a.includes('nur ich')) return 'Dann halten wir es schlank: kein Ballast, nur genau das, was Ihnen den Tag erleichtert.';
+      if (a.includes('kunden')) return 'Noch interessanter – dann denken wir Bedienung und Optik von Anfang an mit.';
+      return 'Gut zu wissen. Bei mehreren Nutzern plane ich Rollen und Freigaben direkt mit – das später einzubauen ist teuer.';
     case 'tools':
-      if (a.includes('excel')) return 'Excel-Chaos kenne ich – genau da liegt meist der größte Zeitfresser. Bleiben wir kurz dran …';
-      if (a.includes('papier')) return 'Papier lässt sich gut digitalisieren – das holen wir mit.';
-      return 'Gut zu wissen, darauf baue ich auf.';
+      if (a.includes('excel')) return 'Excel-Chaos kenne ich zur Genüge – genau da versteckt sich meist der größte Zeitfresser.';
+      if (a.includes('papier')) return 'Papier lässt sich erstaunlich gut digitalisieren – das holen wir direkt mit.';
+      if (a.includes('crm') || a.includes('warenwirtschaft')) return 'Gut, ein bestehendes System können wir anbinden, statt alles neu zu bauen.';
+      return 'Perfekt, damit habe ich ein gutes Bild von Ihren heutigen Werkzeugen.';
     case 'daten':
-      return 'Notiert. Ihre Datenlage ist wichtig für den ersten Prototyp.';
+      if (a.includes('köpf') || a.includes('kopf')) return 'In mehreren Köpfen – klassisch! Genau dafür machen wir im Erstgespräch eine kleine Struktur.';
+      return 'Notiert. Die Datenlage entscheidet, wie schnell wir einen ersten Prototyp bauen können.';
     case 'schnittstellen':
-      if (a.includes('noch offen')) return 'Kein Problem – das klären wir gemeinsam im Erstgespräch.';
-      return 'Anbindungen baue ich so, dass sie erweiterbar bleiben.';
+      if (a.includes('noch offen')) return 'Kein Problem – wenn es sich anbietet, klären wir das gemeinsam im Termin.';
+      return 'Alles klar. Anbindungen baue ich so, dass sie später erweiterbar bleiben.';
     case 'budget':
-      if (a.includes('noch offen')) return 'Völlig okay – wir finden den passenden Rahmen im Gespräch.';
-      return name ? `Danke ${name}, das hilft bei der ersten Größenordnung.` : 'Danke, das hilft bei der ersten Größenordnung.';
+      if (a.includes('noch offen')) return `Völlig okay${du} – wir finden den Rahmen, der zu Ihrem Projekt passt.`;
+      return 'Danke, das hilft mir sehr bei der ersten Größenordnung.';
     default:
-      return name ? `Danke, ${name} – sehr hilfreich!` : 'Sehr hilfreich, danke!';
+      if (id === 'daten_quelle') return 'Gut – eine klare Hauptquelle macht den Start deutlich einfacher.';
+      if (id === 'excel_umfang') return 'Danke – daran sehe ich, ob Migration oder Neuaufbau sinnvoller ist.';
+      if (id === 'shop_plattform') return 'Perfekt, die Plattform kenne ich – da gibt es bewährte Wege.';
+      if (id === 'prioritaet') return 'Sehr gut, das ist genau die richtige Priorität.';
+      if (id === 'umsatz_hebel') return 'Ein klassischer Leck-Standort – da holen wir meist am schnellsten etwas zurück.';
+      return vorname ? `Danke, ${vorname} – sehr hilfreich!` : 'Sehr hilfreich, danke!';
   }
 }
 
@@ -151,8 +174,9 @@ export function ProzessCheckFlow({ presetArea, presetDetails }: { presetArea?: s
   const [chatStarted, setChatStarted] = useState(false);
   const [askedQs, setAskedQs] = useState<ChatQuestion[]>([]); // gestellte Fragen (inkl. Nachfragen)
   const [answers, setAnswers] = useState<Record<string, string>>({});
-  const [reactions, setReactions] = useState<string[]>([]); // Bot-Reaktionszeilen je Frage (Index = asked.length)
-  const [typing, setTyping] = useState(false);
+  const [reactions, setReactions] = useState<string[]>([]); // Bot-Reaktionszeilen je Frage (Index = Position in askedQs)
+  const [stage, setStage] = useState<'question' | 'reacting' | 'asking'>('question'); // Gesprächs-Phase
+  const busyRef = useRef(false);
   const [chatDraft, setChatDraft] = useState('');
   const chatEndRef = useRef<HTMLDivElement>(null);
   const chatInputRef = useRef<HTMLInputElement>(null);
@@ -168,9 +192,9 @@ export function ProzessCheckFlow({ presetArea, presetDetails }: { presetArea?: s
   useEffect(() => {
     if (step === 2 && chatStarted) {
       chatEndRef.current?.scrollIntoView({ behavior: reduce ? 'auto' : 'smooth', block: 'nearest' });
-      if (!typing) chatInputRef.current?.focus();
+      if (stage === 'question') chatInputRef.current?.focus();
     }
-  }, [askedQs, typing, chatStarted, step, reduce]);
+  }, [askedQs, stage, chatStarted, step, reduce]);
 
   /** Nachricht zusammenbauen – wird bei jeder Antwort aktualisiert */
   const buildMessage = (a: Record<string, string>, analysisNote: string) => [
@@ -201,16 +225,29 @@ export function ProzessCheckFlow({ presetArea, presetDetails }: { presetArea?: s
     }
   };
 
-  const answerCurrent = (value: string) => {
-    if (!pendingQ || !value.trim()) return;
-    recordAnswer(pendingQ.id, value.trim());
+  const wait = (ms: number) => new Promise<void>((res) => window.setTimeout(res, ms));
+
+  /** Ein echter Gesprächszug: Antwort → Reaktion des Beraters → kurze Pause → nächste Frage */
+  const answerCurrent = async (value: string) => {
+    if (!pendingQ || !value.trim() || busyRef.current) return;
+    const q = pendingQ;
+    const v = value.trim();
+    busyRef.current = true;
+    recordAnswer(q.id, v);
     setChatDraft('');
-    setTyping(true);
-    window.setTimeout(() => {
-      setReactions((r) => [...r, reactTo(pendingQ.id, value, form.name.trim())]);
-      setTyping(false);
-      setAskedQs((prev) => (prev[prev.length - 1]?.id === pendingQ.id ? prev : [...prev, pendingQ]));
-    }, reduce ? 0 : 750);
+    setAskedQs((prev) => (prev[prev.length - 1]?.id === q.id ? prev : [...prev, q]));
+    const follow = followUpFor(q.id, v);
+    const nb = QUESTION_ORDER.find((id) => !answers[id] && id !== q.id);
+    setStage('reacting');
+    if (!reduce) await wait(750 + Math.random() * 450);
+    setReactions((r) => [...r, reactTo(q.id, v, form.name.trim())]);
+    if (follow || nb) {
+      if (!reduce) await wait(450 + Math.random() * 350);
+      setStage('asking');
+      if (!reduce) await wait(600 + Math.random() * 400);
+    }
+    setStage('question');
+    busyRef.current = false;
   };
 
   const sendBriefing = async (a: Record<string, string>, note: string) => {
@@ -498,65 +535,74 @@ export function ProzessCheckFlow({ presetArea, presetDetails }: { presetArea?: s
                     live
                   </span>
                 </div>
-                <div className="rounded-2xl bg-white/[0.03] border border-white/10 p-4 max-h-[360px] overflow-y-auto space-y-3">
-                  {/* Begrüßung, personalisiert */}
-                  <BotBubble>
-                    {form.name.trim() ? `Hi ${form.name.trim()}` : 'Herzlich willkommen'}{form.company.trim() ? ` von ${form.company.trim()}` : ''}! Ihr Termin am <span className="font-bold">{appointmentFull}</span> ist fix. Ich bereite Ihr Gespräch vor – dauert nur ~2 Minuten.
-                    <p className="mt-2 font-bold text-[#DEFF9A]">Los geht's mit der ersten Frage:</p>
-                  </BotBubble>
-
-                  {askedQs.map((q, k) => (
-                    <div key={q.id} className="space-y-2">
-                      <BotBubble>{q.label}</BotBubble>
-                      <div className="flex items-start gap-2.5 justify-end">
-                        <div className="rounded-2xl rounded-tr-sm px-3.5 py-2.5 font-arimo text-sm bg-[#38BDF8]/15 border border-[#38BDF8]/30 text-white leading-relaxed">{answers[q.id]}</div>
-                        <span className="w-8 h-8 rounded-xl flex items-center justify-center flex-shrink-0 bg-white/10"><User className="w-4 h-4 text-white/70" aria-hidden="true" /></span>
-                      </div>
-                      {reactions[k] && <BotBubble>{reactions[k]}</BotBubble>}
-                    </div>
-                  ))}
-
-                  {typing && (
+                <div className="rounded-2xl bg-white/[0.03] border border-white/10 overflow-hidden">
+                  <div className="p-4 max-h-[360px] overflow-y-auto space-y-3">
+                    {/* Begrüßung, personalisiert */}
                     <BotBubble>
-                      <span className="flex gap-1" aria-label="Berater schreibt">
-                        {[0, 1, 2].map((d) => <span key={d} className="w-1.5 h-1.5 rounded-full bg-white/50 animate-bounce" style={{ animationDelay: `${d * 150}ms` }} />)}
-                      </span>
+                      {form.name.trim() ? `Hi ${form.name.trim()}` : 'Herzlich willkommen'}{form.company.trim() ? ` von ${form.company.trim()}` : ''}! Ihr Termin am <span className="font-bold">{appointmentFull}</span> ist fix. Ich bereite Ihr Gespräch vor – dauert nur ~2 Minuten.
+                      <p className="mt-2 font-bold text-[#DEFF9A]">Los geht's mit der ersten Frage:</p>
                     </BotBubble>
-                  )}
 
-                  {/* Aktuelle Frage */}
-                  {!typing && pendingQ && (
-                    <BotBubble>
-                      <p className="mb-2">{pendingQ.label}</p>
-                      {pendingQ.chips && (
-                        <div className="flex flex-wrap gap-1.5 mb-2">
-                          {pendingQ.chips.map((chip) => (
-                            <button key={chip} type="button" onClick={() => answerCurrent(chip)}
-                              className="px-2.5 py-1 rounded-full font-arimo text-[11px] font-bold border border-white/15 text-white/70 hover:text-white hover:border-[#DEFF9A]/50 transition b2b-focus-ring">
-                              {chip}
-                            </button>
-                          ))}
+                    {askedQs.map((q, k) => (
+                      <div key={q.id} className="space-y-2">
+                        <BotBubble>{q.label}</BotBubble>
+                        <UserBubble name={form.name}>{answers[q.id]}</UserBubble>
+                        {reactions[k] && <BotBubble>{reactions[k]}</BotBubble>}
+                      </div>
+                    ))}
+
+                    {stage !== 'question' && (
+                      <BotBubble>
+                        <span className="flex gap-1" aria-label="Berater schreibt">
+                          {[0, 1, 2].map((d) => <span key={d} className="w-1.5 h-1.5 rounded-full bg-white/50 animate-bounce" style={{ animationDelay: `${d * 150}ms` }} />)}
+                        </span>
+                      </BotBubble>
+                    )}
+
+                    {/* Abschluss */}
+                    {stage === 'question' && !pendingQ && (
+                      <BotBubble>
+                        Das war's schon – <span className="font-bold">{answeredCount} Punkte erfasst</span>! Ihr Gespräch am <span className="font-bold">{appointmentFull}</span> kann direkt konkret starten: Ich übergebe jetzt alles an {form.name.trim() || 'Ihren Berater'}, damit er vorab genau weiß, woran Sie arbeiten.
+                      </BotBubble>
+                    )}
+                    <div ref={chatEndRef} />
+                  </div>
+
+                  {/* Eingabeleiste unten, wie im Messenger */}
+                  <div className="border-t border-white/10 bg-white/[0.02] p-3">
+                    {stage === 'question' && pendingQ ? (
+                      <>
+                        {pendingQ.chips && (
+                          <div className="flex flex-wrap gap-1.5 mb-2">
+                            {pendingQ.chips.map((chip) => (
+                              <button key={chip} type="button" onClick={() => answerCurrent(chip)}
+                                className="px-2.5 py-1 rounded-full font-arimo text-[11px] font-bold border border-white/15 text-white/70 hover:text-white hover:border-[#DEFF9A]/50 transition b2b-focus-ring">
+                                {chip}
+                              </button>
+                            ))}
+                          </div>
+                        )}
+                        <div className="flex gap-2">
+                          <input ref={chatInputRef} className={input} placeholder={pendingQ.placeholder ?? 'Ihre Antwort …'} value={chatDraft} onChange={(e) => setChatDraft(e.target.value)}
+                            onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); answerCurrent(chatDraft); } }}
+                            aria-label={pendingQ.label} />
+                          <button type="button" onClick={() => answerCurrent(chatDraft)}
+                            className="w-11 h-11 rounded-xl flex items-center justify-center flex-shrink-0 b2b-focus-ring" style={{ background: `linear-gradient(135deg, ${LIME}, ${SKY})` }} aria-label="Antwort senden">
+                            <Send className="w-4 h-4 text-[#0A192F]" aria-hidden="true" />
+                          </button>
                         </div>
-                      )}
-                      <div className="flex gap-2">
-                        <input ref={chatInputRef} className={input} placeholder={pendingQ.placeholder ?? 'Ihre Antwort …'} value={chatDraft} onChange={(e) => setChatDraft(e.target.value)}
-                          onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); answerCurrent(chatDraft); } }}
-                          aria-label={pendingQ.label} />
-                        <button type="button" onClick={() => answerCurrent(chatDraft)}
-                          className="w-11 h-11 rounded-xl flex items-center justify-center flex-shrink-0 b2b-focus-ring" style={{ background: `linear-gradient(135deg, ${LIME}, ${SKY})` }} aria-label="Antwort senden">
-                          <Send className="w-4 h-4 text-[#0A192F]" aria-hidden="true" />
-                        </button>
-                      </div>
-                    </BotBubble>
-                  )}
-
-                  {/* Abschluss */}
-                  {!typing && !pendingQ && (
-                    <BotBubble>
-                      Perfekt – <span className="font-bold">{answeredCount} Punkte erfasst</span>! Ihr Profil ist vollständig. Ihr Gespräch am <span className="font-bold">{appointmentFull}</span> kann direkt konkret starten.
-                    </BotBubble>
-                  )}
-                  <div ref={chatEndRef} />
+                        <p className="mt-2 font-arimo text-[11px] text-white/50 px-1">{pendingQ.label}</p>
+                      </>
+                    ) : (
+                      <p className="font-arimo text-xs text-white/45 text-center py-2 flex items-center justify-center gap-2">
+                        {stage === 'question' && !pendingQ ? (
+                          <><CheckCircle2 className="w-4 h-4 text-[#DEFF9A]" aria-hidden="true" />Analyse abgeschlossen – Sie können jetzt absenden.</>
+                        ) : (
+                          <><Loader2 className="w-4 h-4 animate-spin text-[#DEFF9A]" aria-hidden="true" />Der Berater liest Ihre Antwort …</>
+                        )}
+                      </p>
+                    )}
+                  </div>
                 </div>
 
                 {error && <p className="font-arimo text-sm text-red-400">{error}</p>}
@@ -564,7 +610,7 @@ export function ProzessCheckFlow({ presetArea, presetDetails }: { presetArea?: s
                   className="inline-flex items-center justify-center gap-2 w-full px-6 py-4 rounded-2xl font-arimo font-bold text-[#0A192F] b2b-focus-ring transition hover:-translate-y-0.5 hover:shadow-xl hover:shadow-[#DEFF9A]/20 disabled:opacity-60"
                   style={{ background: `linear-gradient(135deg, ${LIME}, ${SKY})` }}>
                   {status === 'saving' ? <Loader2 className="w-4 h-4 animate-spin" aria-hidden="true" /> : <CheckCircle2 className="w-4 h-4" aria-hidden="true" />}
-                  {pendingQ ? 'Fertigstellen – was ich habe, reicht' : 'Absenden & Termin sichern'}
+                  {pendingQ || stage !== 'question' ? 'Fertigstellen – was ich habe, reicht' : 'Absenden & Termin sichern'}
                 </button>
                 <p className="font-arimo text-[11px] text-white/40 text-center">Sie können jederzeit abbrechen – Ihre bisherigen Antworten sind bereits gesichert.</p>
               </div>
