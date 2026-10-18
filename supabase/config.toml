@@ -1,0 +1,4 @@
+# Supabase project config (edge function registration)
+
+[functions.send-b2b-briefing]
+verify_jwt = false

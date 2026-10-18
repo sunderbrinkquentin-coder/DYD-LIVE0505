@@ -1,12 +1,8 @@
 // src/lib/b2bBriefing.ts
 //
-// Nach jeder B2B-Anfrage wird automatisch ein Briefing-Prozess angestoßen:
-// Die komplette Anfrage (Kontakt, Auswahl, Anliegen) wird gebündelt als JSON
-// an den Make.com-Briefing-Webhook geschickt. In Make läuft dann:
-// 1. Automatisches Briefing-Mail geht an den Anfragenden (Bedarf klären)
-// 2. Die Antworten + Originalanfrage werden gebündelt an den Betreiber gemailt
-
-import { getB2bBriefingWebhookUrl } from '../config/makeWebhook';
+// Nach jeder B2B-Anfrage wird das Briefing per Edge Function versendet:
+//  1. Bestätigungs-Mail an den Kunden (Resend)
+//  2. quentin@decideyourdream.de in CC + eigene Detail-Mail mit allen Angaben
 
 export type B2bBriefingSource = 'prozess-check' | 'kontakt-modal' | 'lead-modal';
 
@@ -23,7 +19,7 @@ export interface B2bBriefingPayload {
   segment: string;
   /** Zusammengestellte Auswahl + freitext (Bereich, Umfang, Zeitrahmen, Anliegen) */
   need: string;
-  /** Strukturierte Einzelpunkte für make-Filterung/Personalisierung */
+  /** Strukturierte Einzelpunkte für Personalisierung */
   answers: Record<string, string>;
 }
 
@@ -33,11 +29,8 @@ export interface B2bBriefingPayload {
  * Die Anfrage selbst ist ja bereits in der Datenbank gesichert.
  */
 export function triggerB2bBriefing(payload: Omit<B2bBriefingPayload, 'type' | 'submitted_at'>): void {
-  const url = getB2bBriefingWebhookUrl();
-  if (!url) {
-    console.warn('[B2B-BRIEFING] Webhook nicht konfiguriert (VITE_MAKE_WEBHOOK_B2B_BRIEFING) – Briefing übersprungen.');
-    return;
-  }
+  const url = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/send-b2b-briefing`;
+  const anonKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
 
   const body: B2bBriefingPayload = {
     ...payload,
@@ -47,10 +40,19 @@ export function triggerB2bBriefing(payload: Omit<B2bBriefingPayload, 'type' | 's
 
   fetch(url, {
     method: 'POST',
-    mode: 'no-cors',
-    headers: { 'Content-Type': 'application/json' },
+    headers: {
+      'Content-Type': 'application/json',
+      Authorization: `Bearer ${anonKey}`,
+    },
     body: JSON.stringify(body),
   })
-    .then(() => console.log('[B2B-BRIEFING] Briefing ausgelöst für', payload.contact.email))
-    .catch((err) => console.error('[B2B-BRIEFING] Webhook-Fehler:', err));
+    .then(async (res) => {
+      if (!res.ok) {
+        const detail = await res.text().catch(() => '');
+        console.error(`[B2B-BRIEFING] Versand fehlgeschlagen (${res.status}): ${detail.slice(0, 200)}`);
+        return;
+      }
+      console.log('[B2B-BRIEFING] Briefing versendet an', payload.contact.email);
+    })
+    .catch((err) => console.error('[B2B-BRIEFING] Netzwerkfehler:', err));
 }

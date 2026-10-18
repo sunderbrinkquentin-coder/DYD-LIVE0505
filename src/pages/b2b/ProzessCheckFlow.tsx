@@ -1,20 +1,20 @@
 // src/pages/b2b/ProzessCheckFlow.tsx
 //
-// Conversion-Flow "3 Klicks zum Erstgespräch" als mehrstufiger Prozess:
+// Conversion-Flow "3 Klicks zum Erstgespräch":
 //   1. Termin fixieren – konkretes Datum + Uhrzeit (Pflicht), optional
-//      Direktbuchung im Cal.com-Kalender (falls VITE_CAL_LINK gesetzt).
-//   2. Kontaktdaten (Name, E-Mail Pflicht, Entscheider-Haken).
-//   3. KI-Berater: persönliche Bedarfsanalyse im Chat-Stil – stellt Fragen
-//      wie ein professioneller Berater, mit Schnellantworten; auch später
-//      per E-Mail nachreichbar.
-// Wird sowohl inline auf der Seite als auch im Popup (bei "Direkt Anfrage
-// stellen") verwendet. Schreibt in b2b_contact_requests (segment
-// "automatisierung") und feuert den Make.com-Briefing-Webhook.
+//      Direktbuchung im Cal.com-Kalender.
+//   2. Kontaktdaten – werden SOFORT gespeichert (Lead ist da, bevor die
+//      Analyse startet). Der Datensatz füllt sich danach live weiter.
+//   3. Optional: KI-Berater-Chat – individuelle Bedarfsanalyse mit
+//      Reaktionszeilen, dynamischen Nachfragen (abhängig von den Antworten)
+//      und einem Live-Profil, das sich mit jeder Antwort füllt. Jede Antwort
+//      wird sofort in b2b_contact_requests nachgetragen; am Ende geht das
+//      Briefing an den Make.com-Webhook.
 
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { AnimatePresence, motion, useReducedMotion } from 'framer-motion';
 import {
-  ArrowLeft, ArrowRight, Bot, CalendarCheck, Check, CheckCircle2, Loader2, Send, User, X,
+  ArrowLeft, ArrowRight, Bot, CalendarCheck, Check, CheckCircle2, Loader2, Send, Sparkles, User, X,
 } from 'lucide-react';
 import { supabase } from '../../lib/supabase';
 import { triggerB2bBriefing } from '../../lib/b2bBriefing';
@@ -25,7 +25,6 @@ const SKY = '#38BDF8';
 
 const TIMES = ['08:30', '10:00', '11:30', '14:00', '15:30', '17:00'];
 
-/** Die nächsten count Werktage (Sa/So übersprungen) */
 function nextBusinessDays(count = 10): Date[] {
   const out: Date[] = [];
   const d = new Date();
@@ -43,119 +42,225 @@ const fmtDay = (d: Date) =>
 const fmtFull = (d: Date, time: string) =>
   `${d.toLocaleDateString('de-DE', { weekday: 'long', day: '2-digit', month: 'long', year: 'numeric' })} · ${time} Uhr`;
 
-/* ─── Fragen des KI-Beraters ───────────────────────────────────────────── */
-interface ConsultantQuestion {
+/* ─── Frage-Engine: Basisfragen + dynamische Nachfragen ────────────────── */
+interface ChatQuestion {
   id: string;
+  short: string;
   label: string;
-  chips: string[];
-  placeholder: string;
+  chips?: string[];
+  placeholder?: string;
 }
 
-const QUESTIONS: ConsultantQuestion[] = [
-  { id: 'ziel', label: 'Was soll die Lösung am Ende für Ihr Geschäft tun?', chips: ['Zeit sparen', 'Fehler reduzieren', 'Mehr Umsatz', 'Kunden besser bedienen'], placeholder: 'z. B. Angebote in 5 Minuten statt 2 Tagen' },
-  { id: 'nutzer', label: 'Wer arbeitet damit – und wie viele?', chips: ['Nur ich', '2–5 Personen', '6–20 Personen', 'Kunden selbst'], placeholder: 'z. B. Vertrieb (3) + Backoffice (2)' },
-  { id: 'tools', label: 'Mit welchen Tools arbeiten Sie heute?', chips: ['Excel / Tabellen', 'E-Mail & Outlook', 'CRM / Warenwirtschaft', 'Papier & Telefon'], placeholder: 'z. B. Excel, Lexware, Gmail' },
-  { id: 'daten', label: 'Wo liegen Ihre Daten heute?', chips: ['Excel', 'Datenbank', 'Papier / Scans', 'In mehreren Köpfen'], placeholder: 'z. B. Kundenliste in Excel, Rechnungen auf Papier' },
-  { id: 'schnittstellen', label: 'Soll etwas angebunden werden?', chips: ['Website', 'Buchhaltung', 'Shop / Bestellungen', 'Kalender / E-Mail', 'Noch offen'], placeholder: 'z. B. Google Kalender + SEPA-Lastschrift' },
-  { id: 'budget', label: 'Welcher Rahmen passt ungefähr?', chips: ['bis 3.000 €', '3.000–8.000 €', '8.000–20.000 €', 'Noch offen'], placeholder: 'gerne auch „weiß nicht" – ich ordne das ein' },
+const BASE_QUESTIONS: ChatQuestion[] = [
+  { id: 'ziel', short: 'Ziel', label: 'Was soll die Lösung am Ende für Ihr Geschäft tun?', chips: ['Zeit sparen', 'Fehler reduzieren', 'Mehr Umsatz', 'Kunden besser bedienen'], placeholder: 'z. B. Angebote in 5 Minuten statt 2 Tagen' },
+  { id: 'nutzer', short: 'Nutzer', label: 'Wer arbeitet damit – und wie viele?', chips: ['Nur ich', '2–5 Personen', '6–20 Personen', 'Kunden selbst'], placeholder: 'z. B. Vertrieb (3) + Backoffice (2)' },
+  { id: 'tools', short: 'Tools heute', label: 'Mit welchen Tools arbeiten Sie heute?', chips: ['Excel / Tabellen', 'E-Mail & Outlook', 'CRM / Warenwirtschaft', 'Papier & Telefon'], placeholder: 'z. B. Excel, Lexware, Gmail' },
+  { id: 'daten', short: 'Datenlage', label: 'Wo liegen Ihre Daten heute?', chips: ['Excel', 'Datenbank', 'Papier / Scans', 'In mehreren Köpfen'], placeholder: 'z. B. Kundenliste in Excel, Rechnungen auf Papier' },
+  { id: 'schnittstellen', short: 'Schnittstellen', label: 'Soll etwas angebunden werden?', chips: ['Website', 'Buchhaltung', 'Shop / Bestellungen', 'Kalender / E-Mail', 'Noch offen'], placeholder: 'z. B. Google Kalender + SEPA-Lastschrift' },
+  { id: 'budget', short: 'Budget', label: 'Welcher Rahmen passt ungefähr?', chips: ['bis 3.000 €', '3.000–8.000 €', '8.000–20.000 €', 'Noch offen'], placeholder: 'gerne auch „weiß nicht" – ich ordne das ein' },
 ];
 
-/* ─── Der 3-Klick-Flow ─────────────────────────────────────────────────── */
+const QUESTION_ORDER = BASE_QUESTIONS.map((q) => q.id);
+const QUESTION_MAP: Record<string, ChatQuestion> = Object.fromEntries(BASE_QUESTIONS.map((q) => [q.id, q]));
+
+/** Dynamische Nachfrage, je nachdem was die Antwort enthält */
+function followUpFor(id: string, answer: string): ChatQuestion | null {
+  const a = answer.toLowerCase();
+  if (id === 'tools' && a.includes('excel') && a.includes('papier')) {
+    return { id: 'daten_quelle', short: 'Daten quelle', label: 'Excel UND Papier – wo ist die wichtigere Quelle, mit der wir starten?', chips: ['Excel zuerst', 'Papier zuerst', 'Beides zusammenführen'], placeholder: 'z. B. Excel ist Master, Papier wird gescannt' };
+  }
+  if (id === 'tools' && a.includes('excel')) {
+    return { id: 'excel_umfang', short: 'Excel-Umfang', label: 'Wie groß ist Ihre größte Excel-Datei ungefähr?', chips: ['Unter 100 Zeilen', '100–1.000 Zeilen', 'Über 1.000 Zeilen', 'Mehrere Dateien'], placeholder: 'gerne auch Dateinamen nennen' };
+  }
+  if (id === 'schnittstellen' && (a.includes('shop') || a.includes('website'))) {
+    return { id: 'shop_plattform', short: 'Plattform', label: 'Auf welcher Plattform läuft Ihr Shop bzw. Ihre Website?', chips: ['WordPress / WooCommerce', 'Shopify', 'JTL / Gambio', 'Individuell'], placeholder: 'z. B. Shopify Plus' };
+  }
+  if (id === 'budget' && a.includes('noch offen')) {
+    return { id: 'prioritaet', short: 'Priorität', label: 'Verstanden – was ist Ihnen dann am wichtigsten?', chips: ['Schnell & schlank starten', 'Von Anfang an skalierbar', 'Bestes Preis-Leistungs-Verhältnis', 'Erstmal Prototyp testen'], placeholder: 'eigenes Stichwort' };
+  }
+  if (id === 'ziel' && (a.includes('umsatz') || a.includes('verkauf'))) {
+    return { id: 'umsatz_hebel', short: 'Umsatz-Hebel', label: 'Wo gehen heute die meisten Anfragen oder Aufträge verloren?', chips: ['Anfragen bleiben liegen', 'Nachfassen passiert nicht', 'Angebot zu langsam', 'Kein Follow-up'], placeholder: 'eigene Beobachtung' };
+  }
+  return null;
+}
+
+/** Persönliche Reaktionszeile des Beraters auf eine Antwort */
+function reactTo(id: string, answer: string): string {
+  const a = answer.toLowerCase();
+  switch (id) {
+    case 'ziel':
+      if (a.includes('umsatz')) return 'Sehr gut – Umsatzthemen haben meist den schnellsten Hebel. Ich schaue gleich, wo wir ansetzen.';
+      if (a.includes('fehler')) return 'Fehlerquellen zu eliminieren ist oft der größte Gewinn. Notiert.';
+      return 'Das ist ein klares Ziel – genau richtig, so arbeitet es sich zielgerichtet.';
+    case 'nutzer':
+      if (a.includes('nur ich')) return 'Dann bauen wir schlank und für Sie optimiert – kein Ballast.';
+      return 'Perfekt, mehrere Nutzer bedeuten: Rollen und Freigaben plane ich von Anfang an mit.';
+    case 'tools':
+      if (a.includes('excel')) return 'Excel-Chaos kenne ich – genau da liegt meist der größte Zeitfresser. Bleiben wir kurz dran …';
+      if (a.includes('papier')) return 'Papier lässt sich gut digitalisieren – das holen wir mit.';
+      return 'Gut zu wissen, darauf baue ich auf.';
+    case 'daten':
+      return 'Notiert. Ihre Datenlage ist wichtig für den ersten Prototyp.';
+    case 'schnittstellen':
+      if (a.includes('noch offen')) return 'Kein Problem – das klären wir gemeinsam im Erstgespräch.';
+      return 'Anbindungen baue ich so, dass sie erweiterbar bleiben.';
+    case 'budget':
+      if (a.includes('noch offen')) return 'Völlig okay – wir finden den passenden Rahmen im Gespräch.';
+      return 'Danke, das hilft bei der ersten Größenordnung.';
+    default:
+      return 'Sehr hilfreich, danke!';
+  }
+}
+
+/* ─── Der Flow ─────────────────────────────────────────────────────────── */
 export function ProzessCheckFlow({ presetArea, presetDetails }: { presetArea?: string | null; presetDetails?: string | null }) {
   const reduce = useReducedMotion() ?? false;
-  const [step, setStep] = useState(0);
+  const [step, setStep] = useState(0); // 0 Termin · 1 Kontakt · 2 Chat
   const days = useMemo(() => nextBusinessDays(), []);
   const [day, setDay] = useState<Date | null>(null);
   const [time, setTime] = useState('');
   const [form, setForm] = useState({ name: '', company: '', email: '', phone: '', note: '' });
   const [decider, setDecider] = useState(false);
-  // KI-Berater-Chat
-  const [qIdx, setQIdx] = useState(0);
-  const [answers, setAnswers] = useState<Record<string, string>>({});
-  const [chatDraft, setChatDraft] = useState('');
-  const [skippedAnalysis, setSkippedAnalysis] = useState(false);
-  const [status, setStatus] = useState<'idle' | 'sending' | 'done' | 'error'>('idle');
+  const [leadId, setLeadId] = useState<string | null>(null);
+  const [status, setStatus] = useState<'idle' | 'saving' | 'done' | 'error'>('idle');
   const [error, setError] = useState('');
+
+  // Chat-Zustand
+  const [chatStarted, setChatStarted] = useState(false);
+  const [asked, setAsked] = useState<string[]>([]); // Reihenfolge der gestellten Fragen
+  const [answers, setAnswers] = useState<Record<string, string>>({});
+  const [reactions, setReactions] = useState<string[]>([]); // Bot-Reaktionszeilen je Frage (Index = asked.length)
+  const [typing, setTyping] = useState(false);
+  const [chatDraft, setChatDraft] = useState('');
   const chatEndRef = useRef<HTMLDivElement>(null);
-
-  // Vorauswahl aus Finder / Rechner: direkt zu Schritt 1 (Termin) bzw. im Popup bleibt Termin Schritt 1
-  useEffect(() => {
-    if (presetArea) setStep(0);
-  }, [presetArea]);
-
-  useEffect(() => {
-    if (step === 2) chatEndRef.current?.scrollIntoView({ behavior: reduce ? 'auto' : 'smooth', block: 'nearest' });
-  }, [qIdx, step, reduce]);
+  const [briefingSent, setBriefingSent] = useState(false);
 
   const appointmentFull = day && time ? fmtFull(day, time) : '';
+  const nextBase = QUESTION_ORDER.find((id) => !answers[id]);
+  const pendingQ: ChatQuestion | null = followUpFor(asked[asked.length - 1] ?? '', answers[asked[asked.length - 1] ?? ''] ?? '')
+    ?? (nextBase ? QUESTION_MAP[nextBase] : null);
   const input = 'w-full px-4 py-3 rounded-xl bg-white/[0.05] border border-white/12 text-white placeholder-white/35 font-arimo text-sm focus:outline-none focus:border-[#DEFF9A]';
 
-  const submit = async (skipChat: boolean) => {
-    if (!day || !time) { setError('Bitte wählen Sie zuerst Datum und Uhrzeit für Ihr Erstgespräch.'); setStep(0); return; }
-    if (!form.name.trim() || !form.email.trim()) { setError('Bitte geben Sie Name und E-Mail an.'); setStep(1); return; }
-    setStatus('sending');
-    setError('');
-    const analysis = QUESTIONS
-      .map((q) => (answers[q.id]?.trim() ? `${q.id}: ${answers[q.id].trim()}` : ''))
-      .filter(Boolean);
-    const message = [
-      'Prozess-Check (Automatisierung) – Termin gebunden',
-      presetArea ? `Bereich: ${presetArea}` : '',
-      presetDetails ? `Auswahl: ${presetDetails}` : '',
-      `Festes Erstgespräch: ${appointmentFull}`,
-      `Entscheider:in: ${decider ? 'ja' : 'nein'}`,
-      form.note.trim() ? `Anliegen: ${form.note.trim()}` : '',
-      skipChat || analysis.length === 0
-        ? 'Bedarfsanalyse: wird vom KI-Berater per E-Mail nachgereicht'
-        : `Bedarfsanalyse (KI-Berater):\n${analysis.map((l) => `- ${l}`).join('\n')}`,
-    ].filter(Boolean).join('\n');
-    try {
-      const { error: err } = await supabase.from('b2b_contact_requests').insert({
-        company_name: form.company.trim() || '–',
-        contact_name: form.name.trim(),
-        email: form.email.trim(),
-        phone: form.phone.trim() || null,
-        segment: 'automatisierung',
-        message,
-      });
-      if (err) throw err;
-      triggerB2bBriefing({
-        source: 'prozess-check',
-        contact: { name: form.name.trim(), company: form.company.trim(), email: form.email.trim(), phone: form.phone.trim() || null },
-        segment: 'automatisierung',
-        need: message,
-        answers: {
-          bereich: presetArea || '–',
-          rechner_auswahl: presetDetails || '–',
-          termin_datum: day.toLocaleDateString('de-DE'),
-          termin_uhrzeit: time,
-          termin_fix: appointmentFull,
-          entscheidet: decider ? 'ja' : 'nein',
-          anliegen: form.note.trim(),
-          bedarfsanalyse: skipChat || analysis.length === 0 ? 'nachgereicht-später' : analysis.join(' | '),
-        },
-      });
-      setStatus('done');
-    } catch (err) {
-      setStatus('error');
-      setError(err instanceof Error ? err.message : 'Senden fehlgeschlagen.');
+  useEffect(() => {
+    if (step === 2 && chatStarted) chatEndRef.current?.scrollIntoView({ behavior: reduce ? 'auto' : 'smooth', block: 'nearest' });
+  }, [asked, typing, chatStarted, step, reduce]);
+
+  /** Nachricht zusammenbauen – wird bei jeder Antwort aktualisiert */
+  const buildMessage = (a: Record<string, string>, analysisNote: string) => [
+    'Prozess-Check (Automatisierung)',
+    presetArea ? `Bereich: ${presetArea}` : '',
+    presetDetails ? `Auswahl: ${presetDetails}` : '',
+    day && time ? `Festes Erstgespräch: ${appointmentFull}` : '',
+    `Entscheider:in: ${decider ? 'ja' : 'nein'}`,
+    form.note.trim() ? `Anliegen: ${form.note.trim()}` : '',
+    `Bedarfsanalyse: ${analysisNote}`,
+    ...Object.entries(a).map(([id, val]) => `${QUESTION_MAP[id]?.short ?? id}: ${val}`),
+  ].filter(Boolean).join('\n');
+
+  /** Antwort speichern: Zustand + sofort in die Datenbank (Lead füllt sich) */
+  const recordAnswer = async (id: string, value: string) => {
+    const next = { ...answers, [id]: value };
+    setAnswers(next);
+    if (leadId) {
+      try {
+        await supabase.from('b2b_contact_requests').update({ message: buildMessage(next, 'läuft im Chat') }).eq('id', leadId);
+      } catch { /*Lead bleibt mindestens mit Kontaktdaten erhalten*/ }
     }
   };
 
+  const answerCurrent = (value: string) => {
+    if (!pendingQ || !value.trim()) return;
+    recordAnswer(pendingQ.id, value.trim());
+    setChatDraft('');
+    setTyping(true);
+    window.setTimeout(() => {
+      setReactions((r) => [...r, reactTo(pendingQ.id, value)]);
+      setTyping(false);
+      setAsked((prev) => {
+        const isFollowUp = !QUESTION_ORDER.includes(pendingQ.id);
+        return isFollowUp ? [...prev, pendingQ.id] : [...prev];
+      });
+    }, reduce ? 0 : 750);
+  };
+
+  const sendBriefing = async (a: Record<string, string>, note: string) => {
+    if (briefingSent) return;
+    setBriefingSent(true);
+    if (leadId) {
+      try { await supabase.from('b2b_contact_requests').update({ message: buildMessage(a, note) }).eq('id', leadId); } catch { /* already saved progressively */ }
+    }
+    triggerB2bBriefing({
+      source: 'prozess-check',
+      contact: { name: form.name.trim(), company: form.company.trim(), email: form.email.trim(), phone: form.phone.trim() || null },
+      segment: 'automatisierung',
+      need: buildMessage(a, note),
+      answers: {
+        bereich: presetArea || '–',
+        rechner_auswahl: presetDetails || '–',
+        termin_fix: appointmentFull,
+        entscheidet: decider ? 'ja' : 'nein',
+        anliegen: form.note.trim(),
+        bedarfsanalyse: Object.entries(a).map(([id, v]) => `${QUESTION_MAP[id]?.short ?? id}: ${v}`).join(' | ') || note,
+      },
+    });
+  };
+
+  /* ── Schritt 2 speichern: Lead IST DA, bevor der Chat startet ── */
+  const saveContact = async (startChat: boolean) => {
+    if (!day || !time) { setError('Bitte wählen Sie zuerst Datum und Uhrzeit.'); setStep(0); return; }
+    if (!form.name.trim() || !form.email.trim()) { setError('Bitte geben Sie Name und E-Mail an.'); return; }
+    setStatus('saving');
+    setError('');
+    try {
+      const { data, error: err } = await supabase
+        .from('b2b_contact_requests')
+        .insert({
+          company_name: form.company.trim() || '–',
+          contact_name: form.name.trim(),
+          email: form.email.trim(),
+          phone: form.phone.trim() || null,
+          segment: 'automatisierung',
+          message: buildMessage({}, startChat ? 'Kontakt gespeichert – Analyse folgt' : 'keine Analyse gewünscht – Nachfrage per E-Mail'),
+        })
+        .select('id')
+        .single();
+      if (err) throw err;
+      setLeadId(data?.id ?? null);
+      setStatus('idle');
+      if (!startChat) {
+        sendBriefing({}, 'keine Analyse gewünscht – Nachfrage per E-Mail');
+        setStatus('done');
+      } else {
+        setChatStarted(true);
+        setStep(2);
+      }
+    } catch (e) {
+      setStatus('error');
+      setError(e instanceof Error ? e.message : 'Speichern fehlgeschlagen – bitte erneut versuchen.');
+    }
+  };
+
+  const finishChat = async () => {
+    setStatus('saving');
+    await sendBriefing(answers, Object.keys(answers).length >= 4 ? 'im Chat abgeschlossen' : 'im Chat abgebrochen – Teilantworten');
+    setStatus('done');
+  };
+
   const titles = ['Ihr Termin – Datum & Uhrzeit', 'Wohin dürfen wir bestätigen?', 'Ihre persönliche Bedarfsanalyse'];
+  const answeredCount = Object.keys(answers).length;
 
   if (status === 'done') {
     return (
       <div className="text-center py-10">
         <CheckCircle2 className="w-12 h-12 mx-auto text-[#DEFF9A] mb-4" aria-hidden="true" />
-        <p className="font-poppins font-black text-2xl text-white mb-2">Termin notiert!</p>
+        <p className="font-poppins font-black text-2xl text-white mb-2">Termin gesichert!</p>
         <p className="font-arimo text-white/70 max-w-md mx-auto mb-3">
           Ihr Erstgespräch: <span className="font-bold text-white">{appointmentFull}</span>.
         </p>
         <p className="font-arimo text-white/60 max-w-md mx-auto">
-          Die Bestätigung geht in wenigen Minuten an {form.email.trim()}. {skippedAnalysis || Object.keys(answers).length === 0
-            ? 'Ihren Fragebogen zur Bedarfsanalyse senden wir Ihnen gleich per E-Mail mit – 2 Minuten, gerne vor dem Termin ausfüllen.'
-            : 'Der KI-Berater hat Ihre Analyse bereits ausgewertet – Ihr Vorschlag liegt bei der Bestätigung bei.'}
+          {answeredCount >= 4
+            ? `Der KI-Berater hat ${answeredCount} Punkte von Ihnen erfasst – Ihr vorbereiteter Berater schaut sich das vor dem Termin an.`
+            : 'Die Bestätigung mit einem kurzen Fragebogen geht in wenigen Minuten an ' + form.email.trim() + ' – 2 Minuten vor dem Termin ausfüllen genügt.'}
         </p>
       </div>
     );
@@ -163,12 +268,12 @@ export function ProzessCheckFlow({ presetArea, presetDetails }: { presetArea?: s
 
   return (
     <div>
-      {/* Fortschritt: 3 Klicks */}
+      {/* Fortschritt */}
       <div className="flex items-center gap-2 mb-5" aria-hidden="true">
         {['Termin', 'Kontakt', 'Analyse'].map((label, k) => (
           <div key={label} className="flex-1">
-            <span className="h-1.5 block rounded-full transition-colors" style={{ background: k <= step ? LIME : 'rgba(255,255,255,0.12)' }} />
-            <span className={`mt-1 block font-arimo text-[10px] font-bold uppercase tracking-wide ${k === step ? 'text-[#DEFF9A]' : 'text-white/35'}`}>
+            <span className="h-1.5 block rounded-full transition-colors" style={{ background: (k === 2 && chatStarted) || k <= step ? LIME : 'rgba(255,255,255,0.12)' }} />
+            <span className={`mt-1 block font-arimo text-[10px] font-bold uppercase tracking-wide ${(k === 2 && chatStarted) || k === step ? 'text-[#DEFF9A]' : 'text-white/35'}`}>
               {k + 1}. {label}
             </span>
           </div>
@@ -225,7 +330,7 @@ export function ProzessCheckFlow({ presetArea, presetDetails }: { presetArea?: s
                 </div>
               )}
               <div className="flex flex-col sm:flex-row items-center gap-2.5">
-                <button type="button" onClick={() => setStep(1)} disabled={!day || !time}
+                <button type="button" onClick={() => { setError(''); setStep(1); }} disabled={!day || !time}
                   className="group inline-flex items-center justify-center gap-2 flex-1 px-6 py-3.5 rounded-2xl font-arimo font-bold text-[#0A192F] b2b-focus-ring transition hover:-translate-y-0.5 disabled:opacity-40 disabled:hover:translate-y-0"
                   style={{ background: `linear-gradient(135deg, ${LIME}, ${SKY})` }}>
                   Weiter – Kontakt <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" aria-hidden="true" />
@@ -236,9 +341,9 @@ export function ProzessCheckFlow({ presetArea, presetDetails }: { presetArea?: s
             </div>
           )}
 
-          {/* ── Schritt 2: Kontakt ── */}
+          {/* ── Schritt 2: Kontakt (wird sofort gespeichert) ── */}
           {step === 1 && (
-            <form onSubmit={(e) => { e.preventDefault(); if (form.name.trim() && form.email.trim()) { setError(''); setStep(2); } else setError('Bitte geben Sie Name und E-Mail an.'); }} className="grid gap-3">
+            <form onSubmit={(e) => { e.preventDefault(); saveContact(true); }} className="grid gap-3">
               <div className="flex flex-wrap gap-1.5">
                 {[presetArea, presetDetails, appointmentFull].filter(Boolean).map((t) => (
                   <span key={t} className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-[#DEFF9A]/10 border border-[#DEFF9A]/30 font-arimo text-[11px] font-bold text-[#DEFF9A]"><Check className="w-3 h-3" aria-hidden="true" />{t}</span>
@@ -256,84 +361,140 @@ export function ProzessCheckFlow({ presetArea, presetDetails }: { presetArea?: s
                 <span className="font-arimo text-xs text-white/75 leading-relaxed">Ich bin Entscheider:in und kann über das Projekt entscheiden.</span>
               </label>
               {error && <p className="font-arimo text-sm text-red-400">{error}</p>}
-              <button type="submit" className="inline-flex items-center justify-center gap-2 w-full px-6 py-4 rounded-2xl font-arimo font-bold text-[#0A192F] b2b-focus-ring transition hover:-translate-y-0.5 hover:shadow-xl hover:shadow-[#DEFF9A]/20" style={{ background: `linear-gradient(135deg, ${LIME}, ${SKY})` }}>
-                Weiter – zum KI-Berater <ArrowRight className="w-4 h-4" aria-hidden="true" />
-              </button>
-              <p className="font-arimo text-[11px] text-white/40 text-center">Unverbindlich und kostenlos. Ihre Angaben nutzen wir nur für diese Anfrage. <a href="/#/datenschutz" className="underline hover:text-white/70">Datenschutz</a></p>
+              <div className="grid sm:grid-cols-2 gap-2.5">
+                <button type="submit" disabled={status === 'saving'}
+                  className="inline-flex items-center justify-center gap-2 px-6 py-4 rounded-2xl font-arimo font-bold text-[#0A192F] b2b-focus-ring transition hover:-translate-y-0.5 hover:shadow-xl hover:shadow-[#DEFF9A]/20 disabled:opacity-60"
+                  style={{ background: `linear-gradient(135deg, ${LIME}, ${SKY})` }}>
+                  {status === 'saving' ? <Loader2 className="w-4 h-4 animate-spin" aria-hidden="true" /> : <><Sparkles className="w-4 h-4" aria-hidden="true" /> Bedarfsanalyse jetzt starten</>}
+                </button>
+                <button type="button" onClick={() => saveContact(false)} disabled={status === 'saving'}
+                  className="inline-flex items-center justify-center gap-2 px-5 py-4 rounded-2xl font-arimo font-bold text-sm text-white border border-white/20 hover:bg-white/5 b2b-focus-ring disabled:opacity-60">
+                  Nur Termin sichern – Analyse per E-Mail
+                </button>
+              </div>
+              <p className="font-arimo text-[11px] text-white/40 text-center">Ihre Kontaktdaten werden sofort übermittelt – auch wenn Sie den Chat abbrechen. <a href="/#/datenschutz" className="underline hover:text-white/70">Datenschutz</a></p>
             </form>
           )}
 
-          {/* ── Schritt 3: KI-Berater-Bedarfsanalyse ── */}
-          {step === 2 && (
-            <div className="grid gap-3">
-              <div className="rounded-2xl bg-white/[0.03] border border-white/10 p-4 max-h-[340px] overflow-y-auto space-y-3">
-                <div className="flex items-start gap-2.5">
-                  <span className="w-8 h-8 rounded-xl flex items-center justify-center flex-shrink-0" style={{ background: `linear-gradient(135deg, ${LIME}, ${SKY})` }}><Bot className="w-4 h-4 text-[#0A192F]" aria-hidden="true" /></span>
-                  <div className="rounded-2xl rounded-tl-sm px-3.5 py-2.5 bg-white/[0.06] border border-white/10 font-arimo text-sm text-white/85 leading-relaxed">
-                    Schön, {form.name.trim() || 'schön, dass Sie da sind'}! Ich bin Ihr persönlicher Berater. In ~2 Minuten klären wir die wichtigsten Punkte, damit Ihr Erstgespräch direkt konkret wird. Fertig?
-                  </div>
+          {/* ── Schritt 3: KI-Berater-Chat ── */}
+          {step === 2 && chatStarted && (
+            <div className="grid lg:grid-cols-5 gap-3">
+              {/* Live-Profil (füllt sich mit jeder Antwort) */}
+              <div className="lg:col-span-2 rounded-2xl bg-white/[0.03] border border-white/10 p-4 order-2 lg:order-1">
+                <p className="font-arimo text-[11px] font-bold uppercase tracking-wide text-[#DEFF9A] mb-3 flex items-center gap-1.5"><Sparkles className="w-3.5 h-3.5" aria-hidden="true" />Ihr Profil – wird gerade erstellt</p>
+                <dl className="space-y-2.5">
+                  {QUESTION_ORDER.map((id) => {
+                    const q = QUESTION_MAP[id];
+                    const v = answers[id];
+                    return (
+                      <div key={id}>
+                        <dt className="font-arimo text-[10px] font-bold uppercase tracking-wide text-white/40">{q.short}</dt>
+                        <dd className={`font-arimo text-sm leading-snug ${v ? 'text-white' : 'text-white/25 italic'}`}>{v ?? 'offen …'}</dd>
+                      </div>
+                    );
+                  })}
+                </dl>
+                <div className="mt-4 rounded-xl px-3 py-2.5 bg-[#DEFF9A]/[0.07] border border-[#DEFF9A]/25">
+                  <p className="font-arimo text-[11px] text-[#DEFF9A] font-bold flex items-center gap-1.5"><Check className="w-3.5 h-3.5" aria-hidden="true" />Termin fix</p>
+                  <p className="font-arimo text-[11px] text-white/70 leading-snug">{appointmentFull}</p>
                 </div>
-                {QUESTIONS.slice(0, qIdx).map((q, k) => (
-                  <div key={q.id}>
-                    <div className="flex items-start gap-2.5">
-                      <span className="w-8 h-8 rounded-xl flex items-center justify-center flex-shrink-0" style={{ background: `linear-gradient(135deg, ${LIME}, ${SKY})` }}><Bot className="w-4 h-4 text-[#0A192F]" aria-hidden="true" /></span>
-                      <div className="rounded-2xl rounded-tl-sm px-3.5 py-2.5 bg-white/[0.06] border border-white/10 font-arimo text-sm text-white/85 leading-relaxed">{q.label}</div>
-                    </div>
-                    <div className="flex items-start gap-2.5 mt-2 justify-end">
-                      <div className="rounded-2xl rounded-tr-sm px-3.5 py-2.5 font-arimo text-sm bg-[#38BDF8]/15 border border-[#38BDF8]/30 text-white leading-relaxed">{answers[q.id]}</div>
-                      <span className="w-8 h-8 rounded-xl flex items-center justify-center flex-shrink-0 bg-white/10"><User className="w-4 h-4 text-white/70" aria-hidden="true" /></span>
-                    </div>
-                    <span className="sr-only">Frage {k + 1}</span>
-                  </div>
-                ))}
-                {qIdx < QUESTIONS.length ? (
-                  <div className="flex items-start gap-2.5">
-                    <span className="w-8 h-8 rounded-xl flex items-center justify-center flex-shrink-0" style={{ background: `linear-gradient(135deg, ${LIME}, ${SKY})` }}><Bot className="w-4 h-4 text-[#0A192F]" aria-hidden="true" /></span>
-                    <div className="flex-1 rounded-2xl rounded-tl-sm px-3.5 py-2.5 bg-white/[0.06] border border-white/10">
-                      <p className="font-arimo text-sm text-white/85 leading-relaxed mb-2">{QUESTIONS[qIdx].label}</p>
-                      <div className="flex flex-wrap gap-1.5 mb-2">
-                        {QUESTIONS[qIdx].chips.map((chip) => (
-                          <button key={chip} type="button"
-                            onClick={() => setChatDraft(chatDraft ? `${chatDraft}, ${chip}` : chip)}
-                            className="px-2.5 py-1 rounded-full font-arimo text-[11px] font-bold border border-white/15 text-white/70 hover:text-white hover:border-[#DEFF9A]/50 transition b2b-focus-ring">
-                            {chip}
-                          </button>
-                        ))}
-                      </div>
-                      <div className="flex gap-2">
-                        <input className={input} placeholder={QUESTIONS[qIdx].placeholder} value={chatDraft} onChange={(e) => setChatDraft(e.target.value)}
-                          onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); if (chatDraft.trim()) { setAnswers({ ...answers, [QUESTIONS[qIdx].id]: chatDraft.trim() }); setChatDraft(''); setQIdx((i) => i + 1); } } }}
-                          aria-label={QUESTIONS[qIdx].label} />
-                        <button type="button" onClick={() => { if (chatDraft.trim()) { setAnswers({ ...answers, [QUESTIONS[qIdx].id]: chatDraft.trim() }); setChatDraft(''); setQIdx((i) => i + 1); } }}
-                          className="w-11 h-11 rounded-xl flex items-center justify-center flex-shrink-0 b2b-focus-ring" style={{ background: `linear-gradient(135deg, ${LIME}, ${SKY})` }} aria-label="Antwort senden">
-                          <Send className="w-4 h-4 text-[#0A192F]" aria-hidden="true" />
-                        </button>
-                      </div>
-                    </div>
-                  </div>
-                ) : (
+                {answeredCount > 0 && (
+                  <p className="mt-3 font-arimo text-[10px] text-white/35 leading-snug">Jede Antwort wird direkt übertragen – auch bei Abbruch haben wir Ihre Angaben.</p>
+                )}
+              </div>
+
+              {/* Chat */}
+              <div className="lg:col-span-3 order-1 lg:order-2 grid gap-3 content-start">
+                <div className="rounded-2xl bg-white/[0.03] border border-white/10 p-4 max-h-[360px] overflow-y-auto space-y-3">
+                  {/* Begrüßung, personalisiert */}
                   <div className="flex items-start gap-2.5">
                     <span className="w-8 h-8 rounded-xl flex items-center justify-center flex-shrink-0" style={{ background: `linear-gradient(135deg, ${LIME}, ${SKY})` }}><Bot className="w-4 h-4 text-[#0A192F]" aria-hidden="true" /></span>
                     <div className="rounded-2xl rounded-tl-sm px-3.5 py-2.5 bg-white/[0.06] border border-white/10 font-arimo text-sm text-white/85 leading-relaxed">
-                      Perfekt! Ich habe alles. Ihr Erstgespräch am <span className="font-bold">{appointmentFull}</span> wird so direkt konkret – gute Vorbereitung!
+                      {form.name.trim() ? `${form.name.trim()},` : 'Herzlich willkommen'}{form.company.trim() ? ` (${form.company.trim()})` : ''} – Ihr Termin am <span className="font-bold">{appointmentFull}</span> ist fix. Ich bereite Ihr Gespräch vor: {pendingQ ? 'die erste Frage' : 'alles klar'} – dauert ~2 Minuten.
                     </div>
                   </div>
-                )}
-                <div ref={chatEndRef} />
-              </div>
-              {error && <p className="font-arimo text-sm text-red-400">{error}</p>}
-              <div className="grid sm:grid-cols-2 gap-2.5">
-                <button type="button" onClick={() => { setSkippedAnalysis(true); submit(true); }} disabled={status === 'sending'}
-                  className="inline-flex items-center justify-center gap-2 px-5 py-3.5 rounded-xl font-arimo font-bold text-sm text-white border border-white/20 hover:bg-white/5 b2b-focus-ring disabled:opacity-60">
-                  {status === 'sending' ? <Loader2 className="w-4 h-4 animate-spin" aria-hidden="true" /> : null} Später per E-Mail
-                </button>
-                <button type="button" onClick={() => submit(false)} disabled={status === 'sending' || qIdx < QUESTIONS.length}
-                  className="inline-flex items-center justify-center gap-2 px-5 py-3.5 rounded-xl font-arimo font-bold text-sm text-[#0A192F] b2b-focus-ring transition disabled:opacity-40"
+
+                  {asked.map((id, k) => {
+                    const q = QUESTION_MAP[id];
+                    return (
+                      <div key={id} className="space-y-2">
+                        <div className="flex items-start gap-2.5">
+                          <span className="w-8 h-8 rounded-xl flex items-center justify-center flex-shrink-0" style={{ background: `linear-gradient(135deg, ${LIME}, ${SKY})` }}><Bot className="w-4 h-4 text-[#0A192F]" aria-hidden="true" /></span>
+                          <div className="rounded-2xl rounded-tl-sm px-3.5 py-2.5 bg-white/[0.06] border border-white/10 font-arimo text-sm text-white/85 leading-relaxed">{q.label}</div>
+                        </div>
+                        <div className="flex items-start gap-2.5 justify-end">
+                          <div className="rounded-2xl rounded-tr-sm px-3.5 py-2.5 font-arimo text-sm bg-[#38BDF8]/15 border border-[#38BDF8]/30 text-white leading-relaxed">{answers[id]}</div>
+                          <span className="w-8 h-8 rounded-xl flex items-center justify-center flex-shrink-0 bg-white/10"><User className="w-4 h-4 text-white/70" aria-hidden="true" /></span>
+                        </div>
+                        {reactions[k] && (
+                          <div className="flex items-start gap-2.5">
+                            <span className="w-8 h-8 rounded-xl flex items-center justify-center flex-shrink-0" style={{ background: `linear-gradient(135deg, ${LIME}, ${SKY})` }}><Bot className="w-4 h-4 text-[#0A192F]" aria-hidden="true" /></span>
+                            <div className="rounded-2xl rounded-tl-sm px-3.5 py-2.5 bg-white/[0.06] border border-white/10 font-arimo text-sm text-white/85 leading-relaxed">{reactions[k]}</div>
+                          </div>
+                        )}
+                      </div>
+                    );
+                  })}
+
+                  {typing && (
+                    <div className="flex items-start gap-2.5">
+                      <span className="w-8 h-8 rounded-xl flex items-center justify-center flex-shrink-0" style={{ background: `linear-gradient(135deg, ${LIME}, ${SKY})` }}><Bot className="w-4 h-4 text-[#0A192F]" aria-hidden="true" /></span>
+                      <div className="rounded-2xl rounded-tl-sm px-3.5 py-3 bg-white/[0.06] border border-white/10 flex gap-1" aria-label="Berater schreibt">
+                        {[0, 1, 2].map((d) => <span key={d} className="w-1.5 h-1.5 rounded-full bg-white/50 animate-bounce" style={{ animationDelay: `${d * 150}ms` }} />)}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Aktuelle Frage */}
+                  {!typing && pendingQ && (
+                    <div className="flex items-start gap-2.5">
+                      <span className="w-8 h-8 rounded-xl flex items-center justify-center flex-shrink-0" style={{ background: `linear-gradient(135deg, ${LIME}, ${SKY})` }}><Bot className="w-4 h-4 text-[#0A192F]" aria-hidden="true" /></span>
+                      <div className="flex-1 rounded-2xl rounded-tl-sm px-3.5 py-2.5 bg-white/[0.06] border border-white/10">
+                        <p className="font-arimo text-sm text-white/85 leading-relaxed mb-2">{pendingQ.label}</p>
+                        {pendingQ.chips && (
+                          <div className="flex flex-wrap gap-1.5 mb-2">
+                            {pendingQ.chips.map((chip) => (
+                              <button key={chip} type="button" onClick={() => answerCurrent(chip)}
+                                className="px-2.5 py-1 rounded-full font-arimo text-[11px] font-bold border border-white/15 text-white/70 hover:text-white hover:border-[#DEFF9A]/50 transition b2b-focus-ring">
+                                {chip}
+                              </button>
+                            ))}
+                          </div>
+                        )}
+                        <div className="flex gap-2">
+                          <input className={input} placeholder={pendingQ.placeholder ?? 'Ihre Antwort …'} value={chatDraft} onChange={(e) => setChatDraft(e.target.value)}
+                            onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); answerCurrent(chatDraft); } }}
+                            aria-label={pendingQ.label} />
+                          <button type="button" onClick={() => answerCurrent(chatDraft)}
+                            className="w-11 h-11 rounded-xl flex items-center justify-center flex-shrink-0 b2b-focus-ring" style={{ background: `linear-gradient(135deg, ${LIME}, ${SKY})` }} aria-label="Antwort senden">
+                            <Send className="w-4 h-4 text-[#0A192F]" aria-hidden="true" />
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Abschluss */}
+                  {!typing && !pendingQ && (
+                    <div className="flex items-start gap-2.5">
+                      <span className="w-8 h-8 rounded-xl flex items-center justify-center flex-shrink-0" style={{ background: `linear-gradient(135deg, ${LIME}, ${SKY})` }}><Bot className="w-4 h-4 text-[#0A192F]" aria-hidden="true" /></span>
+                      <div className="rounded-2xl rounded-tl-sm px-3.5 py-2.5 bg-white/[0.06] border border-white/10 font-arimo text-sm text-white/85 leading-relaxed">
+                        Perfekt – {answeredCount} Punkte erfasst! Ihr Profil ist vollständig. Ihr Gespräch am <span className="font-bold">{appointmentFull}</span> kann direkt konkret starten.
+                      </div>
+                    </div>
+                  )}
+                  <div ref={chatEndRef} />
+                </div>
+
+                {error && <p className="font-arimo text-sm text-red-400">{error}</p>}
+                <button type="button" onClick={finishChat} disabled={status === 'saving'}
+                  className="inline-flex items-center justify-center gap-2 w-full px-6 py-4 rounded-2xl font-arimo font-bold text-[#0A192F] b2b-focus-ring transition hover:-translate-y-0.5 hover:shadow-xl hover:shadow-[#DEFF9A]/20 disabled:opacity-60"
                   style={{ background: `linear-gradient(135deg, ${LIME}, ${SKY})` }}>
-                  {status === 'sending' ? <Loader2 className="w-4 h-4 animate-spin" aria-hidden="true" /> : <><CheckCircle2 className="w-4 h-4" aria-hidden="true" /> Absenden & Termin sichern</>}
+                  {status === 'saving' ? <Loader2 className="w-4 h-4 animate-spin" aria-hidden="true" /> : <CheckCircle2 className="w-4 h-4" aria-hidden="true" />}
+                  {pendingQ ? 'Fertigstellen – was ich habe, reicht' : 'Absenden & Termin sichern'}
                 </button>
+                <p className="font-arimo text-[11px] text-white/40 text-center">Sie können jederzeit abbrechen – Ihre bisherigen Antworten sind bereits gesichert.</p>
               </div>
-              {qIdx < QUESTIONS.length && <p className="font-arimo text-[11px] text-white/40 text-center">Noch {QUESTIONS.length - qIdx} Frage(n) – oder später per E-Mail beantworten.</p>}
             </div>
           )}
         </motion.div>
@@ -370,7 +531,7 @@ export function ProzessCheckModal({ open, onClose, presetArea, presetDetails }: 
         animate={{ opacity: 1, y: 0, scale: 1 }}
         exit={{ opacity: 0, y: reduce ? 0 : 16 }}
         transition={{ duration: reduce ? 0 : 0.25 }}
-        className="relative w-full max-w-2xl my-6 rounded-[1.75rem] p-[1px] shadow-[0_60px_120px_-30px_rgba(0,0,0,0.9),0_0_80px_-30px_rgba(56,189,248,0.35)]"
+        className="relative w-full max-w-3xl my-6 rounded-[1.75rem] p-[1px] shadow-[0_60px_120px_-30px_rgba(0,0,0,0.9),0_0_80px_-30px_rgba(56,189,248,0.35)]"
         style={{ background: `linear-gradient(160deg, rgba(222,255,154,0.4), rgba(56,189,248,0.25), rgba(255,255,255,0.08))` }}
         onClick={(e) => e.stopPropagation()}
       >
@@ -379,7 +540,6 @@ export function ProzessCheckModal({ open, onClose, presetArea, presetDetails }: 
             <X className="w-5 h-5" aria-hidden="true" />
           </button>
 
-          {/* Prozess-Kopf: Auswahl aus dem Rechner (Preis, Stunden, Dauer) */}
           {presetDetails && (
             <div className="mb-5 rounded-2xl px-4 py-3 bg-[#DEFF9A]/[0.07] border border-[#DEFF9A]/25">
               <p className="flex items-center gap-1.5 font-arimo text-[11px] font-bold uppercase tracking-wide text-[#DEFF9A] mb-1">
@@ -394,7 +554,7 @@ export function ProzessCheckModal({ open, onClose, presetArea, presetDetails }: 
             <span className="w-9 h-9 rounded-xl flex items-center justify-center" style={{ background: `linear-gradient(135deg, ${LIME}, ${SKY})` }}><CalendarCheck className="w-4 h-4 text-[#0A192F]" aria-hidden="true" /></span>
             <h2 className="font-poppins font-black text-xl sm:text-2xl" style={{ letterSpacing: '-0.02em' }}>3 Klicks zum Erstgespräch</h2>
           </div>
-          <p className="font-arimo text-xs text-white/50 mb-5">1 Termin fixieren · 2 Kontakt · 3 KI-Berater-Analyse – kostenlos, unverbindlich, Antwort sofort.</p>
+          <p className="font-arimo text-xs text-white/50 mb-5">1 Termin fixieren · 2 Kontakt (wird sofort gesichert) · 3 KI-Berater-Analyse – kostenlos, unverbindlich.</p>
 
           <ProzessCheckFlow presetArea={presetArea} presetDetails={presetDetails} />
         </div>
