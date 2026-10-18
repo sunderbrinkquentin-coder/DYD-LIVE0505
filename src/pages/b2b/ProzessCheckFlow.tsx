@@ -39,6 +39,9 @@ function nextBusinessDays(count = 10): Date[] {
 const fmtDay = (d: Date) =>
   `${d.toLocaleDateString('de-DE', { weekday: 'short' })}, ${d.toLocaleDateString('de-DE', { day: '2-digit', month: '2-digit' })}`;
 
+const toLocalISO = (d: Date) =>
+  `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+
 const fmtFull = (d: Date, time: string) =>
   `${d.toLocaleDateString('de-DE', { weekday: 'long', day: '2-digit', month: 'long', year: 'numeric' })} · ${time} Uhr`;
 
@@ -119,6 +122,8 @@ export function ProzessCheckFlow({ presetArea, presetDetails }: { presetArea?: s
   const days = useMemo(() => nextBusinessDays(), []);
   const [day, setDay] = useState<Date | null>(null);
   const [time, setTime] = useState('');
+  const [customDate, setCustomDate] = useState(false);
+  const [customTime, setCustomTime] = useState(false);
   const [form, setForm] = useState({ name: '', company: '', email: '', phone: '', note: '' });
   const [decider, setDecider] = useState(false);
   const [leadId, setLeadId] = useState<string | null>(null);
@@ -318,13 +323,24 @@ export function ProzessCheckFlow({ presetArea, presetDetails }: { presetArea?: s
                     const sel = day?.toDateString() === d.toDateString();
                     return (
                       <button key={d.toISOString()} type="button" aria-pressed={sel}
-                        onClick={() => setDay(sel ? null : d)}
+                        onClick={() => { setDay(sel ? null : d); setCustomDate(false); }}
                         className={`px-3.5 py-2 rounded-xl font-arimo text-xs font-bold border transition b2b-focus-ring ${sel ? 'border-[#DEFF9A] bg-[#DEFF9A]/10 text-[#DEFF9A]' : 'border-white/15 text-white/70 hover:border-white/35 hover:text-white'}`}>
                         {fmtDay(d)}
                       </button>
                     );
                   })}
+                  <button type="button" aria-pressed={customDate}
+                    onClick={() => { setCustomDate(!customDate); if (!customDate) setDay(null); }}
+                    className={`px-3.5 py-2 rounded-xl font-arimo text-xs font-bold border transition b2b-focus-ring ${customDate ? 'border-[#DEFF9A] bg-[#DEFF9A]/10 text-[#DEFF9A]' : 'border-white/15 text-white/70 hover:border-white/35 hover:text-white'}`}>
+                    Anderes Datum
+                  </button>
                 </div>
+                {customDate && (
+                  <input type="date" min={toLocalISO(new Date())} value={day ? toLocalISO(day) : ''}
+                    onChange={(e) => { if (e.target.value) { const [y, m, dd] = e.target.value.split('-').map(Number); setDay(new Date(y, m - 1, dd)); } }}
+                    className="mt-2 px-4 py-2.5 rounded-xl bg-white/[0.05] border border-white/12 text-white font-arimo text-sm focus:outline-none focus:border-[#DEFF9A] [color-scheme:dark]"
+                    aria-label="Freies Datum wählen" />
+                )}
               </div>
               <div>
                 <p className="font-arimo text-[11px] font-bold uppercase tracking-wide text-white/60 mb-2 flex items-center gap-1.5"><CalendarCheck className="w-3.5 h-3.5 text-[#38BDF8]" aria-hidden="true" />Uhrzeit</p>
@@ -333,13 +349,23 @@ export function ProzessCheckFlow({ presetArea, presetDetails }: { presetArea?: s
                     const sel = time === t;
                     return (
                       <button key={t} type="button" aria-pressed={sel}
-                        onClick={() => setTime(sel ? '' : t)}
+                        onClick={() => { setTime(sel ? '' : t); setCustomTime(false); }}
                         className={`px-3.5 py-2 rounded-xl font-arimo text-xs font-bold border transition b2b-focus-ring ${sel ? 'border-[#DEFF9A] bg-[#DEFF9A]/10 text-[#DEFF9A]' : 'border-white/15 text-white/70 hover:border-white/35 hover:text-white'}`}>
                         {t} Uhr
                       </button>
                     );
                   })}
+                  <button type="button" aria-pressed={customTime}
+                    onClick={() => { setCustomTime(!customTime); if (!customTime) setTime(''); }}
+                    className={`px-3.5 py-2 rounded-xl font-arimo text-xs font-bold border transition b2b-focus-ring ${customTime ? 'border-[#DEFF9A] bg-[#DEFF9A]/10 text-[#DEFF9A]' : 'border-white/15 text-white/70 hover:border-white/35 hover:text-white'}`}>
+                    Andere Uhrzeit
+                  </button>
                 </div>
+                {customTime && (
+                  <input type="time" value={time} onChange={(e) => setTime(e.target.value)}
+                    className="mt-2 px-4 py-2.5 rounded-xl bg-white/[0.05] border border-white/12 text-white font-arimo text-sm focus:outline-none focus:border-[#DEFF9A] [color-scheme:dark]"
+                    aria-label="Freie Uhrzeit wählen" />
+                )}
               </div>
               {day && time && (
                 <div className="rounded-xl px-4 py-3 bg-[#DEFF9A]/[0.07] border border-[#DEFF9A]/25 font-arimo text-sm text-white flex items-center gap-2">
