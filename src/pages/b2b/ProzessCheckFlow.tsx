@@ -138,6 +138,7 @@ export function ProzessCheckFlow({ presetArea, presetDetails }: { presetArea?: s
   const [typing, setTyping] = useState(false);
   const [chatDraft, setChatDraft] = useState('');
   const chatEndRef = useRef<HTMLDivElement>(null);
+  const chatInputRef = useRef<HTMLInputElement>(null);
   const [briefingSent, setBriefingSent] = useState(false);
 
   const appointmentFull = day && time ? fmtFull(day, time) : '';
@@ -147,7 +148,10 @@ export function ProzessCheckFlow({ presetArea, presetDetails }: { presetArea?: s
   const input = 'w-full px-4 py-3 rounded-xl bg-white/[0.05] border border-white/12 text-white placeholder-white/35 font-arimo text-sm focus:outline-none focus:border-[#DEFF9A]';
 
   useEffect(() => {
-    if (step === 2 && chatStarted) chatEndRef.current?.scrollIntoView({ behavior: reduce ? 'auto' : 'smooth', block: 'nearest' });
+    if (step === 2 && chatStarted) {
+      chatEndRef.current?.scrollIntoView({ behavior: reduce ? 'auto' : 'smooth', block: 'nearest' });
+      if (!typing) chatInputRef.current?.focus();
+    }
   }, [asked, typing, chatStarted, step, reduce]);
 
   /** Nachricht zusammenbauen – wird bei jeder Antwort aktualisiert */
@@ -398,7 +402,7 @@ export function ProzessCheckFlow({ presetArea, presetDetails }: { presetArea?: s
                 <input className={input} required type="email" placeholder="E-Mail *" autoComplete="email" value={form.email} onChange={(e) => setForm({ ...form, email: e.target.value })} aria-label="E-Mail" />
                 <input className={input} type="tel" placeholder="Telefon (optional)" autoComplete="tel" value={form.phone} onChange={(e) => setForm({ ...form, phone: e.target.value })} aria-label="Telefon" />
               </div>
-              <textarea className={`${input} resize-none`} rows={2} placeholder="Optional: Welcher Ablauf nervt am meisten?" value={form.note} onChange={(e) => setForm({ ...form, note: e.target.value })} aria-label="Ablauf beschreiben" />
+              <textarea className={`${input} resize-none`} rows={2} placeholder="Erkläre direkt dein Anliegen, damit wir keine Zeit verlieren." value={form.note} onChange={(e) => setForm({ ...form, note: e.target.value })} aria-label="Anliegen beschreiben" />
               <label className="flex items-start gap-2.5 rounded-xl px-3.5 py-3 bg-white/[0.04] border border-white/10 cursor-pointer select-none">
                 <input type="checkbox" checked={decider} onChange={(e) => setDecider(e.target.checked)} className="mt-0.5 w-4 h-4 accent-[#DEFF9A]" />
                 <span className="font-arimo text-xs text-white/75 leading-relaxed">Ich bin Entscheider:in und kann über das Projekt entscheiden.</span>
@@ -453,7 +457,8 @@ export function ProzessCheckFlow({ presetArea, presetDetails }: { presetArea?: s
                   <div className="flex items-start gap-2.5">
                     <span className="w-8 h-8 rounded-xl flex items-center justify-center flex-shrink-0" style={{ background: `linear-gradient(135deg, ${LIME}, ${SKY})` }}><Bot className="w-4 h-4 text-[#0A192F]" aria-hidden="true" /></span>
                     <div className="rounded-2xl rounded-tl-sm px-3.5 py-2.5 bg-white/[0.06] border border-white/10 font-arimo text-sm text-white/85 leading-relaxed">
-                      {form.name.trim() ? `${form.name.trim()},` : 'Herzlich willkommen'}{form.company.trim() ? ` (${form.company.trim()})` : ''} – Ihr Termin am <span className="font-bold">{appointmentFull}</span> ist fix. Ich bereite Ihr Gespräch vor: {pendingQ ? 'die erste Frage' : 'alles klar'} – dauert ~2 Minuten.
+                      {form.name.trim() ? `${form.name.trim()},` : 'Herzlich willkommen'}{form.company.trim() ? ` (${form.company.trim()})` : ''} – Ihr Termin am <span className="font-bold">{appointmentFull}</span> ist fix. Ich bereite Ihr Gespräch vor – dauert ~2 Minuten.
+                      <p className="mt-2 font-bold text-[#DEFF9A]">Erkläre direkt dein Anliegen, damit wir keine Zeit verlieren.</p>
                     </div>
                   </div>
 
@@ -505,7 +510,7 @@ export function ProzessCheckFlow({ presetArea, presetDetails }: { presetArea?: s
                           </div>
                         )}
                         <div className="flex gap-2">
-                          <input className={input} placeholder={pendingQ.placeholder ?? 'Ihre Antwort …'} value={chatDraft} onChange={(e) => setChatDraft(e.target.value)}
+                          <input ref={chatInputRef} className={input} placeholder={pendingQ.placeholder ?? 'Ihre Antwort …'} value={chatDraft} onChange={(e) => setChatDraft(e.target.value)}
                             onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); answerCurrent(chatDraft); } }}
                             aria-label={pendingQ.label} />
                           <button type="button" onClick={() => answerCurrent(chatDraft)}

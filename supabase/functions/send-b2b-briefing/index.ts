@@ -2,7 +2,7 @@
 // Versendet das B2B-Briefing per Resend an:
 //  1. Den Kunden (Bestätigungs-Mail, TO: contact.email)
 //  2. quentin@decideyourdream.de (CC auf der Kunden-Mail + eigene Detail-Mail)
-// v3 – Übertragung nach Supabase-Neuverbindung
+// v4 – quentin@decideyourdream.de immer im CC aller Mails
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 
 const corsHeaders = {
@@ -169,7 +169,7 @@ Deno.serve(async (req: Request) => {
 
     const ownerResult = await sendEmail(
       [OWNER_EMAIL],
-      [],
+      [OWNER_EMAIL],
       `Neue Anfrage (Automatisierung): ${name} · ${payload.contact.company || email}`,
       ownerHtml,
       apiKey
