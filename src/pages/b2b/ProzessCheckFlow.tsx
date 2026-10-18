@@ -72,6 +72,39 @@ function UserBubble({ children, name }: { children: ReactNode; name: string }) {
   );
 }
 
+/** Wissens-Karte: vertieft die Antwort mit Einordnung aus der Praxis */
+function InsightBubble({ children }: { children: ReactNode }) {
+  const reduce = useReducedMotion() ?? false;
+  return (
+    <motion.div initial={{ opacity: 0, y: reduce ? 0 : 8 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: reduce ? 0 : 0.3, ease: 'easeOut' }}
+      className="ml-10 rounded-2xl rounded-tl-sm px-3.5 py-2.5 bg-[#DEFF9A]/[0.06] border border-[#DEFF9A]/25">
+      <p className="font-arimo text-[10px] font-bold uppercase tracking-wide text-[#DEFF9A] mb-1 flex items-center gap-1"><Sparkles className="w-3 h-3" aria-hidden="true" />Einordnung aus der Praxis</p>
+      <p className="font-arimo text-sm text-white/75 leading-relaxed">{children}</p>
+    </motion.div>
+  );
+}
+
+/** Abschluss-Karte: das persönliche Fazit der Journey */
+function FazitCard({ items, name, appointment }: { items: string[]; name: string; appointment: string }) {
+  const reduce = useReducedMotion() ?? false;
+  return (
+    <motion.div initial={{ opacity: 0, y: reduce ? 0 : 8 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: reduce ? 0 : 0.3, ease: 'easeOut' }}
+      className="rounded-2xl px-4 py-3.5 bg-[#DEFF9A]/[0.07] border border-[#DEFF9A]/30">
+      <p className="font-arimo text-[10px] font-bold uppercase tracking-wide text-[#DEFF9A] mb-1.5 flex items-center gap-1"><Sparkles className="w-3 h-3" aria-hidden="true" />Ihr persönliches Fazit</p>
+      <p className="font-arimo text-sm text-white/85 leading-relaxed mb-2">
+        {name ? `${name}, hier ist, was ich für Ihr Gespräch am ${appointment} mitnehme:` : `Was ich für Ihr Gespräch am ${appointment} mitnehme:`}
+      </p>
+      <ul className="space-y-1.5">
+        {items.map((t) => (
+          <li key={t} className="flex gap-2 font-arimo text-sm text-white/75 leading-relaxed">
+            <Check className="w-4 h-4 text-[#DEFF9A] flex-shrink-0 mt-0.5" aria-hidden="true" />{t}
+          </li>
+        ))}
+      </ul>
+    </motion.div>
+  );
+}
+
 const toLocalISO = (d: Date) =>
   `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
 
@@ -79,17 +112,18 @@ interface ChatQuestion {
   id: string;
   short: string;
   label: string;
+  why?: string;
   chips?: string[];
   placeholder?: string;
 }
 
 const BASE_QUESTIONS: ChatQuestion[] = [
-  { id: 'ziel', short: 'Ziel', label: 'Fangen wir mit dem Wichtigsten an: Was soll die Lösung am Ende konkret für Ihr Geschäft tun?', chips: ['Zeit sparen', 'Fehler reduzieren', 'Mehr Umsatz', 'Kunden besser bedienen'], placeholder: 'z. B. Angebote in 5 Minuten statt 2 Tagen' },
-  { id: 'nutzer', short: 'Nutzer', label: 'Stark. Und wer wird damit arbeiten – nur Sie, oder gleich ein ganzes Team?', chips: ['Nur ich', '2–5 Personen', '6–20 Personen', 'Kunden selbst'], placeholder: 'z. B. Vertrieb (3) + Backoffice (2)' },
-  { id: 'tools', short: 'Tools heute', label: 'Verstanden. Mit welchen Tools arbeitet Ihr Team denn heute so?', chips: ['Excel / Tabellen', 'E-Mail & Outlook', 'CRM / Warenwirtschaft', 'Papier & Telefon'], placeholder: 'z. B. Excel, Lexware, Gmail' },
-  { id: 'daten', short: 'Datenlage', label: 'Alles klar. Und wo liegen aktuell Ihre Daten – in Excel, in einem System, auf Papier?', chips: ['Excel', 'Datenbank', 'Papier / Scans', 'In mehreren Köpfen'], placeholder: 'z. B. Kundenliste in Excel, Rechnungen auf Papier' },
-  { id: 'schnittstellen', short: 'Schnittstellen', label: 'Fast durch! Soll noch etwas angebunden werden – Website, Buchhaltung, Shop, Kalender?', chips: ['Website', 'Buchhaltung', 'Shop / Bestellungen', 'Kalender / E-Mail', 'Noch offen'], placeholder: 'z. B. Google Kalender + SEPA-Lastschrift' },
-  { id: 'budget', short: 'Budget', label: 'Und zum Schluss: In welchem Rahmen bewegt sich Ihr Budget grob?', chips: ['bis 3.000 €', '3.000–8.000 €', '8.000–20.000 €', 'Noch offen'], placeholder: 'gerne auch „weiß nicht“ – ich ordne das ein' },
+  { id: 'ziel', short: 'Ziel', label: 'Fangen wir mit dem Wichtigsten an: Was soll die Lösung am Ende konkret für Ihr Geschäft tun?', why: 'Ein konkretes Ziel entscheidet, welchen Prozess wir zuerst angehen – und woran wir den Erfolg messen.', chips: ['Zeit sparen', 'Fehler reduzieren', 'Mehr Umsatz', 'Kunden besser bedienen'], placeholder: 'z. B. Angebote in 5 Minuten statt 2 Tagen' },
+  { id: 'nutzer', short: 'Nutzer', label: 'Stark. Und wer wird damit arbeiten – nur Sie, oder gleich ein ganzes Team?', why: 'Die Nutzerzahl bestimmt Rollen, Freigaben und Schulungsaufwand.', chips: ['Nur ich', '2–5 Personen', '6–20 Personen', 'Kunden selbst'], placeholder: 'z. B. Vertrieb (3) + Backoffice (2)' },
+  { id: 'tools', short: 'Tools heute', label: 'Verstanden. Mit welchen Tools arbeitet Ihr Team denn heute so?', why: 'Ihre Tools zeigen mir, wo der größte Zeitfresser liegt und was wir anbinden müssen.', chips: ['Excel / Tabellen', 'E-Mail & Outlook', 'CRM / Warenwirtschaft', 'Papier & Telefon'], placeholder: 'z. B. Excel, Lexware, Gmail' },
+  { id: 'daten', short: 'Datenlage', label: 'Alles klar. Und wo liegen aktuell Ihre Daten – in Excel, in einem System, auf Papier?', why: 'Die Datenlage entscheidet, wie schnell ein erster Prototyp stehen kann.', chips: ['Excel', 'Datenbank', 'Papier / Scans', 'In mehreren Köpfen'], placeholder: 'z. B. Kundenliste in Excel, Rechnungen auf Papier' },
+  { id: 'schnittstellen', short: 'Schnittstellen', label: 'Fast durch! Soll noch etwas angebunden werden – Website, Buchhaltung, Shop, Kalender?', why: 'Anbindungen früh zu kennen verhindert teure Nachrüstungen.', chips: ['Website', 'Buchhaltung', 'Shop / Bestellungen', 'Kalender / E-Mail', 'Noch offen'], placeholder: 'z. B. Google Kalender + SEPA-Lastschrift' },
+  { id: 'budget', short: 'Budget', label: 'Und zum Schluss: In welchem Rahmen bewegt sich Ihr Budget grob?', why: 'Der Rahmen hilft mir, Ihnen vorab schon eine realistische Größenordnung zu nennen.', chips: ['bis 3.000 €', '3.000–8.000 €', '8.000–20.000 €', 'Noch offen'], placeholder: 'gerne auch „weiß nicht“ – ich ordne das ein' },
 ];
 
 const QUESTION_ORDER = BASE_QUESTIONS.map((q) => q.id);
@@ -99,19 +133,19 @@ const QUESTION_MAP: Record<string, ChatQuestion> = Object.fromEntries(BASE_QUEST
 function followUpFor(id: string, answer: string): ChatQuestion | null {
   const a = answer.toLowerCase();
   if (id === 'tools' && a.includes('excel') && a.includes('papier')) {
-    return { id: 'daten_quelle', short: 'Daten quelle', label: 'Excel UND Papier – wo ist die wichtigere Quelle, mit der wir starten?', chips: ['Excel zuerst', 'Papier zuerst', 'Beides zusammenführen'], placeholder: 'z. B. Excel ist Master, Papier wird gescannt' };
+    return { id: 'daten_quelle', short: 'Daten quelle', label: 'Excel UND Papier – wo ist die wichtigere Quelle, mit der wir starten?', why: 'Eine klare Hauptquelle verhindert zwei „Wahrheiten“ im System.', chips: ['Excel zuerst', 'Papier zuerst', 'Beides zusammenführen'], placeholder: 'z. B. Excel ist Master, Papier wird gescannt' };
   }
   if (id === 'tools' && a.includes('excel')) {
-    return { id: 'excel_umfang', short: 'Excel-Umfang', label: 'Wie groß ist Ihre größte Excel-Datei ungefähr?', chips: ['Unter 100 Zeilen', '100–1.000 Zeilen', 'Über 1.000 Zeilen', 'Mehrere Dateien'], placeholder: 'gerne auch Dateinamen nennen' };
+    return { id: 'excel_umfang', short: 'Excel-Umfang', label: 'Wie groß ist Ihre größte Excel-Datei ungefähr?', why: 'Der Umfang entscheidet über Migration oder Neuaufbau.', chips: ['Unter 100 Zeilen', '100–1.000 Zeilen', 'Über 1.000 Zeilen', 'Mehrere Dateien'], placeholder: 'gerne auch Dateinamen nennen' };
   }
   if (id === 'schnittstellen' && (a.includes('shop') || a.includes('website'))) {
-    return { id: 'shop_plattform', short: 'Plattform', label: 'Auf welcher Plattform läuft Ihr Shop bzw. Ihre Website?', chips: ['WordPress / WooCommerce', 'Shopify', 'JTL / Gambio', 'Individuell'], placeholder: 'z. B. Shopify Plus' };
+    return { id: 'shop_plattform', short: 'Plattform', label: 'Auf welcher Plattform läuft Ihr Shop bzw. Ihre Website?', why: 'Für etablierte Plattformen gibt es fertige Schnittstellen – das spart Budget.', chips: ['WordPress / WooCommerce', 'Shopify', 'JTL / Gambio', 'Individuell'], placeholder: 'z. B. Shopify Plus' };
   }
   if (id === 'budget' && a.includes('noch offen')) {
-    return { id: 'prioritaet', short: 'Priorität', label: 'Verstanden – was ist Ihnen dann am wichtigsten?', chips: ['Schnell & schlank starten', 'Von Anfang an skalierbar', 'Bestes Preis-Leistungs-Verhältnis', 'Erstmal Prototyp testen'], placeholder: 'eigenes Stichwort' };
+    return { id: 'prioritaet', short: 'Priorität', label: 'Verstanden – was ist Ihnen dann am wichtigsten?', why: 'Ihre Priorität bestimmt den Fahrplan und die erste Ausbaustufe.', chips: ['Schnell & schlank starten', 'Von Anfang an skalierbar', 'Bestes Preis-Leistungs-Verhältnis', 'Erstmal Prototyp testen'], placeholder: 'eigenes Stichwort' };
   }
   if (id === 'ziel' && (a.includes('umsatz') || a.includes('verkauf'))) {
-    return { id: 'umsatz_hebel', short: 'Umsatz-Hebel', label: 'Wo gehen heute die meisten Anfragen oder Aufträge verloren?', chips: ['Anfragen bleiben liegen', 'Nachfassen passiert nicht', 'Angebot zu langsam', 'Kein Follow-up'], placeholder: 'eigene Beobachtung' };
+    return { id: 'umsatz_hebel', short: 'Umsatz-Hebel', label: 'Wo gehen heute die meisten Anfragen oder Aufträge verloren?', why: 'Genau hier liegt meist der schnellste Hebel für mehr Umsatz.', chips: ['Anfragen bleiben liegen', 'Nachfassen passiert nicht', 'Angebot zu langsam', 'Kein Follow-up'], placeholder: 'eigene Beobachtung' };
   }
   return null;
 }
@@ -155,6 +189,68 @@ function reactTo(id: string, answer: string, name: string): string {
   }
 }
 
+const STATIONS: Record<string, string> = {
+  ziel: 'Ihr Ziel', nutzer: 'Ihr Team', tools: 'Ihre Tools', daten: 'Ihre Daten', schnittstellen: 'Anbindungen', budget: 'Ihr Rahmen',
+};
+
+/** Tiefere Einordnung aus der Praxis – der Berater gibt Wissen weiter, statt nur abzuhaken */
+function insightFor(id: string, answer: string): string {
+  const a = answer.toLowerCase();
+  switch (id) {
+    case 'ziel':
+      if (a.includes('umsatz') || a.includes('verkauf')) return 'Aus der Praxis: Die meisten Umsatzverluste entstehen nicht im Erstkontakt, sondern im Nachfassen – Anfragen, die nach 48 Stunden nicht bearbeitet sind, konvertieren etwa halb so gut. Eine einfache Erinnerungs- und Angebotsautomatik greift hier oft schneller als jede neue Kampagne.';
+      if (a.includes('fehler')) return 'Erfahrungswert: Rund 70 % der wiederkehrenden Fehler passieren an Übergaben – wenn Daten von Hand aus E-Mails abgetippt oder zwischen Systemen hin- und herkopiert werden. Genau diese Übergaben kartographieren wir im Erstgespräch.';
+      if (a.includes('zeit')) return 'Kleine Faustregel aus Projekten: Wer täglich 30 Minuten mit Suchen, Doppeleingaben oder Formatieren verbringt, verliert im Jahr über 100 Arbeitsstunden. Wir suchen im Gespräch die drei größten Zeitfresser und starten mit dem größten.';
+      return 'Wichtig ist, das Ziel messbar zu machen: nicht „mehr Effizienz“, sondern z. B. „Angebot in 2 Stunden statt 2 Tagen“. Im Erstgespräch legen wir genau so eine Kennzahl fest – daran erkennen wir nach 4 Wochen, ob es wirkt.';
+    case 'nutzer':
+      if (a.includes('nur ich')) return 'Für Ein-Personen-Lösungen gilt: so wenige Klicks wie möglich. Statt Rollenkonzept bauen wir Vorlagen, Schnellzugriffe und Automatiken, die Ihnen täglich Minuten sparen – erweiterbar bleibt es trotzdem.';
+      if (a.includes('kunden')) return 'Wenn Kundinnen und Kunden selbst arbeiten, entscheiden zwei Dinge über Annahme oder Ablehnung: Verständlichkeit in 10 Sekunden und Vertrauen (DSGVO, Impressum, sauberes Design). Beides planen wir von Anfang an ein – Nachrüsten ist teurer.';
+      return 'Faustregel: Ab ca. 3 Nutzern lohnt sich ein Rollenkonzept (wer darf sehen, wer darf ändern) plus eine kurze Einweisung. Ich plane beides von Anfang an mit – später einzubauen kostet meist das Doppelte.';
+    case 'tools':
+      if (a.includes('excel')) return 'Excel ist der meist unterschätzte Zeitfresser: Versions-Chaos per E-Mail, Formeln, die nur eine Person versteht, und keine Historie. Typischer Weg: Die Struktur der Tabelle wandert in eine kleine Datenbank – Ihre gewohnte Ansicht bleibt, aber mehrere Personen können gleichzeitig sicher arbeiten.';
+      if (a.includes('papier')) return 'Papier lässt sich mit moderner Erfassung (Scan, Foto, Formular) fast vollständig ersetzen. Wichtig ist die Reihenfolge: erst Struktur, dann Digitalisierung, dann Automatik – sonst archiviert man nur Chaos.';
+      if (a.includes('crm') || a.includes('warenwirtschaft')) return 'Bestehende Systeme sind ein Vorteil, kein Hindernis: Über Schnittstellen (APIs) holen wir Daten dort ab, wo sie entstehen. So vermeiden wir Doppeleingaben, ohne Ihr etabliertes System zu ersetzen.';
+      return 'Gut zu wissen – die Tool-Landschaft bestimmt, wie viel wir anbinden und wie viel wir neu bauen. Je weniger Werkzeugwechsel im Alltag, desto höher die Akzeptanz im Team.';
+    case 'daten':
+      if (a.includes('köpf') || a.includes('kopf')) return 'Wissen, das nur in Köpfen liegt, ist das größte Risiko im Unternehmen – bei Urlaub, Krankheit oder Wechsel steht der Prozess still. Im Erstgespräch machen wir daraus in 20 Minuten eine einfache Struktur: Welche Information braucht welcher Schritt?';
+      if (a.includes('papier')) return 'Gute Nachricht: Papierbestände lassen sich schrittweise digitalisieren – wir starten mit dem, was täglich neu anfällt, und arbeiten den Altbestand bei Bedarf nach.';
+      return 'Die Datenlage bestimmt das Tempo: Saubere, strukturierte Daten bedeuten oft in 2–3 Wochen einen ersten Prototyp. Bei verteilten oder unstrukturierten Daten planen wir vorher eine kleine Bereinigungsphase ein.';
+    case 'schnittstellen':
+      if (a.includes('noch offen')) return 'Vorsicht aus Erfahrung: Was heute „keine Schnittstelle“ ist, ist in 6 Monaten oft der Engpass. Deshalb baue ich alles API-first – jede spätere Erweiterung wird dann zur Kleinigkeit statt zum Umbau.';
+      return 'Anbindungen setze ich API-first um: direkte, dokumentierte Verbindungen statt verketteter Klick-Dienste. Das kostet im Aufbau kaum mehr, ist aber langfristig stabiler und günstiger.';
+    case 'budget':
+      if (a.includes('noch offen')) return 'Zur Einordnung: Einfache Einzelautomatisierungen (ein Prozess, 1–2 Anbindungen) bewegen sich meist im niedrigen vierstelligen Bereich, komplexere Lösungen mit Datenmigration entsprechend darüber. Im Erstgespräch nenne ich Ihnen eine konkrete Spanne für Ihren Fall – verbindlich als Festpreis.';
+      return 'Hilfreich zur Einordnung: Der Preis wird vor allem von drei Faktoren bestimmt – Anzahl der Prozesse, Anzahl der Anbindungen und Aufwand der Datenmigration. Ihren Festpreis lege ich nach dem Erstgespräch genau auf dieser Basis fest.';
+    default:
+      if (id === 'daten_quelle') return 'Ein „Master“ als Hauptquelle ist der wichtigste Schritt zu einer sauberen Datenbasis: Alles andere wird Import oder Ergänzung, nie eine zweite Wahrheit. Genau so vermeiden wir widersprüchliche Einträge.';
+      if (id === 'excel_umfang') return 'Zur Einordnung: Bis ca. 1.000 Zeilen ist eine Migration fast immer Nebensache. Darüber lohnt sich ein Blick auf Struktur und Redundanzen – oft schrumpft die Tabelle im neuen System auf das Wesentliche.';
+      if (id === 'shop_plattform') return 'Für etablierte Plattformen wie Shopify oder WooCommerce gibt es fertige, gepflegte Schnittstellen – das verkürzt die Umsetzung deutlich und senkt den Preis. Bei Individual-Lösungen plane ich eine eigene Anbindung ein.';
+      if (id === 'prioritaet') return 'Ihre Priorität bestimmt den Fahrplan: „Schnell starten“ heißt meist ein Prozess zuerst – dafür in 2–3 Wochen live. Alles Weitere wächst dann mit, ohne Umbau, nur mit Erweiterung.';
+      if (id === 'umsatz_hebel') return 'Aus vielen Projekten: Nachfassen und schnelle Angebote sind die zwei Hebel mit dem kürzesten Weg zu mehr Umsatz – beide lassen sich zuverlässig automatisieren, ohne dass das Team sein Verhalten ändert.';
+      return 'Notiert – diese Einordnung fließt direkt in die Vorbereitung Ihres Erstgesprächs ein.';
+  }
+}
+
+/** Persönliches Fazit: konkrete Ableitungen aus den Antworten, keine Floskeln */
+function buildFazit(a: Record<string, string>): string[] {
+  const out: string[] = [];
+  if (a.ziel) out.push(`Ihr Ziel im Fokus: „${a.ziel}“ – daran messen wir den Erfolg.`);
+  if (a.nutzer) out.push(/nur ich/i.test(a.nutzer)
+    ? 'Rollout: schlank und persönlich – Vorlagen und Schnellzugriffe statt Rollenverwaltung.'
+    : `Rollout: Rollen und Freigaben für ${a.nutzer} sind von Anfang an eingeplant.`);
+  if (a.tools) out.push(/excel/i.test(a.tools)
+    ? 'Startpunkt: Ihre Excel-Struktur wird in eine saubere Datenbank überführt – gewohnte Ansicht, sicheres Arbeiten mit mehreren Personen.'
+    : /papier/i.test(a.tools)
+      ? 'Startpunkt: Wir digitalisieren zuerst die Papierprozesse, die täglich neu anfallen.'
+      : 'Startpunkt: Wir bauen auf Ihren bestehenden Systemen auf und binden sie an, statt alles neu zu erfinden.');
+  if (a.daten) out.push(`Datenlage („${a.daten}“) bestimmt das Tempo des ersten Prototyps – die nötige Bereinigung plane ich passend ein.`);
+  if (a.schnittstellen && !/noch offen/i.test(a.schnittstellen)) out.push(`Anbindungen (${a.schnittstellen}) kommen API-first – erweiterbar, ohne späteren Umbau.`);
+  if (a.budget) out.push(/noch offen/i.test(a.budget)
+    ? 'Budget: Wir finden den Rahmen im Gespräch – Sie erhalten einen verbindlichen Festpreis, keine offene Abrechnung.'
+    : `Rahmen „${a.budget}“: Ich bereite Ihnen vor dem Termin eine konkrete Größenordnung vor.`);
+  return out;
+}
+
 /* ─── Der Flow ─────────────────────────────────────────────────────────── */
 export function ProzessCheckFlow({ presetArea, presetDetails }: { presetArea?: string | null; presetDetails?: string | null }) {
   const reduce = useReducedMotion() ?? false;
@@ -175,6 +271,7 @@ export function ProzessCheckFlow({ presetArea, presetDetails }: { presetArea?: s
   const [askedQs, setAskedQs] = useState<ChatQuestion[]>([]); // gestellte Fragen (inkl. Nachfragen)
   const [answers, setAnswers] = useState<Record<string, string>>({});
   const [reactions, setReactions] = useState<string[]>([]); // Bot-Reaktionszeilen je Frage (Index = Position in askedQs)
+  const [insights, setInsights] = useState<string[]>([]); // Wissens-Karten je Antwort (gleiche Reihenfolge)
   const [stage, setStage] = useState<'question' | 'reacting' | 'asking'>('question'); // Gesprächs-Phase
   const busyRef = useRef(false);
   const [chatDraft, setChatDraft] = useState('');
@@ -239,8 +336,10 @@ export function ProzessCheckFlow({ presetArea, presetDetails }: { presetArea?: s
     const follow = followUpFor(q.id, v);
     const nb = QUESTION_ORDER.find((id) => !answers[id] && id !== q.id);
     setStage('reacting');
-    if (!reduce) await wait(750 + Math.random() * 450);
+    if (!reduce) await wait(700 + Math.random() * 450);
     setReactions((r) => [...r, reactTo(q.id, v, form.name.trim())]);
+    if (!reduce) await wait(500 + Math.random() * 350);
+    setInsights((r) => [...r, insightFor(q.id, v)]);
     if (follow || nb) {
       if (!reduce) await wait(450 + Math.random() * 350);
       setStage('asking');
@@ -326,6 +425,7 @@ export function ProzessCheckFlow({ presetArea, presetDetails }: { presetArea?: s
 
   const titles = ['Ihr Termin – Datum & Uhrzeit', 'Wohin dürfen wir bestätigen?', 'Ihre persönliche Bedarfsanalyse'];
   const answeredCount = Object.keys(answers).length;
+  const fazit = buildFazit(answers);
 
   if (status === 'done') {
     return (
@@ -525,7 +625,7 @@ export function ProzessCheckFlow({ presetArea, presetDetails }: { presetArea?: s
                   <AdvisorAvatar />
                   <div className="flex-1 min-w-0">
                     <p className="font-poppins font-bold text-sm text-white leading-tight">DYD KI-Berater</p>
-                    <p className="font-arimo text-[11px] text-white/50">Bereitet Ihr Gespräch vor · online</p>
+                    <p className="font-arimo text-[11px] text-white/50">{pendingQ ? `Station ${Math.min(QUESTION_ORDER.filter((id) => answers[id]).length + 1, QUESTION_ORDER.length)} von ${QUESTION_ORDER.length} · ${STATIONS[pendingQ.id] ?? 'Analyse'}` : 'Analyse abgeschlossen · Ihr Fazit'}</p>
                   </div>
                   <span className="flex items-center gap-1.5 font-arimo text-[11px] font-bold text-[#DEFF9A]">
                     <span className="relative flex h-2 w-2">
@@ -540,7 +640,7 @@ export function ProzessCheckFlow({ presetArea, presetDetails }: { presetArea?: s
                     {/* Begrüßung, personalisiert */}
                     <BotBubble>
                       {form.name.trim() ? `Hi ${form.name.trim()}` : 'Herzlich willkommen'}{form.company.trim() ? ` von ${form.company.trim()}` : ''}! Ihr Termin am <span className="font-bold">{appointmentFull}</span> ist fix. Ich bereite Ihr Gespräch vor – dauert nur ~2 Minuten.
-                      <p className="mt-2 font-bold text-[#DEFF9A]">Los geht's mit der ersten Frage:</p>
+                      <p className="mt-2 font-bold text-[#DEFF9A]">Ich führe Sie in 6 kurzen Stationen durch Ihr Profil – und gebe Ihnen unterwegs Einordnungen aus der Praxis mit. Los geht's:</p>
                     </BotBubble>
 
                     {askedQs.map((q, k) => (
@@ -548,6 +648,7 @@ export function ProzessCheckFlow({ presetArea, presetDetails }: { presetArea?: s
                         <BotBubble>{q.label}</BotBubble>
                         <UserBubble name={form.name}>{answers[q.id]}</UserBubble>
                         {reactions[k] && <BotBubble>{reactions[k]}</BotBubble>}
+                        {insights[k] && <InsightBubble>{insights[k]}</InsightBubble>}
                       </div>
                     ))}
 
@@ -559,12 +660,19 @@ export function ProzessCheckFlow({ presetArea, presetDetails }: { presetArea?: s
                       </BotBubble>
                     )}
 
-                    {/* Abschluss */}
-                    {stage === 'question' && !pendingQ && (
+                    {/* Abschluss mit persönlichem Fazit */}
+                    {stage === 'question' && !pendingQ && (fazit.length > 0 ? (
+                      <>
+                        <BotBubble>
+                          Das war's schon – <span className="font-bold">{answeredCount} Punkte erfasst</span>! Bevor wir abschließen, fasse ich zusammen, was ich aus Ihrer Analyse mitnehme:
+                        </BotBubble>
+                        <FazitCard items={fazit} name={form.name.trim()} appointment={appointmentFull} />
+                      </>
+                    ) : (
                       <BotBubble>
-                        Das war's schon – <span className="font-bold">{answeredCount} Punkte erfasst</span>! Ihr Gespräch am <span className="font-bold">{appointmentFull}</span> kann direkt konkret starten: Ich übergebe jetzt alles an {form.name.trim() || 'Ihren Berater'}, damit er vorab genau weiß, woran Sie arbeiten.
+                        Kein Problem – auch ohne viele Antworten ist Ihr Termin am <span className="font-bold">{appointmentFull}</span> gesichert. Wir starten im Gespräch einfach direkt mit dem Wichtigsten.
                       </BotBubble>
-                    )}
+                    ))}
                     <div ref={chatEndRef} />
                   </div>
 
@@ -592,6 +700,7 @@ export function ProzessCheckFlow({ presetArea, presetDetails }: { presetArea?: s
                           </button>
                         </div>
                         <p className="mt-2 font-arimo text-[11px] text-white/50 px-1">{pendingQ.label}</p>
+                        {pendingQ.why && <p className="mt-0.5 font-arimo text-[10px] italic text-white/35 px-1">Warum ich das frage: {pendingQ.why}</p>}
                       </>
                     ) : (
                       <p className="font-arimo text-xs text-white/45 text-center py-2 flex items-center justify-center gap-2">
