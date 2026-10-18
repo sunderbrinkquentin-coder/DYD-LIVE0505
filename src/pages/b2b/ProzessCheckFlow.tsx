@@ -163,7 +163,13 @@ export function ProzessCheckFlow({ presetArea, presetDetails }: { presetArea?: s
     setAnswers(next);
     if (leadId) {
       try {
-        await supabase.from('b2b_contact_requests').update({ message: buildMessage(next, 'läuft im Chat') }).eq('id', leadId);
+        const attemptUpdate = () => supabase.from('b2b_contact_requests').update({ message: buildMessage(next, 'läuft im Chat') }).eq('id', leadId);
+        let upd = await attemptUpdate();
+        if (upd.error && (upd.error.status === 401 || /JWT|token|invalid/i.test(upd.error.message))) {
+          try { await supabase.auth.signOut(); } catch { /* ignore */ }
+          upd = await attemptUpdate();
+        }
+        if (upd.error) throw upd.error;
       } catch { /*Lead bleibt mindestens mit Kontaktdaten erhalten*/ }
     }
   };
@@ -187,7 +193,15 @@ export function ProzessCheckFlow({ presetArea, presetDetails }: { presetArea?: s
     if (briefingSent) return;
     setBriefingSent(true);
     if (leadId) {
-      try { await supabase.from('b2b_contact_requests').update({ message: buildMessage(a, note) }).eq('id', leadId); } catch { /* already saved progressively */ }
+      try {
+        const attemptUpdate = () => supabase.from('b2b_contact_requests').update({ message: buildMessage(a, note) }).eq('id', leadId);
+        let upd = await attemptUpdate();
+        if (upd.error && (upd.error.status === 401 || /JWT|token|invalid/i.test(upd.error.message))) {
+          try { await supabase.auth.signOut(); } catch { /* ignore */ }
+          upd = await attemptUpdate();
+        }
+        if (upd.error) throw upd.error;
+      } catch { /* already saved progressively */ }
     }
     triggerB2bBriefing({
       source: 'prozess-check',
@@ -212,18 +226,21 @@ export function ProzessCheckFlow({ presetArea, presetDetails }: { presetArea?: s
     setStatus('saving');
     setError('');
     try {
-      const { data, error: err } = await supabase
-        .from('b2b_contact_requests')
-        .insert({
-          company_name: form.company.trim() || '–',
-          contact_name: form.name.trim(),
-          email: form.email.trim(),
-          phone: form.phone.trim() || null,
-          segment: 'automatisierung',
-          message: buildMessage({}, startChat ? 'Kontakt gespeichert – Analyse folgt' : 'keine Analyse gewünscht – Nachfrage per E-Mail'),
-        })
-        .select('id')
-        .single();
+      const payload = {
+        company_name: form.company.trim() || '–',
+        contact_name: form.name.trim(),
+        email: form.email.trim(),
+        phone: form.phone.trim() || null,
+        segment: 'automatisierung',
+        message: buildMessage({}, startChat ? 'Kontakt gespeichert – Analyse folgt' : 'keine Analyse gewünscht – Nachfrage per E-Mail'),
+      };
+      const attemptInsert = () => supabase.from('b2b_contact_requests').insert(payload).select('id').single();
+      let { data, error: err } = await attemptInsert();
+      if (err && (err.status === 401 || err.code === '401' || /JWT|token|invalid/i.test(err.message))) {
+        // Abgelaufene/ungültige Browser-Anmeldung verwerfen und ohne sie erneut versuchen
+        try { await supabase.auth.signOut(); } catch { /* ignore */ }
+        ({ data, error: err } = await attemptInsert());
+      }
       if (err) throw err;
       setLeadId(data?.id ?? null);
       setStatus('idle');
