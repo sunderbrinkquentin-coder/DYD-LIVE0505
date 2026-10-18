@@ -2,6 +2,7 @@
 // Versendet das B2B-Briefing per Resend an:
 //  1. Den Kunden (Bestätigungs-Mail, TO: contact.email)
 //  2. quentin@decideyourdream.de (CC auf der Kunden-Mail + eigene Detail-Mail)
+// v2 – Übertragung nach RESEND_API_KEY-Verknüpfung
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 
 const corsHeaders = {
