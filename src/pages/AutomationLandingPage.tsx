@@ -17,7 +17,7 @@ import {
 import B2BHeader from './b2b/B2BHeader';
 import { CalBookingButton } from './b2b/CalBookingButton';
 import { automationContent as c } from './b2b/automationContent';
-import { BrowserFrame, LIME, PhoneFrame, ShotViewer, AppIdeaPanel } from './b2b/automationParts';
+import { BrowserFrame, LIME, SKY, PhoneFrame, ShotViewer, AppIdeaPanel } from './b2b/automationParts';
 import { OfferCalculator } from './b2b/OfferCalculator';
 import { ProzessCheckModal } from './b2b/ProzessCheckFlow';
 
