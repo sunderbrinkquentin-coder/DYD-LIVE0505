@@ -516,10 +516,10 @@ export function ProzessCheckFlow({ presetArea, presetDetails }: { presetArea?: s
                     return (
                       <button key={d.toISOString()} type="button" aria-pressed={sel}
                         onClick={() => { setDay(sel ? null : d); setCustomDate(false); }}
-                        className={`group rounded-xl border px-2 py-2.5 text-center transition b2b-focus-ring hover:-translate-y-0.5 ${sel ? 'border-[#DEFF9A] bg-[#DEFF9A]/10 shadow-lg shadow-[#DEFF9A]/10' : 'border-white/12 bg-white/[0.03] hover:border-white/35'}`}>
-                        <span className={`block font-arimo text-[10px] font-bold uppercase tracking-wide ${sel ? 'text-[#DEFF9A]' : i === 0 ? 'text-[#38BDF8]' : 'text-white/45'}`}>{tag}</span>
-                        <span className={`block font-poppins font-black text-lg leading-tight ${sel ? 'text-[#DEFF9A]' : 'text-white/85 group-hover:text-white'}`}>{d.getDate()}.</span>
-                        <span className={`block font-arimo text-[10px] ${sel ? 'text-[#DEFF9A]/80' : 'text-white/40'}`}>{d.toLocaleDateString('de-DE', { month: 'short' })}</span>
+                        className={`group rounded-xl border px-2 py-2.5 text-center transition b2b-focus-ring hover:-translate-y-0.5 ${sel ? 'border-[#DEFF9A] bg-[#DEFF9A]/15 shadow-lg shadow-[#DEFF9A]/15' : 'border-white/25 bg-white/[0.08] hover:border-white/50'}`}>
+                        <span className={`block font-arimo text-[10px] font-bold uppercase tracking-wide ${sel ? 'text-[#DEFF9A]' : i === 0 ? 'text-[#38BDF8]' : 'text-white/60'}`}>{tag}</span>
+                        <span className={`block font-poppins font-black text-lg leading-tight ${sel ? 'text-[#DEFF9A]' : 'text-white group-hover:text-white'}`}>{d.getDate()}.</span>
+                        <span className={`block font-arimo text-[10px] font-bold ${sel ? 'text-[#DEFF9A]/90' : 'text-white/60'}`}>{d.toLocaleDateString('de-DE', { month: 'short' })}</span>
                       </button>
                     );
                   })}
@@ -544,16 +544,17 @@ export function ProzessCheckFlow({ presetArea, presetDetails }: { presetArea?: s
                     { label: 'Nachmittag', icon: Sun, slots: TIMES.filter((t) => Number(t.slice(0, 2)) >= 12) },
                   ].map(({ label, icon: Icon, slots }) => (
                     <div key={label}>
-                      <p className="font-arimo text-[10px] font-bold uppercase tracking-wide text-white/40 mb-1.5 flex items-center gap-1.5"><Icon className="w-3.5 h-3.5 text-[#DEFF9A]/70" aria-hidden="true" />{label}</p>
+                      <p className="font-arimo text-[10px] font-bold uppercase tracking-wide text-white/70 mb-1.5 flex items-center gap-1.5"><Icon className="w-3.5 h-3.5 text-[#DEFF9A]" aria-hidden="true" />{label}</p>
                       <div className="grid grid-cols-3 sm:grid-cols-5 gap-2">
                         {slots.map((t) => {
                           const sel = time === t;
                           return (
                             <button key={t} type="button" aria-pressed={sel}
                               onClick={() => { setTime(sel ? '' : t); setCustomTime(false); }}
-                              className={`rounded-xl border px-2 py-2.5 text-center transition b2b-focus-ring hover:-translate-y-0.5 ${sel ? 'border-[#DEFF9A] bg-[#DEFF9A]/10 shadow-lg shadow-[#DEFF9A]/10' : 'border-white/12 bg-white/[0.03] hover:border-white/35'}`}>
-                              <span className={`block font-poppins font-black text-sm leading-tight ${sel ? 'text-[#DEFF9A]' : 'text-white/85'}`}>{t}</span>
-                              <span className={`block font-arimo text-[10px] ${sel ? 'text-[#DEFF9A]/80' : 'text-white/40'}`}>Uhr</span>
+                              className={`rounded-xl border px-2 py-2.5 text-center transition b2b-focus-ring hover:-translate-y-0.5 ${sel ? 'border-[#DEFF9A] bg-[#DEFF9A]/15 shadow-lg shadow-[#DEFF9A]/15' : 'border-white/25 bg-white/[0.08] hover:border-white/50'}`}
+                              style={!sel ? { boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.08)' } : undefined}>
+                              <span className={`block font-poppins font-black text-sm leading-tight ${sel ? 'text-[#DEFF9A]' : 'text-white'}`}>{t}</span>
+                              <span className={`block font-arimo text-[10px] font-bold ${sel ? 'text-[#DEFF9A]/90' : 'text-white/60'}`}>Uhr</span>
                             </button>
                           );
                         })}
@@ -723,20 +724,20 @@ export function ProzessCheckFlow({ presetArea, presetDetails }: { presetArea?: s
                   <div className="border-t border-white/10 bg-[#0A192F]/70 backdrop-blur px-4 sm:px-5 py-3.5 space-y-2.5">
                     {stage === 'question' && pendingQ ? (
                       <>
-                        <p className="font-arimo text-xs font-bold text-white/75 leading-snug">{pendingQ.label}</p>
-                        {pendingQ.why && <p className="font-arimo text-[10px] italic text-white/35 leading-snug">Warum ich das frage: {pendingQ.why}</p>}
+                        <p className="font-arimo text-sm font-bold text-white leading-snug">{pendingQ.label}</p>
+                        {pendingQ.why && <p className="font-arimo text-[10px] italic text-white/55 leading-snug">Warum ich das frage: {pendingQ.why}</p>}
                         {pendingQ.chips && (
                           <div className="flex flex-wrap gap-1.5 pt-0.5">
                             {pendingQ.chips.map((chip) => (
                               <button key={chip} type="button" onClick={() => answerCurrent(chip)}
-                                className="px-3 py-1.5 rounded-full font-arimo text-[11px] font-bold border border-white/12 bg-white/[0.05] text-white/75 hover:text-[#DEFF9A] hover:bg-[#DEFF9A]/10 hover:border-[#DEFF9A]/40 transition b2b-focus-ring">
+                                className="px-3.5 py-2 rounded-full font-arimo text-xs font-bold border border-white/30 bg-white/[0.1] text-white shadow-[inset_0_1px_0_rgba(255,255,255,0.1)] hover:text-[#0A192F] hover:bg-[#DEFF9A] hover:border-[#DEFF9A] transition b2b-focus-ring">
                                 {chip}
                               </button>
                             ))}
                           </div>
                         )}
                         <div className="flex items-center gap-2 rounded-2xl bg-white/[0.06] border border-white/12 focus-within:border-[#DEFF9A]/60 transition pl-4 pr-1.5 py-1.5">
-                          <input ref={chatInputRef} className="flex-1 min-w-0 bg-transparent border-0 outline-none py-2 text-white placeholder-white/35 font-arimo text-sm" placeholder={pendingQ.placeholder ?? 'Ihre Antwort …'} value={chatDraft} onChange={(e) => setChatDraft(e.target.value)}
+                          <input ref={chatInputRef} className="flex-1 min-w-0 bg-transparent border-0 outline-none py-2 text-white placeholder-white/55 font-arimo text-sm" placeholder={pendingQ.placeholder ?? 'Ihre Antwort …'} value={chatDraft} onChange={(e) => setChatDraft(e.target.value)}
                             onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); answerCurrent(chatDraft); } }}
                             aria-label={pendingQ.label} />
                           <button type="button" onClick={() => answerCurrent(chatDraft)}
