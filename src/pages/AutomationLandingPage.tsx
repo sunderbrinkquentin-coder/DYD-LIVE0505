@@ -19,7 +19,7 @@ import { CalBookingButton } from './b2b/CalBookingButton';
 import { automationContent as c } from './b2b/automationContent';
 import { BrowserFrame, LIME, SKY, PhoneFrame, ShotViewer, AppIdeaPanel } from './b2b/automationParts';
 import { OfferCalculator } from './b2b/OfferCalculator';
-import { ProzessCheckModal } from './b2b/ProzessCheckFlow';
+import { ProzessCheckModal, ProzessCheckFlow } from './b2b/ProzessCheckFlow';
 
 const VIEWPORT = { once: true, margin: '-60px' } as const;
 const refIcons = { mic: Mic, crm: Users, chart: LineChart, ticket: Ticket, trophy: Trophy, bot: Bot, calendar: CalendarDays, heart: Heart } as const;
