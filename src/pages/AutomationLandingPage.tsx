@@ -17,8 +17,9 @@ import {
 import B2BHeader from './b2b/B2BHeader';
 import { CalBookingButton } from './b2b/CalBookingButton';
 import { automationContent as c } from './b2b/automationContent';
-import { BrowserFrame, LIME, PhoneFrame, ProcessCheck, SKY, ShotViewer, AppIdeaPanel } from './b2b/automationParts';
+import { BrowserFrame, LIME, PhoneFrame, ShotViewer, AppIdeaPanel } from './b2b/automationParts';
 import { OfferCalculator } from './b2b/OfferCalculator';
+import { ProzessCheckModal } from './b2b/ProzessCheckFlow';
 
 const VIEWPORT = { once: true, margin: '-60px' } as const;
 const refIcons = { mic: Mic, crm: Users, chart: LineChart, ticket: Ticket, trophy: Trophy, bot: Bot, calendar: CalendarDays, heart: Heart } as const;
@@ -75,6 +76,7 @@ export default function AutomationLandingPage() {
   const [presetDetails, setPresetDetails] = useState<string | null>(null);
   const [openFaq, setOpenFaq] = useState<number | null>(0);
   const [showSticky, setShowSticky] = useState(false);
+  const [checkModal, setCheckModal] = useState(false);
   const heroRef = useRef<HTMLElement>(null);
 
   useEffect(() => {
@@ -107,7 +109,7 @@ export default function AutomationLandingPage() {
   const startCheck = (area?: string, details?: string) => {
     setPresetArea(area ?? null);
     setPresetDetails(details ?? null);
-    requestAnimationFrame(() => go('prozess-check'));
+    setCheckModal(true);
   };
 
   // Sprungziele aus dem KI-Berater: ?check=1 → Prozess-Check, ?projekt=<id> → Live-Projekt
@@ -379,7 +381,7 @@ export default function AutomationLandingPage() {
             </div>
           </motion.div>
           <motion.div variants={fadeUp} initial="hidden" whileInView="show" viewport={VIEWPORT} className="lg:col-span-7 rounded-[2rem] p-6 sm:p-8 bg-gradient-to-b from-white/[0.07] to-white/[0.03] border border-white/12 shadow-2xl">
-            <ProcessCheck presetArea={presetArea} presetDetails={presetDetails} />
+            <ProzessCheckFlow presetArea={presetArea} presetDetails={presetDetails} />
           </motion.div>
         </div>
       </section>
@@ -436,6 +438,17 @@ export default function AutomationLandingPage() {
             </button>
           </motion.div>
         )}
+      </AnimatePresence>
+
+      {/* ── Prozess-Check-Popup (bei "Direkt Anfrage stellen" etc.) ─────── */}
+      <AnimatePresence>
+        <ProzessCheckModal
+          key="prozess-check-modal"
+          open={checkModal}
+          onClose={() => setCheckModal(false)}
+          presetArea={presetArea}
+          presetDetails={presetDetails}
+        />
       </AnimatePresence>
     </div>
   );
