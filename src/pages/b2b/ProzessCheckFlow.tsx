@@ -56,7 +56,7 @@ function BotBubble({ children }: { children: ReactNode }) {
   return (
     <motion.div initial={{ opacity: 0, y: reduce ? 0 : 8 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: reduce ? 0 : 0.25, ease: 'easeOut' }} className="flex items-start gap-2.5">
       <AdvisorAvatar />
-      <div className="rounded-3xl rounded-tl-md px-4 py-3 bg-white/[0.07] border border-white/[0.08] font-arimo text-sm text-white/85 leading-relaxed">{children}</div>
+      <div className="rounded-3xl rounded-tl-md px-4 py-3 bg-white/[0.08] border border-white/10 font-arimo text-[15px] text-white leading-relaxed antialiased">{children}</div>
     </motion.div>
   );
 }
@@ -66,7 +66,7 @@ function UserBubble({ children, name }: { children: ReactNode; name: string }) {
   const initials = name.trim().split(/\s+/).map((w) => w[0]?.toUpperCase() ?? '').join('').slice(0, 2) || 'SIE';
   return (
     <motion.div initial={{ opacity: 0, y: reduce ? 0 : 8 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: reduce ? 0 : 0.2, ease: 'easeOut' }} className="flex items-start gap-2.5 justify-end">
-      <div className="rounded-3xl rounded-tr-md px-4 py-3 font-arimo text-sm bg-gradient-to-br from-[#38BDF8]/25 to-[#38BDF8]/10 border border-[#38BDF8]/25 text-white leading-relaxed max-w-[75%]">{children}</div>
+      <div className="rounded-3xl rounded-tr-md px-4 py-3 font-arimo text-[15px] font-medium bg-gradient-to-br from-[#38BDF8]/30 to-[#38BDF8]/15 border border-[#38BDF8]/40 text-white leading-relaxed antialiased max-w-[75%]">{children}</div>
       <span className="w-8 h-8 rounded-xl flex items-center justify-center flex-shrink-0 bg-[#38BDF8]/15 border border-[#38BDF8]/35 font-poppins font-black text-[11px] text-[#38BDF8]" aria-hidden="true">{initials}</span>
     </motion.div>
   );
@@ -78,8 +78,8 @@ function InsightBubble({ children }: { children: ReactNode }) {
   return (
     <motion.div initial={{ opacity: 0, y: reduce ? 0 : 8 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: reduce ? 0 : 0.3, ease: 'easeOut' }}
       className="ml-8 rounded-3xl rounded-tl-md px-4 py-3 bg-[#DEFF9A]/[0.08] border border-[#DEFF9A]/20">
-      <p className="font-arimo text-[10px] font-bold uppercase tracking-wide text-[#DEFF9A] mb-1 flex items-center gap-1"><Sparkles className="w-3 h-3" aria-hidden="true" />Einordnung aus der Praxis</p>
-      <p className="font-arimo text-sm text-white/75 leading-relaxed">{children}</p>
+      <p className="font-arimo text-[11px] font-bold uppercase tracking-wide text-[#DEFF9A] mb-1 flex items-center gap-1"><Sparkles className="w-3 h-3" aria-hidden="true" />Einordnung aus der Praxis</p>
+      <p className="font-arimo text-[15px] text-white/90 leading-relaxed antialiased">{children}</p>
     </motion.div>
   );
 }
@@ -91,12 +91,12 @@ function FazitCard({ items, name, appointment }: { items: string[]; name: string
     <motion.div initial={{ opacity: 0, y: reduce ? 0 : 8 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: reduce ? 0 : 0.3, ease: 'easeOut' }}
       className="rounded-2xl px-4 py-3.5 bg-[#DEFF9A]/[0.07] border border-[#DEFF9A]/30">
       <p className="font-arimo text-[10px] font-bold uppercase tracking-wide text-[#DEFF9A] mb-1.5 flex items-center gap-1"><Sparkles className="w-3 h-3" aria-hidden="true" />Ihr persönliches Fazit</p>
-      <p className="font-arimo text-sm text-white/85 leading-relaxed mb-2">
+      <p className="font-arimo text-[15px] text-white leading-relaxed mb-2">
         {name ? `${name}, hier ist, was ich für Ihr Gespräch am ${appointment} mitnehme:` : `Was ich für Ihr Gespräch am ${appointment} mitnehme:`}
       </p>
       <ul className="space-y-1.5">
         {items.map((t) => (
-          <li key={t} className="flex gap-2 font-arimo text-sm text-white/75 leading-relaxed">
+          <li key={t} className="flex gap-2 font-arimo text-[15px] text-white/85 leading-relaxed">
             <Check className="w-4 h-4 text-[#DEFF9A] flex-shrink-0 mt-0.5" aria-hidden="true" />{t}
           </li>
         ))}
@@ -327,6 +327,11 @@ export function ProzessCheckFlow({ presetArea, presetDetails }: { presetArea?: s
     }
   }, [askedQs, stage, chatStarted, step, reduce]);
 
+  // Übersicht automatisch einblenden, sobald die Analyse abgeschlossen ist
+  useEffect(() => {
+    if (step === 2 && chatStarted && stage === 'question' && !pendingQ) setShowProfile(true);
+  }, [step, chatStarted, stage, pendingQ]);
+
   /** Nachricht zusammenbauen – wird bei jeder Antwort aktualisiert */
   const buildMessage = (a: Record<string, string>, analysisNote: string) => [
     'Prozess-Check (Automatisierung)',
@@ -506,7 +511,7 @@ export function ProzessCheckFlow({ presetArea, presetDetails }: { presetArea?: s
           {/* ── Schritt 1: Termin ── */}
           {step === 0 && (
             <div className="grid gap-4">
-              <p className="font-arimo text-sm text-white/65">Wählen Sie Datum und Uhrzeit – Ihr Wunschtermin für das kostenlose Erstgespräch (30 Min., online). Wir bestätigen Ihnen den Termin innerhalb von 24 Stunden per E-Mail.</p>
+              <p className="font-arimo text-[15px] text-white/75 leading-relaxed">Wählen Sie Datum und Uhrzeit – Ihr Wunschtermin für das kostenlose Erstgespräch (30 Min., online). Wir bestätigen Ihnen den Termin innerhalb von 24 Stunden per E-Mail.</p>
               <div>
                 <p className="font-arimo text-[11px] font-bold uppercase tracking-wide text-white/60 mb-2 flex items-center gap-1.5"><CalendarCheck className="w-3.5 h-3.5 text-[#38BDF8]" aria-hidden="true" />Datum</p>
                 <div className="grid grid-cols-3 sm:grid-cols-5 gap-2">
@@ -650,7 +655,7 @@ export function ProzessCheckFlow({ presetArea, presetDetails }: { presetArea?: s
                     const v = answers[id];
                     return (
                       <div key={id} className={v ? '' : 'opacity-60'}>
-                        <dt className="font-arimo text-[10px] font-bold uppercase tracking-wide text-white/40 flex items-center gap-1.5">
+                        <dt className="font-arimo text-[11px] font-bold uppercase tracking-wide text-white/55 flex items-center gap-1.5">
                           {v && <Check className="w-3 h-3 text-[#DEFF9A] flex-shrink-0" aria-hidden="true" />}{q.short}
                         </dt>
                         <dd className={`font-arimo text-sm leading-snug ${v ? 'text-white' : 'text-white/25 italic'}`}>{v ?? 'offen …'}</dd>
@@ -673,11 +678,11 @@ export function ProzessCheckFlow({ presetArea, presetDetails }: { presetArea?: s
                 <AdvisorAvatar />
                 <div className="flex-1 min-w-0">
                   <p className="font-poppins font-bold text-sm text-white leading-tight">DYD KI-Berater</p>
-                  <p className="font-arimo text-[11px] text-white/50 truncate">{pendingQ ? `Station ${Math.min(QUESTION_ORDER.filter((id) => answers[id]).length + 1, QUESTION_ORDER.length)} von ${QUESTION_ORDER.length} · ${STATIONS[pendingQ.id] ?? 'Analyse'}` : 'Analyse abgeschlossen · Ihr Fazit'}</p>
+                  <p className="font-arimo text-[11px] text-white/65 truncate">{pendingQ ? `Station ${Math.min(QUESTION_ORDER.filter((id) => answers[id]).length + 1, QUESTION_ORDER.length)} von ${QUESTION_ORDER.length} · ${STATIONS[pendingQ.id] ?? 'Analyse'}` : 'Analyse abgeschlossen · Ihr Fazit'}</p>
                 </div>
                 <button type="button" onClick={() => setShowProfile((s) => !s)} aria-expanded={showProfile}
                   className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full font-arimo text-[11px] font-bold border transition b2b-focus-ring ${showProfile ? 'border-[#DEFF9A]/40 bg-[#DEFF9A]/10 text-[#DEFF9A]' : 'border-white/12 text-white/60 hover:text-white hover:border-white/30'}`}>
-                  Profil <ChevronDown className={`w-3.5 h-3.5 transition-transform ${showProfile ? 'rotate-180' : ''}`} aria-hidden="true" />
+                  Übersicht <ChevronDown className={`w-3.5 h-3.5 transition-transform ${showProfile ? 'rotate-180' : ''}`} aria-hidden="true" />
                 </button>
               </div>
               <div className="p-4 sm:p-5 max-h-[46vh] min-h-[300px] overflow-y-auto space-y-3.5 bg-[radial-gradient(ellipse_at_top,rgba(56,189,248,0.07),transparent_60%)]">
@@ -695,6 +700,14 @@ export function ProzessCheckFlow({ presetArea, presetDetails }: { presetArea?: s
                         {insights[k] && <InsightBubble>{insights[k]}</InsightBubble>}
                       </div>
                     ))}
+
+                    {/* Aktuelle Frage als echte Chat-Nachricht */}
+                    {stage === 'question' && pendingQ && (
+                      <BotBubble>
+                        {pendingQ.label}
+                        {pendingQ.why && <span className="block mt-1.5 font-arimo text-[13px] italic text-white/60 leading-relaxed">Warum ich das frage: {pendingQ.why}</span>}
+                      </BotBubble>
+                    )}
 
                     {stage !== 'question' && (
                       <BotBubble>
@@ -724,20 +737,19 @@ export function ProzessCheckFlow({ presetArea, presetDetails }: { presetArea?: s
                   <div className="border-t border-white/10 bg-[#0A192F]/70 backdrop-blur px-4 sm:px-5 py-3.5 space-y-2.5">
                     {stage === 'question' && pendingQ ? (
                       <>
-                        <p className="font-arimo text-sm font-bold text-white leading-snug">{pendingQ.label}</p>
-                        {pendingQ.why && <p className="font-arimo text-[10px] italic text-white/55 leading-snug">Warum ich das frage: {pendingQ.why}</p>}
+                        <p className="font-arimo text-[11px] font-bold uppercase tracking-wide text-[#DEFF9A]/90">{STATIONS[pendingQ.id] ?? 'Analyse'} – Ihre Antwort</p>
                         {pendingQ.chips && (
                           <div className="flex flex-wrap gap-1.5 pt-0.5">
                             {pendingQ.chips.map((chip) => (
                               <button key={chip} type="button" onClick={() => answerCurrent(chip)}
-                                className="px-3.5 py-2 rounded-full font-arimo text-xs font-bold border border-white/30 bg-white/[0.1] text-white shadow-[inset_0_1px_0_rgba(255,255,255,0.1)] hover:text-[#0A192F] hover:bg-[#DEFF9A] hover:border-[#DEFF9A] transition b2b-focus-ring">
+                                className="px-3.5 py-2.5 rounded-full font-arimo text-sm font-bold border border-white/30 bg-white/[0.1] text-white shadow-[inset_0_1px_0_rgba(255,255,255,0.1)] hover:text-[#0A192F] hover:bg-[#DEFF9A] hover:border-[#DEFF9A] transition b2b-focus-ring">
                                 {chip}
                               </button>
                             ))}
                           </div>
                         )}
                         <div className="flex items-center gap-2 rounded-2xl bg-white/[0.06] border border-white/12 focus-within:border-[#DEFF9A]/60 transition pl-4 pr-1.5 py-1.5">
-                          <input ref={chatInputRef} className="flex-1 min-w-0 bg-transparent border-0 outline-none py-2 text-white placeholder-white/55 font-arimo text-sm" placeholder={pendingQ.placeholder ?? 'Ihre Antwort …'} value={chatDraft} onChange={(e) => setChatDraft(e.target.value)}
+                          <input ref={chatInputRef} className="flex-1 min-w-0 bg-transparent border-0 outline-none py-2 text-white placeholder-white/60 font-arimo text-[15px]" placeholder={pendingQ.placeholder ?? 'Ihre Antwort …'} value={chatDraft} onChange={(e) => setChatDraft(e.target.value)}
                             onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); answerCurrent(chatDraft); } }}
                             aria-label={pendingQ.label} />
                           <button type="button" onClick={() => answerCurrent(chatDraft)}
@@ -747,7 +759,7 @@ export function ProzessCheckFlow({ presetArea, presetDetails }: { presetArea?: s
                         </div>
                       </>
                     ) : (
-                      <p className="font-arimo text-xs text-white/45 text-center py-2 flex items-center justify-center gap-2">
+                      <p className="font-arimo text-sm text-white/60 text-center py-2 flex items-center justify-center gap-2">
                         {stage === 'question' && !pendingQ ? (
                           <><CheckCircle2 className="w-4 h-4 text-[#DEFF9A]" aria-hidden="true" />Analyse abgeschlossen – Sie können jetzt absenden.</>
                         ) : (
@@ -825,7 +837,7 @@ export function ProzessCheckModal({ open, onClose, presetArea, presetDetails }: 
             <span className="w-9 h-9 rounded-xl flex items-center justify-center" style={{ background: `linear-gradient(135deg, ${LIME}, ${SKY})` }}><CalendarCheck className="w-4 h-4 text-[#0A192F]" aria-hidden="true" /></span>
             <h2 className="font-poppins font-black text-xl sm:text-2xl" style={{ letterSpacing: '-0.02em' }}>3 Klicks zum Erstgespräch</h2>
           </div>
-          <p className="font-arimo text-xs text-white/50 mb-5">1 Termin fixieren · 2 Kontakt (wird sofort gesichert) · 3 KI-Berater-Analyse – kostenlos, unverbindlich.</p>
+          <p className="font-arimo text-[13px] text-white/60 mb-5">1 Termin fixieren · 2 Kontakt (wird sofort gesichert) · 3 KI-Berater-Analyse – kostenlos, unverbindlich.</p>
 
           <ProzessCheckFlow presetArea={presetArea} presetDetails={presetDetails} />
         </div>
