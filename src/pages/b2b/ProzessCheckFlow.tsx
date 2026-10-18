@@ -14,7 +14,7 @@
 import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import { AnimatePresence, motion, useReducedMotion } from 'framer-motion';
 import {
-  ArrowLeft, ArrowRight, CalendarCheck, Check, CheckCircle2, Loader2, Send, Sparkles, X,
+  ArrowLeft, ArrowRight, CalendarCheck, Check, CheckCircle2, Loader2, Send, Sparkles, Sun, Sunrise, X,
 } from 'lucide-react';
 import { supabase } from '../../lib/supabase';
 import { triggerB2bBriefing } from '../../lib/b2bBriefing';
@@ -118,8 +118,10 @@ interface ChatQuestion {
 }
 
 const BASE_QUESTIONS: ChatQuestion[] = [
-  { id: 'ziel', short: 'Ziel', label: 'Fangen wir mit dem Wichtigsten an: Was soll die Lösung am Ende konkret für Ihr Geschäft tun?', why: 'Ein konkretes Ziel entscheidet, welchen Prozess wir zuerst angehen – und woran wir den Erfolg messen.', chips: ['Zeit sparen', 'Fehler reduzieren', 'Mehr Umsatz', 'Kunden besser bedienen'], placeholder: 'z. B. Angebote in 5 Minuten statt 2 Tagen' },
-  { id: 'nutzer', short: 'Nutzer', label: 'Stark. Und wer wird damit arbeiten – nur Sie, oder gleich ein ganzes Team?', why: 'Die Nutzerzahl bestimmt Rollen, Freigaben und Schulungsaufwand.', chips: ['Nur ich', '2–5 Personen', '6–20 Personen', 'Kunden selbst'], placeholder: 'z. B. Vertrieb (3) + Backoffice (2)' },
+  { id: 'firma', short: 'Firma', label: 'Bevor wir in die Details gehen: Erzählen Sie mir kurz etwas zu Ihrer Firma – was macht Ihr Unternehmen und wie groß ist das Team?', why: 'Ihre Branche und Größe bestimmen, welche Prozesse sich zuerst lohnen – die Muster unterscheiden sich stark.', chips: ['Handwerk', 'Handel / E-Commerce', 'Dienstleistung', 'Agentur / Kreativ'], placeholder: 'z. B. Dachdeckerbetrieb, 12 Mitarbeitende' },
+  { id: 'ziel', short: 'Ziel', label: 'Stark. Und was soll die Lösung am Ende konkret für Ihr Geschäft tun?', why: 'Ein konkretes Ziel entscheidet, welchen Prozess wir zuerst angehen – und woran wir den Erfolg messen.', chips: ['Zeit sparen', 'Fehler reduzieren', 'Mehr Umsatz', 'Kunden besser bedienen'], placeholder: 'z. B. Angebote in 5 Minuten statt 2 Tagen' },
+  { id: 'problem', short: 'Kernproblem', label: 'Und jetzt zum Herzen der Sache: Welcher Prozess kostet Ihnen aktuell am meisten Zeit oder Nerven?', why: 'Wir starten dort, wo der Schmerz am größten ist – so zeigt die Lösung schon nach 2 Wochen Wirkung.', chips: ['Angebote schreiben', 'Auftragsabwicklung', 'Rechnungen & Buchhaltung', 'Kundenkommunikation'], placeholder: 'z. B. Angebote schreibe ich jeden Abend von Hand' },
+  { id: 'nutzer', short: 'Nutzer', label: 'Verstanden. Wer wird damit arbeiten – nur Sie, oder gleich ein ganzes Team?', why: 'Die Nutzerzahl bestimmt Rollen, Freigaben und Schulungsaufwand.', chips: ['Nur ich', '2–5 Personen', '6–20 Personen', 'Kunden selbst'], placeholder: 'z. B. Vertrieb (3) + Backoffice (2)' },
   { id: 'tools', short: 'Tools heute', label: 'Verstanden. Mit welchen Tools arbeitet Ihr Team denn heute so?', why: 'Ihre Tools zeigen mir, wo der größte Zeitfresser liegt und was wir anbinden müssen.', chips: ['Excel / Tabellen', 'E-Mail & Outlook', 'CRM / Warenwirtschaft', 'Papier & Telefon'], placeholder: 'z. B. Excel, Lexware, Gmail' },
   { id: 'daten', short: 'Datenlage', label: 'Alles klar. Und wo liegen aktuell Ihre Daten – in Excel, in einem System, auf Papier?', why: 'Die Datenlage entscheidet, wie schnell ein erster Prototyp stehen kann.', chips: ['Excel', 'Datenbank', 'Papier / Scans', 'In mehreren Köpfen'], placeholder: 'z. B. Kundenliste in Excel, Rechnungen auf Papier' },
   { id: 'schnittstellen', short: 'Schnittstellen', label: 'Fast durch! Soll noch etwas angebunden werden – Website, Buchhaltung, Shop, Kalender?', why: 'Anbindungen früh zu kennen verhindert teure Nachrüstungen.', chips: ['Website', 'Buchhaltung', 'Shop / Bestellungen', 'Kalender / E-Mail', 'Noch offen'], placeholder: 'z. B. Google Kalender + SEPA-Lastschrift' },
@@ -132,6 +134,9 @@ const QUESTION_MAP: Record<string, ChatQuestion> = Object.fromEntries(BASE_QUEST
 /** Dynamische Nachfrage, je nachdem was die Antwort enthält */
 function followUpFor(id: string, answer: string): ChatQuestion | null {
   const a = answer.toLowerCase();
+  if (id === 'problem') {
+    return { id: 'problem_detail', short: 'Ablauf heute', label: 'Spannend. Beschreiben Sie mir diesen Ablauf einmal von Anfang bis Ende – wie läuft er heute Schritt für Schritt?', why: 'Erst wenn ich den Ist-Zustand kenne, kann ich im Gespräch sagen, was sich automatisieren lässt – und was besser von Hand bleibt.', placeholder: 'z. B. Kunde ruft an → Notiz auf Zettel → Angebot in Word → PDF per Mail' };
+  }
   if (id === 'tools' && a.includes('excel') && a.includes('papier')) {
     return { id: 'daten_quelle', short: 'Daten quelle', label: 'Excel UND Papier – wo ist die wichtigere Quelle, mit der wir starten?', why: 'Eine klare Hauptquelle verhindert zwei „Wahrheiten“ im System.', chips: ['Excel zuerst', 'Papier zuerst', 'Beides zusammenführen'], placeholder: 'z. B. Excel ist Master, Papier wird gescannt' };
   }
@@ -156,6 +161,17 @@ function reactTo(id: string, answer: string, name: string): string {
   const vorname = name.split(/\s+/)[0];
   const du = vorname ? `, ${vorname}` : '';
   switch (id) {
+    case 'firma':
+      if (a.includes('handwerk')) return `Handwerk${du} – da kenne ich die klassischen Baustellen: Angebote, Einsatzplanung, Nachträge. Genau da schauen wir hin.`;
+      if (a.includes('handel') || a.includes('shop')) return 'Handel lebt von Geschwindigkeit – Bestellungen, Lagerstand und Kundenfragen müssen synchron laufen. Gute Ausgangslage für Automatik.';
+      if (a.includes('dienstleistung')) return 'Dienstleistung steht und fällt mit der Pflege der Kundenbeziehung – genau da holen Automatiken am meisten heraus.';
+      return 'Danke – jede Branche hat ihre typischen Engpässe, ich kenne die Muster und vergleiche Sie direkt damit.';
+    case 'problem':
+      if (a.includes('angebot')) return 'Angebote von Hand sind der Klassiker – und meist der Prozess mit der schnellsten Rendite, wenn er automatisiert ist.';
+      if (a.includes('rechnung') || a.includes('buchhaltung')) return 'Rechnungs- und Buchhaltungswege lassen sich fast vollständig automatisieren – vom Erfassen bis zum Abgleich.';
+      if (a.includes('auftrag')) return 'Die Auftragsabwicklung ist das Rückgrat – hier zahlt sich Struktur am stärksten aus.';
+      if (a.includes('kommunikation') || a.includes('kunden')) return 'Kundenkommunikation ist Dankbarkeit pur für Automatik: Erinnerungen, Statusupdates, Nachfassen – zuverlässig, ohne Mehraufwand.';
+      return 'Genau dort setzen wir an – der Prozess mit dem größten Schmerz bringt meist die schnellste Wirkung.';
     case 'ziel':
       if (a.includes('umsatz') || a.includes('verkauf')) return `Sehr gut${du} – Umsatz ist der Hebel mit der kürzesten Wirkung. Genau da schaue ich im Gespräch zuerst hin.`;
       if (a.includes('fehler')) return 'Fehlerquellen zu eliminieren bringt oft mehr als jede neue Funktion – guter Ansatz.';
@@ -180,6 +196,7 @@ function reactTo(id: string, answer: string, name: string): string {
       if (a.includes('noch offen')) return `Völlig okay${du} – wir finden den Rahmen, der zu Ihrem Projekt passt.`;
       return 'Danke, das hilft mir sehr bei der ersten Größenordnung.';
     default:
+      if (id === 'problem_detail') return 'Danke – dieser Ist-Zustand ist Gold wert: Im Gespräch gehen wir ihn Schritt für Schritt durch und markieren jeden Punkt, der ohne menschliches Zutun laufen kann.';
       if (id === 'daten_quelle') return 'Gut – eine klare Hauptquelle macht den Start deutlich einfacher.';
       if (id === 'excel_umfang') return 'Danke – daran sehe ich, ob Migration oder Neuaufbau sinnvoller ist.';
       if (id === 'shop_plattform') return 'Perfekt, die Plattform kenne ich – da gibt es bewährte Wege.';
@@ -190,13 +207,25 @@ function reactTo(id: string, answer: string, name: string): string {
 }
 
 const STATIONS: Record<string, string> = {
-  ziel: 'Ihr Ziel', nutzer: 'Ihr Team', tools: 'Ihre Tools', daten: 'Ihre Daten', schnittstellen: 'Anbindungen', budget: 'Ihr Rahmen',
+  firma: 'Ihre Firma', ziel: 'Ihr Ziel', problem: 'Ihr Kernproblem', problem_detail: 'Ihr Ablauf heute',
+  nutzer: 'Ihr Team', tools: 'Ihre Tools', daten: 'Ihre Daten', schnittstellen: 'Anbindungen', budget: 'Ihr Rahmen',
 };
 
 /** Tiefere Einordnung aus der Praxis – der Berater gibt Wissen weiter, statt nur abzuhaken */
 function insightFor(id: string, answer: string): string {
   const a = answer.toLowerCase();
   switch (id) {
+    case 'firma':
+      if (a.includes('handwerk')) return 'Typisch im Handwerk: Angebote und Nachträge entstehen abends auf dem Sofa, Auftragsdaten liegen verteilt. Projekte dort starten meist mit digitalem Angebot + Einsatzplan – erste Entlastung oft schon nach 2–3 Wochen.';
+      if (a.includes('handel') || a.includes('shop')) return 'Im Handel entscheidet Durchlaufgeschwindigkeit: Bestellung → Lager → Versand → Rechnung. Automatisiert verkürzt das die Durchlaufzeit oft um Tage – und reduziert Fehllieferungen spürbar.';
+      if (a.includes('dienstleistung')) return 'Dienstleister verlieren am meisten Zeit mit Statusfragen und Nachfassen. Standardisierte Updates und automatisches Nachfassen entlasten das Team meist zuerst – bevor irgendetwas anderes optimiert wird.';
+      return 'Branchenmuster helfen enorm: Ich vergleiche Ihre Ausgangslage mit vergleichbaren Projekten – so wissen wir vorab schon, welche Hebel typischerweise am schnellsten greifen.';
+    case 'problem':
+      if (a.includes('angebot')) return 'Aus Projekten: Ein Angebotsautomat mit Vorlagen und Positionsbausteinen senkt den Aufwand pro Angebot typischerweise von 30–60 Minuten auf unter 5 – bei besserer Optik, weil jede Vorlage einmal sauber gebaut wird.';
+      if (a.includes('rechnung') || a.includes('buchhaltung')) return 'Rechnungsläufe sind dankbar: Aus Auftragsdaten automatisch erzeugen, versenden, Mahnwesen halbautomatisch. Das sind oft 5–10 Stunden im Monat, die zurückkommen.';
+      if (a.includes('auftrag')) return 'Die Auftragsabwicklung gewinnt doppelt: weniger Fehler bei Übergaben – und jeder im Team sieht den Stand. Wir prüfen im Gespräch, welche Schritte sich künftig von selbst erledigen.';
+      if (a.includes('kommunikation') || a.includes('kunden')) return 'Der Großteil der Kundenkommunikation ist wiederkehrend: Terminerinnerungen, Statusupdates, Nachfassen. Genau diese Wiederholungen automatisieren wir zuerst – persönlich bleiben die echten Gespräche.';
+      return 'Der Prozess mit dem größten Schmerz ist immer der richtige Startpunkt: schnelle Wirkung überzeugt das Team – und alle weiteren Schritte wachsen darauf auf.';
     case 'ziel':
       if (a.includes('umsatz') || a.includes('verkauf')) return 'Aus der Praxis: Die meisten Umsatzverluste entstehen nicht im Erstkontakt, sondern im Nachfassen – Anfragen, die nach 48 Stunden nicht bearbeitet sind, konvertieren etwa halb so gut. Eine einfache Erinnerungs- und Angebotsautomatik greift hier oft schneller als jede neue Kampagne.';
       if (a.includes('fehler')) return 'Erfahrungswert: Rund 70 % der wiederkehrenden Fehler passieren an Übergaben – wenn Daten von Hand aus E-Mails abgetippt oder zwischen Systemen hin- und herkopiert werden. Genau diese Übergaben kartographieren wir im Erstgespräch.';
@@ -222,6 +251,7 @@ function insightFor(id: string, answer: string): string {
       if (a.includes('noch offen')) return 'Zur Einordnung: Einfache Einzelautomatisierungen (ein Prozess, 1–2 Anbindungen) bewegen sich meist im niedrigen vierstelligen Bereich, komplexere Lösungen mit Datenmigration entsprechend darüber. Im Erstgespräch nenne ich Ihnen eine konkrete Spanne für Ihren Fall – verbindlich als Festpreis.';
       return 'Hilfreich zur Einordnung: Der Preis wird vor allem von drei Faktoren bestimmt – Anzahl der Prozesse, Anzahl der Anbindungen und Aufwand der Datenmigration. Ihren Festpreis lege ich nach dem Erstgespräch genau auf dieser Basis fest.';
     default:
+      if (id === 'problem_detail') return 'So ein Ist-Ablauf ist Gold wert: Im Gespräch gehen wir ihn Schritt für Schritt durch und markieren jeden Punkt, der künftig ohne menschliches Zutun laufen kann. Genau daraus entsteht Ihr Festpreis-Angebot.';
       if (id === 'daten_quelle') return 'Ein „Master“ als Hauptquelle ist der wichtigste Schritt zu einer sauberen Datenbasis: Alles andere wird Import oder Ergänzung, nie eine zweite Wahrheit. Genau so vermeiden wir widersprüchliche Einträge.';
       if (id === 'excel_umfang') return 'Zur Einordnung: Bis ca. 1.000 Zeilen ist eine Migration fast immer Nebensache. Darüber lohnt sich ein Blick auf Struktur und Redundanzen – oft schrumpft die Tabelle im neuen System auf das Wesentliche.';
       if (id === 'shop_plattform') return 'Für etablierte Plattformen wie Shopify oder WooCommerce gibt es fertige, gepflegte Schnittstellen – das verkürzt die Umsetzung deutlich und senkt den Preis. Bei Individual-Lösungen plane ich eine eigene Anbindung ein.';
@@ -234,7 +264,10 @@ function insightFor(id: string, answer: string): string {
 /** Persönliches Fazit: konkrete Ableitungen aus den Antworten, keine Floskeln */
 function buildFazit(a: Record<string, string>): string[] {
   const out: string[] = [];
+  if (a.firma) out.push(`Ihre Ausgangslage („${a.firma}“) – ich vergleiche sie vorab mit Projekten aus Ihrer Branche.`);
   if (a.ziel) out.push(`Ihr Ziel im Fokus: „${a.ziel}“ – daran messen wir den Erfolg.`);
+  if (a.problem) out.push(`Kernproblem: „${a.problem}“ – genau mit diesem Prozess starten wir im Gespräch.`);
+  if (a.problem_detail) out.push('Ihr heutiger Ablauf liegt dem Berater vor – wir prüfen Schritt für Schritt, was künftig von selbst läuft.');
   if (a.nutzer) out.push(/nur ich/i.test(a.nutzer)
     ? 'Rollout: schlank und persönlich – Vorlagen und Schnellzugriffe statt Rollenverwaltung.'
     : `Rollout: Rollen und Freigaben für ${a.nutzer} sind von Anfang an eingeplant.`);
@@ -438,7 +471,7 @@ export function ProzessCheckFlow({ presetArea, presetDetails }: { presetArea?: s
         <p className="font-arimo text-white/60 max-w-md mx-auto">
           {answeredCount >= 4
             ? `Ihr KI-Berater hat ${answeredCount} Punkte von Ihnen erfasst – Ihr vorbereiteter Berater schaut sich das vor dem Termin an.`
-            : `Die Bestätigung mit einem kurzen Fragebogen geht in wenigen Minuten an ${form.email.trim()} – 2 Minuten vor dem Termin ausfüllen genügt.`}
+            : `Ihre Terminbestätigung geht in Kürze an ${form.email.trim()} – innerhalb von 24 Stunden hören Sie von uns, mit einem kurzen Fragebogen (2 Minuten vor dem Termin ausfüllen genügt).`}
         </p>
       </div>
     );
@@ -471,17 +504,18 @@ export function ProzessCheckFlow({ presetArea, presetDetails }: { presetArea?: s
           {/* ── Schritt 1: Termin ── */}
           {step === 0 && (
             <div className="grid gap-4">
-              <p className="font-arimo text-sm text-white/65">Wählen Sie Datum und Uhrzeit – das ist Ihr verbindlicher Terminwunsch für das kostenlose Erstgespräch (30 Min., online). Wir bestätigen sofort per E-Mail.</p>
+              <p className="font-arimo text-sm text-white/65">Wählen Sie Datum und Uhrzeit – Ihr Wunschtermin für das kostenlose Erstgespräch (30 Min., online). Wir bestätigen Ihnen den Termin innerhalb von 24 Stunden per E-Mail.</p>
               <div>
                 <p className="font-arimo text-[11px] font-bold uppercase tracking-wide text-white/60 mb-2 flex items-center gap-1.5"><CalendarCheck className="w-3.5 h-3.5 text-[#38BDF8]" aria-hidden="true" />Datum</p>
                 <div className="grid grid-cols-3 sm:grid-cols-5 gap-2">
-                  {days.map((d) => {
+                  {days.map((d, i) => {
                     const sel = day?.toDateString() === d.toDateString();
+                    const tag = i === 0 ? 'Morgen' : d.toLocaleDateString('de-DE', { weekday: 'short' });
                     return (
                       <button key={d.toISOString()} type="button" aria-pressed={sel}
                         onClick={() => { setDay(sel ? null : d); setCustomDate(false); }}
-                        className={`group rounded-xl border px-2 py-2.5 text-center transition b2b-focus-ring ${sel ? 'border-[#DEFF9A] bg-[#DEFF9A]/10' : 'border-white/12 bg-white/[0.03] hover:border-white/35'}`}>
-                        <span className={`block font-arimo text-[10px] font-bold uppercase tracking-wide ${sel ? 'text-[#DEFF9A]' : 'text-white/45'}`}>{d.toLocaleDateString('de-DE', { weekday: 'short' })}</span>
+                        className={`group rounded-xl border px-2 py-2.5 text-center transition b2b-focus-ring hover:-translate-y-0.5 ${sel ? 'border-[#DEFF9A] bg-[#DEFF9A]/10 shadow-lg shadow-[#DEFF9A]/10' : 'border-white/12 bg-white/[0.03] hover:border-white/35'}`}>
+                        <span className={`block font-arimo text-[10px] font-bold uppercase tracking-wide ${sel ? 'text-[#DEFF9A]' : i === 0 ? 'text-[#38BDF8]' : 'text-white/45'}`}>{tag}</span>
                         <span className={`block font-poppins font-black text-lg leading-tight ${sel ? 'text-[#DEFF9A]' : 'text-white/85 group-hover:text-white'}`}>{d.getDate()}.</span>
                         <span className={`block font-arimo text-[10px] ${sel ? 'text-[#DEFF9A]/80' : 'text-white/40'}`}>{d.toLocaleDateString('de-DE', { month: 'short' })}</span>
                       </button>
@@ -502,18 +536,28 @@ export function ProzessCheckFlow({ presetArea, presetDetails }: { presetArea?: s
               </div>
               <div>
                 <p className="font-arimo text-[11px] font-bold uppercase tracking-wide text-white/60 mb-2 flex items-center gap-1.5"><CalendarCheck className="w-3.5 h-3.5 text-[#38BDF8]" aria-hidden="true" />Uhrzeit</p>
-                <div className="grid grid-cols-3 sm:grid-cols-6 gap-2">
-                  {TIMES.map((t) => {
-                    const sel = time === t;
-                    return (
-                      <button key={t} type="button" aria-pressed={sel}
-                        onClick={() => { setTime(sel ? '' : t); setCustomTime(false); }}
-                        className={`rounded-xl border px-2 py-2.5 text-center transition b2b-focus-ring ${sel ? 'border-[#DEFF9A] bg-[#DEFF9A]/10' : 'border-white/12 bg-white/[0.03] hover:border-white/35'}`}>
-                        <span className={`block font-poppins font-black text-sm leading-tight ${sel ? 'text-[#DEFF9A]' : 'text-white/85'}`}>{t}</span>
-                        <span className={`block font-arimo text-[10px] ${sel ? 'text-[#DEFF9A]/80' : 'text-white/40'}`}>Uhr</span>
-                      </button>
-                    );
-                  })}
+                <div className="grid gap-2">
+                  {[
+                    { label: 'Vormittag', icon: Sunrise, slots: TIMES.filter((t) => Number(t.slice(0, 2)) < 12) },
+                    { label: 'Nachmittag', icon: Sun, slots: TIMES.filter((t) => Number(t.slice(0, 2)) >= 12) },
+                  ].map(({ label, icon: Icon, slots }) => (
+                    <div key={label}>
+                      <p className="font-arimo text-[10px] font-bold uppercase tracking-wide text-white/40 mb-1.5 flex items-center gap-1.5"><Icon className="w-3.5 h-3.5 text-[#DEFF9A]/70" aria-hidden="true" />{label}</p>
+                      <div className="grid grid-cols-3 sm:grid-cols-5 gap-2">
+                        {slots.map((t) => {
+                          const sel = time === t;
+                          return (
+                            <button key={t} type="button" aria-pressed={sel}
+                              onClick={() => { setTime(sel ? '' : t); setCustomTime(false); }}
+                              className={`rounded-xl border px-2 py-2.5 text-center transition b2b-focus-ring hover:-translate-y-0.5 ${sel ? 'border-[#DEFF9A] bg-[#DEFF9A]/10 shadow-lg shadow-[#DEFF9A]/10' : 'border-white/12 bg-white/[0.03] hover:border-white/35'}`}>
+                              <span className={`block font-poppins font-black text-sm leading-tight ${sel ? 'text-[#DEFF9A]' : 'text-white/85'}`}>{t}</span>
+                              <span className={`block font-arimo text-[10px] ${sel ? 'text-[#DEFF9A]/80' : 'text-white/40'}`}>Uhr</span>
+                            </button>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  ))}
                 </div>
                 <button type="button" aria-pressed={customTime}
                   onClick={() => { setCustomTime(!customTime); if (!customTime) setTime(''); }}
@@ -532,7 +576,7 @@ export function ProzessCheckFlow({ presetArea, presetDetails }: { presetArea?: s
                     <Check className="w-4 h-4 text-[#DEFF9A] flex-shrink-0" aria-hidden="true" />Ihr Termin:
                     <span className="font-bold">{appointmentFull}</span>
                   </div>
-                  <p className="mt-1 font-arimo text-[11px] text-white/50">30 Minuten, kostenlos & online – Bestätigung folgt sofort per E-Mail.</p>
+                  <p className="mt-1 font-arimo text-[11px] text-white/50">30 Minuten, kostenlos & online – Bestätigung innerhalb von 24 Stunden per E-Mail.</p>
                 </div>
               )}
               <div className="flex flex-col sm:flex-row items-center gap-2.5">
@@ -640,7 +684,7 @@ export function ProzessCheckFlow({ presetArea, presetDetails }: { presetArea?: s
                     {/* Begrüßung, personalisiert */}
                     <BotBubble>
                       {form.name.trim() ? `Hi ${form.name.trim()}` : 'Herzlich willkommen'}{form.company.trim() ? ` von ${form.company.trim()}` : ''}! Ihr Termin am <span className="font-bold">{appointmentFull}</span> ist fix. Ich bereite Ihr Gespräch vor – dauert nur ~2 Minuten.
-                      <p className="mt-2 font-bold text-[#DEFF9A]">Ich führe Sie in 6 kurzen Stationen durch Ihr Profil – und gebe Ihnen unterwegs Einordnungen aus der Praxis mit. Los geht's:</p>
+                      <p className="mt-2 font-bold text-[#DEFF9A]">Ich führe Sie in kurzen Stationen durch Ihr Profil – von Ihrer Firma bis zum Budget – und gebe Ihnen unterwegs Einordnungen aus der Praxis mit. Los geht's:</p>
                     </BotBubble>
 
                     {askedQs.map((q, k) => (
