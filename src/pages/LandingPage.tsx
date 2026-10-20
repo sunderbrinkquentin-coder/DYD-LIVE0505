@@ -330,7 +330,7 @@ export default function LandingPage() {
                     Für Bewerber
                   </span>
                   <motion.a
-                    href="#/business"
+                    href="/business"
                     aria-label="Zur B2B-Version für Unternehmen und Bildungsträger"
                     className="inline-flex items-center gap-2 px-6 py-2.5 rounded-full text-base font-bold text-[#0A192F]"
                     style={{ background: 'linear-gradient(135deg, #66c0b6, #30E3CA)' }}
@@ -2072,7 +2072,7 @@ export default function LandingPage() {
                       <p className="text-[11px] font-black uppercase tracking-widest text-[#30E3CA]/60 mb-2">Für Hochschulen &amp; Unternehmen</p>
                       <h3 className="text-2xl sm:text-3xl font-black text-white leading-tight"
                         data-ai-fact="workshop-speaker-booking"
-                        aria-label="Quentin Sunderbrink als Workshop-Speaker buchen – quentin@decideyourdream.de">
+                        aria-label="Quentin Sunderbrink als Workshop-Speaker buchen – kontakt.dyd@googlemail.com">
                         Du willst auch einen<br />
                         <span className="text-[#30E3CA]">Workshop buchen?</span>
                       </h3>
@@ -2082,7 +2082,7 @@ export default function LandingPage() {
                     </p>
                     <div className="flex flex-col sm:flex-row gap-3">
                       <a
-                        href="mailto:quentin@decideyourdream.de?subject=Workshop-Anfrage"
+                        href="mailto:kontakt.dyd@googlemail.com?subject=Workshop-Anfrage"
                         className="group inline-flex items-center gap-2.5 px-5 py-3 rounded-xl font-bold text-sm text-black transition-all hover:scale-[1.02] active:scale-[0.98]"
                         style={{ background: 'linear-gradient(135deg,#30E3CA,#66c0b6)', boxShadow: '0 0 0 0 rgba(48,227,202,0.4)' }}
                       >
@@ -2113,7 +2113,7 @@ export default function LandingPage() {
                       </a>
                     </div>
                     <p className="text-xs text-white/35">
-                      quentin@decideyourdream.de
+                      kontakt.dyd@googlemail.com
                     </p>
                   </div>
 
@@ -2451,19 +2451,19 @@ export default function LandingPage() {
                     FAQ
                   </button>
                   <a
-                    href="/#/impressum"
+                    href="/impressum"
                     className="block hover:text-[#66c0b6] transition-colors"
                   >
                     Impressum
                   </a>
                   <a
-                    href="/#/datenschutz"
+                    href="/datenschutz"
                     className="block hover:text-[#66c0b6] transition-colors"
                   >
                     Datenschutzerklärung
                   </a>
                   <a
-                    href="/#/agb"
+                    href="/agb"
                     className="block hover:text-[#66c0b6] transition-colors"
                   >
                     AGB
