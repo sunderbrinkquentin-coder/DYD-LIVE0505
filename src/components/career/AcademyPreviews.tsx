@@ -94,7 +94,7 @@ export function CertificatePreview({
   const displayName = name?.trim() || 'Dein Name';
   const unitList = (units && units.length ? units : ['Lerneinheit 1', 'Lerneinheit 2', 'Lerneinheit 3', 'Lerneinheit 4', 'Lerneinheit 5']).slice(0, 6);
   const comp = (competencies && competencies.length ? competencies : DEFAULT_COMPETENCIES(skill)).slice(0, 5);
-  const qr = useQr(`https://decide-your-dream.de/#/verify/${PREVIEW_ID}`);
+  const qr = useQr(`https://decide-your-dream.de/verify/${PREVIEW_ID}`);
 
   return (
     <div className={`relative rounded-xl overflow-hidden shadow-2xl ${className}`} style={{ boxShadow: '0 20px 60px rgba(0,0,0,0.45)' }}>
@@ -166,7 +166,7 @@ export function CertificatePreview({
                   Bestehen der zugehörigen Abschlussprüfung. Es ist kein staatlich anerkannter Berufs- oder Bildungsabschluss.
                 </div>
                 <div style={{ fontSize: 7, color: NAVY_SOFT, marginTop: 5 }}>Echtheit prüfen (QR-Code scannen oder aufrufen):</div>
-                <div style={{ fontSize: 7, color: TEAL_DEEP, fontWeight: 700, marginTop: 2 }}>decide-your-dream.de/#/verify/{PREVIEW_ID}</div>
+                <div style={{ fontSize: 7, color: TEAL_DEEP, fontWeight: 700, marginTop: 2 }}>decide-your-dream.de/verify/{PREVIEW_ID}</div>
               </div>
               <div style={{ width: 175, textAlign: 'center', marginRight: 18 }}>
                 <div style={{ width: 160, height: 1, background: NAVY, margin: '0 auto 4px' }} />
