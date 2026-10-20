@@ -1,151 +1,106 @@
-# DYD-Newsletter: Strategie, Einrichtung, Betrieb
+# DYD-Newsletter – Resend
 
-Ziel: Neue Nutzer:innen direkt nach der Anmeldung für den Newsletter gewinnen
-(Anreiz: **50 % auf die erste Buchung**), sie über eine kurze Willkommensstrecke
-zur ersten Buchung führen und danach mit einem monatlichen Newsletter zu
-weiteren Käufen bewegen – vollständig DSGVO- und UWG-konform.
+Der aktive Newslettercode nutzt den bereits vorhandenen Supabase-Secret
+`RESEND_API_KEY`, denselben Namen wie `send-b2b-briefing`. Es gibt keine
+Brevo-API-Aufrufe mehr. `brevo.ts` ist nur ein Kompatibilitäts-Reexport für ältere
+Imports. Keine produktiven Zugangsdaten gehören ins Frontend oder Repository.
 
----
+## Ablauf
 
-## 1. So funktioniert der Ablauf
+1. Anmeldung speichert Einwilligung v2 und sendet Double-Opt-in über Resend.
+2. Bestätigung aktiviert den bestehenden 50-%-Rabatt und synchronisiert den
+   Kontakt nach Resend. Die Willkommensmail wird ebenfalls über Resend versendet.
+3. Kauf verbucht den Rabatt weiterhin in Supabase/Stripe. Optional werden
+   Kontaktattribute nach Resend gespiegelt; ein Ausfall blockiert den Kauf nicht.
+4. Link und One-Click-Abmeldung setzen den Status in Supabase und Resend.
+5. Signierte Resend-Webhooks übernehmen Abmeldungen, Bounces und Beschwerden.
+6. Kontolöschung entfernt auch den Resend-Kontakt. Bei einem Providerfehler wird
+   der Vorgang als Fehler gemeldet, damit die Löschung wiederholt werden kann.
 
-1. **Anmeldung/Registrierung** → beim ersten Seitenaufruf im Konto erscheint
-   das Angebot (`NewsletterOfferModal`). Kein vorausgewähltes Häkchen,
-   vollständiger Einwilligungstext direkt über dem Button, neutrale Ablehnung.
-   - „Nein, danke“ → wird nie wieder automatisch gefragt.
-   - Schließen (X) → erneute Frage frühestens nach 3 Tagen.
-2. **Double-Opt-in**: Die Edge Function `newsletter` speichert den
-   Einwilligungsnachweis und schickt die Bestätigungsmail (Link 7 Tage gültig).
-3. **Bestätigung** (`/newsletter/bestaetigen`) → Rabatt wird freigeschaltet
-   (30 Tage gültig), Kontakt kommt in die Brevo-Liste, Willkommensmail geht raus.
-4. **Kauf**: `stripe-checkout` zieht die 50 % automatisch ab (kein Code nötig);
-   `stripe-webhook` markiert den Rabatt nach bezahlter Buchung als eingelöst.
-5. **Abmeldung**: Link in jeder Mail (`/newsletter/abmelden`) + Ein-Klick-
-   Abmeldung im Postfach (List-Unsubscribe) + Abmeldungen in Brevo werden per
-   Webhook zurückgespielt. Der Rabatt bleibt auch nach Abmeldung erhalten.
-6. **Konto löschen** → Eintrag wird gelöscht, Brevo-Kontakt ebenfalls.
+## Einmalige Einrichtung / Deployment
 
-An allen Kaufstellen (CV-Check, Credits, CV-Optimierung, Lernpfad,
-Skill-Analyse, Kurse) zeigt `NewsletterDiscountHint` den Rabatt bzw. das
-Angebot an – genau dort, wo die Kaufentscheidung fällt.
+- Den bestehenden `RESEND_API_KEY` in Supabase weiterverwenden. Für Kontakte
+  braucht er passende Zugriffsrechte (ein reiner Sending-Key reicht dafür nicht).
+- `NEWSLETTER_SENDER_EMAIL` auf eine bei Resend freigegebene Absenderadresse setzen.
+  Optional `NEWSLETTER_SENDER_NAME` (Standard: Quentin von DYD).
+  Alternativ wird `RESEND_FROM_EMAIL` als vollständige Absenderangabe genutzt.
+  Es wird keine neue Absenderadresse automatisch als verifiziert angenommen.
+- `SITE_URL` auf die tatsächliche Live-Domain setzen. Bestehende Stripe-
+  Rabattsecrets und die Newsletter-Tabelle bleiben erhalten.
+- Für einen getrennten Marketingverteiler ein Resend-Segment „DYD Newsletter“
+  anlegen und `RESEND_NEWSLETTER_SEGMENT_ID` setzen. Ohne diesen Wert werden
+  Kontakte ohne Segment angelegt. Kampagnen ausschließlich an bestätigte
+  Newsletterkontakte richten, nicht pauschal an alle Kontakte des Resend-Kontos.
+- Resend-Webhook einrichten:
+  `https://<projekt>.supabase.co/functions/v1/newsletter?action=resend-webhook`
+  Events: `contact.updated`, `email.bounced`, `email.complained`, `email.suppressed`.
+  Das Signing Secret (`whsec_…`) als `RESEND_WEBHOOK_SECRET` in Supabase speichern.
+  Signaturen werden mit Svix und dem unveränderten Request-Body geprüft;
+  ein Secret als URL-Parameter wird nicht mehr verwendet.
 
----
-
-## 2. Einrichtung (einmalig, ca. 45 Minuten)
-
-### 2.1 Brevo (Versanddienst, EU)
-1. Konto auf brevo.com anlegen, **AVV (Auftragsverarbeitungsvertrag)** im
-   Konto abschließen (Einstellungen → Sicherheit/Datenschutz).
-2. **Absender-Domain authentifizieren** (Einstellungen → Absender & Domains):
-   SPF, DKIM und DMARC als DNS-Einträge bei deinem Domain-Anbieter setzen.
-   Ohne diese Einträge landen Mails im Spam (Pflicht bei Gmail/Yahoo).
-   Empfohlener Absender: `newsletter@decide-your-dream.de`, Name „Quentin von DYD“.
-3. **Liste** „DYD Newsletter“ anlegen → Listen-ID notieren.
-4. **Kontakt-Attribute** anlegen (Kontakte → Einstellungen → Attribute):
-   | Name | Typ |
-   |---|---|
-   | SIGNUP_SOURCE | Text |
-   | OPT_IN_DATE | Datum |
-   | DISCOUNT_PERCENT | Zahl |
-   | DISCOUNT_UNTIL | Datum |
-   | DISCOUNT_REDEEMED | Boolean |
-   | UNSUBSCRIBE_URL | Text |
-5. **API-Schlüssel** erzeugen (Einstellungen → SMTP & API → API-Schlüssel).
-6. **Webhook für Abmeldungen** (Einstellungen → Webhooks → Marketing):
-   URL `https://<PROJEKT>.supabase.co/functions/v1/newsletter?action=brevo-webhook&secret=<NEWSLETTER_WEBHOOK_SECRET>`
-   Ereignisse: *Abgemeldet*, *Hard Bounce*, *Als Spam markiert*.
-7. **Tracking**: Öffnungs- und Klick-Tracking aktiv lassen (ist im
-   Einwilligungstext genannt).
-8. **Datumsformat** unter Einstellungen → Konto auf `TT.MM.JJJJ` stellen,
-   damit `{{ contact.DISCOUNT_UNTIL }}` in den Vorlagen deutsch erscheint.
-9. **Aufräumen**: In Supabase unter Database → Extensions `pg_cron`
-   aktivieren und die Migration danach erneut ausführen (oder einmalig
-   `select cron.schedule('newsletter-cleanup','15 3 * * *','select public.newsletter_cleanup()');`).
-   Löscht unbestätigte Anmeldungen nach 30 Tagen – so steht es in der
-   Datenschutzerklärung.
-
-### 2.2 Stripe
-1. Produkte → Gutscheine → **Neuer Gutschein**: 50 %, Dauer „Einmal“,
-   Name „Newsletter-Willkommensrabatt“. Die **Gutschein-ID** notieren.
-2. Optional: Gutschein auf B2C-Produkte beschränken („Gilt für Produkte“).
-
-### 2.3 Supabase
 ```bash
-# Datenbank
-supabase db push        # spielt 20261019120000_create_newsletter_subscribers.sql ein
-
-# Secrets
-supabase secrets set BREVO_API_KEY=xkeysib-… BREVO_LIST_ID=3 \
-  NEWSLETTER_SENDER_EMAIL=newsletter@decide-your-dream.de NEWSLETTER_SENDER_NAME="Quentin von DYD" \
-  NEWSLETTER_WEBHOOK_SECRET=<langer-zufallswert> SITE_URL=https://decide-your-dream.de \
-  STRIPE_COUPON_NEWSLETTER=<gutschein-id> NEWSLETTER_DISCOUNT_DAYS=30 NEWSLETTER_DISCOUNT_PERCENT=50
-
-# Functions
 supabase functions deploy newsletter --no-verify-jwt
-supabase functions deploy stripe-checkout
 supabase functions deploy stripe-webhook --no-verify-jwt
 supabase functions deploy delete-account
+npm ci
+npm run test:newsletter
+npm run build
 ```
-Wer über Bolt/Dashboard deployt: Migration im SQL-Editor ausführen, Secrets
-unter Edge Functions → Secrets eintragen, beim Deploy von `newsletter` die
-JWT-Prüfung ausschalten.
 
-### 2.4 Rechtliches (vor dem Start)
-- Baustein aus `datenschutz-baustein.md` in die Datenschutzerklärung übernehmen.
-- Im Impressum „§ 5 TMG“ → „§ 5 DDG“ und „§ 55 Abs. 2 RStV“ → „§ 18 Abs. 2 MStV“
-  aktualisieren (TMG/RStV gelten seit 2024 bzw. 2020 nicht mehr).
-- Einwilligungstext ändern? → neue Version in **beiden** Dateien anlegen
-  (`src/features/newsletter/consent.ts` und
-  `supabase/functions/_shared/newsletterConsent.ts`), alte Version behalten.
+Frontend zusammen mit der Newsletterfunktion aktualisieren: neue Anmeldungen
+akzeptieren nur `2026-10-v2-resend`. Alte Einwilligungstexte bleiben als historische
+Nachweise unverändert erhalten. Bereits bestehende Bestätigungslinks funktionieren
+weiter. Beim Providerwechsel auch den Datenschutzhinweis aktualisieren.
 
----
+## Optionale Kontaktattribute
 
-## 3. Willkommensstrecke (Brevo-Automation)
+Standardmäßig bleiben Rabatt-/Quellinformationen ausschließlich in Supabase,
+und nur Name, E-Mail und Abostatus werden in Resend gepflegt. Wer Resend-Kampagnen
+nach Rabattstatus segmentieren möchte, legt folgende Custom Properties vom Typ
+`string` an und setzt anschließend `RESEND_SYNC_PROPERTIES=true`:
 
-Trigger: *Kontakt wird zur Liste „DYD Newsletter“ hinzugefügt*.
-Mail 1 versendet die Edge Function direkt nach der Bestätigung.
+- `signup_source`
+- `opt_in_date`
+- `discount_percent`
+- `discount_until`
+- `discount_redeemed` (Werte `true` / `false` als Text)
+- `unsubscribe_url`
 
-| Tag | Mail | Ziel | Bedingung |
-|---|---|---|---|
-| 0 | Willkommen + Rabatt aktiv (automatisch) | Erste Buchung | – |
-| 2 | `02-ats-fehler.html` – Die 3 häufigsten ATS-Fehler | Vertrauen + CV-Check | – |
-| 6 | `03-so-nutzt-du-den-rabatt.html` – Welche Buchung sich am meisten lohnt | Kauf | DISCOUNT_REDEEMED = false |
-| 23 | `04-rabatt-endet.html` – Noch 7 Tage | Kauf | DISCOUNT_REDEEMED = false |
-| 29 | `05-letzter-tag.html` – Heute letzter Tag | Kauf | DISCOUNT_REDEEMED = false |
+Ein Kontakt wird erst nach gültigem Double-Opt-in abonniert. Käufe erzeugen keine
+neuen Abonnements und setzen einen abgemeldeten Kontakt niemals zurück.
 
-Danach: monatlicher Newsletter (`monatlich-vorlage.html`).
+## Bestehende Kontakte und Kampagnen
 
----
+Diese Codeänderung importiert keine alten Brevo-Kontakte und versendet keine
+Kampagne. Vor Abschalten bestehender Brevo-Automationen bestätigte Abonnenten mit
+Abmeldestatus aus Supabase abgleichen und den gewünschten Verteiler nach Resend
+übernehmen. Pending/declined/unsubscribed dürfen nicht als abonniert importiert
+werden. Bereits vorhandene Brevo-Automationen deaktivieren, um Doppelversand zu
+vermeiden. Alte Providerdaten werden durch diese Änderung nicht rückwirkend gelöscht.
 
-## 4. Monatlicher Newsletter: Aufbau, der verkauft
+Das Repository hatte keinen Scheduler für Monatsnewsletter oder die geplante
+Willkommensserie an Tag 2/6/23/29. Diese waren nur als externe Brevo-Automation
+beschrieben. Sie müssen bei Bedarf als Resend-Kampagnen/Automationen eingerichtet
+werden; der Code versendet aktuell Bestätigungs- und Willkommensmails.
+Die Dateien unter `brevo-vorlagen/` sind historische HTML-Entwürfe, keine aktiven
+Versandjobs. Brevo-Platzhalter vor Verwendung in Resend ersetzen.
 
-Rhythmus: 1× pro Monat fest + max. 1 Aktions-Mail (Einwilligung: höchstens 2/Monat).
-Versand: Dienstag oder Donnerstag, 7:30 Uhr (Pendelzeit) – mit Brevo-A/B-Test prüfen.
+## Fehler und Kontrolle
 
-**Aufbau (immer gleich, damit Leser:innen ihn wiedererkennen):**
-1. **Betreff + Vorschauzeile** – konkreter Nutzen oder Zahl, max. 45 Zeichen.
-   Formeln: „Warum so viele Lebensläufe im ATS scheitern“,
-   „[Vorname], dieser Satz kostet dich Einladungen“, „Neu bei DYD: …“.
-2. **Thema des Monats** (aktuell, 4–6 Sätze): Arbeitsmarkt, KI im
-   Recruiting, Gehalt, Bewerbungstrends – mit seriöser Quelle (z. B. Bundesagentur
-   für Arbeit, IAB, Destatis, Stepstone-Studien). Endet mit „Was das für dich heißt“.
-3. **Ein Tipp zum Sofort-Umsetzen** (Vorher/Nachher-Beispiel aus einem CV).
-4. **DYD-Baustein** – ein Produkt, ein Problem, ein Button (nie mehr als ein Haupt-CTA).
-5. **Angebot** – nur ehrliche Fristen und echte Preise.
-6. **P.S.** – zweiter Klickanlass (P.S. wird überdurchschnittlich oft gelesen).
+- Fehlende Konfiguration oder abgelehnte Bestätigungsmail: HTTP 502 statt falscher
+  Erfolgsmeldung. Nur erfolgreich gesendete Mails erhöhen den Versandzähler.
+- Explizite 429-Antworten werden begrenzt wiederholt; unbekannte Versand-Timeouts
+  nicht automatisch, damit nicht versehentlich doppelte Mails entstehen.
+- Abmeldung wird lokal gespeichert; ein erneuter Aufruf wiederholt eine zuvor
+  fehlgeschlagene Resend-Synchronisierung.
+- Bestätigung liefert `contact_synced` und `welcome_sent`. Bei `false` Logs prüfen
+  und Kontaktsynchronisierung bzw. Willkommensmail gezielt nachholen. Der bereits
+  gewährte Rabatt bleibt erhalten; es gibt keinen Hintergrund-Reparaturjob.
+- Live prüfen: Anmeldung, Bestätigung, Rabatt, Abmeldung, signierter Webhook und
+  Kontolöschung. Die automatisierten Tests verwenden ausschließlich Mock-Aufrufe.
 
-**Segmente (Brevo):**
-- *Noch nie gekauft* → Fokus CV-Check/Detailanalyse.
-- *Gekauft, Credits leer* → Pakete.
-- *Lernpfad/Kurs gekauft* → weiterführende Kurse.
-- *Inaktiv 90 Tage* → Reaktivierungsmail, danach ggf. austragen (bessere Zustellbarkeit).
-
-**Kennzahlen (monatlich prüfen):** Klickrate (Ziel > 3 %), Umsatz pro Mail
-(UTM `utm_source=newsletter` + Stripe), Abmelderate (< 0,5 %),
-Anmeldequote im Angebot (Ziel > 25 %), Bestätigungsquote DOI (Ziel > 70 %),
-Rabatt-Einlösequote (Ziel > 20 %). Öffnungsraten sind wegen Apple Mail
-Privacy Protection nur eingeschränkt aussagekräftig.
-
-**Tabus (rechtlich und für die Marke):** keine erfundenen Bewertungen, Zahlen
-oder Fristen; keine Mails an unbestätigte Adressen; kein Kauf von Adressen;
-jede Mail mit Impressum und Abmeldelink.
+API-Grundlagen:
+- https://resend.com/docs/api-reference/emails/send-email
+- https://resend.com/docs/api-reference/contacts/create-contact
+- https://resend.com/docs/api-reference/contacts/update-contact
+- https://resend.com/docs/webhooks/verify-webhooks-requests
