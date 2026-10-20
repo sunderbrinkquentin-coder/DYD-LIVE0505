@@ -305,7 +305,7 @@ function AdvisorShell({ pathname }: { pathname: string }) {
                   {chat.error.retryable && (
                     <button type="button" onClick={chat.retry} className="px-3 py-1.5 rounded-lg font-bold text-white bg-white/10 hover:bg-white/15 focus:outline-none focus-visible:ring-2 focus-visible:ring-[#30E3CA]">Erneut versuchen</button>
                   )}
-                  <a href="#/faq" className="px-3 py-1.5 rounded-lg font-bold text-white/70 hover:text-white">Zu den FAQ</a>
+                  <a href="/faq" className="px-3 py-1.5 rounded-lg font-bold text-white/70 hover:text-white">Zu den FAQ</a>
                 </div>
               </div>
             )}
@@ -358,7 +358,7 @@ function AdvisorShell({ pathname }: { pathname: string }) {
             </div>
             <p className="text-[10px] text-white/30 mt-2">
               Du schreibst mit einer KI (OpenAI), nicht mit Quentin persönlich. Gesprächsinhalte werden nicht gespeichert – außer du schickst sie selbst mit einer Anfrage mit. Bitte keine sensiblen Daten eingeben.{' '}
-              <a href="#/datenschutz" className="underline hover:text-white/60">Datenschutz</a>
+              <a href="/datenschutz" className="underline hover:text-white/60">Datenschutz</a>
             </p>
           </form>
         </section>
