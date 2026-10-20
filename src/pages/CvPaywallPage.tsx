@@ -8,6 +8,7 @@ import { useAuth } from '../contexts/AuthContext';
 import { validateStripePriceIds } from '../utils/stripeConfigValidator';
 import { tokenService } from '../services/tokenService';
 import { advisorCheckoutMetadata } from '../features/advisor/advisorAttribution';
+import { NewsletterDiscountHint } from '../features/newsletter/NewsletterDiscountHint';
 
 interface Package {
   id: string;
@@ -429,10 +430,10 @@ export default function CvPaywallPage() {
       // kicks off the deferred analysis itself. Other flows keep using the
       // shared /payment-success page.
       const successUrl = isCvCheckFlow
-        ? `${window.location.origin}/#/cv-result/${cvId}?payment=success&session_id={CHECKOUT_SESSION_ID}`
-        : `${window.location.origin}/#/payment-success?cvId=${cvId}&session_id={CHECKOUT_SESSION_ID}${source ? `&source=${source}` : ''}`;
+        ? `${window.location.origin}/cv-result/${cvId}?payment=success&session_id={CHECKOUT_SESSION_ID}`
+        : `${window.location.origin}/payment-success?cvId=${cvId}&session_id={CHECKOUT_SESSION_ID}${source ? `&source=${source}` : ''}`;
 
-      const cancelUrl = `${window.location.origin}/#/cv-paywall?cvId=${cvId}&payment=cancelled${source ? `&source=${source}` : ''}`;
+      const cancelUrl = `${window.location.origin}/cv-paywall?cvId=${cvId}&payment=cancelled${source ? `&source=${source}` : ''}`;
 
       const MAX_RETRIES = 3;
       let lastError: Error | null = null;
@@ -668,6 +669,7 @@ export default function CvPaywallPage() {
             animate={{ opacity: 1, y: 0 }}
             className="max-w-xl mx-auto mb-8"
           >
+            <NewsletterDiscountHint source="cv-check-paywall" className="mb-3" />
             <div className="rounded-2xl bg-gradient-to-r from-[#66c0b6]/20 via-[#30E3CA]/10 to-purple-500/10 border border-[#66c0b6]/40 shadow-lg shadow-[#66c0b6]/10 p-5 sm:p-6 flex flex-col sm:flex-row items-center gap-4">
               <div className="flex items-center gap-2.5 flex-1">
                 {CV_CHECK_PACKAGE.originalPrice && (
