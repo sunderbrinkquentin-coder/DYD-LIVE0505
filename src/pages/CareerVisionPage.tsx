@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { AcademyCatalogSection } from '../components/career/AcademyCatalogSection';
-import { useNavigate, useSearchParams } from 'react-router-dom';
+import { Navigate, useLocation, useNavigate, useSearchParams } from 'react-router-dom';
 import { Target, TrendingUp, ArrowLeft, Award } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import { CareerVisionSection } from '../components/career/CareerVisionSection';
@@ -10,7 +10,8 @@ import { LearningPath } from '../types/learningPath';
 import { supabase } from '../lib/supabase';
 
 export default function CareerVisionPage() {
-  const { user } = useAuth();
+  const { user, loading: authLoading } = useAuth();
+  const location = useLocation();
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
 
@@ -53,6 +54,15 @@ export default function CareerVisionPage() {
   const handleAnalysisComplete = (pathId: string) => {
     navigate(`/learning-path/${pathId}`);
   };
+
+  if (authLoading) {
+    return <div className="min-h-screen flex items-center justify-center text-white" role="status">Anmeldung wird geladen…</div>;
+  }
+  // Keep the public entry form accessible, but preserve the exact result URL
+  // through login when returning from Stripe or reopening an analysis.
+  if (resumePathId && !user) {
+    return <Navigate to={`/login?redirect=${encodeURIComponent(location.pathname + location.search)}`} replace />;
+  }
 
   return (
     <div className="min-h-screen bg-[#020617] text-white">
