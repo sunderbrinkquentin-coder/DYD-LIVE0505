@@ -1,6 +1,7 @@
 import { Outlet, useLocation, Link } from 'react-router-dom';
 import { useEffect } from 'react';
 import { AdvisorWidget } from '../features/advisor/AdvisorWidget';
+import { NewsletterGate } from '../features/newsletter/NewsletterGate';
 
 const LEGAL_LINKS = [
   { to: '/impressum', label: 'Impressum' },
@@ -59,6 +60,8 @@ export function GlobalLayout() {
       <GlobalFooter />
       {/* KI-Produktberater – nur bei Freischaltung/Pilotgruppe sichtbar */}
       <AdvisorWidget />
+      {/* Newsletter-Angebot (50 % auf die erste Buchung) nach der Anmeldung */}
+      <NewsletterGate />
     </div>
   );
 }
