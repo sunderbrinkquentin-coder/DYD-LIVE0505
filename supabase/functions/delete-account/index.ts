@@ -1,5 +1,6 @@
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import { createClient } from "npm:@supabase/supabase-js@2";
+import { deleteContact } from "../_shared/brevo.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -61,6 +62,11 @@ Deno.serve(async (req: Request) => {
       "profiles_backup_old",
       "cv_documents_old",
     ];
+
+    // Newsletter: Kontakt beim Versanddienst löschen (Art. 17 DSGVO);
+    // der Datenbank-Eintrag verschwindet per ON DELETE CASCADE mit dem Konto.
+    const { data: nl } = await admin.from("newsletter_subscribers").select("email").eq("user_id", user.id).maybeSingle();
+    if (nl?.email) await deleteContact(nl.email);
 
     for (const table of tables) {
       await admin.from(table).delete().eq("user_id", user.id);
