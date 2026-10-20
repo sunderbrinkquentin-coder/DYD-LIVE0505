@@ -7,25 +7,27 @@
 //   resend      (Login nötig)  Bestätigungsmail erneut senden (max. 1×/2 Min.)
 //   decline     (Login nötig)  Angebot abgelehnt → nicht erneut fragen, keine Mails
 //   confirm     (ohne Login)   Token aus der Bestätigungsmail → bestätigt,
-//                              Rabatt freischalten, Brevo-Liste, Willkommensmail
+//                              Rabatt freischalten, Resend-Kontakt, Willkommensmail
 //   unsubscribe (ohne Login)   Abmelde-Token aus jeder Mail → abgemeldet
 // Zusätzlich:
 //   POST ?action=unsubscribe&t=<token>      One-Click-Abmeldung (RFC 8058)
-//   POST ?action=brevo-webhook&secret=<…>   Abmeldungen/Bounces/Spam aus Brevo
+//   POST ?action=resend-webhook             Signierte Resend-Ereignisse
 //
 // Deploy (Bestätigungs- und Abmeldelinks kommen ohne Login):
 //   supabase functions deploy newsletter --no-verify-jwt
 // Secrets:
 //   SUPABASE_URL, SUPABASE_ANON_KEY, SUPABASE_SERVICE_ROLE_KEY (automatisch)
-//   BREVO_API_KEY, BREVO_LIST_ID, NEWSLETTER_SENDER_EMAIL, NEWSLETTER_SENDER_NAME
-//   NEWSLETTER_WEBHOOK_SECRET, SITE_URL (Standard https://decide-your-dream.de)
+//   RESEND_API_KEY, NEWSLETTER_SENDER_EMAIL, NEWSLETTER_SENDER_NAME
+//   RESEND_WEBHOOK_SECRET, SITE_URL (Standard https://decide-your-dream.de)
 //   NEWSLETTER_DISCOUNT_DAYS (Standard 30), NEWSLETTER_DISCOUNT_PERCENT (Standard 50)
 
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import { createClient, type SupabaseClient } from "npm:@supabase/supabase-js@2.57.4";
-import { NEWSLETTER_CONSENT } from "../_shared/newsletterConsent.ts";
+import { NEWSLETTER_CONSENT, CURRENT_CONSENT_VERSION } from "../_shared/newsletterConsent.ts";
 import { confirmMail, welcomeMail } from "../_shared/newsletterMails.ts";
-import { sendMail, unsubscribeContact, upsertContact } from "../_shared/brevo.ts";
+import { sendMail, unsubscribeContact, upsertContact } from "../_shared/resend.ts";
+
+import { verifyResendWebhook, unsubscribedEmails } from "../_shared/resendWebhook.ts";
 
 const cors = {
   "Access-Control-Allow-Origin": "*",
@@ -84,14 +86,21 @@ function firstNameFrom(user: { user_metadata?: Record<string, unknown> }, fallba
 async function sendConfirmation(db: SupabaseClient, row: { id: string; email: string; first_name: string | null; confirm_send_count: number }) {
   const token = randomToken();
   const expires = new Date(Date.now() + CONFIRM_DAYS * 86_400_000).toISOString();
-  await db.from("newsletter_subscribers").update({
+  const { error: tokenError } = await db.from("newsletter_subscribers").update({
     confirm_token_hash: await sha256(token),
     confirm_expires_at: expires,
-    confirm_sent_at: new Date().toISOString(),
-    confirm_send_count: (row.confirm_send_count ?? 0) + 1,
   }).eq("id", row.id);
+  if (tokenError) throw tokenError;
   const mail = confirmMail({ firstName: row.first_name, confirmUrl: `${SITE}/newsletter/bestaetigen?token=${encodeURIComponent(token)}`, siteUrl: SITE, expiresDays: CONFIRM_DAYS });
-  return sendMail({ to: { email: row.email, name: row.first_name }, ...mail, tags: ["newsletter-doi"] });
+  const sent = await sendMail({ to: { email: row.email, name: row.first_name }, ...mail, tags: ["newsletter-doi"] });
+  if (sent) {
+    const { error } = await db.from("newsletter_subscribers").update({
+      confirm_sent_at: new Date().toISOString(),
+      confirm_send_count: (row.confirm_send_count ?? 0) + 1,
+    }).eq("id", row.id);
+    if (error) console.error('[newsletter] Versandzähler nicht gespeichert:', error.code);
+  }
+  return sent;
 }
 
 // ── Aktionen ───────────────────────────────────────────────────────────
@@ -101,7 +110,7 @@ async function subscribe(req: Request, body: Record<string, unknown>) {
 
   const version = String(body.consent_version ?? "");
   const consentText = NEWSLETTER_CONSENT[version];
-  if (!consentText) return json({ error: "invalid_consent", message: "Unbekannte Einwilligungsversion." }, 400);
+  if (!consentText || version !== CURRENT_CONSENT_VERSION) return json({ error: "invalid_consent", message: "Unbekannte Einwilligungsversion." }, 400);
 
   const db = admin();
   const { data: existing } = await db.from("newsletter_subscribers").select("*").eq("user_id", user.id).maybeSingle();
@@ -131,7 +140,8 @@ async function subscribe(req: Request, body: Record<string, unknown>) {
     return json({ error: "db", message: "Das hat nicht geklappt. Bitte versuche es erneut." }, 500);
   }
   const sent = await sendConfirmation(db, row);
-  return json({ status: "pending", email: row.email, mail_sent: sent });
+  if (!sent) return json({ error: "mail_failed", message: "Die Bestätigungsmail konnte nicht versendet werden. Bitte versuche es später erneut." }, 502);
+  return json({ status: "pending", email: row.email, mail_sent: true });
 }
 
 async function resend(req: Request) {
@@ -145,7 +155,8 @@ async function resend(req: Request) {
   }
   if ((row.confirm_send_count ?? 0) >= 5) return json({ error: "limit", message: "Bitte prüfe deinen Spam-Ordner oder melde dich bei uns." }, 429);
   const sent = await sendConfirmation(db, row);
-  return json({ status: "pending", mail_sent: sent });
+  if (!sent) return json({ error: "mail_failed", message: "Die Bestätigungsmail konnte nicht versendet werden. Bitte versuche es später erneut." }, 502);
+  return json({ status: "pending", mail_sent: true });
 }
 
 async function decline(req: Request) {
@@ -192,7 +203,9 @@ async function confirm(req: Request, body: Record<string, unknown>) {
   }
 
   const discountOpen = !!updated.discount_granted_at && !updated.discount_redeemed_at && !!updated.discount_expires_at && new Date(updated.discount_expires_at) > now;
-  await upsertContact(updated.email, {
+  let contactSynced = true;
+  try {
+    await upsertContact(updated.email, {
     FIRSTNAME: updated.first_name ?? "",
     SIGNUP_SOURCE: updated.source ?? "app",
     OPT_IN_DATE: updated.confirmed_at.slice(0, 10),
@@ -200,12 +213,17 @@ async function confirm(req: Request, body: Record<string, unknown>) {
     DISCOUNT_UNTIL: updated.discount_expires_at ? updated.discount_expires_at.slice(0, 10) : "",
     DISCOUNT_REDEEMED: !!updated.discount_redeemed_at,
     UNSUBSCRIBE_URL: unsubscribeUrl(updated.unsubscribe_token),
-  });
+    });
+  } catch (error) {
+    contactSynced = false;
+    console.error("[newsletter] Resend-Kontaktsynchronisierung fehlgeschlagen:", error);
+  }
+  let welcomeSent: boolean | null = null;
   if (discountOpen) {
     const mail = welcomeMail({ firstName: updated.first_name, siteUrl: SITE, untilLabel: dateLabel(updated.discount_expires_at), unsubscribeUrl: unsubscribeUrl(updated.unsubscribe_token), percent: updated.discount_percent });
-    await sendMail({ to: { email: updated.email, name: updated.first_name }, ...mail, unsubscribeUrl: oneClickUrl(updated.unsubscribe_token), tags: ["newsletter-welcome"] });
+    welcomeSent = await sendMail({ to: { email: updated.email, name: updated.first_name }, ...mail, unsubscribeUrl: oneClickUrl(updated.unsubscribe_token), tags: ["newsletter-welcome"] });
   }
-  return json({ status: "confirmed", discount_active: discountOpen, discount_expires_at: updated.discount_expires_at, percent: updated.discount_percent });
+  return json({ status: "confirmed", contact_synced: contactSynced, welcome_sent: welcomeSent, discount_active: discountOpen, discount_expires_at: updated.discount_expires_at, percent: updated.discount_percent });
 }
 
 async function unsubscribe(token: string, reason = "link") {
@@ -214,26 +232,36 @@ async function unsubscribe(token: string, reason = "link") {
   const { data: row } = await db.from("newsletter_subscribers").select("id, email, status").eq("unsubscribe_token", token).maybeSingle();
   if (!row) return json({ error: "invalid", message: "Der Abmeldelink ist ungültig." }, 404);
   if (row.status !== "unsubscribed") {
-    await db.from("newsletter_subscribers").update({
+    const { error } = await db.from("newsletter_subscribers").update({
       status: "unsubscribed", unsubscribed_at: new Date().toISOString(), unsubscribe_reason: reason,
       confirm_token_hash: null, confirm_expires_at: null,
     }).eq("id", row.id);
-    await unsubscribeContact(row.email);
+    if (error) throw error;
   }
+  // Retry provider synchronization even when the local status is already saved.
+  await unsubscribeContact(row.email);
   return json({ status: "unsubscribed" });
 }
 
-async function brevoWebhook(req: Request, url: URL) {
-  const secret = Deno.env.get("NEWSLETTER_WEBHOOK_SECRET");
-  if (!secret || url.searchParams.get("secret") !== secret) return json({ error: "forbidden" }, 403);
-  const payload = await req.json().catch(() => null) as { event?: string; email?: string } | null;
-  const event = payload?.event ?? "";
-  const email = payload?.email?.toLowerCase();
-  if (!email) return json({ ok: true });
-  if (["unsubscribed", "unsubscribe", "spam", "hard_bounce", "hardBounce", "blocked"].includes(event)) {
-    await admin().from("newsletter_subscribers").update({
-      status: "unsubscribed", unsubscribed_at: new Date().toISOString(), unsubscribe_reason: `brevo:${event}`,
-    }).eq("email", email).neq("status", "unsubscribed");
+async function resendWebhook(req: Request) {
+  const secret = Deno.env.get("RESEND_WEBHOOK_SECRET");
+  if (!secret) return json({ error: "webhook_not_configured" }, 503);
+  let event;
+  try {
+    event = await verifyResendWebhook(req, secret);
+  } catch {
+    return json({ error: "invalid_signature" }, 401);
+  }
+  for (const email of unsubscribedEmails(event)) {
+    const { error } = await admin().from("newsletter_subscribers").update({
+      status: "unsubscribed", unsubscribed_at: new Date().toISOString(),
+      unsubscribe_reason: `resend:${event.type}`,
+      confirm_token_hash: null, confirm_expires_at: null,
+    }).eq("email", email);
+    if (error) throw error; // Non-2xx lets Resend retry rather than lose the event.
+    // A contact.updated event already reflects the provider status; do not
+    // PATCH it again and create an endless webhook loop.
+    if (event.type !== "contact.updated") await unsubscribeContact(email);
   }
   return json({ ok: true });
 }
@@ -246,7 +274,7 @@ Deno.serve(async (req) => {
   try {
     const qAction = url.searchParams.get("action");
     if (qAction === "unsubscribe") return await unsubscribe(url.searchParams.get("t") ?? "", "one-click");
-    if (qAction === "brevo-webhook") return await brevoWebhook(req, url);
+    if (qAction === "resend-webhook") return await resendWebhook(req);
 
     const body = (await req.json().catch(() => ({}))) as Record<string, unknown>;
     switch (body.action) {
