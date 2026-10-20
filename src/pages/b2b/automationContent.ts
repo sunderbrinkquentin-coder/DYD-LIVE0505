@@ -1,7 +1,7 @@
 // src/pages/b2b/automationContent.ts
 //
 // Inhalte der eigenen Landingpage "Automatisierung & Software"
-// (#/business/automatisierung, NEU 16.10.2026).
+// (/business/automatisierung, NEU 16.10.2026).
 //
 // Referenzen: Funktionen 1:1 aus dem echten Code der Projekte abgeleitet.
 // Bilder unter /public/b2b/refs/ sind ECHTE Screenshots der Anwendungen –
@@ -13,7 +13,7 @@ export type Reference = {
   id: string;
   short: string;
   category: string;
-  icon: 'mic' | 'crm' | 'chart' | 'ticket' | 'trophy' | 'bot' | 'calendar' | 'heart';
+  icon: 'mic' | 'crm' | 'chart' | 'ticket' | 'trophy' | 'bot' | 'heart';
   title: string;
   pitch: string;
   shots: RefShot[];
@@ -39,7 +39,7 @@ export const automationContent = {
     ctaPrimary: 'Kostenlosen Prozess-Check starten',
     ctaSecondary: 'Live-Projekte ansehen',
     proof: [
-      { value: '8', label: 'selbst entwickelte Systeme' },
+      { value: '7', label: 'selbst entwickelte Systeme live' },
       { value: 'KI + Freigabe', label: 'nichts geht ungeprüft nach außen' },
       { value: 'Fester Preis', label: 'für den ersten Baustein' },
     ],
@@ -55,7 +55,23 @@ export const automationContent = {
       { id: 'events', label: 'Events & Tickets', ref: 'tickets', checkArea: 'Events & Tickets', pain: 'Ticketverkauf, Teilnehmerlisten, Abläufe vor Ort.' },
       { id: 'service', label: 'Anfragen & Beratung', ref: 'chatbot', checkArea: 'Anfragen & Beratung', pain: 'Immer gleiche Fragen beantworten, passende Angebote empfehlen.' },
       { id: 'daten', label: 'Daten & Entscheidungen', ref: 'trading', checkArea: 'Daten & Reporting', pain: 'Regeln konsequent anwenden, Risiken überwachen, alles dokumentieren.' },
-      { id: 'appidee', label: 'Eigene App-Idee', ref: 'buchung', checkArea: 'Etwas anderes', pain: 'Eine klare Idee für eine App – aber kein Team, das sie entwirft, baut und betreibt.' },
+      {
+        id: 'appidee', label: 'Eigene App-Idee', ref: 'beziehung', checkArea: 'Eigene App-Idee',
+        pain: 'Eine klare Idee für eine App oder ein Portal – aber kein Team, das sie entwirft, baut und an den Start bringt.',
+        build: {
+          title: 'Das setze ich für Ihre Idee um',
+          points: [
+            'Alles aus einer Hand: Idee schärfen, Design, Entwicklung, Start',
+            'Web-App oder Handy-App – installierbar auf iPhone und Android, mit Push-Nachrichten',
+            'Nutzerkonten, Login, Online-Zahlung und Abos',
+            'KI direkt eingebaut: Assistenten, Texte, Empfehlungen',
+            'Admin-Bereich mit Auswertungen und Schnittstellen zu Ihren Tools',
+            'Früh eine klickbare Version zum Testen – fester Preis für den ersten Baustein',
+          ],
+          proofLabel: 'Bereits selbst gebaut und im Einsatz',
+          cta: 'Meine App-Idee besprechen',
+        },
+      },
       { id: 'ablauf', label: 'Abläufe vor Ort', ref: 'turnier', checkArea: 'Events & Tickets', pain: 'Pläne auf Papier, Ergebnisse auf Zuruf, Wartezeiten.' },
     ],
   },
@@ -63,7 +79,7 @@ export const automationContent = {
   references: {
     eyebrow: 'Live-Projekte',
     title: 'Echte Systeme. Echte Oberflächen.',
-    subtitle: 'Screenshots der laufenden Anwendungen – gezeigt mit Beispieldaten, damit keine echten Kunden- oder Kontodaten sichtbar sind.',
+    subtitle: 'Screenshots der laufenden Anwendungen – gezeigt mit Beispieldaten, damit keine echten Kunden-, Nutzer- oder Kontodaten sichtbar sind.',
     items: [
       {
         id: 'crm',
@@ -195,48 +211,25 @@ export const automationContent = {
         disclaimer: 'Technische Referenz – keine Anlageberatung.',
       },
       {
-        id: 'buchung',
-        short: 'Terminbuchung',
-        category: 'Kunden & Termine',
-        icon: 'calendar',
-        title: 'Online-Terminbuchung mit Erinnerungen',
-        pitch: 'Kunden wählen selbst einen freien Termin, bekommen Bestätigung und automatische Erinnerung – und Sie hören auf, per E-Mail-Ping-Pong Termine zu finden. Beispiel aus der typischen Erstversion einer eigenen App.',
-        shots: [
-          { src: '/b2b/refs/buchung-kalender.webp', alt: 'Kalenderansicht einer Online-Terminbuchung mit freien Zeiten', caption: 'Kalender: freie Zeiten und Dienstleistung in einem Schritt wählen', device: 'mobile' },
-          { src: '/b2b/refs/buchung-bestaetigung.webp', alt: 'Terminbestätigung mit Erinnerungen', caption: 'Bestätigung: Termin, Video-Meeting-Link, automatische Erinnerung', device: 'mobile' },
-        ],
-        automations: [
-          'Kunden buchen selbst – ohne E-Mail-Hin und her',
-          'Bestätigung und Erinnerung gehen automatisch raus',
-          'Doppelbuchungen sind technisch ausgeschlossen',
-          'Termine landen direkt im Kalender des Teams',
-        ],
-        ai: ['Schlägt passende Alternativzeiten vor, wenn ein Termin platzt'],
-        control: 'Öffnungs-, Puffer- und Stornierungszeiten bestimmen Sie selbst.',
-        stack: ['Handy-App', 'Online-Zahlung (optional)', 'E-Mail & Push', 'Kalender-Sync'],
-        disclaimer: 'Beispielansicht – zeigt den typischen ersten Baustein einer eigenen App.',
-      },
-      {
         id: 'beziehung',
         short: 'Fernbeziehungs-App',
-        category: 'Eigene App',
+        category: 'Consumer-App',
         icon: 'heart',
         title: 'App für Fernbeziehungen',
-        pitch: 'Vom eigenen Konzept bis zur laufenden App: Countdown bis zum Wiedersehen, Date-Ideen und süße Nachrichten – die komplette Erstversion einer eigenen App, gebaut und live im Einsatz.',
+        pitch: 'Nähe trotz Entfernung: Countdown bis zum Wiedersehen, beide Uhrzeiten auf einen Blick, eine Frage des Tages und KI-Ideen für gemeinsame Abende auf Distanz.',
         shots: [
-          { src: '/b2b/refs/fernbeziehung-heute.webp', alt: 'Startseite der Fernbeziehungs-App mit Countdown bis zum Wiedersehen und Frage des Tages', caption: '„Heute“: Countdown bis zum Wiedersehen, beide Uhrzeiten, Frage des Tages', device: 'mobile' },
-          { src: '/b2b/refs/fernbeziehung-ideen.webp', alt: 'Date-Ideen und süße Nachrichten der Fernbeziehungs-App', caption: '„Gemeinsam“: süße Nachrichten mit KI-Vorschlag und Date-Ideen', device: 'mobile' },
+          { src: '/b2b/refs/fernbeziehung-heute.webp', alt: 'Startseite der Fernbeziehungs-App mit Countdown, Zeitzonen und Frage des Tages (Beispieldaten)', caption: '„Heute“: Countdown, beide Uhrzeiten, Frage des Tages', device: 'mobile' },
+          { src: '/b2b/refs/fernbeziehung-gemeinsam.webp', alt: 'Gemeinsamer Plan mit KI-Date-Ideen und Terminen (Beispieldaten)', caption: '„Gemeinsam“: KI-Date-Ideen und gemeinsame Termine', device: 'mobile' },
         ],
         automations: [
-          '„Wann sehen wir uns wieder“ – Countdown mit Vorab-Erinnerung',
-          'Vorschläge, was ihr gemeinsam unternehmen könnt',
-          'Süße Nachrichten mit KI-Formulierungsvorschlag',
-          'Digitale Date-Ideen für Abende auf Distanz',
+          'Erinnerungen passend zur Zeitzone beider Partner',
+          'Countdown bis zum nächsten Treffen',
+          'Jahrestage und Termine mit Vorab-Erinnerung',
+          'Antworten werden erst sichtbar, wenn beide geantwortet haben',
         ],
-        ai: ['Formulierungsvorschläge für süße Nachrichten', 'Date-Ideen, abgestimmt auf das Paar'],
+        ai: ['Date-Ideen für Abende auf Distanz', 'Frage des Tages, abgestimmt auf das Paar'],
         control: 'Private Inhalte nur für das Paar sichtbar.',
         stack: ['Handy-App', 'Push-Benachrichtigungen', 'KI-Vorschläge', 'Gemeinsamer Kalender'],
-        disclaimer: 'Beispiel aus dem Konzeptbereich – zeigt, wie eine eigene App-Idee als erste Version aussieht.',
       },
     ] as Reference[],
   },
@@ -262,7 +255,7 @@ export const automationContent = {
     eyebrow: 'Kostenloser Prozess-Check',
     title: 'In 3 Klicks zum Erstgespräch',
     subtitle: 'Beantworten Sie drei kurze Fragen – wir melden uns mit einer ersten Einschätzung.',
-    areas: ['Vertrieb & Kundenkontakt', 'Content & Redaktion', 'Events & Tickets', 'Anfragen & Beratung', 'Daten & Reporting', 'Etwas anderes'],
+    areas: ['Vertrieb & Kundenkontakt', 'Content & Redaktion', 'Events & Tickets', 'Anfragen & Beratung', 'Daten & Reporting', 'Eigene App-Idee', 'Etwas anderes'],
     volumes: ['Ein paar Stunden pro Woche', 'Mehrere Stunden pro Tag', 'Ein ganzes Team ist damit beschäftigt'],
     timings: ['So schnell wie möglich', 'In den nächsten 3 Monaten', 'Ich informiere mich erst'],
     success: 'Danke! Wir melden uns innerhalb von 24 Stunden mit einer ersten Einschätzung.',
