@@ -3,8 +3,6 @@ import { motion, AnimatePresence, useReducedMotion } from 'framer-motion';
 import { X, Send, CheckCircle2, Building2, GraduationCap, Loader2, Clock } from 'lucide-react';
 // TODO: Pfad an deinen bestehenden Supabase-Client anpassen:
 import { supabase } from '../lib/supabase';
-import { VoiceInput } from '../../components/VoiceInput';
-import { triggerB2bBriefing } from '../../lib/b2bBriefing';
 
 type Segment = 'unternehmen' | 'bildungstraeger';
 
@@ -119,21 +117,6 @@ export default function LeadRequestModal({ open, onClose, segment }: LeadRequest
       setStatus('error');
       return;
     }
-    triggerB2bBriefing({
-      source: 'lead-modal',
-      contact: {
-        name: form.name.trim(),
-        company: form.company.trim(),
-        email: form.email.trim(),
-        phone: form.phone.trim() || null,
-      },
-      segment: seg,
-      need: form.message.trim() || '(keine Nachricht angegeben)',
-      answers: {
-        nachricht: form.message.trim(),
-        zeitfenster_15min: slot || 'nicht gewählt',
-      },
-    });
     setStatus('done');
   };
 
@@ -248,10 +231,6 @@ export default function LeadRequestModal({ open, onClose, segment }: LeadRequest
                 <div>
                   <label htmlFor="lead-message" className={labelCls}>Ihre Nachricht</label>
                   <textarea id="lead-message" rows={3} value={form.message} onChange={update('message')} className={`${inputCls} resize-none`} placeholder="Worum geht es? (optional)" />
-                  <div className="flex items-center justify-between gap-2 mt-1.5">
-                    <span className="font-arimo text-[11px] text-[#94a3b8]">Gerne auch per Sprache – einfach einsprechen.</span>
-                    <VoiceInput value={form.message} onChange={(message) => setForm((f) => ({ ...f, message }))} variant="light" label="Nachricht diktieren" />
-                  </div>
                 </div>
 
                 {/* Optionales Zeitfenster für einen 15-Minuten-Austausch */}
@@ -314,7 +293,7 @@ export default function LeadRequestModal({ open, onClose, segment }: LeadRequest
 
                 <p className="font-arimo text-[11px] text-[#94a3b8] text-center leading-relaxed">
                   Mit dem Absenden stimmen Sie der Verarbeitung Ihrer Daten gemäß unserer{' '}
-                  <a href="/#/datenschutz" className="underline hover:text-[#55637A]">Datenschutzerklärung</a> zu.
+                  <a href="/datenschutz" className="underline hover:text-[#55637A]">Datenschutzerklärung</a> zu.
                 </p>
               </form>
             )}
