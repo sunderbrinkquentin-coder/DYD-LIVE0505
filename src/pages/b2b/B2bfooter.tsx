@@ -69,7 +69,7 @@ export default function B2BFooter({ onContact }: B2BFooterProps) {
             <h3 className="font-poppins font-bold text-sm mb-4">Navigation</h3>
             <ul className="space-y-2.5 font-arimo text-sm text-white/55">
               <li><a href={footer.applicantUrl} className="hover:text-white transition-colors">Für Bewerber</a></li>
-              <li><a href="#/business" className="hover:text-white transition-colors">Für Business</a></li>
+              <li><a href="/business" className="hover:text-white transition-colors">Für Business</a></li>
               <li><a href="#b2b-tabs" className="hover:text-white transition-colors">Lösungen</a></li>
               <li><button type="button" onClick={onContact} className="hover:text-white transition-colors">Kontakt</button></li>
             </ul>
