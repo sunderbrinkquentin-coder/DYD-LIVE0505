@@ -223,7 +223,7 @@ export function AdvisorLeadCard({ page, entries, view, setView, withSlot, setWit
         {withSlot ? 'Termin anfragen' : 'Anfrage absenden'}
       </button>
       <p className="text-[10px] text-white/35 leading-relaxed">
-        Ihre Angaben werden nur zur Bearbeitung Ihrer Anfrage gespeichert. <a href="#/datenschutz" className="underline hover:text-white/60">Datenschutz</a>
+        Ihre Angaben werden nur zur Bearbeitung Ihrer Anfrage gespeichert. <a href="/datenschutz" className="underline hover:text-white/60">Datenschutz</a>
       </p>
     </form>
   );
