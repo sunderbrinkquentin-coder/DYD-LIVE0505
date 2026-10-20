@@ -150,7 +150,7 @@ export async function handler(event: { httpMethod: string; headers: Record<strin
     return { statusCode: 500, body: `Konnte Export-Token nicht setzen: ${tokenError.message}` };
   }
 
-  const printUrl = `${SITE_URL}/#/cv-export-render/${cvId}?token=${exportToken}`;
+  const printUrl = `${SITE_URL}/cv-export-render/${cvId}?token=${exportToken}`;
 
   let browser: Awaited<ReturnType<typeof launchBrowser>> | undefined;
   try {
