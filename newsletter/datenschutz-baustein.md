@@ -12,7 +12,9 @@
 
 **Double-Opt-in und Protokollierung.** Nach deiner Anmeldung erhältst du eine E-Mail mit einem Bestätigungslink. Erst nach der Bestätigung nehmen wir dich in den Verteiler auf. Wir speichern dazu: E-Mail-Adresse, Vorname (falls vorhanden), Zeitpunkt der Anmeldung und der Bestätigung, IP-Adresse und Browserkennung zu beiden Zeitpunkten, Wortlaut und Version der Einwilligung sowie den Anmeldeweg.
 
-**Versanddienstleister.** Der Versand erfolgt über Brevo (Sendinblue SAS, 106 boulevard Haussmann, 75008 Paris, Frankreich). Mit Brevo besteht ein Vertrag zur Auftragsverarbeitung nach Art. 28 DSGVO. Die Daten werden in der EU verarbeitet. Datenschutzhinweise von Brevo: https://www.brevo.com/de/legal/privacypolicy/
+**Versanddienstleister.** Der Versand erfolgt über Resend. Dabei werden die für den Versand erforderlichen Kontaktdaten und Nachrichteninhalte an Resend übermittelt. Weitere Informationen: https://resend.com/legal/privacy-policy
+
+[Vor Veröffentlichung ergänzen: den im tatsächlich abgeschlossenen Vertrag genannten Anbieter, den Auftragsverarbeitungsvertrag und die für euer Konto geltenden Angaben zu Datenverarbeitung und internationalen Übermittlungen. Die bisherige Aussage einer ausschließlich europäischen Verarbeitung wird für Resend nicht übernommen.]
 
 **Erfolgsmessung.** Unsere Newsletter enthalten ein Zählpixel und personalisierte Links. Dadurch erkennen wir, ob und wann eine E-Mail geöffnet wurde und welche Links angeklickt wurden. Wir nutzen diese Auswertung, um Inhalte und Versandzeitpunkte zu verbessern und Angebote passend zu deinen Interessen auszuwählen. Die Auswertung ist Teil deiner Einwilligung; du beendest sie, indem du den Newsletter abbestellst.
 
@@ -20,4 +22,4 @@
 
 **Widerruf und Abmeldung.** Du kannst deine Einwilligung jederzeit mit Wirkung für die Zukunft widerrufen – über den Abmeldelink in jeder E-Mail, über die Abmeldefunktion deines E-Mail-Programms oder per Nachricht an [quentin@decideyourdream.de]. Die Rechtmäßigkeit der bis dahin erfolgten Verarbeitung bleibt unberührt.
 
-**Speicherdauer.** Nach der Abmeldung speichern wir deine E-Mail-Adresse und den Nachweis der früheren Einwilligung bis zu drei Jahre lang, um die Einwilligung nachweisen zu können (Art. 6 Abs. 1 lit. f DSGVO); eine weitere Nutzung findet nicht statt. Nicht bestätigte Anmeldungen löschen wir nach spätestens 30 Tagen. Wenn du dein DYD-Konto löschst, werden alle Newsletter-Daten bei uns und bei Brevo gelöscht.
+**Speicherdauer.** Nach der Abmeldung speichern wir deine E-Mail-Adresse und den Nachweis der früheren Einwilligung bis zu drei Jahre lang, um die Einwilligung nachweisen zu können (Art. 6 Abs. 1 lit. f DSGVO); eine weitere Nutzung findet nicht statt. Nicht bestätigte Anmeldungen löschen wir nach spätestens 30 Tagen. Wenn du dein DYD-Konto löschst, werden alle Newsletter-Daten bei uns und bei Resend gelöscht.
