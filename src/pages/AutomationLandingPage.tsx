@@ -1,8 +1,8 @@
 // src/pages/AutomationLandingPage.tsx
 //
 // Eigene Landingpage "Automatisierung & individuelle Software"
-// (#/business/automatisierung, NEU 16.10.2026) – klar getrennt von der
-// Skill-Plattform (#/business). Conversion-Strecke:
+// (/business/automatisierung, NEU 16.10.2026) – klar getrennt von der
+// Skill-Plattform (/business). Conversion-Strecke:
 //   Hero (echte Screens) → "Wo verlieren Sie Zeit?" (Finder) → Live-Projekte
 //   → Vorgehen → Prozess-Check (3 Schritte) → FAQ → Abschluss
 // Mobile: schwebende CTA-Leiste, sobald der Hero aus dem Bild ist.
@@ -12,17 +12,15 @@ import { useSearchParams } from 'react-router-dom';
 import { AnimatePresence, motion, useReducedMotion, type Variants } from 'framer-motion';
 import {
   ArrowRight, Bot, CalendarCheck, Check, ChevronDown, Eye, LineChart, Mic, Rocket, Search, ShieldCheck,
-  Sparkles, Target, Ticket, TrendingUp, Trophy, Users, Zap, FileText, Layers, CalendarDays, Heart,
+  Sparkles, Target, Ticket, TrendingUp, Trophy, Users, Zap, FileText, Layers, Heart,
 } from 'lucide-react';
 import B2BHeader from './b2b/B2BHeader';
 import { CalBookingButton } from './b2b/CalBookingButton';
 import { automationContent as c } from './b2b/automationContent';
-import { BrowserFrame, LIME, SKY, PhoneFrame, ShotViewer, AppIdeaPanel } from './b2b/automationParts';
-import { OfferCalculator } from './b2b/OfferCalculator';
-import { ProzessCheckModal, ProzessCheckFlow } from './b2b/ProzessCheckFlow';
+import { BrowserFrame, LIME, PhoneFrame, ProcessCheck, SKY, ShotViewer } from './b2b/automationParts';
 
 const VIEWPORT = { once: true, margin: '-60px' } as const;
-const refIcons = { mic: Mic, crm: Users, chart: LineChart, ticket: Ticket, trophy: Trophy, bot: Bot, calendar: CalendarDays, heart: Heart } as const;
+const refIcons = { mic: Mic, crm: Users, chart: LineChart, ticket: Ticket, trophy: Trophy, bot: Bot, heart: Heart } as const;
 const stepIcons: Record<string, typeof Search> = { search: Search, target: Target, rocket: Rocket, growth: TrendingUp };
 
 function useAnims() {
@@ -35,12 +33,10 @@ function useAnims() {
 /** Rotierende Status-Meldungen im Hero – zeigen, was die Systeme tagtäglich erledigen */
 const LIVE_EVENTS = [
   { Icon: Sparkles, text: 'Tagesbriefing erstellt', meta: 'Vertriebs-CRM · 07:00' },
-  { Icon: CalendarDays, text: 'Termin bestätigt · 24h-Erinnerung geplant', meta: 'Terminbuchung' },
   { Icon: FileText, text: '7 Textentwürfe zur Freigabe', meta: 'Podcast-Studio' },
   { Icon: Ticket, text: 'PDF-Ticket automatisch versendet', meta: 'Ticketsystem' },
   { Icon: ShieldCheck, text: 'Risiko-Grenzen geprüft', meta: 'Trading-Assistent · stündlich' },
   { Icon: Bot, text: 'Passendes Angebot empfohlen', meta: 'KI-Chatbot' },
-  { Icon: Heart, text: 'Date-Idee vorgeschlagen', meta: 'Fernbeziehungs-App' },
 ];
 
 function LiveTicker() {
@@ -73,18 +69,11 @@ export default function AutomationLandingPage() {
   const [activeRef, setActiveRef] = useState<string>(c.references.items[0].id);
   const [finderPick, setFinderPick] = useState<string>(c.finder.options[0].id);
   const [presetArea, setPresetArea] = useState<string | null>(null);
-  const [presetDetails, setPresetDetails] = useState<string | null>(null);
   const [openFaq, setOpenFaq] = useState<number | null>(0);
   const [showSticky, setShowSticky] = useState(false);
-  const [checkModal, setCheckModal] = useState(false);
   const heroRef = useRef<HTMLElement>(null);
 
-  useEffect(() => {
-    const prev = document.title;
-    document.title = c.meta.title;
-    window.scrollTo(0, 0);
-    return () => { document.title = prev; };
-  }, []);
+  useEffect(() => { window.scrollTo(0, 0); }, []);
 
   // Mobile CTA-Leiste nur zwischen Hero und Prozess-Check einblenden
   // (nicht über dem Formular selbst, sonst verdeckt sie die Eingabefelder)
@@ -106,11 +95,7 @@ export default function AutomationLandingPage() {
 
   const go = (id: string) => document.getElementById(id)?.scrollIntoView({ behavior: reduce ? 'auto' : 'smooth', block: 'start' });
   const openRef = (id: string) => { setActiveRef(id); requestAnimationFrame(() => go('projekte')); };
-  const startCheck = (area?: string, details?: string) => {
-    setPresetArea(area ?? null);
-    setPresetDetails(details ?? null);
-    setCheckModal(true);
-  };
+  const startCheck = (area?: string) => { setPresetArea(area ?? null); requestAnimationFrame(() => go('prozess-check')); };
 
   // Sprungziele aus dem KI-Berater: ?check=1 → Prozess-Check, ?projekt=<id> → Live-Projekt
   const [params] = useSearchParams();
@@ -130,6 +115,7 @@ export default function AutomationLandingPage() {
   const finder = c.finder.options.find((o) => o.id === finderPick) ?? c.finder.options[0];
   const finderRef = c.references.items.find((r) => r.id === finder.ref) ?? c.references.items[0];
   const FinderIcon = refIcons[finderRef.icon];
+  const finderBuild = 'build' in finder ? finder.build : null;
 
   return (
     <div className="min-h-screen bg-[#07111f] text-white overflow-x-hidden">
@@ -206,13 +192,45 @@ export default function AutomationLandingPage() {
             })}
           </div>
           <AnimatePresence mode="wait">
-            {finder.id === 'appidee' ? (
-              <motion.div key="appidee" initial={{ opacity: 0, y: reduce ? 0 : 12 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }} transition={{ duration: reduce ? 0 : 0.25 }}>
-                <AppIdeaPanel startCheck={startCheck} openRef={openRef} />
-              </motion.div>
-            ) : (
             <motion.div key={finder.id} initial={{ opacity: 0, y: reduce ? 0 : 12 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }} transition={{ duration: reduce ? 0 : 0.25 }}
               className="grid md:grid-cols-12 gap-6 items-center rounded-3xl p-5 sm:p-8 bg-white/[0.03] border border-white/10">
+              {finderBuild ? (
+                <>
+                  {/* Eigene App-Idee: Pitch, was umgesetzt werden kann */}
+                  <div className="md:col-span-7 order-2 md:order-1">
+                    <p className="font-arimo text-xs font-bold uppercase tracking-wide text-[#EF8A8A] mb-2">Heute</p>
+                    <p className="font-arimo text-white/75 mb-5">{finder.pain}</p>
+                    <p className="font-arimo text-xs font-bold uppercase tracking-wide text-[#DEFF9A] mb-3 flex items-center gap-1.5"><Rocket className="w-3.5 h-3.5" aria-hidden="true" />{finderBuild.title}</p>
+                    <ul className="grid sm:grid-cols-2 gap-x-5 gap-y-2.5 mb-6">
+                      {finderBuild.points.map((a) => (
+                        <li key={a} className="flex items-start gap-2 font-arimo text-sm text-white/85"><Check className="w-4 h-4 text-[#DEFF9A] flex-shrink-0 mt-0.5" aria-hidden="true" />{a}</li>
+                      ))}
+                    </ul>
+                    <p className="font-arimo text-[11px] font-bold uppercase tracking-wide text-white/45 mb-2">{finderBuild.proofLabel}</p>
+                    <div className="flex flex-wrap gap-1.5 mb-6">
+                      {c.references.items.map((r) => {
+                        const RIcon = refIcons[r.icon];
+                        return (
+                          <button key={r.id} type="button" onClick={() => openRef(r.id)} className="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-full font-arimo text-xs font-bold text-white/80 bg-white/[0.05] border border-white/12 hover:border-[#DEFF9A]/50 hover:text-white b2b-focus-ring">
+                            <RIcon className="w-3.5 h-3.5 text-[#DEFF9A]" aria-hidden="true" />{r.short}
+                          </button>
+                        );
+                      })}
+                    </div>
+                    <button type="button" onClick={() => startCheck(finder.checkArea)} className="inline-flex items-center justify-center gap-2 px-5 py-3 rounded-xl font-arimo font-bold text-sm text-[#0A192F] b2b-focus-ring" style={{ background: LIME }}>
+                      {finderBuild.cta} <ArrowRight className="w-4 h-4" aria-hidden="true" />
+                    </button>
+                  </div>
+                  <button type="button" onClick={() => openRef(finderRef.id)} className="md:col-span-5 order-1 md:order-2 block text-left b2b-focus-ring rounded-xl" aria-label={`Projekt ${finderRef.short} ansehen`}>
+                    <div className="flex justify-center items-end gap-3">
+                      <PhoneFrame src={finderRef.shots[0].src} alt={finderRef.shots[0].alt} className="w-[150px] sm:w-[170px]" />
+                      {finderRef.shots[1] && <PhoneFrame src={finderRef.shots[1].src} alt={finderRef.shots[1].alt} className="w-[130px] sm:w-[150px] hidden sm:block" />}
+                    </div>
+                    <p className="mt-3 text-center font-arimo text-[11px] text-white/45">Beispiel aus der Praxis: {finderRef.title}</p>
+                  </button>
+                </>
+              ) : (
+                <>
               <div className="md:col-span-5 order-2 md:order-1">
                 <p className="font-arimo text-xs font-bold uppercase tracking-wide text-[#EF8A8A] mb-2">Heute</p>
                 <p className="font-arimo text-white/75 mb-5">{finder.pain}</p>
@@ -236,8 +254,9 @@ export default function AutomationLandingPage() {
                   ? <PhoneFrame src={finderRef.shots[0].src} alt={finderRef.shots[0].alt} className="w-[200px] mx-auto" />
                   : <BrowserFrame src={finderRef.shots[0].src} alt={finderRef.shots[0].alt} />}
               </button>
+                </>
+              )}
             </motion.div>
-            )}
           </AnimatePresence>
         </div>
       </section>
@@ -275,7 +294,7 @@ export default function AutomationLandingPage() {
                 <div className="flex flex-wrap items-center gap-2 mb-3">
                   <span className="inline-flex items-center px-2.5 py-1 rounded-full font-arimo text-[10px] font-bold uppercase tracking-wide bg-[#DEFF9A]/12 text-[#DEFF9A]">{ref.category}</span>
                   {ref.concept
-                    ? <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full font-arimo text-[10px] font-bold uppercase tracking-wide bg-[#38BDF8]/12 text-[#7dd3fc]"><Eye className="w-3 h-3" aria-hidden="true" />Beispielansicht</span>
+                    ? <span className="inline-flex items-center px-2.5 py-1 rounded-full font-arimo text-[10px] font-bold uppercase tracking-wide bg-[#ff7aa2]/15 text-[#ffb3c9]">Beispielansicht · Konzept</span>
                     : <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full font-arimo text-[10px] font-bold uppercase tracking-wide bg-[#22c55e]/12 text-[#86efac]"><span className="h-1.5 w-1.5 rounded-full bg-[#22c55e]" />Live im Einsatz</span>}
                 </div>
                 <h3 className="font-poppins font-black text-2xl sm:text-3xl leading-tight mb-3" style={{ letterSpacing: '-0.02em' }}>{ref.title}</h3>
@@ -348,20 +367,6 @@ export default function AutomationLandingPage() {
         </div>
       </section>
 
-      {/* ── ANGEBOTS-RECHNER ───────────────────────────────────────────── */}
-      <section id="kosten" className="px-4 sm:px-6 lg:px-8 py-24 scroll-mt-16">
-        <div className="max-w-4xl mx-auto">
-          <motion.div variants={fadeUp} initial="hidden" whileInView="show" viewport={VIEWPORT} className="text-center mb-10">
-            <span className="inline-block font-arimo text-xs font-bold uppercase tracking-[0.18em] text-[#DEFF9A] mb-3">Transparent kalkuliert</span>
-            <h2 className="font-poppins font-black text-3xl sm:text-4xl mb-3" style={{ letterSpacing: '-0.03em' }}>Was kostet Ihr Projekt?</h2>
-            <p className="font-arimo text-white/60 max-w-2xl mx-auto">Ehrliche Größenordnung statt versteckter Preise: Wählen Sie Typ und Umfang – Sie sehen sofort die übliche Preisspanne und Dauer. Der endgültige Preis wird als fester Preis im kostenlosen Prozess-Check zugesagt.</p>
-          </motion.div>
-          <motion.div variants={fadeUp} initial="hidden" whileInView="show" viewport={VIEWPORT}>
-            <OfferCalculator onCheck={startCheck} />
-          </motion.div>
-        </div>
-      </section>
-
       {/* ── PROZESS-CHECK (Conversion) ─────────────────────────────────── */}
       <section id="prozess-check" className="px-4 sm:px-6 lg:px-8 py-24 scroll-mt-16">
         <div className="max-w-6xl mx-auto grid lg:grid-cols-12 gap-10 items-start">
@@ -381,7 +386,7 @@ export default function AutomationLandingPage() {
             </div>
           </motion.div>
           <motion.div variants={fadeUp} initial="hidden" whileInView="show" viewport={VIEWPORT} className="lg:col-span-7 rounded-[2rem] p-6 sm:p-8 bg-gradient-to-b from-white/[0.07] to-white/[0.03] border border-white/12 shadow-2xl">
-            <ProzessCheckFlow presetArea={presetArea} presetDetails={presetDetails} />
+            <ProcessCheck presetArea={presetArea} />
           </motion.div>
         </div>
       </section>
@@ -423,7 +428,7 @@ export default function AutomationLandingPage() {
           </button>
           <p className="mt-8 font-arimo text-sm text-white/50">
             Sie suchen Skill-Intelligence für HR oder Bildung?{' '}
-            <a href="#/business" className="inline-flex items-center gap-1 font-bold text-[#38BDF8] hover:text-white"><Layers className="w-3.5 h-3.5" aria-hidden="true" />Zur DYD Skill-Plattform</a>
+            <a href="/business" className="inline-flex items-center gap-1 font-bold text-[#38BDF8] hover:text-white"><Layers className="w-3.5 h-3.5" aria-hidden="true" />Zur DYD Skill-Plattform</a>
           </p>
         </div>
       </section>
@@ -438,17 +443,6 @@ export default function AutomationLandingPage() {
             </button>
           </motion.div>
         )}
-      </AnimatePresence>
-
-      {/* ── Prozess-Check-Popup (bei "Direkt Anfrage stellen" etc.) ─────── */}
-      <AnimatePresence>
-        <ProzessCheckModal
-          key="prozess-check-modal"
-          open={checkModal}
-          onClose={() => setCheckModal(false)}
-          presetArea={presetArea}
-          presetDetails={presetDetails}
-        />
       </AnimatePresence>
     </div>
   );
