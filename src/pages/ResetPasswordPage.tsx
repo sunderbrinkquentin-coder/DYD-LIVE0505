@@ -16,33 +16,59 @@ export default function ResetPasswordPage() {
   const [sessionError, setSessionError] = useState(false);
 
   useEffect(() => {
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
-      if (event === 'PASSWORD_RECOVERY' || (event === 'SIGNED_IN' && session)) {
-        setSessionReady(true);
-      }
+    let cancelled = false;
+    let retryTimer: ReturnType<typeof setTimeout> | undefined;
+    const params = new URLSearchParams(window.location.search);
+    const fragment = new URLSearchParams(window.location.hash.slice(1));
+    if (params.has('error') || params.has('error_code') || fragment.has('error') || fragment.has('error_code')) {
+      setSessionError(true);
+      return;
+    }
+    let expired = false;
+    const timeout = setTimeout(() => {
+      expired = true;
+      clearTimeout(retryTimer);
+      if (!cancelled) setSessionError(true);
+    }, 8_000);
+    const ready = () => {
+      if (cancelled) return;
+      clearTimeout(timeout);
+      clearTimeout(retryTimer);
+      setSessionError(false);
+      setSessionReady(true);
+    };
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+      if (session) ready();
     });
-
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      if (session) {
-        setSessionReady(true);
-      } else {
-        setTimeout(() => {
-          supabase.auth.getSession().then(({ data: { session: s } }) => {
-            if (s) {
-              setSessionReady(true);
-            } else {
-              setSessionError(true);
-            }
-          });
-        }, 1500);
+    const check = async () => {
+      try {
+        const { data: { session }, error } = await supabase.auth.getSession();
+        if (cancelled) return;
+        if (error) throw error;
+        if (session) ready();
+        else if (!expired) retryTimer = setTimeout(check, 1000);
+      } catch {
+        if (!cancelled) { clearTimeout(timeout); setSessionError(true); }
       }
-    });
-
-    return () => subscription.unsubscribe();
+    };
+    void check();
+    return () => {
+      cancelled = true;
+      clearTimeout(timeout);
+      clearTimeout(retryTimer);
+      subscription.unsubscribe();
+    };
   }, []);
+
+  useEffect(() => {
+    if (!success) return;
+    const timer = setTimeout(() => navigate('/login', { replace: true }), 3000);
+    return () => clearTimeout(timer);
+  }, [success, navigate]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (loading || !sessionReady || sessionError) return;
     setError('');
 
     if (newPassword.length < 6) {
@@ -55,16 +81,15 @@ export default function ResetPasswordPage() {
     }
 
     setLoading(true);
-    const { error: updateError } = await supabase.auth.updateUser({ password: newPassword });
-    setLoading(false);
-
-    if (updateError) {
-      setError(updateError.message || 'Fehler beim Zurücksetzen des Passworts.');
-      return;
+    try {
+      const { error: updateError } = await supabase.auth.updateUser({ password: newPassword });
+      if (updateError) throw updateError;
+      setSuccess(true);
+    } catch (error) {
+      setError(error instanceof Error ? error.message : 'Fehler beim Zurücksetzen des Passworts. Bitte versuche es erneut.');
+    } finally {
+      setLoading(false);
     }
-
-    setSuccess(true);
-    setTimeout(() => navigate('/login'), 3000);
   };
 
   if (success) {
@@ -90,10 +115,10 @@ export default function ResetPasswordPage() {
             Dieser Link ist abgelaufen oder ungültig. Bitte fordere einen neuen Reset-Link an.
           </p>
           <button
-            onClick={() => navigate('/login')}
+            onClick={() => navigate('/login?mode=reset')}
             className="px-6 py-3 rounded-xl bg-gradient-to-r from-[#66c0b6] to-[#30E3CA] text-black font-bold hover:opacity-90 transition-all"
           >
-            Zurück zur Anmeldung
+            Neuen Link anfordern
           </button>
         </div>
       </div>
@@ -137,6 +162,7 @@ export default function ResetPasswordPage() {
                     onChange={(e) => setNewPassword(e.target.value)}
                     required
                     minLength={6}
+                    autoComplete="new-password"
                     className="w-full pl-10 pr-12 py-3 rounded-xl bg-white/5 border border-white/10 text-white placeholder-white/40 focus:outline-none focus:border-[#66c0b6] transition-all"
                     placeholder="Mindestens 6 Zeichen"
                   />
@@ -162,6 +188,7 @@ export default function ResetPasswordPage() {
                     onChange={(e) => setConfirmPassword(e.target.value)}
                     required
                     minLength={6}
+                    autoComplete="new-password"
                     className="w-full pl-10 pr-12 py-3 rounded-xl bg-white/5 border border-white/10 text-white placeholder-white/40 focus:outline-none focus:border-[#66c0b6] transition-all"
                     placeholder="Passwort wiederholen"
                   />
