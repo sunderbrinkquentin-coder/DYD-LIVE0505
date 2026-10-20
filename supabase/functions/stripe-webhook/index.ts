@@ -9,7 +9,7 @@
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import Stripe from "npm:stripe@17.5.0";
 import { createClient } from "npm:@supabase/supabase-js@2.57.4";
-import { updateContactAttributes } from "../_shared/brevo.ts";
+import { updateContactAttributes } from "../_shared/resend.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -132,7 +132,10 @@ Deno.serve(async (req: Request) => {
           .is("discount_redeemed_at", null)
           .select("email")
           .maybeSingle();
-        if (nl?.email) await updateContactAttributes(nl.email, { DISCOUNT_REDEEMED: true });
+        if (nl?.email) {
+          try { await updateContactAttributes(nl.email, { DISCOUNT_REDEEMED: true }); }
+          catch (error) { console.error('[newsletter] Resend-Rabattstatus nicht synchronisiert:', error); }
+        }
       }
 
       // ────────────────────────────────────────────────────────────────────────
