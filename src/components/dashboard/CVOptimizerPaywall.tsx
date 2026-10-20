@@ -3,6 +3,7 @@ import { X, Check, CreditCard, Loader, AlertCircle, Sparkles, Zap, Shield, Trend
 import { supabase } from '../../lib/supabase';
 import { tokenService } from '../../services/tokenService';
 import { advisorCheckoutMetadata } from '../../features/advisor/advisorAttribution';
+import { NewsletterDiscountHint } from '../../features/newsletter/NewsletterDiscountHint';
 
 interface CVOptimizerPaywallProps {
   isOpen: boolean;
@@ -113,9 +114,9 @@ export function CVOptimizerPaywall({ isOpen, onClose, onSuccess, cvId, userId }:
       }
 
       const successUrl = cvId
-        ? `${window.location.origin}/#/payment-success?cvId=${cvId}&session_id={CHECKOUT_SESSION_ID}`
-        : `${window.location.origin}/#/dashboard?payment=success`;
-      const cancelUrl = `${window.location.origin}/#/dashboard?payment=cancelled`;
+        ? `${window.location.origin}/payment-success?cvId=${cvId}&session_id={CHECKOUT_SESSION_ID}`
+        : `${window.location.origin}/dashboard?payment=success`;
+      const cancelUrl = `${window.location.origin}/dashboard?payment=cancelled`;
 
       if (cvId) sessionStorage.setItem('pending_cv_id', cvId);
 
@@ -375,6 +376,7 @@ export function CVOptimizerPaywall({ isOpen, onClose, onSuccess, cvId, userId }:
           </div>
         )}
 
+        <div className="relative z-10 mx-6 mb-3"><NewsletterDiscountHint source="optimizer-paywall" /></div>
         <p className="relative z-10 text-center text-[10px] text-white/25 pb-5">
           Sichere Zahlung via Stripe · Sofortiger Zugang nach Zahlung · Credits verfallen nicht
         </p>
