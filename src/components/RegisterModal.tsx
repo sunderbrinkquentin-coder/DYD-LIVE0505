@@ -3,6 +3,7 @@ import { createPortal } from 'react-dom';
 import { X, Save, CheckCircle, Mail, Lock, User, Eye, EyeOff, AlertCircle } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import Button from './Button';
+import { useAuth } from '../contexts/AuthContext';
 import { authService } from '../services/authService';
 
 interface RegisterModalProps {
@@ -17,7 +18,9 @@ interface RegisterModalProps {
 type PasswordStrength = 'weak' | 'medium' | 'strong';
 
 export default function RegisterModal({ isOpen, onClose, onSuccess, onSkip, prefilledEmail, initialMode = 'signup' }: RegisterModalProps) {
-  const [mode, setMode] = useState<'signup' | 'login'>(initialMode);
+  const [mode, setMode] = useState<'signup' | 'login' | 'forgot'>(initialMode);
+  const { resetPassword } = useAuth();
+  const [success, setSuccess] = useState('');
   const [email, setEmail] = useState(prefilledEmail || '');
   const [password, setPassword] = useState('');
   const [fullName, setFullName] = useState('');
@@ -33,6 +36,9 @@ export default function RegisterModal({ isOpen, onClose, onSuccess, onSkip, pref
     }
     if (isOpen) {
       setMode(initialMode);
+      setError('');
+      setSuccess('');
+      setPassword('');
       // Lock scroll on both html and body
       document.documentElement.style.overflow = 'hidden';
       document.body.style.overflow = 'hidden';
@@ -85,11 +91,19 @@ export default function RegisterModal({ isOpen, onClose, onSuccess, onSkip, pref
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (loading) return;
     setError('');
+    setSuccess('');
 
     setLoading(true);
 
     try {
+      if (mode === 'forgot') {
+        const result = await resetPassword(email.trim());
+        if (result.success) setSuccess(result.message || 'Wenn ein Konto mit dieser Adresse besteht, erhältst du einen Link zum Zurücksetzen. Bitte prüfe auch deinen Spam-Ordner.');
+        else setError(result.error || 'Die E-Mail konnte nicht angefordert werden. Bitte versuche es erneut.');
+        return;
+      }
       if (mode === 'signup') {
         const { user, error: signUpError } = await authService.signUp({
           email,
@@ -99,7 +113,7 @@ export default function RegisterModal({ isOpen, onClose, onSuccess, onSkip, pref
 
         if (signUpError) {
           if (signUpError.message.includes('already registered')) {
-            setError('Diese E-Mail ist bereits registriert. <a href="#" class="underline text-primary">Zum Login</a>');
+            setError('Diese E-Mail ist bereits registriert. Wechsle unten zum Login.');
           } else {
             setError(signUpError.message);
           }
@@ -181,6 +195,7 @@ export default function RegisterModal({ isOpen, onClose, onSuccess, onSkip, pref
             background: '#132F4C',
             boxShadow: '0 20px 60px rgba(0, 0, 0, 0.5)',
             maxHeight: '90vh',
+            overflowY: 'auto',
           }}
         >
           <button
@@ -202,7 +217,7 @@ export default function RegisterModal({ isOpen, onClose, onSuccess, onSkip, pref
           </motion.div>
 
           <h2 className="text-3xl font-bold text-center mb-4">
-            {mode === 'signup' ? '💾 Speichere deinen optimierten CV' : 'Willkommen zurück'}
+            {mode === 'forgot' ? 'Passwort zurücksetzen' : mode === 'signup' ? '💾 Speichere deinen optimierten CV' : 'Willkommen zurück'}
           </h2>
 
           {mode === 'signup' && (
@@ -256,6 +271,8 @@ export default function RegisterModal({ isOpen, onClose, onSuccess, onSkip, pref
                 <Mail className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400" size={20} />
                 <input
                   type="email"
+                  required
+                  autoComplete="email"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   className="w-full bg-white bg-opacity-5 border-2 border-gray-600 border-opacity-20 rounded-lg pl-12 pr-4 py-3 text-white focus:outline-none focus:border-primary focus:ring-4 focus:ring-primary focus:ring-opacity-20 transition-all"
@@ -264,6 +281,7 @@ export default function RegisterModal({ isOpen, onClose, onSuccess, onSkip, pref
               </div>
             </div>
 
+            {mode !== 'forgot' && (
             <div>
               <label className="block text-sm font-medium text-gray-300 mb-2">
                 {mode === 'signup' ? 'Passwort erstellen' : 'Passwort'}
@@ -303,6 +321,11 @@ export default function RegisterModal({ isOpen, onClose, onSuccess, onSkip, pref
               )}
             </div>
 
+            )}
+            {mode === 'login' && (
+              <button type="button" disabled={loading} onClick={() => { setMode('forgot'); setError(''); setSuccess(''); }} className="text-sm text-primary hover:underline">Passwort vergessen?</button>
+            )}
+
             {mode === 'signup' && (
               <label className="flex items-start gap-2 cursor-pointer">
                 <input
@@ -327,19 +350,22 @@ export default function RegisterModal({ isOpen, onClose, onSuccess, onSkip, pref
             {error && (
               <div className="flex items-start gap-2 p-3 bg-red-500 bg-opacity-10 border border-red-500 border-opacity-30 rounded-lg">
                 <AlertCircle className="text-red-400 flex-shrink-0 mt-0.5" size={18} />
-                <p className="text-sm text-red-400" dangerouslySetInnerHTML={{ __html: error }} />
+                <p className="text-sm text-red-400" role="alert">{error}</p>
               </div>
             )}
+
+            {success && <p role="status" className="p-3 rounded-lg bg-green-500/10 text-green-300 text-sm">{success}</p>}
 
             <Button
               type="submit"
               className="w-full"
               disabled={loading}
             >
-              {loading ? 'Lädt...' : mode === 'signup' ? 'Account erstellen & downloaden' : 'Einloggen & downloaden'}
+              {loading ? 'Lädt...' : mode === 'forgot' ? 'Link zum Zurücksetzen senden' : mode === 'signup' ? 'Account erstellen & downloaden' : 'Einloggen & downloaden'}
             </Button>
           </form>
 
+          {mode !== 'forgot' && <>
           <div className="relative mb-6">
             <div className="absolute inset-0 flex items-center">
               <div className="w-full border-t border-gray-600"></div>
@@ -372,15 +398,17 @@ export default function RegisterModal({ isOpen, onClose, onSuccess, onSkip, pref
             </button>
           </div>
 
+          </>}
           <div className="text-center mb-6">
             <button
               onClick={() => {
-                setMode(mode === 'signup' ? 'login' : 'signup');
+                setMode(mode === 'forgot' || mode === 'signup' ? 'login' : 'signup');
+                setSuccess('');
                 setError('');
               }}
               className="text-sm text-gray-400 hover:text-white transition-colors"
             >
-              {mode === 'signup' ? 'Bereits ein Account? Einloggen' : 'Noch kein Account? Registrieren'}
+              {mode === 'forgot' ? 'Zurück zur Anmeldung' : mode === 'signup' ? 'Bereits ein Account? Einloggen' : 'Noch kein Account? Registrieren'}
             </button>
           </div>
 
