@@ -14,7 +14,7 @@ const CERT_BUCKET_FALLBACK = 'cv-files';
 const LOGO_PATH = '/DYD Logo RGB.svg';
 
 export function verifyUrlFor(certificateId: string): string {
-  return `${PUBLIC_SITE_URL}/#/verify/${encodeURIComponent(certificateId)}`;
+  return `${PUBLIC_SITE_URL}/verify/${encodeURIComponent(certificateId)}`;
 }
 
 /* ────────────────────────────────────────────────────────────
