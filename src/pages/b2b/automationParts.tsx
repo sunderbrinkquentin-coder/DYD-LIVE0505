@@ -7,43 +7,34 @@
 
 import { useEffect, useState } from 'react';
 import { AnimatePresence, motion, useReducedMotion } from 'framer-motion';
-import { ArrowLeft, ArrowRight, Check, CheckCircle2, Loader2, Maximize2, Sparkles, Smartphone, Rocket, Wand2, X } from 'lucide-react';
+import { ArrowLeft, ArrowRight, Check, CheckCircle2, Loader2, Maximize2, X } from 'lucide-react';
 import { supabase } from '../../lib/supabase';
-import { VoiceInput } from '../../components/VoiceInput';
-import { triggerB2bBriefing } from '../../lib/b2bBriefing';
 import { automationContent as c, type RefShot } from './automationContent';
 
 export const LIME = '#DEFF9A';
 export const SKY = '#38BDF8';
 export const NAVY = '#0A192F';
 
-/** Terminvorschläge für das Erstgespräch im Prozess-Check */
-
 /* ─── Geräterahmen ─────────────────────────────────────────────────────── */
 export function BrowserFrame({ src, alt, eager = false, className = '' }: { src: string; alt: string; eager?: boolean; className?: string }) {
   return (
-    <div className={`relative rounded-xl p-[1px] bg-gradient-to-br from-white/25 via-white/10 to-white/[0.04] shadow-[0_40px_90px_-30px_rgba(0,0,0,0.85),0_0_60px_-20px_rgba(56,189,248,0.25)] ${className}`}>
-      <div className="rounded-[calc(0.75rem-1px)] overflow-hidden bg-[#0b1626] ring-1 ring-black/40">
-        <div className="relative flex items-center gap-1.5 px-3 py-2 bg-gradient-to-b from-[#12233c] to-[#0d1b2e] border-b border-white/5" aria-hidden="true">
-          <span className="w-2 h-2 rounded-full bg-[#ff5f57] shadow-[0_0_6px_rgba(255,95,87,0.6)]" />
-          <span className="w-2 h-2 rounded-full bg-[#febc2e] shadow-[0_0_6px_rgba(254,188,46,0.5)]" />
-          <span className="w-2 h-2 rounded-full bg-[#28c840] shadow-[0_0_6px_rgba(40,200,64,0.5)]" />
-          <span className="ml-3 h-4 flex-1 max-w-[220px] rounded-full bg-white/[0.06]" />
-        </div>
-        <img src={src} alt={alt} loading={eager ? 'eager' : 'lazy'} decoding="async" className="block w-full h-auto" />
+    <div className={`rounded-xl overflow-hidden bg-[#0b1626] border border-white/10 shadow-[0_30px_80px_-30px_rgba(0,0,0,0.7)] ${className}`}>
+      <div className="flex items-center gap-1.5 px-3 py-2 bg-[#0d1b2e] border-b border-white/5" aria-hidden="true">
+        <span className="w-2 h-2 rounded-full bg-[#ff5f57]" />
+        <span className="w-2 h-2 rounded-full bg-[#febc2e]" />
+        <span className="w-2 h-2 rounded-full bg-[#28c840]" />
       </div>
+      <img src={src} alt={alt} loading={eager ? 'eager' : 'lazy'} decoding="async" className="block w-full h-auto" />
     </div>
   );
 }
 
 export function PhoneFrame({ src, alt, eager = false, className = '' }: { src: string; alt: string; eager?: boolean; className?: string }) {
   return (
-    <div className={`relative rounded-[2rem] p-[1px] bg-gradient-to-b from-white/30 via-white/10 to-white/[0.05] shadow-[0_45px_90px_-25px_rgba(0,0,0,0.9),0_0_50px_-15px_rgba(56,189,248,0.3)] ${className}`}>
-      <div className="rounded-[calc(2rem-1px)] p-[7px] bg-gradient-to-b from-[#0d1c30] via-[#071426] to-[#04101f] ring-1 ring-black/50">
-        <div className="relative rounded-[1.55rem] overflow-hidden ring-1 ring-white/10">
-          <span aria-hidden="true" className="absolute top-1.5 left-1/2 -translate-x-1/2 w-16 h-4 rounded-full bg-black/85 z-10 shadow-[inset_0_0_4px_rgba(0,0,0,0.8)]" />
-          <img src={src} alt={alt} loading={eager ? 'eager' : 'lazy'} decoding="async" className="block w-full h-auto" />
-        </div>
+    <div className={`rounded-[2rem] p-1.5 bg-[#05101f] border border-white/15 shadow-[0_30px_80px_-25px_rgba(0,0,0,0.8)] ${className}`}>
+      <div className="relative rounded-[1.6rem] overflow-hidden">
+        <span aria-hidden="true" className="absolute top-1.5 left-1/2 -translate-x-1/2 w-16 h-4 rounded-full bg-black/80 z-10" />
+        <img src={src} alt={alt} loading={eager ? 'eager' : 'lazy'} decoding="async" className="block w-full h-auto" />
       </div>
     </div>
   );
@@ -51,10 +42,8 @@ export function PhoneFrame({ src, alt, eager = false, className = '' }: { src: s
 
 export function DocFrame({ src, alt, className = '' }: { src: string; alt: string; className?: string }) {
   return (
-    <div className={`relative rounded-md p-[1px] bg-gradient-to-br from-white/25 via-white/10 to-white/[0.04] shadow-[0_40px_90px_-25px_rgba(0,0,0,0.85),0_0_50px_-20px_rgba(222,255,154,0.2)] rotate-[-1deg] ${className}`}>
-      <div className="rounded-[calc(0.375rem-1px)] overflow-hidden bg-white ring-1 ring-black/20">
-        <img src={src} alt={alt} loading="lazy" decoding="async" className="block w-full h-auto" />
-      </div>
+    <div className={`rounded-md overflow-hidden bg-white shadow-[0_30px_80px_-25px_rgba(0,0,0,0.7)] rotate-[-1deg] ${className}`}>
+      <img src={src} alt={alt} loading="lazy" decoding="async" className="block w-full h-auto" />
     </div>
   );
 }
@@ -84,11 +73,11 @@ export function ShotViewer({ shots }: { shots: readonly RefShot[] }) {
     <div>
       {allMobile ? (
         /* Handy-Apps: alle Ansichten nebeneinander statt Umschalten */
-        <div className="flex gap-4 sm:gap-7 justify-start sm:justify-center items-end overflow-x-auto snap-x snap-mandatory pb-3 -mx-1 px-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+        <div className="flex gap-3 sm:gap-5 justify-start sm:justify-center items-end overflow-x-auto snap-x snap-mandatory pb-2 -mx-1 px-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
           {shots.map((s, k) => (
             <figure key={s.src} className={`flex-shrink-0 snap-center ${k === 1 ? 'sm:-translate-y-6' : ''}`}>
-              <PhoneFrame src={s.src} alt={s.alt} className="w-[185px] sm:w-[210px]" />
-              <figcaption className="mt-3 max-w-[210px] text-center font-arimo text-[11px] text-white/60 leading-snug">{s.caption}</figcaption>
+              <PhoneFrame src={s.src} alt={s.alt} className="w-[180px] sm:w-[200px]" />
+              <figcaption className="mt-3 max-w-[200px] text-center font-arimo text-[11px] text-white/55 leading-snug">{s.caption}</figcaption>
             </figure>
           ))}
         </div>
@@ -148,69 +137,120 @@ export function ShotViewer({ shots }: { shots: readonly RefShot[] }) {
   );
 }
 
-/* ─── Eigene App-Idee: individuelles Erlebnis-Panel ────────────────────── */
-const APP_IDEAS = ['Kunden-App', 'Buchungs-App', 'Community-App', 'Sales-App', 'Mitglieder-App', 'Ihre Idee'];
-
-export function AppIdeaPanel({ startCheck, openRef }: { startCheck: (area?: string, details?: string) => void; openRef: (id: string) => void }) {
+/* ─── Prozess-Check: 3 Schritte → Anfrage ──────────────────────────────── */
+export function ProcessCheck({ presetArea }: { presetArea?: string | null }) {
   const reduce = useReducedMotion() ?? false;
-  const [idea, setIdea] = useState<string>('');
+  const [step, setStep] = useState(0);
+  const [area, setArea] = useState<string>('');
+  const [volume, setVolume] = useState<string>('');
+  const [timing, setTiming] = useState<string>('');
+  const [form, setForm] = useState({ name: '', company: '', email: '', phone: '', note: '' });
+  const [status, setStatus] = useState<'idle' | 'sending' | 'done' | 'error'>('idle');
+  const [error, setError] = useState('');
+
+  // Vorauswahl aus dem "Wo verlieren Sie Zeit?"-Finder
+  useEffect(() => {
+    if (presetArea) { setArea(presetArea); setStep(1); }
+  }, [presetArea]);
+
+  const submit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setStatus('sending'); setError('');
+    const message = [
+      `Prozess-Check (Automatisierung)`,
+      `Bereich: ${area}`,
+      `Zeitaufwand heute: ${volume}`,
+      `Zeitrahmen: ${timing}`,
+      form.note.trim() ? `\nAblauf: ${form.note.trim()}` : '',
+    ].filter(Boolean).join('\n');
+    try {
+      const { error: err } = await supabase.from('b2b_contact_requests').insert({
+        company_name: form.company.trim() || '–',
+        contact_name: form.name.trim(),
+        email: form.email.trim(),
+        phone: form.phone.trim() || null,
+        segment: 'automatisierung',
+        message,
+      });
+      if (err) throw err;
+      setStatus('done');
+    } catch (err) {
+      setStatus('error');
+      setError(err instanceof Error ? err.message : 'Senden fehlgeschlagen.');
+    }
+  };
+
+  const Choice = ({ value, current, onPick }: { value: string; current: string; onPick: (v: string) => void }) => (
+    <button
+      type="button"
+      onClick={() => { onPick(value); setStep((s) => s + 1); }}
+      className={`flex items-center justify-between gap-3 w-full text-left px-4 py-3.5 rounded-xl border font-arimo text-sm font-semibold transition b2b-focus-ring ${
+        current === value ? 'border-[#DEFF9A] bg-[#DEFF9A]/10 text-white' : 'border-white/12 bg-white/[0.03] text-white/80 hover:border-white/30 hover:bg-white/[0.06]'
+      }`}
+    >
+      {value}
+      <ArrowRight className="w-4 h-4 text-white/40 flex-shrink-0" aria-hidden="true" />
+    </button>
+  );
+
+  const titles = ['Um welchen Bereich geht es?', 'Wie viel Zeit kostet das heute?', 'Wann soll es losgehen?', 'Wohin dürfen wir die Einschätzung schicken?'];
+  const input = 'w-full px-4 py-3 rounded-xl bg-white/[0.05] border border-white/12 text-white placeholder-white/35 font-arimo text-sm focus:outline-none focus:border-[#DEFF9A]';
+
+  if (status === 'done') {
+    return (
+      <div className="text-center py-10">
+        <CheckCircle2 className="w-12 h-12 mx-auto text-[#DEFF9A] mb-4" aria-hidden="true" />
+        <p className="font-poppins font-black text-2xl text-white mb-2">Anfrage ist da!</p>
+        <p className="font-arimo text-white/65 max-w-md mx-auto">{c.check.success}</p>
+      </div>
+    );
+  }
 
   return (
-    <div className="grid md:grid-cols-12 gap-6 items-center rounded-3xl p-5 sm:p-8 bg-gradient-to-br from-[#DEFF9A]/[0.07] via-white/[0.03] to-[#38BDF8]/[0.07] border border-[#DEFF9A]/30">
-      <div className="md:col-span-5 order-2 md:order-1">
-        <div className="flex items-center gap-2 mb-3">
-          <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full font-arimo text-[10px] font-bold uppercase tracking-wide bg-[#DEFF9A]/15 text-[#DEFF9A]"><Wand2 className="w-3 h-3" aria-hidden="true" />100 % individuell</span>
-          <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full font-arimo text-[10px] font-bold uppercase tracking-wide bg-[#38BDF8]/15 text-[#7dd3fc]">Idee → klickbare App</span>
-        </div>
-        <p className="font-poppins font-black text-2xl leading-tight mb-3" style={{ letterSpacing: '-0.02em' }}>
-          Ihre App. Ganz nach Ihren Wünschen.
-        </p>
-        <p className="font-arimo text-white/75 mb-4 leading-relaxed">
-          Bei einer eigenen App bin ich <span className="font-bold text-[#DEFF9A]">ganz individuell unterwegs</span> – von der ersten Skizze über Design und Funktionen bis zum Betrieb. Sie sagen, was Ihre Kunden brauchen; ich setze es um, Schritt für Schritt mit frühen Testversionen zum Anfassen.
-        </p>
-        <p className="font-arimo text-xs font-bold uppercase tracking-wide text-[#DEFF9A] mb-2 flex items-center gap-1.5"><Rocket className="w-3.5 h-3.5" aria-hidden="true" />Was Sie bekommen</p>
-        <ul className="space-y-2 mb-5">
-          {['Alles nach Ihren Kundenwünschen – keine Baukasten-Grenzen', 'Früh eine klickbare Version statt langer Wartezeit', 'Fester Preis pro Baustein, flexibel erweiterbar', 'Übergabe inkl. Einführung – Sie behalten die Kontrolle'].map((t) => (
-            <li key={t} className="flex items-start gap-2 font-arimo text-sm text-white/85"><Check className="w-4 h-4 text-[#DEFF9A] flex-shrink-0 mt-0.5" aria-hidden="true" />{t}</li>
-          ))}
-        </ul>
-
-        <p className="font-arimo text-[11px] font-bold uppercase tracking-wide text-white/60 mb-2">Wonach klingt es bei Ihnen?</p>
-        <div className="flex flex-wrap gap-1.5 mb-5">
-          {APP_IDEAS.map((label) => (
-            <button key={label} type="button" aria-pressed={idea === label}
-              onClick={() => setIdea(idea === label ? '' : label)}
-              className={`px-3 py-1.5 rounded-full font-arimo text-xs font-bold border transition b2b-focus-ring ${idea === label ? 'text-[#0A192F] border-transparent' : 'text-white/70 border-white/15 hover:text-white hover:border-[#DEFF9A]/50'}`}
-              style={idea === label ? { background: 'linear-gradient(135deg, #DEFF9A, #38BDF8)' } : undefined}>
-              {label}
-            </button>
-          ))}
-        </div>
-
-        <div className="flex flex-col sm:flex-row gap-2.5">
-          <button type="button" onClick={() => startCheck('Eigene App-Idee', idea ? `Eigene App – Richtung: ${idea}` : 'Eigene App – individuelle Idee')}
-            className="group inline-flex items-center justify-center gap-2 px-5 py-3 rounded-xl font-arimo font-bold text-sm text-[#0A192F] b2b-focus-ring transition hover:-translate-y-0.5 hover:shadow-xl hover:shadow-[#DEFF9A]/25"
-            style={{ background: 'linear-gradient(135deg, #DEFF9A, #38BDF8)' }}>
-            App-Idee als Anfrage starten <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" aria-hidden="true" />
-          </button>
-          <button type="button" onClick={() => openRef('beziehung')} className="inline-flex items-center justify-center gap-2 px-5 py-3 rounded-xl font-arimo font-bold text-sm text-white border border-white/20 hover:bg-white/5 b2b-focus-ring">
-            Beispiel-App ansehen <Smartphone className="w-4 h-4 text-[#38BDF8]" aria-hidden="true" />
-          </button>
-        </div>
+    <div>
+      {/* Fortschritt */}
+      <div className="flex items-center gap-2 mb-6" aria-hidden="true">
+        {[0, 1, 2, 3].map((k) => (
+          <span key={k} className="h-1.5 flex-1 rounded-full transition-colors" style={{ background: k <= step ? LIME : 'rgba(255,255,255,0.12)' }} />
+        ))}
       </div>
-      <button type="button" onClick={() => openRef('beziehung')} className="md:col-span-7 order-1 md:order-2 block text-left b2b-focus-ring rounded-xl group" aria-label="Beispiel einer eigenen App ansehen">
-        <motion.div whileHover={reduce ? undefined : { scale: 1.015 }} transition={{ type: 'spring', stiffness: 300, damping: 24 }} className="relative">
-          <div className="flex gap-5 justify-center items-end">
-            <PhoneFrame src="/b2b/refs/crm-cockpit.webp" alt="Individuelle Business-App: Kunden-Cockpit mit KI-Tagesbriefing (Beispiel)" className="w-[185px] sm:w-[205px]" />
-            <PhoneFrame src="/b2b/refs/buchung-bestaetigung.webp" alt="Individuelle Business-App: automatische Buchungsbestätigung (Beispiel)" className="w-[185px] sm:w-[205px] sm:-translate-y-6" />
-          </div>
-          <div className="absolute inset-x-0 bottom-0 flex justify-center">
-            <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full font-arimo text-[11px] font-bold bg-black/70 text-white border border-white/20 backdrop-blur group-hover:bg-black/85 transition">
-              <Smartphone className="w-3.5 h-3.5 text-[#38BDF8]" aria-hidden="true" />So könnte Ihre Business-App live aussehen
-            </span>
-          </div>
+      <div className="flex items-center justify-between mb-4">
+        <p className="font-poppins font-bold text-lg text-white">{titles[step]}</p>
+        {step > 0 && (
+          <button type="button" onClick={() => setStep((s) => s - 1)} className="inline-flex items-center gap-1 font-arimo text-xs font-bold text-white/50 hover:text-white b2b-focus-ring rounded">
+            <ArrowLeft className="w-3.5 h-3.5" aria-hidden="true" /> Zurück
+          </button>
+        )}
+      </div>
+
+      <AnimatePresence mode="wait">
+        <motion.div key={step} initial={{ opacity: 0, x: reduce ? 0 : 16 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: reduce ? 0 : -16 }} transition={{ duration: reduce ? 0 : 0.2 }}>
+          {step === 0 && <div className="grid sm:grid-cols-2 gap-2.5">{c.check.areas.map((a) => <Choice key={a} value={a} current={area} onPick={setArea} />)}</div>}
+          {step === 1 && <div className="grid gap-2.5">{c.check.volumes.map((a) => <Choice key={a} value={a} current={volume} onPick={setVolume} />)}</div>}
+          {step === 2 && <div className="grid gap-2.5">{c.check.timings.map((a) => <Choice key={a} value={a} current={timing} onPick={setTiming} />)}</div>}
+          {step === 3 && (
+            <form onSubmit={submit} className="grid gap-3">
+              <div className="flex flex-wrap gap-1.5 mb-1">
+                {[area, volume, timing].filter(Boolean).map((t) => (
+                  <span key={t} className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-[#DEFF9A]/10 border border-[#DEFF9A]/30 font-arimo text-[11px] font-bold text-[#DEFF9A]"><Check className="w-3 h-3" aria-hidden="true" />{t}</span>
+                ))}
+              </div>
+              <div className="grid sm:grid-cols-2 gap-3">
+                <input className={input} required placeholder="Ihr Name *" autoComplete="name" value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} aria-label="Ihr Name" />
+                <input className={input} placeholder="Unternehmen" autoComplete="organization" value={form.company} onChange={(e) => setForm({ ...form, company: e.target.value })} aria-label="Unternehmen" />
+                <input className={input} required type="email" placeholder="E-Mail *" autoComplete="email" value={form.email} onChange={(e) => setForm({ ...form, email: e.target.value })} aria-label="E-Mail" />
+                <input className={input} type="tel" placeholder="Telefon (optional)" autoComplete="tel" value={form.phone} onChange={(e) => setForm({ ...form, phone: e.target.value })} aria-label="Telefon" />
+              </div>
+              <textarea className={`${input} resize-none`} rows={3} placeholder="Optional: Welcher Ablauf nervt am meisten?" value={form.note} onChange={(e) => setForm({ ...form, note: e.target.value })} aria-label="Ablauf beschreiben" />
+              {status === 'error' && <p className="font-arimo text-sm text-red-400">{error}</p>}
+              <button type="submit" disabled={status === 'sending'} className="mt-1 inline-flex items-center justify-center gap-2 w-full px-6 py-4 rounded-2xl font-arimo font-bold text-[#0A192F] b2b-focus-ring transition hover:shadow-xl hover:shadow-[#DEFF9A]/20 disabled:opacity-60" style={{ background: `linear-gradient(135deg, ${LIME}, ${SKY})` }}>
+                {status === 'sending' ? <><Loader2 className="w-4 h-4 animate-spin" aria-hidden="true" /> Wird gesendet …</> : <>Kostenlose Einschätzung anfordern <ArrowRight className="w-4 h-4" aria-hidden="true" /></>}
+              </button>
+              <p className="font-arimo text-[11px] text-white/40 text-center">Unverbindlich und kostenlos. Ihre Angaben nutzen wir nur für diese Anfrage. <a href="/datenschutz" className="underline hover:text-white/70">Datenschutz</a></p>
+            </form>
+          )}
         </motion.div>
-      </button>
+      </AnimatePresence>
     </div>
   );
 }
