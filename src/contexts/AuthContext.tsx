@@ -177,7 +177,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const resetPassword = async (email: string) => {
     try {
-      const { error } = await supabase.auth.resetPasswordForEmail(email, {
+      const { error } = await supabase.auth.resetPasswordForEmail(email.trim(), {
         redirectTo: `${window.location.origin}/reset-password`,
       });
 
@@ -188,7 +188,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       return {
         success: true,
         message:
-          'Wir haben dir eine E-Mail mit einem Link zum Zurücksetzen deines Passworts gesendet.',
+          'Wenn ein Konto mit dieser E-Mail-Adresse besteht, erhältst du einen Link zum Zurücksetzen. Bitte prüfe auch deinen Spam-Ordner.',
       };
     } catch (error: any) {
       return { success: false, error: error.message };
