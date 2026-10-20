@@ -9,6 +9,7 @@
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import Stripe from "npm:stripe@17.5.0";
 import { createClient } from "npm:@supabase/supabase-js@2.57.4";
+import { updateContactAttributes } from "../_shared/brevo.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -121,6 +122,18 @@ Deno.serve(async (req: Request) => {
       }
 
       const supabase = createClient(supabaseUrl, supabaseServiceKey);
+
+      // Newsletter-Willkommensrabatt als eingelöst markieren (einmalig)
+      if (session.metadata?.newsletter_discount === "1" && session.metadata?.user_id) {
+        const { data: nl } = await supabase
+          .from("newsletter_subscribers")
+          .update({ discount_redeemed_at: new Date().toISOString(), discount_session_id: session.id })
+          .eq("user_id", session.metadata.user_id)
+          .is("discount_redeemed_at", null)
+          .select("email")
+          .maybeSingle();
+        if (nl?.email) await updateContactAttributes(nl.email, { DISCOUNT_REDEEMED: true });
+      }
 
       // ────────────────────────────────────────────────────────────────────────
       // A) FESTIVAL-TICKET  (idempotent per (stripe_session_id, ticket_index))
