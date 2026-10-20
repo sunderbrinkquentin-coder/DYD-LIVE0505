@@ -14,9 +14,8 @@ export default function CareerVisionPage() {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
 
-  // Nach Stripe-Redirect: /#/career-vision?resume={pathId}
+  // Nach Stripe-Redirect: /career-vision?resume={pathId}
   const resumePathId = searchParams.get('resume') || searchParams.get('analysis') || undefined;
-  console.log('[CareerVisionPage] resumePathId:', resumePathId, '| hash:', window.location.hash);
 
   const [cvId, setCvId] = useState<string | null>(null);
   const [userPaths, setUserPaths] = useState<LearningPath[]>([]);
