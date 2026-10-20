@@ -96,7 +96,7 @@ export function DsgvoConsentDialog({ isOpen, type, onAccept, onDecline }: DsgvoC
             <div className="mt-5 flex items-center justify-center gap-1.5">
               <FileText size={12} className="text-white/30" />
               <a
-                href="/#/datenschutz"
+                href="/datenschutz"
                 className="text-xs text-white/40 hover:text-[#66c0b6] transition-colors underline"
               >
                 Zur Datenschutzerklärung
