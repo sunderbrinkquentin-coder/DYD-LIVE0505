@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { X, Search, TrendingUp, BarChart3, CheckCircle2, ArrowRight, Sparkles, Clock, ShieldCheck, Brain } from 'lucide-react';
 import { supabase } from '../../lib/supabase';
 import { advisorCheckoutMetadata } from '../../features/advisor/advisorAttribution';
+import { NewsletterDiscountHint } from '../../features/newsletter/NewsletterDiscountHint';
 
 const PRICE_ID = import.meta.env.VITE_STRIPE_PRICE_SKILLGAP || 'price_1TX5kM3Sd9dZl64SnHfqWvLx';
 const STRIPE_CHECKOUT_URL = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/stripe-checkout`;
@@ -60,8 +61,8 @@ export function SkillGapPaywall({ isOpen, onClose, learningPathId, targetJob, ta
 
       const origin = window.location.origin;
       // ✅ Fix: ?resume= statt ?analysis= damit resumePathId-Flow in CareerVisionSection greift
-      const successUrl = `${origin}/#/career-vision?resume=${learningPathId}&session_id={CHECKOUT_SESSION_ID}`;
-      const cancelUrl  = `${origin}/#/career-vision`;
+      const successUrl = `${origin}/career-vision?resume=${learningPathId}&session_id={CHECKOUT_SESSION_ID}`;
+      const cancelUrl  = `${origin}/career-vision`;
 
       const resp = await fetch(STRIPE_CHECKOUT_URL, {
         method: 'POST',
@@ -203,6 +204,7 @@ export function SkillGapPaywall({ isOpen, onClose, learningPathId, targetJob, ta
             </div>
           )}
 
+          <div className="px-6 pb-3"><NewsletterDiscountHint source="skillgap-paywall" /></div>
           <div className="p-6 pt-0 space-y-3">
             <button
               onClick={handleCheckout}
