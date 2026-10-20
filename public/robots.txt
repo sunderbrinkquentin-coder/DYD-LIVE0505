@@ -1,29 +1,72 @@
-# decide-your-dream.de
-# Klassische Suchmaschinen: alles erlaubt.
+# decide-your-dream.de – robots.txt
+# Suchmaschinen und KI-Antwortmaschinen sind ausdrücklich willkommen,
+# damit DYD in Suchergebnissen und KI-Antworten zitiert werden kann.
+# Kurzfassung für Sprachmodelle: https://decide-your-dream.de/llms.txt
+
 User-agent: *
 Allow: /
+Disallow: /dashboard
+Disallow: /login
+Disallow: /reset-password
+Disallow: /cv-paywall
+Disallow: /payment-success
+Disallow: /festival-success
+Disallow: /cv-live-editor/
+Disallow: /cv-export-render/
+Disallow: /admin/
+Disallow: /.netlify/
+Disallow: /newsletter/
 
-# KI-/GEO-Crawler (Antwort-Engines) explizit erlaubt, damit DYD, DYD NEXUS
-# und DYD ORBIT in KI-generierten Antworten zitiert werden können.
+# OpenAI (ChatGPT-Suche, Training, Nutzer-Abrufe)
+User-agent: OAI-SearchBot
+Allow: /
+User-agent: ChatGPT-User
+Allow: /
 User-agent: GPTBot
 Allow: /
 
-User-agent: ChatGPT-User
-Allow: /
-
+# Anthropic (Claude)
 User-agent: ClaudeBot
 Allow: /
-
+User-agent: Claude-SearchBot
+Allow: /
 User-agent: Claude-User
 Allow: /
-
 User-agent: anthropic-ai
 Allow: /
 
+# Perplexity
 User-agent: PerplexityBot
 Allow: /
+User-agent: Perplexity-User
+Allow: /
 
+# Google (Gemini / AI Overviews) und Microsoft (Copilot via Bing)
 User-agent: Google-Extended
+Allow: /
+User-agent: Googlebot
+Allow: /
+User-agent: Bingbot
+Allow: /
+
+# Apple, Meta, Amazon, DuckDuckGo, Mistral, Cohere, You.com, Common Crawl
+User-agent: Applebot
+Allow: /
+User-agent: Applebot-Extended
+Allow: /
+User-agent: meta-externalagent
+Allow: /
+User-agent: Amazonbot
+Allow: /
+User-agent: DuckAssistBot
+Allow: /
+User-agent: MistralAI-User
+Allow: /
+User-agent: cohere-ai
+Allow: /
+User-agent: YouBot
+Allow: /
+User-agent: CCBot
 Allow: /
 
 Sitemap: https://decide-your-dream.de/sitemap.xml
