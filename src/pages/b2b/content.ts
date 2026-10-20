@@ -740,8 +740,8 @@ cpa: {
     linkedin: 'https://www.linkedin.com/in/quentin-sunderbrink',
     applicantUrl: '/',
     legalLinks: [
-      { label: 'Impressum', href: '/#/impressum' },
-      { label: 'Datenschutz', href: '/#/datenschutz' },
+      { label: 'Impressum', href: '/impressum' },
+      { label: 'Datenschutz', href: '/datenschutz' },
     ],
     impressum: {
       heading: 'Impressum',
