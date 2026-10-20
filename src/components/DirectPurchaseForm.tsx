@@ -61,8 +61,7 @@ export function DirectPurchaseForm({ plan, onClose }: DirectPurchaseFormProps) {
 
     setSubmitting(true);
     try {
-      const hashPath = window.location.hash.replace(/^#/, "").split("?")[0] || "/";
-      const base = `${window.location.origin}/#${hashPath}`;
+      const base = `${window.location.origin}${window.location.pathname}`;
       const { checkout_url } = await createDirectCheckoutSession(
         API_BASE,
         { email, password, companyName, contactName, plan, interval },
