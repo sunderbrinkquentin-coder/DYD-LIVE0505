@@ -25,7 +25,7 @@ const POLL_MAX = 80;           // 80 × 3s = 4 Minuten
 const FALLBACK_TIMEOUT_MS = 150_000; // 2.5 Minuten bevor Fallback erscheint
 const CV_DATA_POLL_MAX = 30;
 
-const COMPLETE_STATUSES = new Set(['gap_analysis_complete', 'curriculum_ready', 'completed']);
+const COMPLETE_STATUSES = new Set(['gap_analysis_complete', 'curriculum_ready', 'in_progress', 'completed']);
 
 const INDUSTRIES = [
   'Technologie & Software',
@@ -84,7 +84,8 @@ function looksLikeJobTitle(raw: string): boolean {
   return true;
 }
 
-const FAILED_SELECT = 'status,missing_skills,current_skills,strategic_outlook_2026,match_score,industry,target_job,target_company,error_code:skillgap_analysis->>error_code';
+// Optional columns must not make the entire result query fail on older schemas.
+const ANALYSIS_SELECT = '*';
 
 function normalizeCurrentSkills(raw: unknown): RawSkill[] {
   return parseSkills(raw).map((s) => ({
@@ -877,7 +878,7 @@ interface CareerVisionSectionProps {
 }
 
 export function CareerVisionSection({ cvId: initialCvId, onAnalysisComplete, resumePathId }: CareerVisionSectionProps) {
-  const { user } = useAuth();
+  const { user, loading: authLoading } = useAuth();
   const navigate = useNavigate();
 
   // Form state
@@ -927,6 +928,8 @@ export function CareerVisionSection({ cvId: initialCvId, onAnalysisComplete, res
   const pollTimerRef   = useRef<ReturnType<typeof setTimeout> | null>(null);
   const fallbackTimRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const pollCountRef   = useRef(0);
+  const runRef = useRef(0);
+  const revealTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const completedRef   = useRef(false);
   const pathIdRef      = useRef<string | null>(null);
 
@@ -972,7 +975,11 @@ export function CareerVisionSection({ cvId: initialCvId, onAnalysisComplete, res
     if (fallbackTimRef.current) { clearTimeout(fallbackTimRef.current); fallbackTimRef.current = null; }
   }, []);
 
-  useEffect(() => () => cleanupListeners(), [cleanupListeners]);
+  useEffect(() => () => {
+    runRef.current += 1;
+    cleanupListeners();
+    if (revealTimerRef.current) clearTimeout(revealTimerRef.current);
+  }, [cleanupListeners]);
 
   // Auto-continue analysis after login
   useEffect(() => {
@@ -989,19 +996,20 @@ export function CareerVisionSection({ cvId: initialCvId, onAnalysisComplete, res
   const handleCompletion = useCallback(
     async (pathId: string, rowData?: Record<string, unknown>) => {
       if (completedRef.current) return;
-      completedRef.current = true;
-      cleanupListeners();
-
+      const run = runRef.current;
       let row: Record<string, unknown> | null = rowData ?? null;
       if (!row || !row.missing_skills) {
         const { data } = await supabase
           .from('learning_paths')
-          .select('status,missing_skills,current_skills,strategic_outlook_2026,match_score,industry,target_job,target_company')
+          .select(ANALYSIS_SELECT)
           .eq('id', pathId)
           .maybeSingle();
         if (data) row = data as Record<string, unknown>;
       }
-      if (!row) return;
+      if (!row || run !== runRef.current || completedRef.current) return;
+      completedRef.current = true;
+      cleanupListeners();
+      setApiError(null);
 
       setResult({
         pathId,
@@ -1015,8 +1023,9 @@ export function CareerVisionSection({ cvId: initialCvId, onAnalysisComplete, res
       });
 
       setPhase('revealing');
-      await new Promise((r) => setTimeout(r, 1_500));
-      setPhase('done');
+      revealTimerRef.current = setTimeout(() => {
+        if (run === runRef.current) setPhase('done');
+      }, 1_500);
     },
     [cleanupListeners, industry, targetJob, targetCompany],
   );
@@ -1027,28 +1036,35 @@ export function CareerVisionSection({ cvId: initialCvId, onAnalysisComplete, res
     if (pollTimerRef.current) clearTimeout(pollTimerRef.current);
     if (fallbackTimRef.current) clearTimeout(fallbackTimRef.current);
     const role = (row.target_job as string) ?? '';
-    setFailCode((row.error_code as string) || 'INTERNAL');
+    completedRef.current = true;
+    cleanupListeners();
+    const analysis = row.skillgap_analysis as { error_code?: string } | null;
+    setFailCode((row.error_code as string) || analysis?.error_code || 'INTERNAL');
     setFailedRole(role);
     setRoleFix('');
     setRoleFixError(null);
     setApiError(null);
     setPhase('failed');
-  }, []);
+  }, [cleanupListeners]);
 
   // ── Polling learning_paths ──────────────────────────────────────────────────
 
   const startPolling = useCallback(
     (pathId: string) => {
+      const run = runRef.current;
       pollCountRef.current = 0;
       const tick = async () => {
-        if (completedRef.current) return;
+        if (run !== runRef.current || completedRef.current) return;
         pollCountRef.current += 1;
         try {
-          const { data } = await supabase
+          const { data, error } = await supabase
             .from('learning_paths')
-            .select(FAILED_SELECT)
+            .select(ANALYSIS_SELECT)
             .eq('id', pathId)
             .maybeSingle();
+          if (run !== runRef.current || completedRef.current) return;
+          if (error) throw error;
+          setApiError(null);
           if (data && COMPLETE_STATUSES.has(data.status as string)) {
             handleCompletion(pathId, data as Record<string, unknown>);
             return;
@@ -1058,34 +1074,42 @@ export function CareerVisionSection({ cvId: initialCvId, onAnalysisComplete, res
             return;
           }
         } catch (e: any) {
+          if (run !== runRef.current || completedRef.current) return;
           console.warn('[CVSection] Poll exception:', e.message);
+          setApiError('Das Ergebnis konnte noch nicht geladen werden. Bitte erneut prüfen.');
         }
-        if (pollCountRef.current < POLL_MAX && !completedRef.current) {
+        if (run === runRef.current && pollCountRef.current < POLL_MAX && !completedRef.current) {
           pollTimerRef.current = setTimeout(tick, POLL_INTERVAL_MS);
+        } else if (run === runRef.current && !completedRef.current) {
+          setPhase('fallback');
         }
       };
       pollTimerRef.current = setTimeout(tick, POLL_INTERVAL_MS);
     },
-    [handleCompletion],
+    [handleCompletion, showFailed],
   );
 
   // ── Realtime ────────────────────────────────────────────────────────────────
 
   const startRealtime = useCallback(
     (pathId: string) => {
+      const run = runRef.current;
       const ch = supabase
         .channel(`cv_section_${pathId}_${Date.now()}`)
         .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'learning_paths', filter: `id=eq.${pathId}` },
           (payload) => {
+            if (run !== runRef.current || completedRef.current) return;
             const row = payload.new as Record<string, unknown>;
             if (COMPLETE_STATUSES.has(row?.status as string)) {
               handleCompletion(pathId, row);
+            } else if (row?.status === 'failed') {
+              showFailed(row);
             }
           })
         .subscribe();
       channelRef.current = ch;
     },
-    [handleCompletion],
+    [handleCompletion, showFailed],
   );
 
   // ── CV-Extraktion — läuft erst NACH der Zahlung ──────────────────────────────
@@ -1112,6 +1136,7 @@ export function CareerVisionSection({ cvId: initialCvId, onAnalysisComplete, res
   // ── Run analysis ────────────────────────────────────────────────────────────
 
 const runAnalysis = useCallback(async () => {
+    if (authLoading || preparing) return;
     if (!targetJob.trim()) { setFormError('Bitte gib eine Zielposition ein.'); return; }
     if (!looksLikeJobTitle(targetJob)) {
       setFormError('Bitte gib eine echte Berufsbezeichnung ein, z. B. „Projektmanager“ oder „Data Analyst“.');
@@ -1203,196 +1228,112 @@ const runAnalysis = useCallback(async () => {
     }
   }, [
     targetJob, targetCompany, industry, visionDescription,
-    activeCvId, useNewCv, newCvFile, user, requestConsent,
+    activeCvId, useNewCv, newCvFile, user, authLoading, preparing, requestConsent,
   ]);
   // ── Trigger skillgap Edge Function ──────────────────────────────────────────
 
   const triggerSkillgapWebhook = useCallback(async (pathId: string, correctedTargetJob?: string) => {
+    cleanupListeners();
+    const run = ++runRef.current;
+    const active = () => run === runRef.current && !completedRef.current;
     setPhase('waiting');
+    setApiError(null);
     completedRef.current = false;
     pathIdRef.current = pathId;
 
-    // Analyse serverseitig starten (Edge Function skillgap-analyze).
-    // Die Funktion prüft Login, Besitz und Zahlung selbst und verhindert Doppelstarts.
+    // Observe BEFORE invoking: a slow/failed HTTP response must not hide a
+    // successfully persisted result, and Realtime is not required for completion.
+    startRealtime(pathId);
+    startPolling(pathId);
+    fallbackTimRef.current = setTimeout(() => {
+      if (active()) setPhase('fallback');
+    }, FALLBACK_TIMEOUT_MS);
+
     try {
-      const { data: started, error: fnError } = await supabase.functions.invoke('skillgap-analyze', {
+      const { data: started, error } = await supabase.functions.invoke('skillgap-analyze', {
         body: { learning_path_id: pathId, ...(correctedTargetJob ? { target_job: correctedTargetJob } : {}) },
       });
-      if (fnError) console.warn('[CVSection] skillgap-analyze:', fnError.message);
-      // Unbekannte Zielposition ohne Korrektur → sofort wieder die Korrekturmaske
+      if (!active()) return;
+      if (error) throw error;
       if (started?.status === 'failed') {
         showFailed({ target_job: correctedTargetJob || failedRole, error_code: started.error_code });
         return;
       }
+      // Always re-read after the response, including synchronous completions.
+      const { data: row, error: readError } = await supabase.from('learning_paths')
+        .select(ANALYSIS_SELECT).eq('id', pathId).maybeSingle();
+      if (!active()) return;
+      if (readError) throw readError;
+      if (row && COMPLETE_STATUSES.has(row.status)) handleCompletion(pathId, row);
+      else if (row?.status === 'failed') showFailed(row);
     } catch (e: any) {
-      console.warn('[CVSection] skillgap-analyze nicht erreichbar (Polling läuft weiter):', e.message);
+      if (!active()) return;
+      console.warn('[CVSection] Analyse-Aufruf:', e.message);
+      // Keep observing: the server may have finished despite an HTTP timeout.
+      setApiError('Der Start konnte nicht bestätigt werden. Wir prüfen weiter, ob dein Ergebnis vorliegt.');
+      setPhase('fallback');
     }
+  }, [cleanupListeners, startRealtime, startPolling, handleCompletion, showFailed, failedRole]);
 
-    startRealtime(pathId);
-    startPolling(pathId);
-
-    fallbackTimRef.current = setTimeout(() => {
-      if (!completedRef.current) setPhase('fallback');
-    }, FALLBACK_TIMEOUT_MS);
-  }, [startRealtime, startPolling, showFailed, failedRole]);
-
-  // ── Resume after Stripe redirect ────────────────────────────────────────────
+  // ── Resume after Stripe redirect or opening an existing analysis ─────────────
 
   useEffect(() => {
-    if (!resumePathId) return;
+    if (!resumePathId || authLoading || !user?.id) return;
+    cleanupListeners();
     let cancelled = false;
+    const run = ++runRef.current;
+    const active = () => !cancelled && run === runRef.current;
+    completedRef.current = false;
+    pathIdRef.current = resumePathId;
+    setResult(null);
+    setApiError(null);
+    setPhase('waiting');
 
-    (async () => {
-      // 1. Ladepage sofort zeigen
-      setPhase('waiting');
-      completedRef.current = false;
-      pathIdRef.current = resumePathId;
-
-      // 2. DB-Zeile laden — erst alle Felder, bei 400 Fallback auf Basisfelder
-      let data: Record<string, unknown> | null = null;
-      {
-        const { data: d1, error: e1 } = await supabase
-          .from('learning_paths')
-          .select('user_id, target_job, target_company, vision_description, industry, cv_id, status, missing_skills, current_skills, strategic_outlook_2026, match_score')
-          .eq('id', resumePathId)
-          .maybeSingle();
-        if (!e1 && d1) {
-          data = d1 as Record<string, unknown>;
-        } else {
-          // Fallback: nur Pflichtfelder (falls optionale Spalten fehlen)
-          const { data: d2 } = await supabase
-            .from('learning_paths')
-            .select('user_id, target_job, target_company, vision_description, industry, cv_id, status, missing_skills, current_skills')
-            .eq('id', resumePathId)
-            .maybeSingle();
-          if (d2) data = d2 as Record<string, unknown>;
+    void (async () => {
+      try {
+        const { data, error } = await supabase.from('learning_paths')
+          .select(ANALYSIS_SELECT).eq('id', resumePathId).maybeSingle();
+        if (!active()) return;
+        if (error) throw error;
+        if (!data) throw new Error('Analyse nicht gefunden oder für dieses Konto nicht verfügbar.');
+        setTargetJob(data.target_job ?? '');
+        setTargetCompany(data.target_company ?? '');
+        setIndustry(data.industry ?? '');
+        if (COMPLETE_STATUSES.has(data.status)) {
+          await handleCompletion(resumePathId, data);
+          return;
         }
-      }
-
-      if (cancelled) return;
-
-      if (!data) {
-        setApiError('Analyse nicht gefunden. Bitte lade die Seite neu.');
-        setPhase('idle');
-        return;
-      }
-
-      // 3. Bereits fertig? Sofort zeigen
-      if (COMPLETE_STATUSES.has(data.status as string)) {
-        setResult({
-          pathId: resumePathId,
-          missingSkills:    parseSkills(data.missing_skills),
-          currentSkills:    normalizeCurrentSkills(data.current_skills),
-          strategicOutlook: (data.strategic_outlook_2026 as string) ?? '',
-          matchScore:       Number(data.match_score ?? 0),
-          industry:         (data.industry as string) ?? '',
-          targetJob:        (data.target_job as string) ?? '',
-          targetCompany:    (data.target_company as string) ?? '',
-        });
-        setPhase('done');
-        return;
-      }
-
-      // 4. Ergebnis anzeigen wenn fertig
-      const showResult = (row: Record<string, unknown>) => {
-        if (completedRef.current) return;
-        completedRef.current = true;
-        setResult({
-          pathId: resumePathId,
-          missingSkills:    parseSkills(row.missing_skills),
-          currentSkills:    normalizeCurrentSkills(row.current_skills),
-          strategicOutlook: (row.strategic_outlook_2026 as string) ?? '',
-          matchScore:       Number(row.match_score ?? 0),
-          industry:         (row.industry as string) ?? (data!.industry as string) ?? '',
-          targetJob:        (row.target_job as string) ?? (data!.target_job as string) ?? '',
-          targetCompany:    (row.target_company as string) ?? (data!.target_company as string) ?? '',
-        });
-        setPhase('revealing');
-        setTimeout(() => setPhase('done'), 1_500);
-      };
-
-      // 5. Polling SOFORT starten — alle 5 Sek. für mind. 4 Min.
-      let pollActive = true;
-      const runPolling = async () => {
-        while (pollActive && !cancelled && !completedRef.current) {
-          await new Promise(r => setTimeout(r, 5_000));
-          if (!pollActive || cancelled || completedRef.current) break;
-          try {
-            const { data: row } = await supabase
-              .from('learning_paths')
-              .select(FAILED_SELECT)
-              .eq('id', resumePathId)
-              .maybeSingle();
-            if (row && COMPLETE_STATUSES.has(row.status as string)) {
-              pollActive = false;
-              showResult(row as Record<string, unknown>);
-              return;
-            }
-            if (row?.status === 'failed') {
-              pollActive = false;
-              showFailed(row as Record<string, unknown>);
-              return;
-            }
-          } catch (e: any) {
-            console.error('[SkillGap] Poll error:', e.message);
-          }
+        if (data.status === 'failed') {
+          showFailed(data);
+          return;
         }
-      };
-      runPolling();
-
-      // Fallback nach 4 Min.
-      fallbackTimRef.current = setTimeout(() => {
-        if (!completedRef.current) setPhase('fallback');
-      }, 240_000);
-
-      // 6. Nach der Zahlung: erst CV extrahieren, dann Skill-Gap (Edge Function)
-      (async () => {
-        try {
-          if (data!.cv_id) {
-            setPhase('cv_uploading');
-            await waitForCvData(data!.cv_id as string, (data!.user_id as string) ?? null);
-            if (cancelled) return;
-            setPhase('waiting');
-          }
-
-          const { data: started, error: fnError } = await supabase.functions.invoke('skillgap-analyze', {
-            body: { learning_path_id: resumePathId },
-          });
-          if (fnError) {
-            let message = fnError.message;
-            try { message = (await (fnError as any).context.json())?.error || message; } catch { /* ignore */ }
-            throw new Error(message);
-          }
-          if (started?.status === 'failed') {
-            pollActive = false;
-            showFailed({ target_job: data!.target_job, error_code: started.error_code });
-            return;
-          }
-          if (started?.status === 'done') {
-            const { data: row } = await supabase
-              .from('learning_paths')
-              .select('status,missing_skills,current_skills,strategic_outlook_2026,match_score,industry,target_job,target_company')
-              .eq('id', resumePathId)
-              .maybeSingle();
-            if (row) showResult(row as Record<string, unknown>);
-          }
-        } catch (e: any) {
-          console.error('[SkillGap] Fehler:', e.message);
-          setApiError(e.message || 'Die Analyse konnte nicht gestartet werden. Bitte versuche es erneut.');
-          setPhase('idle');
+        if (data.cv_id) {
+          setPhase('cv_uploading');
+          await waitForCvData(data.cv_id, user.id);
+          if (!active()) return;
         }
-      })();
+        await triggerSkillgapWebhook(resumePathId);
+      } catch (e: any) {
+        if (!active() || completedRef.current) return;
+        setApiError(e.message || 'Die Analyse konnte nicht geladen werden. Bitte erneut prüfen.');
+        setPhase('fallback');
+      }
     })();
 
     return () => {
       cancelled = true;
+      runRef.current += 1;
+      cleanupListeners();
+      if (revealTimerRef.current) clearTimeout(revealTimerRef.current);
     };
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [resumePathId]);
+    // Form edits must not restart a paid analysis. A new account/path must.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [resumePathId, authLoading, user?.id]);
 
   // ── Handlers ────────────────────────────────────────────────────────────────
 
   const handleRetry = () => {
+    runRef.current += 1;
     cleanupListeners();
     completedRef.current = false;
     pathIdRef.current = null;
@@ -1417,15 +1358,23 @@ const runAnalysis = useCallback(async () => {
   const handleManualCheck = async () => {
     const pathId = pathIdRef.current;
     if (!pathId) return;
-    const { data } = await supabase
-      .from('learning_paths')
-      .select('status,missing_skills,current_skills,strategic_outlook_2026,match_score,industry,target_job,target_company')
-      .eq('id', pathId)
-      .maybeSingle();
-    if (data && COMPLETE_STATUSES.has(data.status as string)) {
-      handleCompletion(pathId, data as Record<string, unknown>);
-    } else {
-      await triggerSkillgapWebhook(pathId);
+    const run = runRef.current;
+    try {
+      const { data, error } = await supabase.from('learning_paths')
+        .select(ANALYSIS_SELECT).eq('id', pathId).maybeSingle();
+      if (run !== runRef.current) return;
+      if (error) throw error;
+      if (!data) throw new Error('Analyse nicht gefunden oder für dieses Konto nicht verfügbar.');
+      if (COMPLETE_STATUSES.has(data.status)) {
+        completedRef.current = false;
+        await handleCompletion(pathId, data);
+      } else if (data.status === 'failed') {
+        showFailed(data);
+      } else {
+        await triggerSkillgapWebhook(pathId);
+      }
+    } catch (e: any) {
+      if (run === runRef.current) setApiError(e.message || 'Das Ergebnis konnte nicht geladen werden.');
     }
   };
 
@@ -1442,7 +1391,7 @@ const runAnalysis = useCallback(async () => {
   const showLoader    = isCvUploading || isAnalyzing;
   const showResult    = phase === 'done' && result !== null;
   const showForm      = !showLoader && phase !== 'done' && phase !== 'fallback' && phase !== 'paywall' && phase !== 'failed';
-  const canSubmit     = !!targetJob.trim() && !showLoader;
+  const canSubmit     = !!targetJob.trim() && !showLoader && !authLoading;
 
   // Drag-drop handlers for the CV upload area
   const handleDragOver = (e: React.DragEvent) => { e.preventDefault(); setIsDragging(true); };
@@ -1718,7 +1667,7 @@ const runAnalysis = useCallback(async () => {
                     <button
                       type="button"
                       onClick={runAnalysis}
-                      disabled={!targetJob.trim() || preparing}
+                      disabled={!canSubmit || preparing}
                       className="group flex flex-col items-start gap-2.5 p-4 rounded-2xl text-left transition-all hover:scale-[1.02] active:scale-[0.98] disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:scale-100"
                       style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.12)' }}
                     >
