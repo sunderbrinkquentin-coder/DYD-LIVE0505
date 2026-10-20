@@ -287,7 +287,7 @@ useEffect(() => {
     let paid = !!lp.is_paid;
     // Direkt nach dem Stripe-Checkout kann der Webhook ein paar Sekunden
     // brauchen. Statt sofort zurückzuleiten, kurz auf die Freischaltung warten.
-    const justPaid = window.location.hash.includes('session_id=') || !!(lp as any).catalog_id;
+    const justPaid = window.location.search.includes('session_id=') || !!(lp as any).catalog_id;
     for (let i = 0; !paid && justPaid && i < 15; i++) {
       await new Promise((r) => setTimeout(r, 2000));
       const { data: fresh } = await supabase.from('learning_paths').select('is_paid').eq('id', pathId).maybeSingle();
