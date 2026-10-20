@@ -1477,7 +1477,7 @@ const [cloneBox, setCloneBox] = useState<null | { index: number; x: number; y: n
       // nur im Browser der Nutzerin/des Nutzers statt in einer Netlify
       // Function — kein Chromium-Nachladen, kein Function-Zeitlimit, kein
       // zusätzlicher Netzwerk-Hop.
-      const printUrl = `/#/cv-export-render/${cvId}?print=1`;
+      const printUrl = `/cv-export-render/${cvId}?print=1`;
       if (printWindow) {
         printWindow.location.href = printUrl;
       } else {
