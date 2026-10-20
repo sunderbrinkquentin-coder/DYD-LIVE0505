@@ -4,6 +4,7 @@ import { useNavigate } from 'react-router-dom';
 import { supabase } from '../../lib/supabase';
 import { validateStripePriceIds } from '../../utils/stripeConfigValidator';
 import { advisorCheckoutMetadata } from '../../features/advisor/advisorAttribution';
+import { NewsletterDiscountHint } from '../../features/newsletter/NewsletterDiscountHint';
 
 interface TokenPaywallModalProps {
   isOpen: boolean;
@@ -128,8 +129,8 @@ export function TokenPaywallModal({ isOpen, onClose, onSuccess, defaultPlan, suc
       }
 
       const successActionParam = successAction ? `&action=${encodeURIComponent(successAction)}` : '';
-      const successUrl = `${window.location.origin}/#/dashboard?payment=success${successActionParam}`;
-      const cancelUrl = `${window.location.origin}/#/dashboard?payment=cancelled`;
+      const successUrl = `${window.location.origin}/dashboard?payment=success${successActionParam}`;
+      const cancelUrl = `${window.location.origin}/dashboard?payment=cancelled`;
 
       const controller = new AbortController();
       const timeoutId = setTimeout(() => controller.abort(), 15000);
@@ -368,6 +369,7 @@ export function TokenPaywallModal({ isOpen, onClose, onSuccess, defaultPlan, suc
 
         {/* ── CTA ── */}
         <div className="relative z-10 px-6 pb-6">
+          <NewsletterDiscountHint source="token-paywall" className="mb-3" />
           <button
             onClick={() => handlePurchase(selectedPlan)}
             disabled={isProcessing || !stripeValidation.isValid}
