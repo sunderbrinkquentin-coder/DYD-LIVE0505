@@ -1,7 +1,7 @@
 // src/pages/CertificateVerifyPage.tsx
 //
 // Öffentliche Echtheitsprüfung der Career-Academy-Zertifikate.
-// Aufruf über den QR-Code auf dem Zertifikat: /#/verify/DYD-2026-XXXXXXXX
+// Aufruf über den QR-Code auf dem Zertifikat: /verify/DYD-2026-XXXXXXXX
 // Liest über die Datenbank-Funktion verify_academy_certificate nur die
 // Angaben, die ohnehin auf dem Zertifikat stehen.
 
