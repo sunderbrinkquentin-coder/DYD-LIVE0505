@@ -8,8 +8,8 @@ export function LoginPage() {
   const location = useLocation();
   const { login, signup, resetPassword } = useAuth();
 
-  const [isSignup, setIsSignup] = useState(true);
-  const [isForgotPassword, setIsForgotPassword] = useState(false);
+  const [isSignup, setIsSignup] = useState(() => new URLSearchParams(location.search).get('mode') === 'signup');
+  const [isForgotPassword, setIsForgotPassword] = useState(() => new URLSearchParams(location.search).get('mode') === 'reset');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
@@ -41,9 +41,9 @@ export function LoginPage() {
     try {
       // Password reset flow
       if (isForgotPassword) {
-        const result = await resetPassword(email);
+        const result = await resetPassword(email.trim());
         if (result.success) {
-          setSuccess(result.message || 'E-Mail wurde gesendet!');
+          setSuccess(result.message || 'Wenn ein Konto mit dieser Adresse besteht, erhältst du einen Link zum Zurücksetzen.');
           setEmail('');
         } else {
           setError(result.error || 'Ein Fehler ist aufgetreten');
