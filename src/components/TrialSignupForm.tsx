@@ -217,8 +217,8 @@ export function TrialSignupForm({ plan, onClose }: TrialSignupFormProps) {
         />
         <span>
           Ich akzeptiere die{" "}
-          <a href="/#/agb" target="_blank" rel="noopener noreferrer" className="underline">AGB</a> und die{" "}
-          <a href="/#/datenschutz" target="_blank" rel="noopener noreferrer" className="underline">Datenschutzerklärung</a>.
+          <a href="/agb" target="_blank" rel="noopener noreferrer" className="underline">AGB</a> und die{" "}
+          <a href="/datenschutz" target="_blank" rel="noopener noreferrer" className="underline">Datenschutzerklärung</a>.
         </span>
       </label>
 
