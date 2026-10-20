@@ -1,4 +1,6 @@
-import { createHashRouter } from 'react-router-dom';
+import { createBrowserRouter } from 'react-router-dom';
+import NewsletterConfirmPage from '../pages/NewsletterConfirmPage';
+import NewsletterUnsubscribePage from '../pages/NewsletterUnsubscribePage';
 
 import CvEntryPage from '../pages/CvEntryPage';
 import LandingPage from '../pages/LandingPage';
@@ -11,7 +13,6 @@ import AgentFlow from '../pages/AgentFlow';
 import { DashboardPage } from '../pages/DashboardPage';
 import B2BLandingPage from '../pages/B2BLandingPage';
 import AutomationLandingPage from '../pages/AutomationLandingPage';
-import CoverLetterPage from '../pages/CoverLetterPage';
 import { CVWizard } from '../pages/CVWizard';
 import CVCheckPage from '../pages/CVCheckPage';
 import CvResultPage from '../pages/CvResultPage';
@@ -43,7 +44,7 @@ import TournamentAdminPage from '../pages/TournamentAdminPage'
 import { GlobalLayout } from '../components/GlobalLayout';
 import { CvExportRenderPage } from '../pages/CvExportRenderPage';
 
-export const router = createHashRouter([
+export const router = createBrowserRouter([
   // Bewusst AUSSERHALB von GlobalLayout: keine Navigation/Dashboard-Chrome,
   // kein Auth-Ballast. Wird nur von der Puppeteer-Function aufgerufen
   // (netlify/functions/export-cv-pdf.ts), nie von echten Nutzer:innen.
@@ -63,6 +64,8 @@ export const router = createHashRouter([
       { path: '/datenschutz', element: <DatenschutzPage /> },
       { path: '/agb', element: <AgbPage /> },
       { path: '/faq', element: <FaqPage /> },
+      { path: '/newsletter/bestaetigen', element: <NewsletterConfirmPage /> },
+      { path: '/newsletter/abmelden', element: <NewsletterUnsubscribePage /> },
       { path: '/festival', element: <HarmonyFestivalPage /> },
       { path: '/festival-success', element: <FestivalPaymentSuccessPage /> },
 
@@ -116,7 +119,6 @@ export const router = createHashRouter([
       { path: '/kurse', element: <CoursesPage /> },
       { path: '/business', element: <B2BLandingPage /> },
       { path: '/business/automatisierung', element: <AutomationLandingPage /> },
-      { path: '/anschreiben', element: <CoverLetterPage /> },
 
       { path: '/turnier', element: <FestivalTournamentBoard /> },
       { path: '/turnier/:tournamentId', element: <FestivalTournamentBoard /> },
