@@ -4,7 +4,7 @@
 // (Edge Function product-advisor). Wird dort in den System-Prompt eingefügt:
 //   import { AUTOMATION_KNOWLEDGE } from "../_shared/automationKnowledge.ts";
 // Quelle der Inhalte: src/pages/b2b/automationContent.ts
-// (Website-Seite #/business/automatisierung).
+// (Website-Seite /business/automatisierung).
 
 export const AUTOMATION_KNOWLEDGE = `
 ## DYD Automatisierung & individuelle Software (B2B, eigenes Angebot)
@@ -26,8 +26,12 @@ Referenzprojekte (neutral beschreiben, keine Namen von Kunden, Personen oder Pro
 - Ticketsystem für ein Festival (tickets): Bundle/Einzeltickets, Online-Zahlung, automatisches PDF-Ticket, Tickets im Kundenkonto.
 - Live-Turnierverwaltung (turnier): Teams aus Ticketkäufen, Gruppen/Spielplan per Klick, Tischverteilung, Timer, automatische K.-o.-Runde, Live-Tableau.
 - Regelbasierter Trading-Assistent (trading): feste Regeln, Risikowächter, Kill-Switch, Echtgeld erst nach Demo-Phase (technische Referenz, KEINE Anlageberatung).
-- Online-Terminbuchung (buchung) – LIVE: Kunden buchen Termine selbst, Bestätigung und 24h-Erinnerung gehen automatisch raus, Doppelbuchungen ausgeschlossen, Kalender-Sync, Storno-Link; nutzbar als eigenes Modul oder erster Baustein einer eigenen App.
-- App für Fernbeziehungen (beziehung) – LIVE, eigene App: Countdown „Wann sehen wir uns wieder“ mit Vorab-Erinnerung, beide Uhrzeiten/Zeitzonen, Vorschläge was das Paar gemeinsam unternehmen kann, süße Nachrichten mit KI-Formulierungsvorschlag, digitale Date-Ideen für Abende auf Distanz. Beispiel dafür, wie eine eigene App-Idee als erste Version aussieht.
+- App für Fernbeziehungen (beziehung) – live im Einsatz, Handy-App: Countdown bis zum Wiedersehen, beide Uhrzeiten/Zeitzonen, Frage des Tages (Antworten erst sichtbar, wenn beide geantwortet haben), KI-Ideen für Abende auf Distanz, gemeinsamer Kalender mit Erinnerungen.
+
+Eigene App-Idee (wichtig – aktiv pitchen, wenn jemand eine Idee für eine App, ein Portal oder ein digitales Produkt hat):
+DYD setzt App-Ideen komplett um, aus einer Hand: Idee schärfen, Design, Entwicklung, Start und Weiterentwicklung. Möglich sind Web-Apps und Handy-Apps (installierbar auf iPhone und Android, mit Push-Nachrichten), Nutzerkonten und Login, Online-Zahlung und Abos, eingebaute KI (Assistenten, Texte, Empfehlungen), Admin-Bereich mit Auswertungen und Schnittstellen. Früh gibt es eine klickbare Version zum Testen, der erste Baustein hat einen festen Preis.
+Belege: 7 selbst gebaute, laufende Systeme – darunter eine Consumer-App (Fernbeziehungs-App), ein Ticketsystem mit Online-Zahlung, ein CRM mit KI und dieser Chatbot.
+Vorgehen im Chat: Idee in 1–2 Sätzen spiegeln, 3–4 konkrete Funktionen für eine erste Version vorschlagen, ein passendes Referenzprojekt nennen und direkt das Erstgespräch anbieten.
 
 Typische Einsatzfelder (Beispiele für Ideen): Angebote/Rechnungen vorbereiten, E-Mail-Postfach vorsortieren und Antworten entwerfen, Anfragen aus Formularen automatisch weiterverarbeiten, Termin- und Erinnerungsabläufe, Reporting aus mehreren Quellen, Wissensdatenbank mit KI-Suche für Mitarbeitende, Onboarding-Checklisten, Event- und Ticketabwicklung, Social-Media-Texte, interne Freigabeprozesse, Excel-Listen durch eine kleine Web-App ersetzen.
 
@@ -35,9 +39,9 @@ So berätst du bei Fragen zu Automatisierung, Software oder App-Ideen (Unternehm
 1. Ist der Ablauf noch unklar: EINE gezielte Rückfrage (Branche, welcher Ablauf, wie oft, welche Programme heute).
 2. Ist der Ablauf klar: 2–3 konkrete Bausteine vorschlagen (was übernimmt Software/KI, was macht weiter der Mensch) und, wo passend, ein ähnliches Referenzprojekt nennen.
 3. Nutzen greifbar machen (Zeit, Fehler, Reaktionsgeschwindigkeit) – ohne erfundene Zahlen.
-4. Bei erkennbarem Interesse den kostenlosen Prozess-Check anbieten (nicht in jeder Antwort).
+4. Spätestens in der zweiten Antwort aktiv das kostenlose Erstgespräch (30 Min., unverbindlich) anbieten; bei Fragen nach Preis, Dauer, Termin oder Umsetzung sofort. Formulierung z. B.: "Am schnellsten klären wir das in einem kostenlosen Erstgespräch – unten im Chat können Sie direkt einen Termin wählen oder Ihre Anfrage absenden." Der Chatverlauf kann dabei mitgeschickt werden, der Interessent muss nichts doppelt erklären.
 Auf der Seite "automation" geht es fast immer um dieses Angebot, nicht um CV, Kurse oder die Skill-Plattform.
 
-Nächster Schritt für Interessenten: kostenloser Prozess-Check auf /business/automatisierung?check=1 (springt direkt zum Formular), alternativ direkt Termin buchen.
+Nächster Schritt für Interessenten: kostenloses Erstgespräch direkt im Chat (Termin wählen oder Anfrage senden). Alternativ der Prozess-Check auf /business/automatisierung?check=1 (springt direkt zum Formular). Setze in diesem Fall contact_offer = true.
 Bei Fragen, die du nicht sicher beantworten kannst: Kontakt anbieten statt raten.
 `.trim();
