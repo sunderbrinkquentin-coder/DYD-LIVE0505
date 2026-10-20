@@ -819,11 +819,11 @@ body: JSON.stringify({
             price_id: ticket.priceId,
             quantity,
             success_url: ticket.id === 'support'
-              ? `${window.location.origin}/#/festival?support_success=1&session_id={CHECKOUT_SESSION_ID}`
+              ? `${window.location.origin}/festival?support_success=1&session_id={CHECKOUT_SESSION_ID}`
               : ticket.id === 'soli_shirt'
-              ? `${window.location.origin}/#/festival?shirt_success=1&session_id={CHECKOUT_SESSION_ID}`
-              : `${window.location.origin}/#/festival-success?session_id={CHECKOUT_SESSION_ID}&type=${ticket.id}`,
-            cancel_url: `${window.location.origin}/#/festival?payment=cancelled`,
+              ? `${window.location.origin}/festival?shirt_success=1&session_id={CHECKOUT_SESSION_ID}`
+              : `${window.location.origin}/festival-success?session_id={CHECKOUT_SESSION_ID}&type=${ticket.id}`,
+            cancel_url: `${window.location.origin}/festival?payment=cancelled`,
             mode: 'payment',
             // WICHTIG: shirt_size MUSS in metadata liegen. Die stripe-checkout-Function
             // liest nur ausgewählte Top-Level-Felder aus (price_id, buyer_name,
@@ -965,10 +965,7 @@ signal: controller.signal,
   // window.location.search — bei HashRouter stehen Query-Params hinter dem #).
 // Soli-Shirt-Rückkehr: shirt_success=1 aus dem HASH (HashRouter → Query hinter #).
   useEffect(() => {
-    const hash = window.location.hash;
-    const qIndex = hash.indexOf('?');
-    if (qIndex === -1) return;
-    const params = new URLSearchParams(hash.substring(qIndex + 1));
+    const params = new URLSearchParams(window.location.search);
     if (params.get('shirt_success') === '1') {
       const sessionId = params.get('session_id') || undefined;
       let stashed: any = null;
@@ -984,8 +981,7 @@ signal: controller.signal,
       });
       setShowShirtThankYou(true);
       try { sessionStorage.removeItem('harmony_shirt_receipt'); } catch { /* ignore */ }
-      const cleanHash = hash.split('?')[0];
-      window.history.replaceState(null, '', window.location.pathname + cleanHash);
+      window.history.replaceState(null, '', window.location.pathname + window.location.hash);
     }
   }, []);
   const CDUnit = ({ value, label }: { value: number; label: string }) => (
@@ -2179,13 +2175,13 @@ signal: controller.signal,
                 <motion.a
                   whileHover={{ scale: 1.02 }}
                   whileTap={{ scale: 0.98 }}
-                  href="mailto:quentin@decideyourdream.de?subject=Sponsoring%20Harmony%202026"
+                  href="mailto:kontakt.dyd@googlemail.com?subject=Sponsoring%20Harmony%202026"
                   className="btn-cyan inline-flex items-center gap-2.5 px-7 py-3.5 rounded-xl"
                   style={{ fontSize: '15px', textDecoration: 'none' }}>
                   <Building2 className="w-4 h-4" /> Sponsoring anfragen
                 </motion.a>
                 <span style={{ fontFamily: "'Inter', sans-serif", fontSize: '13px', color: 'rgba(160,230,230,0.4)', lineHeight: 1.6 }}>
-                  Kontakt: quentin@decideyourdream.de
+                  Kontakt: kontakt.dyd@googlemail.com
                 </span>
               </div>
             </div>
@@ -3088,7 +3084,7 @@ signal: controller.signal,
               </div>
               <p style={{ fontFamily: "'Inter', sans-serif", fontSize: '11px', color: 'rgba(140,190,190,0.4)', textAlign: 'center', marginTop: '12px', lineHeight: 1.5 }}>
                 Mit dem Kauf stimmst du den{' '}
-                <a href="/#/agb" target="_blank" rel="noopener noreferrer"
+                <a href="/agb" target="_blank" rel="noopener noreferrer"
                   style={{ color: 'rgba(0,212,212,0.55)', textDecoration: 'underline', textUnderlineOffset: '3px' }}
                   onClick={(e) => e.stopPropagation()}>
                   AGB
@@ -3212,7 +3208,7 @@ signal: controller.signal,
                 <input type="checkbox" className="sr-only" checked={bierpongAgbConfirmed} onChange={(e) => setBierpongAgbConfirmed(e.target.checked)} />
                 <span style={{ fontFamily: "'Inter', sans-serif", fontSize: '13px', color: 'rgba(160,230,230,0.7)', lineHeight: 1.5 }}>
                   Ich habe die{' '}
-                  <a href="/#/agb" target="_blank" rel="noopener noreferrer"
+                  <a href="/agb" target="_blank" rel="noopener noreferrer"
                     style={{ color: C.lime, textDecoration: 'underline', textUnderlineOffset: '3px' }}
                     onClick={(e) => e.stopPropagation()}>
                     Allgemeinen Geschaftsbedingungen
