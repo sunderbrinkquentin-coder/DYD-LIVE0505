@@ -331,7 +331,7 @@ export default function B2BTabs({ initialTab = 'unternehmen', activeTab: control
         </div>
         {/* Dritter Bereich als eigener Link (eigene Seite) – gleiche Höhe wie die Tabs,
             aber klar abgesetzt, damit sichtbar ist: das ist ein anderes Angebot. */}
-        <a href="#/business/automatisierung" className="flex flex-col sm:flex-row items-center justify-center gap-1 sm:gap-2 px-3 sm:px-5 rounded-2xl border-2 border-dashed border-[#c5dd8a] bg-[#f7fde8] text-[#3f5a0f] font-arimo text-[11px] sm:text-sm font-bold hover:bg-[#effad3] b2b-focus-ring transition" aria-label="Automatisierung & Software – eigene Seite">
+        <a href="/business/automatisierung" className="flex flex-col sm:flex-row items-center justify-center gap-1 sm:gap-2 px-3 sm:px-5 rounded-2xl border-2 border-dashed border-[#c5dd8a] bg-[#f7fde8] text-[#3f5a0f] font-arimo text-[11px] sm:text-sm font-bold hover:bg-[#effad3] b2b-focus-ring transition" aria-label="Automatisierung & Software – eigene Seite">
           <Workflow className="w-4 h-4" aria-hidden="true" />
           <span className="hidden sm:inline">Automatisierung</span><span className="sm:hidden">Software</span>
           <ArrowUpRight className="w-3.5 h-3.5 hidden sm:block" aria-hidden="true" />
