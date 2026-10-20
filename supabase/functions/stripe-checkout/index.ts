@@ -21,6 +21,24 @@ const NO_PROMO_PRICE_IDS = new Set([
   "price_1TGwcF3Sd9dZl64Sk7sd5nNM",
 ]);
 
+// Newsletter-Willkommensrabatt (einmalig, nach Double-Opt-in). Gilt NICHT für
+// Festival-Artikel. Coupon in Stripe anlegen: 50 % Rabatt, Dauer "einmalig",
+// ID als Secret STRIPE_COUPON_NEWSLETTER hinterlegen.
+async function newsletterDiscountFor(userId: string): Promise<boolean> {
+  const url = Deno.env.get("SUPABASE_URL");
+  const serviceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
+  if (!url || !serviceKey || !Deno.env.get("STRIPE_COUPON_NEWSLETTER")) return false;
+  const admin = createClient(url, serviceKey, { auth: { persistSession: false } });
+  const { data } = await admin
+    .from("newsletter_subscribers")
+    .select("status, discount_granted_at, discount_expires_at, discount_redeemed_at")
+    .eq("user_id", userId)
+    .maybeSingle();
+  if (!data?.discount_granted_at || data.discount_redeemed_at) return false;
+  // Rabatt bleibt auch nach Abmeldung erhalten (so im Einwilligungstext zugesagt)
+  return !data.discount_expires_at || new Date(data.discount_expires_at).getTime() > Date.now();
+}
+
 interface CheckoutRequest {
   price_id: string;
   quantity?: number;
@@ -139,7 +157,14 @@ Deno.serve(async (req: Request) => {
       sessionParams.client_reference_id = userId;
     }
 
-    if (!NO_PROMO_PRICE_IDS.has(price_id)) {
+    // Newsletter-Rabatt automatisch anwenden (Stripe erlaubt entweder einen
+    // festen Rabatt ODER das Promo-Code-Feld – nicht beides)
+    const applyNewsletterDiscount = !isFestivalTicket && !!userId && !NO_PROMO_PRICE_IDS.has(price_id) && (await newsletterDiscountFor(userId));
+    if (applyNewsletterDiscount) {
+      sessionParams.discounts = [{ coupon: Deno.env.get("STRIPE_COUPON_NEWSLETTER")! }];
+      sessionParams.metadata = { ...sessionParams.metadata, newsletter_discount: "1" };
+      console.log("[Stripe Checkout] Newsletter-Rabatt angewendet für", userId);
+    } else if (!NO_PROMO_PRICE_IDS.has(price_id)) {
       sessionParams.allow_promotion_codes = true;
     }
 
@@ -152,7 +177,7 @@ Deno.serve(async (req: Request) => {
     console.log("[Stripe Checkout] Session created:", session.id);
 
     return new Response(
-      JSON.stringify({ url: session.url, session_id: session.id }),
+      JSON.stringify({ url: session.url, session_id: session.id, newsletter_discount: applyNewsletterDiscount }),
       {
         status: 200,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
