@@ -106,10 +106,9 @@ export function LoginPage() {
         } else {
           // Redirect to original page (z.B. /cv-result/:uploadId)
           // Action param wird in der Zielseite abgefragt
-          const targetUrl = actionParam
-            ? `${from}?action=${actionParam}`
-            : from;
-          navigate(targetUrl, { replace: true });
+          const targetUrl = new URL(from, window.location.origin);
+          if (actionParam) targetUrl.searchParams.set('action', actionParam);
+          navigate(`${targetUrl.pathname}${targetUrl.search}${targetUrl.hash}`, { replace: true });
         }
       } else {
         setError(result.error || 'Ein Fehler ist aufgetreten');
