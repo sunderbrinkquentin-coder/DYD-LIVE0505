@@ -1,82 +1,70 @@
 <!doctype html>
-<html lang="de" itemscope itemtype="https://schema.org/WebPage">
+<html lang="de">
   <head>
     <meta charset="UTF-8" />
-    <link rel="icon" type="image/svg+xml" href="/vite.svg" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
     <meta name="mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
-
-    <!-- ═══════════════════════════════════════════════════════
-         PRIMARY META — optimiert für AI-Snippet-Extraktion
-    ═══════════════════════════════════════════════════════ -->
-    <title>DYD – KI-Lebenslauf-Check & ATS-Optimierung | kostenlos starten</title>
-    <meta name="title" content="DYD – KI-Lebenslauf-Check & ATS-Optimierung | kostenlos starten" />
-    <meta name="description" content="DYD analysiert Lebensläufe in Sekunden mit KI: kostenloser ATS-Check über 50 Kriterien, One-Click-Optimierung ab 5 €, DSGVO-konform. Offizieller Kooperationspartner der Hochschule Fresenius. In Deutschland entwickelt." />
-    <meta name="keywords" content="KI Anschreiben Generator, KI Lebenslauf optimieren, ATS Check kostenlos, Bewerbung KI Deutschland, CV Check Online, Anschreiben mit Erklärung, Lebenslauf analysieren, Skill Gap Analyse, Lernpfad Karriere, Hochschule Fresenius Kooperation, CV Wizard, ESCO Skills, Automatisierung für Unternehmen, individuelle Software-Entwicklung" />
-    <meta name="author" content="DYD – Decide Your Dream UG, Quentin Sunderbrink" />
-    <meta name="robots" content="index, follow, max-snippet:-1, max-image-preview:large, max-video-preview:-1" />
-    <meta name="rating" content="general" />
-    <link rel="canonical" href="https://decide-your-dream.de" />
-
-    <!-- AI-Crawler Summary (Perplexity, ChatGPT, Gemini Extraction) -->
-    <meta name="abstract" content="DYD ist ein deutsches KI-Tool zur Lebenslauf-Optimierung. Es bietet einen kostenlosen ATS-Check nach 50+ Kriterien, einen CV-Wizard zur Erstellung in unter 30 Minuten, One-Click-Optimierung (ab 5 €) sowie eine KI-gestützte Skill-Gap-Analyse mit persönlichem Lernpfad. Kooperationspartner: Hochschule Fresenius. DSGVO-konform. Gegründet von Quentin Sunderbrink (Senior Consultant, IHK Prüfer)." />
-    <meta name="topic" content="KI-Bewerbungsoptimierung, ATS-Optimierung, Karriere Deutschland, Skill-Gap-Analyse" />
-    <meta name="summary" content="Kostenloser KI-Lebenslauf-Check: ATS-Score, 50+ Kriterien, Skill-Gap-Analyse. Ab 5 € One-Click-Optimierung. Kooperationspartner Hochschule Fresenius. DSGVO-konform. Made in Germany." />
-    <meta name="classification" content="Career Technology, HR-Tech, EdTech, KI-Bewerbungstools" />
-    <meta name="category" content="Karriere, Bewerbung, KI-Tools, HR-Tech" />
-
-    <!-- Open Graph -->
-    <meta property="og:type" content="website" />
-    <meta property="og:url" content="https://decide-your-dream.de" />
-    <meta property="og:title" content="DYD – KI-Lebenslauf-Check & ATS-Optimierung | kostenlos" />
-    <meta property="og:description" content="Kostenloser ATS-Check über 50 Kriterien, CV-Wizard in unter 30 Minuten, Skill-Gap-Analyse. Ab 5 € One-Click-Optimierung. DSGVO-konform. Kooperationspartner Hochschule Fresenius." />
-    <meta property="og:image" content="https://decide-your-dream.de/DYD%20Logo%20RGB.svg" />
-    <meta property="og:locale" content="de_DE" />
+    <meta name="theme-color" content="#0A192F" />
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <link rel="icon" type="image/png" sizes="48x48" href="/favicon-48.png" />
+    <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
+    <link rel="alternate" type="text/plain" title="LLM-Zusammenfassung" href="/llms.txt" />
+    <meta name="author" content="Quentin Sunderbrink, DYD – Decide Your Dream" />
     <meta property="og:site_name" content="DYD – Decide Your Dream" />
-
-    <!-- Twitter / X -->
-    <meta property="twitter:card" content="summary_large_image" />
-    <meta property="twitter:url" content="https://decide-your-dream.de" />
-    <meta property="twitter:title" content="DYD – KI-Lebenslauf-Check & ATS-Optimierung" />
-    <meta property="twitter:description" content="Kostenloser ATS-Check über 50 Kriterien. CV in unter 30 Minuten. Skill-Gap-Analyse mit Lernpfad. Ab 5 €. DSGVO-konform." />
-    <meta property="twitter:image" content="https://decide-your-dream.de/DYD%20Logo%20RGB.svg" />
-
-    <!-- GEO -->
+    <meta property="og:locale" content="de_DE" />
+    <meta property="og:type" content="website" />
+    <meta property="og:image" content="https://decide-your-dream.de/og-dyd.png" />
+    <meta property="og:image:width" content="1200" />
+    <meta property="og:image:height" content="630" />
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:image" content="https://decide-your-dream.de/og-dyd.png" />
     <meta name="geo.region" content="DE-NW" />
     <meta name="geo.placename" content="Düsseldorf" />
-    <meta name="geo.position" content="51.2217;6.7762" />
-    <meta name="ICBM" content="51.2217, 6.7762" />
 
-    <!-- Language & Regional -->
-    <link rel="alternate" hreflang="de" href="https://decide-your-dream.de" />
-    <link rel="alternate" hreflang="de-DE" href="https://decide-your-dream.de" />
-    <link rel="alternate" hreflang="x-default" href="https://decide-your-dream.de" />
-
-    <!-- ═══════════════════════════════════════════════════════
-         SCHEMA 1 — Organization (Primär-Entität für LLMs)
-         Typ: Organization + Brand + knowsAbout
-    ═══════════════════════════════════════════════════════ -->
+    <!--
+      SEO/GEO-Block: Titel, Beschreibung, Canonical, Open Graph und alle
+      strukturierten Daten (JSON-LD). Hier steht die vollständige Startseite;
+      beim Build erzeugt scripts/prerender-seo.mjs daraus für JEDE öffentliche
+      Seite eine eigene Fassung. Quelle der Inhalte: src/seo/site.ts,
+      src/seo/meta.ts, src/seo/pages.ts. Nach Änderungen dort:
+      "npm run seo:sync" aktualisiert diesen Block hier.
+    -->
+    <!--SEO-->
+    <title>DYD – KI-Lebenslauf-Check, CV-Wizard &amp; Skill-Analyse</title>
+    <meta name="description" content="DYD prüft deinen Lebenslauf mit KI nach über 50 ATS-Kriterien, erstellt deinen CV in unter 30 Minuten und zeigt per Skill-Gap-Analyse, was dir zum Zieljob fehlt. Aus Düsseldorf, DSGVO-konform." />
+    <meta name="robots" content="index, follow, max-snippet:-1, max-image-preview:large, max-video-preview:-1" />
+    <link rel="canonical" href="https://decide-your-dream.de/" />
+    <link rel="alternate" hreflang="de" href="https://decide-your-dream.de/" />
+    <link rel="alternate" hreflang="x-default" href="https://decide-your-dream.de/" />
+    <meta property="og:title" content="DYD – KI-Lebenslauf-Check, CV-Wizard &amp; Skill-Analyse" />
+    <meta property="og:description" content="DYD prüft deinen Lebenslauf mit KI nach über 50 ATS-Kriterien, erstellt deinen CV in unter 30 Minuten und zeigt per Skill-Gap-Analyse, was dir zum Zieljob fehlt. Aus Düsseldorf, DSGVO-konform." />
+    <meta property="og:url" content="https://decide-your-dream.de/" />
+    <meta name="twitter:title" content="DYD – KI-Lebenslauf-Check, CV-Wizard &amp; Skill-Analyse" />
+    <meta name="twitter:description" content="DYD prüft deinen Lebenslauf mit KI nach über 50 ATS-Kriterien, erstellt deinen CV in unter 30 Minuten und zeigt per Skill-Gap-Analyse, was dir zum Zieljob fehlt. Aus Düsseldorf, DSGVO-konform." />
+    <meta property="article:modified_time" content="2026-10-20" />
     <script type="application/ld+json">
     {
       "@context": "https://schema.org",
       "@type": "Organization",
       "@id": "https://decide-your-dream.de/#organization",
-      "name": "DYD – Decide Your Dream UG",
-      "alternateName": ["DYD", "Decide Your Dream", "DYD CV"],
-      "url": "https://decide-your-dream.de",
+      "name": "DYD – Decide Your Dream",
+      "legalName": "DYD UG (haftungsbeschränkt)",
+      "alternateName": [
+        "DYD",
+        "Decide Your Dream",
+        "decide-your-dream.de"
+      ],
+      "url": "https://decide-your-dream.de/",
       "logo": {
         "@type": "ImageObject",
-        "url": "https://decide-your-dream.de/DYD%20Logo%20RGB.svg",
-        "width": 400,
-        "height": 400
+        "url": "https://decide-your-dream.de/DYD%20Logo%20RGB.svg"
       },
-      "description": "DYD ist ein deutsches HR-Tech-Unternehmen, das KI-gestützte Lebenslauf-Optimierung, ATS-Checks und Skill-Gap-Analysen für Bewerber in Deutschland anbietet. Offizieller Kooperationspartner der Carl Remigius Fresenius Education AG.",
+      "description": "DYD (Decide Your Dream) ist ein HR-Tech-Unternehmen aus Düsseldorf. DYD bietet KI-gestützte Bewerbungs-Tools (CV-Check, CV-Wizard, Skill-Gap-Analyse, Kurse mit Zertifikat), die Skill-Plattformen DYD NEXUS (Unternehmen) und DYD ORBIT (Bildungsträger) sowie individuelle Software, Web-Apps und KI-Automatisierung für Unternehmen.",
       "foundingDate": "2024",
-      "foundingLocation": {
-        "@type": "Place",
-        "name": "Düsseldorf, Deutschland"
+      "founder": {
+        "@id": "https://decide-your-dream.de/#quentin-sunderbrink"
       },
       "address": {
         "@type": "PostalAddress",
@@ -84,266 +72,190 @@
         "addressRegion": "Nordrhein-Westfalen",
         "addressCountry": "DE"
       },
+      "areaServed": {
+        "@type": "Country",
+        "name": "Deutschland"
+      },
       "contactPoint": {
         "@type": "ContactPoint",
-        "email": "quentin@decideyourdream.de",
+        "email": "kontakt.dyd@googlemail.com",
         "contactType": "customer service",
-        "availableLanguage": "German",
+        "availableLanguage": [
+          "de",
+          "en"
+        ],
         "areaServed": "DE"
       },
       "sameAs": [
-        "https://www.instagram.com/quentin.sunderbrink",
-        "https://www.linkedin.com/in/quentin-sunderbrink"
+        "https://www.linkedin.com/company/decideyourdream",
+        "https://www.instagram.com/dyd_1408",
+        "https://www.tiktok.com/@user7381390238054"
       ],
       "knowsAbout": [
         "Lebenslauf-Optimierung",
         "ATS-Systeme",
-        "Bewerbungsberatung",
-        "KI-Anschreiben",
+        "Bewerbung mit KI",
         "Skill-Gap-Analyse",
-        "ESCO Kompetenzrahmen",
-        "KI-gestützte HR-Technologie",
-        "Karriereentwicklung",
-        "Automatisierung für KMU",
-        "Individuelle Software-Entwicklung",
-        "KI-Assistenten für Unternehmen",
-        "Hochschul-Workshops"
+        "ESCO-Kompetenzrahmen",
+        "Workforce Intelligence",
+        "Weiterbildung",
+        "Lead-Generierung für Bildungsträger",
+        "Prozessautomatisierung",
+        "KI-Assistenten",
+        "Individuelle Softwareentwicklung",
+        "Web-App-Entwicklung"
       ],
-      "hasOfferCatalog": {
-        "@type": "OfferCatalog",
-        "name": "DYD Produkte & Services",
-        "itemListElement": [
-          {
-            "@type": "Offer",
-            "name": "Kostenloser CV-Check",
-            "description": "KI-Analyse des Lebenslaufs nach 50+ ATS-Kriterien – kostenlos",
-            "price": "0",
-            "priceCurrency": "EUR"
-          },
-          {
-            "@type": "Offer",
-            "name": "1 CV-Optimierung",
-            "price": "5.00",
-            "priceCurrency": "EUR"
-          },
-          {
-            "@type": "Offer",
-            "name": "5 CV-Optimierungen (Bestseller)",
-            "price": "20.00",
-            "priceCurrency": "EUR",
-            "description": "4 € pro Optimierung – 20 % günstiger als Einzelkauf"
-          },
-          {
-            "@type": "Offer",
-            "name": "10 CV-Optimierungen (Karriere-Paket)",
-            "price": "30.00",
-            "priceCurrency": "EUR",
-            "description": "3 € pro Optimierung – 40 % günstiger als Einzelkauf"
-          }
-        ]
-      },
       "partner": {
         "@type": "EducationalOrganization",
-        "name": "Carl Remigius Fresenius Education AG",
-        "alternateName": "Hochschule Fresenius",
+        "name": "Hochschule Fresenius",
+        "legalName": "Carl Remigius Fresenius Education AG",
         "url": "https://www.hs-fresenius.de"
       }
     }
     </script>
-
-    <!-- ═══════════════════════════════════════════════════════
-         SCHEMA 2 — Person (Gründer als zitierfähige Entität)
-    ═══════════════════════════════════════════════════════ -->
     <script type="application/ld+json">
     {
       "@context": "https://schema.org",
       "@type": "Person",
       "@id": "https://decide-your-dream.de/#quentin-sunderbrink",
       "name": "Quentin Sunderbrink",
-      "jobTitle": ["Gründer", "Senior Consultant", "IHK Prüfer"],
+      "jobTitle": "Gründer & CEO von DYD",
       "worksFor": {
         "@id": "https://decide-your-dream.de/#organization"
+      },
+      "homeLocation": {
+        "@type": "Place",
+        "name": "Düsseldorf"
       },
       "knowsAbout": [
         "KI-gestützte Bewerbungsoptimierung",
         "ATS-Optimierung",
-        "Karriereberatung",
-        "KI-Anschreiben-Generator",
-        "CV-Workshops",
-        "Automatisierung & individuelle Software",
-        "Personal Branding im KI-Zeitalter"
+        "Personaldienstleistung",
+        "IHK-Prüfungen",
+        "Prozessautomatisierung",
+        "Softwareentwicklung mit KI"
       ],
       "sameAs": [
-        "https://www.linkedin.com/in/quentin-sunderbrink",
-        "https://www.instagram.com/quentin.sunderbrink"
+        "https://www.linkedin.com/in/quentin-sunderbrink"
       ]
     }
     </script>
-
-    <!-- ═══════════════════════════════════════════════════════
-         SCHEMA 3 — WebSite + Sitelinks Searchbox
-    ═══════════════════════════════════════════════════════ -->
     <script type="application/ld+json">
     {
       "@context": "https://schema.org",
       "@type": "WebSite",
       "@id": "https://decide-your-dream.de/#website",
       "name": "DYD – Decide Your Dream",
-      "url": "https://decide-your-dream.de",
-      "description": "KI-Plattform für Lebenslauf-Optimierung, ATS-Check und Karriereentwicklung in Deutschland",
+      "url": "https://decide-your-dream.de/",
       "inLanguage": "de-DE",
-      "publisher": { "@id": "https://decide-your-dream.de/#organization" },
-      "potentialAction": {
-        "@type": "SearchAction",
-        "target": { "@type": "EntryPoint", "urlTemplate": "https://decide-your-dream.de/cv-check?q={search_term_string}" },
-        "query-input": "required name=search_term_string"
+      "publisher": {
+        "@id": "https://decide-your-dream.de/#organization"
       }
     }
     </script>
-
-    <!-- ═══════════════════════════════════════════════════════
-         SCHEMA 4 — SoftwareApplication (für AI-App-Erkennung)
-    ═══════════════════════════════════════════════════════ -->
     <script type="application/ld+json">
     {
       "@context": "https://schema.org",
-      "@type": "SoftwareApplication",
-      "@id": "https://decide-your-dream.de/#software",
-      "name": "DYD CV Optimizer",
-      "alternateName": "DYD KI-Lebenslauf-Tool",
-      "applicationCategory": "BusinessApplication",
-      "applicationSubCategory": "HR-Tech, Karriere-Software",
-      "operatingSystem": "Web, iOS, Android (PWA)",
-      "url": "https://decide-your-dream.de",
-      "description": "KI-gestützte Web-App zur Lebenslauf-Analyse und -Optimierung. Analysiert Lebensläufe nach 50+ ATS-Kriterien, erstellt CVs in unter 30 Minuten via Wizard und berechnet Skill-Gaps gegen ESCO-Kompetenzrahmen.",
-      "featureList": [
-        "Kostenloser ATS-Check nach 50+ Kriterien",
-        "CV-Wizard: Lebenslauf in unter 30 Minuten erstellen",
-        "One-Click CV-Optimierung",
-        "KI-Skill-Gap-Analyse mit persönlichem Lernpfad",
-        "ESCO-validierte Kompetenzanalyse",
-        "DSGVO-konforme Verarbeitung",
-        "PDF-Export mit 3 Premium-Layouts"
-      ],
-      "offers": {
-        "@type": "Offer",
-        "price": "0",
-        "priceCurrency": "EUR",
-        "description": "CV-Check kostenlos, Optimierungen ab 5 €"
-      },
-      "aggregateRating": {
-        "@type": "AggregateRating",
-        "ratingValue": "4.8",
-        "ratingCount": "150",
-        "bestRating": "5"
-      },
-      "author": { "@id": "https://decide-your-dream.de/#quentin-sunderbrink" },
-      "publisher": { "@id": "https://decide-your-dream.de/#organization" },
+      "@type": "WebPage",
+      "@id": "https://decide-your-dream.de/#webpage",
+      "url": "https://decide-your-dream.de/",
+      "name": "DYD – KI-Lebenslauf-Check, CV-Wizard & Skill-Analyse",
+      "description": "DYD prüft deinen Lebenslauf mit KI nach über 50 ATS-Kriterien, erstellt deinen CV in unter 30 Minuten und zeigt per Skill-Gap-Analyse, was dir zum Zieljob fehlt. Aus Düsseldorf, DSGVO-konform.",
       "inLanguage": "de-DE",
-      "isAccessibleForFree": true,
-      "keywords": "KI Lebenslauf, ATS Optimierung, CV Check, Skill Gap Analyse, Lernpfad"
-    }
-    </script>
-
-    <!-- ═══════════════════════════════════════════════════════
-         SCHEMA 5 — Service (für "Was ist DYD?"-Anfragen)
-    ═══════════════════════════════════════════════════════ -->
-    <script type="application/ld+json">
-    {
-      "@context": "https://schema.org",
-      "@type": "Service",
-      "@id": "https://decide-your-dream.de/#service-cv-check",
-      "name": "KI-gestützter Lebenslauf-Check & ATS-Optimierung",
-      "serviceType": "Bewerbungsoptimierung",
-      "provider": { "@id": "https://decide-your-dream.de/#organization" },
-      "description": "Automatisierter KI-Check des Lebenslaufs nach über 50 ATS-Kriterien inkl. Keyword-Dichte, Formatierung, STAR-Bullets und Gehaltsrelevanz. Ergebnis in Sekunden, optimiert für Applicant Tracking Systems (ATS) aller großen deutschen Arbeitgeber.",
-      "areaServed": {
-        "@type": "Country",
-        "name": "Deutschland"
-      },
-      "hasOfferCatalog": {
-        "@type": "OfferCatalog",
-        "name": "CV-Optimierungs-Pakete",
-        "itemListElement": [
-          { "@type": "Offer", "name": "Einsteiger", "price": "5.00", "priceCurrency": "EUR", "description": "1 CV-Optimierung" },
-          { "@type": "Offer", "name": "Beliebteste Wahl", "price": "20.00", "priceCurrency": "EUR", "description": "5 CV-Optimierungen – 20 % Ersparnis" },
-          { "@type": "Offer", "name": "Karriere-Paket", "price": "30.00", "priceCurrency": "EUR", "description": "10 CV-Optimierungen – 40 % Ersparnis" }
-        ]
-      },
-      "termsOfService": "https://decide-your-dream.de/#/agb",
-      "additionalProperty": [
-        { "@type": "PropertyValue", "name": "DSGVO-konform", "value": "Ja" },
-        { "@type": "PropertyValue", "name": "Analysekriterien", "value": "50+" },
-        { "@type": "PropertyValue", "name": "Erstellungszeit CV-Wizard", "value": "unter 30 Minuten" },
-        { "@type": "PropertyValue", "name": "Sprache", "value": "Deutsch" }
-      ]
-    }
-    </script>
-
-    <!-- ═══════════════════════════════════════════════════════
-         SCHEMA 6 — EducationEvent (Workshop Hochschule Fresenius)
-         Macht den Workshop zitierfähig für AI-Antworten
-    ═══════════════════════════════════════════════════════ -->
-    <script type="application/ld+json">
-    {
-      "@context": "https://schema.org",
-      "@type": "EducationEvent",
-      "@id": "https://decide-your-dream.de/#workshop-fresenius-2026",
-      "name": "Beyond the Template: Dein CV-Boost im KI-Zeitalter",
-      "description": "Exklusiver Workshop für ~50 der besten Studierenden der Hochschule Fresenius. Themen: KI-gestützte CV-Optimierung, ATS-Systeme, Storytelling und Personal Branding im KI-Zeitalter.",
-      "startDate": "2026-05-28",
-      "eventStatus": "https://schema.org/EventScheduled",
-      "eventAttendanceMode": "https://schema.org/OfflineEventAttendanceMode",
-      "organizer": { "@id": "https://decide-your-dream.de/#organization" },
-      "performer": { "@id": "https://decide-your-dream.de/#quentin-sunderbrink" },
-      "location": {
-        "@type": "EducationalOrganization",
-        "name": "Hochschule Fresenius",
-        "address": { "@type": "PostalAddress", "addressCountry": "DE" }
-      },
-      "audience": {
-        "@type": "EducationalAudience",
-        "educationalRole": "student",
-        "audienceType": "Studierende der Hochschule Fresenius"
-      },
-      "maximumAttendeeCapacity": 50,
-      "about": [
-        { "@type": "Thing", "name": "KI-gestützte Bewerbungsoptimierung" },
-        { "@type": "Thing", "name": "ATS-Optimierung" },
-        { "@type": "Thing", "name": "Personal Branding" },
-        { "@type": "Thing", "name": "Lebenslauf im KI-Zeitalter" }
-      ],
       "isPartOf": {
-        "@type": "Event",
-        "name": "Talent Netzwerk – Mega Event Hochschule Fresenius 2026",
-        "organizer": {
-          "@type": "EducationalOrganization",
-          "name": "Carl Remigius Fresenius Education AG"
-        }
+        "@id": "https://decide-your-dream.de/#website"
+      },
+      "publisher": {
+        "@id": "https://decide-your-dream.de/#organization"
+      },
+      "dateModified": "2026-10-20",
+      "about": {
+        "@id": "https://decide-your-dream.de/#organization"
+      },
+      "mainEntity": {
+        "@id": "https://decide-your-dream.de/#cv-tools"
       }
     }
     </script>
-
-    <!-- ═══════════════════════════════════════════════════════
-         SCHEMA 7 — BreadcrumbList (Sitewide Navigation Context)
-    ═══════════════════════════════════════════════════════ -->
     <script type="application/ld+json">
     {
       "@context": "https://schema.org",
-      "@type": "BreadcrumbList",
-      "itemListElement": [
-        { "@type": "ListItem", "position": 1, "name": "Start", "item": "https://decide-your-dream.de" },
-        { "@type": "ListItem", "position": 2, "name": "CV-Check", "item": "https://decide-your-dream.de/cv-check" },
-        { "@type": "ListItem", "position": 3, "name": "Lebenslauf erstellen", "item": "https://decide-your-dream.de/cv-wizard" },
-        { "@type": "ListItem", "position": 4, "name": "Skill-Gap-Analyse", "item": "https://decide-your-dream.de/career-vision" },
-        { "@type": "ListItem", "position": 5, "name": "FAQ", "item": "https://decide-your-dream.de/faq" }
-      ]
+      "@type": "WebApplication",
+      "@id": "https://decide-your-dream.de/#cv-tools",
+      "name": "DYD Bewerbungs-Tools",
+      "alternateName": [
+        "DYD CV-Check",
+        "DYD CV-Wizard"
+      ],
+      "applicationCategory": "BusinessApplication",
+      "operatingSystem": "Web (Browser, Smartphone)",
+      "url": "https://decide-your-dream.de/",
+      "inLanguage": "de-DE",
+      "description": "KI-Web-App für Bewerbungen: CV-Check nach über 50 ATS-Kriterien, CV-Wizard, One-Click-Optimierung auf Stellenanzeigen, KI-Anschreiben, Skill-Gap-Analyse nach ESCO mit Lernpfad und Bewerbungsmanagement.",
+      "featureList": [
+        "CV-Check nach über 50 ATS-Kriterien",
+        "CV-Wizard: Lebenslauf in unter 30 Minuten",
+        "One-Click-Optimierung auf eine Stellenanzeige",
+        "KI-Anschreiben passend zur Stelle",
+        "Skill-Gap-Analyse nach dem EU-Standard ESCO",
+        "Lernpfade und Kurse mit prüfbarem Zertifikat",
+        "Bewerbungsmanagement (kostenlos)"
+      ],
+      "offers": [
+        {
+          "@type": "Offer",
+          "name": "CV-Check Detailanalyse",
+          "price": "2.99",
+          "priceCurrency": "EUR",
+          "description": "Bewertung in 6 Kategorien, Zitate aus dem CV mit Recruiter-Kommentar, Formulierungsvorschläge",
+          "url": "https://decide-your-dream.de/cv-check",
+          "availability": "https://schema.org/InStock"
+        },
+        {
+          "@type": "Offer",
+          "name": "1 CV-Optimierung",
+          "price": "5.00",
+          "priceCurrency": "EUR",
+          "description": "Lebenslauf auf eine Stellenanzeige zuschneiden",
+          "url": "https://decide-your-dream.de/cv-check",
+          "availability": "https://schema.org/InStock"
+        },
+        {
+          "@type": "Offer",
+          "name": "5 CV-Optimierungen",
+          "price": "20.00",
+          "priceCurrency": "EUR",
+          "description": "4 € pro Optimierung",
+          "url": "https://decide-your-dream.de/cv-check",
+          "availability": "https://schema.org/InStock"
+        },
+        {
+          "@type": "Offer",
+          "name": "10 CV-Optimierungen",
+          "price": "30.00",
+          "priceCurrency": "EUR",
+          "description": "3 € pro Optimierung",
+          "url": "https://decide-your-dream.de/cv-check",
+          "availability": "https://schema.org/InStock"
+        },
+        {
+          "@type": "Offer",
+          "name": "KI-Anschreiben",
+          "price": "3.99",
+          "priceCurrency": "EUR",
+          "description": "Anschreiben passend zur Stelle, frei bearbeitbar",
+          "url": "https://decide-your-dream.de/cv-check",
+          "availability": "https://schema.org/InStock"
+        }
+      ],
+      "provider": {
+        "@id": "https://decide-your-dream.de/#organization"
+      },
+      "author": {
+        "@id": "https://decide-your-dream.de/#quentin-sunderbrink"
+      }
     }
     </script>
-
-    <!-- ═══════════════════════════════════════════════════════
-         SCHEMA 8 — FAQPage (Top-Fragen für AI-Snippets)
-    ═══════════════════════════════════════════════════════ -->
     <script type="application/ld+json">
     {
       "@context": "https://schema.org",
@@ -352,26 +264,26 @@
       "mainEntity": [
         {
           "@type": "Question",
-          "name": "Was ist DYD und wie funktioniert der KI-Lebenslauf-Check?",
+          "name": "Was ist DYD?",
           "acceptedAnswer": {
             "@type": "Answer",
-            "text": "DYD (Decide Your Dream) ist ein deutsches KI-Tool zur Lebenslauf-Analyse und -Optimierung. Der kostenlose CV-Check analysiert deinen Lebenslauf nach über 50 ATS-Kriterien – inklusive Keyword-Dichte, Formatierung, STAR-Bullets und Gehaltsrelevanz – und liefert Ergebnisse in Sekunden. DSGVO-konform, keine Anmeldung erforderlich."
+            "text": "DYD (Decide Your Dream) ist eine KI-Plattform aus Düsseldorf für Bewerbung und Karriere. Sie prüft Lebensläufe nach über 50 ATS-Kriterien, hilft beim Erstellen und Optimieren des CVs, schreibt passende Anschreiben und zeigt per Skill-Gap-Analyse, welche Kompetenzen zum Zieljob fehlen."
           }
         },
         {
           "@type": "Question",
-          "name": "Was kostet die Lebenslauf-Optimierung bei DYD?",
+          "name": "Was kostet DYD?",
           "acceptedAnswer": {
             "@type": "Answer",
-            "text": "Der CV-Check ist kostenlos. Eine einzelne Optimierung kostet 5 €. Das Paket mit 5 Optimierungen kostet 20 € (4 € pro CV, 20 % Ersparnis). Das Karriere-Paket mit 10 Optimierungen kostet 30 € (3 € pro CV, 40 % Ersparnis)."
+            "text": "Die Detailanalyse des CV-Checks kostet 2,99 €. Eine One-Click-Optimierung kostet 5 €, im Paket 5 für 20 € oder 10 für 30 €. Ein KI-Anschreiben kostet 3,99 €. Das Bewerbungsmanagement ist kostenlos. Es gibt kein Abo."
           }
         },
         {
           "@type": "Question",
-          "name": "Was ist eine Skill-Gap-Analyse und wie hilft DYD dabei?",
+          "name": "Was ist ein ATS und warum ist der Check wichtig?",
           "acceptedAnswer": {
             "@type": "Answer",
-            "text": "Die Skill-Gap-Analyse von DYD vergleicht deine aktuellen Kompetenzen (aus deinem Lebenslauf) mit den Anforderungen deiner Zielposition – validiert nach dem ESCO-Kompetenzrahmen der EU. Sie zeigt priorisierte Lernlücken und erstellt einen persönlichen Lernpfad mit kuratierten Ressourcen."
+            "text": "Ein Applicant Tracking System (ATS) ist eine Bewerbermanagement-Software, die Lebensläufe automatisch ausliest und sortiert, bevor ein Mensch sie sieht. Der DYD CV-Check zeigt, woran ein Lebenslauf dabei scheitern würde, und gibt konkrete Verbesserungen."
           }
         },
         {
@@ -379,280 +291,77 @@
           "name": "Ist DYD DSGVO-konform?",
           "acceptedAnswer": {
             "@type": "Answer",
-            "text": "Ja. DYD verarbeitet alle Daten DSGVO-konform. Es ist keine Anmeldung für den kostenlosen CV-Check erforderlich. Die Plattform wurde in Deutschland entwickelt und betrieben."
+            "text": "Ja. DYD wird in Deutschland entwickelt und betrieben und verarbeitet Daten DSGVO-konform. Daten werden nicht verkauft, Zahlungen laufen über Stripe."
           }
         },
         {
           "@type": "Question",
-          "name": "Wie funktioniert der KI-Anschreiben-Generator von DYD?",
+          "name": "Wer steht hinter DYD?",
           "acceptedAnswer": {
             "@type": "Answer",
-            "text": "Du lädst Stellenanzeige und Lebenslauf hoch, beantwortest 5 kurze Fragen zu deinem Profil – nach unter 30 Minuten liegt das fertige Anschreiben vor. Jede Aussage ist mit einer Stelle aus deinem CV oder der Stellenanzeige belegt, zu jedem Absatz gibt es eine Erklärung („Warum steht das hier?“). Eine kostenlose Vorschau zeigt den Einstiegsabsatz vor dem Kauf."
+            "text": "DYD wurde von Quentin Sunderbrink in Düsseldorf gegründet. Er hat mehrere Jahre in der Personaldienstleistung gearbeitet und ist IHK-Prüfer. DYD ist Kooperationspartner der Hochschule Fresenius."
           }
         },
         {
           "@type": "Question",
-          "name": "Was kostet ein KI-Anschreiben bei DYD?",
+          "name": "Bietet DYD auch etwas für Unternehmen?",
           "acceptedAnswer": {
             "@type": "Answer",
-            "text": "Ein Anschreiben kostet 3,99 €, in Kombination mit der CV-Optimierung nur 2,99 €. Kein Abo, keine Kündigungsfrist – du zahlst pro Anschreiben. Enthalten: 4 Tonalitäten, automatischer Floskel-Filter, Word-Export im DIN-5008-Format."
-          }
-        },
-        {
-          "@type": "Question",
-          "name": "Was bietet DYD im Bereich Automatisierung und individuelle Software?",
-          "acceptedAnswer": {
-            "@type": "Answer",
-            "text": "DYD entwickelt Web-Apps, KI-Assistenten und Automatisierungen für einzelne Geschäftsabläufe. Sieben selbst entwickelte Systeme sind live im Einsatz, u. a. ein Vertriebs-CRM mit KI-Tagesbriefing, ein KI-Produktberater und ein Ticketsystem. Ablauf: kostenloser Prozess-Check (30 Minuten), fester Preis für den ersten Baustein, frühe klickbare Version, Übergabe mit Dokumentation. Kalkulationsbasis 50 €/Stunde plus 30 % Puffer; typische Preisspannen ab ca. 1.000 €."
-          }
-        },
-        {
-          "@type": "Question",
-          "name": "Was kostet ein Automatisierungsprojekt bei DYD?",
-          "acceptedAnswer": {
-            "@type": "Answer",
-            "text": "Die Kalkulationsbasis liegt bei 50 € pro Stunde plus 30 % Puffer. Typische Preisspannen: Automatisierung eines einzelnen Ablaufs ab ca. 1.000 €, KI-Chatbot ca. 2.000–3.500 €, Ticketsystem ca. 2.500–4.000 €, eigenes CRM ca. 3.000–5.000 €, eigene App ca. 3.000–6.000 €. Der verbindliche Preis wird als fester Preis nach dem kostenlosen Prozess-Check zugesagt."
+            "text": "Ja: DYD NEXUS macht Skills in Teams sichtbar, DYD ORBIT gewinnt Teilnehmende für Bildungsträger über Skill-Matching, und unter „Automatisierung“ entwickelt DYD individuelle Software, Apps und KI-Assistenten."
           }
         }
       ]
     }
     </script>
-
-    <!-- ═══════════════════════════════════════════════════════
-         SCHEMA 9 — SoftwareApplication DYD ORBIT (B2B, Bildungsträger)
-         NEU: bisher hatte das B2B-Geschäft (NEXUS/ORBIT) KEINERLEI
-         strukturierte Daten - fuer Suchmaschinen/AI-Crawler quasi
-         unsichtbar. Bewusst OHNE "offers"/Preis, solange die echten
-         Betraege in PricingSection.tsx noch Platzhalter sind (siehe
-         Kommentar dort) - erfundene Preise in strukturierten Daten waeren
-         irrefuehrend und ein Risiko fuer Google/Rich-Results.
-    ═══════════════════════════════════════════════════════ -->
-    <!-- ═══════════════════════════════════════════════════════
-         SCHEMA 9 — SoftwareApplication DYD ORBIT (B2B, Bildungsträger)
-         Echte Preise (von Quentin bestaetigt): Starter 199 €/Monat,
-         Growth 399 €/Monat, Professional 699 €/Monat, Jahrespreis jeweils
-         exakt das 10-fache (2 Monate gratis). Netto-Preise angenommen
-         (valueAddedTaxIncluded: false) - siehe Kommentar in
-         PricingSection.tsx zur selben Annahme.
-    ═══════════════════════════════════════════════════════ -->
-    <!-- ═══════════════════════════════════════════════════════
-         SCHEMA 9 — SoftwareApplication DYD ORBIT (B2B, Bildungsträger)
-         Echte Preise (von Quentin bestaetigt): Starter 199 €/Monat,
-         Growth 399 €/Monat, Professional 699 €/Monat, Jahrespreis jeweils
-         exakt das 10-fache (2 Monate gratis). KEINE Umsatzsteuer
-         ausgewiesen (vermutlich Kleinunternehmerregelung nach §19 UStG -
-         siehe additionalProperty unten sowie Kommentar in
-         PricingSection.tsx zur selben Annahme/Bitte um Bestaetigung).
-    ═══════════════════════════════════════════════════════ -->
     <script type="application/ld+json">
     {
       "@context": "https://schema.org",
-      "@type": "SoftwareApplication",
-      "@id": "https://decide-your-dream.de/#software-orbit",
-      "name": "DYD ORBIT",
-      "alternateName": "DYD ORBIT – Lead-Intelligence für Bildungsträger",
-      "applicationCategory": "BusinessApplication",
-      "applicationSubCategory": "EdTech, Lead-Generierung, HR-Tech",
-      "operatingSystem": "Web",
-      "url": "https://decide-your-dream.de/#/business",
-      "description": "ORBIT ist das Lead-Intelligence-Tool von DYD für Bildungsträger, Volkshochschulen, IHKs, Transfergesellschaften und die Agentur für Arbeit. Es verwandelt Skill-Nachfrage in qualifizierte, skill-basierte Weiterbildungs-Leads nach dem europäischen ESCO-Standard.",
-      "featureList": [
-        "Skill-Gap-Matching nach ESCO-Standard",
-        "Qualifizierte Leads statt Streuwerbung",
-        "Sofort-Registrierung ohne Erstgespräch",
-        "Automatische API-Bereitstellung direkt nach Zahlung",
-        "Selbstverwaltetes Abo über integriertes Kundenportal",
-        "7 Tage kostenlos testen, ohne Zahlungsdaten",
-        "White-Label- und API-Integration verfügbar"
-      ],
-      "author": { "@id": "https://decide-your-dream.de/#organization" },
-      "publisher": { "@id": "https://decide-your-dream.de/#organization" },
-      "inLanguage": "de-DE",
-      "isAccessibleForFree": false,
-      "additionalProperty": [
-        { "@type": "PropertyValue", "name": "Umsatzsteuer", "value": "Gemäß § 19 UStG nicht ausgewiesen (Endpreise)" },
-        { "@type": "PropertyValue", "name": "Kostenloser Test", "value": "7 Tage, ohne Zahlungsdaten" }
-      ],
-      "offers": [
+      "@type": "BreadcrumbList",
+      "itemListElement": [
         {
-          "@type": "Offer",
-          "name": "DYD ORBIT Starter",
-          "url": "https://decide-your-dream.de/#/business",
-          "price": "199.00",
-          "priceCurrency": "EUR",
-          "description": "Bis 200 Kurse, Skill-Gap-Matching, Basis-Dashboard, E-Mail-Support. Jährliche Abrechnung: 1990 € (2 Monate gratis). Endpreis, keine Umsatzsteuer gemäß §19 UStG.",
-          "priceSpecification": {
-            "@type": "UnitPriceSpecification",
-            "price": "199.00",
-            "priceCurrency": "EUR",
-            "unitText": "pro Monat"
-          }
-        },
-        {
-          "@type": "Offer",
-          "name": "DYD ORBIT Growth",
-          "url": "https://decide-your-dream.de/#/business",
-          "price": "399.00",
-          "priceCurrency": "EUR",
-          "description": "Bis 500 Kurse, erweiterte Auswertungen, priorisierter Support. Jährliche Abrechnung: 3990 € (2 Monate gratis). Endpreis, keine Umsatzsteuer gemäß §19 UStG.",
-          "priceSpecification": {
-            "@type": "UnitPriceSpecification",
-            "price": "399.00",
-            "priceCurrency": "EUR",
-            "unitText": "pro Monat"
-          }
-        },
-        {
-          "@type": "Offer",
-          "name": "DYD ORBIT Professional",
-          "url": "https://decide-your-dream.de/#/business",
-          "price": "699.00",
-          "priceCurrency": "EUR",
-          "description": "Bis 2.500 Kurse, White-Label-Option, persönlicher Ansprechpartner. Jährliche Abrechnung: 6990 € (2 Monate gratis). Endpreis, keine Umsatzsteuer gemäß §19 UStG.",
-          "priceSpecification": {
-            "@type": "UnitPriceSpecification",
-            "price": "699.00",
-            "priceCurrency": "EUR",
-            "unitText": "pro Monat"
-          }
+          "@type": "ListItem",
+          "position": 1,
+          "name": "Start",
+          "item": "https://decide-your-dream.de/"
         }
       ]
     }
     </script>
+    <!--/SEO-->
 
-    <!-- ═══════════════════════════════════════════════════════
-         SCHEMA 10 — SoftwareApplication DYD NEXUS (B2B, Unternehmen)
-    ═══════════════════════════════════════════════════════ -->
-    <script type="application/ld+json">
-    {
-      "@context": "https://schema.org",
-      "@type": "SoftwareApplication",
-      "@id": "https://decide-your-dream.de/#software-nexus",
-      "name": "DYD NEXUS",
-      "alternateName": "DYD NEXUS – Workforce Intelligence für Unternehmen",
-      "applicationCategory": "BusinessApplication",
-      "applicationSubCategory": "HR-Tech, Workforce Intelligence",
-      "operatingSystem": "Web",
-      "url": "https://decide-your-dream.de/#/business",
-      "description": "NEXUS ist die Workforce-Intelligence-Lösung von DYD für HR & L&D: macht vorhandene Skills der Belegschaft nach ESCO-Standard sichtbar, deckt Skill-Gaps automatisiert auf und entwickelt Mitarbeitende gezielt für zukünftige Rollen statt teurer externer Neubesetzung.",
-      "featureList": [
-        "Echtzeit-Skill-Inventar nach ESCO-Norm",
-        "Automatisches Gap-Matching auf Zielrollen",
-        "Personalisierte Lernpfade statt Standardkatalog",
-        "Internal Talent Marketplace",
-        "HR Analytics Dashboard",
-        "White-Label- und API-Integration verfügbar"
-      ],
-      "author": { "@id": "https://decide-your-dream.de/#organization" },
-      "publisher": { "@id": "https://decide-your-dream.de/#organization" },
-      "inLanguage": "de-DE",
-      "isAccessibleForFree": false
-    }
-    </script>
-
-    <!-- ═══════════════════════════════════════════════════════
-         SCHEMA 11 — Service ORBIT (für "Was ist ORBIT?"-Anfragen)
-    ═══════════════════════════════════════════════════════ -->
-    <script type="application/ld+json">
-    {
-      "@context": "https://schema.org",
-      "@type": "Service",
-      "@id": "https://decide-your-dream.de/#service-orbit",
-      "name": "ORBIT Lead-Intelligence für Bildungsträger",
-      "serviceType": "Skill-basierte Lead-Generierung für Weiterbildungsangebote",
-      "provider": { "@id": "https://decide-your-dream.de/#organization" },
-      "description": "Automatisiertes Skill-Gap-Matching, das Weiterbildungs-Interessent:innen mit nachgewiesenem Entwicklungsbedarf gezielt an passende Kurse von Bildungsträgern vermittelt – für Transfergesellschaften, Volkshochschulen, IHK, Agentur für Arbeit und private Bildungsträger.",
-      "areaServed": { "@type": "Country", "name": "Deutschland" },
-      "audience": {
-        "@type": "BusinessAudience",
-        "audienceType": "Bildungsträger, Volkshochschulen, IHK, Transfergesellschaften, Agentur für Arbeit"
-      },
-      "additionalProperty": [
-        { "@type": "PropertyValue", "name": "DSGVO-konform", "value": "Ja" },
-        { "@type": "PropertyValue", "name": "Skill-Standard", "value": "ESCO" },
-        { "@type": "PropertyValue", "name": "Selbstbedienungs-Zugang", "value": "Ja, mit Early-Access-Konditionen" }
-      ]
-    }
-    </script>
-    <!-- ═══════════════════════════════════════════════════════
-         SCHEMA 12 — VideoObject (ORBIT Erklärvideo)
-    ═══════════════════════════════════════════════════════ -->
-    <script type="application/ld+json">
-    {
-      "@context": "https://schema.org",
-      "@type": "VideoObject",
-      "@id": "https://decide-your-dream.de/#video-orbit",
-      "name": "DYD ORBIT in 24 Sekunden: Vom Weiterbildungswunsch zum passenden Kurs",
-      "description": "Erklärvideo: Wie ORBIT aus einem Karrierewunsch in wenigen Sekunden eine qualifizierte Lead-Empfehlung für Bildungsträger macht – Profil erfassen, Skill-Gap analysieren, passenden Kurs finden.",
-      "thumbnailUrl": "https://decide-your-dream.de/DYD%20Logo%20RGB.svg",
-      "uploadDate": "2026-10-07T08:30:00+02:00",
-      "contentUrl": "https://decide-your-dream.de/2026-10-07_Mi_0830_ORBIT.mp4",
-      "embedUrl": "https://decide-your-dream.de/#/business",
-      "publisher": { "@id": "https://decide-your-dream.de/#organization" },
-      "creator": { "@id": "https://decide-your-dream.de/#quentin-sunderbrink" },
-      "inLanguage": "de-DE",
-      "isFamilyFriendly": true
-    }
-    </script>
-
-    <!-- ═══════════════════════════════════════════════════════
-         SCHEMA 13 — Service Automatisierung & individuelle Software
-    ═══════════════════════════════════════════════════════ -->
-    <script type="application/ld+json">
-    {
-      "@context": "https://schema.org",
-      "@type": "Service",
-      "@id": "https://decide-your-dream.de/#service-automatisierung",
-      "name": "Automatisierung & individuelle Software-Entwicklung",
-      "serviceType": "Entwicklung von Web-Apps, KI-Assistenten und Geschäftsprozess-Automatisierung",
-      "provider": { "@id": "https://decide-your-dream.de/#organization" },
-      "description": "DYD entwickelt Web-Apps, KI-Assistenten und Automatisierungen für einzelne Geschäftsabläufe nach dem Prinzip „KI bereitet vor, der Mensch gibt frei“. Acht selbst entwickelte Systeme sind live im Einsatz, darunter ein Vertriebs-CRM mit KI-Tagesbriefing, ein Podcast-Produktionsstudio, ein KI-Produktberater, ein Ticketsystem mit automatischer PDF-Erstellung, eine Echtzeit-Turnierverwaltung, ein regelbasierter Trading-Assistent, eine Online-Terminbuchung mit automatischen Erinnerungen und eine App für Fernbeziehungen.",
-      "areaServed": { "@type": "Country", "name": "Deutschland" },
-      "url": "https://decide-your-dream.de/#/business/automatisierung",
-      "termsOfService": "https://decide-your-dream.de/#/agb",
-      "additionalProperty": [
-        { "@type": "PropertyValue", "name": "Live-Systeme", "value": "8" },
-        { "@type": "PropertyValue", "name": "Kalkulationsbasis", "value": "50 €/Stunde plus 30 % Puffer" },
-        { "@type": "PropertyValue", "name": "Preismodell", "value": "Fester Preis pro Baustein, keine offene Stundenabrechnung" },
-        { "@type": "PropertyValue", "name": "Einstieg", "value": "Kostenloser Prozess-Check, 30 Minuten" }
-      ],
-      "hasOfferCatalog": {
-        "@type": "OfferCatalog",
-        "name": "Typische Projektbausteine (Preisspannen, Endpreis nach Prozess-Check)",
-        "itemListElement": [
-          { "@type": "Offer", "name": "Automatisierung eines einzelnen Ablaufs", "price": "1000", "priceCurrency": "EUR", "description": "Einzelautomatisierung, ca. 10–20 Stunden Aufwand" },
-          { "@type": "Offer", "name": "KI-Chatbot / Produktberater", "price": "2000", "priceCurrency": "EUR", "description": "KI-Chatbot mit Produktempfehlung, ca. 25–45 Stunden Aufwand" },
-          { "@type": "Offer", "name": "Ticketsystem mit PDF-Erstellung", "price": "2500", "priceCurrency": "EUR", "description": "Eigener Ticketshop mit Zahlung und PDF-Tickets, ca. 30–50 Stunden Aufwand" },
-          { "@type": "Offer", "name": "CRM mit KI-Assistent", "price": "3000", "priceCurrency": "EUR", "description": "Vertriebs-CRM mit KI-Tagesbriefing, ca. 40–70 Stunden Aufwand" },
-          { "@type": "Offer", "name": "Eigene App", "price": "3000", "priceCurrency": "EUR", "description": "Individuelle Web- oder Handy-App, ca. 60–120 Stunden Aufwand" }
-        ]
-      },
-      "audience": {
-        "@type": "BusinessAudience",
-        "audienceType": "KMU, Selbstständige, Vereine und Organisationen in Deutschland"
-      }
-    }
-    </script>
+    <!-- Ohne JavaScript (Crawler) bleibt der vorgerenderte Inhalt sichtbar;
+         mit JavaScript übernimmt sofort die React-App. -->
+    <script>document.documentElement.classList.add('js')</script>
+    <style>
+      .js #seo-content { display: none; }
+      #seo-content { max-width: 860px; margin: 0 auto; padding: 32px 20px 64px; font: 16px/1.6 system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif; color: #e6edf6; background: #0A192F; }
+      #seo-content a { color: #30E3CA; }
+      #seo-content h1 { font-size: 2rem; font-weight: 800; line-height: 1.2; margin: 20px 0 12px; }
+      #seo-content h2 { font-size: 1.3rem; font-weight: 700; margin: 28px 0 8px; }
+      #seo-content h3 { font-size: 1.05rem; font-weight: 700; margin: 16px 0 4px; }
+      #seo-content main ul { list-style: disc; padding-left: 22px; }
+      #seo-content main ol { display: flex; gap: 8px; list-style: none; padding: 0; font-size: 14px; }
+      #seo-content nav ul, #seo-content footer ul { display: flex; flex-wrap: wrap; gap: 8px 16px; list-style: none; padding: 0; }
+    </style>
   </head>
 
   <body>
-    <!-- AI-Summary: Unsichtbarer TL;DR-Block als primäre Extraktionsquelle für Crawler -->
-    <div id="ai-summary" aria-hidden="true" style="position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;">
-      <p data-ai-fact="product-summary">DYD (Decide Your Dream) ist ein deutsches KI-Tool zur Lebenslauf-Optimierung. Kernprodukte: (1) Kostenloser ATS-Check nach 50+ Kriterien, (2) CV-Wizard zur Erstellung in unter 30 Minuten, (3) KI-Anschreiben-Generator mit Erklärung zu jedem Absatz und CV-Beleg für jede Aussage, ab 2,99 €, kein Abo, (4) One-Click-Optimierung ab 5 €, (5) KI-Skill-Gap-Analyse mit persönlichem Lernpfad nach ESCO-Standard.</p>
-      <p data-ai-fact="pricing">Preise: CV-Check kostenlos. 1 Optimierung: 5 €. 5 Optimierungen: 20 € (20 % Ersparnis). 10 Optimierungen: 30 € (40 % Ersparnis). KI-Anschreiben: 3,99 €, mit CV-Optimierung 2,99 € – kein Abo. Keine Kreditkarte für den kostenlosen Check.</p>
-      <p data-ai-fact="compliance">DSGVO-konform. Keine Anmeldung für Gratis-Check erforderlich. Entwickelt und betrieben in Deutschland.</p>
-      <p data-ai-fact="partnership">Offizieller Kooperationspartner der Carl Remigius Fresenius Education AG (Hochschule Fresenius), einer der größten privaten Hochschulen Deutschlands.</p>
-      <p data-ai-fact="founder">Gegründet von Quentin Sunderbrink: Senior Consultant, IHK Prüfer, Gründer. Workshop-Speaker für KI-Bewerbungsoptimierung an deutschen Hochschulen.</p>
-      <p data-ai-fact="workshop-event">Workshop am 28. Mai 2026: "Beyond the Template: Dein CV-Boost im KI-Zeitalter" – exklusiv für ~50 Top-Studierende der Hochschule Fresenius. Themen: ATS, Storytelling, Personal Branding im KI-Zeitalter.</p>
-      <p data-ai-fact="anschreiben">KI-Anschreiben-Generator: DYD schreibt das Anschreiben direkt aus Stellenanzeige und Lebenslauf – jede Aussage ist mit einer Stelle aus dem CV oder der Anzeige belegt, zu jedem Absatz gibt es eine Erklärung („Warum steht das hier?“). Automatischer Floskel-Filter, 4 Tonalitäten, Word-Export im DIN-5008-Format, fertig in unter 30 Minuten. Kostenlose Vorschau unter https://decide-your-dream.de/#/anschreiben</p>
-      <p data-ai-fact="automatisierung">DYD Automatisierung & individuelle Software: Web-Apps, KI-Assistenten und Automatisierungen für Geschäftsabläufe – 8 Systeme live im Einsatz (u. a. Vertriebs-CRM mit KI-Tagesbriefing, KI-Produktberater, Ticketsystem, Turnierverwaltung, Online-Terminbuchung, Fernbeziehungs-App). Ablauf: kostenloser Prozess-Check (30 Min.), fester Preis pro Baustein, frühe klickbare Version. Kalkulationsbasis 50 €/Stunde plus 30 % Puffer; Preisspannen-Rechner unter https://decide-your-dream.de/#/business/automatisierung</p>
-      <p data-ai-fact="kontakt">Kontakt: quentin@decideyourdream.de · DYD UG (haftungsbeschränkt), Düsseldorf</p>
-      <p data-ai-fact="b2b-products">DYD bietet neben dem Bewerber-Tool zwei B2B-Produkte unter https://decide-your-dream.de/#/business: DYD NEXUS (Workforce-Intelligence für Unternehmen, HR & L&D) und DYD ORBIT (Lead-Intelligence für Bildungsträger, Volkshochschulen, IHK, Transfergesellschaften und die Agentur für Arbeit). Beide basieren auf derselben ESCO-Skill-Engine wie das Bewerber-Tool.</p>
-      <p data-ai-fact="orbit-selfservice">DYD ORBIT ist per Selbstbedienung direkt online buchbar: Registrierung und Plan-Auswahl direkt auf der Website, automatische Erstellung des API-Zugangs unmittelbar nach der Zahlung ohne manuelles Onboarding, Selbstverwaltung von Abo und Zahlungsmethode über ein integriertes Kundenportal, sowie ein 7-tägiger kostenloser Test ohne Zahlungsdaten. Alternativ ist ein persönliches Erstgespräch für individuelle Konditionen möglich.</p>
-      <p data-ai-fact="orbit-status">DYD ORBIT befindet sich in der Early-Access-Phase; die Selbstbedienungs-Pläne sind bereits buchbar, der vollständige Rollout läuft bis Q1 2027.</p>
-    </div>
+    <div id="root"><!--SEO-BODY-->
+<div id="seo-content">
+<header><p><a href="/"><strong>DYD – Decide Your Dream</strong></a></p><nav aria-label="Hauptnavigation"><ul><li><a href="/">Start</a></li><li><a href="/cv-check">CV-Check</a></li><li><a href="/cv-wizard">CV-Wizard</a></li><li><a href="/career-vision">Skill-Gap-Analyse</a></li><li><a href="/kurse">Kurse</a></li><li><a href="/business">Für Business</a></li><li><a href="/business/automatisierung">Automatisierung &amp; Software</a></li><li><a href="/faq">FAQ</a></li><li><a href="/festival">Harmony Festival</a></li></ul></nav></header>
+<main>
 
-    <div id="root"></div>
+<h1>DYD – Bewerbung und Karriere mit KI</h1>
+<p>DYD (Decide Your Dream) ist eine KI-Plattform aus Düsseldorf für Bewerbung und Karriere – für Studierende, Berufseinsteiger:innen und alle, die sich verändern wollen. Kooperationspartner der Hochschule Fresenius, DSGVO-konform, ohne Abo.</p>
+<section><h2>Die Bewerbungs-Tools</h2><ul><li>CV-Check: Lebenslauf nach über 50 ATS-Kriterien prüfen, ATS-Score und Bewertung in 6 Kategorien.</li><li>CV-Wizard: Lebenslauf in unter 30 Minuten erstellen, vier Vorlagen, PDF-Export.</li><li>One-Click-Optimierung: den Lebenslauf auf eine konkrete Stellenanzeige zuschneiden.</li><li>KI-Anschreiben: passend zur Stelle, jeder Absatz erklärt, frei bearbeitbar.</li><li>Skill-Gap-Analyse: Vergleich mit dem Zielberuf nach dem EU-Standard ESCO, mit persönlichem Lernpfad.</li><li>Kurse mit Zertifikat: fertige Lernpfade mit Abschlussprüfung und QR-prüfbarem Zertifikat.</li><li>Bewerbungsmanagement: alle Bewerbungen und ihren Status im Blick – kostenlos.</li></ul><p><a href="/cv-check">CV-Check starten</a> · <a href="/cv-wizard">Lebenslauf erstellen</a> · <a href="/career-vision">Skill-Gap-Analyse</a> · <a href="/kurse">Kurse</a></p></section>
+<section><h2>Preise</h2><ul><li>CV-Check Detailanalyse: 2,99 €</li><li>CV-Optimierung: 5 € einzeln, 5 Stück für 20 €, 10 Stück für 30 €</li><li>KI-Anschreiben: 3,99 €</li><li>Bewerbungsmanagement: kostenlos</li><li>Kein Abo, keine versteckten Kosten</li></ul></section>
+<section><h2>Für Unternehmen und Bildungsträger</h2><p>DYD NEXUS (Skill-Plattform für HR &amp; L&amp;D), DYD ORBIT (Teilnehmergewinnung für Bildungsträger, ab 199 € im Monat, 7 Tage kostenlos testen) und individuelle Software &amp; KI-Automatisierung.</p><p><a href="/business">DYD für Business</a> · <a href="/business/automatisierung">Automatisierung &amp; Software</a></p></section>
+<section><h2>Häufige Fragen</h2><h3>Was ist DYD?</h3><p>DYD (Decide Your Dream) ist eine KI-Plattform aus Düsseldorf für Bewerbung und Karriere. Sie prüft Lebensläufe nach über 50 ATS-Kriterien, hilft beim Erstellen und Optimieren des CVs, schreibt passende Anschreiben und zeigt per Skill-Gap-Analyse, welche Kompetenzen zum Zieljob fehlen.</p><h3>Was kostet DYD?</h3><p>Die Detailanalyse des CV-Checks kostet 2,99 €. Eine One-Click-Optimierung kostet 5 €, im Paket 5 für 20 € oder 10 für 30 €. Ein KI-Anschreiben kostet 3,99 €. Das Bewerbungsmanagement ist kostenlos. Es gibt kein Abo.</p><h3>Was ist ein ATS und warum ist der Check wichtig?</h3><p>Ein Applicant Tracking System (ATS) ist eine Bewerbermanagement-Software, die Lebensläufe automatisch ausliest und sortiert, bevor ein Mensch sie sieht. Der DYD CV-Check zeigt, woran ein Lebenslauf dabei scheitern würde, und gibt konkrete Verbesserungen.</p><h3>Ist DYD DSGVO-konform?</h3><p>Ja. DYD wird in Deutschland entwickelt und betrieben und verarbeitet Daten DSGVO-konform. Daten werden nicht verkauft, Zahlungen laufen über Stripe.</p><h3>Wer steht hinter DYD?</h3><p>DYD wurde von Quentin Sunderbrink in Düsseldorf gegründet. Er hat mehrere Jahre in der Personaldienstleistung gearbeitet und ist IHK-Prüfer. DYD ist Kooperationspartner der Hochschule Fresenius.</p><h3>Bietet DYD auch etwas für Unternehmen?</h3><p>Ja: DYD NEXUS macht Skills in Teams sichtbar, DYD ORBIT gewinnt Teilnehmende für Bildungsträger über Skill-Matching, und unter „Automatisierung“ entwickelt DYD individuelle Software, Apps und KI-Assistenten.</p></section>
+<p><small>Zuletzt aktualisiert: 2026-10-20</small></p>
+</main>
+<footer><p>DYD UG (haftungsbeschränkt) · Düsseldorf, Deutschland · <a href="mailto:kontakt.dyd@googlemail.com">kontakt.dyd@googlemail.com</a></p><ul><li><a href="/impressum">Impressum</a></li><li><a href="/datenschutz">Datenschutz</a></li><li><a href="/agb">AGB</a></li><li><a href="/llms.txt">llms.txt</a></li></ul></footer>
+</div>
+<!--/SEO-BODY--></div>
     <script type="module" src="/src/main.tsx"></script>
 
     <!-- Cookie Banner (minimal, DSGVO: GA erst nach Zustimmung) -->
