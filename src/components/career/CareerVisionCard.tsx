@@ -690,7 +690,13 @@ function CompactCard({ learningPath, onStartLearning }: Omit<CareerVisionCardPro
   return (
     <>
       <div
-        onClick={() => setShowModal(true)}
+        onClick={() => {
+          if (learningPath.status === 'analyzing' || learningPath.status === 'failed') {
+            navigate(`/career-vision?resume=${learningPath.id}`);
+          } else {
+            setShowModal(true);
+          }
+        }}
         className="relative rounded-2xl overflow-hidden cursor-pointer transition-transform duration-200 hover:scale-[1.012] active:scale-[0.99]"
         style={{
           background: 'linear-gradient(160deg,rgba(10,14,30,0.98),rgba(15,20,40,0.99))',
