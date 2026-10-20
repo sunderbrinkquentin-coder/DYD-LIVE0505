@@ -135,7 +135,7 @@ export const academyCatalogService = {
       },
       body: JSON.stringify({
         price_id: CATALOG_PRICE_ID,
-        success_url: `${origin}/#/learning-path-waiting/${pathId}?session_id={CHECKOUT_SESSION_ID}&catalog=1`,
+        success_url: `${origin}/learning-path-waiting/${pathId}?session_id={CHECKOUT_SESSION_ID}&catalog=1`,
         cancel_url: `${origin}/#${cancelPath}`,
         metadata: {
           learning_path_id: pathId,
