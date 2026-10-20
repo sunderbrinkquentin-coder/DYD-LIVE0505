@@ -18,6 +18,7 @@ import { AcademyScrollStory } from '../components/career/AcademyScrollStory';
 import { CATALOG_PRICE_LABEL, REGULAR_PRICE_LABEL } from '../services/academyCatalogService';
 import { useAuth } from '../contexts/AuthContext';
 import { supabase } from '../lib/supabase';
+import { NewsletterDiscountHint } from '../features/newsletter/NewsletterDiscountHint';
 
 const ADMIN_EMAILS = String(import.meta.env.VITE_ACADEMY_ADMIN_EMAILS || '')
   .split(',').map((e) => e.trim().toLowerCase()).filter(Boolean);
@@ -81,6 +82,7 @@ export default function CoursesPage() {
             <span className="flex items-center gap-1.5"><QrCode size={14} className="text-[#66c0b6]" /> Zertifikat mit QR-Prüfung</span>
             <span className="flex items-center gap-1.5"><CheckCircle2 size={14} className="text-[#66c0b6]" /> Direkt in LinkedIn & Lebenslauf</span>
           </div>
+          <div className="max-w-md mx-auto pt-2"><NewsletterDiscountHint source="courses" /></div>
           <div className="flex flex-col sm:flex-row items-center justify-center gap-3 pt-3">
             <button
               onClick={() => document.getElementById('kurse')?.scrollIntoView({ behavior: 'smooth', block: 'start' })}
