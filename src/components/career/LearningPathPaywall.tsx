@@ -12,6 +12,7 @@ import {
   type CatalogEntry,
 } from '../../services/academyCatalogService';
 import { advisorCheckoutMetadata } from '../../features/advisor/advisorAttribution';
+import { NewsletterDiscountHint } from '../../features/newsletter/NewsletterDiscountHint';
 
 // Single path: 5 € — unlocks only the current learning path
 const PRICE_ID_SINGLE = import.meta.env.VITE_STRIPE_PRICE_LEARNING_PATH_SINGLE || 'price_1TWw5G3Sd9dZl64SKYanIg6m';
@@ -196,8 +197,8 @@ export function LearningPathPaywall({
     if (isCatalogPlan && catalogEntry) {
       try {
         const res = await academyCatalogService.startCheckout(catalogEntry, `/learning-path/${analysisPathId}`);
-        if ('ownedPathId' in res) window.location.hash = `#/learning-path/${res.ownedPathId}`;
-        if ('needsLogin' in res) window.location.hash = `#/login?redirect=${encodeURIComponent(`/learning-path/${analysisPathId}`)}`;
+        if ('ownedPathId' in res) window.location.assign(`/learning-path/${res.ownedPathId}`);
+        if ('needsLogin' in res) window.location.assign(`/login?redirect=${encodeURIComponent(`/learning-path/${analysisPathId}`)}`);
       } catch (e: any) {
         setError(e.message || 'Ein Fehler ist aufgetreten. Bitte versuche es erneut.');
         setIsLoading(false);
@@ -246,8 +247,8 @@ export function LearningPathPaywall({
 
       const activeSkill = chosenSkill ?? selectedSkill;
       const skillParam = activeSkill ? `&skill=${encodeURIComponent(activeSkill)}` : '';
-      const successUrl = `${origin}/#/learning-path-waiting/${primaryPathId}?session_id={CHECKOUT_SESSION_ID}${skillParam}`;
-      const cancelUrl = `${origin}/#/learning-path/${analysisPathId}?payment=cancelled`;
+      const successUrl = `${origin}/learning-path-waiting/${primaryPathId}?session_id={CHECKOUT_SESSION_ID}${skillParam}`;
+      const cancelUrl = `${origin}/learning-path/${analysisPathId}?payment=cancelled`;
 
       const resp = await fetch(STRIPE_CHECKOUT_URL, {
         method: 'POST',
@@ -540,6 +541,7 @@ export function LearningPathPaywall({
 
           {/* CTA */}
           <div className="p-6 pt-0 space-y-3">
+            <NewsletterDiscountHint source="learningpath-paywall" />
             <button
               onClick={handleCheckout}
               disabled={isLoading || singleNeedsChoice}
