@@ -40,7 +40,7 @@ function SegmentToggle({
       </a>
 
       <a
-        href="#/business"
+        href="/business"
         aria-current="page"
         className={`${item} text-[#0A192F]`}
       >
@@ -154,7 +154,7 @@ export default function B2BHeader({ onContact, active, ctaLabel }: B2BHeaderProp
         <div className="flex items-center justify-between h-16 lg:h-[4.5rem]">
           {/* Logo */}
           <a
-            href="#/business"
+            href="/business"
             className="flex items-center gap-2.5 b2b-focus-ring"
             aria-label={b2bContent.header.logoAlt}
           >
