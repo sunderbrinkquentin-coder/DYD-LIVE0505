@@ -21,7 +21,7 @@ import { DsgvoConsentDialog } from '../DsgvoConsentDialog';
 // ── Constants ──────────────────────────────────────────────────────────────────
 
 const POLL_INTERVAL_MS = 3_000;
-const POLL_MAX = 80;           // 80 × 3s = 4 Minuten
+const POLL_MAX = 240;          // Zwei Analysestufen inklusive Wiederholungen beobachten.
 const FALLBACK_TIMEOUT_MS = 150_000; // 2.5 Minuten bevor Fallback erscheint
 const CV_DATA_POLL_MAX = 30;
 
@@ -47,7 +47,9 @@ interface AnalysisResult {
   missingSkills: RawSkill[];
   currentSkills: RawSkill[];
   strategicOutlook: string;
-  matchScore: number;
+  matchScore: number | null;
+  sources?: string[];
+  scoreMethod?: string;
   industry: string;
   targetJob: string;
   targetCompany: string;
@@ -149,7 +151,7 @@ function SmartProgressBar({ done, paused }: { done: boolean; paused: boolean }) 
   return (
     <div className="w-full space-y-2">
       <div className="flex justify-between items-center text-xs">
-        <span className="text-white/45 font-medium">{done ? 'Analyse abgeschlossen' : 'Tiefenanalyse läuft… · ca. 1 Min.'}</span>
+        <span className="text-white/45 font-medium">{done ? 'Analyse abgeschlossen' : 'Tiefenanalyse läuft…'}</span>
         <span className="font-bold tabular-nums" style={{ color: done ? '#22c55e' : '#30E3CA' }}>{display}%</span>
       </div>
       <div className="h-2 rounded-full bg-white/8 overflow-hidden relative">
@@ -306,7 +308,7 @@ const LOADER_STEPS = [
   { id: 'cv',      label: 'Lebenslauf wird analysiert',         detail: 'Extrahiere Erfahrungen & Skills…'          },
   { id: 'market',  label: 'Branchendaten werden abgerufen',     detail: 'Vergleiche mit 2026-Marktstandards…'       },
   { id: 'company', label: 'Unternehmensanforderungen scannen',  detail: 'Lese Stellenprofile & Kulturfit…'          },
-  { id: 'gaps',    label: 'Skill-Gaps werden berechnet',        detail: 'Priorisiere kritische Lücken…'             },
+  { id: 'gaps',    label: 'Skill-Gaps werden berechnet',        detail: 'Deine nächsten Lernchancen werden priorisiert…'             },
   { id: 'esco',    label: 'ESCO-Datenbank wird abgeglichen',    detail: 'Validiere Skills nach EU-Standard…'        },
   { id: 'path',    label: 'Lernpfad wird modelliert',           detail: 'Erstelle deine persönliche Roadmap…'      },
   { id: 'outlook', label: 'Strategischer Ausblick 2026',        detail: 'Analysiere KI-Trends & Gehaltspotenziale…' },
@@ -347,7 +349,7 @@ function AnalysisLoader({ messages, success }: { messages: string[]; success: bo
         )}
         <span className="text-[10px] font-black uppercase tracking-[0.18em]"
           style={{ color: success ? 'rgba(34,197,94,0.7)' : 'rgba(102,192,182,0.65)' }}>
-          {success ? 'Analyse abgeschlossen' : 'Schritt 2 von 2 · KI-Tiefenanalyse läuft · ca. 1 Min.'}
+          {success ? 'Analyse abgeschlossen' : 'Schritt 2 von 2 · KI-Tiefenanalyse läuft'}
         </span>
       </div>
       <div className="absolute inset-0 pointer-events-none overflow-hidden">
@@ -737,7 +739,7 @@ function ResultView({ result, onNavigate }: { result: AnalysisResult; onNavigate
   const topSkill = visibleSkills[0];
   const { user: authUser, profile: authProfile } = useAuth() as any;
   const certName: string = (authProfile?.full_name || authUser?.user_metadata?.full_name || '').trim();
-  const scoreColor = matchScore >= 70 ? '#22c55e' : matchScore >= 40 ? '#f59e0b' : '#30E3CA';
+  const scoreColor = (matchScore ?? 0) >= 70 ? '#22c55e' : (matchScore ?? 0) >= 40 ? '#f59e0b' : '#30E3CA';
 
   const openPaywall = (skillName?: string) => {
     setPendingSkill(skillName);
@@ -769,10 +771,10 @@ function ResultView({ result, onNavigate }: { result: AnalysisResult; onNavigate
               )}
             </div>
           </div>
-          {matchScore > 0 && (
+          {matchScore !== null && Number.isFinite(matchScore) && (
             <div className="flex-shrink-0 flex flex-col items-center gap-0.5 px-3 py-2.5 rounded-xl bg-white/5 border border-white/10 min-w-[70px] text-center">
               <span className="text-[22px] font-black leading-none" style={{ color: scoreColor }}>{matchScore}%</span>
-              <span className="text-[10px] text-white/40 mt-0.5">Match</span>
+              <span className="text-[10px] text-white/40 mt-0.5">Belegte Abdeckung</span>
             </div>
           )}
         </div>
@@ -784,6 +786,34 @@ function ResultView({ result, onNavigate }: { result: AnalysisResult; onNavigate
         )}
       </div>
 
+      {/* Current skills */}
+      {visibleCurrent.length > 0 && (
+        <div className="space-y-2">
+          <div className="flex items-center gap-1.5">
+            <Check size={13} className="text-[#66c0b6]" />
+            <span className="text-xs font-bold text-white/50">Deine belegten Stärken</span>
+            <span className="text-[10px] text-[#66c0b6]/60 font-bold">· {visibleCurrent.length} Skills</span>
+          </div>
+          <div className="flex flex-wrap gap-1.5">
+            {visibleCurrent.map((skill, i) => (
+              <span key={i} className="px-2.5 py-1 rounded-lg text-[11px] text-white/50 bg-white/[0.03] border border-white/8">
+                {skillDisplayName(skill)}
+              </span>
+            ))}
+          </div>
+        </div>
+      )}
+
+      <p className="text-xs text-white/50 leading-relaxed">{result.scoreMethod || 'Die Einschätzung basiert auf deinen Unterlagen.'} Noch nicht belegt bedeutet nicht, dass du etwas nicht kannst.</p>
+      {!!result.sources?.length && (
+        <details className="text-xs text-white/60">
+          <summary className="cursor-pointer">Recherchequellen ansehen</summary>
+          <ul className="mt-2 space-y-2">{result.sources.filter(url => /^https?:\/\//i.test(url)).map(url => (
+            <li key={url}><a href={url} target="_blank" rel="noopener noreferrer" className="underline break-all">{url}</a></li>
+          ))}</ul>
+          <p className="mt-2">KI-gestützte Einschätzung. Quellenverweise sind kein unabhängiger Faktencheck.</p>
+        </details>
+      )}
       {/* Skill switcher */}
       {visibleSkills.length > 0 && (
         <div className="space-y-3">
@@ -800,24 +830,6 @@ function ResultView({ result, onNavigate }: { result: AnalysisResult; onNavigate
             targetJob={targetJob}
             onStartLearning={(skillName) => openPaywall(skillName)}
           />
-        </div>
-      )}
-
-      {/* Current skills */}
-      {visibleCurrent.length > 0 && (
-        <div className="space-y-2">
-          <div className="flex items-center gap-1.5">
-            <Check size={13} className="text-[#66c0b6]" />
-            <span className="text-xs font-bold text-white/50">Deine Basis</span>
-            <span className="text-[10px] text-[#66c0b6]/60 font-bold">· {visibleCurrent.length} Skills</span>
-          </div>
-          <div className="flex flex-wrap gap-1.5">
-            {visibleCurrent.map((skill, i) => (
-              <span key={i} className="px-2.5 py-1 rounded-lg text-[11px] text-white/50 bg-white/[0.03] border border-white/8">
-                {skillDisplayName(skill)}
-              </span>
-            ))}
-          </div>
         </div>
       )}
 
@@ -1016,7 +1028,9 @@ export function CareerVisionSection({ cvId: initialCvId, onAnalysisComplete, res
         missingSkills:   parseSkills(row.missing_skills),
         currentSkills:   normalizeCurrentSkills(row.current_skills),
         strategicOutlook: (row.strategic_outlook_2026 as string) ?? '',
-        matchScore:       Number(row.match_score ?? 0),
+        matchScore:       row.match_score == null ? null : Number(row.match_score),
+        sources: (row.skillgap_analysis as any)?.research?.sources ?? [],
+        scoreMethod: (row.skillgap_analysis as any)?.score?.method ?? '',
         industry:         (row.industry as string) ?? industry,
         targetJob:        (row.target_job as string) ?? targetJob,
         targetCompany:    (row.target_company as string) ?? targetCompany,
@@ -1333,6 +1347,11 @@ const runAnalysis = useCallback(async () => {
   // ── Handlers ────────────────────────────────────────────────────────────────
 
   const handleRetry = () => {
+    if (pathIdRef.current) {
+      completedRef.current = false;
+      void triggerSkillgapWebhook(pathIdRef.current);
+      return;
+    }
     runRef.current += 1;
     cleanupListeners();
     completedRef.current = false;
@@ -1490,7 +1509,7 @@ const runAnalysis = useCallback(async () => {
               {roleFixError && <p className="text-xs text-red-300">{roleFixError}</p>}
             </div>
           ) : (
-            <button onClick={handleManualCheck}
+            <button onClick={handleRetry}
               className="flex items-center gap-2 px-5 py-2.5 rounded-xl bg-red-500/20 border border-red-500/30 text-red-200 hover:bg-red-500/30 transition-all font-medium text-sm">
               <RefreshCw size={16} /> Kostenlos neu starten
             </button>
