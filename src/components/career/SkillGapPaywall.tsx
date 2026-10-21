@@ -57,10 +57,11 @@ export function SkillGapPaywall({ isOpen, onClose, learningPathId, targetJob, ta
 
     try {
       const { data: { session } } = await supabase.auth.getSession();
-      const token = session?.access_token || import.meta.env.VITE_SUPABASE_ANON_KEY;
+      if (!session?.access_token) throw new Error('Bitte melde dich erneut an. Dein Analysevorgang bleibt gespeichert.');
+      const token = session.access_token;
 
       const origin = window.location.origin;
-      // ✅ Fix: ?resume= statt ?analysis= damit resumePathId-Flow in CareerVisionSection greift
+      // Die Edge Function setzt die verbindlichen Rücksprung-URLs aus SITE_URL.
       const successUrl = `${origin}/career-vision?resume=${learningPathId}&session_id={CHECKOUT_SESSION_ID}`;
       const cancelUrl  = `${origin}/career-vision`;
 
