@@ -71,7 +71,6 @@ export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
     persistSession: true,
     detectSessionInUrl: true,
     storage: safeStorage as any,
-    lock: (name: string, acquireTimeout: number, fn: () => Promise<unknown>) => fn(),
   },
 });
 
