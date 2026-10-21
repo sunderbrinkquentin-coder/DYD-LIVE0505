@@ -1289,7 +1289,7 @@ const runAnalysis = useCallback(async () => {
     }
   }, [cleanupListeners, startRealtime, startPolling, handleCompletion, showFailed, failedRole]);
 
-  // ── Resume after Stripe redirect or opening an existing analysis ─────────────
+// ── Resume after Stripe redirect or opening an existing analysis ─────────────
 
   useEffect(() => {
     if (!resumePathId || authLoading || !user?.id) return;
@@ -1309,28 +1309,41 @@ const runAnalysis = useCallback(async () => {
           .select(ANALYSIS_SELECT).eq('id', resumePathId).maybeSingle();
         if (!active()) return;
         if (error) throw error;
-        if (!data) throw new Error('Analyse nicht gefunden oder für dieses Konto nicht verfügbar.');
-        setTargetJob(data.target_job ?? '');
-        setTargetCompany(data.target_company ?? '');
-        setIndustry(data.industry ?? '');
-        if (COMPLETE_STATUSES.has(data.status)) {
-          await handleCompletion(resumePathId, data);
-          return;
+        
+        if (data) {
+          setTargetJob(data.target_job ?? '');
+          setTargetCompany(data.target_company ?? '');
+          setIndustry(data.industry ?? '');
+
+          // Falls die Analyse bereits fertig ist: Direkt anzeigen
+          if (COMPLETE_STATUSES.has(data.status)) {
+            await handleCompletion(resumePathId, data);
+            return;
+          }
+          if (data.status === 'failed') {
+            showFailed(data);
+            return;
+          }
+          if (data.cv_id) {
+            setPhase('cv_uploading');
+            try {
+              await waitForCvData(data.cv_id, user.id);
+            } catch (cvErr) {
+              console.warn('[CVSection] CV data wait warning after redirect:', cvErr);
+            }
+            if (!active()) return;
+          }
         }
-        if (data.status === 'failed') {
-          showFailed(data);
-          return;
-        }
-        if (data.cv_id) {
-          setPhase('cv_uploading');
-          await waitForCvData(data.cv_id, user.id);
-          if (!active()) return;
-        }
+
+        // Nach erfolgreicher Stripe-Zahlung triggern wir den Webhook jetzt in jedem Fall sicher an,
+        // falls er vom Backend noch nicht verarbeitet wurde.
         await triggerSkillgapWebhook(resumePathId);
+
       } catch (e: any) {
         if (!active() || completedRef.current) return;
-        setApiError(e.message || 'Die Analyse konnte nicht geladen werden. Bitte erneut prüfen.');
-        setPhase('fallback');
+        console.warn('[CVSection] Redirect load warning, retrying webhook:', e);
+        // Fallback: Direkt versuchen den Webhook zu triggern, statt abzubrechen
+        await triggerSkillgapWebhook(resumePathId);
       }
     })();
 
@@ -1340,7 +1353,6 @@ const runAnalysis = useCallback(async () => {
       cleanupListeners();
       if (revealTimerRef.current) clearTimeout(revealTimerRef.current);
     };
-    // Form edits must not restart a paid analysis. A new account/path must.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [resumePathId, authLoading, user?.id]);
 
