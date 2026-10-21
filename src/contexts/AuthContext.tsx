@@ -119,8 +119,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         // Migration darf den Login nicht scheitern lassen.
         try {
           const tempId = getTempId();
-          await dataMigrationService.migrateToUser(data.user.id, tempId);
-          if (tempId) clearTempId();
+          const migrated = await dataMigrationService.migrateToUser(data.user.id, tempId);
+          if (migrated.success && tempId) clearTempId();
         } catch (migErr: any) {
           console.error('[Auth] Datenmigration fehlgeschlagen:', migErr?.message ?? migErr);
         }
@@ -147,8 +147,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
         try {
           const tempId = getTempId();
-          await dataMigrationService.migrateToUser(data.user.id, tempId);
-          if (tempId) clearTempId();
+          const migrated = await dataMigrationService.migrateToUser(data.user.id, tempId);
+          if (migrated.success && tempId) clearTempId();
         } catch (migErr: any) {
           console.error('[Auth] Datenmigration fehlgeschlagen:', migErr?.message ?? migErr);
         }
