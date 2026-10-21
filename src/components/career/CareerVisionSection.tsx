@@ -1303,7 +1303,7 @@ const runAnalysis = useCallback(async () => {
     setApiError(null);
     setPhase('waiting');
 
-    void (async () => {
+void (async () => {
       try {
         const { data, error } = await supabase.from('learning_paths')
           .select(ANALYSIS_SELECT).eq('id', resumePathId).maybeSingle();
@@ -1335,14 +1335,33 @@ const runAnalysis = useCallback(async () => {
           }
         }
 
-        // SICHERHEITSNETZ: Sofortiges Erzwingen des Webhooks nach Stripe-Rückkehr,
-        // falls der Backend-Webhook die Analyse blockiert/vergessen hat.
-        await triggerSkillgapWebhook(resumePathId);
+        // --- HIER DEN DIREKTEN FETCH-AUFRUF EINBAUEN ---
+        setPhase('waiting');
+        startRealtime(resumePathId);
+        startPolling(resumePathId);
+
+        const { data: { session } } = await supabase.auth.getSession();
+        const res = await fetch(`${supabase.supabaseUrl}/functions/v1/skillgap-analyze`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${session?.access_token || supabase.supabaseKey}`,
+          },
+          body: JSON.stringify({ learning_path_id: resumePathId })
+        });
+
+        const json = await res.json();
+        console.log('[Direct Trigger Response]:', json);
+
+        if (!res.ok) {
+          throw new Error(json.error || 'Fehler beim Starten der Analyse via Fetch');
+        }
 
       } catch (e: any) {
         if (!active() || completedRef.current) return;
-        console.warn('[CVSection] Redirect error caught, forcing webhook retry:', e);
-        await triggerSkillgapWebhook(resumePathId);
+        console.warn('[CVSection] Redirect error caught:', e);
+        setApiError(e.message || 'Die Analyse konnte nicht gestartet werden.');
+        setPhase('fallback');
       }
     })();
 
