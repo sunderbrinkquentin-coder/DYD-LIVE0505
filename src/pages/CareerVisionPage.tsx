@@ -15,8 +15,25 @@ export default function CareerVisionPage() {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
 
-  // Nach Stripe-Redirect: /career-vision?resume={pathId}
-  const resumePathId = searchParams.get('resume') || searchParams.get('analysis') || undefined;
+  // Robustes Auslesen aus Search-Params ODER Hash-Parametern (für HashRouter)
+  const getParam = (key: string) => {
+    // 1. Versuche es über Standard-Search-Params
+    const val = searchParams.get(key);
+    if (val) return val;
+
+    // 2. Fallback: Suche im Hash (z.B. #/career-vision?resume=...&session_id=...)
+    const hash = window.location.hash;
+    if (hash.includes('?')) {
+      const hashQuery = hash.split('?')[1];
+      const hashParams = new URLSearchParams(hashQuery);
+      return hashParams.get(key);
+    }
+    return null;
+  };
+
+  // Nach Stripe-Redirect: /career-vision?resume={pathId}&session_id={sessionId}
+  const resumePathId = getParam('resume') || getParam('analysis') || undefined;
+  const sessionId = getParam('session_id') || undefined;
 
   const [cvId, setCvId] = useState<string | null>(null);
   const [userPaths, setUserPaths] = useState<LearningPath[]>([]);
@@ -25,6 +42,14 @@ export default function CareerVisionPage() {
   useEffect(() => {
     loadUserData();
   }, [user]);
+
+  // Optional: Hier kannst du jetzt auch die sessionId verarbeiten, falls Stripe zurückkehrt
+  useEffect(() => {
+    if (sessionId) {
+      console.log('[CareerVision] Stripe Checkout erfolgreiche Session erkannt:', sessionId);
+      // Hier könntest du z.B. einen Backend-Verify-Call triggern, falls nötig
+    }
+  }, [sessionId]);
 
   const loadUserData = async () => {
     setIsLoading(true);
