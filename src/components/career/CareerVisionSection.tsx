@@ -1307,6 +1307,7 @@ const runAnalysis = useCallback(async () => {
       try {
         const { data, error } = await supabase.from('learning_paths')
           .select(ANALYSIS_SELECT).eq('id', resumePathId).maybeSingle();
+        
         if (!active()) return;
         if (error) throw error;
         
@@ -1315,7 +1316,6 @@ const runAnalysis = useCallback(async () => {
           setTargetCompany(data.target_company ?? '');
           setIndustry(data.industry ?? '');
 
-          // Falls die Analyse bereits fertig ist: Direkt anzeigen
           if (COMPLETE_STATUSES.has(data.status)) {
             await handleCompletion(resumePathId, data);
             return;
@@ -1329,20 +1329,19 @@ const runAnalysis = useCallback(async () => {
             try {
               await waitForCvData(data.cv_id, user.id);
             } catch (cvErr) {
-              console.warn('[CVSection] CV data wait warning after redirect:', cvErr);
+              console.warn('[CVSection] CV wait warning:', cvErr);
             }
             if (!active()) return;
           }
         }
 
-        // Nach erfolgreicher Stripe-Zahlung triggern wir den Webhook jetzt in jedem Fall sicher an,
-        // falls er vom Backend noch nicht verarbeitet wurde.
+        // SICHERHEITSNETZ: Sofortiges Erzwingen des Webhooks nach Stripe-Rückkehr,
+        // falls der Backend-Webhook die Analyse blockiert/vergessen hat.
         await triggerSkillgapWebhook(resumePathId);
 
       } catch (e: any) {
         if (!active() || completedRef.current) return;
-        console.warn('[CVSection] Redirect load warning, retrying webhook:', e);
-        // Fallback: Direkt versuchen den Webhook zu triggern, statt abzubrechen
+        console.warn('[CVSection] Redirect error caught, forcing webhook retry:', e);
         await triggerSkillgapWebhook(resumePathId);
       }
     })();
