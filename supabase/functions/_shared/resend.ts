@@ -1,3 +1,4 @@
+import { newsletterConfig } from './appConfig.ts';
 // Newsletter transport: reuse the existing server-side RESEND_API_KEY.
 // Contact properties are optional; Supabase remains authoritative for discounts.
 const API = 'https://api.resend.com';
@@ -35,10 +36,8 @@ export async function sendMail(opts: {
 }): Promise<boolean> {
   try {
     const senderEmail = Deno.env.get('NEWSLETTER_SENDER_EMAIL');
-    const from = senderEmail
-      ? `${Deno.env.get('NEWSLETTER_SENDER_NAME') ?? 'Quentin von DYD'} <${senderEmail}>`
-      : Deno.env.get('RESEND_FROM_EMAIL');
-    if (!from) throw new Error('NEWSLETTER_SENDER_EMAIL oder RESEND_FROM_EMAIL fehlt');
+    if (!senderEmail?.trim()) throw new Error('NEWSLETTER_SENDER_EMAIL fehlt');
+    const from = `${Deno.env.get('NEWSLETTER_SENDER_NAME') ?? 'Quentin von DYD'} <${senderEmail.trim()}>`;
     const headers: Record<string, string> = {};
     if (opts.unsubscribeUrl) {
       headers['List-Unsubscribe'] = `<${opts.unsubscribeUrl}>`;
@@ -59,7 +58,7 @@ export async function sendMail(opts: {
 }
 
 function properties(attributes: Attributes) {
-  if (Deno.env.get('RESEND_SYNC_PROPERTIES') !== 'true') return {};
+  if (!newsletterConfig.syncProperties) return {};
   return { properties: Object.fromEntries(Object.entries(attributes)
     .filter(([key]) => key !== 'FIRSTNAME')
     .map(([key, value]) => [key.toLowerCase(), value == null ? null : String(value)])) };
@@ -73,7 +72,7 @@ export async function upsertContact(email: string, attributes: Attributes): Prom
   if (updated.status === 404) {
     await resendRequest('/contacts', { method: 'POST', body: JSON.stringify({ email, ...data }) });
   }
-  const segment = Deno.env.get('RESEND_NEWSLETTER_SEGMENT_ID');
+  const segment = newsletterConfig.segmentId;
   if (segment) {
     await resendRequest(`${path}/segments/${encodeURIComponent(segment)}`, { method: 'POST' });
   }
@@ -81,7 +80,7 @@ export async function upsertContact(email: string, attributes: Attributes): Prom
 
 /** A purchase never creates a contact or changes their subscription status. */
 export async function updateContactAttributes(email: string, attributes: Attributes): Promise<void> {
-  if (Deno.env.get('RESEND_SYNC_PROPERTIES') !== 'true') return;
+  if (!newsletterConfig.syncProperties) return;
   await resendRequest(`/contacts/${encodeURIComponent(email)}`, {
     method: 'PATCH', body: JSON.stringify(properties(attributes)),
   }, true);
