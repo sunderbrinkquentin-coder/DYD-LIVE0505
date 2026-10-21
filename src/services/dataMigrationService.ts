@@ -31,11 +31,6 @@ export class DataMigrationService {
           .eq('session_id', this.sessionId)
           .is('user_id', null),
 
-        supabase
-          .from('job_matches')
-          .update({ user_id: userId })
-          .eq('session_id', this.sessionId)
-          .is('user_id', null),
       ];
 
       if (tempId) {
@@ -50,7 +45,7 @@ export class DataMigrationService {
 
       const updates = await Promise.allSettled(migrationTasks);
 
-      const hasErrors = updates.some(result => result.status === 'rejected');
+      const hasErrors = updates.some(result => result.status === 'rejected' || result.value?.error);
 
       if (hasErrors) {
         console.error('Some migrations failed:', updates);
