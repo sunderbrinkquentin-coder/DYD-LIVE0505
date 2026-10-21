@@ -401,13 +401,12 @@ interface Stage1 {
 // ─────────────────────────────────────────────────────────────────────────────
 async function loadCvText(cvId: string | null): Promise<string> {
   if (!cvId) return "";
-  const { data, error } = await db.from("stored_cvs").select("cv_data, extracted_text").eq("id", cvId).maybeSingle();
+  const { data, error } = await db.from("stored_cvs").select("cv_data").eq("id", cvId).maybeSingle();
   if (error) throw new Error(`Lebenslauf konnte nicht gelesen werden: ${error.message}`);
   if (!data) throw new Error("Der zugeordnete Lebenslauf wurde nicht gefunden");
-  const fromText = str(data.extracted_text);
-  const fromData = cvToText(data.cv_data);
-  // Der längere, aussagekräftigere Text gewinnt
-  return (fromText.length > fromData.length ? fromText : fromData).slice(0, CV_MAX_CHARS);
+  // Das bestehende Schema speichert extrahierte Lebenslaufdaten in cv_data.
+  // cvToText verarbeitet JSON-Objekte, JSON-Strings und Klartext.
+  return cvToText(data.cv_data).slice(0, CV_MAX_CHARS);
 }
 
 /** Fehler mit Code, den die App gezielt anzeigen kann */
