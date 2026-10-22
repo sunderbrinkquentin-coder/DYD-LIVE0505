@@ -1,4 +1,3 @@
-import { skillgapReturnUrls } from "../_shared/checkoutReturn.ts";
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import Stripe from "npm:stripe@17.5.0";
 import { createClient } from "npm:@supabase/supabase-js@2.57.4";
@@ -141,16 +140,11 @@ Deno.serve(async (req: Request) => {
       festivalMeta.quantity = String(Math.max(1, Math.min(10, quantity)));
     }
 
-    // Niemals eine kurzlebige WebContainer-Adresse an Stripe weitergeben.
-    const returnUrls = metadata.skillgap_path_id
-      ? skillgapReturnUrls(Deno.env.get("SITE_URL"), metadata.skillgap_path_id)
-      : { success_url, cancel_url };
-
     const sessionParams: Stripe.Checkout.SessionCreateParams = {
       mode,
       line_items: [{ price: price_id, quantity: Math.max(1, Math.min(10, quantity)) }],
-      success_url: returnUrls.success_url,
-      cancel_url: returnUrls.cancel_url,
+      success_url,
+      cancel_url,
       metadata: {
         ...metadata,
         ...(userId ? { user_id: userId, user_email: userEmail || "" } : {}),
