@@ -1,32 +1,9 @@
-# Netlify-Weiterleitungen – liegen im Deploy-Ordner und gelten damit IMMER,
-# auch wenn netlify.toml nicht ausgewertet wird (z. B. Deploy direkt aus Bolt).
-# Exakt dieselben Regeln wie in netlify.toml, gleiche Reihenfolge.
+# Netlify: Single-Page-App-Fallback. Liegt im Deploy-Ordner und gilt damit
+# immer, auch wenn netlify.toml nicht ausgewertet wird (Deploy aus Bolt).
 #
-# WICHTIG: Die Rewrites /seite -> /seite.html brauchen "200!" (erzwungen).
-# dist/business/ ist ein Ordner (business/automatisierung.html). Ohne "!" leitet
-# Netlify /business selbst auf /business/ um – zusammen mit /business/ -> /business
-# ergibt das eine Endlosschleife (ERR_TOO_MANY_REDIRECTS).
+# KEINE weiteren Regeln für /business o. ä. ergänzen: Regeln wie
+# /business/ -> /business oder /business -> /business.html bilden mit dem
+# Ordner dist/business/ eine Endlosschleife (ERR_TOO_MANY_REDIRECTS).
+# Vorgerenderte Seiten (business.html …) liefert Netlify selbst aus.
 
-# (kein /business/ -> /business: Schleifengefahr wegen Ordner dist/business/)
-/business  /business.html  200!
-/business/automatisierung/  /business/automatisierung  301!
-/business/automatisierung  /business/automatisierung.html  200!
-/cv-check/  /cv-check  301!
-/cv-check  /cv-check.html  200!
-/cv-wizard/  /cv-wizard  301!
-/cv-wizard  /cv-wizard.html  200!
-/career-vision/  /career-vision  301!
-/career-vision  /career-vision.html  200!
-/kurse/  /kurse  301!
-/kurse  /kurse.html  200!
-/faq/  /faq  301!
-/faq  /faq.html  200!
-/festival/  /festival  301!
-/festival  /festival.html  200!
-/impressum/  /impressum  301!
-/impressum  /impressum.html  200!
-/datenschutz/  /datenschutz  301!
-/datenschutz  /datenschutz.html  200!
-/agb/  /agb  301!
-/agb  /agb.html  200!
-/*  /index.html  200!
+/*  /index.html  200
