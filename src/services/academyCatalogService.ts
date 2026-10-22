@@ -8,7 +8,11 @@
 import { supabase } from '../lib/supabase';
 import { advisorCheckoutMetadata } from '../features/advisor/advisorAttribution';
 
-/** Stripe-Preis für Katalog-Lernpfade (3,99 €). Ohne Preis werden keine Angebote gezeigt. */
+/**
+ * Stripe-Preis für Katalog-Lernpfade (3,99 €).
+ * Fehlt er, werden die Kurse trotzdem ANGEZEIGT (vorher: komplett ausgeblendet,
+ * ohne jede Meldung), nur der Kauf ist dann deaktiviert.
+ */
 export const CATALOG_PRICE_ID: string = (import.meta.env.VITE_STRIPE_PRICE_LEARNING_PATH_CATALOG as string | undefined) || '';
 export const CATALOG_PRICE_LABEL = '3,99 €';
 export const REGULAR_PRICE_LABEL = '5 €';
@@ -28,8 +32,24 @@ export interface CatalogEntry {
   ready_at: string | null;
 }
 
+/** true = Katalog-Kurse sind kaufbar (Stripe-Preis konfiguriert) */
 export function isCatalogEnabled(): boolean {
   return !!CATALOG_PRICE_ID;
+}
+
+if (!CATALOG_PRICE_ID) {
+  console.error(
+    '[Catalog] VITE_STRIPE_PRICE_LEARNING_PATH_CATALOG ist nicht gesetzt – Katalog-Kurse werden angezeigt, ' +
+    'können aber nicht gekauft werden. Variable in Netlify (Site settings → Environment variables) eintragen und neu deployen.',
+  );
+}
+
+const CATALOG_COLUMNS = 'id, skill_key, skill, description, unit_count, purchases, ready_at';
+
+export interface CatalogListResult {
+  entries: CatalogEntry[];
+  /** Technische Fehlermeldung (z. B. RLS/Tabelle fehlt) – null wenn ok */
+  error: string | null;
 }
 
 /** Gleiche Normalisierung wie public.academy_skill_key() in der Datenbank. */
@@ -38,32 +58,50 @@ export function skillKey(skill: string): string {
 }
 
 export const academyCatalogService = {
-  /** Beliebteste fertige Katalog-Pfade */
-  async list(limit = 6): Promise<CatalogEntry[]> {
-    if (!isCatalogEnabled()) return [];
-    const { data, error } = await supabase
-      .from('academy_catalog')
-      .select('id, skill_key, skill, description, unit_count, purchases, ready_at')
-      .eq('status', 'ready')
-      .order('purchases', { ascending: false })
-      .order('ready_at', { ascending: false })
-      .limit(limit);
-    if (error) {
-      console.warn('[Catalog] list:', error.message);
-      return [];
+  /** Beliebteste fertige Katalog-Pfade inkl. Fehlerstatus */
+  async listWithStatus(limit = 6): Promise<CatalogListResult> {
+    try {
+      const { data, error } = await supabase
+        .from('academy_catalog')
+        .select(CATALOG_COLUMNS)
+        .eq('status', 'ready')
+        .order('purchases', { ascending: false })
+        .order('ready_at', { ascending: false, nullsFirst: false })
+        .limit(limit);
+      if (error) {
+        console.error('[Catalog] list:', error.message, error.details ?? '', error.hint ?? '');
+        return { entries: [], error: error.message };
+      }
+      const entries = ((data as CatalogEntry[]) ?? []).map((e) => ({
+        ...e,
+        unit_count: Number(e.unit_count) || 0,
+        purchases: Number(e.purchases) || 0,
+      }));
+      if (!entries.length) {
+        console.info('[Catalog] Keine Kurse mit status = "ready" gefunden (noch in Erstellung oder nicht freigegeben).');
+      }
+      return { entries, error: null };
+    } catch (e: any) {
+      console.error('[Catalog] list exception:', e?.message);
+      return { entries: [], error: e?.message || 'Netzwerkfehler' };
     }
-    return (data as CatalogEntry[]) ?? [];
+  },
+
+  /** Beliebteste fertige Katalog-Pfade (Kurzform, Fehler → leere Liste) */
+  async list(limit = 6): Promise<CatalogEntry[]> {
+    return (await this.listWithStatus(limit)).entries;
   },
 
   /** Katalog-Pfade zu bestimmten Skills (z. B. aus einer Gap-Analyse) */
   async findForSkills(skills: string[]): Promise<Map<string, CatalogEntry>> {
     const map = new Map<string, CatalogEntry>();
+    // Nur kaufbare Angebote im Paywall-Vergleich zeigen
     if (!isCatalogEnabled()) return map;
     const keys = [...new Set(skills.map(skillKey).filter(Boolean))];
     if (!keys.length) return map;
     const { data } = await supabase
       .from('academy_catalog')
-      .select('id, skill_key, skill, description, unit_count, purchases, ready_at')
+      .select(CATALOG_COLUMNS)
       .eq('status', 'ready')
       .in('skill_key', keys);
     for (const entry of (data as CatalogEntry[]) ?? []) map.set(entry.skill_key, entry);
@@ -90,6 +128,9 @@ export const academyCatalogService = {
    * Ist der Pfad schon gekauft, wird stattdessen seine id zurückgegeben.
    */
   async startCheckout(entry: CatalogEntry, cancelPath: string): Promise<{ redirected: true } | { ownedPathId: string } | { needsLogin: true }> {
+    if (!isCatalogEnabled()) {
+      throw new Error('Dieser Kurs kann gerade nicht gekauft werden. Bitte versuche es später erneut.');
+    }
     const { data: { session } } = await supabase.auth.getSession();
     const user = session?.user;
     if (!session || !user) return { needsLogin: true };
