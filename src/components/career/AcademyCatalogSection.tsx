@@ -16,6 +16,8 @@ import {
   CATALOG_DISCOUNT_LABEL,
   CATALOG_PRICE_LABEL,
   REGULAR_PRICE_LABEL,
+  isCatalogEnabled,
+  skillKey,
   type CatalogEntry,
 } from '../../services/academyCatalogService';
 
@@ -50,23 +52,27 @@ export function AcademyCatalogSection({
   const navigate = useNavigate();
   const location = useLocation();
   const [entries, setEntries] = useState<CatalogEntry[] | null>(null);
+  const [loadError, setLoadError] = useState<string | null>(null);
+  const [reloadTick, setReloadTick] = useState(0);
   const [busyId, setBusyId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const purchasable = isCatalogEnabled();
   const [query, setQuery] = useState('');
   const [detail, setDetail] = useState<CatalogEntry | null>(null);
 
-  const excludeKey = excludeSkills.map((s) => s.trim().toLowerCase()).sort().join('|');
+  // Gleiche Normalisierung wie skill_key in der Datenbank (academy_skill_key)
+  const excludeKey = [...new Set(excludeSkills.map(skillKey).filter(Boolean))].sort().join('|');
 
   useEffect(() => {
     let cancelled = false;
-    academyCatalogService.list(limit + excludeSkills.length).then((list) => {
+    const excluded = new Set(excludeKey ? excludeKey.split('|') : []);
+    academyCatalogService.listWithStatus(limit + excluded.size).then(({ entries: list, error: err }) => {
       if (cancelled) return;
-      const excluded = new Set(excludeKey ? excludeKey.split('|') : []);
+      setLoadError(err);
       setEntries(list.filter((e) => !excluded.has(e.skill_key)).slice(0, limit));
     });
     return () => { cancelled = true; };
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [limit, excludeKey]);
+  }, [limit, excludeKey, reloadTick]);
 
   const visible = useMemo(() => {
     if (!entries) return [];
@@ -82,9 +88,28 @@ export function AcademyCatalogSection({
       </div>
     ) : null;
   }
+  // Ladefehler nie still verschlucken – sonst ist die Sektion einfach "weg"
+  if (loadError && entries.length === 0) {
+    return (
+      <div className={`rounded-2xl p-5 flex flex-wrap items-center gap-3 text-sm ${className}`}
+        style={{ background: 'rgba(239,68,68,0.06)', border: '1px solid rgba(239,68,68,0.2)' }}>
+        <span className="flex-1 min-w-[220px] text-white/60">Die Lernpfade konnten gerade nicht geladen werden.</span>
+        <button
+          onClick={() => { setEntries(null); setReloadTick((n) => n + 1); }}
+          className="px-3 py-1.5 rounded-lg text-xs font-semibold text-white/80 border border-white/15 hover:bg-white/10"
+        >
+          Erneut laden
+        </button>
+      </div>
+    );
+  }
   if (entries.length === 0 && !showEmpty) return null;
 
   const buy = async (entry: CatalogEntry) => {
+    if (!purchasable) {
+      setError('Dieser Kurs kann gerade nicht gekauft werden. Bitte versuche es später erneut.');
+      return;
+    }
     setBusyId(entry.id);
     setError(null);
     try {
@@ -187,11 +212,13 @@ export function AcademyCatalogSection({
                 </div>
                 <button
                   onClick={() => buy(entry)}
-                  disabled={busyId !== null}
-                  className="px-4 py-2.5 rounded-xl text-sm font-black text-black flex items-center gap-1.5 transition-all hover:scale-[1.03] disabled:opacity-60"
+                  disabled={busyId !== null || !purchasable}
+                  className="px-4 py-2.5 rounded-xl text-sm font-black text-black flex items-center gap-1.5 transition-all hover:scale-[1.03] disabled:opacity-60 disabled:hover:scale-100"
                   style={{ background: 'linear-gradient(135deg,#30E3CA,#66c0b6)' }}
                 >
-                  {busyId === entry.id ? <Loader2 size={15} className="animate-spin" /> : <>Starten <ArrowRight size={14} /></>}
+                  {busyId === entry.id
+                    ? <Loader2 size={15} className="animate-spin" />
+                    : purchasable ? <>Starten <ArrowRight size={14} /></> : 'Bald verfügbar'}
                 </button>
               </div>
             </div>
@@ -205,6 +232,7 @@ export function AcademyCatalogSection({
           busy={busyId === detail.id}
           onClose={() => setDetail(null)}
           onBuy={() => buy(detail)}
+          purchasable={purchasable}
         />
       )}
 
@@ -221,8 +249,8 @@ export default AcademyCatalogSection;
 // ─────────────────────────────────────────────────────────────────────────────
 // Kursdetail: Inhalte, Lernweg, persönliches Zertifikat, Kauf
 // ─────────────────────────────────────────────────────────────────────────────
-function CourseDetailModal({ entry, busy, onClose, onBuy }: {
-  entry: CatalogEntry; busy: boolean; onClose: () => void; onBuy: () => void;
+function CourseDetailModal({ entry, busy, onClose, onBuy, purchasable = true }: {
+  entry: CatalogEntry; busy: boolean; onClose: () => void; onBuy: () => void; purchasable?: boolean;
 }) {
   const { user, profile } = useAuth() as any;
   const name: string = (profile?.full_name || user?.user_metadata?.full_name || '').trim();
@@ -314,11 +342,13 @@ function CourseDetailModal({ entry, busy, onClose, onBuy }: {
           </div>
           <button
             onClick={onBuy}
-            disabled={busy}
-            className="px-6 py-3.5 rounded-xl font-black text-black flex items-center justify-center gap-2 transition-transform hover:scale-[1.02] disabled:opacity-60"
+            disabled={busy || !purchasable}
+            className="px-6 py-3.5 rounded-xl font-black text-black flex items-center justify-center gap-2 transition-transform hover:scale-[1.02] disabled:opacity-60 disabled:hover:scale-100"
             style={{ background: 'linear-gradient(135deg,#30E3CA,#66c0b6)' }}
           >
-            {busy ? <Loader2 size={17} className="animate-spin" /> : <>Jetzt starten <ArrowRight size={16} /></>}
+            {busy
+              ? <Loader2 size={17} className="animate-spin" />
+              : purchasable ? <>Jetzt starten <ArrowRight size={16} /></> : 'Bald verfügbar'}
           </button>
         </div>
       </div>
