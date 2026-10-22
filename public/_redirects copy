@@ -1,0 +1,23 @@
+# Netlify-Weiterleitungen – liegen im Deploy-Ordner und gelten damit IMMER,
+# auch wenn netlify.toml nicht ausgewertet wird (z. B. Deploy direkt aus Bolt).
+#
+# 1) Alte Hash-Links (/#/business) werden im Browser von src/legacyHashRedirect.ts
+#    umgeschrieben – dafür ist hier nichts nötig.
+# 2) Schrägstrich am Ende → ohne (eine Adresse pro Seite, SEO).
+# 3) Alle übrigen Pfade → index.html (Single-Page-App). Vorgerenderte Seiten
+#    (business.html usw.) liefert Netlify über "Pretty URLs" automatisch aus;
+#    fehlen sie, übernimmt die App – die Seite ist so in jedem Fall erreichbar.
+
+/business/  /business  301!
+/business/automatisierung/  /business/automatisierung  301!
+/cv-check/  /cv-check  301!
+/cv-wizard/  /cv-wizard  301!
+/career-vision/  /career-vision  301!
+/kurse/  /kurse  301!
+/faq/  /faq  301!
+/festival/  /festival  301!
+/impressum/  /impressum  301!
+/datenschutz/  /datenschutz  301!
+/agb/  /agb  301!
+
+/*  /index.html  200
