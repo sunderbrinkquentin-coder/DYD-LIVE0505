@@ -14,9 +14,6 @@
 
 # ── GEO/SEO: vorgerenderte Seiten (scripts/prerender-seo.mjs) ──────────
 # Eine Adresse pro Seite: Schrägstrich am Ende → ohne.
-# Die vorgerenderten Seiten (business.html …) liefert Netlify über "Pretty URLs"
-# selbst aus. Keine expliziten .html-Rewrites mehr: fehlte eine Datei, gab es 404
-# statt der App. Gleiche Regeln zusätzlich in public/_redirects (Bolt-Deploy).
 # www vs. ohne www regelt die "Primary domain" in Netlify (Domain management):
 # dort decide-your-dream.de (ohne www) als Primary domain einstellen.
 
@@ -27,10 +24,20 @@
   force = true
 
 [[redirects]]
+  from = "/business"
+  to = "/business.html"
+  status = 200
+
+[[redirects]]
   from = "/business/automatisierung/"
   to = "/business/automatisierung"
   status = 301
   force = true
+
+[[redirects]]
+  from = "/business/automatisierung"
+  to = "/business/automatisierung.html"
+  status = 200
 
 [[redirects]]
   from = "/cv-check/"
@@ -39,10 +46,20 @@
   force = true
 
 [[redirects]]
+  from = "/cv-check"
+  to = "/cv-check.html"
+  status = 200
+
+[[redirects]]
   from = "/cv-wizard/"
   to = "/cv-wizard"
   status = 301
   force = true
+
+[[redirects]]
+  from = "/cv-wizard"
+  to = "/cv-wizard.html"
+  status = 200
 
 [[redirects]]
   from = "/career-vision/"
@@ -51,10 +68,20 @@
   force = true
 
 [[redirects]]
+  from = "/career-vision"
+  to = "/career-vision.html"
+  status = 200
+
+[[redirects]]
   from = "/kurse/"
   to = "/kurse"
   status = 301
   force = true
+
+[[redirects]]
+  from = "/kurse"
+  to = "/kurse.html"
+  status = 200
 
 [[redirects]]
   from = "/faq/"
@@ -63,10 +90,20 @@
   force = true
 
 [[redirects]]
+  from = "/faq"
+  to = "/faq.html"
+  status = 200
+
+[[redirects]]
   from = "/festival/"
   to = "/festival"
   status = 301
   force = true
+
+[[redirects]]
+  from = "/festival"
+  to = "/festival.html"
+  status = 200
 
 [[redirects]]
   from = "/impressum/"
@@ -75,16 +112,31 @@
   force = true
 
 [[redirects]]
+  from = "/impressum"
+  to = "/impressum.html"
+  status = 200
+
+[[redirects]]
   from = "/datenschutz/"
   to = "/datenschutz"
   status = 301
   force = true
 
 [[redirects]]
+  from = "/datenschutz"
+  to = "/datenschutz.html"
+  status = 200
+
+[[redirects]]
   from = "/agb/"
   to = "/agb"
   status = 301
   force = true
+
+[[redirects]]
+  from = "/agb"
+  to = "/agb.html"
+  status = 200
 
 [[headers]]
   for = "/llms*.txt"
