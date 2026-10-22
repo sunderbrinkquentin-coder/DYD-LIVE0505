@@ -3,13 +3,12 @@ import { useSearchParams } from 'react-router-dom';
 import B2BHeader from './b2b/B2BHeader';
 import B2BHero from './b2b/B2BHero';
 import B2BTabs from './b2b/B2BTabs';
-import OrbitVideoSection from './b2b/OrbitVideoSection';
 import { PlatformOverviewSection, TrustSection, FinalCtaSection } from './b2b/B2BSections';
 import B2BContactModal from './b2b/B2BContactModal';
 type TabId = 'unternehmen' | 'bildungstraeger';
 
 export default function B2BLandingPage() {
-  // Bereich per Link ansteuerbar (Header-Navigation): #/business?tab=bildungstraeger
+  // Bereich per Link ansteuerbar (Header-Navigation): /business?tab=bildungstraeger
   const [searchParams] = useSearchParams();
   const tabParam = searchParams.get('tab');
   const [activeTab, setActiveTab] = useState<TabId>(tabParam === 'bildungstraeger' ? 'bildungstraeger' : 'unternehmen');
