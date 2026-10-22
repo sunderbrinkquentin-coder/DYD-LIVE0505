@@ -21,9 +21,31 @@ export function canonicalSource(value: unknown): string | null {
     return u.href;
   } catch { return null; }
 }
+/**
+ * Vergleichsschlüssel für Quellen: ignoriert Protokoll, "www.", abschließenden
+ * Slash und Groß-/Kleinschreibung des Hosts. Die KI gibt URLs oft minimal
+ * anders zurück als die Websuche sie zitiert (z. B. mit/ohne Slash) – ein
+ * exakter Stringvergleich hat dadurch gültige Anforderungen verworfen und die
+ * Analyse mit RESEARCH_THIN abbrechen lassen.
+ */
+export function sourceKey(value: unknown): string | null {
+  const canonical = canonicalSource(value);
+  if (!canonical) return null;
+  const u = new URL(canonical);
+  const host = u.hostname.toLowerCase().replace(/^www\./, '');
+  const path = u.pathname.replace(/\/+$/, '') || '/';
+  return `${host}${path}${u.search}`;
+}
 export function sourceWasUsed(url: unknown, sources: string[]): boolean {
-  const normalized = canonicalSource(url);
-  return normalized !== null && sources.some(s => canonicalSource(s) === normalized);
+  const key = sourceKey(url);
+  return key !== null && sources.some(s => sourceKey(s) === key);
+}
+/** Gibt die tatsächlich zitierte Fassung einer Quelle zurück (für die Anzeige). */
+export function matchedSource(url: unknown, sources: string[]): string | null {
+  const key = sourceKey(url);
+  if (key === null) return null;
+  const hit = sources.find(s => sourceKey(s) === key);
+  return hit ? canonicalSource(hit) : null;
 }
 export function assertSchema(value: unknown, schema: any, path = 'response'): void {
   const bad = () => { throw new Error(`Ungültige KI-Struktur: ${path}`); };
