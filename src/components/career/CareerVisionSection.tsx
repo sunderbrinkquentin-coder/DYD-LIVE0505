@@ -4,7 +4,7 @@ import {
   Sparkles, X, RefreshCw, Upload,
   FileText, ChevronDown, AlertCircle, Eye,
   ArrowRight, Brain, Building2, Check, Zap,
-  BarChart3, CheckCircle2, ShieldCheck,
+  BarChart3, CheckCircle2, ShieldCheck, Award, Clock,
 } from 'lucide-react';
 import { useAuth } from '../../contexts/AuthContext';
 import { CertificatePreview } from './AcademyPreviews';
@@ -21,8 +21,26 @@ import { DsgvoConsentDialog } from '../DsgvoConsentDialog';
 // ── Constants ──────────────────────────────────────────────────────────────────
 
 const POLL_INTERVAL_MS = 3_000;
-const POLL_MAX = 240;          // Zwei Analysestufen inklusive Wiederholungen beobachten.
-const FALLBACK_TIMEOUT_MS = 150_000; // 2.5 Minuten bevor Fallback erscheint
+/** Ab hier langsamer pollen – spart Requests, ohne das Ergebnis zu verpassen. */
+const POLL_SLOW_AFTER = 40;          // 40 × 3 s = 2 Minuten
+const POLL_SLOW_INTERVAL_MS = 6_000;
+/** Gesamtdauer der Beobachtung: 2 Min. schnell + ~13 Min. langsam ≈ 15 Minuten. */
+const POLL_MAX = 170;
+/**
+ * Nach dieser Zeit zeigt der Loader nur einen HINWEIS ("dauert länger").
+ * Er wird NICHT mehr durch den Fallback-Kasten ersetzt – die Analyse läuft
+ * zweistufig und braucht regulär 2–4 Minuten.
+ */
+const SLOW_HINT_MS = 150_000;
+/**
+ * Spiegel von RUNNING_LOCK_MS der Edge Function (6 Min.) + Puffer. Steht ein
+ * Lauf länger auf "analyzing", gilt er als hängend und wird EINMAL automatisch
+ * neu angestoßen (kostenlos, die Zahlung ist bereits verbucht).
+ */
+const STUCK_AFTER_MS = 6.5 * 60_000;
+/** Stripe-Webhook kann verzögert ankommen → Start bei HTTP 402 wiederholen. */
+const START_RETRY_MAX = 8;
+const START_RETRY_DELAY_MS = 5_000;
 const CV_DATA_POLL_MAX = 30;
 
 const COMPLETE_STATUSES = new Set(['gap_analysis_complete', 'curriculum_ready', 'in_progress', 'completed']);
@@ -88,6 +106,9 @@ function looksLikeJobTitle(raw: string): boolean {
 
 // Optional columns must not make the entire result query fail on older schemas.
 const ANALYSIS_SELECT = '*';
+
+/** Zusatzfelder der Edge-Pipeline (skillgap-analyze) an missing_skills */
+type GapSkill = RawSkill & { estimatedTime?: string; first_step?: string; status?: string; reason?: string };
 
 function normalizeCurrentSkills(raw: unknown): RawSkill[] {
   return parseSkills(raw).map((s) => ({
@@ -315,7 +336,9 @@ const LOADER_STEPS = [
   { id: 'done',    label: 'Ergebnisse werden aufbereitet',      detail: 'Fast fertig…'                             },
 ];
 
-function AnalysisLoader({ messages, success }: { messages: string[]; success: boolean }) {
+function AnalysisLoader({ messages, success, slow = false, checking = false, onCheckNow }: {
+  messages: string[]; success: boolean; slow?: boolean; checking?: boolean; onCheckNow?: () => void;
+}) {
   const [stepIdx, setStepIdx] = useState(0);
   const [tickVisible, setTickVisible] = useState(true);
   const accent = success ? '#22c55e' : '#30E3CA';
@@ -446,6 +469,22 @@ function AnalysisLoader({ messages, success }: { messages: string[]; success: bo
           )}
         </div>
         <SmartProgressBar done={success} paused={false} />
+        {slow && !success && (
+          <div className="flex flex-wrap items-center gap-3 rounded-xl px-4 py-3"
+            style={{ background: 'rgba(245,158,11,0.08)', border: '1px solid rgba(245,158,11,0.22)' }}>
+            <Clock size={15} className="text-amber-300 flex-shrink-0" />
+            <p className="flex-1 min-w-[200px] text-xs text-amber-100/80 leading-relaxed">
+              Die Recherche dauert gerade etwas länger als üblich. Lass die Seite einfach offen –
+              dein Ergebnis erscheint automatisch, sobald es fertig ist.
+            </p>
+            {onCheckNow && (
+              <button onClick={onCheckNow} disabled={checking}
+                className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold text-amber-100 border border-amber-400/30 hover:bg-amber-400/10 transition-all disabled:opacity-50">
+                <RefreshCw size={12} className={checking ? 'animate-spin' : ''} /> Jetzt prüfen
+              </button>
+            )}
+          </div>
+        )}
       </div>
     </div>
   );
@@ -577,10 +616,10 @@ function SkillDetailPanel({
               {severity >= 5 ? 'Experte (EQF 7+)' : severity >= 4 ? 'Fortgeschritten (EQF 6)' : severity >= 3 ? 'Anwender (EQF 5)' : 'Grundlagen (EQF 4)'}
             </p>
           </div>
-          {skill?.estimatedTime && (
+          {(skill as GapSkill)?.estimatedTime && (
             <div className="rounded-xl p-3" style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.07)' }}>
               <p className="text-[10px] text-white/35 font-bold uppercase tracking-wider mb-1">Lernzeit ca.</p>
-              <p className="text-xs font-black text-white/80">{skill.estimatedTime}</p>
+              <p className="text-xs font-black text-white/80">{(skill as GapSkill).estimatedTime}</p>
             </div>
           )}
         </div>
@@ -725,7 +764,7 @@ function WhereToStartCard({ skill, targetJob, onNavigate }: { skill: RawSkill; t
 
 // ── Result view ────────────────────────────────────────────────────────────────
 
-function ResultView({ result, onNavigate }: { result: AnalysisResult; onNavigate: (selectedSkill?: string) => void }) {
+function ResultView({ result }: { result: AnalysisResult; onNavigate: (selectedSkill?: string) => void }) {
   const [showPaywall, setShowPaywall] = useState(false);
   const [pendingSkill, setPendingSkill] = useState<string | undefined>(undefined);
 
@@ -918,6 +957,9 @@ export function CareerVisionSection({ cvId: initialCvId, onAnalysisComplete, res
   const [result, setResult] = useState<AnalysisResult | null>(null);
   const [cvUploadFileName, setCvUploadFileName] = useState<string>('');
   const [preparing, setPreparing] = useState(false);
+  /** Analyse dauert länger als üblich → Hinweis im Loader (kein Abbruch) */
+  const [slowHint, setSlowHint] = useState(false);
+  const [checkingNow, setCheckingNow] = useState(false);
 
   // Follow-reward popup: shown once the analysis is actually finished — not on
   // mount. Firing it at mount meant the "thank you" arrived before the user had
@@ -936,15 +978,23 @@ export function CareerVisionSection({ cvId: initialCvId, onAnalysisComplete, res
   }, [phase]);
 
   // Refs
-  const channelRef     = useRef<ReturnType<typeof supabase.channel> | null>(null);
-  const pollTimerRef   = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const fallbackTimRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const pollCountRef   = useRef(0);
-  const runRef = useRef(0);
-  const revealTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const completedRef   = useRef(false);
-  const pathIdRef      = useRef<string | null>(null);
-
+  const channelRef        = useRef<ReturnType<typeof supabase.channel> | null>(null);
+  const pollTimerRef      = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const slowTimerRef      = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const pollCountRef      = useRef(0);
+  const pollErrorsRef     = useRef(0);
+  const runRef            = useRef(0);
+  const revealTimerRef    = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const completedRef      = useRef(false);
+  const pathIdRef         = useRef<string | null>(null);
+  /** Hängender Lauf wird pro Beobachtung höchstens EINMAL automatisch neu gestartet. */
+  const restartedRef      = useRef(false);
+  /**
+   * Erst wenn die Edge Function den (Neu-)Start bestätigt hat, gilt ein
+   * "failed" aus der DB als Ergebnis DIESES Laufs. Sonst würde ein Retry
+   * sofort wieder am alten Fehlerstatus hängen bleiben.
+   */
+  const startConfirmedRef = useRef(true);
   // ── Load latest CV ──────────────────────────────────────────────────────────
 
   useEffect(() => {
@@ -984,7 +1034,7 @@ export function CareerVisionSection({ cvId: initialCvId, onAnalysisComplete, res
       channelRef.current = null;
     }
     if (pollTimerRef.current) { clearTimeout(pollTimerRef.current); pollTimerRef.current = null; }
-    if (fallbackTimRef.current) { clearTimeout(fallbackTimRef.current); fallbackTimRef.current = null; }
+    if (slowTimerRef.current) { clearTimeout(slowTimerRef.current); slowTimerRef.current = null; }
   }, []);
 
   useEffect(() => () => {
@@ -1010,7 +1060,7 @@ export function CareerVisionSection({ cvId: initialCvId, onAnalysisComplete, res
       if (completedRef.current) return;
       const run = runRef.current;
       let row: Record<string, unknown> | null = rowData ?? null;
-      if (!row || !row.missing_skills) {
+      if (!row || !Array.isArray(row.missing_skills)) {
         const { data } = await supabase
           .from('learning_paths')
           .select(ANALYSIS_SELECT)
@@ -1022,15 +1072,21 @@ export function CareerVisionSection({ cvId: initialCvId, onAnalysisComplete, res
       completedRef.current = true;
       cleanupListeners();
       setApiError(null);
+      setSlowHint(false);
+
+      const analysis = (row.skillgap_analysis ?? null) as
+        | { research?: { sources?: unknown }; score?: { method?: unknown } }
+        | null;
+      const rawSources = analysis?.research?.sources;
 
       setResult({
         pathId,
-        missingSkills:   parseSkills(row.missing_skills),
-        currentSkills:   normalizeCurrentSkills(row.current_skills),
+        missingSkills:    parseSkills(row.missing_skills),
+        currentSkills:    normalizeCurrentSkills(row.current_skills),
         strategicOutlook: (row.strategic_outlook_2026 as string) ?? '',
         matchScore:       row.match_score == null ? null : Number(row.match_score),
-        sources: (row.skillgap_analysis as any)?.research?.sources ?? [],
-        scoreMethod: (row.skillgap_analysis as any)?.score?.method ?? '',
+        sources:          Array.isArray(rawSources) ? rawSources.filter((u): u is string => typeof u === 'string') : [],
+        scoreMethod:      typeof analysis?.score?.method === 'string' ? analysis.score.method : '',
         industry:         (row.industry as string) ?? industry,
         targetJob:        (row.target_job as string) ?? targetJob,
         targetCompany:    (row.target_company as string) ?? targetCompany,
@@ -1047,8 +1103,6 @@ export function CareerVisionSection({ cvId: initialCvId, onAnalysisComplete, res
   // ── Abgebrochene Analyse anzeigen ───────────────────────────────────────────
 
   const showFailed = useCallback((row: Record<string, unknown>) => {
-    if (pollTimerRef.current) clearTimeout(pollTimerRef.current);
-    if (fallbackTimRef.current) clearTimeout(fallbackTimRef.current);
     const role = (row.target_job as string) ?? '';
     completedRef.current = true;
     cleanupListeners();
@@ -1058,8 +1112,49 @@ export function CareerVisionSection({ cvId: initialCvId, onAnalysisComplete, res
     setRoleFix('');
     setRoleFixError(null);
     setApiError(null);
+    setSlowHint(false);
     setPhase('failed');
   }, [cleanupListeners]);
+
+  // ── Edge Function starten (mit Wiederholung, falls Stripe noch nicht bestätigt hat) ──
+
+  type StartResponse = { status?: string; error_code?: string } | null;
+
+  const requestAnalysisStart = useCallback(
+    async (pathId: string, run: number, correctedTargetJob?: string): Promise<StartResponse> => {
+      for (let attempt = 0; attempt <= START_RETRY_MAX; attempt++) {
+        const { data, error } = await supabase.functions.invoke('skillgap-analyze', {
+          body: { learning_path_id: pathId, ...(correctedTargetJob ? { target_job: correctedTargetJob } : {}) },
+        });
+        if (run !== runRef.current) return null;
+        if (!error) return (data ?? null) as StartResponse;
+
+        const response = (error as { context?: Response }).context;
+        const status = response instanceof Response ? response.status : undefined;
+
+        // 402 = Webhook hat die Zahlung noch nicht verbucht → kurz warten, erneut versuchen
+        if (status === 402 && attempt < START_RETRY_MAX) {
+          await new Promise((r) => setTimeout(r, START_RETRY_DELAY_MS));
+          if (run !== runRef.current) return null;
+          continue;
+        }
+
+        let serverMessage = '';
+        if (response instanceof Response) {
+          try { serverMessage = (await response.clone().json())?.error ?? ''; } catch { /* keine JSON-Antwort */ }
+        }
+        const err = new Error(
+          status === 402
+            ? 'Deine Zahlung ist noch nicht bei uns angekommen. Das dauert manchmal einen Moment – klicke gleich auf „Ergebnis laden“.'
+            : serverMessage || 'Die Analyse konnte nicht gestartet werden.',
+        ) as Error & { status?: number };
+        err.status = status;
+        throw err;
+      }
+      return null;
+    },
+    [],
+  );
 
   // ── Polling learning_paths ──────────────────────────────────────────────────
 
@@ -1067,6 +1162,7 @@ export function CareerVisionSection({ cvId: initialCvId, onAnalysisComplete, res
     (pathId: string) => {
       const run = runRef.current;
       pollCountRef.current = 0;
+      pollErrorsRef.current = 0;
       const tick = async () => {
         if (run !== runRef.current || completedRef.current) return;
         pollCountRef.current += 1;
@@ -1078,29 +1174,52 @@ export function CareerVisionSection({ cvId: initialCvId, onAnalysisComplete, res
             .maybeSingle();
           if (run !== runRef.current || completedRef.current) return;
           if (error) throw error;
+          pollErrorsRef.current = 0;
           setApiError(null);
-          if (data && COMPLETE_STATUSES.has(data.status as string)) {
-            handleCompletion(pathId, data as Record<string, unknown>);
+          const row = data as Record<string, unknown> | null;
+          if (row && COMPLETE_STATUSES.has(row.status as string)) {
+            void handleCompletion(pathId, row);
             return;
           }
-          if (data?.status === 'failed') {
-            showFailed(data as Record<string, unknown>);
+          if (row?.status === 'failed' && startConfirmedRef.current) {
+            showFailed(row);
             return;
+          }
+          // Hängender Lauf (Worker beendet, Stufe 2 nie angekommen …) → einmal neu anstoßen.
+          // Die Edge Function lässt einen Neustart erst nach 6 Min. Sperrzeit zu.
+          const triggeredAt = typeof row?.triggered_at === 'string' ? Date.parse(row.triggered_at) : NaN;
+          if (
+            row?.status === 'analyzing' && row.skillgap_paid === true && !restartedRef.current &&
+            Number.isFinite(triggeredAt) && Date.now() - triggeredAt > STUCK_AFTER_MS
+          ) {
+            restartedRef.current = true;
+            console.warn('[CVSection] Analyse hängt – starte automatisch neu');
+            requestAnalysisStart(pathId, run).catch((e) => console.warn('[CVSection] Auto-Neustart:', e?.message));
           }
         } catch (e: any) {
           if (run !== runRef.current || completedRef.current) return;
-          console.warn('[CVSection] Poll exception:', e.message);
-          setApiError('Das Ergebnis konnte noch nicht geladen werden. Bitte erneut prüfen.');
+          pollErrorsRef.current += 1;
+          console.warn('[CVSection] Poll exception:', e?.message);
+          // Einzelne Netzwerkaussetzer nicht anzeigen – erst ab 3 Fehlern in Folge
+          if (pollErrorsRef.current >= 3) {
+            setApiError('Verbindung zum Server unterbrochen. Wir versuchen es automatisch weiter.');
+          }
         }
-        if (run === runRef.current && pollCountRef.current < POLL_MAX && !completedRef.current) {
-          pollTimerRef.current = setTimeout(tick, POLL_INTERVAL_MS);
-        } else if (run === runRef.current && !completedRef.current) {
+        if (run !== runRef.current || completedRef.current) return;
+        if (pollCountRef.current < POLL_MAX) {
+          pollTimerRef.current = setTimeout(
+            tick,
+            pollCountRef.current < POLL_SLOW_AFTER ? POLL_INTERVAL_MS : POLL_SLOW_INTERVAL_MS,
+          );
+        } else {
+          cleanupListeners();
+          setSlowHint(false);
           setPhase('fallback');
         }
       };
       pollTimerRef.current = setTimeout(tick, POLL_INTERVAL_MS);
     },
-    [handleCompletion, showFailed],
+    [handleCompletion, showFailed, requestAnalysisStart, cleanupListeners],
   );
 
   // ── Realtime ────────────────────────────────────────────────────────────────
@@ -1115,8 +1234,9 @@ export function CareerVisionSection({ cvId: initialCvId, onAnalysisComplete, res
             if (run !== runRef.current || completedRef.current) return;
             const row = payload.new as Record<string, unknown>;
             if (COMPLETE_STATUSES.has(row?.status as string)) {
-              handleCompletion(pathId, row);
-            } else if (row?.status === 'failed') {
+              // Realtime liefert große JSON-Spalten u. U. gekürzt → handleCompletion lädt bei Bedarf nach
+              void handleCompletion(pathId, row);
+            } else if (row?.status === 'failed' && startConfirmedRef.current) {
               showFailed(row);
             }
           })
@@ -1125,6 +1245,18 @@ export function CareerVisionSection({ cvId: initialCvId, onAnalysisComplete, res
     },
     [handleCompletion, showFailed],
   );
+
+  /** Loader zeigen + Realtime/Polling starten. runRef muss bereits gesetzt sein. */
+  const beginObserving = useCallback((pathId: string) => {
+    const run = runRef.current;
+    setPhase('waiting');
+    setSlowHint(false);
+    startRealtime(pathId);
+    startPolling(pathId);
+    slowTimerRef.current = setTimeout(() => {
+      if (run === runRef.current && !completedRef.current) setSlowHint(true);
+    }, SLOW_HINT_MS);
+  }, [startRealtime, startPolling]);
 
   // ── CV-Extraktion — läuft erst NACH der Zahlung ──────────────────────────────
 
@@ -1143,13 +1275,12 @@ export function CareerVisionSection({ cvId: initialCvId, onAnalysisComplete, res
       if (data?.status === 'failed') throw new Error('Dein Lebenslauf konnte nicht gelesen werden.');
       if (data?.cv_data != null) return data.cv_data as string;
     }
-    // Bezahlt ist bezahlt — hier NICHT stillschweigend ohne CV weiterlaufen.
     throw new Error('Dein Lebenslauf konnte nicht gelesen werden. Bitte kontaktiere den Support.');
   }, []);
 
   // ── Run analysis ────────────────────────────────────────────────────────────
 
-const runAnalysis = useCallback(async () => {
+  const runAnalysis = useCallback(async () => {
     if (authLoading || preparing) return;
     if (!targetJob.trim()) { setFormError('Bitte gib eine Zielposition ein.'); return; }
     if (!looksLikeJobTitle(targetJob)) {
@@ -1158,7 +1289,7 @@ const runAnalysis = useCallback(async () => {
     }
     const consentAccepted = await requestConsent('skill-gap');
     if (!consentAccepted) return;
-    if (!user?.id)          {
+    if (!user?.id) {
       setFormError(null);
       setPendingAnalysis(true);
       setShowLoginModal(true);
@@ -1170,27 +1301,17 @@ const runAnalysis = useCallback(async () => {
     completedRef.current = false;
     setPreparing(true);
     try {
-      // FIX: Statt user.id aus dem React-Context zu verwenden, wird die
-      // Session unmittelbar vor dem Insert frisch bei Supabase abgefragt.
-      // RLS prüft server-seitig gegen auth.uid() zum Zeitpunkt des Requests
-      // — ein veralteter/leerer Context-State (z.B. nach langer Tab-Öffnung
-      // oder abgelaufener Session) kann dort zu einer anderen oder gar
-      // keiner ID führen, obwohl das Frontend noch "eingeloggt" anzeigt.
+      // Session unmittelbar vor dem Insert frisch abfragen: RLS prüft gegen
+      // auth.uid() zum Zeitpunkt des Requests, ein veralteter Context-State
+      // würde sonst zu einem stillen RLS-Fehler führen.
       const { data: { user: freshUser }, error: authErr } = await supabase.auth.getUser();
-      console.log(
-        '[DEBUG] Context user.id:', user?.id,
-        '| Frischer auth.getUser():', freshUser?.id,
-        '| authErr:', authErr
-      );
-
       if (authErr || !freshUser?.id) {
         throw new Error('Deine Sitzung ist abgelaufen. Bitte lade die Seite neu und melde dich erneut an.');
       }
 
       let resolvedCvId = activeCvId;
       // Datei nur ablegen, NICHT triggern. Vor der Zahlung entstehen so keine
-      // Make-/LLM-Kosten — und die Datei überlebt den Stripe-Redirect, was das
-      // File-Objekt im State nicht täte.
+      // KI-Kosten — und die Datei überlebt den Stripe-Redirect.
       if (useNewCv && newCvFile) {
         const up = await uploadCvAndCreateRecord(newCvFile, {
           source: 'skill',
@@ -1226,12 +1347,12 @@ const runAnalysis = useCallback(async () => {
         .single();
 
       if (insertErr || !lp?.id) {
-        console.error('[DEBUG] Insert-Fehler Detail:', insertErr);
+        console.error('[CVSection] Insert-Fehler:', insertErr);
         throw new Error('Analyse konnte nicht gestartet werden: ' + (insertErr?.message ?? 'Unbekannter Fehler'));
       }
 
       pathIdRef.current = lp.id;
-      // Paywall — der Webhook feuert erst nach der Zahlung
+      // Paywall — die Analyse startet erst nach der Zahlung (Resume nach Stripe-Redirect)
       setPhase('paywall');
     } catch (e: any) {
       console.error('[CVSection] runAnalysis error:', e);
@@ -1244,124 +1365,129 @@ const runAnalysis = useCallback(async () => {
     targetJob, targetCompany, industry, visionDescription,
     activeCvId, useNewCv, newCvFile, user, authLoading, preparing, requestConsent,
   ]);
-  // ── Trigger skillgap Edge Function ──────────────────────────────────────────
+
+  // ── Analyse (neu) starten und beobachten ────────────────────────────────────
 
   const triggerSkillgapWebhook = useCallback(async (pathId: string, correctedTargetJob?: string) => {
     cleanupListeners();
+    if (revealTimerRef.current) clearTimeout(revealTimerRef.current);
     const run = ++runRef.current;
     const active = () => run === runRef.current && !completedRef.current;
-    setPhase('waiting');
-    setApiError(null);
     completedRef.current = false;
+    restartedRef.current = false;
+    startConfirmedRef.current = false;
     pathIdRef.current = pathId;
+    setApiError(null);
 
-    // Observe BEFORE invoking: a slow/failed HTTP response must not hide a
-    // successfully persisted result, and Realtime is not required for completion.
-    startRealtime(pathId);
-    startPolling(pathId);
-    fallbackTimRef.current = setTimeout(() => {
-      if (active()) setPhase('fallback');
-    }, FALLBACK_TIMEOUT_MS);
+    // Beobachten VOR dem Aufruf: eine langsame HTTP-Antwort darf ein bereits
+    // gespeichertes Ergebnis nicht verdecken.
+    beginObserving(pathId);
 
     try {
-      const { data: started, error } = await supabase.functions.invoke('skillgap-analyze', {
-        body: { learning_path_id: pathId, ...(correctedTargetJob ? { target_job: correctedTargetJob } : {}) },
-      });
+      const started = await requestAnalysisStart(pathId, run, correctedTargetJob);
+      startConfirmedRef.current = true;
       if (!active()) return;
-      if (error) throw error;
       if (started?.status === 'failed') {
         showFailed({ target_job: correctedTargetJob || failedRole, error_code: started.error_code });
         return;
       }
-      // Always re-read after the response, including synchronous completions.
+      // Auch synchrone Abschlüsse ("done") sofort anzeigen
       const { data: row, error: readError } = await supabase.from('learning_paths')
         .select(ANALYSIS_SELECT).eq('id', pathId).maybeSingle();
       if (!active()) return;
       if (readError) throw readError;
-      if (row && COMPLETE_STATUSES.has(row.status)) handleCompletion(pathId, row);
+      if (row && COMPLETE_STATUSES.has(row.status)) void handleCompletion(pathId, row);
       else if (row?.status === 'failed') showFailed(row);
     } catch (e: any) {
+      startConfirmedRef.current = true;
       if (!active()) return;
-      console.warn('[CVSection] Analyse-Aufruf:', e.message);
-      // Keep observing: the server may have finished despite an HTTP timeout.
-      setApiError('Der Start konnte nicht bestätigt werden. Wir prüfen weiter, ob dein Ergebnis vorliegt.');
-      setPhase('fallback');
+      console.warn('[CVSection] Analyse-Aufruf:', e?.message);
+      if (e?.status === 402 || e?.status === 401 || e?.status === 404) {
+        cleanupListeners();
+        setApiError(e.message);
+        setPhase('fallback');
+        return;
+      }
+      // Polling läuft weiter: der Server kann trotz HTTP-Fehler fertig werden.
+      setApiError('Der Start konnte nicht bestätigt werden. Wir prüfen im Hintergrund weiter, ob dein Ergebnis vorliegt.');
     }
-  }, [cleanupListeners, startRealtime, startPolling, handleCompletion, showFailed, failedRole]);
+  }, [cleanupListeners, beginObserving, requestAnalysisStart, handleCompletion, showFailed, failedRole]);
 
-// ── Resume after Stripe redirect or opening an existing analysis ─────────────
+  // ── Resume after Stripe redirect or opening an existing analysis ─────────────
 
   useEffect(() => {
     if (!resumePathId || authLoading || !user?.id) return;
     cleanupListeners();
     let cancelled = false;
     const run = ++runRef.current;
-    const active = () => !cancelled && run === runRef.current;
+    const active = () => !cancelled && run === runRef.current && !completedRef.current;
     completedRef.current = false;
+    restartedRef.current = false;
+    startConfirmedRef.current = false;
     pathIdRef.current = resumePathId;
     setResult(null);
     setApiError(null);
     setPhase('waiting');
 
-void (async () => {
+    void (async () => {
       try {
         const { data, error } = await supabase.from('learning_paths')
           .select(ANALYSIS_SELECT).eq('id', resumePathId).maybeSingle();
-        
         if (!active()) return;
         if (error) throw error;
-        
-        if (data) {
-          setTargetJob(data.target_job ?? '');
-          setTargetCompany(data.target_company ?? '');
-          setIndustry(data.industry ?? '');
-
-          if (COMPLETE_STATUSES.has(data.status)) {
-            await handleCompletion(resumePathId, data);
-            return;
-          }
-          if (data.status === 'failed') {
-            showFailed(data);
-            return;
-          }
-          if (data.cv_id) {
-            setPhase('cv_uploading');
-            try {
-              await waitForCvData(data.cv_id, user.id);
-            } catch (cvErr) {
-              console.warn('[CVSection] CV wait warning:', cvErr);
-            }
-            if (!active()) return;
-          }
+        if (!data) {
+          throw Object.assign(new Error('Analyse nicht gefunden oder für dieses Konto nicht verfügbar.'), { status: 404 });
         }
 
-        // --- HIER DEN DIREKTEN FETCH-AUFRUF EINBAUEN ---
-        setPhase('waiting');
-        startRealtime(resumePathId);
-        startPolling(resumePathId);
+        setTargetJob(data.target_job ?? '');
+        setTargetCompany(data.target_company ?? '');
+        setIndustry(data.industry ?? '');
 
-        const { data: { session } } = await supabase.auth.getSession();
-        const res = await fetch(`${supabase.supabaseUrl}/functions/v1/skillgap-analyze`, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${session?.access_token || supabase.supabaseKey}`,
-          },
-          body: JSON.stringify({ learning_path_id: resumePathId })
-        });
-
-        const json = await res.json();
-        console.log('[Direct Trigger Response]:', json);
-
-        if (!res.ok) {
-          throw new Error(json.error || 'Fehler beim Starten der Analyse via Fetch');
+        if (COMPLETE_STATUSES.has(data.status)) {
+          await handleCompletion(resumePathId, data);
+          return;
+        }
+        if (data.status === 'failed') {
+          startConfirmedRef.current = true;
+          showFailed(data);
+          return;
         }
 
+        // Nicht bezahlt und nicht frisch von Stripe zurück → Paywall statt Endlos-Warten
+        const returningFromStripe = /[?&#]session_id=/.test(window.location.href);
+        if (data.skillgap_paid === false && !returningFromStripe) {
+          setPhase('paywall');
+          return;
+        }
+
+        if (data.cv_id) {
+          setPhase('cv_uploading');
+          try {
+            await waitForCvData(data.cv_id, user.id);
+          } catch (cvErr) {
+            // Die Edge Function meldet einen unlesbaren CV gezielt (CV_UNREADABLE)
+            console.warn('[CVSection] CV wait warning:', cvErr);
+          }
+          if (!active()) return;
+        }
+
+        beginObserving(resumePathId);
+        const started = await requestAnalysisStart(resumePathId, run);
+        startConfirmedRef.current = true;
+        if (!active()) return;
+        if (started?.status === 'failed') {
+          showFailed({ target_job: data.target_job, error_code: started.error_code });
+        }
       } catch (e: any) {
-        if (!active() || completedRef.current) return;
-        console.warn('[CVSection] Redirect error caught:', e);
-        setApiError(e.message || 'Die Analyse konnte nicht gestartet werden.');
-        setPhase('fallback');
+        startConfirmedRef.current = true;
+        if (!active()) return;
+        console.warn('[CVSection] Resume-Fehler:', e);
+        setApiError(e?.message || 'Die Analyse konnte nicht gestartet werden.');
+        // Bei endgültigen Fehlern Beobachtung stoppen; sonst läuft das Polling weiter
+        if (e?.status === 402 || e?.status === 401 || e?.status === 404 || !pollTimerRef.current) {
+          cleanupListeners();
+          setPhase('fallback');
+        }
       }
     })();
 
@@ -1371,6 +1497,7 @@ void (async () => {
       cleanupListeners();
       if (revealTimerRef.current) clearTimeout(revealTimerRef.current);
     };
+    // Formular-Änderungen dürfen eine bezahlte Analyse nicht neu starten.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [resumePathId, authLoading, user?.id]);
 
@@ -1378,7 +1505,6 @@ void (async () => {
 
   const handleRetry = () => {
     if (pathIdRef.current) {
-      completedRef.current = false;
       void triggerSkillgapWebhook(pathIdRef.current);
       return;
     }
@@ -1404,10 +1530,27 @@ void (async () => {
     await triggerSkillgapWebhook(pathId, value);
   };
 
+  /** Lebenslauf unlesbar → Analyse ohne CV fortsetzen (kostenlos, gleiche Zahlung) */
+  const handleContinueWithoutCv = async () => {
+    const pathId = pathIdRef.current;
+    if (!pathId) return;
+    const { error } = await supabase.from('learning_paths')
+      .update({ cv_id: null, updated_at: new Date().toISOString() })
+      .eq('id', pathId);
+    if (error) {
+      setApiError('Der Lebenslauf konnte nicht entfernt werden. Bitte kontaktiere den Support.');
+      return;
+    }
+    setActiveCvId(undefined);
+    setCvFileName(null);
+    await triggerSkillgapWebhook(pathId);
+  };
+
   const handleManualCheck = async () => {
     const pathId = pathIdRef.current;
     if (!pathId) return;
     const run = runRef.current;
+    setCheckingNow(true);
     try {
       const { data, error } = await supabase.from('learning_paths')
         .select(ANALYSIS_SELECT).eq('id', pathId).maybeSingle();
@@ -1417,13 +1560,25 @@ void (async () => {
       if (COMPLETE_STATUSES.has(data.status)) {
         completedRef.current = false;
         await handleCompletion(pathId, data);
-      } else if (data.status === 'failed') {
-        showFailed(data);
-      } else {
-        await triggerSkillgapWebhook(pathId);
+        return;
       }
+      if (data.status === 'failed') {
+        startConfirmedRef.current = true;
+        showFailed(data);
+        return;
+      }
+      // Läuft noch und ist nicht hängend → nur weiter beobachten, NICHT doppelt starten
+      const triggeredAt = typeof data.triggered_at === 'string' ? Date.parse(data.triggered_at) : NaN;
+      const running = data.status === 'analyzing' && Number.isFinite(triggeredAt) && Date.now() - triggeredAt < STUCK_AFTER_MS;
+      if (running && phase === 'waiting') {
+        setApiError(null);
+        return;
+      }
+      await triggerSkillgapWebhook(pathId);
     } catch (e: any) {
       if (run === runRef.current) setApiError(e.message || 'Das Ergebnis konnte nicht geladen werden.');
+    } finally {
+      setCheckingNow(false);
     }
   };
 
@@ -1469,7 +1624,15 @@ void (async () => {
       {isCvUploading && <CvUploadLoader fileName={cvUploadFileName} />}
 
       {/* Vision analysis loader */}
-      {isAnalyzing && <AnalysisLoader messages={dynamicMessages} success={phase === 'revealing'} />}
+      {isAnalyzing && (
+        <AnalysisLoader
+          messages={dynamicMessages}
+          success={phase === 'revealing'}
+          slow={slowHint}
+          checking={checkingNow}
+          onCheckNow={handleManualCheck}
+        />
+      )}
 
       {/* Fallback */}
       {phase === 'fallback' && (
@@ -1477,14 +1640,17 @@ void (async () => {
           <div className="flex items-start gap-3">
             <AlertCircle size={22} className="text-amber-400 flex-shrink-0 mt-0.5" />
             <div className="space-y-1">
-              <p className="font-semibold text-amber-300">Analyse läuft noch — bitte warten</p>
-              <p className="text-sm text-white/55">Die KI analysiert gerade dein Profil. Das kann bis zu 3 Minuten dauern. Klicke auf "Ergebnis laden" sobald du bereit bist.</p>
+              <p className="font-semibold text-amber-300">Dein Ergebnis liegt noch nicht vor</p>
+              <p className="text-sm text-white/55">
+                Deine Analyse ist gespeichert und bezahlt – es entstehen keine weiteren Kosten.
+                Klicke auf „Ergebnis laden“. Läuft sie nicht mehr, wird sie automatisch neu gestartet.
+              </p>
             </div>
           </div>
           <div className="flex gap-3 flex-wrap">
-            <button onClick={handleManualCheck}
-              className="flex items-center gap-2 px-5 py-2.5 rounded-xl bg-amber-500/20 border border-amber-500/30 text-amber-200 hover:bg-amber-500/30 transition-all font-medium text-sm">
-              <Eye size={16} /> Ergebnis laden
+            <button onClick={handleManualCheck} disabled={checkingNow}
+              className="flex items-center gap-2 px-5 py-2.5 rounded-xl bg-amber-500/20 border border-amber-500/30 text-amber-200 hover:bg-amber-500/30 transition-all font-medium text-sm disabled:opacity-50">
+              <Eye size={16} /> {checkingNow ? 'Prüfe …' : 'Ergebnis laden'}
             </button>
             <button onClick={handleRetry}
               className="flex items-center gap-2 px-5 py-2.5 rounded-xl bg-white/10 border border-white/20 text-white/70 hover:bg-white/20 transition-all font-medium text-sm">
@@ -1506,6 +1672,14 @@ void (async () => {
                   <p className="text-sm text-white/60">
                     „{failedRole}“ konnten wir keiner Berufsbezeichnung zuordnen. Gib deine Zielposition noch einmal ein –
                     die Analyse startet dann neu, ohne zusätzliche Kosten.
+                  </p>
+                </>
+              ) : failCode === 'CV_UNREADABLE' ? (
+                <>
+                  <p className="font-semibold text-red-300">Dein Lebenslauf konnte nicht gelesen werden</p>
+                  <p className="text-sm text-white/60">
+                    Aus der Datei ließ sich kaum Text auslesen (z. B. ein eingescanntes PDF). Du kannst die Analyse
+                    ohne Lebenslauf fortsetzen – ohne zusätzliche Kosten.
                   </p>
                 </>
               ) : (
@@ -1537,6 +1711,18 @@ void (async () => {
                 </button>
               </div>
               {roleFixError && <p className="text-xs text-red-300">{roleFixError}</p>}
+            </div>
+          ) : failCode === 'CV_UNREADABLE' ? (
+            <div className="flex gap-3 flex-wrap">
+              <button onClick={handleContinueWithoutCv}
+                className="flex items-center gap-2 px-5 py-2.5 rounded-xl font-bold text-sm text-black"
+                style={{ background: 'linear-gradient(135deg,#30E3CA,#66c0b6)' }}>
+                <Sparkles size={16} /> Ohne Lebenslauf fortsetzen
+              </button>
+              <button onClick={handleRetry}
+                className="flex items-center gap-2 px-5 py-2.5 rounded-xl bg-white/10 border border-white/20 text-white/70 hover:bg-white/20 transition-all font-medium text-sm">
+                <RefreshCw size={16} /> Erneut versuchen
+              </button>
             </div>
           ) : (
             <button onClick={handleRetry}
