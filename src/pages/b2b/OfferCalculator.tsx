@@ -200,7 +200,7 @@ export function OfferCalculator({ onCheck }: { onCheck: (presetArea?: string, pr
               </button>
               {exampleRef && (
                 <a
-                  href={`#/business/automatisierung?projekt=${exampleRef}`}
+                  href={`/business/automatisierung?projekt=${exampleRef}`}
                   className="inline-flex items-center justify-center gap-2 px-5 py-4 rounded-2xl font-arimo font-bold text-sm text-white border border-white/20 hover:bg-white/5 b2b-focus-ring transition flex-shrink-0"
                 >
                   Live-Beispiel ansehen
