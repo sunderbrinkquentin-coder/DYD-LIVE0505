@@ -12,138 +12,22 @@
   # kann.
    external_node_modules = ["@sparticuz/chromium-min", "puppeteer"]
 
-# ── GEO/SEO: vorgerenderte Seiten (scripts/prerender-seo.mjs) ──────────
-# Eine Adresse pro Seite: Schrägstrich am Ende → ohne.
-# www vs. ohne www regelt die "Primary domain" in Netlify (Domain management):
-# dort decide-your-dream.de (ohne www) als Primary domain einstellen.
-
-[[redirects]]
-  from = "/business/"
-  to = "/business"
-  status = 301
-  force = true
-
-[[redirects]]
-  from = "/business"
-  to = "/business.html"
-  status = 200
-
-[[redirects]]
-  from = "/business/automatisierung/"
-  to = "/business/automatisierung"
-  status = 301
-  force = true
-
-[[redirects]]
-  from = "/business/automatisierung"
-  to = "/business/automatisierung.html"
-  status = 200
-
-[[redirects]]
-  from = "/cv-check/"
-  to = "/cv-check"
-  status = 301
-  force = true
-
-[[redirects]]
-  from = "/cv-check"
-  to = "/cv-check.html"
-  status = 200
-
-[[redirects]]
-  from = "/cv-wizard/"
-  to = "/cv-wizard"
-  status = 301
-  force = true
-
-[[redirects]]
-  from = "/cv-wizard"
-  to = "/cv-wizard.html"
-  status = 200
-
-[[redirects]]
-  from = "/career-vision/"
-  to = "/career-vision"
-  status = 301
-  force = true
-
-[[redirects]]
-  from = "/career-vision"
-  to = "/career-vision.html"
-  status = 200
-
-[[redirects]]
-  from = "/kurse/"
-  to = "/kurse"
-  status = 301
-  force = true
-
-[[redirects]]
-  from = "/kurse"
-  to = "/kurse.html"
-  status = 200
-
-[[redirects]]
-  from = "/faq/"
-  to = "/faq"
-  status = 301
-  force = true
-
-[[redirects]]
-  from = "/faq"
-  to = "/faq.html"
-  status = 200
-
-[[redirects]]
-  from = "/festival/"
-  to = "/festival"
-  status = 301
-  force = true
-
-[[redirects]]
-  from = "/festival"
-  to = "/festival.html"
-  status = 200
-
-[[redirects]]
-  from = "/impressum/"
-  to = "/impressum"
-  status = 301
-  force = true
-
-[[redirects]]
-  from = "/impressum"
-  to = "/impressum.html"
-  status = 200
-
-[[redirects]]
-  from = "/datenschutz/"
-  to = "/datenschutz"
-  status = 301
-  force = true
-
-[[redirects]]
-  from = "/datenschutz"
-  to = "/datenschutz.html"
-  status = 200
-
-[[redirects]]
-  from = "/agb/"
-  to = "/agb"
-  status = 301
-  force = true
-
-[[redirects]]
-  from = "/agb"
-  to = "/agb.html"
-  status = 200
+# ── Weiterleitungen ──────────────────────────────────────────────────
+# Bewusst NUR der Single-Page-App-Fallback. Die vorgerenderten Seiten
+# (business.html, kurse.html …) findet Netlify über "Pretty URLs" selbst.
+# Eigene Regeln wie /business/ -> /business oder /business -> /business.html
+# haben mit dem Ordner dist/business/ eine Endlosschleife erzeugt
+# (ERR_TOO_MANY_REDIRECTS). Ohne sie kann keine Schleife entstehen.
+# Dieselbe Regel steht in public/_redirects (gilt auch beim Deploy aus Bolt).
 
 [[headers]]
   for = "/llms*.txt"
   [headers.values]
     Content-Type = "text/plain; charset=utf-8"
 
-# Alle übrigen Pfade: Single-Page-App
+# Alle übrigen Pfade: Single-Page-App.
+# NIEMALS force = true: Dann würden auch JS/CSS-Dateien durch index.html
+# ersetzt und die gesamte Seite wäre leer bzw. nicht erreichbar.
 [[redirects]]
   from = "/*"
   to = "/index.html"
