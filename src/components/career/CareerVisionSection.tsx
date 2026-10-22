@@ -1,19 +1,17 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
-import { useNavigate } from 'react-router-dom';
 import {
   Sparkles, X, RefreshCw, Upload,
   FileText, ChevronDown, AlertCircle, Eye,
-  ArrowRight, Brain, Building2, Check, Zap,
-  BarChart3, CheckCircle2, ShieldCheck, Award, Clock,
+  ArrowRight,
+  CheckCircle2, ShieldCheck, Clock,
 } from 'lucide-react';
 import { useAuth } from '../../contexts/AuthContext';
-import { CertificatePreview } from './AcademyPreviews';
+import { SkillGapResultView, type AnalysisResult } from './SkillGapResultView';
 import { supabase } from '../../lib/supabase';
 import { uploadCvAndCreateRecord, triggerCvExtraction } from '../../services/cvUploadService';
-import { LearningPathPaywall } from './LearningPathPaywall';
 import { SkillGapPaywall } from './SkillGapPaywall';
 import { FollowRewardPopup, shouldShowFollowPopup } from '../landing/FollowRewardPopup';
-import { parseSkills, skillDisplayName, RawSkill } from '../../utils/skills';
+import { parseSkills, RawSkill } from '../../utils/skills';
 import RegisterModal from '../RegisterModal';
 import { useDsgvoConsent } from '../../hooks/useDsgvoConsent';
 import { DsgvoConsentDialog } from '../DsgvoConsentDialog';
@@ -60,18 +58,6 @@ const INDUSTRIES = [
 
 // ── Types ──────────────────────────────────────────────────────────────────────
 
-interface AnalysisResult {
-  pathId: string;
-  missingSkills: RawSkill[];
-  currentSkills: RawSkill[];
-  strategicOutlook: string;
-  matchScore: number | null;
-  sources?: string[];
-  scoreMethod?: string;
-  industry: string;
-  targetJob: string;
-  targetCompany: string;
-}
 
 type Phase =
   | 'idle'
@@ -106,9 +92,6 @@ function looksLikeJobTitle(raw: string): boolean {
 
 // Optional columns must not make the entire result query fail on older schemas.
 const ANALYSIS_SELECT = '*';
-
-/** Zusatzfelder der Edge-Pipeline (skillgap-analyze) an missing_skills */
-type GapSkill = RawSkill & { estimatedTime?: string; first_step?: string; status?: string; reason?: string };
 
 function normalizeCurrentSkills(raw: unknown): RawSkill[] {
   return parseSkills(raw).map((s) => ({
@@ -490,447 +473,17 @@ function AnalysisLoader({ messages, success, slow = false, checking = false, onC
   );
 }
 
-// ── Category config ────────────────────────────────────────────────────────────
-
-const CAT_CONFIG: Record<string, { icon: string; color: string; border: string; text: string }> = {
-  'Core-Tech':   { icon: '⚡', color: 'bg-blue-500/15',   border: 'border-blue-500/25',   text: 'text-blue-300'   },
-  'Leadership':  { icon: '🎯', color: 'bg-amber-500/15',  border: 'border-amber-500/25',  text: 'text-amber-300'  },
-  'Domain':      { icon: '🔬', color: 'bg-[#66c0b6]/15',  border: 'border-[#66c0b6]/25',  text: 'text-[#66c0b6]'  },
-  'Soft Skills': { icon: '🤝', color: 'bg-green-500/15',  border: 'border-green-500/25',  text: 'text-green-300'  },
-};
-const CAT_DEFAULT = { icon: '📌', color: 'bg-white/8', border: 'border-white/15', text: 'text-white/55' };
-
-function catConfig(cat?: string) {
-  return CAT_CONFIG[cat ?? ''] ?? CAT_DEFAULT;
-}
-
-// ── Impact tier config ─────────────────────────────────────────────────────────
-
-const IMPACT_TIERS = [
-  { min: 5, color: '#f97316', bg: 'rgba(249,115,22,0.08)',  border: 'rgba(249,115,22,0.2)',  label: 'Top-Hebel',      emoji: '🚀' },
-  { min: 4, color: '#30E3CA', bg: 'rgba(48,227,202,0.08)',  border: 'rgba(48,227,202,0.2)',  label: 'Hoher Impact',   emoji: '⚡' },
-  { min: 3, color: '#66c0b6', bg: 'rgba(102,192,182,0.07)', border: 'rgba(102,192,182,0.2)', label: 'Starker Aufbau', emoji: '📈' },
-  { min: 0, color: '#4ade80', bg: 'rgba(74,222,128,0.07)',  border: 'rgba(74,222,128,0.2)',  label: 'Quick Win',      emoji: '✅' },
-];
-
-function tierFor(severity: number) {
-  return IMPACT_TIERS.find((t) => severity >= t.min) ?? IMPACT_TIERS[3];
-}
-
-// ── Skill detail panel (shown when skill tab is active) ───────────────────────
-
-function SkillDetailPanel({
-  skill, targetCompany, targetJob, onStartLearning,
-}: { skill: RawSkill; targetCompany: string; targetJob: string; onStartLearning?: () => void }) {
-  const name     = skillDisplayName(skill);
-  const severity = skill?.gap_severity ?? 3;
-  const tier     = tierFor(severity);
-  const cat      = catConfig(skill?.category);
-
-  return (
-    <div
-      className="rounded-2xl overflow-hidden"
-      style={{
-        background: `linear-gradient(150deg,${tier.bg},rgba(10,14,30,0.95))`,
-        border: `1px solid ${tier.color}40`,
-        animation: 'fadeUp 0.3s ease',
-      }}
-    >
-      <style>{GLOBAL_STYLES}</style>
-      <div className="h-[3px]" style={{ background: `linear-gradient(90deg,${tier.color},${tier.color}22)` }} />
-
-      <div className="p-5 space-y-4">
-        {/* Header row */}
-        <div className="flex items-start gap-4">
-          <div className={`flex-shrink-0 w-12 h-12 rounded-2xl flex items-center justify-center text-xl ${cat.color} border ${cat.border}`}>
-            {cat.icon}
-          </div>
-          <div className="flex-1 min-w-0">
-            <div className="flex items-center gap-2 flex-wrap">
-              <span className="text-[11px] font-black uppercase tracking-widest" style={{ color: tier.color }}>
-                {tier.emoji} {tier.label}
-              </span>
-              {skill?.category && (
-                <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${cat.color} border ${cat.border} ${cat.text}`}>
-                  {skill.category}
-                </span>
-              )}
-            </div>
-            <h4 className="font-black text-white text-[17px] leading-snug mt-1">{name}</h4>
-          </div>
-        </div>
-
-        {/* Impact bar */}
-        <div className="flex items-center gap-3">
-          <div className="flex gap-1 flex-1">
-            {Array.from({ length: 5 }).map((_, i) => (
-              <div key={i} className="flex-1 h-2.5 rounded-sm transition-all"
-                style={{
-                  backgroundColor: i < severity ? tier.color : 'rgba(255,255,255,0.07)',
-                  transform: i < severity ? 'scaleY(1)' : 'scaleY(0.6)',
-                }} />
-            ))}
-          </div>
-          <span className="text-sm font-black tabular-nums" style={{ color: tier.color }}>
-            Impact {severity}/5
-          </span>
-        </div>
-
-        {/* Why it matters */}
-        {skill?.pitch && (
-          <div className="rounded-xl p-4" style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.07)' }}>
-            <p className="text-[11px] font-black uppercase tracking-wider text-white/35 mb-2">Warum das wichtig ist</p>
-            <p className="text-sm text-white/80 leading-relaxed">{skill.pitch}</p>
-          </div>
-        )}
-
-        {targetCompany && (
-          <div className="rounded-xl p-4" style={{ background: tier.bg, border: `1px solid ${tier.border}` }}>
-            <p className="text-[11px] font-black uppercase tracking-wider mb-2" style={{ color: tier.color }}>
-              Warum bei {targetCompany} entscheidend
-            </p>
-            <p className="text-xs text-white/60 leading-relaxed">
-              {skill?.pitch
-                ? `Für eine Position als ${targetJob} bei ${targetCompany} ist ${name} ein kritischer Faktor. ${skill.pitch}`
-                : `${name} ist ein Schlüssel-Skill für ${targetJob}-Rollen bei ${targetCompany}.`
-              }
-            </p>
-          </div>
-        )}
-
-        {skill?.market_value_bonus && (
-          <div className="flex items-center gap-2.5 px-4 py-3 rounded-xl"
-            style={{ background: 'rgba(251,191,36,0.08)', border: '1px solid rgba(251,191,36,0.2)' }}>
-            <Zap size={14} className="text-amber-400 flex-shrink-0" />
-            <div>
-              <p className="text-[10px] text-amber-400/60 font-bold uppercase tracking-wider">Marktwert-Bonus</p>
-              <p className="text-sm font-black text-amber-300">{skill.market_value_bonus}</p>
-            </div>
-          </div>
-        )}
-
-        <div className="grid grid-cols-2 gap-3">
-          <div className="rounded-xl p-3" style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.07)' }}>
-            <p className="text-[10px] text-white/35 font-bold uppercase tracking-wider mb-1">Ziel-Level</p>
-            <p className="text-xs font-black text-white/80">
-              {severity >= 5 ? 'Experte (EQF 7+)' : severity >= 4 ? 'Fortgeschritten (EQF 6)' : severity >= 3 ? 'Anwender (EQF 5)' : 'Grundlagen (EQF 4)'}
-            </p>
-          </div>
-          {(skill as GapSkill)?.estimatedTime && (
-            <div className="rounded-xl p-3" style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.07)' }}>
-              <p className="text-[10px] text-white/35 font-bold uppercase tracking-wider mb-1">Lernzeit ca.</p>
-              <p className="text-xs font-black text-white/80">{(skill as GapSkill).estimatedTime}</p>
-            </div>
-          )}
-        </div>
-
-        {skill?.esco_code && (
-          <a
-            href={skill.esco_code}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="inline-flex items-center gap-1.5 text-[11px] transition-colors hover:opacity-100"
-            style={{ color: `${tier.color}80` }}
-          >
-            <BarChart3 size={11} /> ESCO-Referenz ansehen <ArrowRight size={10} />
-          </a>
-        )}
-
-        {/* Per-skill CTA */}
-        {onStartLearning && (
-          <button
-            onClick={onStartLearning}
-            className="group relative w-full py-3.5 rounded-xl font-black text-[14px] text-black flex items-center justify-center gap-2.5 overflow-hidden transition-all duration-200 hover:scale-[1.015] active:scale-[0.98]"
-            style={{ background: `linear-gradient(135deg,${tier.color},#30E3CA)` }}
-          >
-            <div className="absolute inset-0 pointer-events-none"
-              style={{ background: 'linear-gradient(90deg,transparent,rgba(255,255,255,0.18),transparent)', backgroundSize: '200% 100%', animation: 'shimmer 2s ease-in-out infinite' }} />
-            <Sparkles size={15} className="relative z-10 group-hover:rotate-12 transition-transform" />
-            <span className="relative z-10">Lernpfad für {name} starten</span>
-            <ArrowRight size={14} className="relative z-10 group-hover:translate-x-0.5 transition-transform" />
-          </button>
-        )}
-      </div>
-    </div>
-  );
-}
-
-// ── Skill switcher (pill grid + detail panel) ────────────────────────────────
-
-function SkillSwitcher({
-  skills, targetCompany, targetJob, onStartLearning,
-}: { skills: RawSkill[]; targetCompany: string; targetJob: string; onStartLearning?: (skillName: string) => void }) {
-  const [activeIdx, setActiveIdx] = useState(0);
-
-  if (skills.length === 0) return null;
-
-  const activeSkill = skills[activeIdx];
-
-  return (
-    <div className="space-y-3">
-      {/* Pill grid — wraps naturally, no horizontal scroll, all skills visible */}
-      <div className="flex flex-wrap gap-2">
-        {skills.map((skill, i) => {
-          const name     = skillDisplayName(skill);
-          const severity = skill?.gap_severity ?? 3;
-          const tier     = tierFor(severity);
-          const isActive = i === activeIdx;
-
-          return (
-            <button
-              key={i}
-              onClick={() => setActiveIdx(i)}
-              className="flex items-center gap-1.5 px-3 py-1.5 rounded-full text-left transition-all duration-200 hover:scale-[1.03]"
-              style={{
-                background: isActive ? tier.bg : 'rgba(255,255,255,0.04)',
-                border: `1px solid ${isActive ? tier.color + '55' : 'rgba(255,255,255,0.09)'}`,
-                boxShadow: isActive ? `0 0 12px -3px ${tier.color}25` : 'none',
-              }}
-            >
-              <span className="text-sm leading-none">{tier.emoji}</span>
-              <span
-                className="text-[12px] font-black whitespace-nowrap"
-                style={{ color: isActive ? tier.color : 'rgba(255,255,255,0.7)' }}
-              >
-                {name}
-              </span>
-              {isActive && (
-                <div className="w-1 h-1 rounded-full flex-shrink-0" style={{ background: tier.color }} />
-              )}
-            </button>
-          );
-        })}
-      </div>
-
-      {/* Detail panel for active skill */}
-      <SkillDetailPanel
-        key={activeIdx}
-        skill={activeSkill}
-        targetCompany={targetCompany}
-        targetJob={targetJob}
-        onStartLearning={onStartLearning ? () => onStartLearning(skillDisplayName(activeSkill)) : undefined}
-      />
-    </div>
-  );
-}
-
-// ── Where-to-start card ───────────────────────────────────────────────────────
-
-function WhereToStartCard({ skill, targetJob, onNavigate }: { skill: RawSkill; targetJob: string; onNavigate: () => void }) {
-  const name = skillDisplayName(skill);
-  const tier = tierFor(skill?.gap_severity ?? 3);
-  return (
-    <div className="relative overflow-hidden rounded-2xl"
-      style={{ background: `linear-gradient(135deg,${tier.bg} 0%,rgba(10,14,30,0.97) 100%)`, border: `1px solid ${tier.color}40` }}>
-      <div className="h-px w-full" style={{ background: `linear-gradient(90deg,transparent,${tier.color},transparent)` }} />
-      <div className="absolute top-0 right-0 w-48 h-48 pointer-events-none opacity-[0.06]"
-        style={{ background: `radial-gradient(circle,${tier.color},transparent)`, transform: 'translate(30%,-30%)' }} />
-      <div className="relative p-6 space-y-4">
-        <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-2xl flex items-center justify-center text-xl flex-shrink-0"
-            style={{ background: `${tier.color}15`, border: `1px solid ${tier.color}30` }}>
-            🎯
-          </div>
-          <div>
-            <p className="text-[11px] font-black uppercase tracking-widest" style={{ color: tier.color }}>
-              Womit fangen wir an?
-            </p>
-            <h3 className="text-lg font-black text-white leading-tight mt-0.5">
-              Starte mit <span style={{ color: tier.color }}>{name}</span>
-            </h3>
-          </div>
-        </div>
-        <p className="text-sm text-white/65 leading-relaxed">
-          {skill?.pitch ?? `Dieser Skill hat den größten direkten Einfluss auf deinen Weg zum ${targetJob}.`}
-        </p>
-        <button
-          onClick={onNavigate}
-          className="group relative w-full py-4 rounded-xl font-black text-[15px] text-black flex items-center justify-center gap-3 overflow-hidden transition-all duration-200 hover:scale-[1.02] active:scale-[0.98]"
-          style={{ background: `linear-gradient(135deg,${tier.color},#30E3CA)`, animation: 'ctaPulse 2.5s ease-in-out infinite' }}
-        >
-          <div className="absolute inset-0 pointer-events-none"
-            style={{ background: 'linear-gradient(90deg,transparent,rgba(255,255,255,0.18),transparent)', backgroundSize: '200% 100%', animation: 'shimmer 2s ease-in-out infinite' }} />
-          <Sparkles className="w-5 h-5 relative z-10 group-hover:rotate-12 transition-transform duration-300" />
-          <span className="relative z-10">Meinen Lernpfad jetzt starten</span>
-          <ArrowRight className="w-5 h-5 relative z-10 group-hover:translate-x-1 transition-transform" />
-        </button>
-        <p className="text-center text-[11px] text-white/25">
-          ESCO-validiert · Branchenspezifisch · jetzt starten
-        </p>
-      </div>
-    </div>
-  );
-}
-
-// ── Result view ────────────────────────────────────────────────────────────────
-
-function ResultView({ result }: { result: AnalysisResult; onNavigate: (selectedSkill?: string) => void }) {
-  const [showPaywall, setShowPaywall] = useState(false);
-  const [pendingSkill, setPendingSkill] = useState<string | undefined>(undefined);
-
-  const { missingSkills, currentSkills, strategicOutlook, matchScore, industry, targetJob, targetCompany } = result;
-
-  const visibleSkills = missingSkills
-    .filter((s) => skillDisplayName(s) !== '(unbenannt)')
-    .sort((a, b) => (b?.gap_severity ?? 0) - (a?.gap_severity ?? 0));
-
-  const visibleCurrent = currentSkills.filter((s) => skillDisplayName(s) !== '(unbenannt)');
-  const topSkill = visibleSkills[0];
-  const { user: authUser, profile: authProfile } = useAuth() as any;
-  const certName: string = (authProfile?.full_name || authUser?.user_metadata?.full_name || '').trim();
-  const scoreColor = (matchScore ?? 0) >= 70 ? '#22c55e' : (matchScore ?? 0) >= 40 ? '#f59e0b' : '#30E3CA';
-
-  const openPaywall = (skillName?: string) => {
-    setPendingSkill(skillName);
-    setShowPaywall(true);
-  };
-
-  return (
-    <div className="space-y-5" style={{ animation: 'fadeUp 0.5s ease' }}>
-      <style>{GLOBAL_STYLES}</style>
-
-      {/* Hero header */}
-      <div className="relative overflow-hidden rounded-2xl p-5"
-        style={{ background: 'linear-gradient(135deg,rgba(48,227,202,0.1) 0%,rgba(10,14,30,0.85) 60%,rgba(102,192,182,0.06) 100%)', border: '1px solid rgba(48,227,202,0.18)' }}>
-        <div className="absolute top-0 right-0 w-40 h-40 pointer-events-none opacity-[0.08]"
-          style={{ background: 'radial-gradient(circle,#30E3CA,transparent)', transform: 'translate(25%,-25%)' }} />
-        <div className="relative flex items-start justify-between gap-4">
-          <div className="space-y-1.5 flex-1 min-w-0">
-            <div className="flex items-center gap-1.5">
-              <div className="w-1.5 h-1.5 rounded-full bg-[#30E3CA] animate-pulse" />
-              <span className="text-[10px] font-black text-[#30E3CA]/75 uppercase tracking-widest">Karriere-Report · {new Date().getFullYear()}</span>
-            </div>
-            <h3 className="text-xl font-black text-white leading-tight">{targetJob}</h3>
-            <div className="flex flex-wrap items-center gap-2">
-              {targetCompany && (
-                <span className="flex items-center gap-1 text-xs text-white/55"><Building2 size={11} /> {targetCompany}</span>
-              )}
-              {industry && (
-                <span className="px-2 py-0.5 rounded-full text-[11px] font-bold bg-[#66c0b6]/12 text-[#66c0b6] border border-[#66c0b6]/20">{industry}</span>
-              )}
-            </div>
-          </div>
-          {matchScore !== null && Number.isFinite(matchScore) && (
-            <div className="flex-shrink-0 flex flex-col items-center gap-0.5 px-3 py-2.5 rounded-xl bg-white/5 border border-white/10 min-w-[70px] text-center">
-              <span className="text-[22px] font-black leading-none" style={{ color: scoreColor }}>{matchScore}%</span>
-              <span className="text-[10px] text-white/40 mt-0.5">Belegte Abdeckung</span>
-            </div>
-          )}
-        </div>
-        {strategicOutlook && (
-          <div className="relative mt-4 flex gap-2.5 p-3 rounded-xl bg-white/[0.04] border border-white/8">
-            <Brain size={15} className="text-[#66c0b6] flex-shrink-0 mt-0.5" />
-            <p className="text-xs text-white/65 leading-relaxed">{strategicOutlook}</p>
-          </div>
-        )}
-      </div>
-
-      {/* Current skills */}
-      {visibleCurrent.length > 0 && (
-        <div className="space-y-2">
-          <div className="flex items-center gap-1.5">
-            <Check size={13} className="text-[#66c0b6]" />
-            <span className="text-xs font-bold text-white/50">Deine belegten Stärken</span>
-            <span className="text-[10px] text-[#66c0b6]/60 font-bold">· {visibleCurrent.length} Skills</span>
-          </div>
-          <div className="flex flex-wrap gap-1.5">
-            {visibleCurrent.map((skill, i) => (
-              <span key={i} className="px-2.5 py-1 rounded-lg text-[11px] text-white/50 bg-white/[0.03] border border-white/8">
-                {skillDisplayName(skill)}
-              </span>
-            ))}
-          </div>
-        </div>
-      )}
-
-      <p className="text-xs text-white/50 leading-relaxed">{result.scoreMethod || 'Die Einschätzung basiert auf deinen Unterlagen.'} Noch nicht belegt bedeutet nicht, dass du etwas nicht kannst.</p>
-      {!!result.sources?.length && (
-        <details className="text-xs text-white/60">
-          <summary className="cursor-pointer">Recherchequellen ansehen</summary>
-          <ul className="mt-2 space-y-2">{result.sources.filter(url => /^https?:\/\//i.test(url)).map(url => (
-            <li key={url}><a href={url} target="_blank" rel="noopener noreferrer" className="underline break-all">{url}</a></li>
-          ))}</ul>
-          <p className="mt-2">KI-gestützte Einschätzung. Quellenverweise sind kein unabhängiger Faktencheck.</p>
-        </details>
-      )}
-      {/* Skill switcher */}
-      {visibleSkills.length > 0 && (
-        <div className="space-y-3">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-2">
-              <Sparkles size={14} className="text-[#30E3CA]" />
-              <h4 className="text-sm font-black text-white">Deine {visibleSkills.length} Wachstums-Chancen</h4>
-            </div>
-            <span className="text-[10px] text-white/30 italic">Skill antippen für Details</span>
-          </div>
-          <SkillSwitcher
-            skills={visibleSkills}
-            targetCompany={targetCompany}
-            targetJob={targetJob}
-            onStartLearning={(skillName) => openPaywall(skillName)}
-          />
-        </div>
-      )}
-
-      {/* Ergebnis vor Augen: persönliches Zertifikat zum wichtigsten Skill */}
-      {topSkill && (
-        <div className="rounded-2xl p-4 space-y-3" style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(48,227,202,0.18)' }}>
-          <div className="flex items-center justify-between gap-3">
-            <p className="text-xs font-black text-white flex items-center gap-1.5">
-              <Award size={14} className="text-[#30E3CA]" /> Dein Zertifikat für {skillDisplayName(topSkill)}
-            </p>
-            <span className="text-[10px] text-white/40">nach 5 Einheiten + Prüfung</span>
-          </div>
-          <CertificatePreview name={certName} skill={skillDisplayName(topSkill)} />
-        </div>
-      )}
-
-      {/* CTA */}
-      {topSkill ? (
-        <WhereToStartCard
-          skill={topSkill}
-          targetJob={targetJob}
-          onNavigate={() => openPaywall(skillDisplayName(topSkill))}
-        />
-      ) : (
-        <button
-          onClick={() => openPaywall()}
-          className="group w-full py-4 rounded-xl font-black text-base text-black flex items-center justify-center gap-3 transition-all hover:scale-[1.02]"
-          style={{ background: 'linear-gradient(135deg,#66c0b6,#30E3CA)', animation: 'ctaPulse 2.5s ease-in-out infinite' }}
-        >
-          <Sparkles className="w-5 h-5 group-hover:rotate-12 transition-transform" />
-          Meinen Lernpfad starten
-          <ArrowRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
-        </button>
-      )}
-
-      {showPaywall && (
-        <LearningPathPaywall
-          isOpen
-          onClose={() => { setShowPaywall(false); setPendingSkill(undefined); }}
-          analysisPathId={result.pathId}
-          missingSkills={visibleSkills}
-          targetJob={targetJob}
-          targetCompany={targetCompany}
-          skillCount={visibleSkills.length}
-          selectedSkill={pendingSkill}
-        />
-      )}
-    </div>
-  );
-}
-
 // ── Main component ─────────────────────────────────────────────────────────────
 
 interface CareerVisionSectionProps {
   cvId?: string;
+  /** @deprecated Weiterleitung erfolgt jetzt über die Paywall im Ergebnis */
   onAnalysisComplete?: (pathId: string) => void;
   resumePathId?: string;
 }
 
-export function CareerVisionSection({ cvId: initialCvId, onAnalysisComplete, resumePathId }: CareerVisionSectionProps) {
+export function CareerVisionSection({ cvId: initialCvId, resumePathId }: CareerVisionSectionProps) {
   const { user, loading: authLoading } = useAuth();
-  const navigate = useNavigate();
 
   // Form state
   const [targetJob, setTargetJob] = useState('');
@@ -951,6 +504,8 @@ export function CareerVisionSection({ cvId: initialCvId, onAnalysisComplete, res
   const [formError, setFormError] = useState<string | null>(null);
   const [apiError, setApiError] = useState<string | null>(null);
   const [failCode, setFailCode] = useState<string | null>(null);
+  /** Technischer Fehlertext aus skillgap_analysis.error (für Support/Diagnose) */
+  const [failDetail, setFailDetail] = useState<string>('');
   const [failedRole, setFailedRole] = useState('');
   const [roleFix, setRoleFix] = useState('');
   const [roleFixError, setRoleFixError] = useState<string | null>(null);
@@ -1075,8 +630,9 @@ export function CareerVisionSection({ cvId: initialCvId, onAnalysisComplete, res
       setSlowHint(false);
 
       const analysis = (row.skillgap_analysis ?? null) as
-        | { research?: { sources?: unknown }; score?: { method?: unknown } }
+        | { research?: { sources?: unknown }; score?: { method?: unknown; covered?: unknown; partial?: unknown; total?: unknown; total_weight?: unknown } }
         | null;
+      const sc = analysis?.score;
       const rawSources = analysis?.research?.sources;
 
       setResult({
@@ -1086,7 +642,10 @@ export function CareerVisionSection({ cvId: initialCvId, onAnalysisComplete, res
         strategicOutlook: (row.strategic_outlook_2026 as string) ?? '',
         matchScore:       row.match_score == null ? null : Number(row.match_score),
         sources:          Array.isArray(rawSources) ? rawSources.filter((u): u is string => typeof u === 'string') : [],
-        scoreMethod:      typeof analysis?.score?.method === 'string' ? analysis.score.method : '',
+        scoreMethod:      typeof sc?.method === 'string' ? sc.method : '',
+        coverage:         sc && Number(sc.total_weight) > 0
+          ? { covered: Number(sc.covered) || 0, partial: Number(sc.partial) || 0, total: Number(sc.total) || 0, totalWeight: Number(sc.total_weight) }
+          : null,
         industry:         (row.industry as string) ?? industry,
         targetJob:        (row.target_job as string) ?? targetJob,
         targetCompany:    (row.target_company as string) ?? targetCompany,
@@ -1106,8 +665,9 @@ export function CareerVisionSection({ cvId: initialCvId, onAnalysisComplete, res
     const role = (row.target_job as string) ?? '';
     completedRef.current = true;
     cleanupListeners();
-    const analysis = row.skillgap_analysis as { error_code?: string } | null;
+    const analysis = row.skillgap_analysis as { error_code?: string; error?: string } | null;
     setFailCode((row.error_code as string) || analysis?.error_code || 'INTERNAL');
+    setFailDetail(typeof analysis?.error === 'string' ? analysis.error : '');
     setFailedRole(role);
     setRoleFix('');
     setRoleFixError(null);
@@ -1582,11 +1142,6 @@ export function CareerVisionSection({ cvId: initialCvId, onAnalysisComplete, res
     }
   };
 
-  const handleNavigate = (_selectedSkill?: string) => {
-    if (!result) return;
-    if (onAnalysisComplete) onAnalysisComplete(result.pathId);
-    else navigate(`/learning-path/${result.pathId}`);
-  };
 
   // ── Derived ─────────────────────────────────────────────────────────────────
 
@@ -1688,6 +1243,12 @@ export function CareerVisionSection({ cvId: initialCvId, onAnalysisComplete, res
                   <p className="text-sm text-white/60">
                     Das lag an uns, nicht an dir. Starte sie einfach neu – ohne zusätzliche Kosten.
                   </p>
+                  <details className="text-[11px] text-white/40 pt-1">
+                    <summary className="cursor-pointer hover:text-white/60">Technische Details</summary>
+                    <p className="mt-1 font-mono break-all">
+                      {failCode}{failDetail ? ` · ${failDetail}` : ''}
+                    </p>
+                  </details>
                 </>
               )}
             </div>
@@ -1734,7 +1295,7 @@ export function CareerVisionSection({ cvId: initialCvId, onAnalysisComplete, res
       )}
 
       {/* Results */}
-      {showResult && result && <ResultView result={result} onNavigate={handleNavigate} />}
+      {showResult && result && <SkillGapResultView result={result} />}
 
       {/* SkillGap paywall */}
       {phase === 'paywall' && pathIdRef.current && (
