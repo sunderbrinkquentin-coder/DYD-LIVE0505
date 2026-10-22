@@ -630,7 +630,7 @@ export function ProzessCheckFlow({ presetArea, presetDetails }: { presetArea?: s
                   Nur Termin sichern – Analyse per E-Mail
                 </button>
               </div>
-              <p className="font-arimo text-[11px] text-white/40 text-center">Ihre Kontaktdaten werden sofort übermittelt – auch wenn Sie den Chat abbrechen. <a href="/#/datenschutz" className="underline hover:text-white/70">Datenschutz</a></p>
+              <p className="font-arimo text-[11px] text-white/40 text-center">Ihre Kontaktdaten werden sofort übermittelt – auch wenn Sie den Chat abbrechen. <a href="/datenschutz" className="underline hover:text-white/70">Datenschutz</a></p>
             </form>
           )}
 
