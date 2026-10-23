@@ -5,7 +5,7 @@
  * Supabase-Auth-Nutzer (E-Mail+Passwort, sofort aktiv, kein Bestaetigungs-
  * link/E-Mail-Versand - siehe Begruendung "email_confirm: true" in
  * handleSignup), (2) einen Tenant im Status "trial" (7 Tage, TRIAL_DAYS in
- * der Function, Plan fest "demo" mit DEMO_COURSE_LIMIT=20 Kursen), (3) den
+ * der Function, Plan fest "demo" mit DEMO_COURSE_LIMIT=10 Kursen), (3) den
  * zugehoerigen API-Key fuer diesen Tenant (in api_keys, Produkt "orbit").
  *
  * AUFLOESUNG des vorherigen 401-Fehlers ("Fehlender Header 'X-API-Key'"):
