@@ -38,28 +38,28 @@ const PLANS: readonly PlanDef[] = [
     icon: "rocket",
     monthlyPrice: 199,
     yearlyTotal: 1990,
-    courseLimit: "bis 200 Kurse",
+    courseLimit: "bis zu 30 Kurse",
     features: ["Skill-Gap-Matching", "Basis-Dashboard", "E-Mail-Support"],
   },
   {
     plan: "growth",
     name: "Growth",
-    blurb: "Für wachsende Bildungsträger",
+    blurb: "Für wachsende Bildungsträger mit mehreren Bereichen",
     icon: "growth",
     monthlyPrice: 399,
     yearlyTotal: 3990,
-    courseLimit: "bis 500 Kurse",
+    courseLimit: "bis zu 100 Kurse",
     features: ["Alles aus Starter", "Erweiterte Auswertungen", "Priorisierter Support"],
     highlighted: true,
   },
   {
     plan: "professional",
     name: "Professional",
-    blurb: "Für große Träger & Netzwerke",
+    blurb: "Für große Träger & Netzwerke – ohne Kurslimit",
     icon: "crown",
     monthlyPrice: 699,
     yearlyTotal: 6990,
-    courseLimit: "bis 2.500 Kurse",
+    courseLimit: "Unbegrenzt viele Kurse",
     features: ["Alles aus Growth", "White-Label-Option", "Persönlicher Ansprechpartner"],
   },
 ];
@@ -346,7 +346,11 @@ export function PricingSection() {
           })}
         </motion.div>
 
-        <motion.div variants={fadeUp} initial="hidden" whileInView="show" viewport={VIEWPORT} className="flex flex-wrap items-center justify-center gap-x-6 gap-y-2 mt-9">
+        <motion.p variants={fadeUp} initial="hidden" whileInView="show" viewport={VIEWPORT} className="font-arimo text-xs text-white/60 text-center mt-8">
+          Bestehende Kurse bleiben jederzeit bearbeitbar – das Limit gilt nur für neu angelegte Kurse.
+        </motion.p>
+
+        <motion.div variants={fadeUp} initial="hidden" whileInView="show" viewport={VIEWPORT} className="flex flex-wrap items-center justify-center gap-x-6 gap-y-2 mt-5">
           <span className="inline-flex items-center gap-1.5 font-arimo text-xs text-white/60">
             <ShieldCheck className="w-3.5 h-3.5 text-[#DEFF9A]" aria-hidden="true" />DSGVO-konform, Server in der EU
           </span>
