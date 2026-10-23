@@ -55,11 +55,11 @@ const PLANS: readonly PlanDef[] = [
   {
     plan: "professional",
     name: "Professional",
-    blurb: "Für große Träger & Netzwerke – ohne Kurslimit",
+    blurb: "Für große Träger & Netzwerke",
     icon: "crown",
     monthlyPrice: 699,
     yearlyTotal: 6990,
-    courseLimit: "Unbegrenzt viele Kurse",
+    courseLimit: "bis zu 300 Kurse – mehr auf Anfrage",
     features: ["Alles aus Growth", "White-Label-Option", "Persönlicher Ansprechpartner"],
   },
 ];
